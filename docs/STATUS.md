@@ -4,7 +4,7 @@
 
 ## 1. Đang chờ người
 
-- Danh sách chạy `draft` chờ duyệt: [RUN-20261021-01.md](runs/RUN-20261021-01.md)
+- Danh sách chạy đã duyệt, chờ kích hoạt: [RUN-20261021-01.md](runs/RUN-20261021-01.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
@@ -106,7 +106,7 @@ Phản hồi: chưa có.
 
 | Phiên | Trạng thái | Bắt đầu | Ticket | Bản staging |
 | --- | --- | --- | --- | --- |
-| [RUN-20261021-01](runs/RUN-20261021-01.md) | `draft` |  | T-007, T-009, T-011 | - |
+| [RUN-20261021-01](runs/RUN-20261021-01.md) | `approved` |  | T-007, T-009, T-011 | - |
 
 ## 5. Bài học và ADR
 

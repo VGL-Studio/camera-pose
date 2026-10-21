@@ -39,7 +39,8 @@ internal class CatalogParser(private val logger: AppLogger) {
         val root = try {
             json.decodeFromString(CatalogJson.serializer(), text)
         } catch (e: IllegalArgumentException) {
-            logger.warn(LOG_TAG, "The catalog is not valid JSON of the expected shape", e)
+            // The exception text quotes the input, so only its type is logged.
+            logger.warn(LOG_TAG, "The catalog is not valid JSON of the expected shape: ${e::class.simpleName}")
             return CatalogParseResult.Invalid
         }
         if (root.minAppSchema > APP_SCHEMA) {

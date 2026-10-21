@@ -24,6 +24,9 @@ internal class FakeRemoteAssets(private val folder: File) : RemoteAssets {
     /** Number of completed downloads, by path. */
     val downloads = mutableMapOf<String, Int>()
 
+    /** A path whose load throws an unexpected error. */
+    var crashOn: String? = null
+
     var maxConcurrent = 0
         private set
 
@@ -32,6 +35,7 @@ internal class FakeRemoteAssets(private val folder: File) : RemoteAssets {
 
     override suspend fun load(path: AssetPath): AssetResult {
         calls += path.value
+        if (path.value == crashOn) throw IllegalStateException("unexpected")
         val file = File(folder, path.value)
         if (path.value in kept) return AssetResult.Ready(file)
         running++

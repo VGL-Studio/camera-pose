@@ -34,4 +34,10 @@ class LocalizedTextTest {
         assertEquals(listOf("một", "hai"), list.resolve(Locale.forLanguageTag("vi")))
         assertEquals(listOf("one", "two"), list.resolve(Locale.forLanguageTag("de")))
     }
+
+    @Test
+    fun indonesianLocale_matchesIdEntry() {
+        val text = LocalizedText(mapOf("id" to "Halo", "en" to "Hello"))
+        assertEquals("Halo", text.resolve(Locale("id", "ID")))
+    }
 }

@@ -284,4 +284,15 @@ class DefaultPoseCatalogRepositoryTest {
         val ids = listOf("w01", "w02", "w03", "m01", "m02", "m03")
         assertTrue(logger.entries.none { entry -> "/" in entry.message || ids.any { it in entry.message } })
     }
+
+    @Test
+    fun loadCatalog_unexpectedError_endsFailed_notLoading() = runTest {
+        val repository = repository()
+        assets.crashOn = DEFAULT_CATALOG_PATH
+
+        val state = repository.loadCatalog()
+
+        assertEquals(CatalogState.Failed(PoseLoadFailure(PoseContent.CATALOG, LoadFailureReason.OTHER)), state)
+        assertEquals(state, repository.catalog.value)
+    }
 }

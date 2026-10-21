@@ -69,6 +69,10 @@ internal class DefaultPoseCatalogRepository(
         } catch (e: CancellationException) {
             state.value = before
             throw e
+        } catch (e: Exception) {
+            // Never leave the state at Loading: the library screen would wait forever and retry could not recover.
+            logger.warn(LOG_TAG, "Unexpected error while loading the catalog: ${e::class.simpleName}")
+            fail(PoseLoadFailure(PoseContent.CATALOG, LoadFailureReason.OTHER)).also { state.value = it }
         }
     }
 
@@ -124,7 +128,7 @@ internal class DefaultPoseCatalogRepository(
         return try {
             AssetPath(configured)
         } catch (e: IllegalArgumentException) {
-            logger.warn(LOG_TAG, "The catalog path from Remote Config is not valid, using the default", e)
+            logger.warn(LOG_TAG, "The catalog path from Remote Config is not valid, using the default")
             AssetPath(DEFAULT_CATALOG_PATH)
         }
     }
@@ -137,7 +141,7 @@ internal class DefaultPoseCatalogRepository(
         val text = try {
             withContext(ioDispatcher) { file.readText() }
         } catch (e: IOException) {
-            logger.warn(LOG_TAG, "Could not read the catalog file", e)
+            logger.warn(LOG_TAG, "Could not read the catalog file")
             return fail(PoseLoadFailure(PoseContent.CATALOG, LoadFailureReason.OTHER))
         }
         return when (val parsed = parser.parse(text)) {

@@ -19,7 +19,7 @@ interface PoseCatalogRepository {
 
     /**
      * Loads the thumbnail and the outline of every starter pose, at most four files at a time.
-     * [onProgress] is called when it starts and after each file; `done` never goes down, also across retries.
+     * [onProgress] is called when it starts and after each file, on any thread, so keep it light; `done` never goes down, also across retries.
      */
     suspend fun loadStarterSet(onProgress: (done: Int, total: Int) -> Unit): StarterSetResult
 

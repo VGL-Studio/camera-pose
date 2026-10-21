@@ -65,7 +65,7 @@ internal class DataStorePoseHistoryRepository(
     private fun stored(key: Preferences.Key<String>): Flow<List<StoredPose>> = dataStore.data
         .retryWhen { cause, attempt ->
             if (cause !is IOException) return@retryWhen false
-            logger.warn(LOG_TAG, "Could not read the saved poses, trying again", cause)
+            logger.warn(LOG_TAG, "Could not read the saved poses, trying again")
             emit(emptyPreferences())
             delay(retryDelayMillis(attempt))
             true
@@ -78,7 +78,7 @@ internal class DataStorePoseHistoryRepository(
         return try {
             json.decodeFromString(ListSerializer(StoredPose.serializer()), value)
         } catch (e: IllegalArgumentException) {
-            logger.warn(LOG_TAG, "A stored pose list is corrupted, ignoring it", e)
+            logger.warn(LOG_TAG, "A stored pose list is corrupted, ignoring it")
             emptyList()
         }
     }

@@ -121,4 +121,12 @@ class DataStorePoseHistoryRepositoryTest {
         assertEquals(emptyList<SavedPose>(), repository().saved.first())
         assertTrue(logger.entries.any { it.level == LogLevel.WARN && it.tag == "Poses" })
     }
+
+    @Test
+    fun corruptedStoredValue_logsNoThrowable() = runTest {
+        dataStore.edit { it[stringPreferencesKey("poses_saved")] = "[{\"id\":\"w01\"" }
+        repository().saved.first()
+        assertTrue(logger.entries.isNotEmpty())
+        assertTrue(logger.entries.all { it.error == null && "w01" !in it.message })
+    }
 }

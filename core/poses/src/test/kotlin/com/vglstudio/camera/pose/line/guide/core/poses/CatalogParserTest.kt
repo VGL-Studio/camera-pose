@@ -122,4 +122,11 @@ class CatalogParserTest {
     private fun catalogWith(pose: String, rootExtra: String = ""): String =
         """{"schema": 1, "minAppSchema": 1, "datasetVersion": "t",
             "categories": [{"id": "c", "name": {"en": "C"}}], "poses": [$pose]$rootExtra}"""
+
+    @Test
+    fun malformedJson_logsNoThrowable() {
+        parser.parse(Fixtures.text("malformed.json"))
+        assertTrue(logger.entries.isNotEmpty())
+        assertTrue(logger.entries.all { it.error == null })
+    }
 }

@@ -1,0 +1,304 @@
+{
+  "schema": 1,
+  "minAppSchema": 1,
+  "datasetVersion": "test",
+  "categories": [
+    {
+      "id": "women",
+      "name": {
+        "en": "Women"
+      }
+    },
+    {
+      "id": "men",
+      "name": {
+        "en": "Men"
+      }
+    }
+  ],
+  "poses": [
+    {
+      "id": "a01",
+      "category": "women",
+      "subjectType": "single",
+      "gender": "female",
+      "framing": "full",
+      "tags": [],
+      "difficulty": 1,
+      "name": {
+        "en": "Valid one",
+        "vi": "Hợp lệ một"
+      },
+      "steps": {
+        "en": [
+          "Step one of Valid one",
+          "Step two of Valid one"
+        ],
+        "vi": [
+          "Bước một: Hợp lệ một",
+          "Bước hai: Hợp lệ một"
+        ]
+      },
+      "mistakes": {
+        "en": [
+          "Common mistake in Valid one"
+        ],
+        "vi": [
+          "Lỗi thường gặp: Hợp lệ một"
+        ]
+      },
+      "preview": {
+        "small": "poses/img/a01/preview_540-1a2b3c4d.webp",
+        "large": "poses/img/a01/preview_1200-1a2b3c4d.webp"
+      },
+      "outline": "poses/img/a01/outline-1a2b3c4d.webp"
+    },
+    {
+      "id": "a01",
+      "category": "women",
+      "subjectType": "single",
+      "gender": "female",
+      "framing": "full",
+      "tags": [],
+      "difficulty": 1,
+      "name": {
+        "en": "Duplicate id",
+        "vi": "Trùng mã"
+      },
+      "steps": {
+        "en": [
+          "Step one of Duplicate id",
+          "Step two of Duplicate id"
+        ],
+        "vi": [
+          "Bước một: Trùng mã",
+          "Bước hai: Trùng mã"
+        ]
+      },
+      "mistakes": {
+        "en": [
+          "Common mistake in Duplicate id"
+        ],
+        "vi": [
+          "Lỗi thường gặp: Trùng mã"
+        ]
+      },
+      "preview": {
+        "small": "poses/img/a01/preview_540-1a2b3c4d.webp",
+        "large": "poses/img/a01/preview_1200-1a2b3c4d.webp"
+      },
+      "outline": "poses/img/a01/outline-1a2b3c4d.webp"
+    },
+    {
+      "id": "b01",
+      "category": "nowhere",
+      "subjectType": "single",
+      "gender": "female",
+      "framing": "full",
+      "tags": [],
+      "difficulty": 1,
+      "name": {
+        "en": "Unknown category",
+        "vi": "Nhóm lạ"
+      },
+      "steps": {
+        "en": [
+          "Step one of Unknown category",
+          "Step two of Unknown category"
+        ],
+        "vi": [
+          "Bước một: Nhóm lạ",
+          "Bước hai: Nhóm lạ"
+        ]
+      },
+      "mistakes": {
+        "en": [
+          "Common mistake in Unknown category"
+        ],
+        "vi": [
+          "Lỗi thường gặp: Nhóm lạ"
+        ]
+      },
+      "preview": {
+        "small": "poses/img/b01/preview_540-1a2b3c4d.webp",
+        "large": "poses/img/b01/preview_1200-1a2b3c4d.webp"
+      },
+      "outline": "poses/img/b01/outline-1a2b3c4d.webp"
+    },
+    {
+      "id": "b02",
+      "category": "women",
+      "subjectType": "robot",
+      "gender": "female",
+      "framing": "full",
+      "tags": [],
+      "difficulty": 1,
+      "name": {
+        "en": "Unknown subject",
+        "vi": "Kiểu lạ"
+      },
+      "steps": {
+        "en": [
+          "Step one of Unknown subject",
+          "Step two of Unknown subject"
+        ],
+        "vi": [
+          "Bước một: Kiểu lạ",
+          "Bước hai: Kiểu lạ"
+        ]
+      },
+      "mistakes": {
+        "en": [
+          "Common mistake in Unknown subject"
+        ],
+        "vi": [
+          "Lỗi thường gặp: Kiểu lạ"
+        ]
+      },
+      "preview": {
+        "small": "poses/img/b02/preview_540-1a2b3c4d.webp",
+        "large": "poses/img/b02/preview_1200-1a2b3c4d.webp"
+      },
+      "outline": "poses/img/b02/outline-1a2b3c4d.webp"
+    },
+    {
+      "id": "b03",
+      "category": "women",
+      "subjectType": "single",
+      "gender": "female",
+      "framing": "full",
+      "tags": [],
+      "difficulty": 1,
+      "name": {
+        "vi": "Thiếu tên tiếng Anh"
+      },
+      "steps": {
+        "en": [
+          "Step one of x",
+          "Step two of x"
+        ],
+        "vi": [
+          "Bước một: Thiếu tên tiếng Anh",
+          "Bước hai: Thiếu tên tiếng Anh"
+        ]
+      },
+      "mistakes": {
+        "en": [
+          "Common mistake in x"
+        ],
+        "vi": [
+          "Lỗi thường gặp: Thiếu tên tiếng Anh"
+        ]
+      },
+      "preview": {
+        "small": "poses/img/b03/preview_540-1a2b3c4d.webp",
+        "large": "poses/img/b03/preview_1200-1a2b3c4d.webp"
+      },
+      "outline": "poses/img/b03/outline-1a2b3c4d.webp"
+    },
+    {
+      "id": "b04",
+      "category": "men",
+      "subjectType": "single",
+      "gender": "male",
+      "framing": "full",
+      "tags": [],
+      "difficulty": 1,
+      "name": {
+        "en": "Missing english steps",
+        "vi": "Thiếu bước"
+      },
+      "steps": {
+        "vi": [
+          "Bước một: Thiếu bước",
+          "Bước hai: Thiếu bước"
+        ]
+      },
+      "mistakes": {
+        "en": [
+          "Common mistake in Missing english steps"
+        ],
+        "vi": [
+          "Lỗi thường gặp: Thiếu bước"
+        ]
+      },
+      "preview": {
+        "small": "poses/img/b04/preview_540-1a2b3c4d.webp",
+        "large": "poses/img/b04/preview_1200-1a2b3c4d.webp"
+      },
+      "outline": "poses/img/b04/outline-1a2b3c4d.webp"
+    },
+    {
+      "id": "b05",
+      "category": "men",
+      "subjectType": "single",
+      "gender": "male",
+      "framing": "full",
+      "tags": [],
+      "difficulty": 1,
+      "name": {
+        "en": "Invalid path",
+        "vi": "Đường dẫn sai"
+      },
+      "steps": {
+        "en": [
+          "Step one of Invalid path",
+          "Step two of Invalid path"
+        ],
+        "vi": [
+          "Bước một: Đường dẫn sai",
+          "Bước hai: Đường dẫn sai"
+        ]
+      },
+      "mistakes": {
+        "en": [
+          "Common mistake in Invalid path"
+        ],
+        "vi": [
+          "Lỗi thường gặp: Đường dẫn sai"
+        ]
+      },
+      "preview": {
+        "small": "poses/img/b05/preview.webp",
+        "large": "poses/img/b05/large.webp"
+      },
+      "outline": "poses/img/b05/outline.webp"
+    },
+    {
+      "id": "a02",
+      "category": "men",
+      "subjectType": "single",
+      "gender": "male",
+      "framing": "half",
+      "tags": [],
+      "difficulty": 2,
+      "name": {
+        "en": "Valid two",
+        "vi": "Hợp lệ hai"
+      },
+      "steps": {
+        "en": [
+          "Step one of Valid two",
+          "Step two of Valid two"
+        ],
+        "vi": [
+          "Bước một: Hợp lệ hai",
+          "Bước hai: Hợp lệ hai"
+        ]
+      },
+      "mistakes": {
+        "en": [
+          "Common mistake in Valid two"
+        ],
+        "vi": [
+          "Lỗi thường gặp: Hợp lệ hai"
+        ]
+      },
+      "preview": {
+        "small": "poses/img/a02/preview_540-1a2b3c4d.webp",
+        "large": "poses/img/a02/preview_1200-1a2b3c4d.webp"
+      },
+      "outline": "poses/img/a02/outline-1a2b3c4d.webp"
+    }
+  ]
+}

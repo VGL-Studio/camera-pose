@@ -5,10 +5,18 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppColors
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTypography
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.DarkAppColors
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.DarkColors
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.FONT_FAMILY_NAME
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.LightAppColors
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.LightColors
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.StickerShadow
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Stroke
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -55,10 +63,10 @@ class DesignTokensTest {
 
 internal fun tokensJson(): String = buildString {
     appendLine("{")
-    appendLine("  \"fontFamily\": \"Inter\",")
+    appendLine("  \"fontFamily\": \"$FONT_FAMILY_NAME\",")
     appendLine("  \"color\": {")
-    appendLine("    \"light\": ${colors(LightColors)},")
-    appendLine("    \"dark\": ${colors(DarkColors)}")
+    appendLine("    \"light\": ${colors(LightColors, LightAppColors)},")
+    appendLine("    \"dark\": ${colors(DarkColors, DarkAppColors)}")
     appendLine("  },")
     val styles = typographyStyles(AppTypography)
     appendLine("  \"typography\": {")
@@ -68,11 +76,21 @@ internal fun tokensJson(): String = buildString {
     }
     appendLine("  },")
     val spacing = Spacing.scale.joinToString(", ") { (name, dp) -> "\"$name\": ${dp.value.toInt()}" }
-    appendLine("  \"spacingDp\": {$spacing}")
+    appendLine("  \"spacingDp\": {$spacing},")
+    appendLine("  \"radiusDp\": {${dpScale(Radius.scale)}},")
+    appendLine("  \"strokeDp\": {${dpScale(Stroke.scale)}},")
+    val offset = StickerShadow.offset.value.toInt()
+    appendLine(
+        "  \"shadow\": {\"sticker\": {\"offsetXDp\": $offset, \"offsetYDp\": $offset, \"blurDp\": 0, " +
+            "\"color\": \"shadowSticker\"}}",
+    )
     appendLine("}")
 }
 
-private fun colors(scheme: ColorScheme): String = colorRoles(scheme)
+private fun dpScale(scale: List<Pair<String, Dp>>): String =
+    scale.joinToString(", ") { (name, dp) -> "\"$name\": ${dp.value.toInt()}" }
+
+private fun colors(scheme: ColorScheme, app: AppColors): String = (colorRoles(scheme) + appColorRoles(app))
     .joinToString(prefix = "{", postfix = "}", separator = ", ") { (name, color) -> "\"$name\": \"${hex(color)}\"" }
 
 internal fun colorRoles(scheme: ColorScheme): List<Pair<String, Color>> = listOf(
@@ -111,6 +129,32 @@ internal fun colorRoles(scheme: ColorScheme): List<Pair<String, Color>> = listOf
     "surfaceContainer" to scheme.surfaceContainer,
     "surfaceContainerHigh" to scheme.surfaceContainerHigh,
     "surfaceContainerHighest" to scheme.surfaceContainerHighest,
+)
+
+/** The app colors in the order of docs/design-system/tokens.json, named as the variables on Figma. */
+internal fun appColorRoles(colors: AppColors): List<Pair<String, Color>> = listOf(
+    "success" to colors.success,
+    "onSuccess" to colors.onSuccess,
+    "successContainer" to colors.successContainer,
+    "onSuccessContainer" to colors.onSuccessContainer,
+    "shadowSticker" to colors.shadowSticker,
+    "category/women" to colors.categoryWomen,
+    "category/men" to colors.categoryMen,
+    "category/couple" to colors.categoryCouple,
+    "category/friends" to colors.categoryFriends,
+    "category/family" to colors.categoryFamily,
+    "category/kids" to colors.categoryKids,
+    "category/travel" to colors.categoryTravel,
+    "category/cafe" to colors.categoryCafe,
+    "category/onCategory" to colors.onCategory,
+    "camera/background" to colors.cameraBackground,
+    "camera/surface" to colors.cameraSurface,
+    "camera/onCamera" to colors.onCamera,
+    "camera/onSurfaceVariant" to colors.cameraOnSurfaceVariant,
+    "camera/control" to colors.cameraControl,
+    "camera/onControl" to colors.cameraOnControl,
+    "camera/overlayStroke" to colors.cameraOverlayStroke,
+    "camera/scrim" to colors.cameraScrim,
 )
 
 private fun hex(color: Color): String = "#%06X".format(color.toArgb() and 0xFFFFFF)

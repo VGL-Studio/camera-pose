@@ -1,6 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.core.designsystem
 
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertRangeInfoEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -22,9 +24,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.github.takahirom.roborazzi.RoborazziOptions
-import com.github.takahirom.roborazzi.RoborazziTaskType
-import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
@@ -195,18 +194,19 @@ class ComponentsTest {
     }
 
     /**
-     * Color of the pixel at ([x], [y]) inside the node; dp are converted with the density of the test. The node is
-     * captured with Roborazzi in record mode to a scratch file under build/ (not a reference image) and read back,
-     * because captureToImage times out in Robolectric native graphics.
+     * Color of the pixel at ([x], [y]) inside the node; dp are converted with the density of the test. The root view of
+     * the activity is drawn into a bitmap and read at the node's window position, because captureToImage times out in
+     * Robolectric native graphics. Drawing the whole window also covers pixels outside the node, such as a shadow.
      */
     private fun pixelAt(tag: String, x: Dp, y: Dp): Color {
-        val path = "build/tmp/pixel/$tag.png"
-        composeRule.onNodeWithTag(tag).captureRoboImage(
-            filePath = path,
-            roborazziOptions = RoborazziOptions(taskType = RoborazziTaskType.Record),
-        )
-        val bitmap = checkNotNull(BitmapFactory.decodeFile(path)) { "No image written to $path" }
-        with(composeRule.density) { return Color(bitmap.getPixel(x.roundToPx(), y.roundToPx())) }
+        composeRule.waitForIdle()
+        val root = (composeRule as AndroidComposeTestRule<*, *>).activity.window.decorView
+        val bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(bitmap))
+        val bounds = composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInWindow
+        with(composeRule.density) {
+            return Color(bitmap.getPixel(bounds.left.toInt() + x.roundToPx(), bounds.top.toInt() + y.roundToPx()))
+        }
     }
 
     private fun textOffset(buttonTag: String, text: String) =

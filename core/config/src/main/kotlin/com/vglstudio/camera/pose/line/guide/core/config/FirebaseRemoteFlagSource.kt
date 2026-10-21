@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
@@ -53,7 +52,7 @@ internal class FirebaseRemoteFlagSource @Inject constructor() : RemoteFlagSource
 
     override fun long(key: String): Flow<Long?> = values(key) { it.asLong() }
 
-    override fun string(key: String): Flow<String?> = flowOf(null)
+    override fun string(key: String): Flow<String?> = values(key) { it.asString() }
 
     private fun <T> values(key: String, convert: (FirebaseRemoteConfigValue) -> T): Flow<T?> = activations
         .onStart { emit(Unit) }

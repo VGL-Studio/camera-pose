@@ -23,7 +23,7 @@ internal class HttpAssetDownloader : AssetDownloader {
             connection.connectTimeout = TIMEOUT_MILLIS
             connection.readTimeout = TIMEOUT_MILLIS
             val status = connection.responseCode
-            if (status != HttpURLConnection.HTTP_OK) throw IOException("HTTP $status for $url")
+            if (status != HttpURLConnection.HTTP_OK) throw HttpStatusException(status, url)
             val expectedLength = connection.contentLengthLong
             val written = connection.inputStream.use { input -> target.outputStream().use { input.copyTo(it) } }
             if (expectedLength >= 0 && written != expectedLength) {

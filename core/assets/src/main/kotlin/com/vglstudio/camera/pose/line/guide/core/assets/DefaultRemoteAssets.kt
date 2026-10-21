@@ -37,7 +37,7 @@ internal class DefaultRemoteAssets(
                 AssetResult.Ready(file)
             } catch (e: IOException) {
                 onDownloadFailed(path, e)
-                AssetResult.Unavailable()
+                AssetResult.Unavailable(e.toFailureReason())
             } finally {
                 temp.delete()
             }

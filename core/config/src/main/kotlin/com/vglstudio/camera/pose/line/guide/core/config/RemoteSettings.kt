@@ -2,7 +2,6 @@ package com.vglstudio.camera.pose.line.guide.core.config
 
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /**
@@ -23,5 +22,5 @@ internal class DefaultRemoteSettings @Inject constructor(private val remote: Rem
 
     override fun long(key: String, default: Long): Flow<Long> = remote.long(key).map { it ?: default }
 
-    override fun string(key: String, default: String): Flow<String> = flowOf(default)
+    override fun string(key: String, default: String): Flow<String> = remote.string(key).map { it ?: default }
 }

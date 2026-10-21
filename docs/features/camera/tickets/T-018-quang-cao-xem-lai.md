@@ -5,7 +5,7 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-9]
 owner: Nhật
-status: backlog
+status: ready
 risk: high
 size: S
 depends_on: [T-016]

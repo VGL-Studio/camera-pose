@@ -5,12 +5,12 @@ feature: loading
 spec: features/loading/spec.md
 scenarios: []
 owner: Nhật
-status: backlog
+status: planned
 risk: high
 size: L
 depends_on: []
 sprint:
-plan:
+plan: features/loading/plans/T-007-he-thong-thiet-ke-sticker.md
 created: 2026-10-21
 ---
 

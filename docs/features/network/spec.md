@@ -1,0 +1,125 @@
+---
+feature: network
+status: draft
+owner: Nhật
+product_owner: Nhật
+requests:
+  - requests/2026-10-21-hop-thoai-mat-mang.md
+design: design/README.md
+created: 2026-10-21
+confirmed:
+---
+
+# SPEC: BÁO MẤT MẠNG KHI ĐANG DÙNG
+
+## 1. Mục tiêu
+
+- **Người dùng được gì:** luôn biết khi nào app mất mạng và biết phải làm gì, thay vì thấy màn hình trống, quay vòng mãi hay lỗi khó hiểu.
+- **Vì sao làm bây giờ:** quyết định chung cho mọi app của nhóm (2026-10-21): app luôn cần mạng. Lúc mở app, màn loading đã chặn khi không có mạng (spec `loading`, ADR-0018). Khi đang dùng, chưa có gì báo.
+- **Đo kết quả bằng gì:** không có sự kiện riêng (bản đề xuất, câu 9.2). Theo dõi qua phản hồi và qua `content_load_failed` có `reason` là `network`.
+
+## 2. Phạm vi
+
+**Trong phạm vi:**
+
+- Hộp thoại "Mất kết nối mạng" hiện phủ lên màn hình đang mở, ở mọi màn sau màn loading: màn chào, camera, xem lại, thư viện, chi tiết, cài đặt.
+- Nhận ra mất mạng bằng hai cách: máy báo không còn kết nối, và một lần tải của app thất bại vì mạng (cấu hình, catalog, ảnh tư thế).
+- Nút "Thử lại": kiểm tra lại mạng; có mạng thì hộp thoại đóng và màn hình tải lại phần còn dở.
+
+**Ngoài phạm vi lần này:**
+
+- Màn loading: đã có cách báo lỗi và thử lại riêng (spec `loading`).
+- Dùng app khi không có mạng.
+- Quảng cáo không tải được: không coi là mất mạng, không hiện hộp thoại.
+
+## 3. Kịch bản sử dụng
+
+### KB-1. Mất mạng khi đang dùng
+
+Người dùng đang ở một màn bất kỳ sau màn loading thì máy mất kết nối.
+
+Tiêu chí chấp nhận:
+
+- [ ] Khi máy báo không còn kết nối mạng và tình trạng này kéo dài quá thời gian chờ (câu hỏi 2) thì hộp thoại "Mất kết nối mạng" hiện phủ lên màn hình, kèm lời hướng dẫn "App cần mạng để hoạt động. Kiểm tra kết nối Internet rồi thử lại." và nút "Thử lại", đúng thiết kế.
+- [ ] Khi một lần tải của app thất bại vì mạng (dù máy chưa báo mất kết nối) thì hộp thoại hiện như trên.
+- [ ] Khi hộp thoại đang hiện thì người dùng không bấm được gì phía sau; chạm ra ngoài hộp thoại không đóng nó.
+- [ ] Khi hộp thoại đang hiện thì chỉ có một hộp thoại, kể cả khi nhiều lần tải cùng thất bại.
+
+Trường hợp đặc biệt:
+
+- [ ] Khi đang đếm ngược hẹn giờ ở camera thì việc đếm dừng, không chụp.
+- [ ] Khi đang lưu ảnh ở màn xem lại thì việc lưu vẫn chạy tới xong (lưu trên máy không cần mạng), hộp thoại hiện sau đó.
+- [ ] Khi mạng chập chờn mất rồi có lại trong thời gian chờ thì hộp thoại không hiện.
+
+### KB-2. Thử lại
+
+Tiêu chí chấp nhận:
+
+- [ ] Khi bấm "Thử lại" mà đã có mạng thì hộp thoại đóng; màn hình tải lại phần đã thất bại (ví dụ ảnh, catalog) và người dùng dùng tiếp từ chỗ cũ.
+- [ ] Khi bấm "Thử lại" mà vẫn chưa có mạng thì hộp thoại vẫn hiện; nút cho thấy đang kiểm tra rồi trở lại như cũ (câu hỏi 3).
+- [ ] Khi mạng có lại mà người dùng chưa bấm "Thử lại" thì hộp thoại vẫn hiện cho tới khi người dùng bấm (bản đề xuất, mục 6).
+
+### KB-3. Nút quay lại khi đang có hộp thoại
+
+Tiêu chí chấp nhận:
+
+- [ ] Khi bấm nút quay lại của máy lúc hộp thoại đang hiện thì app ra nền như khi bấm nút Home (câu hỏi 4); mở lại app thì nếu vẫn chưa có mạng, hộp thoại hiện lại.
+
+### KB-4. Tắt từ xa
+
+Tiêu chí chấp nhận:
+
+- [ ] Khi cờ `feature_network_dialog_enabled` tắt thì không hiện hộp thoại; các màn hình báo lỗi tải theo cách riêng của mình.
+
+## 4. Giao diện
+
+- **Thiết kế:** [design/README.md](design/README.md) (gói bàn giao lập sau khi spec được xác nhận). Component `NetworkDialog` trên trang Design system của Figma; ảnh mẫu khi phủ lên màn hình: `CameraScreen_offline_dark`, `PosesScreen_offline_light`, `PosesScreen_offline_dark`.
+- **Các màn hình:**
+
+| Màn hình | Mục đích | Kịch bản liên quan |
+| --- | --- | --- |
+| Hộp thoại mất mạng | Báo mất mạng, cho thử lại | KB-1, KB-2, KB-3 |
+
+## 5. Quảng cáo
+
+Không có. Khi hộp thoại đang hiện thì không hiện quảng cáo toàn màn hình.
+
+## 6. Dữ liệu và phân tích
+
+**Dữ liệu lưu trên máy:** Không có.
+
+**Sự kiện phân tích:** Không có (câu hỏi 5).
+
+## 7. File tĩnh trên R2
+
+Không có.
+
+## 8. Cờ tính năng
+
+| Tên cờ | Mặc định | Ý nghĩa |
+| --- | --- | --- |
+| `feature_network_dialog_enabled` | tắt | Bật để hiện hộp thoại mất mạng. Bản staging bật sẵn |
+
+## 9. Câu hỏi còn mở
+
+1. **Đặt phần này ở đâu trong code, và có đưa về dự án mẫu không?** Hộp thoại không thuộc một màn nào, và mọi app của nhóm đều cần.
+   - Đề xuất của AI: phần nhận ra mất mạng đặt trong một module core mới `:core:network`; hộp thoại là thành phần của `:core:designsystem`; vỏ app (`:app`) hiện hộp thoại phủ lên mọi màn. Không có module `:feature:network`; thư mục tài liệu vẫn tên `network`. Theo dõi trạng thái mạng của máy cần quyền `ACCESS_NETWORK_STATE`; thêm module core và quyền đều là thay đổi rủi ro cao, cần plan duyệt chéo. Sau khi làm ở app này, mở issue đưa về dự án mẫu (`docs/ops/from-app.md`).
+   - Trả lời:
+2. **Mất kết nối bao lâu thì mới hiện hộp thoại?**
+   - Đề xuất của AI: 3 giây, đặt trong `RemoteSettings`. Lỗi tải vì mạng thì hiện ngay.
+   - Trả lời:
+3. **Bấm "Thử lại" lúc vẫn chưa có mạng thì báo thế nào?**
+   - Đề xuất của AI: nút hiện vòng chờ tối đa 2 giây rồi trở lại; dưới nút hiện một dòng nhỏ "Vẫn chưa có mạng".
+   - Trả lời:
+4. **Nút quay lại của máy khi hộp thoại đang hiện?**
+   - Đề xuất của AI: đưa app ra nền, không đóng hộp thoại, không quay lại màn trước.
+   - Trả lời:
+5. **Có cần sự kiện phân tích cho mất mạng không?** Danh sách 9 sự kiện đã duyệt không có sự kiện này.
+   - Đề xuất của AI: chưa cần; nếu muốn biết người dùng mất mạng bao nhiêu thì thêm `network_lost` ở spec sau.
+   - Trả lời:
+
+## 10. Lịch sử
+
+| Ngày | Người | Nội dung |
+| --- | --- | --- |
+| 2026-10-21 | AI | Tạo bản đầu từ yêu cầu của người phụ trách sản phẩm |

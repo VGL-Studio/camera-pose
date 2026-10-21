@@ -1,7 +1,7 @@
 ---
 ticket: T-011
 title: Nhận ra mất mạng và hộp thoại mất mạng
-status: approved
+status: stopped
 version: 1
 risk_score:
 risk_level: high
@@ -305,14 +305,26 @@ Khung rỗng để test biên dịch được (bước 3): `NetworkDialogControl
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
 
-### RUN-YYYYMMDD-NN, phiên bản plan 1
+### RUN-20261021-03, phiên bản plan 1
 
-- **Kết quả:** đã merge / dừng / CI thất bại
-- **Nhánh, PR:** <...>
-- **Đã làm:** <...>
-- **Test viết trước:** <số test, xác nhận đã thất bại đúng lý do trước khi viết code>
-- **Rà soát độc lập:** <số điểm phát hiện, đã xử lý những gì, điểm nào còn để người xem>
-- **Kết quả CI:** <build, lint, unit test, UI test, screenshot test>
-- **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
-- **Việc còn lại:** <...>
-- **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+- **Kết quả:** dừng ở bước 4 (risk-scoring.md, mục 4, điều kiện 8: cần đổi điều mà test viết trước đang kiểm tra để code qua được)
+- **Nhánh, PR:** `claude/T-011-core-network-hop-thoai` (đã đẩy: commit test acac38b, commit code 555eb12; chưa mở PR vì test chưa qua)
+- **Đã làm:** bước 3 đủ theo mục 4 (khung rỗng và test). Bước 4 đủ theo mục 3.2: `:core:network` (bộ điều khiển, nguồn mạng, phân loại lỗi, Hilt), `:core:assets` báo lỗi mạng, `NetworkDialog`, `NetworkDialogScreen`, `PrimaryButton(loading)`, icon `wifi_off`, `refresh` và giấy phép Material Symbols, bốn chuỗi, `NetworkDialogHost`, `AppNavHost(onPastLoadingChanged)`, `MainActivity`, hai manifest, cờ staging. Mọi file đều trong mục 3.2. Chưa ghi ảnh chuẩn, chưa chạy `scripts/check.sh` và ảnh so sánh thiết kế.
+- **Test viết trước:** 50 test mới. Trên khung rỗng 41 thất bại ở phần khẳng định (vì chức năng chưa có), 9 qua ngay vì là test chặn hồi quy: `NetworkErrorsTest.otherErrors_areNotNetworkFailures`, bốn test "không báo" của `DefaultRemoteAssetsNetworkFailureTest`, `PrimaryButtonLoadingTest.notLoading_hasNoSpinner`, `NetworkDialogHostTest.hidden_contentWorksNormally`, `back_whileHidden_navigatesBack`. Một số test của mục 4 sẽ qua ngay trên khung rỗng (ví dụ `flapping_underDelay_showsNothing`, `inactive_ignoresOfflineAndFailures`, `flagOff_neverShows`); phiên thêm vào cuối mỗi test một bước kiểm tra chiều ngược lại (hộp thoại có hiện khi đủ điều kiện) để test thất bại trước khi có code. Sau bước 4: 49 qua, 1 thất bại (dưới đây). Một lỗi code đã sửa trong bước 4: `testTag` của thẻ đặt sau `padding` nên thẻ đo ra 283 dp thay vì 331.
+- **Lý do dừng:** `NetworkDialogHostTest.shown_blocksContentClicks_andHidesItFromAccessibility` thất bại ở khẳng định "nút phía sau mang `SemanticsProperties.HideFromAccessibility`" (mục 4): `Failed to assert the following: (HideFromAccessibility is defined) ... Tag: 'content' Role = 'Button'`. Code làm đúng mục 3.1: `Modifier.semantics { hideFromAccessibility() }` trên khung bọc nội dung. Thuộc tính này chỉ nằm trên node của khung, không lan xuống node con. Trong Compose UI 1.9.1 (BOM 2025.09.00), `SemanticsNode.isHidden` chỉ đọc cấu hình của chính node (`isTransparent`, `HideFromAccessibility`, `InvisibleToUser`), và bộ trợ năng gọi `setVisibleToUser(!isHidden)` cho từng node (đọc bytecode `SemanticsOwnerKt.isHidden` và `AndroidComposeViewAccessibilityDelegateCompat`). Nghĩa là với cách của plan, nút phía sau vẫn hiện với TalkBack: tiêu chí KB-1 "không bấm được gì phía sau" không đạt với người dùng trình đọc màn hình, và test viết trước đã bắt đúng điều đó.
+- **Vì sao không tự xử lý:** muốn test qua phải đổi điều test kiểm tra (ví dụ chỉ xét node cha, khi đó test qua mà TalkBack vẫn đọc được nút) hoặc đổi cách ẩn sang cách plan chưa nêu. `clearAndSetSemantics` bị mục 7, điều kiện 3 cấm vì làm hỏng `AppLaunchTest`.
+- **Rà soát độc lập:** chưa chạy (dừng ở bước 4).
+- **Kết quả CI:** chưa chạy.
+- **Lệch so với plan:** `DefaultRemoteAssets` báo lỗi mạng khi `toFailureReason()` là `AssetFailureReason.NETWORK` (cách phân loại T-009 đã thêm), thay vì gọi `e.isNetworkFailure()`, theo câu trả lời câu hỏi 5 ở mục 8 ("dùng lại cách phân loại đó của `:core:assets` nếu đã có trên nhánh chính"). `isNetworkFailure()` vẫn có trong `:core:network` và có test. Icon vector bỏ `android:tint="?attr/colorControlNormal"` của file gốc, vì `Icon` của Compose tự tô màu.
+- **Việc còn lại:** cách ẩn nội dung khỏi trình đọc màn hình; ghi 4 ảnh chuẩn; `scripts/check.sh`; so sánh manifest gộp (đã xem báo cáo gộp manifest: `ACCESS_NETWORK_STATE` có từ `play-services-ads-api` 25.5.0 và `play-services-measurement` 23.2.0, tập quyền không đổi); ảnh so sánh thiết kế; bước 6 đến 10.
+- **Cần người xem:** chọn hướng ẩn nội dung khỏi trình đọc màn hình (bản sửa đề xuất bên dưới).
+
+#### Bản sửa đề xuất, phiên bản 2 (chờ người chọn hướng, `draft`)
+
+- **Vì sao plan chưa đủ tốt:** mục 3.1 giả định `hideFromAccessibility` trên một khung bọc ẩn được cả cây con; plan chưa chạy thử điều này trước khi duyệt (L-029, L-001). Đây là kỹ thuật lần đầu dùng trong dự án (plan tự chấm E = 2).
+- **Thay đổi so với phiên bản 1:** chỉ cách ẩn nội dung phía sau khỏi trình đọc màn hình (mục 3.1 phần `NetworkDialogHost`, dòng KB-1 của mục 4 và mục 7 điều kiện 3). Người chọn một trong các hướng, mỗi hướng phải chạy thử bằng test tạm trước khi duyệt, đo bằng cây `AccessibilityNodeInfo` thật (ví dụ `isVisibleToUser` của nút khi bật trợ năng trong Robolectric), không chỉ bằng cây ngữ nghĩa:
+  - (a) Cho lớp mờ của `NetworkDialogScreen` một thuộc tính ngữ nghĩa làm nó "quan trọng với trợ năng" (giả thuyết chưa kiểm chứng: Compose bỏ các node bị một node quan trọng che kín, `getAllUncoveredSemanticsNodesToIntObjectMap`). Nút vẫn trong cây ngữ nghĩa nên `AppLaunchTest` không đổi.
+  - (b) Vẽ hộp thoại trong một cửa sổ `Dialog` riêng (`DialogProperties(dismissOnClickOutside = false)`), để hệ thống tự chặn trợ năng phía sau. Bỏ lựa chọn "một cửa sổ" của mục 3.1; screenshot test chụp `NetworkDialogScreen` trực tiếp như hiện tại.
+  - (c) `View.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS` trên view chứa nội dung (cần tách nội dung và hộp thoại ra hai view; lớn hơn hai hướng trên).
+- **Cách tiếp tục (mục 3.1, khi duyệt):** tiếp tục trên nhánh `claude/T-011-core-network-hop-thoai`; mọi phần khác đã có code và test qua. Bước 3 chỉ áp dụng cho test đổi điều kiểm tra (phần trợ năng của `shown_blocksContentClicks_andHidesItFromAccessibility`).
+- **Chưa có PR sửa nguyên nhân:** nguyên nhân nằm trong cách làm của plan, không phải trong code ngoài plan.

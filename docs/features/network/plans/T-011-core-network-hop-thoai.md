@@ -1,16 +1,16 @@
 ---
 ticket: T-011
 title: Nhận ra mất mạng và hộp thoại mất mạng
-status: draft
+status: approved
 version: 1
 risk_score:
 risk_level: high
 token_estimate: 40M
 blocking_points: [permission, core]
 run_order:
-reviewer:
-cross_reviewer:
-approved_at:
+reviewer: Nhật
+cross_reviewer: Tuấn
+approved_at: 2026-10-21
 ---
 
 # PLAN T-011: NHẬN RA MẤT MẠNG VÀ HỘP THOẠI MẤT MẠNG
@@ -277,21 +277,29 @@ Khung rỗng để test biên dịch được (bước 3): `NetworkDialogControl
 ## 8. Câu hỏi cho người duyệt
 
 1. **Thế nào là "máy có mạng"?** Đề xuất của AI: mạng mặc định có `NET_CAPABILITY_INTERNET`, không đòi `NET_CAPABILITY_VALIDATED`. Đòi thêm `VALIDATED` thì bắt được Wi-Fi có cổng đăng nhập, nhưng có máy và emulator xác thực chậm hoặc không bao giờ, dễ hiện hộp thoại sai. Trường hợp Wi-Fi không ra được Internet đã được bắt qua lỗi tải vì mạng.
+- Trả lời: OK.
 2. **Feature dùng `NetworkStatus` thế nào?** `AndroidFeatureConventionPlugin` tự thêm sáu module core cho mọi feature, chưa có `:core:network`, và plan không được sửa `build-logic/`. Đề xuất của AI: feature nào cần (T-013, T-021, T-022) ghi thêm `implementation(project(":core:network"))` trong `build.gradle.kts` của mình, lệch nhẹ khỏi bước 1 của CLAUDE.md, ghi rõ trong plan của task đó. Phương án khác: một plan rủi ro cao riêng thêm module vào convention plugin.
+- Trả lời: OK.
 3. **Chặn quảng cáo toàn màn hình khi hộp thoại hiện: làm ở đâu?** App chưa có vị trí toàn màn hình. Đề xuất của AI: T-018 thêm kiểm tra `dialogShown` vào `AdsController.showInterstitial` khi thêm `review_interstitial`; ticket này không chạm `:core:ads` để không đụng thêm điểm chặn 1.
+- Trả lời: OK.
 4. **Đang lưu ảnh thì hộp thoại "hiện sau đó" (KB-1, trường hợp đặc biệt).** Lưu ảnh không bị dừng vì hộp thoại chỉ là lớp vẽ phủ. Nếu muốn hộp thoại chờ tới khi lưu xong, đề xuất của AI: T-016 thêm một hàm hoãn hiển thị vào `NetworkDialogController` (ví dụ giữ lại khi màn xem lại báo đang lưu). Ticket này không làm, vì chưa có màn xem lại để test.
+- Trả lời: OK.
 5. **Lý do lỗi cho `content_load_failed`: đã quyết, không cần trả lời.** Phiên chính đối chiếu với plan T-009 và giao việc này cho T-009: T-009 thêm lý do vào `AssetResult.Unavailable` (`NETWORK`, `NOT_FOUND`, `OTHER`). Khi làm ticket này, `isNetworkFailure()` và `NetworkFailureReporter` dùng lại cách phân loại đó của `:core:assets` nếu đã có trên nhánh chính, không phân loại lại; ticket này vì vậy chạy sau T-009 (ticket T-011 phụ thuộc thêm T-009).
+- Trả lời: OK.
 6. **Khai báo quyền ở cả hai manifest.** Đề xuất của AI: khai báo ở `app/src/main/AndroidManifest.xml` để nhóm thấy và ở `core/network/src/main/AndroidManifest.xml` để module tự mang quyền và Lint không báo. Người duyệt muốn chỉ một nơi thì chọn `:app`, bỏ file manifest của `:core:network` khỏi danh sách.
+- Trả lời: OK.
 7. **Ảnh so sánh thiết kế cho thành phần trong module core.** Script so sánh thiết kế chưa hỗ trợ module core; plan chạy thẳng `DesignCompare.java` với thư mục ảnh của `:core:designsystem`. Đề xuất của AI: ghi đề xuất về dự án mẫu (`docs/ops/from-app.md`) cho script nhận thêm thư mục ảnh, không sửa script trong ticket này.
+- Trả lời: OK.
 8. **Màu vòng chờ trên nút.** `sticker.md` ghi vòng chờ dùng `primary`, nhưng trên nút nền `secondary` (đen ở chế độ sáng), màu xanh `primary` khó thấy. Đề xuất của AI: vòng chờ trong nút dùng màu nội dung của nút (`onSecondary`), vòng chờ ở chỗ khác vẫn dùng `primary`.
+- Trả lời: OK.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

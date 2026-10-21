@@ -1,16 +1,16 @@
 ---
 ticket: T-009
 title: Module dữ liệu tư thế dùng chung `:core:poses`
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 40M          # cỡ L, số gợi ý của scripts/token-usage.py estimate
 blocking_points: [core, r2]  # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                    # người duyệt
+cross_reviewer: Tuấn             # bắt buộc khi risk_level là high
+approved_at: 2026-10-21
 ---
 
 # PLAN T-009: MODULE DỮ LIỆU TƯ THẾ DÙNG CHUNG `:CORE:POSES`
@@ -315,30 +315,39 @@ Bảng điểm dưới đây chỉ để tham khảo:
 ## 8. Câu hỏi cho người duyệt
 
 1. **Lý do lỗi `network` và `not_found`: đã quyết, làm trong T-009.** Phiên chính đối chiếu với plan T-011 và chọn làm ngay ở đây: `:core:assets` thêm lý do vào `AssetResult.Unavailable` (mục 3.1), `:core:poses` chuyển sang `LoadFailureReason`, T-011 dùng lại lý do này. Không cần trả lời.
+- Trả lời: OK.
 2. **Đường dẫn ảnh của bản đề xuất mâu thuẫn với ADR-0015.** `poses/img/<poseId>/<sha8>/preview_540.webp` bị `AssetPath` từ chối: thư mục mã băm không được coi là phiên bản, chỉ thư mục `v<n>` hoặc mã băm trong tên file.
    - Đề xuất của AI: đặt mã băm vào tên file, `poses/img/<poseId>/preview_540-<sha8>.webp` (cũng vậy cho `preview_1200`, `outline`), và catalog ghi sẵn đường dẫn đầy đủ của từng ảnh để app không tự ghép. Người làm nội dung theo mẫu này. Không sửa ADR-0015. Ảnh mượn của catalog mẫu dùng `borrowed/poses/img/v1/<poseId>/...`.
+   - Trả lời: OK.
 3. **Danh sách đã dùng gần đây giữ bao nhiêu tư thế?** Spec không nêu.
    - Đề xuất của AI: 20 tư thế, đủ cho hàng đầu dải camera và thư viện mà không đẩy hết phần còn lại xuống. Danh sách đã lưu không giới hạn.
+   - Trả lời: OK.
 4. **Ngôn ngữ thiếu bản dịch.** Catalog mẫu chỉ có tiếng Anh và tiếng Việt; nội dung thật có thể thiếu vài ngôn ngữ lúc đầu.
    - Đề xuất của AI: khớp đủ thẻ ngôn ngữ, rồi khớp ngôn ngữ, rồi dùng tiếng Anh. Tiếng Anh là bắt buộc; tư thế thiếu tên hoặc bước tiếng Anh bị bỏ. Kiểm đủ 7 ngôn ngữ để cho script kiểm catalog của người làm nội dung.
+   - Trả lời: OK.
 5. **"Tư thế đang dùng" của camera (spec camera, mục 6).**
    - Đề xuất của AI: không lưu khóa riêng. Tư thế đang dùng là tư thế mới nhất trong danh sách đã dùng gần đây (`lastUsedPose`), vì camera ghi "đã dùng" mỗi lần chọn. Nếu muốn lần mở chi tiết rồi bấm "Chụp với tư thế này" không tính là "đã dùng" thì cần khóa riêng ở T-014.
+   - Trả lời: OK.
 6. **Catalog có lược đồ mới hơn app (`minAppSchema` lớn hơn 1).**
    - Đề xuất của AI: từ chối catalog đó, báo lỗi như catalog hỏng, log rõ lý do. Người làm nội dung chỉ tăng `minAppSchema` khi bản app mới đã phát hành, và để đường dẫn cũ trong Remote Config cho app cũ (ADR-0015: file cũ không bị xóa). Cần một điều kiện Remote Config theo phiên bản app khi việc này xảy ra.
+   - Trả lời: OK.
 7. **Feature thêm một dòng phụ thuộc vào `build.gradle.kts` của mình.** `CLAUDE.md` (bước 1) ghi file đó chỉ áp dụng plugin và `namespace`; convention plugin chỉ gắn core của dự án mẫu.
    - Đề xuất của AI: T-010, T-014, T-021 thêm `implementation(project(":core:poses"))` vào `build.gradle.kts` của feature. Không sửa `build-logic/` vì `:core:poses` chỉ có ở app này. Dòng mới trong bảng module của `CLAUDE.md` ghi điều này.
+   - Trả lời: OK.
 8. **Đường dẫn catalog mặc định trong bản production.** `DEFAULT_CATALOG_PATH` chỉ tới catalog mẫu của staging, nên bản production không lấy được Remote Config sẽ không có catalog.
    - Đề xuất của AI: trước khi phát hành, đặt `poses_catalog_path` trên Remote Config production và đổi `DEFAULT_CATALOG_PATH` sang catalog thật đã có trên cả hai bucket. Ghi thành việc trong spec hay ticket phát hành, không làm trong T-009.
+   - Trả lời: OK.
 9. **Ai đưa catalog mẫu và 18 ảnh mượn lên R2 staging?**
    - Đề xuất của AI: dev, sau khi PR được merge, theo mục 3.3, rồi kiểm bằng `curl`. AI không có khóa R2 và không được ghi lên R2. Nếu cần catalog mẫu trên R2 trước T-010, dev làm việc này trước phiên có T-010.
+   - Trả lời: OK.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:**Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

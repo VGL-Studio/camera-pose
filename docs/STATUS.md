@@ -4,9 +4,7 @@
 
 ## 1. Đang chờ người
 
-- Plan `draft` chờ duyệt: [T-007-he-thong-thiet-ke-sticker.md](features/loading/plans/T-007-he-thong-thiet-ke-sticker.md)
-- Plan `draft` chờ duyệt: [T-011-core-network-hop-thoai.md](features/network/plans/T-011-core-network-hop-thoai.md)
-- Plan `draft` chờ duyệt: [T-009-core-poses.md](features/poses/plans/T-009-core-poses.md)
+- Danh sách chạy `draft` chờ duyệt: [RUN-20261021-01.md](runs/RUN-20261021-01.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
@@ -44,7 +42,7 @@ Phản hồi: chưa có.
 
 ### loading
 
-Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 2 `ready`, 1 `approved`, 1 `planned`.
+Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 2 `approved`, 2 `ready`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -54,7 +52,7 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 2
 | [T-004](features/loading/tickets/T-004-mau-con-thieu-va-gian-chu.md) | Đủ vai trò màu thương hiệu và giãn cách chữ như thiết kế | `on-staging` | `done` (bản 1) | - | - |
 | [T-005](features/loading/tickets/T-005-man-hinh-thap.md) | Màn hình loading dùng được trên màn hình thấp | `on-staging` | `done` (bản 1) | - | - |
 | [T-006](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md) | Test cuộn tới nút "Thử lại" trên màn hình rất thấp | `approved` | `approved` (bản 1) | - | - |
-| [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `planned` | `draft` (bản 1) | 40.0M | - |
+| [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `approved` | `approved` (bản 1) | 40.0M | RUN-20261021-01 |
 | [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `ready` | chưa có | - | - |
 | [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `ready` | chưa có | - | - |
 
@@ -62,11 +60,11 @@ Phản hồi: 1 `fixed`, 1 `wontfix`.
 
 ### network
 
-Spec: [spec.md](features/network/spec.md) `confirmed`. Ticket: 1 `planned`.
+Spec: [spec.md](features/network/spec.md) `confirmed`. Ticket: 1 `approved`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-011](features/network/tickets/T-011-core-network-hop-thoai.md) | Nhận ra mất mạng và hộp thoại mất mạng | `planned` | `draft` (bản 1) | 40M | - |
+| [T-011](features/network/tickets/T-011-core-network-hop-thoai.md) | Nhận ra mất mạng và hộp thoại mất mạng | `approved` | `approved` (bản 1) | 40M | RUN-20261021-01 |
 
 Phản hồi: chưa có.
 
@@ -82,11 +80,11 @@ Phản hồi: chưa có.
 
 ### poses
 
-Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 4 `ready`, 1 `planned`.
+Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 4 `ready`, 1 `approved`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-009](features/poses/tickets/T-009-core-poses.md) | Module dữ liệu tư thế dùng chung `:core:poses` | `planned` | `draft` (bản 1) | 40M | - |
+| [T-009](features/poses/tickets/T-009-core-poses.md) | Module dữ liệu tư thế dùng chung `:core:poses` | `approved` | `approved` (bản 1) | 40M | RUN-20261021-01 |
 | [T-021](features/poses/tickets/T-021-thu-vien-tu-the.md) | Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi | `ready` | chưa có | - | - |
 | [T-022](features/poses/tickets/T-022-chi-tiet-tu-the.md) | Chi tiết tư thế và "Chụp với tư thế này" | `ready` | chưa có | - | - |
 | [T-023](features/poses/tickets/T-023-banner-thu-vien.md) | Banner ở thư viện và chi tiết tư thế | `ready` | chưa có | - | - |
@@ -106,7 +104,9 @@ Phản hồi: chưa có.
 
 ## 4. Phiên tự chạy
 
-Chưa có phiên nào.
+| Phiên | Trạng thái | Bắt đầu | Ticket | Bản staging |
+| --- | --- | --- | --- | --- |
+| [RUN-20261021-01](runs/RUN-20261021-01.md) | `draft` |  | T-007, T-009, T-011 | - |
 
 ## 5. Bài học và ADR
 

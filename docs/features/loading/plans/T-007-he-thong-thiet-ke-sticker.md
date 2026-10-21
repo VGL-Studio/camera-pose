@@ -1,8 +1,8 @@
 ---
 ticket: T-007
 title: Hệ thống thiết kế theo hướng Sticker
-status: stopped
-version: 2
+status: approved
+version: 3
 risk_score:
 risk_level: high
 token_estimate: 40.0M
@@ -39,7 +39,7 @@ ADR liên quan: ADR-0008 (code là gốc của hệ thống thiết kế; đổi
 
 ### 3.1. Cách làm
 
-Cách tiếp tục: tiếp tục trên nhánh `claude/T-007-he-thong-thiet-ke-sticker` (đã có commit test và khung rỗng của RUN-20261021-01, chưa có PR). Phiên bản 2 chỉ đổi cách đo màu điểm ảnh (mục 4); bước 3 làm lại cho sáu test đo điểm ảnh, các test khác đã thất bại đúng lý do nên giữ nguyên.
+Cách tiếp tục: tiếp tục trên nhánh `claude/T-007-he-thong-thiet-ke-sticker`: đã có code, ảnh chuẩn và test của RUN-20261021-02, chưa có PR. Phiên bản 3 chỉ đổi hàm `pixelAt` trong `ComponentsTest` (mục 4); mọi phần khác giữ nguyên. Bước 3 không làm lại (test đã thất bại đúng lý do ở RUN-20261021-02); đổi `pixelAt` là một commit sửa test, rồi đi tiếp từ bước 5.
 
 Làm theo mẫu của plan T-002 (cùng module): giá trị đặt trong `theme/`, thành phần trong `component/`, catalog chụp bằng screenshot test, `tokens.json` sinh từ `DesignTokensTest`.
 
@@ -229,7 +229,7 @@ Không file nào khác. Đặc biệt không sửa `core/designsystem/build.grad
 
 ## 4. Kiểm thử
 
-Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của bước 3. Lý do thất bại ghi ở cột cuối là điều AI dự kiến trên code hiện tại; bước 3 chạy và ghi lý do thật vào nhật ký. `ComponentsTest` và `AppThemeTest` có `@GraphicsMode(GraphicsMode.Mode.NATIVE)` (như hiện tại), không đặt `@Config`. Hàm `pixelAt(tag, x: Dp, y: Dp): Color` trong `ComponentsTest` (phiên bản 2, hướng (a) người duyệt chọn): chụp nút bằng `onNodeWithTag(tag).captureRoboImage(filePath = "build/tmp/pixel/<tên test>.png", roborazziOptions = RoborazziOptions(taskType = RoborazziTaskType.Record))`, đọc lại bằng `BitmapFactory.decodeFile(...)`, lấy `Color(bitmap.getPixel(xPx, yPx))`; dp đổi sang px bằng `composeRule.density`. `taskType = Record` bắt Roborazzi ghi ảnh cho riêng lần chụp này, kể cả khi test chạy bằng `testDebugUnitTest` (Roborazzi mặc định không ghi) hay trong `verifyRoborazziDebug`. File nằm trong `build/`, không phải ảnh chuẩn, không vào git. Không dùng `captureToImage`: trong Robolectric `NATIVE` nó ném `ComposeTimeoutException` tại `WindowCapture.forceRedraw` (RUN-20261021-01). Phiên chính đã chạy thử cách này trên nhánh của task (test tạm, không commit): ô 112 dp màu #FFC83D cho ảnh 112 x 112, điểm giữa đọc ra `ffffc83d`, ở cả `testDebugUnitTest` lẫn `verifyRoborazziDebug`. `javax.imageio` không có trên classpath của test Android, nên đọc ảnh bằng `BitmapFactory`. So màu bằng `assertEquals(expected.toArgb(), actual.toArgb())`. Điểm đo luôn nằm giữa vùng màu, xa mép và góc bo, để không dính khử răng cưa.
+Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của bước 3. Lý do thất bại ghi ở cột cuối là điều AI dự kiến trên code hiện tại; bước 3 chạy và ghi lý do thật vào nhật ký. `ComponentsTest` và `AppThemeTest` có `@GraphicsMode(GraphicsMode.Mode.NATIVE)` (như hiện tại), không đặt `@Config`. Hàm `pixelAt(tag, x: Dp, y: Dp): Color` trong `ComponentsTest` (phiên bản 3, hướng (b) người duyệt chọn): `composeRule.waitForIdle()`; lấy `decorView` của activity (`(composeRule as AndroidComposeTestRule<*, *>).activity.window.decorView`); vẽ vào `Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)` bằng `root.draw(Canvas(bitmap))`; lấy `boundsInWindow` của node (`onNodeWithTag(tag).fetchSemanticsNode().boundsInWindow`); trả `Color(bitmap.getPixel(bounds.left.toInt() + x.roundToPx(), bounds.top.toInt() + y.roundToPx()))`, dp đổi sang px bằng `composeRule.density`. Không gọi `captureRoboImage` và `captureToImage`: `scripts/check.sh` (dòng 45 đến 55) đòi mọi `captureRoboImage(` ghi vào `src/test/screenshots/<Tên>.png` (RUN-20261021-02), còn `captureToImage` hết thời gian chờ trong Robolectric `NATIVE` (RUN-20261021-01). Ảnh của cả cửa sổ chứa cả điểm ngoài khung của node, nên test bóng đổ đo được điểm ngay dưới nút. Phiên chính đã kiểm chứng trên nhánh của task (thay `pixelAt` như trên, không commit): `scripts/check.sh` toàn bộ "Cổng chất lượng: QUA", 197 test JVM 0 lỗi (`:core:designsystem` 28 test, gồm sáu test đo điểm ảnh), 19 ảnh screenshot; test tạm riêng cho ô #111111 đọc ra `ff111111` trong ô và `ffffffff` ngoài ô. So màu bằng `assertEquals(expected.toArgb(), actual.toArgb())`. Điểm đo luôn nằm giữa vùng màu, xa mép và góc bo, để không dính khử răng cưa.
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
@@ -264,7 +264,7 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 | B. Độ rõ của yêu cầu | 1 | `sticker.md` có đủ giá trị chính; màu nút phụ, chênh 56 và 60 của nút (mục 8) |
 | C. Khả năng kiểm chứng tự động | 1 | Giá trị, kích thước và màu điểm ảnh có test; độ giống thiết kế và nét phông phải xem ảnh |
 | D. Ảnh hưởng chéo | 3 | Mọi màn hình đổi giao diện; T-008, T-011, T-012, T-013, T-021, T-025 dựa vào hệ thống mới |
-| E. Độ mới của kỹ thuật | 2 | `CompositionLocal` cho màu riêng, bóng tự vẽ bằng `drawBehind`, test đọc điểm ảnh từ ảnh Roborazzi (`taskType = Record`) đều chưa có trong dự án |
+| E. Độ mới của kỹ thuật | 2 | `CompositionLocal` cho màu riêng, bóng tự vẽ bằng `drawBehind`, test đọc điểm ảnh bằng cách vẽ view gốc ra `Bitmap` đều chưa có trong dự án |
 | **Tổng** | 10 | **Mức: Cao** |
 
 ## 6. Ảnh hưởng chéo
@@ -281,7 +281,7 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 
 1. Mã băm của một trong năm file tải về không khớp mục 3.1, hoặc commit 84745e5b96261ae5f8c6c856e262fe78d1d6efdd không còn tệp ở đường dẫn đã ghi.
 2. Robolectric không vẽ được phông trong `res/font` (ảnh vẫn ra Roboto hay Inter), hoặc chữ tiếng Việt hiện ô vuông.
-3. `captureRoboImage` với `taskType = Record` không ghi được ảnh, hoặc `BitmapFactory.decodeFile` trả `null`, ở `testDebugUnitTest` hay `verifyRoborazziDebug`: dừng, không thay test đọc điểm ảnh bằng cách khác. (Phiên bản 1 dừng vì `captureToImage`; phiên bản 2 không dùng hàm này.)
+3. `root.draw(Canvas(bitmap))` cho ảnh trống hay sai màu, hoặc `scripts/check.sh` từ chối `ComponentsTest`: dừng, không đổi cách đo khác. (Phiên bản 1 dừng vì `captureToImage`, phiên bản 2 vì `captureRoboImage` ghi ra `build/`; phiên bản 3 không dùng hai hàm này.)
 4. `LoadingScreenTest` hay `SampleScreenTest` thất bại sau khi đổi hệ thống (ví dụ nút "Thử lại" ra ngoài màn hình thấp): dừng, không sửa code hay test của feature.
 5. Ảnh chuẩn đổi ngoài 15 ảnh "Ghi lại" ở mục 3.2, hoặc bố cục màn mẫu, màn loading đổi ngoài màu, phông, logo, nút và thanh tiến trình.
 6. Cần đổi chữ ký công khai của `PrimaryButton`, `ProgressBar` (ngoài tham số `borderColor` thêm ở cuối) hay `BrandLogo`.
@@ -312,7 +312,9 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 
 Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-21); dừng ở RUN-20261021-01, xem mục 10.
 
-Phiên bản 2:
+Phiên bản 2: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-21); dừng ở RUN-20261021-02, xem mục 10.
+
+Phiên bản 3:
 
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
@@ -355,7 +357,7 @@ Phiên bản 2:
 - **Việc còn lại:** bước 5 (`check.sh`), 6 đến 10, và các việc sau merge ở mục 6.
 - **Cần người xem:** chọn cách xử lý quy tắc của `check.sh` (xem phiên bản 3 bên dưới).
 
-#### Bản sửa đề xuất, phiên bản 3 (`draft`, chưa duyệt)
+#### Bản sửa đề xuất, phiên bản 3 (đã viết thành plan phiên bản 3: hướng (b), kiểm chứng bằng `scripts/check.sh` trên nhánh của task)
 
 - **Vì sao plan chưa đủ tốt:** plan phiên bản 2 chạy thử kỹ thuật đo (đọc được ảnh, đúng màu) nhưng chưa chạy `scripts/check.sh` trên test thử; plan không đối chiếu với quy tắc đếm `captureRoboImage(` của script (L-020 áp dụng cho script đọc file test, không chỉ file cấu hình).
 - **Thay đổi so với phiên bản 2:** chỉ cách giải quyết quy tắc của `check.sh` đối với sáu test đo điểm ảnh. Người chọn một trong: (a) cho phép gọi `captureRoboImage` ghi vào `build/` làm ảnh tạm: sửa `scripts/check.sh` trong một PR riêng của dự án mẫu (`docs/ops/from-app.md`), merge trước khi chạy lại; (b) giữ nguyên `check.sh`, đổi cách lấy ảnh trong `pixelAt` sang đường không gọi `captureRoboImage` (giả thuyết chưa kiểm chứng: `View.drawToBitmap()` trên view gốc của Compose trong Robolectric `NATIVE`, hoặc `Bitmap` do Roborazzi trả về); (c) bỏ phần đo điểm ảnh, ảnh chuẩn kiểm màu (hướng (c) của phiên bản 1). Mục 4, mục 3.2 (nếu chọn (a), thêm `scripts/check.sh`) và mục 7 điều kiện 3 sửa theo hướng chọn.

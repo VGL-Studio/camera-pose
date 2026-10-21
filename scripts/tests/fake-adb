@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Minimal stand-in for adb used by scripts/tests: one connected device with the app installed, unless
+# FAKE_ADB_NO_DEVICE or FAKE_ADB_NO_APP is set. `logcat -v ...` prints $FAKE_ADB_LOGCAT, then waits to be killed
+# like the real streaming logcat. `dumpsys connectivity` reports the default network $FAKE_ADB_NETWORK (default
+# "none", i.e. offline). `exec-out cat` prints $FAKE_ADB_UI (a UI dump), `find /sdcard` prints $FAKE_ADB_FILES. Every call is appended to $FAKE_ADB_CALLS when set.
+[[ -n "${FAKE_ADB_CALLS:-}" ]] && echo "$*" >> "${FAKE_ADB_CALLS}"
+case "$1" in
+  get-state) [[ -n "${FAKE_ADB_NO_DEVICE:-}" ]] && exit 1; echo device ;;
+  logcat)
+    [[ " $* " == *" -c "* ]] && exit 0
+    cat "${FAKE_ADB_LOGCAT:-/dev/null}"
+    exec sleep 300 ;;
+  shell)
+    shift
+    case "$*" in
+      "pm path"*) [[ -n "${FAKE_ADB_NO_APP:-}" ]] && exit 1; echo "package:/data/app/base.apk" ;;
+      "getprop ro.build.version.sdk") echo 34 ;;
+      getprop*) echo Fake ;;
+      "dumpsys package"*) echo "    versionName=0.1.0-staging.4" ;;
+      "dumpsys gfxinfo"*) printf 'Total frames rendered: 400\nJanky frames: 3 (0.75%%)\n' ;;
+      "dumpsys meminfo"*) echo "        TOTAL PSS:    51234" ;;
+      "find /sdcard"*) cat "${FAKE_ADB_FILES:-/dev/null}" ;;
+      "dumpsys connectivity"*) echo "Active default network: ${FAKE_ADB_NETWORK:-none}" ;;
+      "cmd package resolve-activity"*) echo "com.example.app/.MainActivity" ;;
+      "am start -W"*) printf 'Status: ok\r\nTotalTime: 1234\r\n' ;;
+      monkey*) echo "Events injected: 1500" ;;
+      *) exit 0 ;;
+    esac ;;
+  exec-out) [[ "$*" == "exec-out cat"* ]] && cat "${FAKE_ADB_UI:-/dev/null}"; exit 0 ;;
+  *) exit 0 ;;
+esac

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand tagline shown with BrandLogo. Each app replaces it with its own (ADR-0008). -->
+    <string name="brand_tagline">Mọi việc vào đúng nhịp.</string>
+</resources>

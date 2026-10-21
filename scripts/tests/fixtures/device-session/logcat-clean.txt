@@ -1,0 +1,2 @@
+10-17 09:00:00.100  1234  1234 I VGL.Session: session=start name=ci
+10-17 09:00:01.200  4321  4321 I VGL.loading: state=finished duration_ms=2100

@@ -1,0 +1,80 @@
+# Fires the env-canary routine every morning: it checks the cloud environment of the auto-run routine on the
+# main branch with scripts/env-canary.sh, and opens or closes the env-broken issue (docs/ops/staging-and-runs.md,
+# section 2.4). An environment problem then shows up during the working day, not in the next overnight session.
+# Secrets (added by people, never read or printed by AI):
+#   ENV_CANARY_FIRE_URL    fire URL of the env-canary routine's API trigger
+#   ENV_CANARY_FIRE_TOKEN  bearer token of that trigger; it can only start that one routine
+# Not fired while an auto-run session is running: the canary would compete with it for the same usage limit.
+# Changing this file is a high-risk plan; cross-review required.
+name: env-canary
+
+on:
+  schedule:
+    # 01:00 UTC is 08:00 in Vietnam: the result is there when the team starts work.
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: env-canary
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  fire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Bỏ qua khi phiên tự chạy đang chạy
+        id: running
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          running=""
+          for branch in $(gh api "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --paginate \
+            --jq '.[].name | select(test("^claude/RUN-[0-9]{8}-[0-9]{2}-report$"))'); do
+            run_id="${branch#claude/}"
+            run_id="${run_id%-report}"
+            status="$( { gh api "repos/${GITHUB_REPOSITORY}/contents/docs/runs/${run_id}.md?ref=${branch}" \
+              -H "Accept: application/vnd.github.raw" 2>/dev/null || true; } \
+              | sed -n '/^---$/,/^---$/s/^status:[[:space:]]*\([a-z]*\).*/\1/p' | head -n 1)"
+            if [ "${status}" = "running" ]; then running="${run_id}"; fi
+          done
+          if [ -n "${running}" ]; then
+            echo "Phiên ${running} đang chạy, hôm nay không kiểm tra môi trường." >> "${GITHUB_STEP_SUMMARY}"
+          fi
+          echo "skip=$([ -n "${running}" ] && echo yes || echo no)" >> "${GITHUB_OUTPUT}"
+
+      - name: Kích hoạt routine env-canary
+        if: steps.running.outputs.skip == 'no'
+        env:
+          FIRE_URL: ${{ secrets.ENV_CANARY_FIRE_URL }}
+          FIRE_TOKEN: ${{ secrets.ENV_CANARY_FIRE_TOKEN }}
+        run: |
+          if [ -z "${FIRE_URL}" ] || [ -z "${FIRE_TOKEN}" ]; then
+            echo "::error::Thiếu bí mật ENV_CANARY_FIRE_URL hoặc ENV_CANARY_FIRE_TOKEN. Xem docs/ops/staging-and-runs.md, mục 2.4."
+            exit 1
+          fi
+          payload="$(jq -n '{text: "Kiểm tra môi trường hằng ngày."}')"
+          # The token goes through a header file, so it never appears in the command line.
+          umask 077
+          printf 'Authorization: Bearer %s\n' "${FIRE_TOKEN}" > "${RUNNER_TEMP}/auth-header"
+          status="$(curl -sS -o response.json -w '%{http_code}' -X POST "${FIRE_URL}" \
+            -H @"${RUNNER_TEMP}/auth-header" \
+            -H 'anthropic-version: 2023-06-01' \
+            -H 'anthropic-beta: experimental-cc-routine-2026-04-01' \
+            -H 'Content-Type: application/json' \
+            -d "${payload}")" || status="000"
+          rm -f "${RUNNER_TEMP}/auth-header"
+          if [ "${status}" != "200" ]; then
+            message="$(jq -r '.error.message // empty' response.json 2>/dev/null || true)"
+            echo "::error::Không kích hoạt được routine env-canary (HTTP ${status}). ${message}"
+            exit 1
+          fi
+          session_url="$(jq -r '.claude_code_session_url // empty' response.json)"
+          echo "Kiểm tra môi trường đã bắt đầu: ${session_url:-API không trả về đường dẫn}" >> "${GITHUB_STEP_SUMMARY}"

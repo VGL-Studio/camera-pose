@@ -1,0 +1,36 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+captures/
+.kotlin/
+
+# Secrets and production configuration: never commit (ADR-0007, ADR-0009)
+*.jks
+*.keystore
+keystore.properties
+release.properties
+google-services.json
+# Fake staging config so builds work without secrets (ADR-0012). The real one goes in app/src/staging/debug or app/src/staging/release.
+!app/src/staging/google-services.json
+
+# Python caches of the scripts
+__pycache__/
+
+# CI artifacts
+build.log
+
+# Bundles built by scripts/release.sh (ADR-0017)
+release-output/
+
+# Local folders of a developer's IDE setup (L-017)
+.vscode/
+build-logic/convention/bin/
+
+# Test sessions recorded by scripts/device-session.sh: raw device logs stay on the machine (docs/ops/test-sessions.md)
+/test-sessions/

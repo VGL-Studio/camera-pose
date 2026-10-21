@@ -1,0 +1,85 @@
+# Continues an auto-run session that stopped in the middle, usually because the usage quota of the Claude account
+# ran out (docs/auto-run.md, section 4, "Tiếp tục phiên"). Every hour, scripts/resume-check.py looks for a run that
+# is still "running" on its report branch but has had no commit for 90 minutes; if there is one, this workflow fires
+# the same routine as start-run.yml with the same run file. While the quota is still used up, the new session cannot
+# work and pushes nothing, so the next hour tries again; once the quota is renewed, the session continues.
+# Secrets: ROUTINE_FIRE_URL, ROUTINE_FIRE_TOKEN (the same as start-run.yml, docs/ops/staging-and-runs.md).
+# To stop a session for good, set its run file on the report branch to "finished" with the reason, or disable
+# this workflow. Changing this file is a high-risk plan; cross-review required.
+name: resume-run
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+# Shares the group of start-run.yml, so a session is never fired twice at the same moment.
+concurrency:
+  group: start-run
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  resume:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Tìm phiên dừng giữa chừng
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_file="$(python3 -I scripts/resume-check.py)"
+          echo "run_file=${run_file}" >> "${GITHUB_OUTPUT}"
+
+      - name: Kích hoạt lại routine
+        if: steps.find.outputs.run_file != ''
+        env:
+          FIRE_URL: ${{ secrets.ROUTINE_FIRE_URL }}
+          FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
+          RUN_FILE: ${{ steps.find.outputs.run_file }}
+        run: |
+          if [ -z "${FIRE_URL}" ] || [ -z "${FIRE_TOKEN}" ]; then
+            echo "::error::Thiếu bí mật ROUTINE_FIRE_URL hoặc ROUTINE_FIRE_TOKEN. Xem docs/ops/staging-and-runs.md."
+            exit 1
+          fi
+
+          # The routine's prompt only takes the run file path from this text; the session sees that its report
+          # branch is already running and continues it (docs/auto-run.md, section 2).
+          payload="$(jq -n --arg file "${RUN_FILE}" \
+            '{text: ("Danh sách chạy: " + $file + "\nNgười kích hoạt: resume-run (tiếp tục phiên dừng giữa chừng)")}')"
+
+          umask 077
+          printf 'Authorization: Bearer %s\n' "${FIRE_TOKEN}" > "${RUNNER_TEMP}/auth-header"
+          status="$(curl -sS -o response.json -w '%{http_code}' -X POST "${FIRE_URL}" \
+            -H @"${RUNNER_TEMP}/auth-header" \
+            -H 'anthropic-version: 2023-06-01' \
+            -H 'anthropic-beta: experimental-cc-routine-2026-04-01' \
+            -H 'Content-Type: application/json' \
+            -d "${payload}")" || status="000"
+          rm -f "${RUNNER_TEMP}/auth-header"
+
+          if [ "${status}" != "200" ]; then
+            message="$(jq -r '.error.message // empty' response.json 2>/dev/null || true)"
+            echo "::warning::Chưa kích hoạt lại được phiên (HTTP ${status}). ${message} Giờ sau thử lại."
+            exit 0
+          fi
+
+          session_url="$(jq -r '.claude_code_session_url // empty' response.json)"
+          {
+            echo "### Tiếp tục phiên tự chạy"
+            echo
+            echo "- Danh sách chạy: \`${RUN_FILE}\`"
+            echo "- Phiên: ${session_url:-API không trả về đường dẫn}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          echo "Phiên: ${session_url}"

@@ -1,0 +1,121 @@
+# Starts an auto-run session (docs/auto-run.md, ADR-0009, ADR-0016) by firing the Claude Code routine API.
+# Any developer can start a session from GitHub without signing in to the Claude account that owns the routine.
+# Secrets (added by people, never read or printed by AI):
+#   ROUTINE_FIRE_URL    https://api.anthropic.com/v1/claude_code/routines/<trig_ id>/fire, from the routine's API trigger
+#   ROUTINE_FIRE_TOKEN  bearer token of that trigger; it can only start this one routine
+# The fire endpoint is a research preview behind a beta header, so its contract may still change.
+# It has no idempotency key: every successful call starts a new session, so it is never retried.
+# Changing this file is a high-risk plan; cross-review required.
+name: start-run
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_file:
+        description: Danh sách chạy đã duyệt, ví dụ docs/runs/RUN-20261015-01.md
+        required: true
+
+# Only one session at a time (docs/auto-run.md, section 1).
+concurrency:
+  group: start-run
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  start:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Kiểm tra trước khi bắt đầu phiên
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_FILE: ${{ inputs.run_file }}
+        run: |
+          if ! [[ "${RUN_FILE}" =~ ^docs/runs/RUN-[0-9]{8}-[0-9]{2}\.md$ ]]; then
+            echo "::error::Đường dẫn danh sách chạy phải có dạng docs/runs/RUN-YYYYMMDD-NN.md."
+            exit 1
+          fi
+          if [ ! -f "${RUN_FILE}" ]; then
+            echo "::error::Không có ${RUN_FILE} trên nhánh chính. Danh sách chạy phải được merge trước."
+            exit 1
+          fi
+          status="$(sed -n '/^---$/,/^---$/s/^status:[[:space:]]*\([a-z]*\).*/\1/p' "${RUN_FILE}" | head -n 1)"
+          if [ "${status}" != "approved" ]; then
+            echo "::error::${RUN_FILE} có trạng thái '${status}'. Chỉ bắt đầu phiên với danh sách chạy approved."
+            exit 1
+          fi
+
+          # The session checks this too, but failing here saves a session that would stop at once.
+          open_broken="$(gh issue list --label main-broken --state open --json number --jq 'length')"
+          if [ "${open_broken}" != "0" ]; then
+            echo "::error::Nhánh chính đang đỏ (có issue main-broken đang mở). Không bắt đầu phiên."
+            exit 1
+          fi
+
+          # Opened by the daily env-canary check: a session in this environment would stop on downloads.
+          open_env="$(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=env-broken&per_page=10" --jq 'length')"
+          if [ "${open_env}" != "0" ]; then
+            echo "::error::Môi trường cloud đang lỗi (có issue env-broken đang mở). Sửa môi trường, chạy lại workflow env-canary, rồi bắt đầu phiên."
+            exit 1
+          fi
+
+      - name: Kích hoạt routine
+        env:
+          FIRE_URL: ${{ secrets.ROUTINE_FIRE_URL }}
+          FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
+          RUN_FILE: ${{ inputs.run_file }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [ -z "${FIRE_URL}" ] || [ -z "${FIRE_TOKEN}" ]; then
+            echo "::error::Thiếu bí mật ROUTINE_FIRE_URL hoặc ROUTINE_FIRE_TOKEN. Xem docs/ops/staging-and-runs.md."
+            exit 1
+          fi
+
+          # The routine's own prompt reads the run file named in this text (docs/ops/staging-and-runs.md).
+          payload="$(jq -n --arg file "${RUN_FILE}" --arg actor "${ACTOR}" \
+            '{text: ("Danh sách chạy: " + $file + "\nNgười kích hoạt: " + $actor)}')"
+
+          # The token goes through a header file, so it never appears in the command line.
+          umask 077
+          printf 'Authorization: Bearer %s\n' "${FIRE_TOKEN}" > "${RUNNER_TEMP}/auth-header"
+          status="$(curl -sS -o response.json -w '%{http_code}' -X POST "${FIRE_URL}" \
+            -H @"${RUNNER_TEMP}/auth-header" \
+            -H 'anthropic-version: 2023-06-01' \
+            -H 'anthropic-beta: experimental-cc-routine-2026-04-01' \
+            -H 'Content-Type: application/json' \
+            -d "${payload}")" || status="000"
+          rm -f "${RUNNER_TEMP}/auth-header"
+
+          if [ "${status}" != "200" ]; then
+            message="$(jq -r '.error.message // empty' response.json 2>/dev/null || true)"
+            case "${status}" in
+              401) hint="Mã kích hoạt sai hoặc đã bị tạo lại." ;;
+              404) hint="Routine không tồn tại, kiểm tra ROUTINE_FIRE_URL." ;;
+              400) hint="Routine đang tạm dừng hoặc yêu cầu không hợp lệ." ;;
+              429) hint="Đã vượt giới hạn số lần kích hoạt mỗi giờ, thử lại sau." ;;
+              000) hint="Không kết nối được tới API." ;;
+              *) hint="Lỗi phía API, thử lại sau ít phút." ;;
+            esac
+            echo "::error::Không bắt đầu được phiên (HTTP ${status}). ${hint} ${message}"
+            exit 1
+          fi
+
+          session_url="$(jq -r '.claude_code_session_url // empty' response.json)"
+          {
+            echo "### Phiên tự chạy đã bắt đầu"
+            echo
+            echo "- Danh sách chạy: \`${RUN_FILE}\`"
+            echo "- Người kích hoạt: ${ACTOR}"
+            echo "- Phiên: ${session_url:-API không trả về đường dẫn}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          echo "Phiên: ${session_url}"

@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+# Minimal stand-in for `gh api` used by scripts/tests. Serves fixed routes, commits and main-guard
+# check runs from the JSON fixture in $FIXTURE; a commit's "states" list is consumed one
+# entry per query, so a test can make a run go from pending to finished.
+import json, os, sys, subprocess, re
+fx = json.load(open(os.environ["FIXTURE"]))
+args = sys.argv[1:]
+assert args[0] == "api"
+path = args[1]
+jq = args[args.index("--jq")+1] if "--jq" in args else "."
+# Fixed answers: "routes" maps a path below repos/<owner>/<repo>/ to JSON (filtered by --jq) or to raw text.
+route = re.sub(r"^repos/[^/]+/[^/]+/", "", path)
+# Writes (-X POST, PATCH, ...) are not served: each is appended to $FIXTURE.writes as "<METHOD> <route>",
+# so a test can check what a script would have changed on GitHub.
+method = args[args.index("-X")+1] if "-X" in args else "GET"
+if method != "GET":
+    with open(os.environ["FIXTURE"] + ".writes", "a") as log:
+        log.write(f"{method} {route}\n")
+    sys.stdout.write("{}"); sys.exit(0)
+if route in fx.get("routes", {}):
+    answer = fx["routes"][route]
+    # {"__sequence__": [a, b, ...]} answers a, then b, ... one per query, then keeps the last (a run that finishes).
+    if isinstance(answer, dict) and "__sequence__" in answer:
+        seen_file = os.environ["FIXTURE"] + ".seen"
+        seen = json.load(open(seen_file)) if os.path.exists(seen_file) else {}
+        n = seen.get(route, 0); seen[route] = n + 1; json.dump(seen, open(seen_file, "w"))
+        answer = answer["__sequence__"][min(n, len(answer["__sequence__"]) - 1)]
+    if isinstance(answer, str):
+        sys.stdout.write(answer); sys.exit(0)
+    out = subprocess.run(["jq", "-r", jq], input=json.dumps(answer), capture_output=True, text=True)
+    sys.stdout.write(out.stdout); sys.exit(out.returncode)
+if route.startswith("contents/"):
+    sys.exit(1)
+m = re.match(r"repos/[^/]+/[^/]+/commits/([0-9a-f]+)/check-runs", path)
+calls_file = os.environ["FIXTURE"] + ".calls"
+calls = json.load(open(calls_file)) if os.path.exists(calls_file) else {}
+if m:
+    sha = m.group(1); c = fx[sha]
+    n = calls.get(sha, 0); calls[sha] = n + 1; json.dump(calls, open(calls_file, "w"))
+    states = c.get("states", [])
+    st = states[min(n, len(states)-1)] if states else None
+    runs = [] if st is None else [{"started_at":"2026-01-01T00:00:00Z","status": "in_progress" if st=="pending" else "completed","conclusion": None if st=="pending" else st}]
+    data = {"check_runs": runs}
+else:
+    sha = re.match(r"repos/[^/]+/[^/]+/commits/([0-9a-f]+)$", path).group(1); c = fx[sha]
+    data = {"parents": ([{"sha": c["parent"]}] if c.get("parent") else []), "files": [{"filename": f} for f in c.get("files", ["app/x.kt"])]}
+out = subprocess.run(["jq", "-r", jq], input=json.dumps(data), capture_output=True, text=True)
+sys.stdout.write(out.stdout); sys.exit(out.returncode)

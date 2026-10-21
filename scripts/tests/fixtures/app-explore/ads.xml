@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+  <node index="0" text="" resource-id="com.example:id/root" class="android.widget.FrameLayout" package="com.example" content-desc="" clickable="false" bounds="[0,0][1080,2400]">
+    <node index="0" text="" resource-id="com.example:id/btn_capture" class="android.widget.ImageView" package="com.example" content-desc="" clickable="true" bounds="[430,1700][650,1920]" />
+    <node index="1" text="" resource-id="com.example:id/native_ad_view" class="android.widget.FrameLayout" package="com.example" content-desc="" clickable="false" bounds="[0,0][1080,1400]">
+      <node index="0" text="" resource-id="com.example:id/ad_media" class="android.widget.ImageView" package="com.example" content-desc="" clickable="true" bounds="[11,11][1069,1300]" />
+      <node index="1" text="Install now" resource-id="com.example:id/ad_call_to_action" class="android.widget.Button" package="com.example" content-desc="" clickable="true" bounds="[39,1310][1041,1390]" />
+      <node index="2" text="" resource-id="com.example:id/ad_close" class="android.widget.ImageView" package="com.example" content-desc="" clickable="true" bounds="[908,100][980,172]" />
+    </node>
+    <node index="2" text="" resource-id="com.example:id/btn_next" class="android.widget.TextView" package="com.example" content-desc="" clickable="true" bounds="[786,200][1036,300]" />
+    <node index="3" text="" resource-id="com.example:id/ad_collap" class="android.widget.ImageView" package="com.example" content-desc="" clickable="true" bounds="[981,2000][1069,2088]" />
+  </node>
+</hierarchy>

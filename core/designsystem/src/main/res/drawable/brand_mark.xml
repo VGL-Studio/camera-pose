@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brand mark on the logo, from docs/features/loading/design/handoff/brand_mark.svg. Each app replaces it (ADR-0008). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp"
+    android:height="52dp"
+    android:viewportWidth="56"
+    android:viewportHeight="52">
+    <path
+        android:pathData="M2.00005 14L11.9048 26L31.7143 2.00006M2.00005 50H11.9048M26.7619 50H54M41.6191 20H54"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="4" />
+</vector>

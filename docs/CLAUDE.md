@@ -1,0 +1,142 @@
+# HƯỚNG DẪN AI LÀM VIỆC VỚI THƯ MỤC DOCS
+
+Tài liệu này dành cho AI. Nó nói rõ AI đọc gì, viết gì và không được làm gì với các tài liệu trong `docs/`. Tổng quan quy trình nằm ở [README.md](README.md), quy trình phiên tự chạy ở [auto-run.md](auto-run.md), thang điểm rủi ro ở [risk-scoring.md](risk-scoring.md).
+
+## Đọc trước khi làm
+
+Trước khi viết spec, plan hay code cho một ticket, đọc theo thứ tự:
+
+1. Ticket trong `features/<feature>/tickets/`.
+2. `features/<feature>/spec.md`, kể cả mục câu hỏi đã được trả lời.
+3. Thiết kế trong `features/<feature>/design/`, nếu có.
+4. [foundation.md](foundation.md): quy tắc của mọi ADR còn hiệu lực, sinh từ mục "Việc AI phải tuân thủ". Mở ADR đầy đủ trong `adr/` khi task đụng vào vùng của ADR đó hoặc định đổi quy tắc của nó.
+5. Phản hồi trong `features/<feature>/feedback/` có trạng thái `triaged` hoặc `planned`, và phản hồi trong `inbox/` được liên kết tới ticket.
+6. Các plan trước đó của cùng feature, nhất là mục nhật ký thực hiện, để biết những gì đã làm và đã gặp trở ngại.
+
+Nếu tài liệu mâu thuẫn nhau, không tự chọn bên nào. Ghi mâu thuẫn vào mục câu hỏi của tài liệu đang viết và báo cho người.
+
+## Khi khảo sát app mẫu (app clone)
+
+Chỉ trong phiên có người theo dõi, theo [ops/clone-study.md](ops/clone-study.md) và ADR-0021.
+
+- Điều khiển máy chỉ qua `scripts/app-explore/ax.sh`. Không gọi thẳng `adb shell input`, không vượt bộ chặn quảng cáo và nút mua, không đổi cài đặt hệ thống. Máy khóa, mất mạng hay từ chối thao tác thì dừng và nhờ người.
+- Không bấm quảng cáo, không mua, không bắt đầu dùng thử, không đăng nhập bằng tài khoản cá nhân, không chia sẻ hay gửi gì. Mọi dòng mới trong `incidents.log` ghi vào báo cáo của app.
+- Mỗi app một agent con, lần lượt vì chỉ có một máy; đọc APK và tìm trên web chạy song song. Các app cùng một mã nguồn chỉ khảo sát kỹ một app.
+- Báo cáo theo [mẫu khảo sát](templates/reference-app.md); mỗi nhận xét dẫn về ảnh hay cây giao diện; chưa xem được thì ghi ở mục Chưa xem được, không đoán. Số liệu từ web có nguồn.
+- Bản đề xuất theo [mẫu đề xuất](templates/app-proposal.md). Mỗi cải tiến có bằng chứng và cách đo. Quảng cáo, sự kiện phân tích, dữ liệu thu thập chỉ ghi thành câu hỏi. Đề xuất mới có trạng thái `draft`; chỉ dev ghi `approved`, chốt tên và tên gói.
+- Ảnh chụp, APK, kết quả giải nén không vào git. Báo cáo và bản đề xuất nằm trong `research/` của thư mục làm việc, cùng cấu trúc với `docs/research/`, và được chép nguyên vào đó khi app đã có repo.
+- Báo cáo không chứa mã quảng cáo, khóa API, token, mã định danh máy hay tên tài khoản của app mẫu; trích log thì che. Chạy `scripts/secret-scan.py` trước khi commit.
+- Cuối mỗi app, `ax.sh newfiles` liệt kê file mới trên máy; ghi vào báo cáo để người dọn, không tự xóa.
+- Không gọi API hay backend của app mẫu từ app mình, không chép code từ APK, không dùng tên, icon app hay ảnh store giống app mẫu.
+
+## Khi thiết kế trên Figma (app clone)
+
+Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
+
+- Chưa có bản đề xuất `approved` thì chưa dựng thiết kế của app.
+- Dựng 2 đến 3 hướng phong cách trước, mỗi hướng một bảng phong cách và hai màn hình; chờ dev chọn rồi mới dựng toàn bộ. Không tự chọn hướng.
+- App mới phải tốt hơn app mẫu và có nhận diện riêng: giữ khuôn tương tác quen thuộc, đổi màu, icon, chữ, hình dạng. Không đặt ảnh chụp toàn màn hình của app mẫu vào thiết kế.
+- Mọi màu, chữ, khoảng cách dùng biến; phần lặp lại là component. Tên frame và khung theo ADR-0020.
+- Sau mỗi lượt dev làm mịn, quét file chỉ đọc và báo chỗ lệch (instance bị tách, giá trị viết cứng, tên hay khung frame bị đổi, chữ ngoài hệ thống, màn hình còn thiếu). Không tự sửa lại phần dev vừa làm mịn; đề xuất đưa giá trị mới vào biến.
+- Tài sản mượn tạm đặt tên `borrowed_...` trong Figma và trong code, ghi vào `docs/borrowed-assets.md` trong cùng PR với file mượn ([mẫu](templates/borrowed-assets.md)).
+
+## Khi sinh spec từ yêu cầu
+
+- Feature mới thì tạo thư mục `features/<feature>/` với tên trùng tên module `:feature:<ten>` dự kiến. Đặt tên chưa chắc thì đề xuất tên trong mục câu hỏi.
+- Yêu cầu nằm trong `inbox/` được chuyển vào `features/<feature>/requests/` khi đã xác định feature.
+- Khi spec đã có, đổi `status` của yêu cầu từ `new` sang `specified`. Chỉ người ghi `done` hay `dropped`.
+- Dùng đúng [mẫu spec](templates/spec.md), giữ nguyên các mục, mục nào không áp dụng thì ghi "Không có" thay vì xóa.
+- Viết bằng ngôn ngữ nghiệp vụ. Mục tiêu, phạm vi và kịch bản sử dụng không chứa tên lớp, tên thư viện hay thuật ngữ kỹ thuật.
+- Mỗi kịch bản có tiêu chí chấp nhận cụ thể, kiểm chứng được, viết theo dạng "Khi ... thì ...".
+- Không tự thêm vị trí quảng cáo, sự kiện phân tích hay dữ liệu thu thập. Chỉ ghi những gì yêu cầu nêu; nếu thấy cần, đặt thành câu hỏi.
+- Chỗ nào yêu cầu chưa rõ, ghi thành câu hỏi trong mục câu hỏi còn mở, kèm phương án AI đề xuất. Không đoán.
+- Spec mới luôn có trạng thái `draft`. Spec đã `confirmed` mà có yêu cầu mới thì cập nhật nội dung, chuyển sang `changed` và ghi vào mục lịch sử. Chỉ người mới chuyển sang `confirmed`.
+
+## Khi tách spec thành ticket
+
+- Mỗi ticket là một phần giao được, kiểm chứng được, chạy xong trong một lượt của phiên tự chạy. Ticket quá lớn thì tách tiếp.
+- Mã ticket lấy số tiếp theo của cả app: tìm mã lớn nhất trong mọi thư mục `features/*/tickets/` rồi cộng một.
+- Ghi rõ ticket xử lý kịch bản nào của spec và phụ thuộc ticket nào.
+- Chấm rủi ro sơ bộ và ước lượng cỡ (S, M, L) theo [mẫu ticket](templates/ticket.md).
+
+## Khi viết plan
+
+- Dùng đúng [mẫu plan](templates/plan.md).
+- Danh sách file sẽ tạo và sửa phải đầy đủ và cụ thể. Danh sách này là ranh giới: trong phiên tự chạy, AI chỉ được chạm vào những file đã liệt kê.
+- Plan đổi một file mà nơi khác đọc (`docs/design-system/tokens.json`, ảnh chuẩn, cấu hình dùng chung): tìm mọi nơi đọc file đó (`grep -rn <tên file> scripts/ .github/ */src/test`) và đưa các file bị ảnh hưởng vào danh sách, hoặc ghi vì sao không ảnh hưởng (L-020).
+- Mỗi tiêu chí chấp nhận trong spec phải có cách kiểm chứng tương ứng trong mục kiểm thử. Test được viết trước code, nên mục kiểm thử phải đủ cụ thể để viết được test ngay từ plan.
+- Plan sửa lỗi giao diện hay lỗi đo được: trước khi viết mục kiểm thử, chạy thử điều test sẽ kiểm tra trên code hiện tại, bằng một test tạm không commit, và ghi số đo thật vào mục 4. Khung test phải tái hiện được lỗi gốc (cùng chiều rộng, chiều cao như nơi phát hiện). Không đoán test sẽ thất bại vì đâu (L-029).
+- Chấm rủi ro theo [risk-scoring.md](risk-scoring.md), ghi lý do cho từng tiêu chí. Không hạ điểm để plan dễ được duyệt.
+- Ghi `token_estimate` theo cỡ của ticket, lấy số gợi ý từ `scripts/token-usage.py estimate`; task khác thường thì chỉnh và ghi lý do. Ước tính chỉ để lập kế hoạch, không chặn task ([ops/token-usage.md](ops/token-usage.md)).
+- Nêu thẳng điều chưa chắc chắn trong mục câu hỏi cho người duyệt.
+- Hàm phụ trợ nằm trong file test mà cũng phải đổi (ví dụ danh sách mà test so sánh): ghi rõ phần nào vào commit test của bước 3, phần nào vào commit code của bước 4, để test viết trước thất bại đúng lý do (L-025).
+- Viết xong thì chạy `scripts/plan-check.py <plan>`, sửa hết lỗi trước khi đưa người duyệt, dán kết quả vào mô tả PR. Phiên tự chạy chạy lại script này ngay trước task và bỏ qua plan có lỗi.
+- Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`.
+
+## Khi lập danh sách chạy
+
+- Sau họp đánh giá rủi ro, lập `runs/RUN-YYYYMMDD-NN.md` theo [mẫu phiên tự chạy](templates/run.md), sắp các plan đã duyệt theo thứ tự đã thống nhất.
+- Gom việc của cả nhóm vào một phiên: mặc định đưa vào danh sách **mọi plan `approved` qua `plan-check.py`**, của mọi dev, thay vì chia thành nhiều phiên ít task. Mỗi phiên tốn khoảng 30 phút cố định (kiểm tra đầu phiên, emulator, staging, báo cáo) trong khi mỗi task khoảng 15 phút, nên phiên nhiều task rẻ hơn nhiều phiên một task. Mỗi lúc chỉ một phiên chạy (auto-run.md, mục 1).
+- Số task của phiên do dev quyết định khi duyệt danh sách, dựa trên ước tính; AI không đặt trần cố định. AI ghi trong mục Lý do của thứ tự chạy những gì dev cần để quyết định: tổng `token_estimate` so với tổng token thật của vài phiên gần nhất (`docs/metrics/token-usage.csv`), và thời gian dự kiến (khoảng 15 phút mỗi task cộng khoảng 30 phút cố định) so với `staging_needed_by` nếu có. `max_tasks` mặc định bằng số task trong danh sách; dev giảm nếu muốn. Plan nào để phiên sau thì ghi tên và lý do.
+- Một task dừng không được làm hỏng cả đêm: task phụ thuộc task bị dừng sẽ bị bỏ qua. Xếp các task độc lập trước, chuỗi task phụ thuộc nhau sau cùng. Danh sách chỉ có một chuỗi phụ thuộc thì ghi điều đó trong mục Lý do của thứ tự chạy và đề xuất thêm task độc lập đã sẵn sàng (ticket `ready` có plan duyệt được), nếu có.
+- Các plan trong danh sách đều qua `scripts/plan-check.py`.
+- Ghi tổng `token_estimate` của danh sách trong mục Lý do của thứ tự chạy, so với tổng token thật của vài phiên gần nhất (`docs/metrics/token-usage.csv`), để người duyệt thấy danh sách có vừa một phiên không. Chỉ để tham khảo, không bỏ task vì vượt.
+- Danh sách chạy có trạng thái `draft`. Chỉ dev mới chuyển sang `approved` và kích hoạt phiên.
+
+## Trong phiên tự chạy
+
+- Làm đúng các bước trong [auto-run.md](auto-run.md), lần lượt từng task, không chạy song song.
+- Chỉ thực hiện plan có trạng thái `approved` có trong danh sách chạy đã duyệt.
+- Tuân thủ điều kiện dừng ở mục 4 của [risk-scoring.md](risk-scoring.md).
+- Đặt tên nhánh theo dạng `claude/T-NNN-<tu-khoa>`.
+- Chỉ merge bằng `scripts/merge-if-green.sh`. Không dùng nút merge, `gh pr merge` hay gọi thẳng API để merge. Không đóng hay sửa issue mang nhãn `main-broken`; việc đó thuộc về người.
+- Sau mỗi task, ghi nhật ký vào cuối plan và cập nhật trạng thái ticket: `on-staging` khi đã merge, `stopped` khi dừng.
+- Cuối phiên, viết báo cáo vào file phiên chạy.
+
+## Khi phân tích một phiên thử
+
+Phiên thử là log của một lần dùng thử bản staging trên máy thật hoặc emulator, ghi bằng `scripts/device-session.sh` vào `test-sessions/TS-YYYYMMDD-NN/` (`docs/ops/test-sessions.md`).
+
+- Đọc theo thứ tự: `summary.md`, `session.md`, `notes.md` của người thử, `app-log.txt`, `scenarios.txt` và ảnh nếu có, rồi các đoạn cần trong `logcat.txt`. Dòng `VGL.Session` chia log theo bước.
+- Đọc spec của feature đã thử. Dựng lại diễn biến theo thời gian và đối chiếu với từng kịch bản: luồng lệch kịch bản là một phát hiện.
+- Mỗi phát hiện phải có bằng chứng là dòng log có giờ. Tìm đoạn code liên quan và ghi rõ đâu là kết luận, đâu là giả thuyết. Không kết luận về tốc độ hay giật khung hình từ emulator.
+- Ngoài lỗi, tìm chỗ người dùng có vẻ lúng túng (bấm lại nhiều lần, quay ra quay vào, chờ lâu) và đề xuất cải tiến.
+- Log không đủ để kết luận thì ghi vào mục Log còn thiếu, không đoán.
+- Viết báo cáo `docs/test-sessions/TS-YYYYMMDD-NN.md` theo [mẫu phiên thử](templates/test-session.md). Mỗi phát hiện và đề xuất thành một phản hồi theo [mẫu phản hồi](templates/feedback.md), trạng thái `new`, trong `features/<feature>/feedback/`, liên kết về báo cáo.
+- Chỉ trích những dòng log làm bằng chứng. Bỏ mã định danh máy, tên tài khoản, tên mạng, đường dẫn có tên người và mọi dữ liệu người dùng. Không đưa log thô vào repo.
+
+## Khi xử lý phản hồi
+
+- Phản hồi mới trong `inbox/` mà xác định được feature thì đề xuất chuyển vào `features/<feature>/feedback/`.
+- Đề xuất phân loại: lỗi so với spec, thay đổi yêu cầu, hay góp ý mới. Chủ feature quyết định.
+- Phản hồi là thay đổi yêu cầu thì không sửa thẳng vào code. Đề xuất cập nhật spec, chờ người phụ trách sản phẩm xác nhận.
+- Phản hồi là lỗi so với spec thì cập nhật plan (tăng phiên bản plan, thêm mục sửa lỗi). Plan sửa đi qua họp đánh giá rủi ro như plan mới.
+
+## Khi viết ADR
+
+- Dùng đúng [mẫu ADR](templates/adr.md). Mục "Việc AI phải tuân thủ" viết thành các vế ngắn nối bằng dấu chấm phẩy: mỗi vế thành một dòng của `foundation.md`.
+- Mã ADR: ở dự án mẫu (repo có `docs/ops/new-app.md`) lấy số tiếp theo dưới 1000 và ghi `origin: template`. Ở app, lấy số tiếp theo từ 1001 và ghi `origin: app`, để không trùng với ADR mà dự án mẫu thêm sau này.
+- Trong app, không sửa ADR có `origin: template`. Muốn khác thì viết ADR của app, ghi rõ thay quy tắc nào và vì sao (`supersedes`), và đề xuất về dự án mẫu nếu có ích chung (`docs/ops/from-app.md`).
+- PR thêm hay đổi trạng thái ADR thì chạy `scripts/foundation.py` và commit `docs/foundation.md` cùng PR. Test của script báo lỗi khi trang chưa khớp.
+
+## Trang tiến độ
+
+`docs/STATUS.md` cho thấy tiến độ cả dự án: việc đang chờ người, yêu cầu và trạng thái, ticket của từng feature, phiên tự chạy, bài học và ADR. Trang do `scripts/status.py` sinh từ trạng thái trong các tài liệu, không sửa tay.
+
+- PR nào đổi trạng thái hay thêm, bớt yêu cầu, spec, ticket, plan, phản hồi, danh sách chạy, bài học hay ADR thì chạy `scripts/status.py` và commit `docs/STATUS.md` cùng PR. `scripts/status.py --check` cho biết trang đã khớp chưa.
+- Phiên tự chạy sinh lại trang trong PR báo cáo (auto-run.md, mục 4).
+- Trang thiếu thông tin hay sai thì sửa tài liệu gốc hoặc script, không sửa trang.
+
+## Những điều không được làm
+
+- Không sửa nội dung đã xác nhận: spec `confirmed`, plan `approved`, ADR `accepted`. Muốn thay đổi thì thêm mục mới hoặc tạo bản thay thế.
+- Không xóa tài liệu. Tài liệu hết hiệu lực được chuyển trạng thái, không bị xóa.
+- Không đưa vào tài liệu bất kỳ khóa bí mật, mã quảng cáo thật, thông tin đăng nhập hay dữ liệu cá nhân của người dùng.
+- Không tự cấp quyền duyệt, không tự chuyển trạng thái thay cho người.
+
+## Cách viết
+
+- Tiếng Việt tự nhiên, câu ngắn, dễ hiểu. Không dùng từ hiếm, không dịch từng chữ từ tiếng Anh.
+- Thuật ngữ kỹ thuật thông dụng giữ tiếng Anh: module, test, build, staging, commit, merge.
+- Không dùng dấu gạch ngang dài, không dùng biểu tượng cảm xúc.
+- Ngày viết theo dạng `YYYY-MM-DD`.

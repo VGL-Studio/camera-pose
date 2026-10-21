@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loading_status">Đang tải dữ liệu</string>
+    <string name="loading_guidance">Đang chuẩn bị không gian của bạn…</string>
+    <string name="loading_status_failed">Tiến độ đã dừng</string>
+    <string name="loading_error_title">Không thể tải dữ liệu</string>
+    <string name="loading_percent">%1$d%%</string>
+    <string name="loading_error">Kết nối đang gián đoạn. Vui lòng kiểm tra mạng và thử lại để tiếp tục.</string>
+    <string name="loading_retry">Thử lại</string>
+    <string name="loading_footer">Không gian riêng cho việc của bạn</string>
+</resources>

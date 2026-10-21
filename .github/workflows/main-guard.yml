@@ -1,0 +1,116 @@
+# Guards the main branch (ADR-0010): re-runs the JVM quality gate for every commit pushed to main.
+# - Every commit gets its own run (no concurrency group), so no commit is skipped.
+# - Red run: scripts/find-breaking-commit.sh finds the commit that actually broke main. If no
+#   main-broken issue is open, open one blaming that commit and push a revert/<sha> branch for it;
+#   otherwise only add a comment. Infrastructure failures (checkout, Java, network) are not "red".
+# - Green run: close open main-broken issues, but only when this commit already contains the
+#   blamed commit (an older commit finishing late must not close a newer breakage).
+# Changing this file is a high-risk plan; cross-review required.
+name: main-guard
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+
+# Bash with pipefail, so that `command | tee log` still fails when the command fails.
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: write
+  issues: write
+  checks: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 50
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Cổng chất lượng (scripts/check.sh)
+        id: check
+        run: scripts/check.sh 2>&1 | tee build.log
+
+      - name: Đánh dấu nhánh chính đang đỏ
+        # Only when the quality gate itself failed, not when an earlier infrastructure step failed.
+        if: failure() && steps.check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          gh label create main-broken --color B60205 --description "Nhánh chính không qua cổng chất lượng" --force
+          log_tail="$(tail -n 60 build.log 2>/dev/null || echo 'Không có build.log.')"
+
+          culprit="$(scripts/find-breaking-commit.sh "${GITHUB_SHA}")"
+          short="${culprit::7}"
+
+          # Re-read after waiting: the run of an older red commit may have opened the issue meanwhile.
+          open_issue="$(gh issue list --label main-broken --state open --json number --jq '.[0].number // empty')"
+          if [ -n "${open_issue}" ]; then
+            {
+              echo "Commit ${GITHUB_SHA} cũng không qua cổng chất lượng (commit gây lỗi xác định được: ${culprit})."
+              echo '```'
+              echo "${log_tail}"
+              echo '```'
+            } > comment.md
+            gh issue comment "${open_issue}" --body-file comment.md
+            exit 0
+          fi
+
+          {
+            echo "<!-- culprit:${culprit} -->"
+            echo "Nhánh chính không qua cổng chất lượng. Commit gây lỗi: ${culprit}."
+            echo "Lần kiểm tra phát hiện: ${GITHUB_SHA}."
+            echo
+            echo "Khi issue này còn mở, phiên tự chạy dừng và \`scripts/merge-if-green.sh\` từ chối mọi PR."
+            echo "Người phụ trách quyết định revert hay sửa tiếp, đóng issue này rồi merge bản revert hoặc bản sửa."
+            echo "Issue tự đóng khi một lần chạy main-guard trên commit chứa bản sửa báo xanh."
+            echo
+            echo '```'
+            echo "${log_tail}"
+            echo '```'
+          } > body.md
+          issue_url="$(gh issue create --title "main-broken: ${short}" --label main-broken --body-file body.md)"
+
+          branch="revert/${short}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${branch}"
+          if git revert --no-edit "${culprit}" && git push origin "${branch}"; then
+            note="Nhánh \`${branch}\` đã có sẵn commit revert của ${short}. Mở PR từ nhánh này nếu quyết định revert."
+          else
+            note="Không tự revert được ${short}, cần sửa tay."
+          fi
+          gh issue comment "${issue_url}" --body "${note}"
+
+      - name: Đóng issue main-broken khi nhánh chính xanh trở lại
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue list --label main-broken --state open --json number,body \
+            --jq '.[] | "\(.number) \((.body | capture("<!-- culprit:(?<s>[0-9a-f]+) -->").s) // "")"' |
+          while read -r number culprit; do
+            if [ -z "${culprit}" ]; then
+              continue
+            fi
+            # Close only if this green commit contains the blamed commit, i.e. the fix landed after it.
+            status="$(gh api "repos/${{ github.repository }}/compare/${culprit}...${GITHUB_SHA}" --jq .status)"
+            if [ "${status}" = "ahead" ]; then
+              gh issue close "${number}" --comment "Nhánh chính xanh trở lại tại commit ${GITHUB_SHA}."
+            fi
+          done

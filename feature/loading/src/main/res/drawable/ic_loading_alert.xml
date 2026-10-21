@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Alert icon (Lucide, ISC), from docs/features/loading/design/handoff/ic_alert.svg. Color comes from the tint. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18dp"
+    android:height="18dp"
+    android:viewportWidth="18"
+    android:viewportHeight="18">
+    <path
+        android:pathData="M8.99999 5.99976V9M8.99999 12.0002H9.00749M16.5006 9C16.5006 13.1425 13.1425 16.5006 8.99999 16.5006C4.85752 16.5006 1.49939 13.1425 1.49939 9C1.49939 4.85754 4.85752 1.4994 8.99999 1.4994C13.1425 1.4994 16.5006 4.85754 16.5006 9Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="1.7" />
+</vector>

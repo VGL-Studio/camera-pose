@@ -34,18 +34,55 @@ data class AppColors(
     val cameraScrim: Color,
 )
 
-private val Blank = Color.Transparent
-
 internal val LightAppColors = AppColors(
-    success = Blank, onSuccess = Blank, successContainer = Blank, onSuccessContainer = Blank,
-    shadowSticker = Blank, categoryWomen = Blank, categoryMen = Blank, categoryCouple = Blank,
-    categoryFriends = Blank, categoryFamily = Blank, categoryKids = Blank, categoryTravel = Blank,
-    categoryCafe = Blank, onCategory = Blank, cameraBackground = Blank, cameraSurface = Blank,
-    onCamera = Blank, cameraOnSurfaceVariant = Blank, cameraControl = Blank, cameraOnControl = Blank,
-    cameraOverlayStroke = Blank, cameraScrim = Blank,
+    success = Color(0xFF1F9D63),
+    onSuccess = Color(0xFFFFFFFF),
+    successContainer = Color(0xFF3DDC97),
+    onSuccessContainer = Color(0xFF111111),
+    shadowSticker = Color(0xFFFFC83D),
+    categoryWomen = Color(0xFFFF5C8A),
+    categoryMen = Color(0xFFFFC83D),
+    categoryCouple = Color(0xFF3DDC97),
+    categoryFriends = Color(0xFF4D8DFF),
+    categoryFamily = Color(0xFF5ED3F3),
+    categoryKids = Color(0xFFFFA8D0),
+    categoryTravel = Color(0xFFFF8A3D),
+    categoryCafe = Color(0xFFB8E986),
+    onCategory = Color(0xFF111111),
+    cameraBackground = Color(0xFF0A0A0B),
+    cameraSurface = Color(0xFF1E1E1E),
+    onCamera = Color(0xFFFFFFFF),
+    cameraOnSurfaceVariant = Color(0xFFB5B0A8),
+    cameraControl = Color(0xFFFFFFFF),
+    cameraOnControl = Color(0xFF111111),
+    cameraOverlayStroke = Color(0xFFFFFFFF),
+    cameraScrim = Color(0xFF000000),
 )
 
-internal val DarkAppColors = LightAppColors
+internal val DarkAppColors = AppColors(
+    success = Color(0xFF3DDC97),
+    onSuccess = Color(0xFF0B2E1E),
+    successContainer = Color(0xFF3DDC97),
+    onSuccessContainer = Color(0xFF111111),
+    shadowSticker = Color(0xFFFFC83D),
+    categoryWomen = Color(0xFFFF5C8A),
+    categoryMen = Color(0xFFFFC83D),
+    categoryCouple = Color(0xFF3DDC97),
+    categoryFriends = Color(0xFF4D8DFF),
+    categoryFamily = Color(0xFF5ED3F3),
+    categoryKids = Color(0xFFFFA8D0),
+    categoryTravel = Color(0xFFFF8A3D),
+    categoryCafe = Color(0xFFB8E986),
+    onCategory = Color(0xFF111111),
+    cameraBackground = Color(0xFF0A0A0B),
+    cameraSurface = Color(0xFF1E1E1E),
+    onCamera = Color(0xFFFFFFFF),
+    cameraOnSurfaceVariant = Color(0xFFB5B0A8),
+    cameraControl = Color(0xFFFFFFFF),
+    cameraOnControl = Color(0xFF111111),
+    cameraOverlayStroke = Color(0xFFFFFFFF),
+    cameraScrim = Color(0xFF000000),
+)
 
 val LocalAppColors = staticCompositionLocalOf { LightAppColors }
 

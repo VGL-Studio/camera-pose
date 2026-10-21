@@ -85,7 +85,9 @@ class ComponentsTest {
     @Test
     fun primaryButton_fill_isSecondary_light() {
         composeRule.setContent {
-            AppTheme(darkTheme = false) { PrimaryButton(text = "Button", onClick = {}, modifier = Modifier.testTag(NO_ICON)) }
+            AppTheme(darkTheme = false) {
+                PrimaryButton(text = "Button", onClick = {}, modifier = Modifier.testTag(NO_ICON))
+            }
         }
         assertEquals(Color(0xFF111111).toArgb(), pixelAt(NO_ICON, 10.dp, 28.dp).toArgb())
     }
@@ -93,7 +95,9 @@ class ComponentsTest {
     @Test
     fun primaryButton_fill_isSecondary_dark() {
         composeRule.setContent {
-            AppTheme(darkTheme = true) { PrimaryButton(text = "Button", onClick = {}, modifier = Modifier.testTag(NO_ICON)) }
+            AppTheme(darkTheme = true) {
+                PrimaryButton(text = "Button", onClick = {}, modifier = Modifier.testTag(NO_ICON))
+            }
         }
         assertEquals(Color(0xFFFFFFFF).toArgb(), pixelAt(NO_ICON, 10.dp, 28.dp).toArgb())
     }

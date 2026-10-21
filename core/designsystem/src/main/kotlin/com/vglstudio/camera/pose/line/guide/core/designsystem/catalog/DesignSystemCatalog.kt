@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,11 +25,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SecondaryButton
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.StickerShadow
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Stroke
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.stickerShadow
 
 /**
  * Shows every value of the design system, so designers can rebuild it in Claude Design or Figma (ADR-0020).
@@ -83,17 +93,79 @@ fun SpacingAndComponentCatalog(modifier: Modifier = Modifier) {
         Spacing.scale.forEach { (name, value) -> SpacingSample(name, value) }
         PrimaryButton(text = "PrimaryButton", onClick = {})
         PrimaryButton(text = "PrimaryButton disabled", onClick = {}, enabled = false)
+        SecondaryButton(text = "SecondaryButton", onClick = {})
+        SecondaryButton(text = "SecondaryButton disabled", onClick = {}, enabled = false)
     }
 }
 
 @Composable
 fun AppColorCatalog(modifier: Modifier = Modifier) {
-    Box(modifier)
+    val app = MaterialTheme.appColors
+    val swatches = listOf(
+        Triple("success", app.success, app.onSuccess),
+        Triple("successContainer", app.successContainer, app.onSuccessContainer),
+        Triple("shadowSticker", app.shadowSticker, app.onCategory),
+        Triple("category/women", app.categoryWomen, app.onCategory),
+        Triple("category/men", app.categoryMen, app.onCategory),
+        Triple("category/couple", app.categoryCouple, app.onCategory),
+        Triple("category/friends", app.categoryFriends, app.onCategory),
+        Triple("category/family", app.categoryFamily, app.onCategory),
+        Triple("category/kids", app.categoryKids, app.onCategory),
+        Triple("category/travel", app.categoryTravel, app.onCategory),
+        Triple("category/cafe", app.categoryCafe, app.onCategory),
+        Triple("camera/background", app.cameraBackground, app.onCamera),
+        Triple("camera/surface", app.cameraSurface, app.onCamera),
+        Triple("camera/control", app.cameraControl, app.cameraOnControl),
+        Triple("camera/scrim", app.cameraScrim, app.onCamera),
+    )
+    CatalogPage(title = "App colors", modifier = modifier) {
+        swatches.chunked(2).forEach { pair ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                pair.forEach { (name, color, onColor) ->
+                    ColorSwatch(name, color, onColor, Modifier.weight(1f))
+                }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
 }
 
 @Composable
 fun ShapeCatalog(modifier: Modifier = Modifier) {
-    Box(modifier)
+    val colors = MaterialTheme.colorScheme
+    CatalogPage(title = "Shapes", modifier = modifier) {
+        Radius.scale.forEach { (name, value) ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Box(
+                    Modifier
+                        .size(width = 64.dp, height = 40.dp)
+                        .border(Stroke.sticker, colors.outline, RoundedCornerShape(value)),
+                )
+                Text(text = "$name ${value.value.toInt()} dp", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        Stroke.scale.forEach { (name, value) ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Box(Modifier.size(width = 64.dp, height = 40.dp).border(value, colors.outline))
+                Text(text = "$name ${value.value.toInt()} dp", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        val shape = RoundedCornerShape(Radius.card)
+        Box(
+            Modifier
+                .padding(bottom = StickerShadow.offset)
+                .size(112.dp)
+                .stickerShadow(shape, MaterialTheme.appColors.shadowSticker)
+                .background(colors.surface, shape)
+                .border(Stroke.sticker, colors.outline, shape),
+        )
+    }
 }
 
 @Composable
@@ -128,9 +200,9 @@ private fun CatalogPage(title: String, modifier: Modifier = Modifier, content: @
 }
 
 @Composable
-private fun ColorSwatch(name: String, color: Color, onColor: Color) {
+private fun ColorSwatch(name: String, color: Color, onColor: Color, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(color)
             .border(Dp.Hairline, MaterialTheme.colorScheme.outline)

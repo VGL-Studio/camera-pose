@@ -4,11 +4,11 @@
 
 ## 1. Đang chờ người
 
-- Plan `draft` chờ duyệt: [T-013-camera-co-ban.md](features/camera/plans/T-013-camera-co-ban.md)
-- Plan `draft` chờ duyệt: [T-008-loading-giao-dien-sticker.md](features/loading/plans/T-008-loading-giao-dien-sticker.md)
-- Plan `draft` chờ duyệt: [T-010-loading-tai-catalog-bo-khoi-dau.md](features/loading/plans/T-010-loading-tai-catalog-bo-khoi-dau.md)
 - Danh sách chạy đã duyệt, chờ kích hoạt: [RUN-20261021-03.md](runs/RUN-20261021-03.md)
+- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-013-camera-co-ban.md](features/camera/tickets/T-013-camera-co-ban.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
+- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-008-loading-giao-dien-sticker.md](features/loading/tickets/T-008-loading-giao-dien-sticker.md)
+- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-010-loading-tai-catalog-bo-khoi-dau.md](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
 
@@ -28,11 +28,11 @@
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 7 `ready`, 1 `planned`.
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 7 `ready`, 1 `approved`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-013](features/camera/tickets/T-013-camera-co-ban.md) | Camera: khung xem trước, quyền, công cụ chụp, chụp ảnh | `planned` | `draft` (bản 1) | 40.0M | - |
+| [T-013](features/camera/tickets/T-013-camera-co-ban.md) | Camera: khung xem trước, quyền, công cụ chụp, chụp ảnh | `approved` | `approved` (bản 1) | 40.0M | - |
 | [T-014](features/camera/tickets/T-014-camera-chon-tu-the.md) | Camera: chọn tư thế, nét viền, thẻ bước | `ready` | chưa có | - | - |
 | [T-015](features/camera/tickets/T-015-camera-chinh-net-vien.md) | Camera: chỉnh nét viền | `ready` | chưa có | - | - |
 | [T-016](features/camera/tickets/T-016-man-xem-lai.md) | Màn xem lại, lưu, chia sẻ, tư thế tiếp | `ready` | chưa có | - | - |
@@ -56,8 +56,8 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 4
 | [T-005](features/loading/tickets/T-005-man-hinh-thap.md) | Màn hình loading dùng được trên màn hình thấp | `on-staging` | `done` (bản 1) | - | - |
 | [T-006](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md) | Test cuộn tới nút "Thử lại" trên màn hình rất thấp | `approved` | `approved` (bản 1) | - | - |
 | [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `approved` | `approved` (bản 3) | 40.0M | RUN-20261021-01, RUN-20261021-02, RUN-20261021-03 |
-| [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `approved` | `draft` (bản 1) | 20.0M | - |
-| [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `approved` | `draft` (bản 1) | 20M | - |
+| [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `approved` | `approved` (bản 1) | 20.0M | - |
+| [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `approved` | `approved` (bản 1) | 20M | - |
 
 Phản hồi: 1 `fixed`, 1 `wontfix`.
 

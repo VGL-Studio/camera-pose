@@ -1,16 +1,16 @@
 ---
 ticket: T-013
 title: Camera: khung xem trước, quyền, công cụ chụp, chụp ảnh
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 40.0M        # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-21
 ---
 
 # PLAN T-013: CAMERA: KHUNG XEM TRƯỚC, QUYỀN, CÔNG CỤ CHỤP, CHỤP ẢNH
@@ -247,6 +247,7 @@ Mức zoom hiển thị: mức đang chọn có hậu tố "x" ("1x"), mức kh�
 | Tạo | `feature/camera/src/test/screenshots/CameraScreen_error_dark.png` | Ảnh chuẩn mới, cùng tên ảnh thiết kế |
 | Tạo | `feature/camera/src/test/screenshots/CameraScreen_countdown_dark.png` | Ảnh chuẩn mới, cùng tên ảnh thiết kế (chưa có phần của T-014, T-015) |
 | Tạo | `feature/camera/src/test/screenshots/CameraScreen_ready_dark.png` | Đủ công cụ: flash tự động, hẹn giờ 10s, lưới tắt, zoom 1x và 2 |
+| Tạo | `docs/features/camera/design/review/` | Sinh bởi `scripts/design-compare.sh camera` (ảnh ghép của bốn ảnh T-013 và `summary.md`), không sửa tay |
 | Tạo | `feature/camera/src/test/screenshots/CameraScreen_permission-denied_small.png` | Khung 360 x 640 (L-028) |
 | Tạo | `feature/camera/src/test/screenshots/CameraScreen_countdown_small.png` | Khung 360 x 640 (L-028) |
 | Tạo | `core/designsystem/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/component/CameraIconButton.kt` | Thành phần mới |
@@ -344,7 +345,7 @@ Bản giả: `FakeCameraController` ghi lại `openCalls: List<Lens>`, `flashCal
 | Đúng thiết kế, bốn trạng thái của T-013 | Screenshot test, `@GraphicsMode(NATIVE)`, `@Config(qualifiers = "w411dp-h891dp-xxhdpi")`, có `onOpenPoses` và `onOpenSettings` để thanh trên giống thiết kế | `CameraScreenScreenshotTest`: `starting_dark` (`CameraScreen_starting_dark.png`), `permissionDenied_dark` (`CameraScreen_permission-denied_dark.png`), `error_dark` (`CameraScreen_error_dark.png`), `countdown_dark` (`CameraScreen_countdown_dark.png`: flash tắt, hẹn giờ 3, lưới bật, zoom 0.5/1x/2 chọn 1x, `countdown = 3`) |
 | Đủ công cụ | Screenshot test | `ready_dark` (`CameraScreen_ready_dark.png`): flash tự động, hẹn giờ 10, lưới tắt, hai mức zoom |
 | Màn hình thấp (L-028) | Screenshot test khung `w360dp-h640dp-xxhdpi` | `permissionDenied_small` (`CameraScreen_permission-denied_small.png`, nhiều chữ nhất), `countdown_small` (`CameraScreen_countdown_small.png`, nhiều nút nhất) |
-| So với thiết kế | Rà soát độc lập (bước 6) | Phiên rà soát đặt từng ảnh chuẩn cạnh ảnh thiết kế cùng tên và xem theo mục 7 của README thiết kế. Không chạy script so sánh thiết kế của ADR-0020 ở T-013: `plan-check.py` (quy tắc 4) buộc plan nhắc tới script đó phải có ảnh chuẩn cho cả 18 ảnh thiết kế của feature, trong khi T-013 chỉ làm 4 (mục 8 câu 2). Khác biệt đã biết: vùng chip và dải tư thế trống; ảnh countdown thiếu thẻ bước, nét viền, cột công cụ nét viền |
+| So với thiết kế | Ảnh so sánh và rà soát độc lập (bước 6) | Chạy `scripts/design-compare.sh camera` sau khi ghi ảnh chuẩn; commit `docs/features/camera/design/review/` và dán `review/summary.md` vào mô tả PR (ADR-0020). Ảnh thiết kế của ticket khác (T-014, T-015, T-016, T-017, T-020): `CameraScreen_default_dark`, `CameraScreen_no-pose_dark`, `CameraScreen_steps-hidden_dark`, `CameraScreen_adjust_dark`, `CameraScreen_locked_dark`, `CameraScreen_matching_dark`, `CameraScreen_matched_dark`, `CameraScreen_no-person_dark`, `CameraScreen_default_dark_unfolded`, `ReviewScreen_default_dark`, `ReviewScreen_saving_dark`, `ReviewScreen_save-error_dark`, `ReviewScreen_discard_dark`, `ReviewScreen_default_dark_unfolded`. Script ghi các ảnh này là "thiếu ảnh chuẩn screenshot", không báo lỗi. Phiên rà soát xem ảnh ghép của bốn ảnh T-013 theo mục 7 của README thiết kế. Khác biệt đã biết: vùng chip và dải tư thế trống; ảnh countdown thiếu thẻ bước, nét viền, cột công cụ nét viền |
 | Camera là màn đích sau loading ở staging | Test trên emulator | `AppLaunchTest.appStarts_andReachesStartScreen` đổi tag chờ từ `sample_screen` sang `camera_screen` (`CameraTestTags.SCREEN`), giữ `waitUntil` 60 giây mà T-010 đặt và `fetchSemanticsNodes()`. Không khẳng định trạng thái nào của camera: emulator của CI có thể không có camera, và hộp hỏi quyền hệ thống phủ lên app |
 | Khung xem trước chạy, đúng 3:4, không méo | Kiểm tra thủ công | Cài bản staging lên máy thật, cho phép camera: hình chạy trong khung 3:4, vật tròn không bị kéo dài; xoay người cầm máy không làm giao diện xoay (khóa dọc) |
 | Flash | Kiểm tra thủ công | Phòng tối, camera sau: chế độ bật thì đèn nháy khi chụp; tự động thì nháy khi tối; tắt thì không. Đổi sang camera trước: nút flash mờ |
@@ -399,29 +400,42 @@ Bản giả: `FakeCameraController` ghi lại `openCalls: List<Lens>`, `flashCal
 ## 8. Câu hỏi cho người duyệt
 
 1. **Độ mờ của lưới: đã giải quyết, không cần trả lời.** Phiên chính kiểm tra Figma: các instance `GridOverlay` (và `ZoomControl`, thanh trượt trong `AdjustPanel`) còn giữ độ mờ 1 từ trước khi component được sửa, nên ảnh xuất ra có nét trắng đặc. Đã sửa trên Figma và xuất lại gói `camera`: lưới `camera/onCamera` độ mờ 18% như README; nền `ZoomControl` `camera/scrim` 45%. `context/` không ghi độ mờ của lớp tô nên vẫn chỉ ghi #FFFFFF; lấy độ mờ theo README. `GridOverlayDefaults.Alpha = 0.18f`.
+- Trả lời: OK.
 2. **Script so sánh thiết kế.** ADR-0020 yêu cầu chạy script so sánh và đưa `design/review/` vào PR. `plan-check.py` báo lỗi nếu plan nhắc tới script mà thiếu ảnh chuẩn cho bất kỳ ảnh nào trong 18 ảnh thiết kế của camera, nên plan theo ticket nhỏ hơn feature không qua được. Đề xuất của AI: T-013 không chạy script, rà soát độc lập so bằng mắt; ảnh so sánh đầy đủ chạy ở ticket camera cuối cùng (T-020) khi đủ 18 ảnh. Đồng thời đề xuất về dự án mẫu (`docs/ops/from-app.md`): cho plan khai báo các ảnh thiết kế thuộc ticket khác để `plan-check.py` bỏ qua. Người duyệt muốn chạy script ngay ở T-013 thì phải sửa quy tắc của `plan-check.py` trước.
+- Trả lời: Đã sửa quy tắc plan-check.py
 3. **Giá trị tham số của `photo_captured`.** Ticket ghi `pose_id` để trống; spec ghi `matched` là "có hay không". Đề xuất của AI: `pose_id` là chuỗi rỗng, `matched` là `"false"` (dạng `true`/`false`), T-014 và T-017 điền giá trị thật. Firebase có thể hiện chuỗi rỗng là "(not set)"; nếu muốn phân biệt rõ thì dùng `"none"`.
+- Trả lời: OK.
 4. **Lỗi chụp và lỗi lưu công cụ không có thông báo.** Thiết kế và spec không có chữ cho hai lỗi này. Đề xuất của AI: chỉ ghi log; khi chụp lỗi, nút chụp bật lại để người dùng bấm lần nữa; khi lưu công cụ lỗi, lựa chọn vẫn dùng được trong lần này, chỉ không được nhớ. Nếu cần thông báo, bổ sung chữ vào thiết kế và làm ở plan sau.
+- Trả lời: OK.
 5. **Lưới mặc định.** Spec không ghi mặc định của lưới. Đề xuất của AI: tắt ở lần dùng đầu (như flash và hẹn giờ). Ảnh thiết kế `default` bật lưới vì đó là trạng thái minh họa.
+- Trả lời: OK.
 6. **Âm chụp.** Ticket ghi "âm chụp theo Cài đặt (mặc định bật khi chưa có màn cài đặt)". Cài đặt thuộc `:feature:settings` (T-025), camera không đọc được trực tiếp (ADR-0001). Đề xuất của AI: T-013 luôn phát âm; T-025 đưa khóa "âm khi chụp" vào một module core (ví dụ `:core:data`) và nối vào `CameraXController`. Lưu ý: vài nước bắt buộc âm chụp, Android vẫn phát dù app tắt.
+- Trả lời: OK.
 7. **Ảnh camera trước có lật gương không?** Khung xem trước camera trước luôn như gương; ảnh lưu mặc định của CameraX thì không lật (như người khác nhìn thấy). Đề xuất của AI: giữ mặc định, không lật. Nếu muốn ảnh giống khung xem trước thì đặt `isReversedHorizontal = true` cho camera trước.
+- Trả lời: OK.
 8. **Bàn giao ảnh cho T-016.** Đề xuất của AI: `CapturedPhotoHolder` trong bộ nhớ, file JPEG trong `cacheDir/captures`, mỗi lần chụp mới dọn ảnh cũ chưa lưu. Ảnh chưa lưu mất khi hệ thống đóng app lúc đang ở màn xem lại; T-016 có thể lưu đường dẫn vào `SavedStateHandle` nếu cần giữ lâu hơn.
+- Trả lời: OK.
 9. **Vùng chạm của zoom.** Mỗi nút zoom tròn 40 theo thiết kế; vùng chạm thực tế cao 48 (cả viên thuốc) nhưng rộng 44. Tiêu chí duyệt thiết kế đòi ít nhất 48. Đề xuất của AI: giữ đúng thiết kế ở T-013; nếu cần 48 x 48 thì sửa thiết kế (nút 44 hoặc khoảng cách 8) trước.
+- Trả lời: OK.
 10. **Mô tả cho trình đọc màn hình.** Bảng chữ của thiết kế không có mô tả cho các nút biểu tượng. Đề xuất của AI: "Thư viện tư thế", "Cài đặt", "Flash: tắt", "Flash: bật", "Flash: tự động", "Hẹn giờ: tắt", "Hẹn giờ: 3 giây", "Hẹn giờ: 10 giây", "Lưới chia ba", "Đổi camera", "Chụp ảnh", "Hủy đếm ngược", "Ảnh vừa chụp".
+- Trả lời: OK.
 11. **Đổi camera khi đang đếm ngược.** Thiết kế đếm ngược không làm mờ thanh trên và nút đổi camera. Đề xuất của AI: các nút vẫn bấm được; flash và lưới đổi ngay; đổi hẹn giờ áp dụng cho lần chụp sau; đổi camera thì hủy đếm ngược (camera phải mở lại).
+- Trả lời: OK.
 12. **Thanh trạng thái phía trên camera.** `AppNavHost` đặt `safeDrawingPadding` cho mọi màn, nên vùng sau thanh trạng thái lấy màu nền của theme máy (máy để giao diện sáng thì có dải sáng trên camera tối). Sửa đúng cần đổi cách xử lý vùng an toàn cho mọi màn, ngoài phạm vi ticket. Đề xuất của AI: T-013 giữ nguyên; tạo ticket riêng cho camera tràn viền trước hoặc cùng T-020 (máy gập cũng cần). Lề trên 32 của thanh công cụ tính từ mép màn như thiết kế, nên trên máy thật khung xem trước thấp đi bằng chiều cao thanh trạng thái (README cho phép khung co theo chiều cao còn lại).
+- Trả lời: OK.
 13. **Cỡ task.** Plan có khoảng 60 file (kể cả 12 biểu tượng, 8 ảnh chuẩn), cả code phần cứng lẫn bốn thành phần core. AI đánh giá khó xong trong một lượt của phiên tự chạy và `token_estimate` 40M (số tạm cho cỡ L) có thể thiếu. Đề xuất của AI: tách thành hai plan cùng ticket, chạy nối tiếp:
     - T-013a: module, bốn thành phần core và catalog, `CameraController` và `CameraXController`, quyền và ba trạng thái (KB-7, KB-8), cờ, điều hướng, khóa dọc, `AppLaunchTest`, ba ảnh chuẩn `starting`, `permission-denied`, `error` và `permission-denied_small`. Khoảng 40 file.
     - T-013b: công cụ chụp và lưu công cụ (KB-4), chụp, đếm ngược, `CapturedPhotoHolder`, `photo_captured`, ngắt đếm ngược (KB-6), ảnh `countdown`, `ready`, `countdown_small`. Khoảng 20 file.
     Người duyệt đồng ý thì AI viết lại thành hai plan phiên bản 2 từ chính các mục của plan này; không thì chạy nguyên một plan.
+- Trả lời: Giữ 1 plan.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

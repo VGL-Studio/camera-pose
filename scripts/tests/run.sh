@@ -333,6 +333,20 @@ expect "plan-check: design image without screenshot stops" stop "$(plan_check "$
 write_plan "$plans/T-908-a.md" medium draft \
   "$(row Tạo feature/demo/src/test/screenshots/DemoScreen_main_light.png)" 'Chạy scripts/design-compare.sh demo.'
 expect "plan-check: design image with its screenshot passes" pass "$(plan_check "$plans/T-908-a.md")"
+# A plan smaller than its feature declares the design images another ticket draws; they need no screenshot here.
+# shellcheck disable=SC2016
+other='Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác (T-920): `DemoScreen_main_light`.'
+write_plan "$plans/T-916-a.md" medium draft "$(row Sửa feature/demo/A.kt)" "$other"
+expect "plan-check: a design image of another ticket passes" pass "$(plan_check "$plans/T-916-a.md")"
+# shellcheck disable=SC2016
+write_plan "$plans/T-917-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  'Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác (T-920): `DemoScreen_typo_light`.'
+expect "plan-check: an unknown image of another ticket stops" stop "$(plan_check "$plans/T-917-a.md")"
+expect "plan-check: names the unknown image" 1 "$(grep -c 'DemoScreen_typo_light' "$work/plan-check.out")"
+# shellcheck disable=SC2016
+write_plan "$plans/T-918-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  'Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác: `DemoScreen_main_light`.'
+expect "plan-check: images of another ticket without the ticket id stop" stop "$(plan_check "$plans/T-918-a.md")"
 write_plan "$plans/T-909-a.md" medium draft "$(row Tạo feature/demo/New.kt)"
 printf -- '---\nid: T-910\ndepends_on: [T-909]\n---\n' > "$repo/docs/features/demo/tickets/T-910-a.md"
 write_plan "$plans/T-910-a.md" medium draft "$(row Sửa feature/demo/New.kt)"

@@ -11,7 +11,9 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
   2. Every script, workflow, build file or test that names a changed file is in the file list too,
      or the plan mentions it (to say why it is not affected).
   3. Protected paths need a high-risk plan (risk-scoring.md, section 1; CLAUDE.md); scripts/release.sh is never allowed.
-  4. A plan that runs scripts/design-compare.sh writes a screenshot for every design image of its feature.
+  4. A plan that runs scripts/design-compare.sh writes a screenshot for every design image of its feature,
+     except the images it declares as drawn by another ticket, on a line
+     'Ảnh thiết kế của ticket khác (T-NNN): `Name`, ...'. Each declared image must exist and the line names a ticket.
   5. An approved plan has its reviewers and date.
   6. The plan has a token estimate (token_estimate, docs/ops/token-usage.md); a missing one is only a warning.
 PLAN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
@@ -37,6 +39,8 @@ NEVER = ["scripts/release.sh"]
 SELF = "scripts/plan-check.py"
 # Words of the plan template's section 9 that a reviewer replaces (docs/templates/plan.md).
 DECISION_PLACEHOLDERS = ["Duyệt / Dừng", "<tên>", "<tên, nếu rủi ro cao>"]
+# A plan smaller than its feature names the design images another ticket draws (rule 4).
+OTHER_TICKET_IMAGES = re.compile(r"Ảnh thiết kế của ticket khác([^:\n]*):([^\n]*)")
 
 
 def front_matter(text):
@@ -119,6 +123,16 @@ def reader_files():
             continue
 
 
+def other_ticket_images(text):
+    """Design image names a plan leaves to other tickets, and the declaration lines that name no ticket."""
+    names, without_ticket = set(), []
+    for match in OTHER_TICKET_IMAGES.finditer(text):
+        if not re.search(r"T-\d+", match.group(0)):
+            without_ticket.append(match.group(0).strip())
+        names.update(name.removesuffix(".png") for name in re.findall(r"`([^`]+)`", match.group(2)))
+    return names, without_ticket
+
+
 def check(plan_path):
     errors, warnings = [], []
     text = plan_path.read_text()
@@ -173,10 +187,19 @@ def check(plan_path):
 
     if "design-compare.sh" in text:
         feature = plan_path.resolve().parent.parent.name
-        for image in sorted((ROOT / "docs" / "features" / feature / "design" / "screens").glob("*.png")):
+        images = sorted((ROOT / "docs" / "features" / feature / "design" / "screens").glob("*.png"))
+        others, without_ticket = other_ticket_images(text)
+        for line in without_ticket:
+            errors.append(f"dòng '{line}' không ghi mã ticket vẽ các ảnh đó, ví dụ (T-014).")
+        for name in sorted(others - {image.stem for image in images}):
+            errors.append(f"ảnh thiết kế của ticket khác {name} không có trong docs/features/{feature}/design/screens/.")
+        for image in images:
+            if image.stem in others:
+                continue
             expected = f"feature/{feature}/src/test/screenshots/{image.name}"
             if expected not in listed:
-                errors.append(f"ảnh thiết kế {image.name} không có ảnh chuẩn screenshot {expected} trong mục 3.2.")
+                errors.append(f"ảnh thiết kế {image.name} không có ảnh chuẩn screenshot {expected} trong mục 3.2. "
+                              "Ảnh do ticket khác vẽ thì khai báo: 'Ảnh thiết kế của ticket khác (T-NNN): `Tên`'.")
 
     if fields.get("status") == "approved":
         for key in ("reviewer", "approved_at"):

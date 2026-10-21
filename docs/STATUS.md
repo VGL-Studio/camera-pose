@@ -12,9 +12,21 @@
 
 | Yêu cầu | Ngày | Feature | Trạng thái | Ticket xong |
 | --- | --- | --- | --- | --- |
+| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | - |
 | Màn hình loading có thanh tiến trình ([2026-10-15-man-hinh-loading.md](features/loading/requests/2026-10-15-man-hinh-loading.md)) | 2026-10-15 | loading | `specified` đã có spec | 5/6 |
+| Màn loading cho camera pose ([2026-10-21-loading-cua-camera-pose.md](features/loading/requests/2026-10-21-loading-cua-camera-pose.md)) | 2026-10-21 | loading | `specified` đã có spec | 5/6 |
+| App luôn cần mạng, báo mất mạng khi đang dùng ([2026-10-21-hop-thoai-mat-mang.md](features/network/requests/2026-10-21-hop-thoai-mat-mang.md)) | 2026-10-21 | network | `specified` đã có spec | - |
+| Màn chào và xin quyền camera ([2026-10-21-man-chao-xin-quyen-camera.md](features/onboarding/requests/2026-10-21-man-chao-xin-quyen-camera.md)) | 2026-10-21 | onboarding | `specified` đã có spec | - |
+| Thư viện tư thế và chi tiết tư thế ([2026-10-21-thu-vien-tu-the.md](features/poses/requests/2026-10-21-thu-vien-tu-the.md)) | 2026-10-21 | poses | `specified` đã có spec | - |
+| Cài đặt ([2026-10-21-cai-dat.md](features/settings/requests/2026-10-21-cai-dat.md)) | 2026-10-21 | settings | `specified` đã có spec | - |
 
 ## 3. Feature
+
+### camera
+
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: chưa có.
+
+Phản hồi: chưa có.
 
 ### loading
 
@@ -31,6 +43,30 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 1
 
 Phản hồi: 1 `fixed`, 1 `wontfix`.
 
+### network
+
+Spec: [spec.md](features/network/spec.md) `confirmed`. Ticket: chưa có.
+
+Phản hồi: chưa có.
+
+### onboarding
+
+Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: chưa có.
+
+Phản hồi: chưa có.
+
+### poses
+
+Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: chưa có.
+
+Phản hồi: chưa có.
+
+### settings
+
+Spec: [spec.md](features/settings/spec.md) `confirmed`. Ticket: chưa có.
+
+Phản hồi: chưa có.
+
 ## 4. Phiên tự chạy
 
 Chưa có phiên nào.
@@ -38,4 +74,4 @@ Chưa có phiên nào.
 ## 5. Bài học và ADR
 
 - Bài học ([lessons.md](lessons.md)): 0 bài; chưa có.
-- ADR: 21; 19 `accepted`, 2 `proposed`.
+- ADR: 22; 20 `accepted`, 2 `proposed`.

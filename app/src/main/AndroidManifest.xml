@@ -6,6 +6,12 @@
         and must match the Data safety declaration on Google Play.
     -->
 
+    <!-- Camera preview and capture (spec camera). Photos are saved through MediaStore, so no storage permission. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="true" />
+
     <application
         android:name=".TemplateApplication"
         android:allowBackup="false"

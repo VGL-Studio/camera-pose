@@ -1,7 +1,7 @@
 ---
 ticket: T-007
 title: Hệ thống thiết kế theo hướng Sticker
-status: approved
+status: stopped
 version: 2
 risk_score:
 risk_level: high
@@ -340,3 +340,24 @@ Phiên bản 2:
 - **Thay đổi so với phiên bản 1:** chỉ mục 4 (cách đo màu điểm ảnh của sáu test trên), theo hướng (a), (b) hoặc (c) do người chọn; mục 3.2 thêm file test nếu chọn (b); mục 7, điều kiện 3 sửa theo hướng đã chọn.
 - **Cách tiếp tục (mục 3.1):** tiếp tục trên nhánh cũ `claude/T-007-he-thong-thiet-ke-sticker`; bước 3 chỉ áp dụng cho sáu test đo điểm ảnh; các test khác đã thất bại đúng lý do, giữ nguyên.
 - **Chưa có PR sửa nguyên nhân:** nguyên nhân nằm trong cách đo của plan, không phải trong code ngoài plan.
+
+### RUN-20261021-02, phiên bản plan 2
+
+- **Kết quả:** dừng ở bước 5 (kiểm tra cục bộ): `scripts/check.sh` không qua
+- **Nhánh, PR:** `claude/T-007-he-thong-thiet-ke-sticker` (đã đẩy, 3 commit của phiên này; chưa mở PR vì cổng chất lượng không qua)
+- **Đã làm:** bước 3 làm lại cho sáu test đo điểm ảnh bằng `captureRoboImage` với `taskType = Record` và `BitmapFactory`; bước 4 làm đủ theo mục 3.2 (phông tải về, mã băm của cả năm file khớp; màu, `AppColors`, `Shape.kt`, chữ, `Theme.kt`, bốn thành phần, catalog; xóa Inter); `recordRoborazziDebug` ghi đúng 15 ảnh "Ghi lại" và tạo đúng 4 ảnh "Tạo", không ảnh nào khác đổi.
+- **Test viết trước:** 11 test của `ComponentsTest` thất bại trước khi có code, đều ở phần khẳng định (nhóm đo điểm ảnh: màu cũ #147D68 và #84DCC1, chiều cao 52, logo 132). Hai ngoại lệ so với mục 4: `secondaryButton_fill_isSurface_dark` thất bại vì khung rỗng không có kích thước ("Unable to find the image of the target root component"), `secondaryButton_hasNoShadow` thất bại vì `y must be < bitmap.height()` trên khung rỗng, thay vì qua ngay như mục 4 dự kiến. Cả hai là vì chức năng chưa có, không phải lỗi môi trường. Sau bước 4 mọi test qua; `ktlintCheck`, `testDebugUnitTest`, `verifyRoborazziDebug` toàn repo qua, `LoadingScreenTest` và `SampleScreenTest` qua không sửa. `tokens.json` sinh lại trùng bản sửa tay (diff rỗng).
+- **Lý do dừng:** `scripts/check.sh` (dòng 45 đến 55) đếm mọi chuỗi `captureRoboImage(` trong `src/test` và đòi mỗi lần gọi ghi đường dẫn dạng `"src/test/screenshots/<Tên>.png"` (ADR-0011). Hàm `pixelAt` của plan phiên bản 2 gọi `captureRoboImage(filePath = "build/tmp/pixel/...")`, nên script báo `:core:designsystem: mọi captureRoboImage phải ghi rõ đường dẫn ...` và thoát với mã 1. Gói kiểm tra script, ktlint, unit test, verifyRoborazzi chạy riêng đều qua; phần Android Lint và build staging của `check.sh` chưa chạy vì script dừng sớm.
+- **Vì sao không tự xử lý:** cách vượt qua là sửa `scripts/check.sh` (cấm: không sửa trừ plan rủi ro cao đã duyệt chéo nêu rõ), đổi cách gọi để chuỗi `captureRoboImage(` không xuất hiện (né quy tắc), hoặc đổi cách đo điểm ảnh (đổi điều test kiểm tra, mục 7 điều kiện 3 buộc dừng).
+- **Rà soát độc lập:** chưa chạy (dừng ở bước 5).
+- **Kết quả CI:** chưa chạy.
+- **Lệch so với plan:** không có ngoài hai test ở trên.
+- **Việc còn lại:** bước 5 (`check.sh`), 6 đến 10, và các việc sau merge ở mục 6.
+- **Cần người xem:** chọn cách xử lý quy tắc của `check.sh` (xem phiên bản 3 bên dưới).
+
+#### Bản sửa đề xuất, phiên bản 3 (`draft`, chưa duyệt)
+
+- **Vì sao plan chưa đủ tốt:** plan phiên bản 2 chạy thử kỹ thuật đo (đọc được ảnh, đúng màu) nhưng chưa chạy `scripts/check.sh` trên test thử; plan không đối chiếu với quy tắc đếm `captureRoboImage(` của script (L-020 áp dụng cho script đọc file test, không chỉ file cấu hình).
+- **Thay đổi so với phiên bản 2:** chỉ cách giải quyết quy tắc của `check.sh` đối với sáu test đo điểm ảnh. Người chọn một trong: (a) cho phép gọi `captureRoboImage` ghi vào `build/` làm ảnh tạm: sửa `scripts/check.sh` trong một PR riêng của dự án mẫu (`docs/ops/from-app.md`), merge trước khi chạy lại; (b) giữ nguyên `check.sh`, đổi cách lấy ảnh trong `pixelAt` sang đường không gọi `captureRoboImage` (giả thuyết chưa kiểm chứng: `View.drawToBitmap()` trên view gốc của Compose trong Robolectric `NATIVE`, hoặc `Bitmap` do Roborazzi trả về); (c) bỏ phần đo điểm ảnh, ảnh chuẩn kiểm màu (hướng (c) của phiên bản 1). Mục 4, mục 3.2 (nếu chọn (a), thêm `scripts/check.sh`) và mục 7 điều kiện 3 sửa theo hướng chọn.
+- **Cách tiếp tục (mục 3.1, khi duyệt):** tiếp tục trên nhánh cũ `claude/T-007-he-thong-thiet-ke-sticker` (đã có commit test, code và ảnh chuẩn, đủ 19 ảnh); phiên chỉ sửa `pixelAt` hoặc test liên quan theo hướng chọn, chạy `scripts/check.sh`, rồi làm bước 6 đến 10. Bước 3 chỉ áp dụng cho test đổi điều kiểm tra.
+- **Chưa có PR sửa nguyên nhân:** hướng (a) phải do người quyết định và đi qua dự án mẫu, nên phiên không mở PR nháp.

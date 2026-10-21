@@ -5,12 +5,12 @@ feature: loading
 spec: features/loading/spec.md
 scenarios: [KB-1, KB-2, KB-3, KB-4]
 owner: Nhật
-status: ready
+status: approved
 risk: high
 size: M
 depends_on: [T-009]
 sprint:
-plan:
+plan: features/loading/plans/T-010-loading-tai-catalog-bo-khoi-dau.md
 created: 2026-10-21
 ---
 

@@ -79,7 +79,7 @@ Nguồn: Play, mục 1; APK, bảng so sánh.
 1. Ít quảng cáo, mở app là tới camera. Phàn nàn số một áp đảo.
 2. Thư viện đủ lớn ngay bản đầu, có tư thế cho nam.
 3. Lớp phủ dễ nhìn và chỉnh được.
-4. Chạy được khi mất mạng.
+4. Chạy được khi mất mạng. Không theo khoảng trống này: mọi app của nhóm luôn cần mạng (mục 12, câu 13).
 5. Ảnh store trung thực.
 6. Bản địa hóa (tiếng Việt, Tây Ban Nha, Bồ Đào Nha, Indonesia, Hindi).
 
@@ -107,10 +107,10 @@ Dev chốt tên và tên gói trước khi chạy `scripts/new-app.sh`. Tên gó
 | 1 | Quảng cáo ở luồng mở đầu là lý do bị 1 sao nhiều nhất | Pose Camera: 3 interstitial và 3 native toàn màn hình trước home, khoảng 13 chạm tới camera (`02-splash` đến `14-home-collapsible-ad`). AI Posing: 1 interstitial, 2 native toàn màn hình, 4 native đáy, màn trả phí, hộp thoại đánh giá trước trang chủ, khoảng 13 chạm tới camera (`01` đến `13`). Đánh giá: "5 ads before even reaching the main UI of the app." (Play, 3.1); 286/504 đánh giá tiếng Anh của Pose Camera là 1 sao có nhắc quảng cáo | Mở lần đầu tới camera có tư thế: tối đa 2 chạm (nút bật camera, hộp quyền hệ thống). Không có quảng cáo toàn màn hình nào trước ảnh đầu tiên | Đếm trên bản staging, ghi trong spec: số chạm và số quảng cáo toàn màn hình từ lúc mở app tới camera có tư thế (đích: 2 chạm, 0 quảng cáo; Pose Camera 13 và 6, PoseMate 8 và 0) |
 | 2 | Lặp ngôn ngữ và giới thiệu mỗi lần mở làm người dùng bực | Pose Camera: mỗi lần mở nguội lại qua chọn ngôn ngữ (không chọn sẵn) và 4 trang giới thiệu (`40-relaunch-splash-ad`, `41-relaunch-language`). PoseCamera, PoseMate vào thẳng (PoseCamera mục 2, PoseMate `37`) | Không có màn chọn ngôn ngữ lúc mở: theo ngôn ngữ máy, đổi trong Cài đặt (ngôn ngữ theo app của Android 13+). Giới thiệu một màn, chỉ lần đầu | Mở lại nguội: số màn trước camera bằng 0. Test trên emulator: lần mở thứ hai, đích đầu tiên là `CameraScreen` |
 | 3 | Quảng cáo che điều khiển camera và nằm đúng chỗ nút | Pose Camera: banner thu gọn tự bung lại khoảng 20 giây sau khi thu, che hàng nhóm và hàng tư thế (mục 6); native toàn màn hình phủ đúng chỗ nút Back, công cụ khảo sát chạm nhầm 2 lần (mục 9, sự cố 2); nút CTA quảng cáo cùng màu vàng với nút app. AI Posing: native 76dp ngay trên camera (`44`) | Không có vị trí quảng cáo nào trên màn camera và màn xem lại. Nút của app không dùng màu hay hình dạng của nút CTA quảng cáo | `AdPlacement` không có vị trí nào thuộc `:feature:camera`. Screenshot test `CameraScreen` không có `AdSlot` |
-| 4 | Quá ít tư thế, danh mục rỗng | Pose Camera 32 tư thế (APK mục 1); đánh giá "Too many ads and only 6 poses available." (Play, 3.1). SimplePose khi mất mạng chỉ 24 tư thế, 3/6 danh mục rỗng vẫn hiện (`06-category-empty`). PoseMate 1.629, PoseCamera 120 | Ra mắt với ít nhất 200 tư thế; ít nhất 60 tư thế đóng gói trong APK chạy khi mất mạng; mỗi nhóm hiển thị có ít nhất 15 tư thế; danh mục chưa có tư thế thì ẩn | Đếm catalog bằng script kiểm catalog trước khi đẩy lên R2. Unit test: repository không trả nhóm rỗng |
+| 4 | Quá ít tư thế, danh mục rỗng | Pose Camera 32 tư thế (APK mục 1); đánh giá "Too many ads and only 6 poses available." (Play, 3.1). SimplePose khi mất mạng chỉ 24 tư thế, 3/6 danh mục rỗng vẫn hiện (`06-category-empty`). PoseMate 1.629, PoseCamera 120 | Ra mắt với ít nhất 200 tư thế; ít nhất 60 tư thế đóng gói trong APK để hiện ngay, không chờ tải; mỗi nhóm hiển thị có ít nhất 15 tư thế; danh mục chưa có tư thế thì ẩn | Đếm catalog bằng script kiểm catalog trước khi đẩy lên R2. Unit test: repository không trả nhóm rỗng |
 | 5 | Lớp phủ khó nhìn hoặc không chỉnh được | Pose Camera: nét vẽ cỡ cố định, kéo không di chuyển (`22-couple-pose-drag`). AI Posing: lớp phủ là ảnh mờ của người khác, thanh độ mờ kéo không đổi gì thấy được (`46`). Đánh giá: "outline is too thin to see well" (Play, 3.1). SimplePose làm tốt: nét trắng có quầng đen, độ mờ 20 đến 100, cỡ 40 đến 160, kéo, khóa, lật, ẩn (`15` đến `22`) | Nét viền trắng có quầng tối, nhìn rõ trên nền sáng và tối. Chỉnh được: độ mờ, cỡ (chụm hai ngón và thanh trượt), kéo, lật, khóa, ẩn, đặt lại. Giữ lựa chọn khi đổi tư thế | UI test JVM: đủ 7 thao tác, mỗi thao tác đổi trạng thái lớp phủ. Đo tương phản nét viền trên ảnh nền trắng và đen trong screenshot test |
 | 6 | Không có màn xem lại sau khi chụp | Pose Camera lưu thẳng, không xem lại (`28-after-capture`). SimplePose không xem lại, không thông báo đã lưu (`23-after-capture`). PoseCamera: nút lưu trong xem lại chỉ tạo bản sao trùng md5 (mục 5). AI Posing có xem lại nhưng chen màn trả phí và interstitial khi lưu (`32` đến `36`) và mất tư thế sau khi lưu (`37`) | Sau khi chụp mở màn xem lại: Chụp lại, Lưu, Chia sẻ, "Tư thế tiếp". Quay về camera vẫn giữ tư thế đang dùng | UI test: sau nút chụp có `ReviewScreen`; quay lại camera thì tư thế đang chọn không đổi |
-| 7 | Lỗi tải nội dung làm màn hình trống mãi | AI Posing: API trả HTTP 429 khoảng 11 phút, danh mục và Khám phá trống hoặc quay vòng mãi, không báo lỗi, không có thử lại (`17`, `18`, `20`, `22`) | Bộ đóng gói luôn hiện ngay. Tải thêm qua `RemoteAssets.load`; kết quả `Unavailable` đưa vào `UiState` với thông báo và nút thử lại; chờ có giới hạn | Unit test ViewModel: `Unavailable` cho trạng thái lỗi có nút thử lại; chờ tối đa 15 giây rồi báo lỗi. Screenshot `PosesScreen_error_light`, `PosesScreen_error_dark` |
+| 7 | Lỗi tải nội dung làm màn hình trống mãi | AI Posing: API trả HTTP 429 khoảng 11 phút, danh mục và Khám phá trống hoặc quay vòng mãi, không báo lỗi, không có thử lại (`17`, `18`, `20`, `22`) | Bộ đóng gói luôn hiện ngay. Tải thêm qua `RemoteAssets.load`; kết quả `Unavailable` đưa vào `UiState` với thông báo và nút thử lại; chờ có giới hạn. Mất mạng thì hiện hộp thoại lỗi mạng (mục 12, câu 13) | Unit test ViewModel: `Unavailable` cho trạng thái lỗi có nút thử lại; chờ tối đa 15 giây rồi báo lỗi. Screenshot `PosesScreen_error_light`, `PosesScreen_error_dark` |
 | 8 | Hứa tính năng không có | SimplePose giới thiệu "Màu sắc cho biết bạn đã gần đúng chưa" (`03-onboarding-2`) nhưng camera không so khớp (mục 4). PoseMate nói "Tap Lock when done" mà không có nút Lock (`18`); "Nailed it!" hiện cả khi khớp 0% (`22`). 51 đánh giá Pose Camera gọi app là "fake", "clickbait" (Play, 3.1) | Chữ trong app và ảnh store chỉ nói tới tính năng đã có. Ảnh store chụp từ màn hình thật | Mỗi câu ở giới thiệu và ảnh store gắn với một tiêu chí chấp nhận trong spec. Ảnh store lấy từ screenshot test |
 | 9 | Tên, mô tả tư thế sai hoặc thiếu | PoseMate: tên và mô tả sinh theo khuôn không khớp ảnh ("Wedding Couple Walk VIII" là ảnh đôi nhảy lên, `33`; mô tả "dance" cho ảnh ngồi, `13`). SimplePose: mọi tư thế tên "Full body"/"Half body", một tư thế tên thô "no_props" (mục 4) | Mỗi tư thế có tên riêng, ngắn, đã duyệt bằng người. Không có khóa thô hiện ra giao diện | Script kiểm catalog: tên không trùng trong nhóm, không có chuỗi dạng `snake_case`, đủ bản dịch cho mọi ngôn ngữ phát hành |
 | 10 | Ảnh mẫu không kèm hướng dẫn thì người dùng thấy như "ảnh dán lên camera" | AI Posing: đánh giá "bukan ngarahin malah cuma foto ditempel dikamera kita" (Play, 3.1); chi tiết tư thế không có mô tả, mẹo (`43`). PoseCamera có thẻ mẹo ngay trên camera, 10 bước chuyển trước sau (`07-camera`); PoseMate có bước, góc, lỗi hay gặp (`13` đến `15`) | Mỗi tư thế có 3 đến 5 bước ngắn và 1 lỗi hay gặp. Thẻ bước bật tắt được trên camera | Script kiểm catalog: 100% tư thế có bước. UI test: thẻ bước hiện, chuyển trước sau |
@@ -121,7 +121,7 @@ Dev chốt tên và tên gói trước khi chạy `scripts/new-app.sh`. Tên gó
 | 15 | Thiếu tiếng địa phương | Pose Camera không có tiếng Việt (mục 2); đánh giá PoseCamera "me hubiera gustado que tuviera la traducción en español" (Play, 3.1); PoseMate chỉ tiếng Anh | Ra mắt với tiếng Anh và các ngôn ngữ của thị trường dev chọn (mục 12). Tên tư thế và bước dịch cùng catalog | Test kiểm mọi chuỗi trong `strings.xml` có đủ bản dịch; script kiểm catalog có đủ ngôn ngữ |
 | 16 | Xin quyền camera có giải thích thì ít bị từ chối hơn | SimplePose có màn giải thích trước hộp thoại hệ thống (`13-open-camera`); PoseMate có nút "Enable camera" trong giới thiệu (`03` đến `05`). Pose Camera, AI Posing xin thẳng | Giữ cách làm này. Thêm trạng thái "chưa có quyền" trên camera với nút mở Cài đặt máy | UI test: từ chối quyền thì `CameraScreen_permission-denied_dark`, có nút mở cài đặt |
 
-Năm cải tiến chính: 1 (2 chạm tới camera, không quảng cáo trước ảnh đầu), 3 (không quảng cáo trên camera), 4 (200 tư thế, 60 chạy offline), 5 (lớp phủ chỉnh đủ), 6 và 7 (màn xem lại, báo lỗi có thử lại).
+Năm cải tiến chính: 1 (2 chạm tới camera, không quảng cáo trước ảnh đầu), 3 (không quảng cáo trên camera), 4 (200 tư thế, 60 đóng gói hiện ngay), 5 (lớp phủ chỉnh đủ), 6 và 7 (màn xem lại, báo lỗi có thử lại).
 
 ## 5. Tính năng
 
@@ -139,7 +139,7 @@ Năm cải tiến chính: 1 (2 chạm tới camera, không quảng cáo trước
 | Lớp phủ chỉnh đủ: độ mờ, cỡ, kéo, lật, khóa, ẩn, đặt lại | khác biệt | SimplePose đủ; PoseCamera, PoseMate một phần | Bài học 5 |
 | Thẻ bước tạo dáng trên camera | khác biệt | PoseCamera (thẻ mẹo), PoseMate (chỉ ở chi tiết) | Bài học 10 |
 | Màn xem lại, "Tư thế tiếp" | khác biệt | AI Posing (xem lại), PoseMate ("Next") | Bài học 6 |
-| Bộ tư thế đóng gói chạy offline, tải thêm từ R2 | khác biệt | SimplePose (24 + catalog), PoseMate (Play Asset Delivery) | Bài học 4, 7 |
+| Bộ tư thế đóng gói hiện ngay, tải thêm từ R2 | khác biệt | SimplePose (24 + catalog), PoseMate (Play Asset Delivery) | Bài học 4, 7 |
 | Tư thế cho nam đủ nhiều | khác biệt | Không app nào làm tốt | Bài học 11 |
 | Yêu thích (lưu tư thế) | khác biệt | Cả 4 app trừ Pose Camera | Bản đầu chỉ một danh sách "Đã lưu" |
 | Bộ sưu tập nhiều bộ, chọn nhiều, chụp lần lượt | sau | SimplePose, PoseCamera (Plan) | |
@@ -186,11 +186,13 @@ Phương án đề xuất: camera là màn bắt đầu. Thư viện tư thế c
 
 **Mở lần đầu:**
 
-`Mở app > Chào mừng (nút "Bật camera") > hộp quyền hệ thống > Camera (tư thế đầu của nhóm Nữ hoặc nhóm mặc định đã chọn sẵn)`
+`Mở app > Loading (cần mạng) > Chào mừng (nút "Bật camera") > hộp quyền hệ thống > Camera (tư thế đầu của nhóm Nữ hoặc nhóm mặc định đã chọn sẵn)`
 
 Số bước tới chức năng chính: 2 chạm, 0 quảng cáo. So sánh: Pose Camera khoảng 13 chạm và 6 quảng cáo toàn màn hình; AI Posing khoảng 13 chạm; PoseMate 8 chạm; PoseCamera khoảng 4 chạm.
 
-**Mở lại:** `Mở app > Camera` (0 chạm, nhớ tư thế dùng lần trước).
+**Mở lại:** `Mở app > Loading (cần mạng) > Camera` (0 chạm, nhớ tư thế dùng lần trước).
+
+Màn loading là feature `loading` có sẵn của dự án mẫu: mỗi lần mở app tải cấu hình mới từ máy chủ, chờ tối đa 10 giây, hiện ít nhất 2 giây (spec `loading`, ADR-0018). Màn này không tính là một chạm và không có quảng cáo.
 
 **Luồng chính (chụp):**
 
@@ -207,7 +209,8 @@ Số bước tới chức năng chính: 2 chạm, 0 quảng cáo. So sánh: Pose
 - `Camera > bánh răng > Cài đặt > Giao diện | Âm chụp | Ngôn ngữ | Tùy chọn quyền riêng tư | Chính sách`
 - `Camera > ô ảnh vừa chụp > Xem lại ảnh cuối`
 - Từ chối quyền: `Chào mừng > từ chối > Camera (trạng thái chưa có quyền) > "Mở cài đặt" > Cài đặt máy`
-- Mất mạng: `Tư thế > băng báo "Đang dùng bộ tư thế có sẵn" > "Thử lại"`
+- Mở app khi không có mạng: `Loading > báo "Không thể tải dữ liệu" > "Thử lại"`; không vào được app tới khi có mạng.
+- Đang dùng mà mất mạng (ở bất kỳ màn hình nào): `hộp thoại "Mất kết nối mạng" > "Thử lại"`; hộp thoại không tự đóng, chỉ đóng khi bấm "Thử lại" lúc đã có mạng.
 
 ## 7. Danh sách màn hình
 
@@ -215,6 +218,8 @@ Camera và màn xem lại luôn nền tối ở cả hai chế độ (như mọi
 
 | Màn hình | Tên frame | Trạng thái cần dựng | Feature |
 | --- | --- | --- | --- |
+| Loading (có sẵn của dự án mẫu, đổi giao diện theo Sticker) | `LoadingScreen_progress_light`, `LoadingScreen_progress_dark` | Đang tải, 68% | `:feature:loading` |
+| | `LoadingScreen_failed_light`, `LoadingScreen_failed_dark` | Không có mạng hoặc tải lỗi: dừng ở 68%, nút "Thử lại", không vào app | |
 | Chào mừng, xin quyền camera | `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` | Bình thường | `:feature:onboarding` |
 | Camera | `CameraScreen_default_dark` | Bình thường: có tư thế, dải tư thế, thẻ bước | `:feature:camera` |
 | | `CameraScreen_no-pose_dark` | Không chọn tư thế | |
@@ -227,12 +232,13 @@ Camera và màn xem lại luôn nền tối ở cả hai chế độ (như mọi
 | | `CameraScreen_starting_dark` | Đang mở camera (đang tải) | |
 | | `CameraScreen_permission-denied_dark` | Chưa có quyền camera | |
 | | `CameraScreen_error_dark` | Không mở được camera | |
+| | `CameraScreen_offline_dark` | Mất mạng khi đang dùng: hộp thoại lỗi mạng kèm "Thử lại" | |
 | Xem lại sau khi chụp | `ReviewScreen_default_dark` | Bình thường | `:feature:camera` |
 | | `ReviewScreen_saving_dark` | Đang lưu | |
 | | `ReviewScreen_save-error_dark` | Lưu lỗi (hết bộ nhớ) | |
 | Thư viện tư thế | `PosesScreen_default_light`, `PosesScreen_default_dark` | Bình thường, lưới 2 cột | `:feature:poses` |
 | | `PosesScreen_loading_light`, `PosesScreen_loading_dark` | Đang tải thêm (khung xương thẻ) | |
-| | `PosesScreen_offline_light`, `PosesScreen_offline_dark` | Chỉ có bộ đóng gói, băng báo kèm "Thử lại" | |
+| | `PosesScreen_offline_light`, `PosesScreen_offline_dark` | Mất mạng khi đang dùng: hộp thoại lỗi mạng kèm "Thử lại" phủ lên màn hình | |
 | | `PosesScreen_error_light`, `PosesScreen_error_dark` | Lỗi tải catalog, nút thử lại | |
 | | `PosesScreen_saved-empty_light`, `PosesScreen_saved-empty_dark` | Chip "Đã lưu" chưa có tư thế | |
 | Chi tiết tư thế | `PoseDetailScreen_default_light`, `PoseDetailScreen_default_dark` | Bình thường, có bước và lỗi hay gặp | `:feature:poses` |
@@ -240,14 +246,14 @@ Camera và màn xem lại luôn nền tối ở cả hai chế độ (như mọi
 | | `PoseDetailScreen_error_light`, `PoseDetailScreen_error_dark` | Không tải được ảnh, nút thử lại | |
 | Cài đặt | `SettingsScreen_default_light`, `SettingsScreen_default_dark` | Bình thường | `:feature:settings` |
 
-Tổng: 6 màn hình, 34 frame ở khung điện thoại 411 x 891.
+Tổng: 7 màn hình, 39 frame ở khung điện thoại 411 x 891.
 
 **Điện thoại màn hình gập (đã chốt hỗ trợ):** thêm frame khung mở ra **673 x 841** (khung `Devices.FOLDABLE` của Compose) cho các màn hình có bố cục đổi khi màn hình rộng, tên `<Ten>Screen_<trạng thái>_<light|dark>_unfolded`: `CameraScreen_default_dark_unfolded`, `ReviewScreen_default_dark_unfolded`, `PosesScreen_default_light_unfolded`, `PosesScreen_default_dark_unfolded`, `PoseDetailScreen_default_light_unfolded`, `PoseDetailScreen_default_dark_unfolded` (6 frame). Thư viện tăng số cột theo chiều rộng; chi tiết tư thế chia hai cột (ảnh, hướng dẫn); camera giữ khung 3:4 ở giữa, công cụ dời sang cột bên. Screenshot test có thêm ảnh ở khung này. Màn hình gập lại dùng bố cục điện thoại. Máy tính bảng loại ra bằng danh mục thiết bị trên Play Console; giao diện vẫn không vỡ nếu chạy trên máy lớn.
 
 ## 8. Điểm nổi bật
 
 - Mở app là chụp. Không phải qua chuỗi quảng cáo, chọn ngôn ngữ hay trang giới thiệu.
-- Hơn 200 tư thế cho nữ, nam, cặp đôi, bạn bè và gia đình. Bộ cơ bản dùng được cả khi không có mạng.
+- Hơn 200 tư thế cho nữ, nam, cặp đôi, bạn bè và gia đình.
 - Nét viền rõ trên mọi nền. Kéo, phóng to, làm mờ, lật, khóa theo ý bạn.
 - Mỗi tư thế có vài bước ngắn ngay trên camera: đứng thế nào, tay để đâu, lỗi nên tránh.
 - Chụp xong xem lại ngay, rồi sang tư thế tiếp chỉ một chạm.
@@ -336,8 +342,8 @@ Dev chọn: Sticker, ngày 2026-10-21. Dev làm mịn bằng AI Agent của Figm
 
 Dựng toàn bộ theo hướng Sticker (design-workflow.md, mục 8.2), cùng file Figma:
 
-- [Design system](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=12-2): bộ biến `color` (Light, Dark; tên theo `tokens.json`, thêm `success*`, `shadowSticker`, `category/*` cho 8 nhóm, `camera/*` cho màn camera luôn tối), `spacing` (`xs` đến `xl` như `tokens.json`), `radius`, `stroke`; 15 kiểu chữ tên theo `tokens.json`, phông Bricolage Grotesque; hiệu ứng `shadow/sticker`. Component: `Button`, `IconButton`, `CameraIconButton` (`State=Default|Active`, `Content=Icon|Text`), `Chip` và `PoseThumb` (dấu ✓ nằm trong biến thể `Selected`), `SelectedBadge`, `GridOverlay`, `Switch`, `PoseCard`, `SkeletonCard`, `StepCard`, `ZoomControl`, `MatchHint`, `Slider`, `AdjustPanel`, `TopAppBar`, `Banner`, `Snackbar`, `StateMessage`, `SectionHeader`, `SettingsRow`, `Spinner`.
-- [Screens](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=16-23): đủ 34 frame điện thoại và 6 frame màn hình gập ở mục 7. Bản `_dark` là bản `_light` gán chế độ Dark. Camera có thêm nút zoom 0.5x/1x/2x.
+- [Design system](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=12-2): bộ biến `color` (Light, Dark; tên theo `tokens.json`, thêm `success*`, `shadowSticker`, `category/*` cho 8 nhóm, `camera/*` cho màn camera luôn tối), `spacing` (`xs` đến `xl` như `tokens.json`), `radius`, `stroke`; 15 kiểu chữ tên theo `tokens.json`, phông Bricolage Grotesque; hiệu ứng `shadow/sticker`. Component: `Button`, `IconButton`, `CameraIconButton` (`State=Default|Active`, `Content=Icon|Text`), `Chip` và `PoseThumb` (dấu ✓ nằm trong biến thể `Selected`), `SelectedBadge`, `GridOverlay`, `Switch`, `PoseCard`, `SkeletonCard`, `StepCard`, `ZoomControl`, `MatchHint`, `Slider`, `AdjustPanel`, `TopAppBar`, `Snackbar`, `StateMessage`, `SectionHeader`, `SettingsRow`, `Spinner`, `NetworkDialog`, `ProgressBar`, `BrandLogo` (logo tạm, chờ icon app).
+- [Screens](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=16-23): đủ 39 frame điện thoại và 6 frame màn hình gập ở mục 7, gồm màn loading theo Sticker và hộp thoại mất mạng (mục 12, câu 13). Bản `_dark` là bản `_light` gán chế độ Dark. Camera có thêm nút zoom 0.5x/1x/2x.
 
 Thay đổi so với hệ thống thiết kế hiện tại của code: phông chữ (Inter sang Bricolage Grotesque), toàn bộ màu, và các biến ngoài `tokens.json` ở trên. Đưa vào `:core:designsystem` là thay đổi module core, cần plan rủi ro cao (ADR-0008). Ảnh tư thế và ảnh camera trên thiết kế là hình tạm (tên có "ảnh tạm" hoặc `pose-outline`).
 
@@ -374,7 +380,7 @@ Người làm: người phụ trách nội dung (dev chỉ định, mục 12). �
 - Catalog: `poses/catalog/v<n>/catalog-<sha8>.json`, có `datasetVersion`, `minAppSchema`, danh sách nhóm và tư thế. App biết đường dẫn catalog mới qua một tham số trong `RemoteSettings`; nội dung đổi thì đường dẫn đổi.
 - Ảnh: `poses/img/<poseId>/<sha8>/preview_540.webp`, `preview_1200.webp`, `outline.webp` (WebP không mất dữ liệu, có kênh trong suốt).
 - Mỗi tư thế: `id`, `category`, `subjectType` (một người, cặp đôi, nhóm), `gender`, `framing`, `tags`, `difficulty`, `name` và `steps` theo ngôn ngữ, `mistakes`, `preview`, `outline`, `keypoints` (33 điểm, tùy chọn). Khuôn gộp từ PoseMate, PoseCamera, SimplePose (APK, Gợi ý kỹ thuật 2).
-- Bộ đóng gói trong APK dùng cùng khuôn, nằm ở `assets/poses/`. Tải từ R2 qua `RemoteAssets.load(AssetPath(...))`, gọi từ ViewModel; kết quả `Unavailable` thì vẫn hiện bộ đóng gói và báo thử lại.
+- Bộ đóng gói trong APK dùng cùng khuôn, nằm ở `assets/poses/`. Tải từ R2 qua `RemoteAssets.load(AssetPath(...))`, gọi từ ViewModel; kết quả `Unavailable` thì vẫn hiện bộ đóng gói và báo thử lại; nếu do mất mạng thì hiện hộp thoại lỗi mạng.
 - File mượn chỉ ở R2 staging, dưới `borrowed/poses/...`.
 
 ## 12. Câu hỏi còn mở
@@ -403,3 +409,10 @@ Người làm: người phụ trách nội dung (dev chỉ định, mục 12). �
     - Dev trả lời: không.
 12. **Hỗ trợ máy tính bảng?** PoseMate có ảnh store riêng cho tablet. Đề xuất: bản đầu chỉ điện thoại, giao diện không vỡ trên tablet.
     - Dev trả lời: không hỗ trợ máy tính bảng; có hỗ trợ điện thoại màn hình gập (mục 7).
+13. **App có dùng được khi không có mạng không?** Bản đề xuất ban đầu lấy "dùng được khi mất mạng" làm điểm khác biệt (khoảng trống 4, bài học 4).
+    - Dev trả lời (2026-10-21): không. Mọi app của nhóm luôn cần mạng. Mở app khi không có mạng thì không cho vào app (màn loading báo lỗi, có nút "Thử lại"). Đang dùng mà mất mạng thì hiện hộp thoại báo lỗi mạng, có nút "Thử lại".
+    - AI cập nhật theo câu trả lời: bỏ mọi chữ hứa dùng được khi không có mạng (điểm nổi bật, màn chào, phụ đề thư viện); trạng thái `offline` của thư viện đổi từ băng báo sang hộp thoại; thêm `CameraScreen_offline_dark`; thêm màn loading vào luồng và danh sách màn hình (đổi giao diện theo Sticker). Việc chặn lúc mở app đã có sẵn ở feature `loading` (ADR-0018). Hộp thoại khi đang dùng là phần mới, chung cho mọi app: đề xuất đặt ở module core và vỏ app, rồi đưa về dự án mẫu (`docs/ops/from-app.md`).
+14. **Nhận ra mất mạng khi đang dùng bằng cách nào?** Phương án A: theo dõi trạng thái mạng của máy; cần quyền `ACCESS_NETWORK_STATE` (manifest chưa có, thêm quyền là rủi ro cao), hiện hộp thoại ngay khi máy báo mất mạng, kể cả lúc người dùng chỉ đang chụp. Phương án B: chỉ hiện khi một lần tải (Remote Config, R2, quảng cáo) thất bại vì mạng; không cần quyền mới nhưng có thể báo trễ. AI đề xuất A, vì đúng ý "đang dùng mà mất mạng thì báo" và cách hiện hộp thoại nhất quán.
+    - Dev trả lời:
+15. **Còn giữ 60 tư thế đóng gói trong APK không?** Không còn để dùng khi mất mạng, nhưng vẫn giúp thư viện và dải tư thế hiện ngay, không chờ tải (bài học 7). Đổi lại APK nặng hơn (ước tính vài MB). AI đề xuất giữ.
+    - Dev trả lời:

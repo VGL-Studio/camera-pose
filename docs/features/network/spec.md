@@ -1,13 +1,13 @@
 ---
 feature: network
-status: draft
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-hop-thoai-mat-mang.md
 design: design/README.md
 created: 2026-10-21
-confirmed:
+confirmed: 2026-10-21
 ---
 
 # SPEC: BÁO MẤT MẠNG KHI ĐANG DÙNG
@@ -104,22 +104,23 @@ Không có.
 
 1. **Đặt phần này ở đâu trong code, và có đưa về dự án mẫu không?** Hộp thoại không thuộc một màn nào, và mọi app của nhóm đều cần.
    - Đề xuất của AI: phần nhận ra mất mạng đặt trong một module core mới `:core:network`; hộp thoại là thành phần của `:core:designsystem`; vỏ app (`:app`) hiện hộp thoại phủ lên mọi màn. Không có module `:feature:network`; thư mục tài liệu vẫn tên `network`. Theo dõi trạng thái mạng của máy cần quyền `ACCESS_NETWORK_STATE`; thêm module core và quyền đều là thay đổi rủi ro cao, cần plan duyệt chéo. Sau khi làm ở app này, mở issue đưa về dự án mẫu (`docs/ops/from-app.md`).
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI. Không cần đưa về app mẫu.
 2. **Mất kết nối bao lâu thì mới hiện hộp thoại?**
    - Đề xuất của AI: 3 giây, đặt trong `RemoteSettings`. Lỗi tải vì mạng thì hiện ngay.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Bấm "Thử lại" lúc vẫn chưa có mạng thì báo thế nào?**
    - Đề xuất của AI: nút hiện vòng chờ tối đa 2 giây rồi trở lại; dưới nút hiện một dòng nhỏ "Vẫn chưa có mạng".
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 4. **Nút quay lại của máy khi hộp thoại đang hiện?**
    - Đề xuất của AI: đưa app ra nền, không đóng hộp thoại, không quay lại màn trước.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 5. **Có cần sự kiện phân tích cho mất mạng không?** Danh sách 9 sự kiện đã duyệt không có sự kiện này.
    - Đề xuất của AI: chưa cần; nếu muốn biết người dùng mất mạng bao nhiêu thì thêm `network_lost` ở spec sau.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu của người phụ trách sản phẩm |
+| 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: không đưa phần này về dự án mẫu (câu hỏi 1) |

@@ -4,15 +4,10 @@
 
 ## 1. Đang chờ người
 
-- Spec `draft` chờ xác nhận: [spec.md](features/camera/spec.md) (camera)
-- Spec `changed` chờ xác nhận: [spec.md](features/loading/spec.md) (loading)
-- Spec `draft` chờ xác nhận: [spec.md](features/network/spec.md) (network)
-- Spec `draft` chờ xác nhận: [spec.md](features/onboarding/spec.md) (onboarding)
-- Spec `draft` chờ xác nhận: [spec.md](features/poses/spec.md) (poses)
-- Spec `draft` chờ xác nhận: [spec.md](features/settings/spec.md) (settings)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
+- ADR `proposed` chờ quyết định: [1001-loading-timeout-15s.md](adr/1001-loading-timeout-15s.md)
 
 ## 2. Yêu cầu
 
@@ -30,13 +25,13 @@
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `draft`. Ticket: chưa có.
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: chưa có.
 
 Phản hồi: chưa có.
 
 ### loading
 
-Spec: [spec.md](features/loading/spec.md) `changed`. Ticket: 5 `on-staging`, 1 `approved`.
+Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 1 `approved`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -51,25 +46,25 @@ Phản hồi: 1 `fixed`, 1 `wontfix`.
 
 ### network
 
-Spec: [spec.md](features/network/spec.md) `draft`. Ticket: chưa có.
+Spec: [spec.md](features/network/spec.md) `confirmed`. Ticket: chưa có.
 
 Phản hồi: chưa có.
 
 ### onboarding
 
-Spec: [spec.md](features/onboarding/spec.md) `draft`. Ticket: chưa có.
+Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: chưa có.
 
 Phản hồi: chưa có.
 
 ### poses
 
-Spec: [spec.md](features/poses/spec.md) `draft`. Ticket: chưa có.
+Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: chưa có.
 
 Phản hồi: chưa có.
 
 ### settings
 
-Spec: [spec.md](features/settings/spec.md) `draft`. Ticket: chưa có.
+Spec: [spec.md](features/settings/spec.md) `confirmed`. Ticket: chưa có.
 
 Phản hồi: chưa có.
 
@@ -80,4 +75,4 @@ Chưa có phiên nào.
 ## 5. Bài học và ADR
 
 - Bài học ([lessons.md](lessons.md)): 0 bài; chưa có.
-- ADR: 21; 19 `accepted`, 2 `proposed`.
+- ADR: 22; 19 `accepted`, 3 `proposed`.

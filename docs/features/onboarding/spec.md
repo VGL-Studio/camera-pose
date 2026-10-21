@@ -1,13 +1,13 @@
 ---
 feature: onboarding
-status: draft
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-man-chao-xin-quyen-camera.md
 design: design/README.md
 created: 2026-10-21
-confirmed:
+confirmed: 2026-10-21
 ---
 
 # SPEC: MÀN CHÀO VÀ XIN QUYỀN CAMERA
@@ -134,13 +134,13 @@ Không có. Hình minh họa vẽ bằng thành phần của hệ thống thiế
 
 1. **Ai dịch chữ sang 7 ngôn ngữ phát hành (Anh, Hindi, Bồ Đào Nha Brazil, Tây Ban Nha Mỹ Latinh, Indonesia, Thái, Việt)?** Câu này dùng chung cho mọi spec của app.
    - Đề xuất của AI: AI dịch trong cùng ticket với chữ tiếng Anh và tiếng Việt; một người biết tiếng duyệt trước khi phát hành. Ngôn ngữ gốc trong `strings.xml` là tiếng Anh, máy đặt ngôn ngữ chưa có thì hiện tiếng Anh.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 2. **Tư thế mặc định ở lần mở camera đầu tiên là tư thế nào?** Bản đề xuất ghi "tư thế đầu của nhóm Nữ hoặc nhóm mặc định đã chọn sẵn".
    - Đề xuất của AI: tư thế đầu tiên của nhóm "Tất cả" theo thứ tự trong catalog; người làm nội dung đặt một tư thế dễ, toàn thân, một người lên đầu. Chi tiết ở spec `camera`.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Điểm "Hơn 200 tư thế" chỉ đúng khi catalog đã đủ 200 tư thế (bài học 8: chữ chỉ nói điều app đã có).**
    - Đề xuất của AI: giữ chữ này; script kiểm catalog chặn phát hành khi chưa đủ 200. Nếu phát hành sớm hơn thì đổi chữ trước.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI. Không cần chặn phát hành. Người tạo content sẽ phải tự tuân thủ.
 
 ## 10. Lịch sử
 

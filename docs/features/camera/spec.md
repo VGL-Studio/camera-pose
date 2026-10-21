@@ -1,13 +1,13 @@
 ---
 feature: camera
-status: draft
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed:
+confirmed: 2026-10-21
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -34,6 +34,7 @@ confirmed:
 - Quảng cáo toàn màn hình khi rời màn xem lại sau khi đã lưu ảnh (mức B).
 - Hỏi đánh giá app trong app sau khi người dùng đã lưu đủ ảnh (bản đề xuất, câu 12.8).
 - Điện thoại màn hình gập, khi mở ra: khung xem trước giữ 3:4, nút chụp và công cụ dời sang cột bên.
+- Điện thoại khóa chiều dọc ở mọi màn của app; máy gập khi mở ra dùng bố cục mở gập (câu hỏi 7).
 
 **Ngoài phạm vi lần này:**
 
@@ -53,6 +54,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi vào camera thì khung xem trước chạy và nét viền của tư thế dùng lần trước hiện sẵn; lần đầu tiên là tư thế mặc định (câu hỏi 1).
 - [ ] Khi vào camera thì hàng chip nhóm hiện "Tất cả" và các nhóm có tư thế; nhóm chưa có tư thế không hiện.
 - [ ] Khi chạm một chip thì dải tư thế đổi theo nhóm đó; chip đang chọn có nền màu nhấn và dấu ✓.
+- [ ] Khi dải tư thế hiện thì tư thế xếp theo thứ tự: tư thế đã lưu, rồi tư thế đã dùng gần đây (mới dùng nhất trước), rồi các tư thế còn lại theo thứ tự trong catalog; thứ tự này áp dụng cho "Tất cả" và cho từng nhóm (câu hỏi 1).
 - [ ] Khi chạm một ô ở dải thì nét viền và thẻ bước đổi sang tư thế đó; ô đang chọn có viền màu nhấn và dấu ✓; app ghi `pose_selected`.
 - [ ] Khi mở camera từ nút "Chụp với tư thế này" ở chi tiết tư thế thì camera dùng đúng tư thế đó, dải tư thế cuộn tới ô của nó.
 - [ ] Khi ảnh nhỏ của một ô chưa tải xong thì ô hiện khung trống, không chặn việc chọn; tải lỗi thì ô hiện dấu lỗi, chạm lại để thử tải.
@@ -69,7 +71,8 @@ Tiêu chí chấp nhận:
 - [ ] Khi có tư thế thì thẻ bước hiện ở đầu khung xem trước, ghi bước hiện tại trên tổng số bước (ví dụ "2/4") và nội dung bước.
 - [ ] Khi chạm mũi tên sau hoặc trước thì thẻ chuyển sang bước kế hoặc bước trước; ở bước đầu và bước cuối, mũi tên tương ứng mờ đi và không làm gì.
 - [ ] Khi đổi tư thế thì thẻ bước quay về bước 1.
-- [ ] Khi người dùng ẩn thẻ bước (câu hỏi 2) thì thẻ ẩn cho tới khi người dùng hiện lại, kể cả khi đổi tư thế.
+- [ ] Khi vuốt thẻ bước lên thì thẻ ẩn và một nút nhỏ "Bước" hiện ở góc trên khung xem trước; bấm nút này thì thẻ hiện lại (câu hỏi 2).
+- [ ] Khi thẻ bước đang ẩn thì nó ẩn cho tới khi người dùng hiện lại, kể cả khi đổi tư thế hay mở lại app.
 
 ### KB-3. Chỉnh nét viền
 
@@ -93,7 +96,7 @@ Trường hợp đặc biệt:
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi bấm nút flash thì flash đổi lần lượt giữa các chế độ (câu hỏi 3); biểu tượng cho biết chế độ hiện tại. Camera trước không có flash thì nút mờ đi.
+- [ ] Khi bấm nút flash thì flash đổi lần lượt: tắt, bật, tự động (mặc định tắt, câu hỏi 3); biểu tượng cho biết chế độ hiện tại. Camera trước không có flash thì nút mờ đi.
 - [ ] Khi bấm nút hẹn giờ thì hẹn giờ đổi lần lượt: tắt, 3 giây, 10 giây; khi bật, nút ở trạng thái đang bật và hiện số giây ("3s", "10s").
 - [ ] Khi bấm nút lưới thì lưới chia ba hiện hoặc ẩn trên khung xem trước; nút ở trạng thái đang bật khi lưới hiện.
 - [ ] Khi bấm nút đổi camera thì camera đổi giữa trước và sau; nét viền và tư thế giữ nguyên.
@@ -108,7 +111,7 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi không có người trong khung (độ tin cậy dưới ngưỡng) thì app không hiện điểm; hiện lời nhắc "Lùi lại để cả người vào khung".
 - [ ] Khi có người trong khung thì app hiện điểm khớp từ 0 đến 100 và một lời nhắc chỉnh dáng ngắn (ví dụ "Nâng tay trái cao hơn").
-- [ ] Khi điểm đạt ngưỡng (câu hỏi 4) thì lời nhắc đổi thành "Đúng dáng rồi, bấm chụp!", nét viền và viền nút chụp đổi sang màu báo đạt.
+- [ ] Khi điểm đạt ngưỡng (mặc định 80, đặt trong `RemoteSettings`, câu hỏi 4) thì lời nhắc đổi thành "Đúng dáng rồi, bấm chụp!", nét viền và viền nút chụp đổi sang màu báo đạt.
 - [ ] Khi một người thật đứng đúng tư thế thì điểm đạt ít nhất 80 (kiểm tra thủ công trên máy thật, ghi trong báo cáo phiên thử).
 - [ ] Khi đo trên một máy tầm thấp (câu hỏi 5) thì camera vẫn chạy ít nhất 15 khung hình mỗi giây khi bật nhận dạng.
 - [ ] Khi tư thế không có dữ liệu điểm khớp, hoặc nét viền đang ẩn, thì app không chạy nhận dạng và không hiện điểm.
@@ -125,7 +128,8 @@ Tiêu chí chấp nhận:
 - [ ] Khi bấm nút chụp mà hẹn giờ tắt thì app chụp ngay (có âm chụp nếu bật trong Cài đặt), ghi `photo_captured`, mở màn xem lại với ảnh vừa chụp, không có nét viền.
 - [ ] Khi bấm nút chụp mà hẹn giờ bật thì số đếm ngược hiện to giữa khung xem trước, nút chụp đổi thành nút hủy; hết giờ thì chụp như trên; bấm nút hủy thì dừng đếm, không chụp.
 - [ ] Khi bấm "Lưu vào thư viện" thì nút hiện "Đang lưu…", các nút khác mờ đi; lưu xong ảnh có trong thư viện máy, ở thư mục ảnh riêng của app; app ghi `photo_saved`.
-- [ ] Khi bấm "Chụp lại" thì app quay về camera, ảnh vừa chụp không được lưu (câu hỏi 6).
+- [ ] Khi bấm "Chụp lại" sau khi đã lưu ảnh thì app quay về camera.
+- [ ] Khi rời màn xem lại mà chưa lưu ảnh (bằng "Chụp lại", "Tư thế tiếp" hay nút quay lại) thì hộp thoại "Bỏ ảnh này?" hiện, ghi rằng ảnh chưa được lưu vào thư viện, có hai nút "Bỏ ảnh" và "Lưu ảnh" (câu hỏi 6). Bấm "Bỏ ảnh" thì làm tiếp việc người dùng vừa chọn, ảnh không được lưu; bấm "Lưu ảnh" thì lưu như trên rồi làm tiếp; chạm ra ngoài hay bấm quay lại thì đóng hộp thoại, vẫn ở màn xem lại.
 - [ ] Khi bấm "Chia sẻ" thì hộp chia sẻ của hệ thống hiện với ảnh vừa chụp.
 - [ ] Khi bấm "Tư thế tiếp" thì app quay về camera với tư thế kế tiếp trong dải đang chọn (hết dải thì về tư thế đầu).
 - [ ] Khi quay về camera từ màn xem lại thì tư thế, chỉnh nét viền, công cụ chụp giữ như trước khi chụp.
@@ -186,7 +190,7 @@ Tiêu chí chấp nhận:
 | Camera | Chụp theo tư thế: chọn tư thế, nét viền, thẻ bước, công cụ, điểm khớp | KB-1 đến KB-8, KB-11 |
 | Xem lại | Xem ảnh vừa chụp, lưu, chụp lại, chia sẻ, sang tư thế tiếp | KB-6, KB-9, KB-10, KB-11 |
 
-Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked`, `matching`, `matched`, `no-person`, `countdown`, `starting`, `permission-denied`, `error`, `offline` (hộp thoại của spec `network`), `default` khi mở gập; xem lại `default`, `saving`, `save-error`, `default` khi mở gập. Chỉ có bản tối (câu 12.10 của bản đề xuất).
+Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked`, `steps-hidden`, `matching`, `matched`, `no-person`, `countdown`, `starting`, `permission-denied`, `error`, `offline` (hộp thoại của spec `network`), `default` khi mở gập; xem lại `default`, `saving`, `save-error`, `discard`, `default` khi mở gập. Chỉ có bản tối (câu 12.10 của bản đề xuất).
 
 ## 5. Quảng cáo
 
@@ -203,6 +207,7 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | Dữ liệu | Mục đích | Giữ trong bao lâu |
 | --- | --- | --- |
 | Tư thế đang dùng | Mở lại app vẫn là tư thế đó | Đến khi người dùng xóa dữ liệu app |
+| Tư thế đã dùng gần đây, kèm thời điểm dùng | Xếp dải tư thế và thư viện (đã lưu, gần đây, còn lại) | Đến khi người dùng xóa dữ liệu app |
 | Độ mờ, cỡ, lật, khóa, ẩn của nét viền; thẻ bước ẩn hay hiện | Giữ lựa chọn giữa các lần dùng | Đến khi người dùng xóa dữ liệu app |
 | Hẹn giờ, lưới, flash, camera trước sau | Giữ lựa chọn giữa các lần dùng | Đến khi người dùng xóa dữ liệu app |
 | Số ảnh đã lưu, ngày gọi hộp đánh giá gần nhất, mốc quảng cáo của phiên | Điều kiện hỏi đánh giá và giới hạn quảng cáo | Đến khi người dùng xóa dữ liệu app |
@@ -243,34 +248,35 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 
 1. **Tư thế mặc định ở lần dùng đầu tiên?**
    - Đề xuất của AI: tư thế đầu tiên của nhóm "Tất cả" theo thứ tự trong catalog. Người làm nội dung đặt lên đầu một tư thế một người, toàn thân, dễ làm.
-   - Trả lời:
+   - Trả lời: Tư thế đầu tiền của nhóm "Tất cả" theo thứ tự trong catalog. Tuy nhiên, sau này catalog sẽ được sắp xếp theo thứ tự: đầu tiên là các tư thế đã lưu, thứ hai là các tư thế đã sử dụng gần đây nhất, sau đó mới đến các tư thế còn lại.
 2. **Ẩn hiện thẻ bước bằng cách nào?** Bài học 10 cần thẻ bước bật tắt được, nhưng thiết kế chưa có nút riêng.
    - Đề xuất của AI: vuốt thẻ bước lên để ẩn; khi ẩn, một nút nhỏ "Bước" hiện ở góc trên khung để hiện lại. Cần thêm vào thiết kế.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Flash có những chế độ nào?**
    - Đề xuất của AI: tắt, bật, tự động; mặc định tắt.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 4. **Ngưỡng điểm báo "Đúng dáng rồi"?**
    - Đề xuất của AI: 80, đặt trong `RemoteSettings` để chỉnh từ xa sau khi thử với người thật.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 5. **Máy tầm thấp dùng để đo 15 khung hình mỗi giây là máy nào?**
    - Đề xuất của AI: một máy Android Go hoặc máy giá rẻ phổ biến ở Ấn Độ, Indonesia (ví dụ dòng Redmi A hoặc Samsung Galaxy A0x); dev chọn máy nhóm có sẵn.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 6. **Rời màn xem lại mà chưa lưu ảnh thì sao?**
    - Đề xuất của AI: bỏ ảnh, không hỏi lại, vì nút "Lưu vào thư viện" luôn thấy rõ và người dùng chủ động bấm "Chụp lại". Nếu muốn an toàn hơn: hỏi "Bỏ ảnh này?" khi rời mà chưa lưu.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI. Hỏi trước khi rời màn hình.
 7. **Khóa màn hình ở chiều dọc?**
    - Đề xuất của AI: điện thoại khóa chiều dọc ở camera và màn xem lại, như mọi app mẫu; máy gập khi mở ra dùng bố cục `_unfolded`. Các màn khác của app cũng khóa dọc để đơn giản.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 8. **Dữ liệu tư thế dùng chung đặt ở đâu?** Camera và thư viện đều cần danh sách tư thế, ảnh, nét viền, danh sách đã lưu; feature không được phụ thuộc nhau (ADR-0001).
    - Đề xuất của AI: module core mới của app `:core:poses` (bản đề xuất, mục 5). Thêm module core là thay đổi rủi ro cao, cần plan duyệt chéo.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 9. **Thư viện CameraX, ML Kit Pose Detection, Play In-App Review và quyền `CAMERA`:** bản đề xuất (câu 12.6) ghi dev thêm ở bước khởi tạo app, không qua phiên tự chạy.
    - Đề xuất của AI: các ticket của spec này phụ thuộc vào việc dev đã thêm xong; AI ghi rõ phụ thuộc trong ticket.
-   - Trả lời:
+   - Trả lời: Đồng ý. Dev sẽ thêm trước phiên tự chạy.
 
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
+| 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế ở dải (đã lưu, gần đây, còn lại), ẩn hiện thẻ bước, chế độ flash, ngưỡng điểm 80, hỏi "Bỏ ảnh này?" khi rời màn xem lại mà chưa lưu, khóa chiều dọc, dữ liệu tư thế đã dùng gần đây; thêm trạng thái thiết kế `steps-hidden`, `discard` |

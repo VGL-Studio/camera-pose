@@ -1,6 +1,6 @@
 ---
 feature: loading
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -69,7 +69,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi một phần việc không xong được thì màn hình loading báo lỗi gồm tiêu đề "Không thể tải dữ liệu" và lời hướng dẫn dễ hiểu; nhãn của thanh tiến trình đổi thành "Tiến độ đã dừng", thanh tiến trình và phần trăm chuyển màu báo lỗi, giữ ở mức đã đạt; có nút "Thử lại". App không vào màn hình chính.
 - [ ] Khi bấm "Thử lại" thì app chỉ làm lại những phần việc chưa xong, thanh tiến trình tiếp tục từ chỗ đã đạt.
 - [ ] Khi có mạng trở lại và bấm "Thử lại" thì app chuẩn bị xong và vào màn hình chính.
-- [ ] Khi tải cấu hình không có phản hồi sau 10 giây, hoặc tải một file không có phản hồi sau 15 giây, thì app coi phần việc đó là không xong được và báo lỗi như trên.
+- [ ] Khi tải cấu hình, tải catalog hay tải một file của bộ khởi đầu không có phản hồi sau 15 giây thì app coi phần việc đó là không xong được và báo lỗi như trên (câu hỏi 3; đổi từ 10 giây cho cấu hình, ADR-1001).
 
 ### KB-3. Mở lại app khi không có mạng
 
@@ -141,28 +141,20 @@ Không có. Màn hình loading không hiện quảng cáo.
    - Trả lời: `duration_ms` và `retry_count`.
 3. **Thời gian chờ tối đa cho mỗi phần việc:**
    - Đề xuất của AI: 10 giây cho tải cấu hình; ba file dùng mức 15 giây sẵn có của việc tải file.
-   - Trả lời: đồng ý.
+   - Trả lời: 15 giây cho mỗi thứ cần tải.
 4. **Bản build trên máy dev và trong CI dùng cấu hình Firebase giả, không bao giờ tải được cấu hình:**
    - Đề xuất của AI: với cấu hình giả, phần việc tải cấu hình được tính là xong ngay. Bản staging phát cho nhóm và bản production luôn tải thật.
    - Trả lời: đồng ý.
-5. **Hai file `content.txt` và `goodbye.txt` chưa có trên R2 staging:**
-   - Trả lời: đã đưa lên. AI kiểm tra lại ngày 2026-10-15: cả ba file trong `test/v1/` đều tải được.
-6. **Tên app trên màn hình loading:** thiết kế ghi "Todo App".
-   - Đề xuất của AI: màn hình hiện đúng tên của app đang chạy (với dự án mẫu là "App Template"); mỗi app tạo từ dự án mẫu tự có tên của mình. "Todo App" chỉ là chữ mẫu trên thiết kế, screenshot test dùng chữ này để so với ảnh thiết kế.
-   - Trả lời: Tên app là "App Template"
-7. **Khẩu hiệu "Mọi việc vào đúng nhịp." và logo:** thuộc thương hiệu, mỗi app thay bằng của mình.
-   - Đề xuất của AI: dự án mẫu dùng khẩu hiệu và logo này làm mặc định, đặt trong hệ thống thiết kế cùng chỗ với màu thương hiệu; hướng dẫn tạo app mới ghi rõ phải thay.
-   - Trả lời: OK, theo đề xuất của AI.
 
 8. **Chia thanh tiến trình cho ba phần việc thế nào?** Bộ khởi đầu lớn hơn hẳn hai phần còn lại.
    - Đề xuất của AI: cấu hình 10%, catalog 10%, bộ khởi đầu 80% tăng dần theo từng file tải xong. Các lần mở sau bộ khởi đầu đã có nên thanh chạy nhanh.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 9. **Có giữ cờ `feature_loading_enabled` không?** App luôn cần mạng (bản đề xuất, câu 12.13) và tư thế không còn đóng gói, nên tắt màn loading thì app vào camera mà không có cấu hình mới, không có catalog.
    - Đề xuất của AI: giữ cờ để tắt khẩn cấp, nhưng bật sẵn ở cả staging và production; khi cờ tắt, camera và thư viện tự tải catalog và báo lỗi theo spec của mình.
-   - Trả lời:
-10. **Tên app trên màn loading của Camera Pose:** câu 6 trả lời "App Template" cho dự án mẫu.
+   - Trả lời:  Đồng ý với đề xuất của AI.
+10. **Tên app trên màn loading của Camera Pose:**
    - Đề xuất của AI: hiện "Camera Pose: Lines and Guides" (`app_name` của app này); tên dài nên xuống hai dòng, căn giữa, như thiết kế.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 10. Lịch sử
 
@@ -173,3 +165,4 @@ Không có. Màn hình loading không hiện quảng cáo.
 | 2026-10-15 | AI | Cập nhật theo câu trả lời mục 9: mở lại khi không có mạng cũng báo lỗi, tham số của `loading_completed`, thời gian chờ, cấu hình giả trên máy dev và CI, ba file đã có trên R2 |
 | 2026-10-16 | AI | Nhận thiết kế Figma theo quyết định của anh Nhật: thêm logo, tên app, khẩu hiệu, chân trang, tiêu đề lỗi, nhãn tiến trình (phạm vi, KB-1, KB-2, mục 4); thêm câu hỏi 6, 7. Chuyển sang `changed`, chờ xác nhận lại |
 | 2026-10-21 | AI | Áp dụng cho Camera Pose: thay ba file mẫu bằng catalog và bộ tư thế khởi đầu (phạm vi, KB-1, KB-3, mục 6, mục 7); chuyển sang màn chào hoặc camera; nhận diện và thiết kế theo hướng Sticker (mục 4); thêm câu hỏi 8 đến 10. Chuyển sang `changed`, chờ xác nhận lại |
+| 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: chờ tối đa 15 giây cho mỗi thứ cần tải (KB-2); viết ADR-1001 vì ADR-0018 của dự án mẫu ghi 10 giây cho cấu hình |

@@ -1,13 +1,13 @@
 ---
 feature: poses
-status: draft
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-thu-vien-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed:
+confirmed: 2026-10-21
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -46,7 +46,8 @@ Người dùng ở camera, muốn tìm tư thế khác.
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi bấm nút thư viện ở camera thì màn thư viện mở, chip "Tất cả" đang chọn, lưới 2 cột hiện các tư thế theo thứ tự trong catalog.
+- [ ] Khi bấm nút thư viện ở camera thì màn thư viện mở, chip "Tất cả" đang chọn, lưới 2 cột hiện các tư thế.
+- [ ] Khi lưới hiện thì tư thế xếp theo thứ tự: tư thế đã lưu, rồi tư thế đã dùng gần đây (mới dùng nhất trước), rồi các tư thế còn lại theo thứ tự trong catalog; thứ tự này áp dụng cho "Tất cả" và cho từng nhóm (câu hỏi 2). "Tư thế đã dùng" là tư thế người dùng đã chọn ở camera (spec `camera`).
 - [ ] Khi vào thư viện thì dòng dưới tiêu đề ghi tổng số tư thế và số nhóm (ví dụ "214 tư thế trong 8 nhóm").
 - [ ] Khi vào thư viện thì chỉ các nhóm có ít nhất một tư thế mới có chip.
 - [ ] Khi mỗi thẻ hiện thì thẻ có ảnh, tên tư thế, loại và số bước, nút lưu; tên tư thế đọc được, không có chuỗi kỹ thuật kiểu `no_props` (bài học 9).
@@ -125,7 +126,7 @@ Tiêu chí chấp nhận:
 | Thư viện tư thế | Duyệt, lọc theo nhóm, lưu tư thế | KB-1, KB-2, KB-3, KB-5, KB-6, KB-7 |
 | Chi tiết tư thế | Đọc cách tạo dáng, lưu, chụp với tư thế | KB-3, KB-4, KB-5, KB-6, KB-7 |
 
-Trạng thái trên thiết kế: thư viện `default`, `loading`, `offline` (hộp thoại của spec `network`), `error`, `saved-empty`, `default` khi mở gập; chi tiết `default`, `loading`, `error`, `default` khi mở gập. Mỗi trạng thái có bản sáng và tối.
+Trạng thái trên thiết kế: thư viện `default`, `loading`, `offline` (hộp thoại của spec `network`), `error`, `saved-empty`, `ad` (có banner, câu hỏi 1), `default` khi mở gập; chi tiết `default`, `loading`, `error`, `ad`, `default` khi mở gập. Mỗi trạng thái có bản sáng và tối.
 
 ## 5. Quảng cáo
 
@@ -174,18 +175,19 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `offline` (h
 
 1. **Thiết kế chưa có chỗ cho banner.** Hai vị trí banner đã được duyệt (câu 9.1), nhưng các frame thư viện và chi tiết chưa vẽ banner.
    - Đề xuất của AI: thêm vào Figma một trạng thái có banner cho mỗi màn (`PosesScreen_ad_light`, `PoseDetailScreen_ad_light` và bản tối): banner 320 x 50 neo đáy; ở chi tiết, banner nằm dưới thanh nút chính. AI dựng trước khi lập gói bàn giao.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 2. **Thứ tự tư thế trong "Tất cả" và trong từng nhóm?**
    - Đề xuất của AI: theo thứ tự người làm nội dung đặt trong catalog; tư thế mới thêm nằm sau cùng. Sau khi có số liệu, xếp theo lượt chọn.
-   - Trả lời:
+   - Trả lời: Đầu tiên là các tư thế đã được lưu, thứ hai là các tư thế đã được sử dụng gần đây, thứ ba là các tư thế còn lại.
 3. **Dòng tổng số tư thế đếm những gì?**
    - Đề xuất của AI: đếm mọi tư thế trong catalog và số nhóm có chip, không đếm "Tất cả" và "Đã lưu".
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 4. **Dữ liệu tư thế dùng chung:** như câu hỏi 8 của spec `camera` (module `:core:poses`).
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
+| 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế trong lưới (đã lưu, gần đây, còn lại); thêm trạng thái thiết kế `ad` có banner |

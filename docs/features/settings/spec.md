@@ -1,13 +1,13 @@
 ---
 feature: settings
-status: draft
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-cai-dat.md
 design: design/README.md
 created: 2026-10-21
-confirmed:
+confirmed: 2026-10-21
 ---
 
 # SPEC: CÀI ĐẶT
@@ -72,7 +72,7 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi bấm "Tùy chọn quyền riêng tư" thì hộp thoại đồng ý quảng cáo của `:core:ads` hiện lại để người dùng đổi lựa chọn (ADR-0013).
 - [ ] Khi người dùng ở nơi không cần hỏi đồng ý thì dòng "Tùy chọn quyền riêng tư" không hiện (câu hỏi 3).
-- [ ] Khi bấm "Chính sách quyền riêng tư" thì trang chính sách mở trong trình duyệt (câu hỏi 4).
+- [ ] Khi bấm "Chính sách quyền riêng tư" thì trang chính sách mở trong trình duyệt. Đường dẫn đặt trong `RemoteSettings`, mặc định https://studio.vgl.io.vn/privacy-policy (câu hỏi 4).
 
 ### KB-6. Phiên bản
 
@@ -82,7 +82,7 @@ Tiêu chí chấp nhận:
 
 ## 4. Giao diện
 
-- **Thiết kế:** [design/README.md](design/README.md) (gói bàn giao lập sau khi spec được xác nhận), dựng trên Figma theo hướng Sticker, frame `SettingsScreen_default_light`, `SettingsScreen_default_dark`. Trên thiết kế, dòng "Phiên bản" còn mũi tên; sửa theo KB-6 trước khi lập gói bàn giao.
+- **Thiết kế:** [design/README.md](design/README.md) (gói bàn giao lập sau khi spec được xác nhận), dựng trên Figma theo hướng Sticker, frame `SettingsScreen_default_light`, `SettingsScreen_default_dark`, và hộp chọn giao diện `SettingsScreen_theme-picker_light`, `SettingsScreen_theme-picker_dark` (câu hỏi 5). Trên thiết kế, dòng "Phiên bản" còn mũi tên; sửa theo KB-6 trước khi lập gói bàn giao.
 - **Các màn hình:**
 
 | Màn hình | Mục đích | Kịch bản liên quan |
@@ -122,22 +122,23 @@ Không có.
 
 1. **Tắt âm khi chụp ở những nước bắt buộc có âm (ví dụ Nhật, Hàn)?** Không nước nào trong danh sách phát hành bắt buộc.
    - Đề xuất của AI: cho tắt ở mọi nơi; nếu sau này phát hành ở nước bắt buộc thì ẩn lựa chọn ở nước đó.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 2. **Máy dưới Android 13 đổi ngôn ngữ trong app?**
    - Đề xuất của AI: có, dùng hộp chọn trong app như KB-4, vì minSdk là 26 và nhiều máy ở các thị trường phát hành còn dưới Android 13.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Ẩn "Tùy chọn quyền riêng tư" khi không cần hỏi đồng ý?**
    - Đề xuất của AI: ẩn, theo cách `:core:ads` cho biết có cần hiện nút này không.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 4. **Đường dẫn trang chính sách quyền riêng tư?**
    - Đề xuất của AI: dev cung cấp đường dẫn; đặt trong `RemoteSettings` để đổi được mà không cần bản mới.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI. Sử dụng mặc định: https://studio.vgl.io.vn/privacy-policy
 5. **Hộp chọn giao diện và ngôn ngữ chưa có trên thiết kế.**
    - Đề xuất của AI: AI dựng thêm frame `SettingsScreen_theme-picker_light` và bản tối trên Figma trước khi lập gói bàn giao.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
+| 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: đường dẫn chính sách quyền riêng tư mặc định; thêm frame hộp chọn giao diện |

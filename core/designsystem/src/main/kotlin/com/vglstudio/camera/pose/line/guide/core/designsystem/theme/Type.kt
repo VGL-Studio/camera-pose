@@ -7,6 +7,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R
 
+internal const val FONT_FAMILY_NAME = "Inter"
+
 /** Brand typeface, Inter 4.1 (SIL OFL 1.1, see third_party/inter). Each app may replace it (ADR-0008). */
 internal val InterFamily = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
@@ -39,3 +41,5 @@ internal val AppTypography: Typography = Typography().run {
         labelSmall = labelSmall.copy(fontFamily = InterFamily, letterSpacing = 0.sp),
     )
 }
+
+internal val BricolageFamily: FontFamily = FontFamily.Default

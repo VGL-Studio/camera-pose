@@ -87,6 +87,16 @@ fun SpacingAndComponentCatalog(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun AppColorCatalog(modifier: Modifier = Modifier) {
+    Box(modifier)
+}
+
+@Composable
+fun ShapeCatalog(modifier: Modifier = Modifier) {
+    Box(modifier)
+}
+
+@Composable
 fun BrandCatalog(modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     CatalogPage(title = "Brand", modifier = modifier) {

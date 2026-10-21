@@ -1,5 +1,6 @@
 package com.vglstudio.camera.pose.line.guide.core.designsystem
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -7,14 +8,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertRangeInfoEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -23,6 +22,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.takahirom.roborazzi.RoborazziOptions
+import com.github.takahirom.roborazzi.RoborazziTaskType
+import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
@@ -188,10 +190,19 @@ class ComponentsTest {
         assertEquals(Color(0xFFFFC83D).toArgb(), pixelAt(LOGO, 56.dp, 8.dp).toArgb())
     }
 
-    /** Color of the pixel at ([x], [y]) inside the node; dp are converted with the density of the test. */
+    /**
+     * Color of the pixel at ([x], [y]) inside the node; dp are converted with the density of the test. The node is
+     * captured with Roborazzi in record mode to a scratch file under build/ (not a reference image) and read back,
+     * because captureToImage times out in Robolectric native graphics.
+     */
     private fun pixelAt(tag: String, x: Dp, y: Dp): Color {
-        val map = composeRule.onNodeWithTag(tag).captureToImage().toPixelMap()
-        with(composeRule.density) { return map[x.roundToPx(), y.roundToPx()] }
+        val path = "build/tmp/pixel/$tag.png"
+        composeRule.onNodeWithTag(tag).captureRoboImage(
+            filePath = path,
+            roborazziOptions = RoborazziOptions(taskType = RoborazziTaskType.Record),
+        )
+        val bitmap = checkNotNull(BitmapFactory.decodeFile(path)) { "No image written to $path" }
+        with(composeRule.density) { return Color(bitmap.getPixel(x.roundToPx(), y.roundToPx())) }
     }
 
     private fun textOffset(buttonTag: String, text: String) =

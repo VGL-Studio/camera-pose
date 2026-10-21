@@ -1,5 +1,5 @@
 ---
-title: Camera Pose: Lines and Guides
+title: "Camera Pose: Lines and Guides"
 package: com.vglstudio.camera.pose.line.guide
 date: 2026-10-21
 author: AI, theo yêu cầu của anh Nhật
@@ -7,10 +7,10 @@ reference_apps: [com.camera.filter.pose.guide.ideas, com.vector123.posecamera, c
 status: approved                  # draft | approved. Chỉ dev ghi approved
 approved_by: anh Nhật
 approved_at: 2026-10-21
-design_direction:              # tên hướng thiết kế dev đã chọn (mục 10), điền sau bước chọn hướng
+design_direction: Sticker             # tên hướng thiết kế dev đã chọn (mục 10), điền sau bước chọn hướng
 ---
 
-# ĐỀ XUẤT APP: CAMERA POSE: LINES AND GUIDES
+# ĐỀ XUẤT APP: "CAMERA POSE: LINES AND GUIDES"
 
 <!--
 Bản đề xuất app clone (ADR-0021, docs/ops/clone-study.md). AI viết từ báo cáo khảo sát; dev duyệt trước khi sang Figma.
@@ -110,7 +110,7 @@ Dev chốt tên và tên gói trước khi chạy `scripts/new-app.sh`. Tên gó
 | 4 | Quá ít tư thế, danh mục rỗng | Pose Camera 32 tư thế (APK mục 1); đánh giá "Too many ads and only 6 poses available." (Play, 3.1). SimplePose khi mất mạng chỉ 24 tư thế, 3/6 danh mục rỗng vẫn hiện (`06-category-empty`). PoseMate 1.629, PoseCamera 120 | Ra mắt với ít nhất 200 tư thế; ít nhất 60 tư thế đóng gói trong APK chạy khi mất mạng; mỗi nhóm hiển thị có ít nhất 15 tư thế; danh mục chưa có tư thế thì ẩn | Đếm catalog bằng script kiểm catalog trước khi đẩy lên R2. Unit test: repository không trả nhóm rỗng |
 | 5 | Lớp phủ khó nhìn hoặc không chỉnh được | Pose Camera: nét vẽ cỡ cố định, kéo không di chuyển (`22-couple-pose-drag`). AI Posing: lớp phủ là ảnh mờ của người khác, thanh độ mờ kéo không đổi gì thấy được (`46`). Đánh giá: "outline is too thin to see well" (Play, 3.1). SimplePose làm tốt: nét trắng có quầng đen, độ mờ 20 đến 100, cỡ 40 đến 160, kéo, khóa, lật, ẩn (`15` đến `22`) | Nét viền trắng có quầng tối, nhìn rõ trên nền sáng và tối. Chỉnh được: độ mờ, cỡ (chụm hai ngón và thanh trượt), kéo, lật, khóa, ẩn, đặt lại. Giữ lựa chọn khi đổi tư thế | UI test JVM: đủ 7 thao tác, mỗi thao tác đổi trạng thái lớp phủ. Đo tương phản nét viền trên ảnh nền trắng và đen trong screenshot test |
 | 6 | Không có màn xem lại sau khi chụp | Pose Camera lưu thẳng, không xem lại (`28-after-capture`). SimplePose không xem lại, không thông báo đã lưu (`23-after-capture`). PoseCamera: nút lưu trong xem lại chỉ tạo bản sao trùng md5 (mục 5). AI Posing có xem lại nhưng chen màn trả phí và interstitial khi lưu (`32` đến `36`) và mất tư thế sau khi lưu (`37`) | Sau khi chụp mở màn xem lại: Chụp lại, Lưu, Chia sẻ, "Tư thế tiếp". Quay về camera vẫn giữ tư thế đang dùng | UI test: sau nút chụp có `ReviewScreen`; quay lại camera thì tư thế đang chọn không đổi |
-| 7 | Lỗi tải nội dung làm màn hình trống mãi | AI Posing: API trả HTTP 429 khoảng 11 phút, danh mục và Khám phá trống hoặc quay vòng mãi, không báo lỗi, không có thử lại (`17`, `18`, `20`, `22`) | Bộ đóng gói luôn hiện ngay. Tải thêm qua `RemoteAssets.load`; kết quả `Unavailable` đưa vào `UiState` với thông báo và nút thử lại; chờ có giới hạn | Unit test ViewModel: `Unavailable` cho trạng thái lỗi có nút thử lại; chờ tối đa 15 giây rồi báo lỗi. Screenshot `PosesScreen_error` |
+| 7 | Lỗi tải nội dung làm màn hình trống mãi | AI Posing: API trả HTTP 429 khoảng 11 phút, danh mục và Khám phá trống hoặc quay vòng mãi, không báo lỗi, không có thử lại (`17`, `18`, `20`, `22`) | Bộ đóng gói luôn hiện ngay. Tải thêm qua `RemoteAssets.load`; kết quả `Unavailable` đưa vào `UiState` với thông báo và nút thử lại; chờ có giới hạn | Unit test ViewModel: `Unavailable` cho trạng thái lỗi có nút thử lại; chờ tối đa 15 giây rồi báo lỗi. Screenshot `PosesScreen_error_light`, `PosesScreen_error_dark` |
 | 8 | Hứa tính năng không có | SimplePose giới thiệu "Màu sắc cho biết bạn đã gần đúng chưa" (`03-onboarding-2`) nhưng camera không so khớp (mục 4). PoseMate nói "Tap Lock when done" mà không có nút Lock (`18`); "Nailed it!" hiện cả khi khớp 0% (`22`). 51 đánh giá Pose Camera gọi app là "fake", "clickbait" (Play, 3.1) | Chữ trong app và ảnh store chỉ nói tới tính năng đã có. Ảnh store chụp từ màn hình thật | Mỗi câu ở giới thiệu và ảnh store gắn với một tiêu chí chấp nhận trong spec. Ảnh store lấy từ screenshot test |
 | 9 | Tên, mô tả tư thế sai hoặc thiếu | PoseMate: tên và mô tả sinh theo khuôn không khớp ảnh ("Wedding Couple Walk VIII" là ảnh đôi nhảy lên, `33`; mô tả "dance" cho ảnh ngồi, `13`). SimplePose: mọi tư thế tên "Full body"/"Half body", một tư thế tên thô "no_props" (mục 4) | Mỗi tư thế có tên riêng, ngắn, đã duyệt bằng người. Không có khóa thô hiện ra giao diện | Script kiểm catalog: tên không trùng trong nhóm, không có chuỗi dạng `snake_case`, đủ bản dịch cho mọi ngôn ngữ phát hành |
 | 10 | Ảnh mẫu không kèm hướng dẫn thì người dùng thấy như "ảnh dán lên camera" | AI Posing: đánh giá "bukan ngarahin malah cuma foto ditempel dikamera kita" (Play, 3.1); chi tiết tư thế không có mô tả, mẹo (`43`). PoseCamera có thẻ mẹo ngay trên camera, 10 bước chuyển trước sau (`07-camera`); PoseMate có bước, góc, lỗi hay gặp (`13` đến `15`) | Mỗi tư thế có 3 đến 5 bước ngắn và 1 lỗi hay gặp. Thẻ bước bật tắt được trên camera | Script kiểm catalog: 100% tư thế có bước. UI test: thẻ bước hiện, chuyển trước sau |
@@ -119,7 +119,7 @@ Dev chốt tên và tên gói trước khi chạy `scripts/new-app.sh`. Tên gó
 | 13 | Lưu ảnh lộn xộn, không xem lại được trong app | PoseCamera lưu ở gốc `Pictures/` (mục 5). PoseMate: nút Gallery trên camera mở app khác (`23`). AI Posing lưu trong bộ nhớ riêng, không thấy trong thư viện máy (mục 5) | Lưu vào `Pictures/<TênApp>/` qua MediaStore, không cần quyền đọc bộ nhớ. Ô ảnh vừa chụp trên camera mở màn xem lại trong app | Test trên emulator: ảnh xuất hiện trong MediaStore đúng thư mục. Manifest không có quyền đọc ảnh |
 | 14 | minSdk cao làm mất máy cũ | Nhóm Pose Camera và AI Posing dùng minSdk 32 (APK, bảng so sánh) | minSdk 26 theo dự án mẫu, như PoseMate và PoseCamera | `minSdk` trong build bằng 26 |
 | 15 | Thiếu tiếng địa phương | Pose Camera không có tiếng Việt (mục 2); đánh giá PoseCamera "me hubiera gustado que tuviera la traducción en español" (Play, 3.1); PoseMate chỉ tiếng Anh | Ra mắt với tiếng Anh và các ngôn ngữ của thị trường dev chọn (mục 12). Tên tư thế và bước dịch cùng catalog | Test kiểm mọi chuỗi trong `strings.xml` có đủ bản dịch; script kiểm catalog có đủ ngôn ngữ |
-| 16 | Xin quyền camera có giải thích thì ít bị từ chối hơn | SimplePose có màn giải thích trước hộp thoại hệ thống (`13-open-camera`); PoseMate có nút "Enable camera" trong giới thiệu (`03` đến `05`). Pose Camera, AI Posing xin thẳng | Giữ cách làm này. Thêm trạng thái "chưa có quyền" trên camera với nút mở Cài đặt máy | UI test: từ chối quyền thì `CameraScreen_permission-denied`, có nút mở cài đặt |
+| 16 | Xin quyền camera có giải thích thì ít bị từ chối hơn | SimplePose có màn giải thích trước hộp thoại hệ thống (`13-open-camera`); PoseMate có nút "Enable camera" trong giới thiệu (`03` đến `05`). Pose Camera, AI Posing xin thẳng | Giữ cách làm này. Thêm trạng thái "chưa có quyền" trên camera với nút mở Cài đặt máy | UI test: từ chối quyền thì `CameraScreen_permission-denied_dark`, có nút mở cài đặt |
 
 Năm cải tiến chính: 1 (2 chạm tới camera, không quảng cáo trước ảnh đầu), 3 (không quảng cáo trên camera), 4 (200 tư thế, 60 chạy offline), 5 (lớp phủ chỉnh đủ), 6 và 7 (màn xem lại, báo lỗi có thử lại).
 
@@ -240,9 +240,9 @@ Camera và màn xem lại luôn nền tối ở cả hai chế độ (như mọi
 | | `PoseDetailScreen_error_light`, `PoseDetailScreen_error_dark` | Không tải được ảnh, nút thử lại | |
 | Cài đặt | `SettingsScreen_default_light`, `SettingsScreen_default_dark` | Bình thường | `:feature:settings` |
 
-Tổng: 6 màn hình, 35 frame ở khung điện thoại 411 x 891.
+Tổng: 6 màn hình, 34 frame ở khung điện thoại 411 x 891.
 
-**Điện thoại màn hình gập (đã chốt hỗ trợ):** thêm frame khung mở ra **673 x 841** (khung `Devices.FOLDABLE` của Compose) cho các màn hình có bố cục đổi khi màn hình rộng, tên `<Ten>Screen_<trạng thái>-unfolded_<light|dark>`: `CameraScreen_default-unfolded_dark`, `ReviewScreen_default-unfolded_dark`, `PosesScreen_default-unfolded_light`, `PosesScreen_default-unfolded_dark`, `PoseDetailScreen_default-unfolded_light`, `PoseDetailScreen_default-unfolded_dark` (6 frame). Thư viện tăng số cột theo chiều rộng; chi tiết tư thế chia hai cột (ảnh, hướng dẫn); camera giữ khung 3:4 ở giữa, công cụ dời sang cột bên. Screenshot test có thêm ảnh ở khung này. Màn hình gập lại dùng bố cục điện thoại. Máy tính bảng loại ra bằng danh mục thiết bị trên Play Console; giao diện vẫn không vỡ nếu chạy trên máy lớn.
+**Điện thoại màn hình gập (đã chốt hỗ trợ):** thêm frame khung mở ra **673 x 841** (khung `Devices.FOLDABLE` của Compose) cho các màn hình có bố cục đổi khi màn hình rộng, tên `<Ten>Screen_<trạng thái>_<light|dark>_unfolded`: `CameraScreen_default_dark_unfolded`, `ReviewScreen_default_dark_unfolded`, `PosesScreen_default_light_unfolded`, `PosesScreen_default_dark_unfolded`, `PoseDetailScreen_default_light_unfolded`, `PoseDetailScreen_default_dark_unfolded` (6 frame). Thư viện tăng số cột theo chiều rộng; chi tiết tư thế chia hai cột (ảnh, hướng dẫn); camera giữ khung 3:4 ở giữa, công cụ dời sang cột bên. Screenshot test có thêm ảnh ở khung này. Màn hình gập lại dùng bố cục điện thoại. Máy tính bảng loại ra bằng danh mục thiết bị trên Play Console; giao diện vẫn không vỡ nếu chạy trên máy lớn.
 
 ## 8. Điểm nổi bật
 
@@ -324,9 +324,22 @@ Sau khi dev duyệt các mục trên, AI dựng 2 đến 3 hướng trên Figma 
 
 | Hướng | Ý chính | Màu | Chữ | Icon | Link Figma |
 | --- | --- | --- | --- | --- | --- |
-| | | | | | |
+| 1. Phòng tối | Nền tối sâu ở cả camera và thư viện, một màu nhấn ấm, chip và nút bo tròn hẳn, thẻ tư thế có nền | Nhấn cam san hô `#FF7A59` (tối), `#C8431D` (sáng); nền `#121014` | Lexend | Material Symbols Rounded | [Direction/Phong-toi](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=3-2) |
+| 2. Giấy trắng | Nền trắng, nhiều khoảng trắng, góc bo nhỏ (8), chip viền mảnh, chip đang chọn tô màu mực | Nhấn xanh dương đậm `#1F3FBF` (sáng), `#8EA2FF` (tối); mực `#14161C` | Fraunces (tiêu đề, có chân), Plus Jakarta Sans (nội dung) | Material Symbols Rounded | [Direction/Giay-trang](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=3-345) |
+| 3. Sticker | Viền đen 2 dp, bóng đổ cứng, mỗi nhóm tư thế một màu, thẻ và chip như nhãn dán | Nhấn xanh `#2F6BFF`; 6 màu nhóm (hồng, vàng, xanh lá, xanh dương, cam, xanh nõn) | Bricolage Grotesque | Material Symbols Rounded | [Direction/Sticker](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=3-688) |
 
-Dev chọn: <hướng, hoặc ghép từ các hướng>, ngày <YYYY-MM-DD>. Ghi tên hướng vào `design_direction`.
+Mỗi trang gồm bảng phong cách (màu sáng và tối, chữ, bo góc, khoảng cách, icon, thành phần: nút, chip, ô tư thế, nút icon trên camera, thẻ tư thế) và hai màn hình ở khung 411 x 891: `CameraScreen_default_dark` và `PosesScreen_default_<light|dark>`. Ảnh tư thế là hình nét viền tạm, nội dung thật thay sau. Biến và kiểu chữ trong Figma chỉ tạo cho hướng được chọn (design-workflow.md, mục 8.2).
+
+Ảnh so sánh với app mẫu tốt nhất (camera của SimplePose, thư viện của PoseMate) nằm trong thư mục làm việc, không vào repo vì chứa ảnh chụp app mẫu: `figma-pilot/directions/compare_<hướng>.png`. Màn camera của cả ba hướng chưa có nút zoom 0.5x/1x/2x như SimplePose; thêm khi dựng toàn bộ.
+
+Dev chọn: Sticker, ngày 2026-10-21. Dev làm mịn bằng AI Agent của Figma hai điểm: dấu ✓ cho chip và tư thế đang chọn (không chỉ dựa vào màu vàng); nút camera đang bật (hẹn giờ 3s, lưới, hiện tư thế) tô vàng, lưới chia ba hiện trên khung xem trước.
+
+Dựng toàn bộ theo hướng Sticker (design-workflow.md, mục 8.2), cùng file Figma:
+
+- [Design system](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=12-2): bộ biến `color` (Light, Dark; tên theo `tokens.json`, thêm `success*`, `shadowSticker`, `category/*` cho 8 nhóm, `camera/*` cho màn camera luôn tối), `spacing` (`xs` đến `xl` như `tokens.json`), `radius`, `stroke`; 15 kiểu chữ tên theo `tokens.json`, phông Bricolage Grotesque; hiệu ứng `shadow/sticker`. Component: `Button`, `IconButton`, `CameraIconButton` (`State=Default|Active`, `Content=Icon|Text`), `Chip` và `PoseThumb` (dấu ✓ nằm trong biến thể `Selected`), `SelectedBadge`, `GridOverlay`, `Switch`, `PoseCard`, `SkeletonCard`, `StepCard`, `ZoomControl`, `MatchHint`, `Slider`, `AdjustPanel`, `TopAppBar`, `Banner`, `Snackbar`, `StateMessage`, `SectionHeader`, `SettingsRow`, `Spinner`.
+- [Screens](https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=16-23): đủ 34 frame điện thoại và 6 frame màn hình gập ở mục 7. Bản `_dark` là bản `_light` gán chế độ Dark. Camera có thêm nút zoom 0.5x/1x/2x.
+
+Thay đổi so với hệ thống thiết kế hiện tại của code: phông chữ (Inter sang Bricolage Grotesque), toàn bộ màu, và các biến ngoài `tokens.json` ở trên. Đưa vào `:core:designsystem` là thay đổi module core, cần plan rủi ro cao (ADR-0008). Ảnh tư thế và ảnh camera trên thiết kế là hình tạm (tên có "ảnh tạm" hoặc `pose-outline`).
 
 ## 11. Tài sản mượn tạm dự kiến
 

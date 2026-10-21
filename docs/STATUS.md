@@ -4,6 +4,7 @@
 
 ## 1. Đang chờ người
 
+- Plan `draft` chờ duyệt: [T-007-he-thong-thiet-ke-sticker.md](features/loading/plans/T-007-he-thong-thiet-ke-sticker.md)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-02.md](runs/RUN-20261021-02.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
@@ -52,7 +53,7 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 2
 | [T-004](features/loading/tickets/T-004-mau-con-thieu-va-gian-chu.md) | Đủ vai trò màu thương hiệu và giãn cách chữ như thiết kế | `on-staging` | `done` (bản 1) | - | - |
 | [T-005](features/loading/tickets/T-005-man-hinh-thap.md) | Màn hình loading dùng được trên màn hình thấp | `on-staging` | `done` (bản 1) | - | - |
 | [T-006](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md) | Test cuộn tới nút "Thử lại" trên màn hình rất thấp | `approved` | `approved` (bản 1) | - | - |
-| [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `stopped` | `stopped` (bản 1) | 40.0M | RUN-20261021-01, RUN-20261021-02 |
+| [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `stopped` | `draft` (bản 2) | 40.0M | RUN-20261021-01, RUN-20261021-02 |
 | [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `ready` | chưa có | - | - |
 | [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `ready` | chưa có | - | - |
 

@@ -42,7 +42,7 @@ Phản hồi: chưa có.
 
 ### loading
 
-Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 2 `ready`, 1 `approved`, 1 `stopped`.
+Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 3 `approved`, 1 `stopped`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -53,8 +53,8 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 2
 | [T-005](features/loading/tickets/T-005-man-hinh-thap.md) | Màn hình loading dùng được trên màn hình thấp | `on-staging` | `done` (bản 1) | - | - |
 | [T-006](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md) | Test cuộn tới nút "Thử lại" trên màn hình rất thấp | `approved` | `approved` (bản 1) | - | - |
 | [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `stopped` | `stopped` (bản 1) | 40.0M | RUN-20261021-01, RUN-20261021-02 |
-| [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `ready` | chưa có | - | - |
-| [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `ready` | chưa có | - | - |
+| [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `approved` | chưa có | - | - |
+| [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `approved` | chưa có | - | - |
 
 Phản hồi: 1 `fixed`, 1 `wontfix`.
 

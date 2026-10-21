@@ -5,7 +5,7 @@ feature: loading
 spec: features/loading/spec.md
 scenarios: [KB-1, KB-2]
 owner: Nhật
-status: planned
+status: approved
 risk: medium
 size: M
 depends_on: [T-007]

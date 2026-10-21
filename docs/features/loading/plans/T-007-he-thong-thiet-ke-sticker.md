@@ -1,16 +1,16 @@
 ---
 ticket: T-007
 title: Hệ thống thiết kế theo hướng Sticker
-status: draft
+status: approved
 version: 3
 risk_score:
 risk_level: high
 token_estimate: 40.0M
 blocking_points: [core]
 run_order:
-reviewer:
-cross_reviewer:
-approved_at:
+reviewer: Nhật
+cross_reviewer: Tuấn
+approved_at: 2026-10-21
 ---
 
 # PLAN T-007: HỆ THỐNG THIẾT KẾ THEO HƯỚNG STICKER
@@ -316,9 +316,9 @@ Phiên bản 2: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-21); dừng ở R
 
 Phiên bản 3:
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

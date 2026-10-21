@@ -7,7 +7,6 @@
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
-- ADR `proposed` chờ quyết định: [1001-loading-timeout-15s.md](adr/1001-loading-timeout-15s.md)
 
 ## 2. Yêu cầu
 
@@ -75,4 +74,4 @@ Chưa có phiên nào.
 ## 5. Bài học và ADR
 
 - Bài học ([lessons.md](lessons.md)): 0 bài; chưa có.
-- ADR: 22; 19 `accepted`, 3 `proposed`.
+- ADR: 22; 20 `accepted`, 2 `proposed`.

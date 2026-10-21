@@ -1,7 +1,7 @@
 ---
 id: ADR-1001
 title: Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config
-status: proposed
+status: accepted
 origin: app
 date: 2026-10-21
 deciders: [Nhật]

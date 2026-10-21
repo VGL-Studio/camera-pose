@@ -2,8 +2,10 @@ package com.vglstudio.camera.pose.line.guide.core.designsystem
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.AppColorCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.BrandCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.ColorCatalog
+import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.ShapeCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.SpacingAndComponentCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.TypographyCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
@@ -59,6 +61,34 @@ class DesignSystemCatalogScreenshotTest {
     fun brand_dark() {
         captureRoboImage("src/test/screenshots/DesignSystem_brand_dark.png") {
             AppTheme(darkTheme = true) { BrandCatalog() }
+        }
+    }
+
+    @Test
+    fun appColors_light() {
+        captureRoboImage("src/test/screenshots/DesignSystem_app_colors_light.png") {
+            AppTheme(darkTheme = false) { AppColorCatalog() }
+        }
+    }
+
+    @Test
+    fun appColors_dark() {
+        captureRoboImage("src/test/screenshots/DesignSystem_app_colors_dark.png") {
+            AppTheme(darkTheme = true) { AppColorCatalog() }
+        }
+    }
+
+    @Test
+    fun shapes_light() {
+        captureRoboImage("src/test/screenshots/DesignSystem_shapes_light.png") {
+            AppTheme(darkTheme = false) { ShapeCatalog() }
+        }
+    }
+
+    @Test
+    fun spacingAndComponents_dark() {
+        captureRoboImage("src/test/screenshots/DesignSystem_spacing_components_dark.png") {
+            AppTheme(darkTheme = true) { SpacingAndComponentCatalog() }
         }
     }
 }

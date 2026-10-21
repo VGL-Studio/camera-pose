@@ -1,16 +1,16 @@
 ---
 ticket: T-010
 title: Màn loading tải catalog và bộ tư thế khởi đầu
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 20M          # cỡ M, số gợi ý của scripts/token-usage.py estimate
 blocking_points: [core, r2]  # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                    # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-21
 ---
 
 # PLAN T-010: MÀN LOADING TẢI CATALOG VÀ BỘ TƯ THẾ KHỞI ĐẦU
@@ -249,26 +249,33 @@ Bảng điểm dưới đây chỉ để tham khảo:
 
 1. **Ba phần việc chạy nối tiếp hay song song?** Hiện nay bốn phần việc chạy song song. Catalog cần đường dẫn trong cấu hình vừa tải (spec, mục 2), bộ khởi đầu cần catalog.
    - Đề xuất của AI: chạy nối tiếp: cấu hình, rồi catalog, rồi bộ khởi đầu. Phần đầu tiên lỗi thì dừng và báo lỗi ngay. Hệ quả: mở lại khi không có mạng thì lỗi hiện ở 0% thay vì ở mức cao hơn như trước; sau "Thử lại" có mạng, catalog và bộ khởi đầu xong gần như ngay (KB-3). Chạy song song thì catalog có thể tải theo đường dẫn cũ rồi phải tải lại.
+   - Trả lời: OK.
 2. **"Đã qua màn chào" lưu ở đâu?** `:app` cần đọc để chọn màn chính; `:feature:onboarding` biết lúc người dùng bấm "Bật camera". Feature không được phụ thuộc feature (ADR-0001).
    - Đề xuất của AI: T-012 lưu ở `:app`: một lớp `OnboardingStatusStore` trong `:app` đọc, ghi khóa `onboarding_done` trong DataStore chung của `:core:data`. `onboardingScreen(onStarted, onFinished)` của feature gọi `onStarted` khi bấm "Bật camera" (trước hộp hỏi quyền, để tắt app lúc đó vẫn tính là đã qua, onboarding KB-3); `:app` ghi khóa trong `onStarted`. `MainScreenChooser` đọc khóa đó. Feature không cần lưu gì, không chạm core. Phương án khác: một interface trong `:core:data` cho cả hai bên dùng, nhưng đó là module của dự án mẫu (điểm chặn 7). T-010 không làm phần này, chỉ để chỗ (`onboardingDone`).
+   - Trả lời: OK.
 3. **Khi camera đã có mà cờ `feature_camera_enabled` tắt thì vào đâu?**
    - Đề xuất của AI: vào màn mẫu, như khi camera chưa có (`chooseMainScreen` trả `SAMPLE`). Khi gỡ `:feature:sample` khỏi app thì cần quyết định lại, ghi vào ticket đó. Bản production bật cờ camera qua Remote Config khi phát hành.
+   - Trả lời: OK.
 4. **`AppLaunchTest` chờ 60 giây thay vì 30 giây.**
    - Đề xuất của AI: đồng ý 60 giây. Loading nay tải catalog rồi 8 file nối nhau; đường chậm nhất vẫn thành công là khoảng 47 giây (mục 4), và emulator CI vừa khởi động đã từng chậm khi mở lần đầu (FB-20261017-02). Test vẫn chỉ kiểm trạng thái ổn định. Lần chạy bình thường không lâu hơn, vì test dừng chờ ngay khi thấy màn mẫu.
+   - Trả lời: OK.
 5. **Dev đưa catalog mẫu và ảnh mượn lên R2 staging trước phiên có T-010.** Không có 9 file ở mục 3.3 thì CI của T-010 đỏ.
    - Đề xuất của AI: ghi việc này vào mục "Việc dev làm trước khi kích hoạt" của danh sách chạy có T-010. Phiên kiểm tra bằng `curl` trước bước 3 và dừng task nếu thiếu (mục 7, điều 3).
+   - Trả lời: OK.
 6. **Catalog đổi giữa hai lần thử làm số file của bộ khởi đầu đổi.**
    - Đề xuất của AI: thanh tiến trình giữ mức đã đạt và chỉ tăng khi phần mới vượt qua, đúng quy tắc không lùi. Trường hợp này hiếm (cấu hình đổi đường dẫn catalog đúng giữa hai lần thử), không cần xử lý riêng.
+   - Trả lời: OK.
 7. **Phần trăm hiện trên màn hình với 60 file.** Mỗi file thêm khoảng 1,33%; phần nghìn chia lấy phần nguyên, phần trăm hiện được làm tròn (`roundToInt`) như hiện nay.
    - Đề xuất của AI: giữ cách này. Phần trăm có lúc đứng yên khi một file xong, nhưng không bao giờ lùi và đạt 100% đúng lúc file cuối xong.
+   - Trả lời: OK.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

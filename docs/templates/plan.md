@@ -72,7 +72,7 @@ Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ c�
 | KB-1, tiêu chí 2 | Compose UI test | <...> |
 | Giao diện màn hình X | Screenshot test | <...> |
 | Màn hình thấp (L-028) | Screenshot test khung `w360dp-h640dp-xxhdpi`, trạng thái nhiều nội dung nhất | `<Ten>Screen_<trạng thái>_small.png` |
-| Đúng thiết kế (khi có `design/screens/`) | Screenshot test cùng tên với từng ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh <feature>`, rà soát độc lập theo mục 7 của mẫu thiết kế | `<Ten>Screen_<trạng thái>_<light\|dark>.png` |
+| Đúng thiết kế (khi có `design/screens/`) | Screenshot test cùng tên với từng ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh <feature>`, rà soát độc lập theo mục 7 của mẫu thiết kế. Ticket chỉ làm một phần feature thì ghi một dòng `Ảnh thiết kế của ticket khác (T-NNN): \`<Tên>\`, ...` cho các ảnh ticket khác vẽ; `scripts/plan-check.py` bỏ qua các ảnh đó | `<Ten>Screen_<trạng thái>_<light\|dark>.png` |
 | Chữ đúng bảng chữ của thiết kế | Compose UI test | <...> |
 | <tiêu chí không tự động được> | Kiểm tra thủ công | <các bước dev làm khi kiểm tra bản staging> |
 

@@ -1,7 +1,7 @@
 ---
 ticket: T-009
 title: Module dữ liệu tư thế dùng chung `:core:poses`
-status: approved                # draft | approved | stopped | done
+status: done                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -353,14 +353,14 @@ Bảng điểm dưới đây chỉ để tham khảo:
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
 
-### RUN-YYYYMMDD-NN, phiên bản plan 1
+### RUN-20261021-01, phiên bản plan 1
 
-- **Kết quả:** đã merge / dừng / CI thất bại
-- **Nhánh, PR:** <...>
-- **Đã làm:** <...>
-- **Test viết trước:** <số test, xác nhận đã thất bại đúng lý do trước khi viết code>
-- **Rà soát độc lập:** <số điểm phát hiện, đã xử lý những gì, điểm nào còn để người xem>
-- **Kết quả CI:** <build, lint, unit test, UI test, screenshot test>
-- **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
-- **Việc còn lại:** <...>
-- **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-009-core-poses`, PR #12 (merge bằng `merge-if-green.sh`, commit fdc7117)
+- **Đã làm:** module `:core:poses` (mô hình, parser catalog, thứ tự hiển thị, `TimedAssetLoader` 15 giây, ba repository, Hilt module); `:core:assets` thêm `AssetFailureReason` và `Unavailable(reason)`; `:core:config` thêm `RemoteSettings.string`; catalog mẫu `staging-sample.json` và `DEFAULT_CATALOG_PATH` = `poses/catalog/v1/catalog-587b5394.json`; dòng `:core:poses` trong `CLAUDE.md`.
+- **Test viết trước:** 63 test trong `:core:poses`, 7 test mới trong `:core:assets`, 2 trong `:core:config`. Ở khung rỗng: 59 test của `:core:poses`, 7 của `:core:assets`, 1 của `:core:config` thất bại ở phần khẳng định. Test qua ngay ở bước 3, vì khung rỗng trả đúng giá trị mặc định (test bảo vệ): `CatalogParserTest.malformedJson_returnsInvalid`, `PoseOrderingTest.lastUsedPose_noneInCatalog_isNull`, `TimedAssetLoaderTest.unavailableOther_returnsFailedWithReasonOther`, `DefaultRemoteAssetsFailureReasonTest.keptFile_returnsReadyWithoutReason`, `DefaultRemoteSettingsTest.stringWithoutRemoteValue_usesDefault`. `LocalizedTextTest.missingLanguage_fallsBackToEnglish` ban đầu qua vì khung trả giá trị đầu (là tiếng Anh); đã đổi thứ tự khóa trong dữ liệu test trước khi commit để test thất bại ở khung.
+- **Rà soát độc lập:** 0 chặn, 3 nên sửa, 5 ghi chú. Đã sửa: `loadCatalog` kẹt ở `Loading` khi có lỗi bất ngờ (thêm test), log không kèm ngoại lệ (thêm 2 test), mã ngôn ngữ lấy từ tag (thêm test). Ghi chú còn lại: `onProgress` chạy trong khóa (đã ghi vào KDoc), `api(project(":core:assets"))` thay `implementation` (đã ghi vào mô tả PR), `maxConcurrent <= 4` chưa chứng minh có chạy song song thật.
+- **Kết quả CI:** `pr-check` xanh ở lần chạy đầu (PR #12). `scripts/check.sh` cục bộ qua: 182 test JVM, 0 lỗi.
+- **Lệch so với plan:** commit sửa thêm 4 test mới sau rà soát (ngoài mục 4 của plan), không đổi test đã viết. Không có file ngoài danh sách.
+- **Việc còn lại:** dev đưa `staging-sample.json` (đổi tên `catalog-587b5394.json`) và 18 ảnh mượn lên R2 staging, ghi vào `docs/borrowed-assets.md` (plan mục 3.3); đề xuất `RemoteSettings.string` về dự án mẫu (`docs/ops/from-app.md`).
+- **Cần người xem:** `curl -I` đường dẫn catalog mẫu trên R2 staging sau khi đưa lên; mục 8 câu 8 (đường dẫn catalog mặc định của bản production).

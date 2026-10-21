@@ -32,6 +32,7 @@ include(":core:analytics")
 include(":core:ads")
 include(":core:assets")
 include(":core:logging")
+include(":core:poses")
 
 include(":feature:sample")
 include(":feature:loading")

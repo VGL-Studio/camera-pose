@@ -5,7 +5,7 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: []
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: L
 depends_on: []

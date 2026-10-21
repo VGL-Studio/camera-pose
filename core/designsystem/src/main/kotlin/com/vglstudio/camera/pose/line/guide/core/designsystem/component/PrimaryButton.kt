@@ -37,6 +37,7 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     icon: Painter? = null,
+    loading: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Radius.button)
@@ -67,4 +68,8 @@ internal fun ButtonContent(text: String, icon: Painter?) {
         Spacer(modifier = Modifier.width(Spacing.sm))
     }
     Text(text = text, style = MaterialTheme.typography.titleMedium)
+}
+
+object PrimaryButtonTestTags {
+    const val SPINNER = "primary_button_spinner"
 }

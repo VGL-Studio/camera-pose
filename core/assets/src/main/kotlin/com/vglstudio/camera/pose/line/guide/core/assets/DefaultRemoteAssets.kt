@@ -1,5 +1,6 @@
 package com.vglstudio.camera.pose.line.guide.core.assets
 
+import com.vglstudio.camera.pose.line.guide.core.network.NetworkFailureReporter
 import java.io.File
 import java.io.IOException
 import java.util.UUID
@@ -19,6 +20,7 @@ internal class DefaultRemoteAssets(
     private val downloader: AssetDownloader,
     private val ioDispatcher: CoroutineDispatcher,
     private val onDownloadFailed: (AssetPath, IOException) -> Unit = { _, _ -> },
+    private val networkFailures: NetworkFailureReporter? = null,
 ) : RemoteAssets {
     private val locks = ConcurrentHashMap<AssetPath, Mutex>()
 

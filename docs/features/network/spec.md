@@ -73,7 +73,7 @@ Tiêu chí chấp nhận:
 
 ## 4. Giao diện
 
-- **Thiết kế:** [design/README.md](design/README.md) (gói bàn giao lập sau khi spec được xác nhận). Component `NetworkDialog` trên trang Design system của Figma; ảnh mẫu khi phủ lên màn hình: `CameraScreen_offline_dark`, `PosesScreen_offline_light`, `PosesScreen_offline_dark`.
+- **Thiết kế:** [design/README.md](design/README.md): component `NetworkDialog`, ảnh `NetworkDialogScreen_default_light`, `NetworkDialogScreen_default_dark` (hộp thoại trên lớp mờ). Section Network trên Figma có thêm ba frame ví dụ hộp thoại phủ lên camera và thư viện, chỉ để minh họa, không xuất.
 - **Các màn hình:**
 
 | Màn hình | Mục đích | Kịch bản liên quan |
@@ -124,3 +124,4 @@ Không có.
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu của người phụ trách sản phẩm |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: không đưa phần này về dự án mẫu (câu hỏi 1) |
+| 2026-10-21 | AI | Lập gói bàn giao thiết kế: ảnh `NetworkDialogScreen_*` thay cho các frame `offline` của camera và thư viện |

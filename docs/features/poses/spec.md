@@ -126,7 +126,7 @@ Tiêu chí chấp nhận:
 | Thư viện tư thế | Duyệt, lọc theo nhóm, lưu tư thế | KB-1, KB-2, KB-3, KB-5, KB-6, KB-7 |
 | Chi tiết tư thế | Đọc cách tạo dáng, lưu, chụp với tư thế | KB-3, KB-4, KB-5, KB-6, KB-7 |
 
-Trạng thái trên thiết kế: thư viện `default`, `loading`, `offline` (hộp thoại của spec `network`), `error`, `saved-empty`, `ad` (có banner, câu hỏi 1), `default` khi mở gập; chi tiết `default`, `loading`, `error`, `ad`, `default` khi mở gập. Mỗi trạng thái có bản sáng và tối.
+Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `saved-empty`, `ad` (có banner, câu hỏi 1), `default` khi mở gập; chi tiết `default`, `loading`, `error`, `ad`, `default` khi mở gập. Mỗi trạng thái có bản sáng và tối.
 
 ## 5. Quảng cáo
 
@@ -191,3 +191,4 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `offline` (h
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế trong lưới (đã lưu, gần đây, còn lại); thêm trạng thái thiết kế `ad` có banner |
+| 2026-10-21 | AI | Lập gói bàn giao thiết kế: trạng thái `offline` chuyển sang gói `network` vì hộp thoại do vỏ app hiện, không thuộc `PosesScreen` |

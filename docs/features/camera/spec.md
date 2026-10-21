@@ -190,7 +190,7 @@ Tiêu chí chấp nhận:
 | Camera | Chụp theo tư thế: chọn tư thế, nét viền, thẻ bước, công cụ, điểm khớp | KB-1 đến KB-8, KB-11 |
 | Xem lại | Xem ảnh vừa chụp, lưu, chụp lại, chia sẻ, sang tư thế tiếp | KB-6, KB-9, KB-10, KB-11 |
 
-Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked`, `steps-hidden`, `matching`, `matched`, `no-person`, `countdown`, `starting`, `permission-denied`, `error`, `offline` (hộp thoại của spec `network`), `default` khi mở gập; xem lại `default`, `saving`, `save-error`, `discard`, `default` khi mở gập. Chỉ có bản tối (câu 12.10 của bản đề xuất).
+Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked`, `steps-hidden`, `matching`, `matched`, `no-person`, `countdown`, `starting`, `permission-denied`, `error`, `default` khi mở gập (hộp thoại mất mạng thuộc gói thiết kế `network`); xem lại `default`, `saving`, `save-error`, `discard`, `default` khi mở gập. Chỉ có bản tối (câu 12.10 của bản đề xuất).
 
 ## 5. Quảng cáo
 
@@ -280,3 +280,4 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế ở dải (đã lưu, gần đây, còn lại), ẩn hiện thẻ bước, chế độ flash, ngưỡng điểm 80, hỏi "Bỏ ảnh này?" khi rời màn xem lại mà chưa lưu, khóa chiều dọc, dữ liệu tư thế đã dùng gần đây; thêm trạng thái thiết kế `steps-hidden`, `discard` |
+| 2026-10-21 | AI | Lập gói bàn giao thiết kế: trạng thái `offline` chuyển sang gói `network` vì hộp thoại do vỏ app hiện, không thuộc `CameraScreen` |

@@ -7,7 +7,7 @@
 - Plan `draft` chờ duyệt: [T-013-camera-co-ban.md](features/camera/plans/T-013-camera-co-ban.md)
 - Plan `draft` chờ duyệt: [T-008-loading-giao-dien-sticker.md](features/loading/plans/T-008-loading-giao-dien-sticker.md)
 - Plan `draft` chờ duyệt: [T-010-loading-tai-catalog-bo-khoi-dau.md](features/loading/plans/T-010-loading-tai-catalog-bo-khoi-dau.md)
-- Danh sách chạy đã duyệt, chờ kích hoạt: [RUN-20261021-01.md](runs/RUN-20261021-01.md)
+- Danh sách chạy đã duyệt, chờ kích hoạt: [RUN-20261021-02.md](runs/RUN-20261021-02.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
@@ -21,7 +21,7 @@
 | Màn loading cho camera pose ([2026-10-21-loading-cua-camera-pose.md](features/loading/requests/2026-10-21-loading-cua-camera-pose.md)) | 2026-10-21 | loading | `specified` đã có spec | 5/9 |
 | App luôn cần mạng, báo mất mạng khi đang dùng ([2026-10-21-hop-thoai-mat-mang.md](features/network/requests/2026-10-21-hop-thoai-mat-mang.md)) | 2026-10-21 | network | `specified` đã có spec | 0/1 |
 | Màn chào và xin quyền camera ([2026-10-21-man-chao-xin-quyen-camera.md](features/onboarding/requests/2026-10-21-man-chao-xin-quyen-camera.md)) | 2026-10-21 | onboarding | `specified` đã có spec | 0/1 |
-| Thư viện tư thế và chi tiết tư thế ([2026-10-21-thu-vien-tu-the.md](features/poses/requests/2026-10-21-thu-vien-tu-the.md)) | 2026-10-21 | poses | `specified` đã có spec | 0/5 |
+| Thư viện tư thế và chi tiết tư thế ([2026-10-21-thu-vien-tu-the.md](features/poses/requests/2026-10-21-thu-vien-tu-the.md)) | 2026-10-21 | poses | `specified` đã có spec | 1/5 |
 | Cài đặt ([2026-10-21-cai-dat.md](features/settings/requests/2026-10-21-cai-dat.md)) | 2026-10-21 | settings | `specified` đã có spec | 0/1 |
 
 ## 3. Feature
@@ -55,7 +55,7 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 4
 | [T-004](features/loading/tickets/T-004-mau-con-thieu-va-gian-chu.md) | Đủ vai trò màu thương hiệu và giãn cách chữ như thiết kế | `on-staging` | `done` (bản 1) | - | - |
 | [T-005](features/loading/tickets/T-005-man-hinh-thap.md) | Màn hình loading dùng được trên màn hình thấp | `on-staging` | `done` (bản 1) | - | - |
 | [T-006](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md) | Test cuộn tới nút "Thử lại" trên màn hình rất thấp | `approved` | `approved` (bản 1) | - | - |
-| [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `approved` | `approved` (bản 1) | 40.0M | RUN-20261021-01 |
+| [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `approved` | `approved` (bản 2) | 40.0M | RUN-20261021-01, RUN-20261021-02 |
 | [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `approved` | `draft` (bản 1) | 20.0M | - |
 | [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `approved` | `draft` (bản 1) | 20M | - |
 
@@ -67,7 +67,7 @@ Spec: [spec.md](features/network/spec.md) `confirmed`. Ticket: 1 `approved`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-011](features/network/tickets/T-011-core-network-hop-thoai.md) | Nhận ra mất mạng và hộp thoại mất mạng | `approved` | `approved` (bản 1) | 40M | RUN-20261021-01 |
+| [T-011](features/network/tickets/T-011-core-network-hop-thoai.md) | Nhận ra mất mạng và hộp thoại mất mạng | `approved` | `approved` (bản 1) | 40M | RUN-20261021-01, RUN-20261021-02 |
 
 Phản hồi: chưa có.
 
@@ -83,11 +83,11 @@ Phản hồi: chưa có.
 
 ### poses
 
-Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 4 `ready`, 1 `approved`.
+Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 4 `ready`, 1 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-009](features/poses/tickets/T-009-core-poses.md) | Module dữ liệu tư thế dùng chung `:core:poses` | `approved` | `approved` (bản 1) | 40M | RUN-20261021-01 |
+| [T-009](features/poses/tickets/T-009-core-poses.md) | Module dữ liệu tư thế dùng chung `:core:poses` | `on-staging` | `done` (bản 1) | 40M | RUN-20261021-01 |
 | [T-021](features/poses/tickets/T-021-thu-vien-tu-the.md) | Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi | `ready` | chưa có | - | - |
 | [T-022](features/poses/tickets/T-022-chi-tiet-tu-the.md) | Chi tiết tư thế và "Chụp với tư thế này" | `ready` | chưa có | - | - |
 | [T-023](features/poses/tickets/T-023-banner-thu-vien.md) | Banner ở thư viện và chi tiết tư thế | `ready` | chưa có | - | - |
@@ -109,7 +109,8 @@ Phản hồi: chưa có.
 
 | Phiên | Trạng thái | Bắt đầu | Ticket | Bản staging |
 | --- | --- | --- | --- | --- |
-| [RUN-20261021-01](runs/RUN-20261021-01.md) | `approved` |  | T-007, T-009, T-011 | - |
+| [RUN-20261021-02](runs/RUN-20261021-02.md) | `approved` |  | T-007, T-011 | - |
+| [RUN-20261021-01](runs/RUN-20261021-01.md) | `finished` | 2026-10-21T10:30Z | T-007, T-009, T-011 | không phát được (xem mục Bản staging) |
 
 ## 5. Bài học và ADR
 

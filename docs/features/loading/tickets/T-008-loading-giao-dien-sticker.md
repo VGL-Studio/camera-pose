@@ -5,12 +5,12 @@ feature: loading
 spec: features/loading/spec.md
 scenarios: [KB-1, KB-2]
 owner: Nhật
-status: ready
+status: planned
 risk: medium
 size: M
 depends_on: [T-007]
 sprint:
-plan:
+plan: features/loading/plans/T-008-loading-giao-dien-sticker.md
 created: 2026-10-21
 ---
 

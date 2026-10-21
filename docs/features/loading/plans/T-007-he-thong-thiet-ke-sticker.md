@@ -1,7 +1,7 @@
 ---
 ticket: T-007
 title: Hệ thống thiết kế theo hướng Sticker
-status: approved
+status: stopped
 version: 1
 risk_score:
 risk_level: high
@@ -316,14 +316,21 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
 
-### RUN-YYYYMMDD-NN, phiên bản plan 1
+### RUN-20261021-01, phiên bản plan 1
 
-- **Kết quả:** đã merge / dừng / CI thất bại
-- **Nhánh, PR:** <...>
-- **Đã làm:** <...>
-- **Test viết trước:** <số test, xác nhận đã thất bại đúng lý do trước khi viết code>
-- **Rà soát độc lập:** <số điểm phát hiện, đã xử lý những gì, điểm nào còn để người xem>
-- **Kết quả CI:** <build, lint, unit test, UI test, screenshot test>
-- **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
-- **Việc còn lại:** <...>
-- **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+- **Kết quả:** dừng ở bước 3 (điều kiện dừng 3 của mục 7)
+- **Nhánh, PR:** `claude/T-007-he-thong-thiet-ke-sticker` (đã đẩy, commit test và khung rỗng; chưa mở PR vì chưa có code)
+- **Đã làm:** `tokens.json` sửa tay theo mục 3.1 (sinh bằng một script ngoài repo từ các bảng của plan), khung rỗng (`AppColors`, `Shape.kt`, `FONT_FAMILY_NAME`, `BricolageFamily`, `SecondaryButton`, hai catalog), `DesignTokensTest`, `ComponentsTest`, `AppThemeTest` mới và bốn test ảnh catalog. Chưa tải phông, chưa viết code thật.
+- **Test viết trước:** 15 test thất bại, 3 qua. Nhóm test đọc điểm ảnh (`primaryButton_fill_*`, `primaryButton_drawsHardShadow`, `secondaryButton_fill_*`, `secondaryButton_hasNoShadow`, `progressBar_defaultFill_*`, `brandLogo_fill_*`) thất bại vì `captureToImage` ném `ComposeTimeoutException: Condition still not satisfied after 2000 ms` tại `WindowCapture.forceRedraw` (`WindowCapture.android.kt:124`), không phải vì khẳng định. Đó là điều kiện dừng 3: không thay test đọc điểm ảnh bằng cách khác.
+- **Rà soát độc lập:** chưa chạy (dừng trước bước 4).
+- **Kết quả CI:** chưa chạy.
+- **Lệch so với plan:** không có.
+- **Việc còn lại:** toàn bộ bước 4 trở đi.
+- **Cần người xem:** giả thuyết (chưa kiểm chứng): `captureToImage` của Compose UI Test chờ một lần vẽ lại của cửa sổ thật, mà Robolectric ở chế độ `NATIVE` không phát; Roborazzi (`captureRoboImage`) vẽ bằng đường khác nên ảnh chuẩn vẫn ghi được. Hướng xử lý có thể: (a) đo màu điểm ảnh từ ảnh của `captureRoboImage` thay vì `captureToImage`, (b) chuyển phần đo điểm ảnh sang test trên emulator, (c) bỏ phần đo điểm ảnh và để ảnh chuẩn kiểm màu.
+
+#### Bản sửa đề xuất, phiên bản 2 (`draft`, người duyệt)
+
+- **Vì sao plan chưa đủ tốt:** mục 4 giả định `captureToImage` chạy được trong Robolectric `NATIVE`; plan chưa chạy thử điều này trước khi duyệt (L-029 áp dụng tương tự cho cách đo).
+- **Thay đổi so với phiên bản 1:** chỉ mục 4 (cách đo màu điểm ảnh của sáu test trên), theo hướng (a), (b) hoặc (c) do người chọn; mục 3.2 thêm file test nếu chọn (b); mục 7, điều kiện 3 sửa theo hướng đã chọn.
+- **Cách tiếp tục (mục 3.1):** tiếp tục trên nhánh cũ `claude/T-007-he-thong-thiet-ke-sticker`; bước 3 chỉ áp dụng cho sáu test đo điểm ảnh; các test khác đã thất bại đúng lý do, giữ nguyên.
+- **Chưa có PR sửa nguyên nhân:** nguyên nhân nằm trong cách đo của plan, không phải trong code ngoài plan.

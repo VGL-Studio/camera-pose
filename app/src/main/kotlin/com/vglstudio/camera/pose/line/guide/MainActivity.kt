@@ -7,11 +7,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsController
 import com.vglstudio.camera.pose.line.guide.core.ads.LocalAdsController
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
+import com.vglstudio.camera.pose.line.guide.core.network.NetworkDialogController
 import com.vglstudio.camera.pose.line.guide.navigation.AppNavHost
+import com.vglstudio.camera.pose.line.guide.network.NetworkDialogHost
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -19,6 +23,9 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var ads: AdsController
+
+    @Inject
+    lateinit var networkDialog: NetworkDialogController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +38,15 @@ class MainActivity : ComponentActivity() {
                     // The surface fills the whole window, including the area behind the system bars,
                     // so those areas take the theme background in both light and dark mode.
                     Surface(modifier = Modifier.fillMaxSize()) {
-                        AppNavHost()
+                        val networkDialogState by networkDialog.state.collectAsState()
+                        // Back while the network dialog shows sends the app to the background (spec network, KB-3).
+                        NetworkDialogHost(
+                            state = networkDialogState,
+                            onRetry = networkDialog::retry,
+                            onBack = { moveTaskToBack(true) },
+                        ) {
+                            AppNavHost(onPastLoadingChanged = networkDialog::setActive)
+                        }
                     }
                 }
             }

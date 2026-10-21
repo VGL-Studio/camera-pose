@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 /**
  * Keeps each file in [cacheDir] under its own path. A file is written to a temporary name first and renamed
  * when complete, so an interrupted download never leaves a partial file that looks ready.
+ * A download that fails because of the network is reported to [networkFailures].
  */
 internal class DefaultRemoteAssets(
     private val config: AssetsConfig,
@@ -39,7 +40,10 @@ internal class DefaultRemoteAssets(
                 AssetResult.Ready(file)
             } catch (e: IOException) {
                 onDownloadFailed(path, e)
-                AssetResult.Unavailable(e.toFailureReason())
+                val reason = e.toFailureReason()
+                // The network dialog shows at once (spec network, KB-1); a file the server lacks is not a network case.
+                if (reason == AssetFailureReason.NETWORK) networkFailures?.reportNetworkFailure(SOURCE)
+                AssetResult.Unavailable(reason)
             } finally {
                 temp.delete()
             }
@@ -49,5 +53,8 @@ internal class DefaultRemoteAssets(
     private companion object {
         // Starts with a dot, which no AssetPath segment does, so it never clashes with a cached file.
         const val TEMP_DIR = ".download"
+
+        // Label of this module in the network log; never a path.
+        const val SOURCE = "assets"
     }
 }

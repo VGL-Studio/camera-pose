@@ -96,7 +96,7 @@ Kiểm tra gói: mỗi ảnh trong `screens/` đúng 1233 x 2673 (`sips -g pixel
 
 ## 5. AI viết giao diện
 
-Plan của ticket ghi trong mục 2 đường dẫn gói thiết kế, và trong mục 4 một screenshot test cho mỗi ảnh trong `screens/`, cùng tên. AI lấy số liệu từ `context/`, nhìn ảnh trong `screens/` để hiểu tổng thể, viết lại bằng Compose theo token, không chép code web của bản mẫu (ADR-0008). Giá trị đánh dấu "ngoài hệ thống" trong `context/` được plan quyết định trước: làm tròn về token gần nhất, hoặc thêm token (thay đổi module core, rủi ro cao).
+Plan của ticket ghi trong mục 2 đường dẫn gói thiết kế, và trong mục 4 một screenshot test cho mỗi ảnh trong `screens/`, cùng tên. Feature chia nhiều ticket thì mỗi plan ghi ảnh chuẩn cho ảnh của mình, và một dòng `Ảnh thiết kế của ticket khác (T-NNN): \`<Tên>\`, ...` cho ảnh do ticket khác vẽ; `scripts/plan-check.py` kiểm tra mỗi tên có trong `screens/` và dòng có mã ticket. `scripts/design-compare.sh` ghi ảnh chưa có ảnh chuẩn là "thiếu ảnh chuẩn screenshot", không báo lỗi; ticket cuối của feature có đủ ảnh. AI lấy số liệu từ `context/`, nhìn ảnh trong `screens/` để hiểu tổng thể, viết lại bằng Compose theo token, không chép code web của bản mẫu (ADR-0008). Giá trị đánh dấu "ngoài hệ thống" trong `context/` được plan quyết định trước: làm tròn về token gần nhất, hoặc thêm token (thay đổi module core, rủi ro cao).
 
 ## 6. Đối chiếu
 

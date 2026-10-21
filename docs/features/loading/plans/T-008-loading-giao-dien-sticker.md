@@ -1,16 +1,16 @@
 ---
 ticket: T-008
 title: Màn loading theo thiết kế Sticker và chữ của app
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 7
 risk_level: medium
 token_estimate: 20.0M
 blocking_points: []
 run_order:
-reviewer:
-cross_reviewer:
-approved_at:
+reviewer: Nhật
+cross_reviewer: Tuấn
+approved_at: 2026-10-21
 ---
 
 # PLAN T-008: MÀN LOADING THEO THIẾT KẾ STICKER VÀ CHỮ CỦA APP
@@ -249,22 +249,31 @@ Quy ước chung của test dưới đây: lớp `LoadingScreenTest` giữ `@Gra
 ## 8. Câu hỏi cho người duyệt
 
 1. **Bản dịch do AI làm.** Spec `onboarding`, câu hỏi 1 chốt: AI dịch trong cùng ticket, người biết tiếng duyệt trước khi phát hành. Đề xuất: merge với bản dịch ở mục 3.1; báo cáo phiên liệt kê bảng cho người duyệt; anh sắp xếp người duyệt tiếng Hindi, Thái, Indonesia, Bồ Đào Nha, Tây Ban Nha trước bản production đầu tiên. Bản dịch sửa sau chỉ đổi file chữ, không đổi ảnh chuẩn (ảnh chụp tiếng Việt). Hindi và Thái hiện bằng phông hệ thống vì Bricolage Grotesque không có hai bộ chữ này; đề xuất chấp nhận.
+- Trả lời: OK.
 2. **Chữ tiếng Anh.** Thiết kế chỉ có tiếng Việt, nên chữ tiếng Anh (ngôn ngữ gốc, hiện ở Ấn Độ, Philippines và mọi máy đặt ngôn ngữ khác) là AI viết: "Follow the outline, get a great shot.", "Loading data", "Preparing your poses…", "Progress stopped", "Unable to load data", "The connection was interrupted. Check your network and try again to continue.", "Try again", "Your photos stay on your device". Đề xuất: dùng như trên; anh sửa câu nào thì AI sửa plan trước khi duyệt.
+- Trả lời: OK.
 3. **Khẩu hiệu đặt ở feature.** `brand_tagline` nằm trong `:core:designsystem` (sửa là điểm chặn, và phải dịch 7 ngôn ngữ trong core). Đề xuất: khẩu hiệu thành `loading_tagline` của `:feature:loading`; `brand_tagline` giữ chữ của dự án mẫu, chỉ catalog dùng. Một task core sau (ví dụ khi có icon app và logo thật) đổi hay bỏ `brand_tagline`.
+- Trả lời: OK.
 4. **Biểu tượng Material Symbols Rounded.** Code đang dùng biểu tượng Lucide của thiết kế cũ (cảnh báo hình tròn); thiết kế mới dùng `warning` hình tam giác, `refresh`, `lock` của Material Symbols (`sticker.md` mục 2). Đề xuất: đổi trong ticket này, đường vẽ chép sẵn ở mục 3.1, kèm giấy phép Apache 2.0 trong `feature/loading/third_party/`.
+- Trả lời: OK.
 5. **Chiều rộng nội dung.** Thiết kế ghi vùng nội dung rộng 318, căn giữa. Đề xuất: rộng tối đa 318, lề tối thiểu 16; ở khung 411 đúng thiết kế, ở màn 360 lề còn 21 thay vì 48, để tên app vẫn hai dòng và nút "Thử lại" lọt màn hình không cần cuộn. Nếu anh muốn giữ lề 46 ở mọi màn hình thì tên app có thể xuống ba dòng ở màn 360 và phải cuộn mới tới nút ở vài ngôn ngữ.
+- Trả lời: OK.
 6. **Phần trăm không dịch.** "68%" giống nhau ở 7 ngôn ngữ phát hành. Đề xuất: `loading_percent` đánh dấu `translatable="false"`.
+- Trả lời: OK.
 7. **T-006.** Plan T-006 của dự án mẫu (test cuộn ở 320 x 480) chưa chạy ở app này; số đo của nó không còn đúng sau bố cục mới. Đề xuất: đóng T-006 ở app này, vì 7 test cuộn ở mục 4 đã phủ đường cuộn; nếu anh muốn giữ khung 320 x 480 thì viết lại plan T-006 phiên bản 2 sau khi T-008 merge.
+- Trả lời: OK.
 8. **Logo vẫn tạm.** `BrandLogo` của T-007 dùng `brand_mark.xml` cũ trong ô vàng; thiết kế có hình dáng người. Đề xuất: giữ như T-007 đã duyệt, thay khi có icon app; rà soát độc lập không tính điểm này là lệch thiết kế (README mục 6 cho phép).
+- Trả lời: OK.
 9. **Ảnh màn hình thấp chỉ bằng tiếng Việt.** Đề xuất: không thêm ảnh chuẩn cho ngôn ngữ khác; 7 test cuộn ở mục 4 kiểm tra mọi ngôn ngữ ở khung 360 x 640, còn ảnh tiếng Việt khớp thiết kế. Thêm ảnh Hindi hay Thái thì ảnh phụ thuộc phông hệ thống của Robolectric, dễ đổi khi nâng phiên bản.
+- Trả lời: OK.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

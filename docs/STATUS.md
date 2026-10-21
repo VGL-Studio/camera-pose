@@ -4,6 +4,9 @@
 
 ## 1. Đang chờ người
 
+- Plan `draft` chờ duyệt: [T-007-he-thong-thiet-ke-sticker.md](features/loading/plans/T-007-he-thong-thiet-ke-sticker.md)
+- Plan `draft` chờ duyệt: [T-011-core-network-hop-thoai.md](features/network/plans/T-011-core-network-hop-thoai.md)
+- Plan `draft` chờ duyệt: [T-009-core-poses.md](features/poses/plans/T-009-core-poses.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
@@ -24,24 +27,24 @@
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 8 `backlog`.
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 8 `ready`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-013](features/camera/tickets/T-013-camera-co-ban.md) | Camera: khung xem trước, quyền, công cụ chụp, chụp ảnh | `backlog` | chưa có | - | - |
-| [T-014](features/camera/tickets/T-014-camera-chon-tu-the.md) | Camera: chọn tư thế, nét viền, thẻ bước | `backlog` | chưa có | - | - |
-| [T-015](features/camera/tickets/T-015-camera-chinh-net-vien.md) | Camera: chỉnh nét viền | `backlog` | chưa có | - | - |
-| [T-016](features/camera/tickets/T-016-man-xem-lai.md) | Màn xem lại, lưu, chia sẻ, tư thế tiếp | `backlog` | chưa có | - | - |
-| [T-017](features/camera/tickets/T-017-camera-diem-khop.md) | Nhận dạng dáng và điểm khớp | `backlog` | chưa có | - | - |
-| [T-018](features/camera/tickets/T-018-quang-cao-xem-lai.md) | Quảng cáo toàn màn hình khi rời màn xem lại | `backlog` | chưa có | - | - |
-| [T-019](features/camera/tickets/T-019-hoi-danh-gia.md) | Hỏi đánh giá app trong app | `backlog` | chưa có | - | - |
-| [T-020](features/camera/tickets/T-020-camera-may-gap.md) | Camera và màn xem lại trên máy gập | `backlog` | chưa có | - | - |
+| [T-013](features/camera/tickets/T-013-camera-co-ban.md) | Camera: khung xem trước, quyền, công cụ chụp, chụp ảnh | `ready` | chưa có | - | - |
+| [T-014](features/camera/tickets/T-014-camera-chon-tu-the.md) | Camera: chọn tư thế, nét viền, thẻ bước | `ready` | chưa có | - | - |
+| [T-015](features/camera/tickets/T-015-camera-chinh-net-vien.md) | Camera: chỉnh nét viền | `ready` | chưa có | - | - |
+| [T-016](features/camera/tickets/T-016-man-xem-lai.md) | Màn xem lại, lưu, chia sẻ, tư thế tiếp | `ready` | chưa có | - | - |
+| [T-017](features/camera/tickets/T-017-camera-diem-khop.md) | Nhận dạng dáng và điểm khớp | `ready` | chưa có | - | - |
+| [T-018](features/camera/tickets/T-018-quang-cao-xem-lai.md) | Quảng cáo toàn màn hình khi rời màn xem lại | `ready` | chưa có | - | - |
+| [T-019](features/camera/tickets/T-019-hoi-danh-gia.md) | Hỏi đánh giá app trong app | `ready` | chưa có | - | - |
+| [T-020](features/camera/tickets/T-020-camera-may-gap.md) | Camera và màn xem lại trên máy gập | `ready` | chưa có | - | - |
 
 Phản hồi: chưa có.
 
 ### loading
 
-Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 3 `backlog`, 1 `approved`.
+Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 2 `ready`, 1 `approved`, 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -51,53 +54,53 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 5 `on-staging`, 3
 | [T-004](features/loading/tickets/T-004-mau-con-thieu-va-gian-chu.md) | Đủ vai trò màu thương hiệu và giãn cách chữ như thiết kế | `on-staging` | `done` (bản 1) | - | - |
 | [T-005](features/loading/tickets/T-005-man-hinh-thap.md) | Màn hình loading dùng được trên màn hình thấp | `on-staging` | `done` (bản 1) | - | - |
 | [T-006](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md) | Test cuộn tới nút "Thử lại" trên màn hình rất thấp | `approved` | `approved` (bản 1) | - | - |
-| [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `backlog` | chưa có | - | - |
-| [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `backlog` | chưa có | - | - |
-| [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `backlog` | chưa có | - | - |
+| [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `planned` | `draft` (bản 1) | 40.0M | - |
+| [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `ready` | chưa có | - | - |
+| [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `ready` | chưa có | - | - |
 
 Phản hồi: 1 `fixed`, 1 `wontfix`.
 
 ### network
 
-Spec: [spec.md](features/network/spec.md) `confirmed`. Ticket: 1 `backlog`.
+Spec: [spec.md](features/network/spec.md) `confirmed`. Ticket: 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-011](features/network/tickets/T-011-core-network-hop-thoai.md) | Nhận ra mất mạng và hộp thoại mất mạng | `backlog` | chưa có | - | - |
+| [T-011](features/network/tickets/T-011-core-network-hop-thoai.md) | Nhận ra mất mạng và hộp thoại mất mạng | `planned` | `draft` (bản 1) | 40M | - |
 
 Phản hồi: chưa có.
 
 ### onboarding
 
-Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `backlog`.
+Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `ready`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `backlog` | chưa có | - | - |
+| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `ready` | chưa có | - | - |
 
 Phản hồi: chưa có.
 
 ### poses
 
-Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 5 `backlog`.
+Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 4 `ready`, 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-009](features/poses/tickets/T-009-core-poses.md) | Module dữ liệu tư thế dùng chung `:core:poses` | `backlog` | chưa có | - | - |
-| [T-021](features/poses/tickets/T-021-thu-vien-tu-the.md) | Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi | `backlog` | chưa có | - | - |
-| [T-022](features/poses/tickets/T-022-chi-tiet-tu-the.md) | Chi tiết tư thế và "Chụp với tư thế này" | `backlog` | chưa có | - | - |
-| [T-023](features/poses/tickets/T-023-banner-thu-vien.md) | Banner ở thư viện và chi tiết tư thế | `backlog` | chưa có | - | - |
-| [T-024](features/poses/tickets/T-024-thu-vien-may-gap.md) | Thư viện và chi tiết tư thế trên máy gập | `backlog` | chưa có | - | - |
+| [T-009](features/poses/tickets/T-009-core-poses.md) | Module dữ liệu tư thế dùng chung `:core:poses` | `planned` | `draft` (bản 1) | 40M | - |
+| [T-021](features/poses/tickets/T-021-thu-vien-tu-the.md) | Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi | `ready` | chưa có | - | - |
+| [T-022](features/poses/tickets/T-022-chi-tiet-tu-the.md) | Chi tiết tư thế và "Chụp với tư thế này" | `ready` | chưa có | - | - |
+| [T-023](features/poses/tickets/T-023-banner-thu-vien.md) | Banner ở thư viện và chi tiết tư thế | `ready` | chưa có | - | - |
+| [T-024](features/poses/tickets/T-024-thu-vien-may-gap.md) | Thư viện và chi tiết tư thế trên máy gập | `ready` | chưa có | - | - |
 
 Phản hồi: chưa có.
 
 ### settings
 
-Spec: [spec.md](features/settings/spec.md) `confirmed`. Ticket: 1 `backlog`.
+Spec: [spec.md](features/settings/spec.md) `confirmed`. Ticket: 1 `ready`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-025](features/settings/tickets/T-025-man-cai-dat.md) | Màn cài đặt | `backlog` | chưa có | - | - |
+| [T-025](features/settings/tickets/T-025-man-cai-dat.md) | Màn cài đặt | `ready` | chưa có | - | - |
 
 Phản hồi: chưa có.
 

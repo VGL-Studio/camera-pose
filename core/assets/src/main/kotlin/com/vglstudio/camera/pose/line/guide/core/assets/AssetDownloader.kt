@@ -12,6 +12,9 @@ internal fun interface AssetDownloader {
     fun download(url: String, target: File)
 }
 
+/** The server answered with a status other than 200. */
+internal class HttpStatusException(val status: Int, url: String) : IOException("HTTP $status for $url")
+
 /** Plain HttpURLConnection: enough for public files on R2, and no extra SDK in the app. */
 internal class HttpAssetDownloader : AssetDownloader {
     override fun download(url: String, target: File) {

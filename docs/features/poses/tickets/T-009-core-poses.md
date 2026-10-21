@@ -5,12 +5,12 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: []
 owner: Nhật
-status: backlog
+status: approved
 risk: high
 size: L
 depends_on: []
 sprint:
-plan:
+plan: features/poses/plans/T-009-core-poses.md
 created: 2026-10-21
 ---
 

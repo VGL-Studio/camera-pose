@@ -5,7 +5,7 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: [KB-6]
 owner: Nhật
-status: backlog
+status: ready
 risk: high
 size: S
 depends_on: [T-021, T-022]

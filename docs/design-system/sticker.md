@@ -24,7 +24,9 @@ Bộ biến `color` có hai chế độ Light và Dark. Tên biến trùng vai t
 | `outline` | #111111 | #FFFFFF | Viền dày 2 dp của mọi thẻ, chip, nút |
 | `outlineVariant` | #D9D4C8 | #4A4744 | Đường kẻ mảnh, viền khung xương |
 | `inverseSurface`, `inverseOnSurface`, `inversePrimary` | #1E1E1E, #FFFFFF, #9DB8FF | #F3F0E8, #111111, #2F6BFF | Thông báo ngắn (snackbar) |
-| `surfaceContainer*`, `surfaceBright`, `surfaceDim`, `surfaceTint` | xem Figma | xem Figma | `surfaceContainerHigh` cho vùng quảng cáo, `surfaceContainerHighest` cho khung xương |
+| `surfaceContainerLowest`, `surfaceContainerLow`, `surfaceContainer` | #FFFFFF, #FBF8F1, #F6F3EB | #0C0C0C, #181818, #1E1E1E | Chưa dùng trên màn hình |
+| `surfaceContainerHigh`, `surfaceContainerHighest` | #F0ECE3, #EAE6DC | #262626, #2E2E2E | Vùng quảng cáo; khung xương |
+| `surfaceBright`, `surfaceDim`, `surfaceTint` | #FFFFFF, #E8E4DA, #2F6BFF | #333333, #121212, #6E9BFF | Chưa dùng trên màn hình; `surfaceTint` bằng `primary` |
 
 Màu riêng của app (thêm vào hệ thống thiết kế, ngoài vai trò Material 3):
 

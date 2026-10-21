@@ -5,12 +5,12 @@ feature: network
 spec: features/network/spec.md
 scenarios: [KB-1, KB-2, KB-3, KB-4]
 owner: Nhật
-status: backlog
+status: approved
 risk: high
 size: L
-depends_on: [T-007]
+depends_on: [T-007, T-009]
 sprint:
-plan:
+plan: features/network/plans/T-011-core-network-hop-thoai.md
 created: 2026-10-21
 ---
 

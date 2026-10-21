@@ -11,4 +11,6 @@ internal interface RemoteFlagSource {
     fun boolean(key: String): Flow<Boolean?>
 
     fun long(key: String): Flow<Long?>
+
+    fun string(key: String): Flow<String?>
 }

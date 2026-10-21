@@ -13,10 +13,14 @@ interface RemoteSettings {
     fun boolean(key: String, default: Boolean): Flow<Boolean>
 
     fun long(key: String, default: Long): Flow<Long>
+
+    fun string(key: String, default: String): Flow<String>
 }
 
 internal class DefaultRemoteSettings @Inject constructor(private val remote: RemoteFlagSource) : RemoteSettings {
     override fun boolean(key: String, default: Boolean): Flow<Boolean> = remote.boolean(key).map { it ?: default }
 
     override fun long(key: String, default: Long): Flow<Long> = remote.long(key).map { it ?: default }
+
+    override fun string(key: String, default: String): Flow<String> = remote.string(key).map { it ?: default }
 }

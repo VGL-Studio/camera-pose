@@ -52,6 +52,8 @@ internal class FirebaseRemoteFlagSource @Inject constructor() : RemoteFlagSource
 
     override fun long(key: String): Flow<Long?> = values(key) { it.asLong() }
 
+    override fun string(key: String): Flow<String?> = values(key) { it.asString() }
+
     private fun <T> values(key: String, convert: (FirebaseRemoteConfigValue) -> T): Flow<T?> = activations
         .onStart { emit(Unit) }
         .map { read(key, convert) }

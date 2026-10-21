@@ -12,6 +12,9 @@ internal fun interface AssetDownloader {
     fun download(url: String, target: File)
 }
 
+/** The server answered with a status other than 200. */
+internal class HttpStatusException(val status: Int, url: String) : IOException("HTTP $status for $url")
+
 /** Plain HttpURLConnection: enough for public files on R2, and no extra SDK in the app. */
 internal class HttpAssetDownloader : AssetDownloader {
     override fun download(url: String, target: File) {
@@ -20,7 +23,7 @@ internal class HttpAssetDownloader : AssetDownloader {
             connection.connectTimeout = TIMEOUT_MILLIS
             connection.readTimeout = TIMEOUT_MILLIS
             val status = connection.responseCode
-            if (status != HttpURLConnection.HTTP_OK) throw IOException("HTTP $status for $url")
+            if (status != HttpURLConnection.HTTP_OK) throw HttpStatusException(status, url)
             val expectedLength = connection.contentLengthLong
             val written = connection.inputStream.use { input -> target.outputStream().use { input.copyTo(it) } }
             if (expectedLength >= 0 && written != expectedLength) {

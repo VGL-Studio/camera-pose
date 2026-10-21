@@ -20,8 +20,11 @@ sealed interface AssetResult {
     /** The file is on the device. Read it, do not modify or delete it. */
     data class Ready(val file: File) : AssetResult
 
-    /** Not on the device yet and could not be downloaded (offline, file missing on R2). Retrying may succeed. */
-    data object Unavailable : AssetResult
+    /**
+     * Not on the device yet and could not be downloaded (offline, file missing on R2). Retrying may succeed.
+     * [reason] tells why, so a caller can tell a network problem from a missing file.
+     */
+    data class Unavailable(val reason: AssetFailureReason = AssetFailureReason.OTHER) : AssetResult
 }
 
 /** Where the files of the current environment live, given by :app per build flavor (ADR-0007). */

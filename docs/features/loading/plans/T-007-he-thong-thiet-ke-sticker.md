@@ -2,7 +2,7 @@
 ticket: T-007
 title: Hệ thống thiết kế theo hướng Sticker
 status: approved
-version: 1
+version: 2
 risk_score:
 risk_level: high
 token_estimate: 40.0M
@@ -38,6 +38,8 @@ ADR liên quan: ADR-0008 (code là gốc của hệ thống thiết kế; đổi
 ## 3. Giải pháp
 
 ### 3.1. Cách làm
+
+Cách tiếp tục: tiếp tục trên nhánh `claude/T-007-he-thong-thiet-ke-sticker` (đã có commit test và khung rỗng của RUN-20261021-01, chưa có PR). Phiên bản 2 chỉ đổi cách đo màu điểm ảnh (mục 4); bước 3 làm lại cho sáu test đo điểm ảnh, các test khác đã thất bại đúng lý do nên giữ nguyên.
 
 Làm theo mẫu của plan T-002 (cùng module): giá trị đặt trong `theme/`, thành phần trong `component/`, catalog chụp bằng screenshot test, `tokens.json` sinh từ `DesignTokensTest`.
 
@@ -227,7 +229,7 @@ Không file nào khác. Đặc biệt không sửa `core/designsystem/build.grad
 
 ## 4. Kiểm thử
 
-Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của bước 3. Lý do thất bại ghi ở cột cuối là điều AI dự kiến trên code hiện tại; bước 3 chạy và ghi lý do thật vào nhật ký. `ComponentsTest` và `AppThemeTest` có `@GraphicsMode(GraphicsMode.Mode.NATIVE)` (như hiện tại), không đặt `@Config`. Hàm `pixelAt(tag, x: Dp, y: Dp): Color` trong `ComponentsTest` đổi dp sang px bằng `composeRule.density`, đọc `onNodeWithTag(tag).captureToImage().toPixelMap()[x, y]`. So màu bằng `assertEquals(expected.toArgb(), actual.toArgb())`. Điểm đo luôn nằm giữa vùng màu, xa mép và góc bo, để không dính khử răng cưa.
+Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của bước 3. Lý do thất bại ghi ở cột cuối là điều AI dự kiến trên code hiện tại; bước 3 chạy và ghi lý do thật vào nhật ký. `ComponentsTest` và `AppThemeTest` có `@GraphicsMode(GraphicsMode.Mode.NATIVE)` (như hiện tại), không đặt `@Config`. Hàm `pixelAt(tag, x: Dp, y: Dp): Color` trong `ComponentsTest` (phiên bản 2, hướng (a) người duyệt chọn): chụp nút bằng `onNodeWithTag(tag).captureRoboImage(filePath = "build/tmp/pixel/<tên test>.png", roborazziOptions = RoborazziOptions(taskType = RoborazziTaskType.Record))`, đọc lại bằng `BitmapFactory.decodeFile(...)`, lấy `Color(bitmap.getPixel(xPx, yPx))`; dp đổi sang px bằng `composeRule.density`. `taskType = Record` bắt Roborazzi ghi ảnh cho riêng lần chụp này, kể cả khi test chạy bằng `testDebugUnitTest` (Roborazzi mặc định không ghi) hay trong `verifyRoborazziDebug`. File nằm trong `build/`, không phải ảnh chuẩn, không vào git. Không dùng `captureToImage`: trong Robolectric `NATIVE` nó ném `ComposeTimeoutException` tại `WindowCapture.forceRedraw` (RUN-20261021-01). Phiên chính đã chạy thử cách này trên nhánh của task (test tạm, không commit): ô 112 dp màu #FFC83D cho ảnh 112 x 112, điểm giữa đọc ra `ffffc83d`, ở cả `testDebugUnitTest` lẫn `verifyRoborazziDebug`. `javax.imageio` không có trên classpath của test Android, nên đọc ảnh bằng `BitmapFactory`. So màu bằng `assertEquals(expected.toArgb(), actual.toArgb())`. Điểm đo luôn nằm giữa vùng màu, xa mép và góc bo, để không dính khử răng cưa.
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
@@ -262,7 +264,7 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 | B. Độ rõ của yêu cầu | 1 | `sticker.md` có đủ giá trị chính; màu nút phụ, chênh 56 và 60 của nút (mục 8) |
 | C. Khả năng kiểm chứng tự động | 1 | Giá trị, kích thước và màu điểm ảnh có test; độ giống thiết kế và nét phông phải xem ảnh |
 | D. Ảnh hưởng chéo | 3 | Mọi màn hình đổi giao diện; T-008, T-011, T-012, T-013, T-021, T-025 dựa vào hệ thống mới |
-| E. Độ mới của kỹ thuật | 2 | `CompositionLocal` cho màu riêng, bóng tự vẽ bằng `drawBehind`, test đọc điểm ảnh bằng `captureToImage` đều chưa có trong dự án |
+| E. Độ mới của kỹ thuật | 2 | `CompositionLocal` cho màu riêng, bóng tự vẽ bằng `drawBehind`, test đọc điểm ảnh từ ảnh Roborazzi (`taskType = Record`) đều chưa có trong dự án |
 | **Tổng** | 10 | **Mức: Cao** |
 
 ## 6. Ảnh hưởng chéo
@@ -279,7 +281,7 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 
 1. Mã băm của một trong năm file tải về không khớp mục 3.1, hoặc commit 84745e5b96261ae5f8c6c856e262fe78d1d6efdd không còn tệp ở đường dẫn đã ghi.
 2. Robolectric không vẽ được phông trong `res/font` (ảnh vẫn ra Roboto hay Inter), hoặc chữ tiếng Việt hiện ô vuông.
-3. `captureToImage` không chạy được trong Robolectric chế độ `NATIVE` (lỗi hay ảnh rỗng): dừng, không thay test đọc điểm ảnh bằng cách khác.
+3. `captureRoboImage` với `taskType = Record` không ghi được ảnh, hoặc `BitmapFactory.decodeFile` trả `null`, ở `testDebugUnitTest` hay `verifyRoborazziDebug`: dừng, không thay test đọc điểm ảnh bằng cách khác. (Phiên bản 1 dừng vì `captureToImage`; phiên bản 2 không dùng hàm này.)
 4. `LoadingScreenTest` hay `SampleScreenTest` thất bại sau khi đổi hệ thống (ví dụ nút "Thử lại" ra ngoài màn hình thấp): dừng, không sửa code hay test của feature.
 5. Ảnh chuẩn đổi ngoài 15 ảnh "Ghi lại" ở mục 3.2, hoặc bố cục màn mẫu, màn loading đổi ngoài màu, phông, logo, nút và thanh tiến trình.
 6. Cần đổi chữ ký công khai của `PrimaryButton`, `ProgressBar` (ngoài tham số `borderColor` thêm ở cuối) hay `BrandLogo`.
@@ -308,6 +310,10 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-21); dừng ở RUN-20261021-01, xem mục 10.
+
+Phiên bản 2:
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
 - **Ghi chú:** 
@@ -316,14 +322,21 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
 
-### RUN-YYYYMMDD-NN, phiên bản plan 1
+### RUN-20261021-01, phiên bản plan 1
 
-- **Kết quả:** đã merge / dừng / CI thất bại
-- **Nhánh, PR:** <...>
-- **Đã làm:** <...>
-- **Test viết trước:** <số test, xác nhận đã thất bại đúng lý do trước khi viết code>
-- **Rà soát độc lập:** <số điểm phát hiện, đã xử lý những gì, điểm nào còn để người xem>
-- **Kết quả CI:** <build, lint, unit test, UI test, screenshot test>
-- **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
-- **Việc còn lại:** <...>
-- **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+- **Kết quả:** dừng ở bước 3 (điều kiện dừng 3 của mục 7)
+- **Nhánh, PR:** `claude/T-007-he-thong-thiet-ke-sticker` (đã đẩy, commit test và khung rỗng; chưa mở PR vì chưa có code)
+- **Đã làm:** `tokens.json` sửa tay theo mục 3.1 (sinh bằng một script ngoài repo từ các bảng của plan), khung rỗng (`AppColors`, `Shape.kt`, `FONT_FAMILY_NAME`, `BricolageFamily`, `SecondaryButton`, hai catalog), `DesignTokensTest`, `ComponentsTest`, `AppThemeTest` mới và bốn test ảnh catalog. Chưa tải phông, chưa viết code thật.
+- **Test viết trước:** 15 test thất bại, 3 qua. Nhóm test đọc điểm ảnh (`primaryButton_fill_*`, `primaryButton_drawsHardShadow`, `secondaryButton_fill_*`, `secondaryButton_hasNoShadow`, `progressBar_defaultFill_*`, `brandLogo_fill_*`) thất bại vì `captureToImage` ném `ComposeTimeoutException: Condition still not satisfied after 2000 ms` tại `WindowCapture.forceRedraw` (`WindowCapture.android.kt:124`), không phải vì khẳng định. Đó là điều kiện dừng 3: không thay test đọc điểm ảnh bằng cách khác.
+- **Rà soát độc lập:** chưa chạy (dừng trước bước 4).
+- **Kết quả CI:** chưa chạy.
+- **Lệch so với plan:** không có.
+- **Việc còn lại:** toàn bộ bước 4 trở đi.
+- **Cần người xem:** giả thuyết (chưa kiểm chứng): `captureToImage` của Compose UI Test chờ một lần vẽ lại của cửa sổ thật, mà Robolectric ở chế độ `NATIVE` không phát; Roborazzi (`captureRoboImage`) vẽ bằng đường khác nên ảnh chuẩn vẫn ghi được. Hướng xử lý có thể: (a) đo màu điểm ảnh từ ảnh của `captureRoboImage` thay vì `captureToImage`, (b) chuyển phần đo điểm ảnh sang test trên emulator, (c) bỏ phần đo điểm ảnh và để ảnh chuẩn kiểm màu.
+
+#### Bản sửa đề xuất, phiên bản 2 (đã viết thành plan phiên bản 2: hướng (a), người duyệt chọn ngày 2026-10-21)
+
+- **Vì sao plan chưa đủ tốt:** mục 4 giả định `captureToImage` chạy được trong Robolectric `NATIVE`; plan chưa chạy thử điều này trước khi duyệt (L-029 áp dụng tương tự cho cách đo).
+- **Thay đổi so với phiên bản 1:** chỉ mục 4 (cách đo màu điểm ảnh của sáu test trên), theo hướng (a), (b) hoặc (c) do người chọn; mục 3.2 thêm file test nếu chọn (b); mục 7, điều kiện 3 sửa theo hướng đã chọn.
+- **Cách tiếp tục (mục 3.1):** tiếp tục trên nhánh cũ `claude/T-007-he-thong-thiet-ke-sticker`; bước 3 chỉ áp dụng cho sáu test đo điểm ảnh; các test khác đã thất bại đúng lý do, giữ nguyên.
+- **Chưa có PR sửa nguyên nhân:** nguyên nhân nằm trong cách đo của plan, không phải trong code ngoài plan.

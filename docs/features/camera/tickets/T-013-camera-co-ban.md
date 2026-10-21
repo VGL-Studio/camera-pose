@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-4, KB-6, KB-7, KB-8]
 owner: Nhật
-status: ready
+status: planned
 risk: high
 size: L
-depends_on: [T-007]
+depends_on: [T-007, T-010]
 sprint:
-plan:
+plan: features/camera/plans/T-013-camera-co-ban.md
 created: 2026-10-21
 ---
 

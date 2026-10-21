@@ -61,7 +61,7 @@ class DefaultRemoteAssetsTest {
     fun offlineWithoutKeptFile_isUnavailable_thenRetrySucceeds() = runTest {
         val assets = assets(StandardTestDispatcher(testScheduler))
         online = false
-        assertEquals(AssetResult.Unavailable, assets.load(path))
+        assertEquals(AssetResult.Unavailable(AssetFailureReason.OTHER), assets.load(path))
 
         online = true
         assertTrue(assets.load(path) is AssetResult.Ready)
@@ -79,7 +79,7 @@ class DefaultRemoteAssetsTest {
             StandardTestDispatcher(testScheduler),
         )
 
-        assertEquals(AssetResult.Unavailable, failing.load(path))
+        assertEquals(AssetResult.Unavailable(AssetFailureReason.OTHER), failing.load(path))
         assertFalse(File(folder.root, path.value).exists())
         assertEquals(emptyList<String>(), folder.root.walk().filter { it.isFile }.toList().map { it.name })
     }

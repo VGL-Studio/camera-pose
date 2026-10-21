@@ -25,7 +25,7 @@ nào trùng; plan quyết định làm tròn về token gần nhất hay thêm t
 | kiểu chữ | 24/24, đậm 400 | ngoài hệ thống |
 | màu chữ | #111111 | ngoài hệ thống |
 | màu chữ | #FFFFFF | ngoài hệ thống |
-| màu nền | #000000 | ngoài hệ thống |
+| màu nền | #000000 (độ mờ 0.45) | ngoài hệ thống |
 | màu nền | #0A0A0B | ngoài hệ thống |
 | màu nền | #1E1E1E | ngoài hệ thống |
 | màu nền | #2A2A2A | ngoài hệ thống |
@@ -141,7 +141,7 @@ Toạ độ và cỡ tính theo dp, gốc là góc trên trái của khung. Th�
   - Ellipse "Shutter", vị trí 546,341, cỡ 62 x 62, nền #FFFFFF (ngoài hệ thống)
   - Instance "CameraIconButton", vị trí 554,226, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
     - Text "icon", vị trí 566,238, cỡ 24 x 24, chữ "flip_camera_android", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-  - Instance "ZoomControl", vị trí 510,620, cỡ 136 x 48, nền #000000 (ngoài hệ thống), bo góc 999, xếp ngang, cách nhau 4 (xs), lề trên/phải/dưới/trái 4 (xs)/4 (xs)/4 (xs)/4 (xs), căn MIN/CENTER
+  - Instance "ZoomControl", vị trí 510,620, cỡ 136 x 48, nền #000000 (độ mờ 0.45) (ngoài hệ thống), bo góc 999, xếp ngang, cách nhau 4 (xs), lề trên/phải/dưới/trái 4 (xs)/4 (xs)/4 (xs)/4 (xs), căn MIN/CENTER
     - Frame "zoom 0.5", vị trí 514,624, cỡ 40 x 40, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
       - Text "0.5", vị trí 523,634, cỡ 21 x 20, chữ "0.5", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (ngoài hệ thống)
     - Frame "zoom 1x", vị trí 558,624, cỡ 40 x 40, nền #FFC83D (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER

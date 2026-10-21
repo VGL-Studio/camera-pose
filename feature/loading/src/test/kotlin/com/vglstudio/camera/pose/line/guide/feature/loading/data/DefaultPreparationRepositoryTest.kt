@@ -34,7 +34,7 @@ class DefaultPreparationRepositoryTest {
 
     @Test
     fun unavailableFile_returnsFalse() = runTest {
-        assets.result = AssetResult.Unavailable
+        assets.result = AssetResult.Unavailable()
         assertFalse(repository.run(PreparationTask.HELLO_FILE))
     }
 

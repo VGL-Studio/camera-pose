@@ -34,4 +34,15 @@ class DefaultRemoteSettingsTest {
             assertEquals(45L, awaitItem())
         }
     }
+
+    @Test
+    fun stringWithoutRemoteValue_usesDefault() = runTest {
+        assertEquals("default/path", settings.string("some_path", default = "default/path").first())
+    }
+
+    @Test
+    fun stringRemoteValue_replacesDefault() = runTest {
+        remote.strings.value = mapOf("some_path" to "remote/path")
+        assertEquals("remote/path", settings.string("some_path", default = "default/path").first())
+    }
 }

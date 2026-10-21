@@ -1,7 +1,7 @@
 ---
 ticket: T-007
 title: Hệ thống thiết kế theo hướng Sticker
-status: approved
+status: done
 version: 3
 risk_score:
 risk_level: high
@@ -363,3 +363,15 @@ Phiên bản 3:
 - **Thay đổi so với phiên bản 2:** chỉ cách giải quyết quy tắc của `check.sh` đối với sáu test đo điểm ảnh. Người chọn một trong: (a) cho phép gọi `captureRoboImage` ghi vào `build/` làm ảnh tạm: sửa `scripts/check.sh` trong một PR riêng của dự án mẫu (`docs/ops/from-app.md`), merge trước khi chạy lại; (b) giữ nguyên `check.sh`, đổi cách lấy ảnh trong `pixelAt` sang đường không gọi `captureRoboImage` (giả thuyết chưa kiểm chứng: `View.drawToBitmap()` trên view gốc của Compose trong Robolectric `NATIVE`, hoặc `Bitmap` do Roborazzi trả về); (c) bỏ phần đo điểm ảnh, ảnh chuẩn kiểm màu (hướng (c) của phiên bản 1). Mục 4, mục 3.2 (nếu chọn (a), thêm `scripts/check.sh`) và mục 7 điều kiện 3 sửa theo hướng chọn.
 - **Cách tiếp tục (mục 3.1, khi duyệt):** tiếp tục trên nhánh cũ `claude/T-007-he-thong-thiet-ke-sticker` (đã có commit test, code và ảnh chuẩn, đủ 19 ảnh); phiên chỉ sửa `pixelAt` hoặc test liên quan theo hướng chọn, chạy `scripts/check.sh`, rồi làm bước 6 đến 10. Bước 3 chỉ áp dụng cho test đổi điều kiểm tra.
 - **Chưa có PR sửa nguyên nhân:** hướng (a) phải do người quyết định và đi qua dự án mẫu, nên phiên không mở PR nháp.
+
+### RUN-20261021-03, phiên bản plan 3
+
+- **Kết quả:** đã merge (PR #19, commit 2a61ee9, 2026-10-21 15:26 UTC)
+- **Nhánh, PR:** `claude/T-007-he-thong-thiet-ke-sticker`, https://github.com/VGL-Studio/camera-pose/pull/19
+- **Đã làm:** đổi `pixelAt` trong `ComponentsTest` theo mục 4 phiên bản 3 (vẽ `decorView` ra `Bitmap`, đọc tại `boundsInWindow` của node, không gọi `captureRoboImage` hay `captureToImage`); cập nhật nhánh theo nhánh chính. Mọi phần khác giữ nguyên từ RUN-20261021-02.
+- **Test viết trước:** bước 3 không làm lại (đã thất bại đúng lý do ở RUN-20261021-02, mục 3.1). Đổi `pixelAt` là một commit sửa test riêng (7c662f9), trước khi chạy cổng chất lượng.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 10 ghi chú. Cần người xem: `secondaryButton_hasNoShadow` chỉ khẳng định điểm khác #FFC83D; nền màn loading đang là `surface` (#FFFFFF, #1E1E1E) thay vì `background` (#FFFDF8, #121212) của thiết kế, do `LoadingScreen.kt` dùng màu mặc định của `Surface` (việc của T-008, plan mục 6 chưa nhắc).
+- **Kết quả CI:** `scripts/check.sh` cục bộ qua (197 test JVM, 0 lỗi; 19 ảnh screenshot); `pr-check.yml` xanh ở lần chạy đầu (39624407500).
+- **Lệch so với plan:** Không có.
+- **Việc còn lại:** việc sau merge ở mục 6, trong phiên có người theo dõi: dựng lại biến bo góc, viền, màu app trên Figma nếu lệch `tokens.json`; chạy `scripts/figma-export.py` cho sáu gói thiết kế; cập nhật đoạn "Hệ thống thiết kế trong code hiện là của dự án mẫu" trong `docs/design-system/sticker.md`.
+- **Cần người xem:** 19 ảnh chuẩn screenshot (mục 3.2), nhất là `DesignSystem_typography_light.png` (nét Bricolage) và `LoadingScreen_failed_light.png` (dấu tiếng Việt), theo dòng kiểm tra thủ công của mục 4.

@@ -1,16 +1,16 @@
 ---
 ticket: T-007
 title: Hệ thống thiết kế theo hướng Sticker
-status: draft
+status: approved
 version: 1
 risk_score:
 risk_level: high
 token_estimate: 40.0M
 blocking_points: [core]
 run_order:
-reviewer:
-cross_reviewer:
-approved_at:
+reviewer: Nhật
+cross_reviewer: Tuấn
+approved_at: 2026-10-21
 ---
 
 # PLAN T-007: HỆ THỐNG THIẾT KẾ THEO HƯỚNG STICKER
@@ -288,21 +288,29 @@ Mọi test dưới đây và khung rỗng ở mục 3.1 vào commit test của b
 ## 8. Câu hỏi cho người duyệt
 
 1. **Chiều cao nút: 56 hay 60.** `sticker.md` và README thiết kế ghi 56; `context/` của mọi màn ghi khung nút 60 (lề 16 + chữ 24 + lề 16, cộng viền 2 mỗi phía tính vào bố cục trên Figma). Đề xuất: 56 như hai tài liệu, viền nằm trong 56; sau đó tắt "strokes included in layout" trên Figma để `context/` ra 56 khi xuất lại.
+- Trả lời: 56.
 2. **Bảy vai trò trước đây ghi "xem Figma" trong `sticker.md`.** Đã giải quyết khi viết plan: AI lấy giá trị từ biến `color` trên Figma (do AI tạo ở bước thiết kế) và ghi vào `sticker.md`, mục 1, và bảng ở mục 3.1. Không cần trả lời.
+- Trả lời: OK.
 3. **Kiểu `SecondaryButton`.** Chưa màn nào trên thiết kế dùng nút phụ. Đề xuất: nền `surface`, chữ `onSurface`, viền `outline` 2, không bóng, cùng cỡ với nút chính.
+- Trả lời: OK.
 4. **Hình trong logo tạm.** Thiết kế dùng hình dáng người (`pose-outline`, 40 x 80, nét 3), repo không có SVG. Đề xuất: giữ `brand_mark.xml` hiện có, tô `onSecondaryContainer`, cho tới khi có icon app. Nếu anh muốn hình dáng người ngay, xuất SVG vào `docs/features/loading/design/handoff/` trước, AI thêm vào plan.
+- Trả lời: OK.
 5. **Tải phông trong phiên tự chạy.** Lệnh ở mục 3.1 tải từ `raw.githubusercontent.com`, có kiểm tra mã băm; T-002 đã tải phông Inter từ GitHub trong phiên tự chạy và qua. Đề xuất: để phiên tải. Nếu môi trường chặn tên miền này, phiên coi là lỗi hạ tầng; anh có thể chép sẵn bốn file vào nhánh trước khi chạy.
+- Trả lời: OK.
 6. **Bản phông tĩnh và xóa Inter.** Bản tĩnh `BricolageGrotesque-*.ttf` là một cỡ quang học cố định; Figma dùng bản biến thiên nên chữ rất lớn có thể khác nét đôi chút (README cho phép khác "cách vẽ chữ"). Đề xuất: chấp nhận; xóa ba file Inter cho APK nhẹ hơn khoảng 1,2 MB.
+- Trả lời: OK.
 7. **Khẩu hiệu.** `brand_tagline` trong `:core:designsystem` vẫn là của dự án mẫu, thiết kế ghi "Tạo dáng theo nét viền, chụp đẹp ngay.". Đề xuất: plan này không đổi; T-008 quyết định đặt khẩu hiệu ở module feature (cùng 7 ngôn ngữ) hay đổi trong core.
+- Trả lời: OK.
 8. **Nút khi tắt.** Thiết kế không có trạng thái tắt. Đề xuất: màu tắt mặc định của Material 3, viền `outlineVariant`, không bóng.
+- Trả lời: OK.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

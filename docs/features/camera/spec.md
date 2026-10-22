@@ -29,7 +29,7 @@ confirmed: 2026-10-21
 - Công cụ chụp: flash, hẹn giờ, lưới chia ba, đổi camera trước sau, zoom 0.5x, 1x, 2x khi máy hỗ trợ.
 - Nhận dạng dáng người trong khung, chấm điểm khớp với tư thế từ 0 đến 100, lời nhắc chỉnh dáng.
 - Màn xem lại sau khi chụp: Lưu vào thư viện, Chụp lại, Chia sẻ, Tư thế tiếp.
-- Lưu ảnh vào thư mục ảnh riêng của app trong thư viện máy, không kèm nét viền, không cần quyền đọc ảnh.
+- Lưu ảnh vào thư mục ảnh riêng của app trong thư viện máy, không kèm nét viền, không xin quyền đọc ảnh. Android 10 trở lên không hỏi quyền nào; Android 9 trở xuống hỏi quyền lưu tệp vào bộ nhớ máy ở lần lưu đầu tiên, vì các bản này không cho lưu vào thư viện máy khi chưa có quyền đó (câu hỏi 10).
 - Xin quyền camera khi chưa có, trạng thái chưa có quyền với nút mở cài đặt máy.
 - Quảng cáo toàn màn hình khi rời màn xem lại sau khi đã lưu ảnh (mức B).
 - Hỏi đánh giá app trong app sau khi người dùng đã lưu đủ ảnh (bản đề xuất, câu 12.8).
@@ -138,7 +138,12 @@ Tiêu chí chấp nhận:
 Trường hợp đặc biệt:
 
 - [ ] Khi lưu lỗi vì hết bộ nhớ thì màn xem lại hiện thông báo "Không lưu được ảnh: bộ nhớ máy đã đầy." kèm nút "Thử lại"; ảnh vẫn còn trên màn xem lại.
-- [ ] Khi lưu ảnh thì app không xin quyền đọc ảnh của máy; manifest không có quyền đọc ảnh (bài học 13).
+- [ ] Khi lưu ảnh trên Android 10 trở lên thì app không hỏi quyền nào.
+- [ ] Khi bấm lưu lần đầu trên Android 9 trở xuống mà app chưa có quyền lưu tệp vào bộ nhớ máy thì hộp hỏi quyền của hệ thống hiện; cho phép thì ảnh được lưu như trên, các lần lưu sau không hỏi lại.
+- [ ] Khi người dùng từ chối quyền lưu thì ảnh không được lưu, ảnh vẫn còn trên màn xem lại, và màn xem lại hiện thông báo cần quyền lưu ảnh kèm nút "Thử lại"; bấm "Thử lại" thì hộp hỏi quyền hiện lại (chữ của thông báo ở câu hỏi 10).
+- [ ] Khi người dùng đã từ chối và chọn không hỏi lại thì bấm lưu không hiện hộp hỏi; màn xem lại hiện thông báo hướng dẫn cho phép trong Cài đặt máy kèm nút "Mở cài đặt"; bấm thì trang cài đặt của app mở ra; cho phép rồi quay lại thì thông báo ẩn và bấm lưu là lưu được.
+- [ ] Khi từ chối quyền lưu sau khi bấm "Lưu ảnh" ở hộp thoại "Bỏ ảnh này?" thì người dùng ở lại màn xem lại với thông báo như trên, ảnh không bị bỏ.
+- [ ] Khi kiểm tra danh sách quyền của app thì không có quyền đọc ảnh (bài học 13); quyền lưu tệp vào bộ nhớ máy chỉ được khai báo cho Android 9 trở xuống. Lưu ý: trên Android 9 trở xuống, hệ thống tự cho app đọc bộ nhớ máy khi đã có quyền lưu, và hộp hỏi quyền ghi chung "ảnh, nội dung đa phương tiện và tệp"; app không đọc ảnh nào ngoài ảnh do chính app lưu.
 
 ### KB-7. Quyền camera
 
@@ -191,7 +196,7 @@ Tiêu chí chấp nhận:
 | Camera | Chụp theo tư thế: chọn tư thế, nét viền, thẻ bước, công cụ, điểm khớp | KB-1 đến KB-8, KB-11 |
 | Xem lại | Xem ảnh vừa chụp, lưu, chụp lại, chia sẻ, sang tư thế tiếp | KB-6, KB-9, KB-10, KB-11 |
 
-Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked`, `steps-hidden`, `matching`, `matched`, `no-person`, `countdown`, `starting`, `permission-denied`, `error`, `default` khi mở gập (hộp thoại mất mạng thuộc gói thiết kế `network`); xem lại `default`, `saving`, `save-error`, `discard`, `default` khi mở gập. Chỉ có bản tối (câu 12.10 của bản đề xuất).
+Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked`, `steps-hidden`, `matching`, `matched`, `no-person`, `countdown`, `starting`, `permission-denied`, `error`, `default` khi mở gập (hộp thoại mất mạng thuộc gói thiết kế `network`); xem lại `default`, `saving`, `save-error`, `discard`, `default` khi mở gập; hai thông báo về quyền lưu trên Android 9 trở xuống (KB-6) chưa có thiết kế riêng, dùng cùng kiểu thông báo với `save-error` (câu hỏi 10). Chỉ có bản tối (câu 12.10 của bản đề xuất).
 
 ## 5. Quảng cáo
 
@@ -215,6 +220,8 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | Ảnh đã lưu | Ảnh của người dùng, trong thư viện máy | Đến khi người dùng tự xóa; gỡ app không xóa |
 
 Ảnh chỉ lưu trên máy, không tải lên đâu (câu 9.3). Phân tích dáng chạy hoàn toàn trên máy.
+
+**Quyền của app:** camera (KB-7); lưu tệp vào bộ nhớ máy, chỉ trên Android 9 trở xuống và chỉ hỏi khi lưu ảnh (KB-6). Không có quyền đọc ảnh. Không có sự kiện phân tích cho kết quả hỏi quyền lưu (câu hỏi 11). Trước khi phát hành, dev cập nhật khai báo quyền và mục An toàn dữ liệu (Data safety) trên Play Console cho quyền lưu tệp (câu hỏi 10).
 
 **Sự kiện phân tích:**
 
@@ -274,6 +281,12 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 9. **Thư viện CameraX, ML Kit Pose Detection, Play In-App Review và quyền `CAMERA`:** bản đề xuất (câu 12.6) ghi dev thêm ở bước khởi tạo app, không qua phiên tự chạy.
    - Đề xuất của AI: các ticket của spec này phụ thuộc vào việc dev đã thêm xong; AI ghi rõ phụ thuộc trong ticket.
    - Trả lời: Đồng ý. Dev sẽ thêm trước phiên tự chạy.
+10. **Lưu ảnh trên Android 8 và 9 cần quyền lưu tệp vào bộ nhớ máy.** App chạy từ Android 8. Từ Android 10, app thêm ảnh vào thư viện máy không cần quyền; Android 8 và 9 chỉ cho làm vậy khi có quyền lưu tệp vào bộ nhớ máy. Nhật chọn khai báo quyền này chỉ cho Android 9 trở xuống và hỏi ở lần lưu đầu (plan T-016, câu 1, phương án A, 2026-10-22).
+   - Việc của dev trước khi phát hành (không phải việc của AI): cập nhật khai báo quyền và mục An toàn dữ liệu (Data safety) trên Play Console; kiểm tra trang quyền trên Play hiển thị quyền lưu tệp (và quyền đọc bộ nhớ đi kèm trên Android 9 trở xuống).
+   - Chữ của hai thông báo chưa có trong bảng chữ của thiết kế. Đề xuất của AI: từ chối thì "Cần quyền lưu ảnh để lưu vào thư viện." kèm "Thử lại"; từ chối và không hỏi lại thì "Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện." kèm "Mở cài đặt". Hai thông báo dùng cùng kiểu với thông báo lưu lỗi của `ReviewScreen_save-error_dark`.
+   - Trả lời: Đồng ý với đề xuất của AI.
+11. **Có ghi sự kiện cho kết quả hỏi quyền lưu không?** Spec không có sự kiện này. Đề xuất của AI: không ghi; tỷ lệ máy Android 9 trở xuống từ chối quyền lưu xem gián tiếp qua `photo_saved` trên `photo_captured` theo phiên bản Android. Nếu cần đo trực tiếp thì thêm sự kiện mới vào mục 6 trước (điểm chặn 4).
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 10. Lịch sử
 
@@ -283,3 +296,4 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế ở dải (đã lưu, gần đây, còn lại), ẩn hiện thẻ bước, chế độ flash, ngưỡng điểm 80, hỏi "Bỏ ảnh này?" khi rời màn xem lại mà chưa lưu, khóa chiều dọc, dữ liệu tư thế đã dùng gần đây; thêm trạng thái thiết kế `steps-hidden`, `discard` |
 | 2026-10-21 | AI | Lập gói bàn giao thiết kế: trạng thái `offline` chuyển sang gói `network` vì hộp thoại do vỏ app hiện, không thuộc `CameraScreen` |
 | 2026-10-22 | AI | Ghi quyết định của Nhật sau RUN-20261022-01: nút đổi camera mờ đi khi camera chưa sẵn sàng (đang mở, chưa có quyền, lỗi), thiết kế sửa theo; không ghi `camera_permission_result` khi quyền đã bị từ chối vĩnh viễn và hộp hỏi không hiện (KB-7, mục 6). Chờ xác nhận lại |
+| 2026-10-22 | AI | Ghi quyết định của Nhật ở plan T-016 (câu 1, phương án A): Android 9 trở xuống hỏi quyền lưu tệp vào bộ nhớ máy ở lần lưu đầu; thêm tiêu chí từ chối, từ chối và không hỏi lại, quyền của app (mục 2, KB-6, mục 4, mục 6); câu hỏi 10 (chữ thông báo, việc của dev trên Play Console) và 11 (sự kiện). Chờ xác nhận lại |

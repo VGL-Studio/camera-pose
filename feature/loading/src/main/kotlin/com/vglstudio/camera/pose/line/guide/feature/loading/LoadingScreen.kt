@@ -123,7 +123,7 @@ private fun LoadingContent(
     val colors = MaterialTheme.colorScheme
     val typography = MaterialTheme.typography
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        BrandLogo()
+        BrandLogo(modifier = Modifier.testTag(LoadingTestTags.LOGO))
         Spacer(modifier = Modifier.height(Spacing.lg))
         Text(
             text = appName,
@@ -252,6 +252,7 @@ private val LOCK_ICON_SIZE = 12.dp
 
 internal object LoadingTestTags {
     const val SCREEN = "loading_screen"
+    const val LOGO = "loading_logo"
     const val PROGRESS = "loading_progress"
     const val PERCENT = "loading_percent"
     const val ERROR = "loading_error"

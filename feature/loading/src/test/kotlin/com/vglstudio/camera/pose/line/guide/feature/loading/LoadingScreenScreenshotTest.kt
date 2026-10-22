@@ -11,12 +11,13 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Screenshot tests (Roborazzi). Reference images live in src/test/screenshots and are compared on every CI run.
  * A changed reference image must be listed in the plan and reviewed by a person.
- * Each test has the name of a design image in docs/features/loading/design/screens/, with the same sample
- * app name and progress, so scripts/design-compare.sh can compare them (ADR-0020).
+ * The tests in the standard frame have the names of the design images in docs/features/loading/design/screens/,
+ * with the language (Vietnamese), app name and progress of the design, so scripts/design-compare.sh compares them.
+ * The _small tests have no design image and are not compared (ADR-0020).
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class LoadingScreenScreenshotTest {
     @Test
     fun progress_light() {
@@ -76,8 +77,8 @@ class LoadingScreenScreenshotTest {
     }
 
     private companion object {
-        const val APP_NAME = "Todo App"
+        const val APP_NAME = "Camera Pose: Lines and Guides"
         const val PROGRESS = 0.68f
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
     }
 }

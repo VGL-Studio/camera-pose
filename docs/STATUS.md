@@ -7,7 +7,7 @@
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
-- Danh sách chạy `draft` chờ duyệt: [RUN-20261023-01.md](runs/RUN-20261023-01.md)
+- Danh sách chạy đã duyệt, chờ kích hoạt: [RUN-20261023-01.md](runs/RUN-20261023-01.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
 
@@ -111,7 +111,7 @@ Phản hồi: chưa có.
 
 | Phiên | Trạng thái | Bắt đầu | Ticket | Bản staging |
 | --- | --- | --- | --- | --- |
-| [RUN-20261023-01](runs/RUN-20261023-01.md) | `draft` |  | T-006, T-026, T-012, T-014, T-021, T-016, T-025 | - |
+| [RUN-20261023-01](runs/RUN-20261023-01.md) | `approved` |  | T-006, T-026, T-012, T-014, T-021, T-016, T-025 | - |
 | [RUN-20261022-01](runs/RUN-20261022-01.md) | `finished` | 2026-10-22T01:29Z | T-011, T-010, T-008, T-013 | 0.1.0-staging.3 (3), đã tải lên App Distribution, chưa phát tới nhóm (nhóm `team` chưa có) |
 | [RUN-20261021-04](runs/RUN-20261021-04.md) | `draft` |  | T-008, T-011, T-010, T-013 | - |
 | [RUN-20261021-03](runs/RUN-20261021-03.md) | `finished` | 2026-10-21T15:01Z | T-007, T-011 | - |

@@ -1,7 +1,7 @@
 ---
 ticket: T-012
 title: Màn chào và xin quyền camera
-status: draft                   # draft | approved | stopped | done
+status: approved                   # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -10,7 +10,7 @@ blocking_points: [analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Nhật                    # người duyệt
 cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
-approved_at:
+approved_at: 2026-10-22
 ---
 
 # PLAN T-012: MÀN CHÀO VÀ XIN QUYỀN CAMERA
@@ -374,10 +374,10 @@ Bảng điểm dưới đây chỉ để tham khảo:
 
 12. **(Phiên bản 2) Giữ "nên giải thích trước" qua lần activity bị tạo lại.** T-026 lưu giá trị này bằng `remember`; nếu activity bị tạo lại lúc hộp hỏi đang mở, giá trị về `false`, và lần từ chối thứ hai (trước `true`, sau `false`) bị coi là không hiện hộp. Màn chào đã xử lý trường hợp tạo lại (`requesting_permission` trong `SavedStateHandle`).
     - Đề xuất của AI: màn chào dùng `rememberSaveable` (khác T-026 một chữ, ghi trong KDoc). Ở màn chào gần như luôn là lần hỏi đầu (trước `false`), nên khác biệt chỉ có ý nghĩa khi cài đè. Nếu muốn camera cũng vậy thì sửa ở ticket sau của camera, không sửa trong T-012.
-    - Trả lời:
+    - Trả lời: Đồng ý với đề xuất của AI.
 13. **(Phiên bản 2) Hai bản của cùng một hàm.** `permissionDialogShown` có ở `:feature:camera` và `:feature:onboarding` (ADR-0001 không cho feature dùng feature khác).
     - Đề xuất của AI: chấp nhận hai bản như câu 2 của plan T-026 đã duyệt; hai file test giống nhau giữ quy tắc không lệch. Khi có nơi thứ ba thì đề xuất đưa vào một module core (đề xuất về dự án mẫu nếu có ích chung).
-    - Trả lời:
+    - Trả lời: Đồng ý với đề xuất của AI.
 
 Ghi nhận khi đọc tài liệu, không phải mâu thuẫn chặn plan: chữ của `:feature:camera` đang nằm trong `values/` bằng tiếng Việt, trong khi T-008 và spec `onboarding` câu hỏi 1 đặt tiếng Anh làm ngôn ngữ gốc. Plan này không chạm camera; đề xuất tạo ticket dịch chữ camera. Trong `context/`, tên lớp chữ của điểm 3 là "60 tư thế dùng được khi không ..." (tên cũ), nội dung là "Lưu tư thế yêu thích để chụp lại sau"; plan theo nội dung và bảng chữ.
 
@@ -389,9 +389,9 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-22); thay bằng 
 
 Phiên bản 2:
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

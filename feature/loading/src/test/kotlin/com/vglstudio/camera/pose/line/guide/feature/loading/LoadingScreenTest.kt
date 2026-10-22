@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -263,6 +264,44 @@ class LoadingScreenTest {
         assertEquals(1, retries)
     }
 
+    // On a frame where the error content is taller than the screen, the scroll path is really used (T-006).
+    @Test
+    @Config(qualifiers = VERY_SHORT_SCREEN)
+    fun failed_onVeryShortScreen_retryButtonReachableByScrolling() {
+        var retries = 0
+        composeRule.setContent {
+            AppTheme {
+                LoadingScreen(uiState = LoadingUiState.Failed(0.68f), appName = APP_NAME, onRetry = { retries++ })
+            }
+        }
+        val retry = composeRule.onNodeWithTag(LoadingTestTags.RETRY)
+        // Without this the test could pass without ever scrolling.
+        retry.assertIsNotDisplayed()
+
+        retry.performScrollTo().assertIsDisplayed()
+        val screenBottom = composeRule.onNodeWithTag(LoadingTestTags.SCREEN).getUnclippedBoundsInRoot().bottom
+        val retryBottom = retry.getUnclippedBoundsInRoot().bottom
+        assertTrue("retry bottom $retryBottom is below screen bottom $screenBottom", retryBottom <= screenBottom)
+
+        retry.performClick()
+        assertEquals(1, retries)
+    }
+
+    @Test
+    @Config(qualifiers = VERY_SHORT_SCREEN)
+    fun failed_onVeryShortScreen_footerBelowRetryAfterScrolling() {
+        composeRule.setContent {
+            AppTheme {
+                LoadingScreen(uiState = LoadingUiState.Failed(0.68f), appName = APP_NAME, onRetry = {})
+            }
+        }
+        val footer = composeRule.onNodeWithText(string(R.string.loading_footer))
+        footer.performScrollTo().assertIsDisplayed()
+        val retryBottom = composeRule.onNodeWithTag(LoadingTestTags.RETRY).getUnclippedBoundsInRoot().bottom
+        val footerTop = footer.getUnclippedBoundsInRoot().top
+        assertTrue("footer top $footerTop overlaps retry bottom $retryBottom", footerTop >= retryBottom)
+    }
+
     private fun assertDp(what: String, expected: Float, actual: Dp) {
         assertEquals(what, expected, actual.value, DESIGN_TOLERANCE_DP)
     }
@@ -272,6 +311,9 @@ class LoadingScreenTest {
 
         // Short phone frame (L-028, FB-20261017-01).
         const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+
+        // Frame where the error content is taller than the screen, to run the scroll path (T-006).
+        const val VERY_SHORT_SCREEN = "w320dp-h480dp-xxhdpi"
 
         // Standard design frame with the language of the design.
         const val DESIGN_FRAME_VI = "vi-w411dp-h891dp-xxhdpi"

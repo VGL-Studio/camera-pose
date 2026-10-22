@@ -21,7 +21,9 @@ class CapturedPhotoHolder @Inject constructor() {
     private val photo = MutableStateFlow<CapturedPhoto?>(null)
     val latest: StateFlow<CapturedPhoto?> = photo.asStateFlow()
 
-    fun put(photo: CapturedPhoto) = Unit
+    fun put(photo: CapturedPhoto) {
+        this.photo.value = photo
+    }
 
     fun clear() {
         photo.value = null

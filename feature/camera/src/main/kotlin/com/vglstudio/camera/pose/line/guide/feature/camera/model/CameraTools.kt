@@ -20,7 +20,13 @@ enum class TimerSetting(val seconds: Int) {
     fun next(): TimerSetting = entries[(ordinal + 1) % entries.size]
 }
 
-enum class Lens { BACK, FRONT }
+enum class Lens {
+    BACK,
+    FRONT,
+    ;
+
+    fun next(): Lens = if (this == BACK) FRONT else BACK
+}
 
 /** Capture tools kept across app launches (spec camera, KB-4). Zoom is not kept: it goes back to 1x. */
 data class CameraSettings(

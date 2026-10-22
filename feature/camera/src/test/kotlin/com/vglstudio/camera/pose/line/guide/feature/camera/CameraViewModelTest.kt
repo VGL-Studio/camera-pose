@@ -289,7 +289,8 @@ class CameraViewModelTest {
 
     @Test
     fun savedTools_restored_zoomBackTo1x() = runTest {
-        repository.stored.value = CameraSettings(FlashMode.AUTO, TimerSetting.TEN, gridVisible = true, lens = Lens.FRONT)
+        repository.stored.value =
+            CameraSettings(FlashMode.AUTO, TimerSetting.TEN, gridVisible = true, lens = Lens.FRONT)
         val viewModel = readyViewModel()
         assertEquals(listOf(Lens.FRONT), controller.openCalls)
         val ready = viewModel.ready()

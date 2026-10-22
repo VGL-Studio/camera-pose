@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-6]
 owner: Nhật
-status: ready
+status: planned
 risk: high
 size: L
 depends_on: [T-013]
 sprint:
-plan:
+plan: features/camera/plans/T-016-man-xem-lai.md
 created: 2026-10-21
 ---
 

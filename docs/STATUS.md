@@ -4,8 +4,13 @@
 
 ## 1. Đang chờ người
 
+- Plan `draft` chờ duyệt: [T-014-camera-chon-tu-the.md](features/camera/plans/T-014-camera-chon-tu-the.md)
+- Plan `draft` chờ duyệt: [T-016-man-xem-lai.md](features/camera/plans/T-016-man-xem-lai.md)
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
+- Plan `draft` chờ duyệt: [T-012-man-chao.md](features/onboarding/plans/T-012-man-chao.md)
+- Plan `draft` chờ duyệt: [T-021-thu-vien-tu-the.md](features/poses/plans/T-021-thu-vien-tu-the.md)
+- Plan `draft` chờ duyệt: [T-025-man-cai-dat.md](features/settings/plans/T-025-man-cai-dat.md)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-026-khong-ghi-quyen-tu-choi-vinh-vien.md](features/camera/tickets/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
@@ -28,14 +33,14 @@
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 7 `ready`, 1 `approved`, 1 `on-staging`.
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `ready`, 2 `planned`, 1 `approved`, 1 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
 | [T-013](features/camera/tickets/T-013-camera-co-ban.md) | Camera: khung xem trước, quyền, công cụ chụp, chụp ảnh | `on-staging` | `done` (bản 1) | 40.0M | RUN-20261021-04, RUN-20261022-01 |
-| [T-014](features/camera/tickets/T-014-camera-chon-tu-the.md) | Camera: chọn tư thế, nét viền, thẻ bước | `ready` | chưa có | - | - |
+| [T-014](features/camera/tickets/T-014-camera-chon-tu-the.md) | Camera: chọn tư thế, nét viền, thẻ bước | `planned` | `draft` (bản 1) | 30M | - |
 | [T-015](features/camera/tickets/T-015-camera-chinh-net-vien.md) | Camera: chỉnh nét viền | `ready` | chưa có | - | - |
-| [T-016](features/camera/tickets/T-016-man-xem-lai.md) | Màn xem lại, lưu, chia sẻ, tư thế tiếp | `ready` | chưa có | - | - |
+| [T-016](features/camera/tickets/T-016-man-xem-lai.md) | Màn xem lại, lưu, chia sẻ, tư thế tiếp | `planned` | `draft` (bản 1) | 25M | - |
 | [T-017](features/camera/tickets/T-017-camera-diem-khop.md) | Nhận dạng dáng và điểm khớp | `ready` | chưa có | - | - |
 | [T-018](features/camera/tickets/T-018-quang-cao-xem-lai.md) | Quảng cáo toàn màn hình khi rời màn xem lại | `ready` | chưa có | - | - |
 | [T-019](features/camera/tickets/T-019-hoi-danh-gia.md) | Hỏi đánh giá app trong app | `ready` | chưa có | - | - |
@@ -76,22 +81,22 @@ Phản hồi: chưa có.
 
 ### onboarding
 
-Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `ready`.
+Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `ready` | chưa có | - | - |
+| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `planned` | `draft` (bản 1) | 20.0M | - |
 
 Phản hồi: chưa có.
 
 ### poses
 
-Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 4 `ready`, 1 `on-staging`.
+Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 3 `ready`, 1 `on-staging`, 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
 | [T-009](features/poses/tickets/T-009-core-poses.md) | Module dữ liệu tư thế dùng chung `:core:poses` | `on-staging` | `done` (bản 1) | 40M | RUN-20261021-01 |
-| [T-021](features/poses/tickets/T-021-thu-vien-tu-the.md) | Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi | `ready` | chưa có | - | - |
+| [T-021](features/poses/tickets/T-021-thu-vien-tu-the.md) | Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi | `planned` | `draft` (bản 1) | 45M | - |
 | [T-022](features/poses/tickets/T-022-chi-tiet-tu-the.md) | Chi tiết tư thế và "Chụp với tư thế này" | `ready` | chưa có | - | - |
 | [T-023](features/poses/tickets/T-023-banner-thu-vien.md) | Banner ở thư viện và chi tiết tư thế | `ready` | chưa có | - | - |
 | [T-024](features/poses/tickets/T-024-thu-vien-may-gap.md) | Thư viện và chi tiết tư thế trên máy gập | `ready` | chưa có | - | - |
@@ -100,11 +105,11 @@ Phản hồi: chưa có.
 
 ### settings
 
-Spec: [spec.md](features/settings/spec.md) `confirmed`. Ticket: 1 `ready`.
+Spec: [spec.md](features/settings/spec.md) `confirmed`. Ticket: 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-025](features/settings/tickets/T-025-man-cai-dat.md) | Màn cài đặt | `ready` | chưa có | - | - |
+| [T-025](features/settings/tickets/T-025-man-cai-dat.md) | Màn cài đặt | `planned` | `draft` (bản 1) | 20.0M | - |
 
 Phản hồi: chưa có.
 

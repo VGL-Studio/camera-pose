@@ -22,6 +22,11 @@ interface CameraController {
     suspend fun takePicture(): File
 
     fun close()
+
+    /** Closes the camera for good, when the view model is cleared. */
+    fun release() {
+        close()
+    }
 }
 
 data class CameraCapabilities(val hasFlash: Boolean, val minZoomRatio: Float, val maxZoomRatio: Float)

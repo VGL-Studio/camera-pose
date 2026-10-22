@@ -139,8 +139,11 @@ class CameraViewModel @Inject constructor(
     /** Switches front and back; zoom goes back to 1x because each camera has its own zoom range. */
     fun onFlipClick() {
         val ready = state.value as? CameraUiState.Ready ?: return
+        // A photo being taken keeps its camera: switching would reopen the camera under it.
+        if (ready.capturing) return
         cancelCountdown(reason = "flip")
-        val lens = ready.lens.next()
+        // From the tools, not the state: the state keeps the old lens while the new camera opens.
+        val lens = (tools?.lens ?: ready.lens).next()
         updateTools { it.copy(lens = lens) }
         save { repository.setLens(lens) }
         logger.info(LOG_TAG, "Switching to the ${lens.name.lowercase()} camera")
@@ -175,7 +178,7 @@ class CameraViewModel @Inject constructor(
     fun onCancelCountdown() = cancelCountdown(reason = "user")
 
     override fun onCleared() {
-        controller.close()
+        controller.release()
     }
 
     private fun openCamera(keepReady: Boolean = false) {
@@ -204,11 +207,11 @@ class CameraViewModel @Inject constructor(
     }
 
     private fun capture(timer: TimerSetting) {
+        val lens = (state.value as? CameraUiState.Ready)?.lens ?: return
         updateReady { it.copy(capturing = true) }
         viewModelScope.launch {
             try {
                 val file = controller.takePicture()
-                val lens = (state.value as? CameraUiState.Ready)?.lens ?: loadTools().lens
                 holder.put(CapturedPhoto(file, lens, timer, clock.nowMillis()))
                 analytics.log(
                     AnalyticsEvent(

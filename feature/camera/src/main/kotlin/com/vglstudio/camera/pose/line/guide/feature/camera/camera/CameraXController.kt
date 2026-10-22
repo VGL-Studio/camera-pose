@@ -32,9 +32,11 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
@@ -104,7 +106,9 @@ internal class CameraXController @Inject constructor(
                 maxZoomRatio = zoom?.maxZoomRatio ?: 1f,
             )
         } catch (e: CancellationException) {
-            throw e
+            // Only a cancelled caller is a cancellation; a future CameraX cancelled on its own is a failed open.
+            if (!currentCoroutineContext().isActive) throw e
+            throw CameraOpenException(e)
         } catch (e: Exception) {
             throw CameraOpenException(e)
         }
@@ -118,8 +122,9 @@ internal class CameraXController @Inject constructor(
         val control = camera?.cameraControl ?: return
         // setZoomRatio returns a Guava ListenableFuture, which is on the runtime classpath of CameraX but not on the
         // compile classpath, and the plan adds no library (plan T-013, section 7, condition 4). The result is not
-        // needed, so the call goes through reflection.
-        runCatching { SET_ZOOM_RATIO.invoke(control, ratio) }
+        // needed, so the call goes through reflection; consumer-rules.pro keeps the method in minified builds. If the
+        // lookup still fails, only zoom stops working.
+        runCatching { setZoomRatio.invoke(control, ratio) }
             .onFailure { logger.warn(LOG_TAG, "Zoom could not be set", it) }
     }
 
@@ -161,6 +166,14 @@ internal class CameraXController @Inject constructor(
         logger.debug(LOG_TAG, "Camera unbound")
     }
 
+    override fun release() {
+        close()
+        // CameraX keeps a camera per lifecycle owner until it is destroyed.
+        registry.currentState = Lifecycle.State.DESTROYED
+        shutterSound?.release()
+        shutterSound = null
+    }
+
     private fun FlashMode.toCameraX(): Int = when (this) {
         FlashMode.OFF -> ImageCapture.FLASH_MODE_OFF
         FlashMode.ON -> ImageCapture.FLASH_MODE_ON
@@ -169,6 +182,8 @@ internal class CameraXController @Inject constructor(
 
     private companion object {
         const val LOG_TAG = "Camera"
-        val SET_ZOOM_RATIO: Method = CameraControl::class.java.getMethod("setZoomRatio", Float::class.javaPrimitiveType)
+        val setZoomRatio: Method by lazy {
+            CameraControl::class.java.getMethod("setZoomRatio", Float::class.javaPrimitiveType)
+        }
     }
 }

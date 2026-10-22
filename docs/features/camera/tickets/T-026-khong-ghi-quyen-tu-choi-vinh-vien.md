@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-7]
 owner: Nhật
-status: backlog
+status: approved
 risk: low
 size: S
 depends_on: [T-013]
 sprint:
-plan:
+plan: features/camera/plans/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md
 created: 2026-10-22
 ---
 

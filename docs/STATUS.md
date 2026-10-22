@@ -4,7 +4,7 @@
 
 ## 1. Đang chờ người
 
-- Spec `changed` chờ xác nhận: [spec.md](features/camera/spec.md) (camera)
+- Plan `draft` chờ duyệt: [T-026-khong-ghi-quyen-tu-choi-vinh-vien.md](features/camera/plans/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md)
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
@@ -28,7 +28,7 @@
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `changed`. Ticket: 7 `ready`, 1 `backlog`, 1 `on-staging`.
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 7 `ready`, 1 `on-staging`, 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -40,7 +40,7 @@ Spec: [spec.md](features/camera/spec.md) `changed`. Ticket: 7 `ready`, 1 `backlo
 | [T-018](features/camera/tickets/T-018-quang-cao-xem-lai.md) | Quảng cáo toàn màn hình khi rời màn xem lại | `ready` | chưa có | - | - |
 | [T-019](features/camera/tickets/T-019-hoi-danh-gia.md) | Hỏi đánh giá app trong app | `ready` | chưa có | - | - |
 | [T-020](features/camera/tickets/T-020-camera-may-gap.md) | Camera và màn xem lại trên máy gập | `ready` | chưa có | - | - |
-| [T-026](features/camera/tickets/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md) | Không ghi camera_permission_result khi quyền camera đã bị từ chối vĩnh viễn | `backlog` | chưa có | - | - |
+| [T-026](features/camera/tickets/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md) | Không ghi camera_permission_result khi quyền camera đã bị từ chối vĩnh viễn | `planned` | `draft` (bản 1) | 10.0M | - |
 
 Phản hồi: chưa có.
 

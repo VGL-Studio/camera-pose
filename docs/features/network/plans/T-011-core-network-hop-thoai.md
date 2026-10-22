@@ -1,7 +1,7 @@
 ---
 ticket: T-011
 title: Nhận ra mất mạng và hộp thoại mất mạng
-status: approved
+status: done
 version: 2
 risk_score:
 risk_level: high
@@ -334,3 +334,14 @@ Phiên bản 2:
   - (c) `View.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS` trên view chứa nội dung (cần tách nội dung và hộp thoại ra hai view; lớn hơn hai hướng trên).
 - **Cách tiếp tục (mục 3.1, khi duyệt):** tiếp tục trên nhánh `claude/T-011-core-network-hop-thoai`; mọi phần khác đã có code và test qua. Bước 3 chỉ áp dụng cho test đổi điều kiểm tra (phần trợ năng của `shown_blocksContentClicks_andHidesItFromAccessibility`).
 - **Chưa có PR sửa nguyên nhân:** nguyên nhân nằm trong cách làm của plan, không phải trong code ngoài plan.
+
+### RUN-20261022-01, phiên bản plan 2
+
+- **Kết quả:** đã merge (PR #23, commit 2797b86)
+- **Nhánh, PR:** `claude/T-011-core-network-hop-thoai`, PR #23. Tiếp tục trên nhánh cũ, merge nhánh chính vào trước khi làm.
+- **Đã làm:** bước 3 cho `NetworkDialogHostTest` theo mục 4 phiên bản 2 (`shown_drawsDialogInSeparateWindow`, `back_whileShown_callsOnBack_andKeepsDestination` qua `ShadowDialog.getLatestDialog()`); `NetworkDialogHost` vẽ hộp thoại trong cửa sổ `Dialog` riêng; 4 ảnh chuẩn; ảnh so sánh thiết kế bằng `DesignCompare.java`.
+- **Test viết trước:** 2 test đổi điều kiểm tra thất bại đúng lý do trên code phiên bản 1 (1 node gốc thay vì 2; không có hộp thoại nên `ShadowDialog.getLatestDialog()` trả `null`). 2 test chặn hồi quy qua ngay như trước. Sau rà soát độc lập thêm `shown_dialogWindowAddsNoSystemDim`, thất bại trước khi sửa.
+- **Rà soát độc lập:** 0 chặn đã xác nhận, 2 nên sửa (đã sửa trong phạm vi file của plan), 6 ghi chú. Đã sửa: cửa sổ hộp thoại để hệ thống làm tối thêm phía sau (mờ hai lần) và không phủ thanh hệ thống, nay `decorFitsSystemWindows = false`, `setDimAmount(0f)`, thẻ có `safeDrawingPadding()`; `retry()` đổi trạng thái bằng `compareAndSet` để không mở lại hộp thoại vừa bị tắt (cờ tắt hay quay về loading cùng lúc bấm "Thử lại").
+- **Kết quả CI:** xanh ở vòng đầu (`changes`, `build-and-test`, `ui-test`), lần chạy 39708763748.
+- **Lệch so với plan:** `DialogProperties` thêm `decorFitsSystemWindows = false` và tắt lớp tối của hệ thống (mục 3.1 chỉ nêu ba thuộc tính); `NetworkDialogScreen` thêm `safeDrawingPadding()`; thêm một test vào `NetworkDialogHostTest`. Đều trong file của mục 3.2, theo rà soát độc lập. Lệch của phiên bản 1 (báo lỗi theo `AssetFailureReason.NETWORK`) giữ nguyên.
+- **Cần người xem:** 4 ảnh chuẩn mới; ảnh so sánh thiết kế (phần khác 76,5% ở ảnh sáng là nền đen phía sau lớp mờ của ảnh thiết kế); kiểm tra thủ công mục 4 trên bản staging, thêm: lớp mờ phủ cả thanh trạng thái, độ tối giống thiết kế; TalkBack đọc tiêu đề hộp thoại một lần (chưa đặt `windowTitle`).

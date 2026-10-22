@@ -350,3 +350,20 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** thêm `scripts/run-check.py`, kiểm cả danh sách chạy: spec đã chốt và trả lời hết, phụ thuộc đúng thứ tự, kịch bản có test, plan cùng sửa một file, ngoại lệ ở vỏ app. Thêm `docs/ops/pre-run-review.md`: một lần rà soát độc lập với ngữ cảnh mới, tìm mâu thuẫn, test chưa đủ tốt và điều kiện để phiên chạy được, kết quả ghi vào mục Kiểm tra trước khi duyệt của danh sách chạy. Dev chỉ duyệt danh sách khi không còn điểm chặn. Phiên chạy lại `run-check.py` ở đầu phiên.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-037: Quyền và thư viện cần thêm chỉ lộ ra khi viết code, phiên phải dừng hoặc đi vòng
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01 (T-013), chuẩn bị RUN-20261023-01 (T-016).
+- **Chuyện gì:**
+  - **T-013:** plan không biết `CameraControl.setZoomRatio` trả `ListenableFuture` mà Guava không có trên classpath biên dịch. Thêm thư viện là điều kiện dừng, nên phiên gọi hàm qua reflection, kèm rủi ro R8 xóa hàm ở bản minify (L-007).
+  - **T-016 phiên bản 1:** plan cần `WRITE_EXTERNAL_STORAGE` cho Android 9 trở xuống, trong khi spec không có quyền này. Lỗi chỉ được thấy khi người rà soát bằng tay trước khi duyệt; nếu không, phiên sẽ dừng task ở điều kiện 2.
+  - Chưa có bước nào bắt plan tra quyền theo từng phiên bản Android, thư viện trên classpath biên dịch, hay quyền mà thư viện kéo vào manifest gộp.
+- **Bằng chứng:** L-007; plan T-016 phiên bản 1 và 2 (mục 1, mục 8 câu 1); spec `camera`, dòng lịch sử ngày 2026-10-22.
+- **Đề xuất sửa:**
+  - Mẫu plan mục 3.3 có hai dòng bắt buộc: Quyền truy cập (thêm, kèm phần spec cho phép; không thêm) và Thư viện và SDK.
+  - `docs/CLAUDE.md` mục Khi viết plan: cách tra quyền theo phiên bản, thư viện trên classpath biên dịch, và quyền trong manifest gộp.
+  - Mẫu spec mục 6 có Quyền của app và dịch vụ bên ngoài, để người phụ trách sản phẩm quyết từ lúc viết spec.
+  - `plan-check.py` quy tắc 8: plan `draft` nhắc quyền mà manifest chưa có nhưng không quyết, thêm quyền mà không ghi spec hay thiếu `permission` và mức cao, hoặc dùng thư viện chưa có trong catalog mà không sửa `gradle/libs.versions.toml`, đều là lỗi.
+  - `pre-run-review.md`: thiếu một trong các điểm trên là mức chặn.
+- **Áp dụng:**
+- **Kiểm chứng:**

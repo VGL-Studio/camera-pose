@@ -19,6 +19,12 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
   7. A plan whose criterion E (novelty of the technique, risk-scoring.md) scores 2 or more has a trial-run
      section 4.1 that names scripts/check.sh (L-001, L-010). An error for a draft plan; only a warning for a plan
      reviewed before this rule, so a session does not skip it.
+  8. Permissions and libraries are decided while planning, not found during the session (risk-scoring.md,
+     section 4, condition 2). Section 3.3 has the lines 'Quyền truy cập:' and 'Thư viện và SDK:'. A permission the
+     plan names that no manifest has yet must be on the 'Quyền truy cập:' line with the spec part that allows it,
+     with 'permission' in blocking_points and a high risk level. A library (group:name) or catalog alias (libs.x)
+     the version catalog does not have needs gradle/libs.versions.toml in the file list and 'sdk' in
+     blocking_points. Errors for a draft plan, warnings for an approved one, like rule 7.
 PLAN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
 
@@ -47,6 +53,22 @@ OTHER_TICKET_IMAGES = re.compile(r"Ảnh thiết kế của ticket khác([^:\n]*
 # Score of criterion E in the risk table of section 5 (rule 7).
 NOVELTY_SCORE = re.compile(r"^\|\s*E\.[^|]*\|\s*(\d)", re.M)
 TRIAL_RUN_HEADING = "4.1. Chạy thử"
+# Rule 8: permissions and libraries.
+# Permissions are named as android.permission.X, or by a bare name from this list of common Android permissions.
+KNOWN_PERMISSIONS = {
+    "ACCESS_BACKGROUND_LOCATION", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "ACCESS_MEDIA_LOCATION",
+    "ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE", "ACTIVITY_RECOGNITION", "AD_ID", "BLUETOOTH", "BLUETOOTH_CONNECT",
+    "BLUETOOTH_SCAN", "BODY_SENSORS", "CALL_PHONE", "CAMERA", "FOREGROUND_SERVICE", "GET_ACCOUNTS", "INTERNET",
+    "MANAGE_EXTERNAL_STORAGE", "NEARBY_WIFI_DEVICES", "POST_NOTIFICATIONS", "QUERY_ALL_PACKAGES", "READ_CALENDAR",
+    "READ_CONTACTS", "READ_EXTERNAL_STORAGE", "READ_MEDIA_AUDIO", "READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO",
+    "READ_MEDIA_VISUAL_USER_SELECTED", "READ_PHONE_STATE", "RECEIVE_BOOT_COMPLETED", "RECORD_AUDIO",
+    "REQUEST_INSTALL_PACKAGES", "SCHEDULE_EXACT_ALARM", "SEND_SMS", "SYSTEM_ALERT_WINDOW", "USE_EXACT_ALARM",
+    "VIBRATE", "WAKE_LOCK", "WRITE_CALENDAR", "WRITE_CONTACTS", "WRITE_EXTERNAL_STORAGE",
+}
+PERMISSION = re.compile(r"android\.permission\.([A-Z_]+)|\b([A-Z][A-Z_]+[A-Z])\b")
+COORDINATE = re.compile(r"`([a-z][\w.-]*\.[\w.-]+):([\w.-]+)(?::[\w.-]+)?`")
+ALIAS = re.compile(r"\blibs\.([a-zA-Z][\w.]*[a-zA-Z0-9])")
+CATALOG = "gradle/libs.versions.toml"
 
 
 def front_matter(text):
@@ -139,6 +161,70 @@ def other_ticket_images(text):
     return names, without_ticket
 
 
+def manifest_permissions():
+    found = set()
+    for manifest in ROOT.glob("**/src/main/AndroidManifest.xml"):
+        if SKIP_DIRS.isdisjoint(manifest.relative_to(ROOT).parts) and ".claude" not in manifest.parts:
+            found.update(re.findall(r"android\.permission\.([A-Z_]+)", manifest.read_text()))
+    return found
+
+
+def catalog():
+    """(group:name coordinates, accessor aliases) of the version catalog."""
+    path = ROOT / CATALOG
+    text = path.read_text() if path.is_file() else ""
+    coordinates, aliases = set(), set()
+    for table, body in re.findall(r"^\[(\w+)\]\s*$(.*?)(?=^\[|\Z)", text, re.S | re.M):
+        for alias, value in re.findall(r"^([\w-]+)\s*=\s*(.+)$", body, re.M):
+            accessor = alias.replace("-", ".").replace("_", ".")
+            aliases.add({"libraries": "", "plugins": "plugins.", "bundles": "bundles."}.get(table, "x.") + accessor)
+            group = re.search(r'group\s*=\s*"([^"]+)"', value)
+            name = re.search(r'name\s*=\s*"([^"]+)"', value)
+            module = re.search(r'module\s*=\s*"([^"]+)"', value)
+            if group and name:
+                coordinates.add(f"{group.group(1)}:{name.group(1)}")
+            elif module:
+                coordinates.add(module.group(1))
+    return coordinates, aliases
+
+
+def permission_and_library_problems(text, fields, listed):
+    problems = []
+    decisions = section(text, "3.3")
+    permission_line = re.search(r"Quyền truy cập:\**\s*(.*)", decisions)
+    library_line = re.search(r"Thư viện và SDK:\**\s*(.*)", decisions)
+    if not permission_line or not library_line:
+        problems.append("mục 3.3 thiếu dòng 'Quyền truy cập:' hoặc 'Thư viện và SDK:'. Quyền và thư viện phải được "
+                        "quyết lúc lập plan, không để phiên gặp rồi dừng (risk-scoring.md, mục 4, điều kiện 2).")
+    blocking = fields.get("blocking_points", "")
+    high = fields.get("risk_level") == "high"
+    named = {full or bare for full, bare in PERMISSION.findall(text) if full or bare in KNOWN_PERMISSIONS}
+    line = permission_line.group(1) if permission_line else ""
+    # 'Quyền truy cập: `X` (spec KB-6); không thêm: `Y`': names before 'không thêm' are added, after it are not.
+    added_part = re.split(r"không thêm", line, maxsplit=1, flags=re.I)[0]
+    added = sorted(p for p in named - manifest_permissions() if p in added_part)
+    for permission in sorted(named - manifest_permissions()):
+        if permission not in line:
+            problems.append(f"plan nhắc quyền {permission} mà manifest chưa có, nhưng dòng 'Quyền truy cập:' của mục 3.3 "
+                            "không ghi quyền này là thêm (kèm phần spec cho phép) hay không thêm.")
+    if added and not re.search(r"spec|KB-\d+", added_part):
+        problems.append(f"dòng 'Quyền truy cập:' thêm {', '.join(added)} nhưng không ghi phần spec cho phép (KB-n "
+                        "hoặc mục của spec). Spec chưa có quyền này thì sửa spec trước khi duyệt plan.")
+    if added and ("permission" not in blocking or not high):
+        problems.append(f"plan thêm quyền ({', '.join(added)}) nhưng blocking_points thiếu 'permission' "
+                        "hoặc risk_level không phải high (risk-scoring.md, mục 1, điểm 3).")
+    coordinates, aliases = catalog()
+    unknown = sorted({f"{g}:{n}" for g, n in COORDINATE.findall(text)} - coordinates)
+    unknown += sorted({f"libs.{a}" for a in ALIAS.findall(text)
+                       if a not in aliases and not a.startswith("versions") and a != "versions.toml"})
+    if unknown and CATALOG not in listed:
+        problems.append(f"plan dùng thư viện chưa có trong {CATALOG} ({', '.join(unknown[:4])}) nhưng không sửa file này "
+                        "ở mục 3.2. Thêm thư viện phải được quyết lúc lập plan (risk-scoring.md, mục 1, điểm 2).")
+    if (unknown or CATALOG in listed) and "sdk" not in blocking:
+        problems.append("plan thêm thư viện nhưng blocking_points thiếu 'sdk' (risk-scoring.md, mục 1, điểm 2).")
+    return problems
+
+
 def check(plan_path):
     errors, warnings = [], []
     text = plan_path.read_text()
@@ -226,6 +312,9 @@ def check(plan_path):
         message = (f"tiêu chí E là {novelty.group(1)} nhưng mục {TRIAL_RUN_HEADING} không có hoặc không ghi lần chạy thử "
                    "bằng scripts/check.sh (L-001, L-010).")
         (errors if status == "draft" else warnings).append(message)
+    if status in ("draft", "approved"):
+        for message in permission_and_library_problems(text, fields, listed):
+            (errors if status == "draft" else warnings).append(message)
     if "## 4. Kiểm thử" not in text:
         warnings.append("không thấy mục 4. Kiểm thử.")
     return errors, warnings

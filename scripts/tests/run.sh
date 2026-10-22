@@ -307,8 +307,8 @@ echo '{}' > "$repo/docs/data/values.json"
 echo 'open("docs/data/values.json")' > "$repo/scripts/reader.py"
 touch "$repo/feature/demo/A.kt" "$repo/core/x/B.kt" "$repo/docs/features/demo/design/screens/DemoScreen_main_light.png"
 write_plan() { # <file> <risk> <status> <rows> [extra text]
-  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: %s\nreviewer: A\ncross_reviewer:\napproved_at: 2026-10-17\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%b\n\n%s\n\n## 4. Kiểm thử\n' \
-    "$(basename "$1" | cut -d- -f1-2)" "$3" "$2" "$4" "${5:-}" > "$1"
+  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: %s\nreviewer: A\ncross_reviewer:\napproved_at: 2026-10-17\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%b\n\n### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện\n\n- **Quyền truy cập:** %s\n- **Thư viện và SDK:** Không thêm.\n\n%s\n\n## 4. Kiểm thử\n' \
+    "$(basename "$1" | cut -d- -f1-2)" "$3" "$2" "$4" "${PERMISSIONS:-Không thêm.}" "${5:-}" > "$1"
 }
 plan_check() { if PLAN_CHECK_ROOT="$repo" python3 -I scripts/plan-check.py "$1" > "$work/plan-check.out" 2>&1; then echo pass; else echo stop; fi; }
 # One row of the file list of a plan; the backticks are Markdown, not command substitution.
@@ -380,6 +380,27 @@ write_plan "$plans/T-920-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
 expect "plan-check: a draft plan with its trial run passes" pass "$(plan_check "$plans/T-920-a.md")"
 write_plan "$plans/T-921-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$novel"$'\n\n'"$decision_v1"
 expect "plan-check: an approved plan without a trial run only warns" pass "$(plan_check "$plans/T-921-a.md")"
+# Permissions and libraries are decided while planning, not found during the session (rule 8).
+printf '<manifest>\n<uses-permission android:name="android.permission.CAMERA" />\n</manifest>\n' > "$repo/feature/demo/AndroidManifest.xml"
+mkdir -p "$repo/app/src/main" "$repo/gradle"
+printf '<manifest>\n<uses-permission android:name="android.permission.CAMERA" />\n</manifest>\n' > "$repo/app/src/main/AndroidManifest.xml"
+printf '[libraries]\nandroidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.0" }\n' > "$repo/gradle/libs.versions.toml"
+printf -- '---\nticket: T-922\nstatus: draft\nrisk_level: medium\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| Sửa | `feature/demo/A.kt` | x |\n\n## 4. Kiểm thử\n' > "$plans/T-922-a.md"
+expect "plan-check: a draft plan without the permission and library lines stops" stop "$(plan_check "$plans/T-922-a.md")"
+write_plan "$plans/T-923-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Gọi API cần `WRITE_EXTERNAL_STORAGE`.'
+expect "plan-check: a new permission the plan does not decide stops" stop "$(plan_check "$plans/T-923-a.md")"
+PERMISSIONS='`WRITE_EXTERNAL_STORAGE` (maxSdkVersion 28, spec KB-6).' write_plan "$plans/T-924-a.md" medium draft \
+  "$(row Sửa feature/demo/A.kt)" 'Gọi API cần `WRITE_EXTERNAL_STORAGE`.'
+expect "plan-check: an added permission needs a high-risk plan with the permission blocking point" stop "$(plan_check "$plans/T-924-a.md")"
+PERMISSIONS='Không thêm: `READ_MEDIA_IMAGES`.' write_plan "$plans/T-925-a.md" medium draft \
+  "$(row Sửa feature/demo/A.kt)" 'Không cần `READ_MEDIA_IMAGES`; `CAMERA` đã có.'
+expect "plan-check: a permission the plan decides not to add passes" pass "$(plan_check "$plans/T-925-a.md")"
+write_plan "$plans/T-926-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Dùng `com.squareup.okhttp3:okhttp:4.12.0`.'
+expect "plan-check: a library missing from the catalog stops" stop "$(plan_check "$plans/T-926-a.md")"
+expect "plan-check: names the missing library" 1 "$(grep -c 'com.squareup.okhttp3:okhttp' "$work/plan-check.out")"
+write_plan "$plans/T-927-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Dùng `androidx.core:core-ktx` (`libs.androidx.core.ktx`).'
+expect "plan-check: a library already in the catalog passes" pass "$(plan_check "$plans/T-927-a.md")"
+rm "$repo/feature/demo/AndroidManifest.xml" "$repo/app/src/main/AndroidManifest.xml" "$repo/gradle/libs.versions.toml"
 
 # run-check.py checks a whole run list: specs confirmed and answered, dependencies in order, scenarios tested.
 rr="$work/run-repo"

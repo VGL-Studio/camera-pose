@@ -49,6 +49,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Viết bằng ngôn ngữ nghiệp vụ. Mục tiêu, phạm vi và kịch bản sử dụng không chứa tên lớp, tên thư viện hay thuật ngữ kỹ thuật.
 - Mỗi kịch bản có tiêu chí chấp nhận cụ thể, kiểm chứng được, viết theo dạng "Khi ... thì ...".
 - Không tự thêm vị trí quảng cáo, sự kiện phân tích hay dữ liệu thu thập. Chỉ ghi những gì yêu cầu nêu; nếu thấy cần, đặt thành câu hỏi.
+- Ghi quyền của app và dịch vụ bên ngoài mà feature cần ở mục 6 của spec. Hành vi trong yêu cầu mà trên một số phiên bản Android cần quyền (ví dụ lưu ảnh vào thư viện máy trên Android 9 trở xuống) thì nêu ngay ở spec, hoặc đặt thành câu hỏi kèm phương án, không để tới lúc viết plan hay chạy phiên mới thấy.
 - Chỗ nào yêu cầu chưa rõ, ghi thành câu hỏi trong mục câu hỏi còn mở, kèm phương án AI đề xuất. Không đoán.
 - Spec mới luôn có trạng thái `draft`. Spec đã `confirmed` mà có yêu cầu mới thì cập nhật nội dung, chuyển sang `changed` và ghi vào mục lịch sử. Chỉ người mới chuyển sang `confirmed`.
 
@@ -67,6 +68,12 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Mỗi tiêu chí chấp nhận trong spec phải có cách kiểm chứng tương ứng trong mục kiểm thử. Test được viết trước code, nên mục kiểm thử phải đủ cụ thể để viết được test ngay từ plan.
 - Plan sửa lỗi giao diện hay lỗi đo được: trước khi viết mục kiểm thử, chạy thử điều test sẽ kiểm tra trên code hiện tại, bằng một test tạm không commit, và ghi số đo thật vào mục 4. Khung test phải tái hiện được lỗi gốc (cùng chiều rộng, chiều cao như nơi phát hiện). Không đoán test sẽ thất bại vì đâu (L-029).
 - Kỹ thuật hay thư viện lần đầu dùng trong dự án (tiêu chí E từ 2): chạy thử trước khi duyệt, bằng một test tạm không commit và bằng đúng lệnh phiên dùng (`scripts/check.sh`) trên nhánh có code liên quan; ghi lệnh và kết quả vào mục 4.1 của plan. Chạy thử bằng lệnh khác (ví dụ chỉ `./gradlew :module:testDebugUnitTest`) không đủ: quy tắc của `check.sh` và cách Robolectric vẽ có thể khác (L-001, L-010). `scripts/plan-check.py` báo lỗi khi plan `draft` thiếu mục này.
+- Quyết quyền và thư viện ngay trong plan, ghi ở hai dòng cuối của mục 3.3, vì phiên gặp quyền hay thư viện mà plan chưa nêu thì phải dừng task (`risk-scoring.md`, mục 4, điều kiện 2). Cách tìm:
+  - Với mỗi API Android mà plan gọi, tra quyền nó cần trên mọi phiên bản từ `minSdk` tới `targetSdk`, kể cả quyền chỉ cần ở bản cũ (ghi `maxSdkVersion`).
+  - Với mỗi lớp mà code mới dùng, tra thư viện chứa nó và xem thư viện đó có trên classpath biên dịch của module không, không chỉ có ở runtime (L-007). Thư viện chưa có trong `gradle/libs.versions.toml` là thư viện mới.
+  - Thêm thư viện mới thì so danh sách `uses-permission` của manifest gộp trước và sau khi thêm (`./gradlew :app:processStagingDebugMainManifest`, file trong `app/build/intermediates/merged_manifest/`), ghi quyền nó kéo vào.
+  - Phần chạy thử (mục 4.1) gọi đúng các API và lớp đó, để lỗi thiếu thư viện hay thiếu quyền lộ ra trước khi duyệt.
+  - Quyền mới phải có trong spec (mục 6, Quyền của app). Spec chưa có thì đề xuất sửa spec và đặt câu hỏi ở mục 8; plan chờ spec được xác nhận lại rồi mới duyệt. Ghi `permission` hay `sdk` vào `blocking_points`.
 - Điểm kỹ thuật vẫn còn chưa chắc sau khi chạy thử: ghi phương án dự phòng ở mục 3.4 (điều kiện chuyển cụ thể, cách làm thay), đưa file của phương án đó vào mục 3.2 với ghi chú "(dự phòng)", để phiên chuyển sang thay vì dừng task (`risk-scoring.md`, mục 4). Phương án dự phòng không được hạ tiêu chí chấp nhận hay đổi test viết trước.
 - Chấm rủi ro theo [risk-scoring.md](risk-scoring.md), ghi lý do cho từng tiêu chí. Không hạ điểm để plan dễ được duyệt.
 - Ghi `token_estimate` theo cỡ của ticket, lấy số gợi ý từ `scripts/token-usage.py estimate`; task khác thường thì chỉnh và ghi lý do. Ước tính chỉ để lập kế hoạch, không chặn task ([ops/token-usage.md](ops/token-usage.md)).

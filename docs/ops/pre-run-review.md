@@ -56,6 +56,13 @@ Nội dung giao việc tối thiểu: "Rà soát danh sách chạy `<đường d
 - Kỹ thuật lần đầu dùng (tiêu chí E từ 2) đã chạy thử bằng `scripts/check.sh`, ghi ở mục 4.1 (L-001, L-010).
 - Điểm còn chưa chắc có phương án dự phòng ở mục 3.4 với điều kiện chuyển cụ thể (L-035).
 - Plan không dùng cách mà `scripts/check.sh` từ chối (L-003, L-013).
+- Quyền và thư viện đã được quyết trong mục 3.3:
+  - mỗi API Android mà plan gọi có quyền cần thiết trên mọi phiên bản từ `minSdk` tới `targetSdk`;
+  - mỗi lớp mới dùng có thư viện trên classpath biên dịch của module (L-007);
+  - thư viện mới đã ghi quyền mà nó kéo vào manifest gộp;
+  - quyền mới có trong spec.
+
+  Thiếu một trong các điểm này là mức chặn: phiên sẽ dừng ở điều kiện 2 của `risk-scoring.md`, mục 4.
 - File R2, bí mật, cấu hình mà task cần đã có trước phiên, và được kiểm bằng cách phiên kiểm được (L-005, L-011, L-012).
 - Điều kiện dừng riêng ở mục 7 rõ, kiểm được, không mơ hồ.
 

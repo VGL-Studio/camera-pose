@@ -49,12 +49,19 @@ ADR liên quan: <ADR-NNNN, ...>
 | Sửa | `feature/<ten>/src/main/.../XxxViewModel.kt` | <...> |
 | Tạo | `feature/<ten>/src/test/.../XxxViewModelTest.kt` | <...> |
 
-### 3.3. Cờ tính năng, quảng cáo, dữ liệu
+### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
+
+<!--
+Quyền và thư viện phải được quyết ở đây, lúc lập plan: phiên gặp quyền hay thư viện mà plan chưa nêu thì phải dừng task (risk-scoring.md, mục 4, điều kiện 2).
+Cách tìm: docs/CLAUDE.md, mục Khi viết plan. scripts/plan-check.py kiểm hai dòng cuối.
+-->
 
 - Cờ tính năng: <tên cờ và cách dùng, hoặc "Không có">
 - Quảng cáo: <vị trí đã có trong spec, hoặc "Không chạm">
 - Sự kiện phân tích: <sự kiện đã có trong spec, hoặc "Không chạm">
 - File R2: <hoặc "Không chạm">
+- **Quyền truy cập:** <quyền thêm, mỗi quyền: tên như `WRITE_EXTERNAL_STORAGE`, `maxSdkVersion` nếu có, phần spec cho phép (KB-n hoặc mục 6); rồi "không thêm:" và các quyền plan có nhắc tới nhưng không thêm. Hoặc "Không thêm">
+- **Thư viện và SDK:** <thư viện mới, mỗi thư viện: tọa độ `group:name:version`, giấy phép, quyền mà nó kéo vào manifest gộp; thư viện đã có thì ghi tên trong `gradle/libs.versions.toml` và module nào thêm phụ thuộc. Hoặc "Không thêm">
 
 ### 3.4. Phương án dự phòng
 

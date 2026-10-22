@@ -61,6 +61,7 @@ class NetworkDialogController @Inject internal constructor(
 
     override val recovered: Flow<Unit> = _recovered.asSharedFlow()
 
+    @Volatile
     private var retryJob: Job? = null
 
     init {
@@ -92,21 +93,24 @@ class NetworkDialogController @Inject internal constructor(
     fun retry() {
         val current = _state.value
         if (current !is NetworkDialogState.Shown || current.checking) return
-        _state.value = NetworkDialogState.Shown(checking = true, stillOffline = false)
+        // Compare-and-set: disarm() runs on another thread and may hide the dialog meanwhile; never reopen it.
+        if (!_state.compareAndSet(current, CHECKING)) return
         retryJob = scope.launch {
             var waited = 0L
             while (!connectivity.isConnected()) {
                 if (waited >= NetworkSettings.RETRY_MAX_MILLIS) {
-                    _state.value = NetworkDialogState.Shown(checking = false, stillOffline = true)
-                    logger.info(TAG, "Retry: still_offline")
+                    if (_state.compareAndSet(CHECKING, STILL_OFFLINE)) {
+                        logger.info(TAG, "Retry: still_offline")
+                    }
                     return@launch
                 }
                 delay(NetworkSettings.RETRY_POLL_MILLIS)
                 waited += NetworkSettings.RETRY_POLL_MILLIS
             }
-            _state.value = NetworkDialogState.Hidden
-            logger.info(TAG, "Retry: online")
-            _recovered.tryEmit(Unit)
+            if (_state.compareAndSet(CHECKING, NetworkDialogState.Hidden)) {
+                logger.info(TAG, "Retry: online")
+                _recovered.tryEmit(Unit)
+            }
         }
     }
 
@@ -142,5 +146,7 @@ class NetworkDialogController @Inject internal constructor(
     private companion object {
         const val TAG = "Network"
         const val MILLIS_PER_SECOND = 1_000L
+        val CHECKING = NetworkDialogState.Shown(checking = true, stillOffline = false)
+        val STILL_OFFLINE = NetworkDialogState.Shown(checking = false, stillOffline = true)
     }
 }

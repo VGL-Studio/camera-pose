@@ -1,8 +1,8 @@
 ---
 ticket: T-012
 title: Màn chào và xin quyền camera
-status: approved                # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                   # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 20.0M        # cỡ M, số gợi ý của scripts/token-usage.py estimate (tạm, chưa đủ 5 task)
@@ -10,18 +10,20 @@ blocking_points: [analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Nhật                    # người duyệt
 cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
-approved_at: 2026-10-22
+approved_at:
 ---
 
 # PLAN T-012: MÀN CHÀO VÀ XIN QUYỀN CAMERA
 
 ## 1. Tóm tắt
 
-Tạo module `:feature:onboarding` với một màn chào theo thiết kế Sticker (hình minh họa ba thẻ, tiêu đề, giới thiệu, ba điểm chính, nút "Bật camera", ghi chú), chữ đủ 7 ngôn ngữ. Bấm "Bật camera" thì app ghi `onboarding_complete`, đánh dấu đã qua màn chào, hỏi quyền camera, ghi `camera_permission_result` với `source` là `onboarding`, rồi luôn sang camera (`CameraDestination(askPermission = false)`). `:app` lưu khóa `onboarding_done` trong DataStore chung và cắm màn chào vào `MainScreenChooser` của T-010 (cờ `feature_onboarding_enabled`), có bắt lỗi khi đọc DataStore. Kiểm chứng bằng unit test ViewModel, lớp lưu trạng thái và hàm chọn màn chính; test giao diện Robolectric (bố cục, màu, 7 ngôn ngữ ở màn hình thấp); screenshot test cùng tên hai ảnh thiết kế và ảnh khung thấp; test emulator đi từ màn chào tới camera; kiểm tra thủ công hộp hỏi quyền thật.
+Tạo module `:feature:onboarding` với một màn chào theo thiết kế Sticker (hình minh họa ba thẻ, tiêu đề, giới thiệu, ba điểm chính, nút "Bật camera", ghi chú), chữ đủ 7 ngôn ngữ. Bấm "Bật camera" thì app ghi `onboarding_complete`, đánh dấu đã qua màn chào, hỏi quyền camera, ghi `camera_permission_result` với `source` là `onboarding` khi hộp hỏi quyền thật sự hiện ra, rồi luôn sang camera (`CameraDestination(askPermission = false)`). `:app` lưu khóa `onboarding_done` trong DataStore chung và cắm màn chào vào `MainScreenChooser` của T-010 (cờ `feature_onboarding_enabled`), có bắt lỗi khi đọc DataStore. Kiểm chứng bằng unit test ViewModel, lớp lưu trạng thái và hàm chọn màn chính; test giao diện Robolectric (bố cục, màu, 7 ngôn ngữ ở màn hình thấp); screenshot test cùng tên hai ảnh thiết kế và ảnh khung thấp; test emulator đi từ màn chào tới camera; kiểm tra thủ công hộp hỏi quyền thật.
+
+Phiên bản 2 (2026-10-22): theo quyết định của Nhật, màn chào dùng cùng quy tắc với camera (spec `camera` KB-7, plan T-026): không ghi `camera_permission_result` khi quyền đã bị từ chối vĩnh viễn và hộp hỏi không hiện. Spec `onboarding` đã cập nhật (KB-1, KB-2, mục 6). Thay đổi so với phiên bản 1: hàm thuần `permissionDialogShown` chép từ T-026 vào module, `OnboardingRoute` đọc "nên giải thích" trước và sau khi hỏi, `onPermissionResult` nhận thêm `dialogShown`, ba test đơn vị mới thay một test cũ, ticket phụ thuộc thêm T-026. Phần còn lại giữ nguyên phiên bản 1.
 
 ## 2. Hiểu yêu cầu
 
-Ticket xử lý KB-1 đến KB-4 trong `features/onboarding/spec.md` (đã xác nhận ngày 2026-10-21, ba câu hỏi đã trả lời).
+Ticket xử lý KB-1 đến KB-4 trong `features/onboarding/spec.md` (đã xác nhận ngày 2026-10-21, ba câu hỏi đã trả lời; cập nhật ngày 2026-10-22 về điều kiện ghi `camera_permission_result`, chờ xác nhận lại).
 
 | Kịch bản | Tiêu chí chấp nhận | Cách hiểu của AI |
 | --- | --- | --- |
@@ -29,12 +31,12 @@ Ticket xử lý KB-1 đến KB-4 trong `features/onboarding/spec.md` (đã xác 
 | KB-1 | Khi bấm "Bật camera" thì máy hiện hộp hỏi quyền camera của hệ thống | `OnboardingRoute` chạy `RequestPermission()` khi ViewModel phát `RequestPermission`. Quyền đã có sẵn thì không hỏi (mục 8, câu 4) |
 | KB-1 | Khi người dùng cho phép thì app mở camera, khung xem trước chạy, nét viền của tư thế mặc định đã hiện sẵn | Màn chào điều hướng tới `CameraDestination(askPermission = false)`, bỏ màn chào khỏi back stack. Camera có quyền thì tự mở (T-013). Nét viền tư thế mặc định thuộc T-014, plan này chỉ kiểm chứng tới được camera |
 | KB-1 | Đúng 2 chạm từ lúc loading xong tới camera: "Bật camera" và "Cho phép" | Không màn hình nào chen giữa: một lần bấm phát `Started` rồi `RequestPermission`; kết quả quyền phát `Finished`; `:app` điều hướng ngay. Hộp đồng ý quảng cáo (ADR-0013) không tính vào đây (mục 8, câu 6) |
-| KB-1 | Bấm "Bật camera" thì ghi `onboarding_complete` một lần; hệ thống trả kết quả quyền thì ghi `camera_permission_result` | `onboarding_complete` không tham số, ghi một lần cho mỗi lần qua màn chào (cờ trong `SavedStateHandle`, bấm lại không ghi thêm). `camera_permission_result`: `result` là `granted` hoặc `denied`, `source` là `onboarding` |
+| KB-1 | Bấm "Bật camera" thì ghi `onboarding_complete` một lần; hộp hỏi quyền hiện ra và người dùng chọn thì ghi `camera_permission_result` | `onboarding_complete` không tham số, ghi một lần cho mỗi lần qua màn chào (cờ trong `SavedStateHandle`, bấm lại không ghi thêm). `camera_permission_result`: `result` là `granted` hoặc `denied`, `source` là `onboarding`; chỉ ghi khi `permissionDialogShown(...)` đúng (mục 3.1) |
 | KB-1, đặc biệt | Bấm quay lại ở màn chào thì app đóng | Màn chào là đích đầu tiên sau loading (`popUpTo<LoadingDestination> { inclusive = true }` của T-010) và không chặn nút quay lại, nên quay lại đóng activity |
 | KB-1, đặc biệt | Xoay máy không cắt chữ hay nút; màn thấp thì cuộn được, nút "Bật camera" luôn thấy | App khóa dọc (T-013); màn rộng trên Android 16 bỏ qua khóa này. Bố cục: phần trên (minh họa, chữ, ba điểm) cuộn được, nút và ghi chú ghim ở đáy, hình minh họa co lại trước (README mục 6). ViewModel sống qua đổi cấu hình |
 | KB-1, đặc biệt | Máy đặt ngôn ngữ chưa có thì màn chào hiện tiếng Anh | `values/` là tiếng Anh (như T-008); 6 thư mục `values-vi`, `values-hi`, `values-pt-rBR`, `values-b+es+419`, `values-in`, `values-th` |
 | KB-2 | Từ chối quyền thì vẫn sang camera ở trạng thái chưa có quyền, không quay lại màn chào | `Finished` cho cả hai kết quả. `askPermission = false` làm camera hiện `PermissionDenied` ngay, không hỏi lần hai (T-013, KB-7). Màn chào bị bỏ khỏi back stack |
-| KB-2 | Đã chọn "không hỏi lại" từ trước: bấm "Bật camera" thì sang thẳng camera ở trạng thái chưa có quyền | Hệ thống trả `false` ngay, không hiện hộp; luồng giống từ chối. App vẫn ghi `camera_permission_result: denied` như camera đang làm (mục 8, câu 5) |
+| KB-2 | Đã chọn "không hỏi lại" từ trước: bấm "Bật camera" thì sang thẳng camera ở trạng thái chưa có quyền và không ghi `camera_permission_result` | Hệ thống trả `false` ngay, không hiện hộp; luồng giống từ chối nhưng không ghi sự kiện, chỉ log "Camera permission denied without dialog" (phiên bản 2, mục 8, câu 5 và 12) |
 | KB-3 | Đã bấm "Bật camera" ở lần trước thì lần sau vào thẳng camera, kể cả khi đã từ chối | Khóa `onboarding_done = true` ghi ngay khi bấm (trước hộp hỏi quyền, plan T-010 câu 2). `MainScreenChooser` đọc khóa: có thì `CAMERA` |
 | KB-3 | Đóng app ở màn chào mà chưa bấm thì lần sau màn chào hiện lại | Chỉ lần bấm mới ghi khóa; mở màn chào không ghi gì |
 | KB-3 | Xóa dữ liệu của app thì lần sau màn chào hiện lại | Khóa nằm trong DataStore `app_preferences`; xóa dữ liệu xóa file, không có khóa thì coi là chưa qua. `android:allowBackup="false"` nên cài lại cũng không khôi phục khóa |
@@ -52,7 +54,7 @@ ADR liên quan: ADR-0001 (feature chỉ phụ thuộc core; trạng thái "đã 
 
 Làm theo mẫu `:feature:sample` và `:feature:camera` (T-013): `UiState` sealed, ViewModel với `StateFlow` và kênh sự kiện `Channel(BUFFERED).receiveAsFlow()`, `Route` nối ViewModel, `Screen` không trạng thái, đích `@Serializable`. Gói gốc: `com.vglstudio.camera.pose.line.guide.feature.onboarding`. Thẻ log: `Onboarding`.
 
-**Điều kiện đầu vào.** T-010 và T-013 đã merge (có trên nhánh chính lúc viết plan): `MainScreen`, `MainScreenInputs(onboardingAvailable, onboardingDone, cameraAvailable)`, `MainScreenChooser(featureFlags)`, `AppNavHost(chooseMainScreen, modifier, onPastLoadingChanged)`, `MainScreen.destination()` với nhánh `ONBOARDING -> SampleDestination`, `CameraDestination(askPermission: Boolean = true)`. T-007: `MaterialTheme.appColors.categoryWomen`, `categoryCouple`, `categoryFriends`, `onCategory`; `Radius.card`, `Radius.full`, `Stroke.sticker`; `PrimaryButton(text, onClick, modifier, enabled, icon, loading)`. Khác đi thì dừng (mục 7).
+**Điều kiện đầu vào.** T-010 và T-013 đã merge (có trên nhánh chính lúc viết plan): `MainScreen`, `MainScreenInputs(onboardingAvailable, onboardingDone, cameraAvailable)`, `MainScreenChooser(featureFlags)`, `AppNavHost(chooseMainScreen, modifier, onPastLoadingChanged)`, `MainScreen.destination()` với nhánh `ONBOARDING -> SampleDestination`, `CameraDestination(askPermission: Boolean = true)`. T-026 (phiên bản 2): `feature/camera/.../PermissionPrompt.kt` có `permissionDialogShown(granted, rationaleBefore, rationaleAfter)` theo quy tắc `granted || rationaleBefore || rationaleAfter`. T-007: `MaterialTheme.appColors.categoryWomen`, `categoryCouple`, `categoryFriends`, `onCategory`; `Radius.card`, `Radius.full`, `Stroke.sticker`; `PrimaryButton(text, onClick, modifier, enabled, icon, loading)`. Khác đi thì dừng (mục 7).
 
 **Không có `data/` và `di/` trong feature.** Trạng thái "đã qua màn chào" do `:app` lưu (plan T-010, câu 2, đã trả lời OK): feature báo `onStarted` khi người dùng bấm, `:app` ghi khóa. Feature không phụ thuộc `:core:data`.
 
@@ -75,12 +77,12 @@ sealed interface OnboardingEvent {
 
 - `init`: log `info` "Onboarding shown". Trạng thái đầu: `RequestingPermission` nếu `savedStateHandle["requesting_permission"] == true` (activity bị tạo lại khi hộp hỏi quyền đang mở), ngược lại `Ready`.
 - `onEnableCameraClick(permissionGranted: Boolean)`: chỉ chạy khi `Ready`. Nếu `savedStateHandle["completion_logged"] != true` thì ghi `AnalyticsEvent("onboarding_complete")` và đặt cờ đó. Log `info` "Enable camera tapped". Phát `Started`. Có quyền sẵn: log "Camera permission already granted", trạng thái `Finished`, phát `Finished`. Chưa có: đặt `requesting_permission = true`, trạng thái `RequestingPermission`, log "Asking for the camera permission", phát `RequestPermission`.
-- `onPermissionResult(granted: Boolean)`: chỉ chạy khi `RequestingPermission`. Ghi `AnalyticsEvent("camera_permission_result", mapOf("result" to "granted"|"denied", "source" to "onboarding"))`, log `info` "Camera permission granted|denied", xóa `requesting_permission`, trạng thái `Finished`, phát `Finished`.
+- `onPermissionResult(granted: Boolean, dialogShown: Boolean = true)`: chỉ chạy khi `RequestingPermission`. Khi `dialogShown` đúng: ghi `AnalyticsEvent("camera_permission_result", mapOf("result" to "granted"|"denied", "source" to "onboarding"))`, log `info` "Camera permission granted|denied". Khi `dialogShown` sai (phiên bản 2): không ghi sự kiện, log `info` "Camera permission denied without dialog" (cùng chữ với camera). Cả hai nhánh: xóa `requesting_permission`, trạng thái `Finished`, phát `Finished`.
 - Hằng số tên sự kiện và khóa `SavedStateHandle` trong `companion object`, như `CameraViewModel`.
 
 **Màn hình (`OnboardingScreen.kt`, `OnboardingIllustration.kt`).**
 
-`OnboardingRoute(onStarted: () -> Unit, onFinished: () -> Unit, viewModel = hiltViewModel())`: `rememberLauncherForActivityResult(RequestPermission()) { viewModel.onPermissionResult(it) }`; `LaunchedEffect(viewModel)` thu `events` (callback qua `rememberUpdatedState`): `Started -> onStarted()`, `RequestPermission -> launcher.launch(CAMERA)`, `Finished -> onFinished()`. Nút gọi `viewModel.onEnableCameraClick(ContextCompat.checkSelfPermission(context, CAMERA) == PERMISSION_GRANTED)`. Không có `BackHandler`. Theme theo máy (sáng hoặc tối), không bọc `AppTheme` riêng.
+`OnboardingRoute(onStarted: () -> Unit, onFinished: () -> Unit, viewModel = hiltViewModel())`: `val activity = LocalActivity.current` (như T-026); `var rationaleBefore by rememberSaveable { mutableStateOf(false) }` (mục 8, câu 12); `rememberLauncherForActivityResult(RequestPermission()) { granted -> val rationaleAfter = activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, CAMERA) } ?: false; viewModel.onPermissionResult(granted, activity == null || permissionDialogShown(granted, rationaleBefore, rationaleAfter)) }` (activity null chỉ có trong preview, coi như hộp đã hiện, như T-026); `LaunchedEffect(viewModel)` thu `events` (callback qua `rememberUpdatedState`): `Started -> onStarted()`, `RequestPermission -> { rationaleBefore = activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, CAMERA) } ?: false; launcher.launch(CAMERA) }`, `Finished -> onFinished()`. Nút gọi `viewModel.onEnableCameraClick(ContextCompat.checkSelfPermission(context, CAMERA) == PERMISSION_GRANTED)`. Không có `BackHandler`. Theme theo máy (sáng hoặc tối), không bọc `AppTheme` riêng.
 
 `OnboardingScreen(uiState, onEnableCamera, modifier)`, `testTag(SCREEN)`, nền `colorScheme.background`. Bố cục theo `context/` (khung 411 x 891, gốc là mép trên khung):
 
@@ -109,6 +111,8 @@ sealed interface OnboardingEvent {
 | Huy hiệu | (264, 42), tròn 56, bo `Radius.full`, viền `Stroke.sticker` màu `colorScheme.outline`, icon `photo_camera` 28 màu `colorScheme.onSecondaryContainer` | 0 | `colorScheme.secondaryContainer` |
 
 Tâm lấy từ khung bao trong `context/` (thẻ nghiêng 8 độ có khung bao 176 x 219). Chiều nghiêng theo ảnh thiết kế: thẻ hồng nghiêng ngược chiều kim đồng hồ, thẻ xanh dương nghiêng theo chiều kim đồng hồ (Compose `rotationZ` dương là theo chiều kim đồng hồ). Trong mỗi thẻ: nét viền tư thế `onboarding_pose_outline` 70 x 140, cách mép trên thẻ 30, căn giữa ngang, màu `appColors.onCategory` (thiết kế #111111 ở cả hai chế độ). Một hình nét viền dùng cho cả ba thẻ: khung bao 89 x 148 của hai thẻ nghiêng chính là hình 70 x 140 xoay 8 độ.
+
+**Suy ra hộp hỏi có hiện không (phiên bản 2).** `PermissionPrompt.kt` trong gói gốc của module: `internal fun permissionDialogShown(granted: Boolean, rationaleBefore: Boolean, rationaleAfter: Boolean): Boolean = granted || rationaleBefore || rationaleAfter`, chép nguyên từ `:feature:camera` của T-026 kèm KDoc và bảng năm tình huống (plan T-026, mục 3.1). Không phụ thuộc `:feature:camera` (ADR-0001, plan T-026 câu 2). Ở màn chào, lần hỏi đầu chạm ra ngoài hộp hỏi (Android 11 trở lên) bị coi là không hiện hộp nên không ghi (plan T-026, câu 1; spec `onboarding` mục 6).
 
 **Biểu tượng và nét viền.** `feature/onboarding/src/main/res/drawable/`:
 
@@ -150,8 +154,8 @@ Thuật ngữ "nét viền" theo bản dịch của T-008 (`आउटलाइ�
 
 **Thứ tự commit (L-025).**
 
-- Bước 3 (commit test): mọi file test ở mục 4 (kể cả `MainScreenTest.kt` sửa và `FakeOnboardingStatus` trong đó, `AppLaunchTest.kt`). Cùng commit là khung để biên dịch được: `settings.gradle.kts`, `feature/onboarding/build.gradle.kts`, `consumer-rules.pro`, `robolectric.properties`; `OnboardingUiState.kt` đủ kiểu; `OnboardingViewModel` đủ hàm nhưng không làm gì, `uiState` luôn `Ready`, `events` rỗng; `OnboardingScreen` chỉ vẽ `Box` mang `testTag(SCREEN)`, `OnboardingTestTags` đủ hằng; `OnboardingNavigation.kt`; `values/strings.xml` đủ 7 khóa tiếng Anh (6 thư mục ngôn ngữ để bước 4); `FeatureFlag.ONBOARDING`; `OnboardingStatus.kt` với `isDone()` trả `false` và `markDone()` rỗng; `OnboardingStatusModule.kt`; `MainScreenChooser` nhận ba tham số mới nhưng `inputs()` vẫn đặt `onboardingAvailable = false`; `app/build.gradle.kts`. Chạy, ghi lý do thất bại thật vào nhật ký.
-- Bước 4 (commit code): ViewModel, màn hình, hình minh họa, 5 drawable, giấy phép, 6 thư mục ngôn ngữ, logic thật của `DataStoreOnboardingStatus` và `MainScreenChooser`, `AppNavHost.kt`, `MainActivity.kt`, `StagingFeatureFlagsModule.kt`.
+- Bước 3 (commit test): mọi file test ở mục 4 (kể cả `MainScreenTest.kt` sửa và `FakeOnboardingStatus` trong đó, `AppLaunchTest.kt`). Cùng commit là khung để biên dịch được: `settings.gradle.kts`, `feature/onboarding/build.gradle.kts`, `consumer-rules.pro`, `robolectric.properties`; `OnboardingUiState.kt` đủ kiểu; `PermissionPrompt.kt` với `permissionDialogShown` luôn trả `true` (phiên bản 2); `OnboardingViewModel` đủ hàm (kể cả tham số `dialogShown`) nhưng không làm gì, `uiState` luôn `Ready`, `events` rỗng; `OnboardingScreen` chỉ vẽ `Box` mang `testTag(SCREEN)`, `OnboardingTestTags` đủ hằng; `OnboardingNavigation.kt`; `values/strings.xml` đủ 7 khóa tiếng Anh (6 thư mục ngôn ngữ để bước 4); `FeatureFlag.ONBOARDING`; `OnboardingStatus.kt` với `isDone()` trả `false` và `markDone()` rỗng; `OnboardingStatusModule.kt`; `MainScreenChooser` nhận ba tham số mới nhưng `inputs()` vẫn đặt `onboardingAvailable = false`; `app/build.gradle.kts`. Chạy, ghi lý do thất bại thật vào nhật ký.
+- Bước 4 (commit code): quy tắc thật của `permissionDialogShown`, ViewModel, màn hình, hình minh họa, 5 drawable, giấy phép, 6 thư mục ngôn ngữ, logic thật của `DataStoreOnboardingStatus` và `MainScreenChooser`, `AppNavHost.kt`, `MainActivity.kt`, `StagingFeatureFlagsModule.kt`.
 - Commit ảnh: `./gradlew :feature:onboarding:recordRoborazziDebug`, xem từng ảnh; `scripts/check.sh`; `scripts/design-compare.sh onboarding`; commit `design/review/` và README mục 8.
 
 **Mẫu có sẵn được làm theo:** `CameraViewModel` (sự kiện quyền, `SavedStateHandle`, `Analytics`), `CameraRoute` (launcher hỏi quyền), `DataStoreCounterRepository` và test của nó (DataStore giả trong bộ nhớ), `LoadingStringsTest` (7 ngôn ngữ), `LoadingScreenTest` (màn hình thấp, 7 ngôn ngữ), `CameraComponentsTest.pixelAt` (đo màu điểm ảnh bằng cách vẽ view gốc ra `Bitmap`, L-006), `MainScreenTest`.
@@ -167,6 +171,7 @@ Thuật ngữ "nét viền" theo bản dịch của T-008 (`आउटलाइ�
 | Tạo | `feature/onboarding/consumer-rules.pro` | Rỗng, như các feature khác |
 | Tạo | `feature/onboarding/third_party/material-symbols/LICENSE.txt` | Giấy phép Apache 2.0 của Material Symbols |
 | Tạo | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingUiState.kt` | `OnboardingUiState`, `OnboardingEvent` |
+| Tạo | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/PermissionPrompt.kt` | Hàm thuần `permissionDialogShown`, chép từ T-026 (phiên bản 2) |
 | Tạo | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingViewModel.kt` | ViewModel theo mục 3.1 |
 | Tạo | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreen.kt` | `OnboardingRoute`, `OnboardingScreen`, `ShrinkFirstLayout`, `OnboardingTestTags` |
 | Tạo | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingIllustration.kt` | Ba thẻ nghiêng, nét viền, huy hiệu |
@@ -186,6 +191,7 @@ Thuật ngữ "nét viền" theo bản dịch của T-008 (`आउटलाइ�
 | Tạo | `feature/onboarding/src/test/resources/robolectric.properties` | `sdk=35`, như các feature khác |
 | Tạo | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/MainDispatcherRule.kt` | Chép từ `:feature:sample` |
 | Tạo | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingViewModelTest.kt` | Unit test ViewModel, `FakeAnalytics` riêng trong file |
+| Tạo | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/PermissionPromptTest.kt` | Năm tình huống của bảng, chép từ T-026 (phiên bản 2) |
 | Tạo | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreenTest.kt` | Test giao diện Robolectric |
 | Tạo | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingStringsTest.kt` | Chữ 7 ngôn ngữ |
 | Tạo | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreenScreenshotTest.kt` | Ba screenshot test |
@@ -206,7 +212,7 @@ Thuật ngữ "nét viền" theo bản dịch của T-008 (`आउटलाइ�
 | Tạo | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/onboarding/DataStoreOnboardingStatusTest.kt` | Unit test lưu trạng thái, DataStore giả trong file |
 | Sửa | `app/src/androidTest/kotlin/com/vglstudio/camera/pose/line/guide/AppLaunchTest.kt` | Từ màn chào bấm "Bật camera" rồi tới camera (mục 4) |
 
-Không file nào khác. Đặc biệt không sửa `:feature:camera` (đã có `CameraDestination(askPermission)`), `:feature:loading`, `MainScreen.kt`, `AndroidManifest.xml` (quyền `CAMERA` đã có), `gradle/libs.versions.toml`, `build-logic/`, `:core:designsystem`, `:core:data`, `docs/design-system/tokens.json`.
+Không file nào khác. Đặc biệt không sửa `:feature:camera` (đã có `CameraDestination(askPermission)`; `PermissionPrompt.kt` của camera chỉ được đọc để chép), `:feature:loading`, `MainScreen.kt`, `AndroidManifest.xml` (quyền `CAMERA` đã có), `gradle/libs.versions.toml`, `build-logic/`, `:core:designsystem`, `:core:data`, `docs/design-system/tokens.json`.
 
 **Nơi khác đọc các file trên** (L-020, đã tìm bằng `grep -rn` trong `scripts/`, `.github/`, `build-logic/`, `*/src/test`, `*/src/androidTest`):
 
@@ -223,7 +229,7 @@ Không file nào khác. Đặc biệt không sửa `:feature:camera` (đã có `
 - Quảng cáo: Không chạm. Màn chào không có vị trí quảng cáo (spec mục 5). Hộp đồng ý quảng cáo của `MainActivity` không đổi.
 - Sự kiện phân tích (điểm chặn 4, đã có trong spec mục 6):
   - `onboarding_complete`: mới, không tham số, khi bấm "Bật camera".
-  - `camera_permission_result`: sự kiện đã có (T-013), thêm giá trị `source = onboarding`; `result` là `granted` hoặc `denied`.
+  - `camera_permission_result`: sự kiện đã có (T-013), thêm giá trị `source = onboarding`; `result` là `granted` hoặc `denied`; chỉ ghi khi hộp hỏi quyền hiện ra (spec `onboarding` mục 6, phiên bản 2).
 - Dữ liệu cục bộ: khóa DataStore mới `onboarding_done` (boolean) trong `app_preferences` chung (spec mục 6). Khóa mới, không chuyển đổi dữ liệu cũ, nên không chạm điểm chặn 9. Không gửi gì ra khỏi máy ngoài hai sự kiện trên.
 - File R2: Không chạm. Hình minh họa vẽ bằng Compose và vector trong module (spec mục 7).
 
@@ -241,7 +247,9 @@ Bản giả: `FakeAnalytics` (ghi `events`), `RecordingAppLogger` của `:core:l
 | KB-1, cho phép | Unit test | `permissionGranted_logsResultWithOnboardingSource_andFinishes`: sau `onPermissionResult(true)`: `analytics.events` thứ hai là `AnalyticsEvent("camera_permission_result", mapOf("result" to "granted", "source" to "onboarding"))`; sự kiện `Finished`; `uiState` là `Finished`; log "Camera permission granted" |
 | KB-1, 2 chạm | Unit test | `twoTaps_reachFinished_withNothingInBetween`: chỉ `onEnableCameraClick(false)` và `onPermissionResult(true)`; toàn bộ sự kiện đúng `[Started, RequestPermission, Finished]` |
 | KB-1, quyền đã có sẵn | Unit test | `enableCamera_permissionAlreadyGranted_finishesWithoutPromptOrResultEvent`: `onEnableCameraClick(true)`; sự kiện `[Started, Finished]`; `analytics.events == [AnalyticsEvent("onboarding_complete")]` |
-| KB-2, từ chối và "không hỏi lại" | Unit test | `permissionDenied_logsDenied_andStillFinishes`: `onPermissionResult(false)`; sự kiện `camera_permission_result` với `"result" to "denied"`, `"source" to "onboarding"`; sự kiện `Finished` (không quay về `Ready`). Hệ thống trả `false` ngay khi đã chọn "không hỏi lại", nên cùng test này |
+| KB-2, từ chối khi hộp hỏi hiện | Unit test | `permissionDeniedWithDialog_logsDenied_andStillFinishes`: `onPermissionResult(granted = false, dialogShown = true)`; sự kiện `camera_permission_result` với `"result" to "denied"`, `"source" to "onboarding"`; sự kiện `Finished` (không quay về `Ready`) |
+| KB-2, "không hỏi lại" từ trước (phiên bản 2) | Unit test | `permissionDeniedWithoutDialog_logsNoResult_andStillFinishes`: `onPermissionResult(granted = false, dialogShown = false)`; `analytics.events == [AnalyticsEvent("onboarding_complete")]` (không có `camera_permission_result`); sự kiện `Finished`; log `INFO` thẻ `Onboarding` "Camera permission denied without dialog". Thất bại ở bước 3: khung không có sự kiện `Finished` |
+| Quy tắc suy luận (phiên bản 2) | Unit test | `PermissionPromptTest`, chép năm test của T-026: `granted_isShown` (`true, false, false` trả `true`); `firstDenial_isShown` (`false, false, true` trả `true`); `secondDenial_isShown` (`false, true, false` trả `true`); `permanentDenial_isNotShown` (`false, false, false` trả `false`); `deniedWithBothRationales_isShown` (`false, true, true` trả `true`). Thất bại ở bước 3: `permanentDenial_isNotShown` (khung trả `true`); bốn test kia qua ngay, giữ làm test chặn |
 | Kết quả quyền lạc | Unit test | `permissionResult_whenNotRequesting_isIgnored`: ở `Ready`, `onPermissionResult(true)`; không sự kiện, không phân tích |
 | Activity tạo lại khi hộp quyền đang mở | Unit test | `restoredWhileRequesting_acceptsResult_withoutSecondComplete`: `SavedStateHandle(mapOf("requesting_permission" to true, "completion_logged" to true))`; `uiState` là `RequestingPermission`; `onPermissionResult(false)` cho `Finished`; không có `onboarding_complete` |
 | Log không chứa dữ liệu cá nhân | Unit test | `logs_useOnboardingTag`: sau luồng cho phép, mọi dòng thẻ `Onboarding`, thứ tự "Onboarding shown", "Enable camera tapped", "Asking for the camera permission", "Camera permission granted" |
@@ -273,7 +281,7 @@ Bản giả: `FakeAnalytics` (ghi `events`), `RecordingAppLogger` của `:core:l
 | KB-1, KB-3 trên app thật | Test trên emulator (CI) | `AppLaunchTest.appStarts_passesOnboarding_andReachesCamera` (thay `appStarts_andReachesStartScreen`): giữ luật cấp quyền camera trước khi mở app và 60 giây chờ. `waitUntil(60_000)` tới khi có node `onboarding_screen` hoặc `camera_screen` (`fetchSemanticsNodes()`). Có `onboarding_screen` thì `onNodeWithTag("onboarding_enable_camera").performClick()` rồi `waitUntil(10_000)` tới khi có `camera_screen`. Quyền đã cấp nên không có hộp hỏi quyền; không dùng `assertIsDisplayed` (hộp đồng ý quảng cáo phủ lên app). Bản cài mới trên CI luôn có màn chào (cờ bật ở staging); nhánh "đã ở camera" chỉ để test không phụ thuộc dữ liệu cũ trên emulator |
 | KB-1, hộp hỏi quyền thật, 2 chạm | Kiểm tra thủ công | Cài mới bản staging, mở app có mạng: loading xong hiện màn chào, không quảng cáo. Bấm "Bật camera": hộp hỏi quyền hiện. "Cho phép": camera chạy ngay, không màn nào chen giữa (nét viền tư thế mặc định khi T-014 có). Log `VGL.Onboarding` có "Enable camera tapped", "Camera permission granted"; `VGL.Navigation` "Main screen: ONBOARDING" |
 | KB-1, quay lại đóng app | Kiểm tra thủ công | Ở màn chào bấm quay lại: app đóng. Mở lại: màn chào hiện lại (chưa bấm) |
-| KB-2 trên máy | Kiểm tra thủ công | Cài mới, "Bật camera", "Không cho phép": camera ở trạng thái chưa có quyền, không hỏi lại, quay lại thì app đóng. "Không hỏi lại": cài mới, trước khi mở app chạy `adb shell pm set-permission-flags <gói staging> android.permission.CAMERA user-fixed` (Android 11 trở lên), mở app, bấm "Bật camera": không có hộp, sang thẳng camera chưa có quyền |
+| KB-2 trên máy | Kiểm tra thủ công | Cài mới, "Bật camera", "Không cho phép": camera ở trạng thái chưa có quyền, không hỏi lại, quay lại thì app đóng. "Không hỏi lại": cài mới, trước khi mở app chạy `adb shell pm set-permission-flags <gói staging> android.permission.CAMERA user-fixed` (Android 11 trở lên), mở app, bấm "Bật camera": không có hộp, sang thẳng camera chưa có quyền; log `VGL.Onboarding` có "Camera permission denied without dialog", DebugView không có `camera_permission_result` (phiên bản 2). Lần "Không cho phép" ở trên: log "Camera permission denied" và DebugView có `denied`, `source` `onboarding` |
 | KB-3 trên máy | Kiểm tra thủ công | Sau KB-1 hay KB-2, đóng hẳn app, mở lại: loading xong vào thẳng camera. Cài đặt máy, xóa dữ liệu app, mở lại: màn chào hiện |
 | KB-4 trên máy | Kiểm tra thủ công | Không làm được trên bản staging (cờ bật cục bộ, Remote Config không tắt được). Kiểm bằng unit test `chooser_onboardingFlagOff_choosesCamera_withoutReadingStatus` và nhánh `CAMERA` hiện có |
 | Màn rộng và màn thấp thật | Kiểm tra thủ công | Máy màn nhỏ hoặc cỡ chữ hệ thống lớn nhất: phần trên cuộn được, nút và ghi chú luôn thấy. Máy gập mở ra hoặc máy tính bảng (khóa dọc bị bỏ qua): không cắt chữ hay nút |
@@ -281,7 +289,7 @@ Bản giả: `FakeAnalytics` (ghi `events`), `RecordingAppLogger` của `:core:l
 **Ngoại lệ viết test trước:**
 
 - `AppNavHost.kt` (đăng ký `onboardingScreen`, điều hướng sang camera, chặn điều hướng hai lần), `MainActivity.kt`, `OnboardingStatusModule.kt`: điều hướng cần `LoadingRoute` với `hiltViewModel()`, không có test JVM riêng (như T-010, T-013). Kiểm bằng `AppLaunchTest` trong CI và kiểm tra thủ công.
-- `OnboardingRoute` (launcher hỏi quyền, thu sự kiện): cần hộp quyền của hệ thống; logic nằm trong ViewModel, đã có test. Kiểm bằng `AppLaunchTest` (nhánh quyền có sẵn) và kiểm tra thủ công (nhánh hộp hỏi quyền).
+- `OnboardingRoute` (launcher hỏi quyền, thu sự kiện, đọc "nên giải thích" trước và sau khi hỏi): cần hộp quyền của hệ thống; logic nằm trong ViewModel và hàm thuần `permissionDialogShown`, đã có test (như ngoại lệ của T-026). Kiểm bằng `AppLaunchTest` (nhánh quyền có sẵn) và kiểm tra thủ công (nhánh hộp hỏi quyền).
 - 5 drawable, `LICENSE.txt`, 6 thư mục ngôn ngữ: tài nguyên, có test chữ và screenshot test.
 - `AppLaunchTest` đổi điều nó kiểm tra (từ "tới camera" thành "qua màn chào rồi tới camera") vì màn đích ở staging đổi theo spec; người duyệt cần đồng ý.
 
@@ -299,7 +307,7 @@ Bảng điểm dưới đây chỉ để tham khảo:
 | B. Độ rõ của yêu cầu | 1 | Spec đã xác nhận, thiết kế đã duyệt, cách lưu đã chốt ở plan T-010; AI tự quyết vài điểm nhỏ: nguồn nét viền tư thế, màn chào cần cờ camera, đọc lỗi thì hiện màn chào, quyền có sẵn thì không hỏi (mục 8) |
 | C. Khả năng kiểm chứng tự động | 2 | Logic, bố cục, màu, 7 ngôn ngữ có test JVM; luồng tới camera có test emulator. Hộp hỏi quyền thật, "không hỏi lại", xóa dữ liệu, máy rộng chỉ kiểm tra thủ công |
 | D. Ảnh hưởng chéo | 3 | Đổi màn đầu tiên sau loading ở staging (mọi người thử và `AppLaunchTest` của mọi PR từ nay đi qua màn chào); sửa `AppNavHost.kt`, `MainActivity.kt`, `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `settings.gradle.kts`, `app/build.gradle.kts` mà T-014, T-016, T-021, T-025 có thể cũng sửa |
-| E. Độ mới của kỹ thuật | 1 | Biến thể của mẫu camera và loading; mới là `Layout` riêng cho hình co trước khi cuộn và một test emulator có bấm nút |
+| E. Độ mới của kỹ thuật | 1 | Biến thể của mẫu camera và loading; mới là `Layout` riêng cho hình co trước khi cuộn và một test emulator có bấm nút. Cách suy ra hộp hỏi đã có ở T-026 (phiên bản 2) |
 | **Tổng** | 10 | **Mức: Cao** (chạm điểm chặn, và tổng điểm cũng từ 9 trở lên) |
 
 ## 6. Ảnh hưởng chéo
@@ -311,8 +319,9 @@ Bảng điểm dưới đây chỉ để tham khảo:
   - T-016 (màn xem lại): sửa `AppNavHost.kt` (`onPhotoCaptured`, đích xem lại), có thể `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`. Chỉ xung đột dòng.
   - T-021 (thư viện tư thế, `:feature:poses` mới) và T-025 (cài đặt, `:feature:settings` mới): cùng thêm dòng vào `settings.gradle.kts`, `app/build.gradle.kts`, `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `AppNavHost.kt` (đích mới, nối `onOpenPoses`, `onOpenSettings`). T-025 có thể đụng DataStore chung (khóa cài đặt). Chỉ xung đột dòng, không xung đột logic.
   - Nếu một task trong số đó cũng đổi `AppLaunchTest.kt` hay màn đầu sau loading, task chạy sau phải dựng trên bản đã có của task chạy trước.
+- T-026 (phiên bản 2): T-012 chép hàm `permissionDialogShown` và năm test của T-026, nên T-026 phải merge trước; ticket T-012 phụ thuộc thêm T-026 để phiên bỏ qua T-012 khi T-026 dừng. Sau này đổi quy tắc thì phải sửa cả hai bản (mục 8, câu 13).
 - Cách xử lý: phiên tự chạy làm từng task trên nhánh chính mới nhất, nên task chạy sau thấy phần của task trước. T-012 giữ nguyên mọi dòng của task khác trong các file chung và chỉ thêm phần của mình (mục 3.1). Thứ tự trong file (cờ, `include`, `implementation`, hàm staging) theo thứ tự hiện có, thêm vào cuối nhóm.
-- Đề xuất thứ tự chạy: T-012 không phụ thuộc T-014, T-016, T-021, T-025 và ngược lại. Đề xuất chạy T-012 trước bốn task đó: nó đổi `AppLaunchTest.kt` và màn đầu ở staging, nên các task sau dựng test emulator trên luồng đã có màn chào ngay từ đầu. Chạy sau cũng được nếu không task nào trong bốn task đổi `AppLaunchTest.kt`; nếu có, xem điều kiện dừng 3.
+- Đề xuất thứ tự chạy: T-026 trước T-012 (phiên bản 2). T-012 không phụ thuộc T-014, T-016, T-021, T-025 và ngược lại. Đề xuất chạy T-012 trước bốn task đó: nó đổi `AppLaunchTest.kt` và màn đầu ở staging, nên các task sau dựng test emulator trên luồng đã có màn chào ngay từ đầu. Chạy sau cũng được nếu không task nào trong bốn task đổi `AppLaunchTest.kt`; nếu có, xem điều kiện dừng 3.
 
 ## 7. Điều kiện dừng riêng
 
@@ -324,6 +333,7 @@ Bảng điểm dưới đây chỉ để tham khảo:
 6. Một test sẵn có ngoài ba test chooser của `MainScreenTest.kt` và `AppLaunchTest.kt` thất bại sau thay đổi (ví dụ test của `:feature:camera` vì đổi điều hướng).
 7. Cần sửa file của `:feature:camera`, `:core:designsystem`, `:core:data` hoặc `AndroidManifest.xml` để code qua.
 8. `ShrinkFirstLayout` không cho kết quả như mục 4 (hình không co, hay nút bị đẩy khỏi khung thấp) sau 3 lần sửa: dừng (điều kiện chung 4); không đổi số trong test.
+9. (Phiên bản 2) T-026 chưa merge, hoặc `permissionDialogShown` của `:feature:camera` trên nhánh chính khác quy tắc `granted || rationaleBefore || rationaleAfter` hay khác tên, tham số: dừng, không tự chọn quy tắc khác.
 
 ## 8. Câu hỏi cho người duyệt
 
@@ -342,6 +352,7 @@ Bảng điểm dưới đây chỉ để tham khảo:
 5. **Quyết định còn mở của RUN-20261022-01: ghi `camera_permission_result: denied` khi quyền đã bị từ chối vĩnh viễn (không có hộp).** Ở màn chào điều này hiếm (chỉ lần qua màn chào đầu tiên, và chỉ khi quyền đã bị khóa từ trước), nhưng cùng sự kiện với camera nên nên làm giống nhau.
    - Đề xuất của AI: T-012 làm giống camera hiện nay (ghi `denied`). Nếu người duyệt quyết không ghi khi không có hộp, AI đề xuất cách đo: hệ thống trả kết quả trong dưới 300 ms sau khi gọi, hoặc `shouldShowRequestPermissionRationale` là `false` cả trước và sau khi hỏi; sửa cả camera và màn chào trong một plan riêng, cần spec ghi rõ.
    - Trả lời: Đồng ý với đề xuất của AI.
+   - Phiên bản 2: câu trả lời trên đã bị thay. Nhật quyết không ghi khi hộp hỏi không hiện (2026-10-22); camera làm ở T-026, màn chào làm trong phiên bản này với cùng quy tắc của T-026 thay vì quy tắc 300 ms. Spec `onboarding` đã cập nhật.
 6. **Hộp đồng ý quảng cáo và "đúng 2 chạm".** Ở vùng cần đồng ý (ví dụ EEA), `MainActivity` hiện hộp đồng ý UMP khi mở app lần đầu (ADR-0013). Nếu người dùng chưa trả lời lúc loading xong, hộp còn phủ lên màn chào và thêm chạm.
    - Đề xuất của AI: không đổi trong ticket này (điểm chặn 5); coi hộp đồng ý là yêu cầu pháp lý, không tính vào 2 chạm của spec. Nếu muốn đo, thêm câu hỏi vào spec `onboarding` mục đo kết quả.
    - Trả lời: Đồng ý với đề xuất của AI.
@@ -361,21 +372,32 @@ Bảng điểm dưới đây chỉ để tham khảo:
     - Đề xuất của AI: T-012 chạy trước bốn task này trong cùng phiên.
     - Trả lời: Đồng ý với đề xuất của AI.
 
+12. **(Phiên bản 2) Giữ "nên giải thích trước" qua lần activity bị tạo lại.** T-026 lưu giá trị này bằng `remember`; nếu activity bị tạo lại lúc hộp hỏi đang mở, giá trị về `false`, và lần từ chối thứ hai (trước `true`, sau `false`) bị coi là không hiện hộp. Màn chào đã xử lý trường hợp tạo lại (`requesting_permission` trong `SavedStateHandle`).
+    - Đề xuất của AI: màn chào dùng `rememberSaveable` (khác T-026 một chữ, ghi trong KDoc). Ở màn chào gần như luôn là lần hỏi đầu (trước `false`), nên khác biệt chỉ có ý nghĩa khi cài đè. Nếu muốn camera cũng vậy thì sửa ở ticket sau của camera, không sửa trong T-012.
+    - Trả lời:
+13. **(Phiên bản 2) Hai bản của cùng một hàm.** `permissionDialogShown` có ở `:feature:camera` và `:feature:onboarding` (ADR-0001 không cho feature dùng feature khác).
+    - Đề xuất của AI: chấp nhận hai bản như câu 2 của plan T-026 đã duyệt; hai file test giống nhau giữ quy tắc không lệch. Khi có nơi thứ ba thì đề xuất đưa vào một module core (đề xuất về dự án mẫu nếu có ích chung).
+    - Trả lời:
+
 Ghi nhận khi đọc tài liệu, không phải mâu thuẫn chặn plan: chữ của `:feature:camera` đang nằm trong `values/` bằng tiếng Việt, trong khi T-008 và spec `onboarding` câu hỏi 1 đặt tiếng Anh làm ngôn ngữ gốc. Plan này không chạm camera; đề xuất tạo ticket dịch chữ camera. Trong `context/`, tên lớp chữ của điểm 3 là "60 tư thế dùng được khi không ..." (tên cũ), nội dung là "Lưu tư thế yêu thích để chụp lại sau"; plan theo nội dung và bảng chữ.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-22); thay bằng phiên bản 2 trước khi chạy vì quyết định ở mục 8, câu 5 đổi.
+
+Phiên bản 2:
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
 
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
 
-### RUN-YYYYMMDD-NN, phiên bản plan 1
+### RUN-YYYYMMDD-NN, phiên bản plan 2
 
 - **Kết quả:** đã merge / dừng / CI thất bại
 - **Nhánh, PR:** <...>

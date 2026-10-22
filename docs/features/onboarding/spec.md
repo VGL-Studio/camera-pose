@@ -1,6 +1,6 @@
 ---
 feature: onboarding
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -45,7 +45,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi bấm "Bật camera" thì máy hiện hộp hỏi quyền camera của hệ thống.
 - [ ] Khi người dùng cho phép thì app mở camera, khung xem trước chạy, nét viền của tư thế mặc định đã hiện sẵn (câu hỏi 2).
 - [ ] Khi đếm từ lúc màn loading xong tới lúc camera có tư thế thì đúng 2 chạm: "Bật camera" và "Cho phép".
-- [ ] Khi bấm "Bật camera" thì app ghi `onboarding_complete` một lần; khi hệ thống trả kết quả quyền thì app ghi `camera_permission_result`.
+- [ ] Khi bấm "Bật camera" thì app ghi `onboarding_complete` một lần; khi hộp hỏi quyền hiện ra và người dùng chọn thì app ghi `camera_permission_result`.
 
 Trường hợp đặc biệt:
 
@@ -60,7 +60,7 @@ Người dùng không muốn cho phép camera ngay.
 Tiêu chí chấp nhận:
 
 - [ ] Khi người dùng từ chối quyền thì app vẫn sang camera, ở trạng thái chưa có quyền (spec `camera`), không quay lại màn chào.
-- [ ] Khi người dùng đã chọn "không hỏi lại" từ trước (máy không hiện hộp hỏi quyền nữa) và bấm "Bật camera" thì app sang thẳng camera ở trạng thái chưa có quyền.
+- [ ] Khi người dùng đã chọn "không hỏi lại" từ trước (máy không hiện hộp hỏi quyền nữa) và bấm "Bật camera" thì app sang thẳng camera ở trạng thái chưa có quyền và không ghi `camera_permission_result`, giống camera (spec `camera`, KB-7).
 
 ### KB-3. Mở lại app
 
@@ -118,7 +118,7 @@ Không có. Màn chào không hiện quảng cáo (bài học 1, câu 9.1).
 | Tên sự kiện | Khi nào ghi | Tham số | Dùng để trả lời câu hỏi gì |
 | --- | --- | --- | --- |
 | `onboarding_complete` | Khi bấm "Bật camera" ở màn chào | Không có | Bao nhiêu người dùng mới qua được màn chào |
-| `camera_permission_result` | Khi hộp hỏi quyền của hệ thống trả kết quả, ở màn chào hoặc ở camera | `result`: `granted` hoặc `denied`; `source`: `onboarding` hoặc `camera` | Tỷ lệ cho phép camera, màn giải thích có giúp không |
+| `camera_permission_result` | Khi hộp hỏi quyền của hệ thống hiện ra và trả kết quả, ở màn chào hoặc ở camera; không ghi khi quyền đã bị từ chối vĩnh viễn và hộp hỏi không hiện. Từ Android 11, chạm ra ngoài hộp hỏi ở lần hỏi đầu cũng không được ghi (plan T-026, câu hỏi 1), nên số `denied` thấp hơn thực tế; tỷ lệ cho phép trên `onboarding_complete` không đổi | `result`: `granted` hoặc `denied`; `source`: `onboarding` hoặc `camera` | Tỷ lệ cho phép camera, màn giải thích có giúp không |
 
 ## 7. File tĩnh trên R2
 
@@ -147,3 +147,4 @@ Không có. Hình minh họa vẽ bằng thành phần của hệ thống thiế
 | Ngày | Người | Nội dung |
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
+| 2026-10-22 | AI | Theo quyết định của Nhật (cùng quy tắc với spec `camera`, KB-7, và plan T-026): chỉ ghi `camera_permission_result` khi hộp hỏi quyền hiện ra; không ghi khi quyền đã bị từ chối vĩnh viễn (KB-1, KB-2, mục 6). Chờ xác nhận lại |

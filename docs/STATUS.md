@@ -6,11 +6,12 @@
 
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
+- Spec `changed` chờ xác nhận: [spec.md](features/onboarding/spec.md) (onboarding)
+- Plan `draft` chờ duyệt: [T-012-man-chao.md](features/onboarding/plans/T-012-man-chao.md)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-014-camera-chon-tu-the.md](features/camera/tickets/T-014-camera-chon-tu-the.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-026-khong-ghi-quyen-tu-choi-vinh-vien.md](features/camera/tickets/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
-- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-012-man-chao.md](features/onboarding/tickets/T-012-man-chao.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-021-thu-vien-tu-the.md](features/poses/tickets/T-021-thu-vien-tu-the.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-025-man-cai-dat.md](features/settings/tickets/T-025-man-cai-dat.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
@@ -80,11 +81,11 @@ Phản hồi: chưa có.
 
 ### onboarding
 
-Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `approved`.
+Spec: [spec.md](features/onboarding/spec.md) `changed`. Ticket: 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `approved` | `approved` (bản 1) | 20.0M | - |
+| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `planned` | `draft` (bản 2) | 20.0M | - |
 
 Phản hồi: chưa có.
 

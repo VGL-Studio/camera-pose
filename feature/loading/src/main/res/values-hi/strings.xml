@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loading_tagline">आउटलाइन से पोज़ करें, तुरंत बढ़िया फ़ोटो लें।</string>
+    <string name="loading_status">डेटा लोड हो रहा है</string>
+    <string name="loading_guidance">आपके पोज़ तैयार हो रहे हैं…</string>
+    <string name="loading_status_failed">प्रगति रुक गई</string>
+    <string name="loading_error_title">डेटा लोड नहीं हो सका</string>
+    <string name="loading_error">कनेक्शन टूट गया है। कृपया अपना नेटवर्क जाँचें और जारी रखने के लिए फिर से कोशिश करें।</string>
+    <string name="loading_retry">फिर से कोशिश करें</string>
+    <string name="loading_footer">आपकी फ़ोटो सिर्फ़ आपके डिवाइस पर रहती हैं</string>
+</resources>

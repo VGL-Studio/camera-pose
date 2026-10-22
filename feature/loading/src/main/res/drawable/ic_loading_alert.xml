@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Alert icon (Lucide, ISC), from docs/features/loading/design/handoff/ic_alert.svg. Color comes from the tint. -->
+<!-- Material Symbols Rounded "warning" (Apache 2.0, google/material-design-icons@49d4db3, see third_party/material-symbols/LICENSE.txt). Color comes from the tint. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="18dp"
-    android:height="18dp"
-    android:viewportWidth="18"
-    android:viewportHeight="18">
-    <path
-        android:pathData="M8.99999 5.99976V9M8.99999 12.0002H9.00749M16.5006 9C16.5006 13.1425 13.1425 16.5006 8.99999 16.5006C4.85752 16.5006 1.49939 13.1425 1.49939 9C1.49939 4.85754 4.85752 1.4994 8.99999 1.4994C13.1425 1.4994 16.5006 4.85754 16.5006 9Z"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeLineCap="round"
-        android:strokeWidth="1.7" />
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M109-120q-11 0-20-5.5T75-140q-5-9-5.5-19.5T75-180l370-640q6-10 15.5-15t19.5-5q10 0 19.5 5t15.5 15l370 640q6 10 5.5 20.5T885-140q-5 9-14 14.5t-20 5.5H109Zm69-80h604L480-720 178-200Zm302-40q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm0-120q17 0 28.5-11.5T520-400v-120q0-17-11.5-28.5T480-560q-17 0-28.5 11.5T440-520v120q0 17 11.5 28.5T480-360Zm0-100Z" />
+    </group>
 </vector>

@@ -84,4 +84,19 @@ Không có.
 
 ## 8. Kết quả đối chiếu
 
-Chưa có cho thiết kế này. `review/` hiện còn là kết quả đối chiếu với thiết kế cũ của dự án mẫu, và `handoff/` là tài nguyên của thiết kế cũ (`brand_mark.svg` là gốc của `brand_mark.xml` trong code, plan T-002). Cả hai giữ lại làm lịch sử; `scripts/design-compare.sh loading` sinh lại `review/` khi màn hình làm theo thiết kế này, và logo mới thay `brand_mark.xml` khi có icon app.
+Đối chiếu bằng `scripts/design-compare.sh loading` ngày 2026-10-22 (T-008, RUN-20261022-01), ảnh chuẩn chụp bằng tiếng Việt, tên app thật, tiến độ 68%:
+
+| Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |
+| --- | --- | --- |
+| LoadingScreen_failed_dark | 2.7% | `LoadingScreen_failed_dark_compare.png` |
+| LoadingScreen_failed_light | 2.7% | `LoadingScreen_failed_light_compare.png` |
+| LoadingScreen_progress_dark | 1.6% | `LoadingScreen_progress_dark_compare.png` |
+| LoadingScreen_progress_light | 1.6% | `LoadingScreen_progress_light_compare.png` |
+
+Nhận xét của rà soát độc lập (mục 7):
+
+- `progress_light`, `progress_dark`: đủ các phần, đúng thứ tự, chữ đúng bảng chữ, đúng vai trò màu (nền `background`, nhãn `onSurfaceVariant`, phần trăm `onSurface`, thanh vàng trên `surfaceVariant`, viền `outline`). Khác biệt chỉ ở logo tạm, nét chữ và đầu thanh tiến trình lệch khoảng 1 dp. Không có lệch chặn.
+- `failed_light`, `failed_dark`: nhãn, phần trăm và thanh màu `error` trên `errorContainer`; biểu tượng `warning` tam giác, tiêu đề `onSurface`, lời hướng dẫn hai dòng, nút "Thử lại" có `refresh`; logo không đổi chỗ. Ngoài logo và nét chữ, khác biệt lớn nhất là nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56). Không có lệch chặn.
+- Ảnh khung 360 x 640 (`_small`): tên app hai dòng, nút "Thử lại" thấy trọn, chân trang dưới nút.
+
+Logo vẫn là `brand_mark.xml` tạm (plan T-008, câu 8), thay khi có icon app. `handoff/` giữ lại làm lịch sử của thiết kế cũ.

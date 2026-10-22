@@ -30,7 +30,8 @@ fun interface LoadingClock {
 /**
  * Runs the three preparation tasks one after the other: Remote Config 10%, the pose catalog 10%, the starter set
  * 80%, growing with each file (spec: loading). The catalog needs the path just fetched with Remote Config, and the
- * starter set needs the catalog. Progress never goes down, also across retries. The screen stays at least [MIN_DURATION_MILLIS] and, if a task fails, waits for the user to retry.
+ * starter set needs the catalog. Progress never goes down, also across retries.
+ * The screen stays at least [MIN_DURATION_MILLIS] and, if a task fails, waits for the user to retry.
  * The flag is read once when the screen opens: it only decides whether the app shows loading at start-up,
  * so watching it afterwards would mean nothing (plan T-001, question 3).
  */

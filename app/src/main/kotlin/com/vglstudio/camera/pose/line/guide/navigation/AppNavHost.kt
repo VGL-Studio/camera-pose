@@ -34,6 +34,7 @@ internal fun AppNavHost(
     val entry by navController.currentBackStackEntryAsState()
     val pastLoading = entry?.destination?.let { !it.hasRoute<LoadingDestination>() } ?: false
     val currentOnPastLoadingChanged by rememberUpdatedState(onPastLoadingChanged)
+    val currentChooseMainScreen by rememberUpdatedState(chooseMainScreen)
     LaunchedEffect(pastLoading) { currentOnPastLoadingChanged(pastLoading) }
     NavHost(
         navController = navController,
@@ -43,7 +44,7 @@ internal fun AppNavHost(
         loadingScreen(
             onFinished = {
                 scope.launch {
-                    val screen = chooseMainScreen()
+                    val screen = currentChooseMainScreen()
                     // onFinished runs again after the activity is recreated: navigate only while still on loading.
                     if (navController.currentDestination?.hasRoute<LoadingDestination>() != true) return@launch
                     // Loading leaves the back stack: Back on the main screen closes the app (spec loading, KB-1).

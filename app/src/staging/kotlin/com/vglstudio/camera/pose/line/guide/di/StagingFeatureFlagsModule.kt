@@ -29,4 +29,9 @@ object StagingFeatureFlagsModule {
     @IntoSet
     @LocallyEnabledFlags
     fun networkDialog(): FeatureFlag = FeatureFlag.NETWORK_DIALOG
+
+    @Provides
+    @IntoSet
+    @LocallyEnabledFlags
+    fun camera(): FeatureFlag = FeatureFlag.CAMERA
 }

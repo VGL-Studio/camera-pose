@@ -37,3 +37,4 @@ include(":core:poses")
 
 include(":feature:sample")
 include(":feature:loading")
+include(":feature:camera")

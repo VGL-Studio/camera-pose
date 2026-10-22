@@ -11,6 +11,8 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.vglstudio.camera.pose.line.guide.feature.camera.navigation.CameraDestination
+import com.vglstudio.camera.pose.line.guide.feature.camera.navigation.cameraScreen
 import com.vglstudio.camera.pose.line.guide.feature.loading.navigation.LoadingDestination
 import com.vglstudio.camera.pose.line.guide.feature.loading.navigation.loadingScreen
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.SampleDestination
@@ -56,13 +58,14 @@ internal fun AppNavHost(
             },
         )
         sampleScreen()
+        // T-016 opens the review screen; T-021 and T-025 wire the library and settings buttons.
+        cameraScreen(onPhotoCaptured = {})
     }
 }
 
 private fun MainScreen.destination(): Any = when (this) {
     // T-012 replaces this with OnboardingDestination.
     MainScreen.ONBOARDING -> SampleDestination
-    // T-013 replaces this with CameraDestination.
-    MainScreen.CAMERA -> SampleDestination
+    MainScreen.CAMERA -> CameraDestination()
     MainScreen.SAMPLE -> SampleDestination
 }

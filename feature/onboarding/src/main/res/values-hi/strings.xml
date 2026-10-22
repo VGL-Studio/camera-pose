@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_title">बढ़िया पोज़, बिना अंदाज़े के</string>
+    <string name="onboarding_body">एक पोज़ चुनें, आउटलाइन में खड़े हों और फ़ोटो लें। फ़ोटो आउटलाइन के बिना आपकी गैलरी में सेव होती है।</string>
+    <string name="onboarding_point_poses">200 से ज़्यादा पोज़: अकेले, कपल, दोस्तों के साथ</string>
+    <string name="onboarding_point_adjust">आउटलाइन की पारदर्शिता, आकार और जगह बदलें</string>
+    <string name="onboarding_point_saved">पसंदीदा पोज़ सेव करें और बाद में फिर से फ़ोटो लें</string>
+    <string name="onboarding_enable_camera">कैमरा चालू करें</string>
+    <string name="onboarding_note">प्रीव्यू दिखाने के लिए ऐप को कैमरे की अनुमति चाहिए। फ़ोटो सिर्फ़ आपके डिवाइस पर सेव होती हैं।</string>
+</resources>

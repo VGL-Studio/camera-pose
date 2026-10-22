@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_title">Poses perfeitas, sem adivinhar</string>
+    <string name="onboarding_body">Escolha uma pose, encaixe-se no contorno e toque para fotografar. As fotos vão para a galeria sem o contorno.</string>
+    <string name="onboarding_point_poses">Mais de 200 poses: sozinho, casal, amigos</string>
+    <string name="onboarding_point_adjust">Ajuste a transparência, o tamanho e a posição do contorno</string>
+    <string name="onboarding_point_saved">Salve suas poses favoritas para fotografar depois</string>
+    <string name="onboarding_enable_camera">Ativar câmera</string>
+    <string name="onboarding_note">O app precisa acessar a câmera para mostrar a visualização. As fotos ficam só no seu aparelho.</string>
+</resources>

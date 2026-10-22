@@ -20,6 +20,7 @@ import com.vglstudio.camera.pose.line.guide.feature.onboarding.navigation.onboar
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.SampleDestination
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.sampleScreen
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -51,7 +52,9 @@ internal fun AppNavHost(
     ) {
         loadingScreen(
             onFinished = {
-                scope.launch {
+                // Main.immediate: chooseMainScreen reads DataStore, and navigate must resume on the main thread
+                // whatever dispatcher the composition's scope uses (Compose tests resume it on a worker thread).
+                scope.launch(Dispatchers.Main.immediate) {
                     val screen = currentChooseMainScreen()
                     // onFinished runs again after the activity is recreated: navigate only while still on loading.
                     if (navController.currentDestination?.hasRoute<LoadingDestination>() != true) return@launch

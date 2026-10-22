@@ -1,7 +1,7 @@
 ---
 ticket: T-008
 title: Màn loading theo thiết kế Sticker và chữ của app
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 7
 risk_level: medium
@@ -290,3 +290,15 @@ Quy ước chung của test dưới đây: lớp `LoadingScreenTest` giữ `@Gra
 - **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
 - **Việc còn lại:** <...>
 - **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+
+### RUN-20261022-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #25, commit c639dac)
+- **Nhánh, PR:** `claude/T-008-loading-giao-dien-sticker`, PR #25
+- **Đã làm:** đủ mục 3.1 và 3.2: bố cục Sticker (logo 200 trên 891, rộng 318, nền `background`), chữ 7 ngôn ngữ (chép từ bảng của plan bằng script, rà soát so lại từng ký tự), ba biểu tượng Material Symbols Rounded, giấy phép (mã băm khớp), 6 ảnh chuẩn ghi lại, `review/` và README thiết kế mục 8.
+- **Test viết trước:** `LoadingScreenTest` 17 test (6 cũ đổi tên app, 2 bố cục, 2 nền, 7 cuộn theo ngôn ngữ), `LoadingStringsTest` 4 test. Trên code của bước 3: 8 test thất bại đúng lý do (bố cục: logo 222,67 thay 200, khối lỗi 578,67 thay 552; nền là `surface` #FFFFFF, #1E1E1E; chữ: `values/` còn tiếng Việt, ngôn ngữ khác ra chữ gốc; khẩu hiệu mới chưa hiện). Qua ngay như plan dự kiến: 7 test cuộn, `percent_isSameInEveryLanguage`, các test cũ chỉ đổi tên app.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa (đã sửa: test cuộn đo `getUnclippedBoundsInRoot()`, làm test chặt hơn), ghi chú: hai test màn thấp cũ của T-005 cùng điểm yếu (plan giữ nguyên); `everyReleaseLanguage_isTranslated` không so từng ký tự; nút cao 56 so với 60; logo tạm. Nhận xét từng ảnh ghi ở README thiết kế mục 8.
+- **Kết quả CI:** xanh ở vòng đầu (`changes`, `build-and-test`, `ui-test`), lần chạy 39713061307.
+- **Lệch so với plan:** (1) `inProgress_showsIdentityProgressAndGuidance` thất bại ở bước 3 (plan ghi sẽ qua): khung bước 3 chỉ thêm khóa `loading_tagline`, màn hình vẫn hiện `brand_tagline`, nên test thất bại đúng lý do. (2) Hai test nền đo điểm ảnh bằng cách vẽ view gốc ra `Bitmap` thay `captureToImage()` (mục 4): `captureToImage()` hết giờ trên Robolectric (`ComposeTimeoutException`), cùng cách T-007 đã dùng; điều kiểm tra không đổi. (3) Hai lần sửa định dạng cho ktlint trong file test (thụt lề). (4) Chú thích lớp `LoadingScreenTest` sửa theo ngôn ngữ của khung.
+- **Việc còn lại:** Không có.
+- **Cần người xem:** 6 ảnh chuẩn mới của loading; ảnh so sánh thiết kế; bản dịch Hindi, Bồ Đào Nha, Tây Ban Nha, Indonesia, Thái cần người biết tiếng duyệt trước khi phát hành (plan câu 1); kiểm tra thủ công đổi ngôn ngữ máy.

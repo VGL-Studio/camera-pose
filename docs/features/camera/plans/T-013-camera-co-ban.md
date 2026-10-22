@@ -1,7 +1,7 @@
 ---
 ticket: T-013
 title: Camera: khung xem trước, quyền, công cụ chụp, chụp ảnh
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -452,3 +452,15 @@ Bản giả: `FakeCameraController` ghi lại `openCalls: List<Lens>`, `flashCal
 - **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
 - **Việc còn lại:** <...>
 - **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+
+### RUN-20261022-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #26, commit 4e38886)
+- **Nhánh, PR:** `claude/T-013-camera-co-ban`, PR #26
+- **Đã làm:** đủ mục 3.1 và 3.2: module `:feature:camera` (CameraX sau `CameraController`, ViewModel, màn hình, lưu công cụ bốn khóa `camera_*`, `CaptureFileStore`, `CapturedPhotoHolder`, 12 biểu tượng Material Symbols Outlined và giấy phép), bốn thành phần `:core:designsystem` và trang catalog, cờ `CAMERA` (bật ở staging), `MainScreenChooser` đọc cờ, camera là màn chính sau loading, khóa dọc, `AppLaunchTest` chờ `camera_screen`. Ngắt đếm ngược theo phương án A (`NetworkStatus.dialogShown`). 8 ảnh chuẩn mới, `review/` của 4 ảnh thiết kế.
+- **Test viết trước:** 31 test `CameraViewModelTest` (29 ở bước 3, 2 thêm sau rà soát), 4 `DataStoreCameraSettingsRepositoryTest`, 2 `CaptureFileStoreTest`, 19 `CameraScreenTest`, 12 `CameraComponentsTest`, 2 test mới của `MainScreenTest`, 8 screenshot test. Trên khung rỗng 60 test thất bại ở phần khẳng định (trạng thái không bao giờ `Ready`, không có node, không vẽ gì). Qua ngay, là test chặn hồi quy: `nothingStored_returnsDefaults`, `unknownStoredValue_fallsBackToDefault`, `topButtons_hiddenWithoutCallbacks`, `zoom_singleLevel_hidden`, `chooser_cameraFlagOff_choosesSample` (plan đã nêu).
+- **Rà soát độc lập:** 1 chặn (đã sửa: tra `setZoomRatio` bằng reflection trong `companion object` có thể làm app dừng ở bản minify; nay tra lười, `consumer-rules.pro` giữ hàm, kiểm bằng `mapping.txt` của `stagingRelease`), 5 nên sửa (4 đã sửa: vòng đời camera về `DESTROYED` và giải phóng âm chụp; đổi camera khi đang chụp; đổi camera hai lần nhanh, có 2 test viết trước; future CameraX tự bị hủy làm kẹt ở "Đang mở camera…"; 1 để người quyết: nút đổi camera mờ ở ba trạng thái không `Ready` theo plan, còn ảnh thiết kế để trắng), ghi chú ở mục Cần người xem.
+- **Kết quả CI:** 3 vòng. Vòng 1 `ui-test` đỏ: `IllegalStateException: State must be at least 'CREATED' to be moved to 'DESTROYED'` khi ViewModel bị hủy lúc camera còn chờ hộp hỏi quyền (lỗi do bản sửa sau rà soát); sửa trong `CameraXController.release()`. Vòng 2 `ui-test` đỏ: `No compose hierarchies found in the app`: hộp hỏi quyền của hệ thống là activity khác phủ lên app, test không thấy cây Compose (plan mục 4 giả định vẫn tìm được). `AppLaunchTest` cấp quyền camera bằng `UiAutomation` trước khi mở app; điều kiểm tra (tới `camera_screen`) giữ nguyên. Vòng 3 xanh (lần chạy 39723053208). Hai lỗi thật khác nhau, mỗi lỗi một lần sửa.
+- **Lệch so với plan:** (1) `clock: () -> Long` thành `fun interface CaptureClock`. (2) `CameraControl.setZoomRatio` gọi qua reflection vì `ListenableFuture` của Guava không có trên classpath biên dịch và plan không cho thêm thư viện (mục 7, điều 4); thêm luật keep vào `consumer-rules.pro` (file trong mục 3.2). (3) `Lens.next()`, `CameraController.release()`. (4) `AppLaunchTest` cấp quyền camera trước khi mở app (vòng 2 của CI). (5) Định dạng cho ktlint trong `CameraViewModelTest`. (6) Plan mục 3.3 ghi cờ "theo dõi bằng `collectAsState`", mục 3.1 ghi `first()`: code theo mục 3.1 (cách T-010 chỉ định).
+- **Việc còn lại:** Không có trong phạm vi ticket.
+- **Cần người xem:** 8 ảnh chuẩn mới (7 camera, 1 catalog) và 4 ảnh so sánh thiết kế; chốt trạng thái nút đổi camera khi chưa `Ready` (plan: mờ; thiết kế: trắng); kiểm tra thủ công mục 4 trên máy thật (khung 3:4, flash, zoom 0.5x, âm chụp, chiều ảnh, quyền, lỗi khi app khác giữ camera, đếm ngược), nhất là zoom trên bản `stagingRelease`. Ghi chú của rà soát: `camera_permission_result: denied` vẫn ghi khi quyền đã bị từ chối vĩnh viễn (hộp không hiện), cần quyết; `events` thu không theo vòng đời (T-016 nên dùng `repeatOnLifecycle`); chụp hỏng vẫn xóa ảnh cũ trong cache (T-016 cần biết); `selected` gắn cho mọi `CameraIconButton`.

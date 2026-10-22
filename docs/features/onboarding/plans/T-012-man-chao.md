@@ -1,7 +1,7 @@
 ---
 ticket: T-012
 title: Màn chào và xin quyền camera
-status: approved                   # draft | approved | stopped | done
+status: done                       # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -420,3 +420,15 @@ Phiên bản 2:
 - **Lệch so với plan:** thêm hằng `OnboardingTestTags.CONTENT` (vùng cuộn, test màn thấp cần); `default_illustrationFullHeight_whenRoomEnough` gộp vào `default_layoutMatchesDesign` (plan cho phép); nét viền dùng nguyên hai path của `handoff/pose_outline.svg`, màu qua tint `onCategory`; `UNDISPATCHED` ở `onStarted` (rà soát).
 - **Việc còn lại:** sửa lỗi luồng ở `AppNavHost.kt` (trong danh sách file): phần sau `chooseMainScreen()` chạy trên `Dispatchers.Main.immediate`, ví dụ `scope.launch { val screen = currentChooseMainScreen(); withContext(Dispatchers.Main.immediate) { ...navigate... } }`; chạy lại `check.sh`, đẩy, chờ `ui-test`; rồi bước 9, 10. Nếu `ui-test` đỏ ở bước bấm "Bật camera" thì theo mục 8, câu 8 và mục 7, điều 4.
 - **Cần người xem:** 3 ảnh chuẩn mới và ảnh so sánh thiết kế (4,3% khác, lệch ở chỗ ngắt dòng và nút 56 dp); bản dịch 6 ngôn ngữ; dòng lịch sử ngày 2026-10-22 của spec `onboarding` còn ghi "Chờ xác nhận lại" trong khi spec `confirmed`.
+
+### RUN-20261023-02, phiên bản plan 2
+
+- **Kết quả:** đã merge (PR #36, commit 9c141d7, 23:35 UTC).
+- **Nhánh, PR:** `claude/T-012-man-chao`, PR #36. Tiếp tục trên nhánh cũ: merge nhánh chính 3890834 (ffc6bf2), sửa lỗi luồng (9a9cad6).
+- **Đã làm:** `AppNavHost.kt`: `onFinished` của loading chạy `scope.launch(Dispatchers.Main.immediate)`, nên `navigate` sau `chooseMainScreen()` (đọc DataStore) luôn tiếp tục trên luồng chính. Đúng cách sửa ghi ở "Việc còn lại" của lần trước, chỉ một file trong danh sách.
+- **Test viết trước:** không thêm test (bước 3 đã xong ở RUN-20261023-01). `AppNavHost.kt` thuộc ngoại lệ đã duyệt (mục 4); lỗi được kiểm bằng `AppLaunchTest`, đỏ trước khi sửa (lần chạy 39821691045), xanh sau khi sửa.
+- **Rà soát độc lập:** phiên con chỉ đọc, xem commit 9a9cad6: 0 chặn, 0 nên sửa, 4 ghi chú: (1) chú thích nói luồng nền do Compose test chọn, thật ra là luồng của DataStore, giữ nguyên; (2) với `.immediate`, khi không có lần treo nào `navigate` chạy ngay trong effect của `LoadingRoute`, không hại; (3) phần sau `markDone` ở `onStarted` có thể chạy trên luồng nền, hiện chỉ ghi log; task sau thêm thao tác giao diện ở đó thì phải đưa về luồng chính; (4) `AppLaunchTest` chưa từng đỏ ở bước bấm "Bật camera".
+- **Kết quả CI:** lần chạy 39870610590 (9a9cad6): `changes`, `build-and-test`, `ui-test` đều xanh vòng đầu. `scripts/check.sh` cục bộ qua: 410 test JVM, 0 lỗi, 34 ảnh screenshot.
+- **Lệch so với plan:** Không có (thêm so với lần trước).
+- **Việc còn lại:** kiểm tra thủ công ở mục 4.
+- **Cần người xem:** như lần trước (3 ảnh chuẩn mới, ảnh so sánh thiết kế, bản dịch 6 ngôn ngữ); bấm "Bật camera" khi có hộp đồng ý quảng cáo phủ lên đã qua trên CI (mục 8, câu 8).

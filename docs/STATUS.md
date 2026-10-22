@@ -5,7 +5,7 @@
 ## 1. Đang chờ người
 
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
-- Danh sách chạy `draft` chờ duyệt: [RUN-20261022-01.md](runs/RUN-20261022-01.md)
+- Danh sách chạy đã duyệt, chờ kích hoạt: [RUN-20261022-01.md](runs/RUN-20261022-01.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
@@ -107,7 +107,7 @@ Phản hồi: chưa có.
 
 | Phiên | Trạng thái | Bắt đầu | Ticket | Bản staging |
 | --- | --- | --- | --- | --- |
-| [RUN-20261022-01](runs/RUN-20261022-01.md) | `draft` |  | T-011, T-010, T-008, T-013 | - |
+| [RUN-20261022-01](runs/RUN-20261022-01.md) | `approved` |  | T-011, T-010, T-008, T-013 | - |
 | [RUN-20261021-04](runs/RUN-20261021-04.md) | `draft` |  | T-008, T-011, T-010, T-013 | - |
 | [RUN-20261021-03](runs/RUN-20261021-03.md) | `finished` | 2026-10-21T15:01Z | T-007, T-011 | - |
 | [RUN-20261021-02](runs/RUN-20261021-02.md) | `finished` | 2026-10-21T14:14Z | T-007, T-011 | không phát (không có task nào merge) |

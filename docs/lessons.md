@@ -336,3 +336,17 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** mẫu plan thêm mục 3.4 Phương án dự phòng (điều kiện chuyển, cách làm thay, file ghi "(dự phòng)" trong mục 3.2) và mục 4.1 Chạy thử; `risk-scoring.md` mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng, chỉ một lần, không vượt các điều kiện dừng khác; `docs/CLAUDE.md` mục Khi viết plan; `plan-check.py` báo lỗi khi plan `draft` có tiêu chí E từ 2 mà thiếu chạy thử bằng `scripts/check.sh`.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-036: Mâu thuẫn và test yếu chỉ được tìm thấy khi phiên đã chạy, hoặc nhờ người tình cờ thấy
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** chuẩn bị RUN-20261023-01, RUN-20261023-02.
+- **Chuyện gì:** khi chuẩn bị RUN-20261023-01, các lỗi sau chỉ lộ ra nhờ rà soát bằng tay, không có bước nào bắt buộc tìm:
+  - plan T-016 phiên bản 1 cần quyền lưu tệp mà spec camera không có;
+  - câu trả lời câu 5 của plan T-012 trái với quy tắc ghi `camera_permission_result` của T-026;
+  - plan T-016 đặt dải tư thế trong `CameraViewModel`, trong khi T-014 tạo `PoseViewModel`.
+  
+  Trong phiên còn hai lỗi khác: T-012 để `AppNavHost` trong ngoại lệ viết test trước, nên lỗi luồng chỉ lộ ra ở `ui-test` (L-030); test `starting_dark` chụp một hiệu ứng chạy mãi (L-029). `run-check.py`, chạy thử trên RUN-20261023-02, còn thấy: spec camera và spec onboarding vẫn có dòng lịch sử "Chờ xác nhận lại"; năm plan có ngoại lệ viết test trước ở vỏ app; nhiều cặp plan cùng sửa `AppNavHost.kt` mà không phụ thuộc nhau.
+- **Bằng chứng:** plan T-016 phiên bản 1 và 2, plan T-012 phiên bản 2 (mục 9), lần chạy 39821691045 (`ui-test` của PR #36), issue #35; kết quả `scripts/run-check.py docs/runs/RUN-20261023-02.md`.
+- **Đề xuất sửa:** thêm `scripts/run-check.py`, kiểm cả danh sách chạy: spec đã chốt và trả lời hết, phụ thuộc đúng thứ tự, kịch bản có test, plan cùng sửa một file, ngoại lệ ở vỏ app. Thêm `docs/ops/pre-run-review.md`: một lần rà soát độc lập với ngữ cảnh mới, tìm mâu thuẫn, test chưa đủ tốt và điều kiện để phiên chạy được, kết quả ghi vào mục Kiểm tra trước khi duyệt của danh sách chạy. Dev chỉ duyệt danh sách khi không còn điểm chặn. Phiên chạy lại `run-check.py` ở đầu phiên.
+- **Áp dụng:**
+- **Kiểm chứng:**

@@ -12,7 +12,7 @@ Bốn nguyên tắc của phiên tự chạy:
 ## 1. Kích hoạt phiên
 
 1. Sau họp đánh giá rủi ro, AI lập danh sách chạy `runs/RUN-YYYYMMDD-NN.md` theo [mẫu phiên tự chạy](templates/run.md): các plan đã duyệt, thứ tự chạy, số task tối đa, thời điểm muốn có bản staging (nếu có).
-2. Dev xem lại danh sách, chuyển trạng thái sang `approved`.
+2. Dev xem lại danh sách cùng mục Kiểm tra trước khi duyệt ([ops/pre-run-review.md](ops/pre-run-review.md)), rồi chuyển trạng thái sang `approved`. Chỉ duyệt khi `scripts/run-check.py` qua và không còn điểm chặn nào của lần rà soát chưa xử lý.
 3. Dev kích hoạt phiên bằng workflow `start-run.yml` trên GitHub, hoặc bằng Run now của routine. Muốn bắt đầu vào một thời điểm cụ thể (ví dụ lúc hạn mức sử dụng được làm mới) thì hẹn một lần chạy cho routine. Ưu tiên hai cách này: chỉ phiên của routine được `resume-run.yml` tự tiếp tục khi hết hạn mức. Phiên mở bằng `claude --cloud` từ terminal dừng hẳn khi hết hạn mức, người phải mở lại (L-008); chỉ dùng cách này khi có lý do, ví dụ dùng cloud session credits (L-020), và ghi lý do vào mục Kiểm tra đầu phiên.
 4. Mỗi lúc chỉ có một phiên tự chạy. Trong khi phiên đang chạy, người không merge vào nhánh chính, kể cả PR chỉ có tài liệu: mỗi commit mới trên nhánh chính bắt task đang làm chạy lại CI một vòng. `merge-if-green.sh` từ chối mọi PR không phải của phiên khi danh sách chạy trên nhánh báo cáo đang `running`, kể cả khi phiên đang chờ hạn mức được làm mới (mục 4, Tiếp tục phiên sau khi hết hạn mức).
 5. Một danh sách chạy chỉ chạy một lần. Danh sách đã `finished` không được kích hoạt lại; muốn chạy lại thì lập danh sách mới.
@@ -33,6 +33,7 @@ Các điều kiện:
 | Môi trường build được: `scripts/check.sh` qua trên nhánh chính, để lỗi môi trường lộ ra trước khi viết code và để thư viện được tải sẵn. Chạy ở chế độ nền, song song với phần đầu của task đầu tiên (mục Kiểm tra build ở chế độ nền, dưới bảng này) | Lỗi hạ tầng: thử lại theo lịch ở bước 5. Lỗi khác: không chạy task nào, kết thúc phiên, báo cáo lý do |
 | Nhánh chính đang xanh: lần chạy gần nhất của `main-guard.yml` qua, và không có issue hay PR nào đang mở mang nhãn `main-broken` | Không chạy task nào, kết thúc phiên, báo cáo lý do |
 | Không có issue nào đang mở mang nhãn `env-broken` (kiểm tra môi trường hằng ngày, `docs/ops/staging-and-runs.md`, mục 2.4). `start-run.yml` đã kiểm tra; phiên kiểm tra lại vì phiên bắt đầu bằng Run now không qua workflow | Không chạy task nào, kết thúc phiên, báo cáo lý do |
+| Danh sách qua `scripts/run-check.py <danh sách chạy>`, chạy một lần ở đầu phiên: spec đã chốt và trả lời hết câu hỏi, phụ thuộc đúng thứ tự, mọi kịch bản có test ([ops/pre-run-review.md](ops/pre-run-review.md)) | Lỗi về spec, ticket hay phụ thuộc của một task: bỏ qua task đó và các task phụ thuộc nó, chép thông báo vào báo cáo. Lỗi của `plan-check` để dòng `plan-check.py` bên dưới quyết định ngay trước task. Dòng chú ý chép vào báo cáo |
 | Plan có trạng thái `approved` và nằm trong danh sách chạy | Bỏ qua task, ghi lý do |
 | Ticket có trạng thái `approved` | Bỏ qua task, ghi lý do |
 | Plan qua `scripts/plan-check.py <plan>`. Chạy ngay trước khi bắt đầu từng task, không chạy chung ở đầu phiên: plan có thể sửa file mà task trước trong cùng phiên tạo ra | Bỏ qua task trước khi tạo nhánh, chép thông báo của script vào báo cáo; plan và ticket giữ `approved`. Không tự sửa plan |

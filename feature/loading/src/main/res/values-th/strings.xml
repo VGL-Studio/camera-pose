@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loading_tagline">โพสตามเส้นโครง ถ่ายสวยได้ทันที</string>
+    <string name="loading_status">กำลังโหลดข้อมูล</string>
+    <string name="loading_guidance">กำลังเตรียมท่าโพสของคุณ…</string>
+    <string name="loading_status_failed">ความคืบหน้าหยุดลง</string>
+    <string name="loading_error_title">โหลดข้อมูลไม่ได้</string>
+    <string name="loading_error">การเชื่อมต่อขัดข้อง โปรดตรวจสอบเครือข่ายแล้วลองอีกครั้งเพื่อดำเนินการต่อ</string>
+    <string name="loading_retry">ลองอีกครั้ง</string>
+    <string name="loading_footer">รูปภาพของคุณจะอยู่ในเครื่องนี้เท่านั้น</string>
+</resources>

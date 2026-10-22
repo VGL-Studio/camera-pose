@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loading_tagline">Siga o contorno e faça a foto perfeita.</string>
+    <string name="loading_status">Carregando dados</string>
+    <string name="loading_guidance">Preparando suas poses…</string>
+    <string name="loading_status_failed">Progresso interrompido</string>
+    <string name="loading_error_title">Não foi possível carregar os dados</string>
+    <string name="loading_error">A conexão foi interrompida. Verifique sua rede e tente novamente para continuar.</string>
+    <string name="loading_retry">Tentar novamente</string>
+    <string name="loading_footer">Suas fotos ficam só no seu aparelho</string>
+</resources>

@@ -1,7 +1,7 @@
 ---
 ticket: T-010
 title: Màn loading tải catalog và bộ tư thế khởi đầu
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -292,3 +292,15 @@ Bảng điểm dưới đây chỉ để tham khảo:
 - **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
 - **Việc còn lại:** <...>
 - **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+
+### RUN-20261022-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #24, commit 2a71501)
+- **Nhánh, PR:** `claude/T-010-loading-tai-catalog-bo-khoi-dau`, PR #24
+- **Đã làm:** đủ mục 3.1 và 3.2: ba phần việc nối tiếp 10/10/80, tiến trình theo phần nghìn không lùi, `DefaultPreparationRepository` dùng `:core:poses`, `REFRESH_TIMEOUT_MILLIS = 15_000L`, `MainScreen`, `chooseMainScreen`, `MainScreenChooser`, `AppNavHost` điều hướng theo lựa chọn và chặn điều hướng hai lần, `MainActivity`, `app/build.gradle.kts`, `AppLaunchTest` 60 giây.
+- **Test viết trước:** 21 test `LoadingViewModelTest`, 5 test `DefaultPreparationRepositoryTest`, 3 test 15 giây của `RemoteConfigRefresherTest`, 6 test `MainScreenTest`. Trên khung của bước 3: 17 test của `:feature:loading` thất bại ở phần khẳng định (chạy song song, chia đều cho ba, `CATALOG` và `STARTER_SET` trả `false`), 2 test 15 giây và 3 test chọn màn chính thất bại đúng như mục 4. Qua ngay đúng như plan dự kiến: test giữ hành vi (2 giây, `loading_completed`, cờ tắt, thử lại khi đang chạy, `remoteConfigTask_usesRefresher`, `catalogFailed_returnsFalse_forEveryReason`), `taskShares_addUpToWholeBar` (hằng số có trong khung), `fetchLongerThanFifteenSeconds_returnsFalse`, hai test ra `SAMPLE`.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa (đã sửa: `rememberUpdatedState` cho `chooseMainScreen`), ghi chú: T-012 cần bắt lỗi trong `MainScreenChooser.choose()` khi đọc DataStore; lần đầu tiêm Hilt vào trường `internal`; KDoc dài (đã ngắt dòng).
+- **Kết quả CI:** xanh ở vòng đầu (`changes`, `build-and-test`, `ui-test`), lần chạy 39710999529. `AppLaunchTest` qua với catalog mẫu trên R2 staging.
+- **Lệch so với plan:** `AppNavHost` đổi từ `public` sang `internal` vì `MainScreen` là `internal`; `MainScreenChooser` là `internal`. `MainScreenTest` đổi cách gọi hàm phụ trợ để ktlint không báo dòng dài, không đổi điều kiểm tra. Bước kiểm `curl` 9 file trên R2 (mục 4, dòng cuối) không làm được vì môi trường chặn `camera-pose.vgl.io.vn` (proxy 403); dựa vào ghi chú của danh sách chạy (dev đã kiểm, `200`) và `AppLaunchTest` trên CI (đã qua).
+- **Việc còn lại:** Không có.
+- **Cần người xem:** kiểm tra thủ công mục 4 trên bản staging (mất mạng thật, xoay máy, quay lại đóng app, KB-3 mở lại khi mất mạng).

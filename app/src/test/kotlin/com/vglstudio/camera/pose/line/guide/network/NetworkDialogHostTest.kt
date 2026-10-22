@@ -2,14 +2,16 @@ package com.vglstudio.camera.pose.line.guide.network
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.activity.ComponentDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -28,6 +30,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
 
 /**
  * The shell that draws the network dialog over every screen (spec network, KB-1 and KB-3). A plain Application, so
@@ -49,16 +52,15 @@ class NetworkDialogHostTest {
     }
 
     @Test
-    fun shown_blocksContentClicks_andHidesItFromAccessibility() {
-        var clicks = 0
-        setContentButton(SHOWN) { clicks++ }
+    fun shown_drawsDialogInSeparateWindow() {
+        setContentButton(SHOWN) {}
 
-        composeRule.onNodeWithTag(CONTENT).performClick()
-
-        assertEquals(0, clicks)
-        composeRule.onNodeWithTag(NetworkDialogTestTags.SCREEN).assertExists()
-        composeRule.onNodeWithTag(CONTENT, useUnmergedTree = true)
-            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.HideFromAccessibility))
+        // A separate top window covers the app window, so the system keeps touches and screen readers off the
+        // content behind it (KB-1). Robolectric does not model that blocking; it is checked on a real device.
+        val roots = composeRule.onAllNodes(isRoot())
+        roots.assertCountEquals(2)
+        roots[0].assert(hasAnyDescendant(hasTestTag(CONTENT)))
+        roots[1].assert(hasAnyDescendant(hasTestTag(NetworkDialogTestTags.SCREEN)))
         // Still in the semantics tree, so AppLaunchTest finds the screen behind the dialog.
         assertEquals(1, composeRule.onAllNodesWithTag(CONTENT).fetchSemanticsNodes().size)
     }
@@ -71,6 +73,7 @@ class NetworkDialogHostTest {
         composeRule.onNodeWithTag(CONTENT).performClick()
 
         assertEquals(1, clicks)
+        composeRule.onAllNodes(isRoot()).assertCountEquals(1)
         composeRule.onAllNodesWithTag(NetworkDialogTestTags.SCREEN).assertCountEquals(0)
     }
 
@@ -79,7 +82,9 @@ class NetworkDialogHostTest {
         var backs = 0
         setNavContent(SHOWN) { backs++ }
 
-        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        // System Back goes to the top window, which is the dialog while it is shown.
+        val dialog = ShadowDialog.getLatestDialog() as ComponentDialog
+        composeRule.runOnUiThread { dialog.onBackPressedDispatcher.onBackPressed() }
         composeRule.waitForIdle()
 
         assertEquals(1, backs)

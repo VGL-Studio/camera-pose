@@ -11,6 +11,7 @@
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-016-man-xem-lai.md](features/camera/tickets/T-016-man-xem-lai.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-026-khong-ghi-quyen-tu-choi-vinh-vien.md](features/camera/tickets/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
+- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-012-man-chao.md](features/onboarding/tickets/T-012-man-chao.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-021-thu-vien-tu-the.md](features/poses/tickets/T-021-thu-vien-tu-the.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-025-man-cai-dat.md](features/settings/tickets/T-025-man-cai-dat.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
@@ -80,11 +81,11 @@ Phản hồi: chưa có.
 
 ### onboarding
 
-Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `planned`.
+Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `approved`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `planned` | `approved` (bản 2) | 20.0M | - |
+| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `approved` | `approved` (bản 2) | 20.0M | - |
 
 Phản hồi: chưa có.
 

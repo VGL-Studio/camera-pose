@@ -5,7 +5,7 @@ feature: onboarding
 spec: features/onboarding/spec.md
 scenarios: [KB-1, KB-2, KB-3, KB-4]
 owner: Nhật
-status: planned
+status: approved
 risk: high
 size: M
 depends_on: [T-007, T-010, T-026]

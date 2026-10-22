@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Text table of the design (docs/features/camera/design/README.md, section 2). -->
+    <string name="camera_starting">Đang mở camera…</string>
+    <string name="camera_permission_title">Chưa có quyền dùng camera</string>
+    <string name="camera_permission_message">Cho phép camera trong Cài đặt máy để chụp theo tư thế.</string>
+    <string name="camera_permission_action">Mở cài đặt</string>
+    <string name="camera_error_title">Không mở được camera</string>
+    <string name="camera_error_message">Camera có thể đang được ứng dụng khác dùng. Đóng ứng dụng đó rồi thử lại.</string>
+    <string name="camera_error_action">Thử lại</string>
+    <string name="camera_timer_label">%1$ds</string>
+    <string name="camera_zoom_selected">%1$sx</string>
+    <!-- Screen reader descriptions of the icon buttons (plan T-013, question 10). -->
+    <string name="camera_cd_poses">Thư viện tư thế</string>
+    <string name="camera_cd_settings">Cài đặt</string>
+    <string name="camera_cd_flash_off">Flash: tắt</string>
+    <string name="camera_cd_flash_on">Flash: bật</string>
+    <string name="camera_cd_flash_auto">Flash: tự động</string>
+    <string name="camera_cd_timer_off">Hẹn giờ: tắt</string>
+    <string name="camera_cd_timer_3">Hẹn giờ: 3 giây</string>
+    <string name="camera_cd_timer_10">Hẹn giờ: 10 giây</string>
+    <string name="camera_cd_grid">Lưới chia ba</string>
+    <string name="camera_cd_flip">Đổi camera</string>
+    <string name="camera_cd_shutter">Chụp ảnh</string>
+    <string name="camera_cd_cancel_countdown">Hủy đếm ngược</string>
+    <string name="camera_cd_last_photo">Ảnh vừa chụp</string>
+</resources>

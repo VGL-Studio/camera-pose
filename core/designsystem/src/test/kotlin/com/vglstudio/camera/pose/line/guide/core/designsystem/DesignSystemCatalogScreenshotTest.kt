@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.AppColorCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.BrandCatalog
+import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.CameraComponentCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.ColorCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.ShapeCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.SpacingAndComponentCatalog
@@ -89,6 +90,13 @@ class DesignSystemCatalogScreenshotTest {
     fun spacingAndComponents_dark() {
         captureRoboImage("src/test/screenshots/DesignSystem_spacing_components_dark.png") {
             AppTheme(darkTheme = true) { SpacingAndComponentCatalog() }
+        }
+    }
+
+    @Test
+    fun cameraComponents_dark() {
+        captureRoboImage("src/test/screenshots/DesignSystem_camera_components_dark.png") {
+            AppTheme(darkTheme = true) { CameraComponentCatalog() }
         }
     }
 }

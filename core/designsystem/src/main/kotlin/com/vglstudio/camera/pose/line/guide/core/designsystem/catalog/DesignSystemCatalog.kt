@@ -28,9 +28,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.CameraIconButton
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.GridOverlay
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SecondaryButton
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ZoomControl
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.StickerShadow
@@ -185,6 +189,38 @@ fun BrandCatalog(modifier: Modifier = Modifier) {
 }
 
 private const val CATALOG_PROGRESS = 0.68f
+
+/** The camera components on the camera background (sticker.md, section 4). Shown in the dark theme. */
+@Composable
+fun CameraComponentCatalog(modifier: Modifier = Modifier) {
+    val appColors = MaterialTheme.appColors
+    val refresh = painterResource(R.drawable.ic_refresh)
+    Column(
+        modifier = modifier.fillMaxSize().background(appColors.cameraBackground).padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Text(text = "Camera components", style = MaterialTheme.typography.titleLarge, color = appColors.onCamera)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            CameraIconButton(icon = refresh, onClick = {}, contentDescription = null)
+            CameraIconButton(icon = refresh, onClick = {}, contentDescription = null, active = true)
+            CameraIconButton(text = "3s", onClick = {}, contentDescription = null, active = true)
+            CameraIconButton(icon = refresh, onClick = {}, contentDescription = null, enabled = false)
+        }
+        ZoomControl(levels = listOf("0.5", "1x", "2"), selectedIndex = 1, onSelect = {})
+        ZoomControl(levels = listOf("1x", "2"), selectedIndex = 0, onSelect = {})
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Box(modifier = Modifier.size(200.dp, 267.dp).background(appColors.cameraSurface)) { GridOverlay() }
+            StateMessage(
+                icon = painterResource(R.drawable.ic_wifi_off),
+                title = "Title",
+                message = "Message of a state.",
+                actionLabel = "Action",
+                actionIcon = refresh,
+                onAction = {},
+            )
+        }
+    }
+}
 
 @Composable
 private fun CatalogPage(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {

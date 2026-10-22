@@ -6,3 +6,7 @@ plugins {
 android {
     namespace = "com.vglstudio.camera.pose.line.guide.core.assets"
 }
+
+dependencies {
+    implementation(project(":core:network"))
+}

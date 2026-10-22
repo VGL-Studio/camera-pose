@@ -10,4 +10,5 @@ package com.vglstudio.camera.pose.line.guide.core.config
 enum class FeatureFlag(val key: String, val defaultValue: Boolean = false) {
     SAMPLE("feature_sample_enabled"),
     LOADING("feature_loading_enabled"),
+    NETWORK_DIALOG("feature_network_dialog_enabled"),
 }

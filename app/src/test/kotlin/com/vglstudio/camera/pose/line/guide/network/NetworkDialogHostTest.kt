@@ -1,6 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.network
 
 import android.app.Application
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.ComponentDialog
 import androidx.compose.material3.Button
@@ -24,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.NetworkDialogTestTags
 import com.vglstudio.camera.pose.line.guide.core.network.NetworkDialogState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -63,6 +65,18 @@ class NetworkDialogHostTest {
         roots[1].assert(hasAnyDescendant(hasTestTag(NetworkDialogTestTags.SCREEN)))
         // Still in the semantics tree, so AppLaunchTest finds the screen behind the dialog.
         assertEquals(1, composeRule.onAllNodesWithTag(CONTENT).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun shown_dialogWindowAddsNoSystemDim() {
+        setContentButton(SHOWN) {}
+        composeRule.waitForIdle()
+
+        // The dialog draws its own 50% scrim (design); a system dim behind it would darken the screen twice.
+        val window = ShadowDialog.getLatestDialog().window!!
+        val dims = window.attributes.flags and WindowManager.LayoutParams.FLAG_DIM_BEHIND != 0 &&
+            window.attributes.dimAmount > 0f
+        assertFalse(dims)
     }
 
     @Test

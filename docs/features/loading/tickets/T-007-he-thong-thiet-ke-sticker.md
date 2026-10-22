@@ -5,7 +5,7 @@ feature: loading
 spec: features/loading/spec.md
 scenarios: []
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: L
 depends_on: []

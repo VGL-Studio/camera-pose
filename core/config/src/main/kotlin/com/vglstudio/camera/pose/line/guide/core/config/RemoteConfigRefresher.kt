@@ -16,6 +16,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * Fetches the latest Remote Config values from the server and activates them (ADR-0018).
  * Only the loading screen may use this to block the UI; every other screen reads what is already there (ADR-0012).
+ * ADR-1001: 15 seconds at this app (the template project waits 10).
  */
 interface RemoteConfigRefresher {
     /** Returns true when fresh values are active. Never throws, except for cancellation. */
@@ -54,7 +55,7 @@ internal class RemoteConfigRefreshPolicy(
     }
 
     internal companion object {
-        const val REFRESH_TIMEOUT_MILLIS = 10_000L
+        const val REFRESH_TIMEOUT_MILLIS = 15_000L
         const val LOG_TAG = "RemoteConfig"
     }
 }

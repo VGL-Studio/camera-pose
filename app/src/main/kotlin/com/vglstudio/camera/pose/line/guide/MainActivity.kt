@@ -17,6 +17,7 @@ import com.vglstudio.camera.pose.line.guide.core.network.NetworkDialogController
 import com.vglstudio.camera.pose.line.guide.navigation.AppNavHost
 import com.vglstudio.camera.pose.line.guide.navigation.MainScreenChooser
 import com.vglstudio.camera.pose.line.guide.network.NetworkDialogHost
+import com.vglstudio.camera.pose.line.guide.onboarding.OnboardingStatus
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -30,6 +31,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     internal lateinit var mainScreenChooser: MainScreenChooser
+
+    @Inject
+    internal lateinit var onboardingStatus: OnboardingStatus
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +55,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             AppNavHost(
                                 chooseMainScreen = mainScreenChooser::choose,
+                                markOnboardingDone = onboardingStatus::markDone,
                                 onPastLoadingChanged = networkDialog::setActive,
                             )
                         }

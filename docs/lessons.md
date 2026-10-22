@@ -300,3 +300,39 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `docs/auto-run.md` mục 3: cho phép và mô tả cách giao bước 3 đến 5 cho phiên con (nội dung giao việc tối thiểu); nhắc không sửa file trong thư mục đang chạy `check.sh` nền, chỉ chạy rà soát độc lập song song.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-032: Chạy lại `main-guard` trên đúng commit bị đổ lỗi, xanh, nhưng issue `main-broken` không tự đóng
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** issue #35, sau RUN-20261023-01.
+- **Chuyện gì:** dev chạy lại `main-guard` (lần chạy 39817360705, lần 2) trên e9bf4bb, commit bị đổ lỗi; lần chạy xanh. Bước đóng issue chỉ đóng khi `compare/<commit bị đổ lỗi>...<commit xanh>` trả `ahead`; cùng một commit thì trả `identical`, nên issue #35 vẫn mở và dev phải tự đóng trước khi phiên sau chạy được.
+- **Bằng chứng:** `.github/workflows/main-guard.yml`, bước "Đóng issue main-broken khi nhánh chính xanh trở lại"; lần chạy 39817360705, lần 1 đỏ 16:58, lần 2 xanh 22:53; issue #35 vẫn mở sau đó.
+- **Đề xuất sửa:** `main-guard.yml` đóng issue khi `status` là `ahead` hoặc `identical`. ADR-0010, mục 2, câu cuối thêm "hoặc chính commit đó được chạy lại và xanh".
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-033: Một test chập chờn trên `main-guard` kết thúc cả phiên
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, issue #35.
+- **Chuyện gì:** `CameraScreenScreenshotTest > starting_dark` thất bại một lần trên `main-guard` (L-029), xanh ở PR, ở cục bộ và khi chạy lại. Một lần đỏ đó mở `main-broken`, phiên kết thúc khi mới xong 2 trên 7 task; 4 task chưa bắt đầu và T-012 dở dang phải chờ người tới sáng.
+- **Bằng chứng:** báo cáo RUN-20261023-01, mục Tóm tắt; lần chạy 39817360705.
+- **Đề xuất sửa:** `main-guard.yml`: khi bước kiểm tra đỏ chỉ vì test thất bại, chạy lại riêng các test đó một lần trên cùng commit trước khi gọi `find-breaking-commit.sh`. Lần chạy lại xanh thì không mở `main-broken`, mà mở hoặc bình luận vào issue `flaky` ghi tên test, để sửa test trong một ticket thường. Lần chạy lại vẫn đỏ thì làm như hiện nay. ADR-0010, mục 2: thêm quy tắc này. Phiên tự chạy đọc issue `flaky` vào mục Cần người kiểm tra.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-034: Phiên không tự đưa nhánh chính về trạng thái xanh được, kể cả bằng một bản revert đúng
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, issue #35.
+- **Chuyện gì:** khi `main-broken` mở, `merge-if-green.sh` từ chối mọi PR, kể cả PR từ nhánh `revert/<commit>` mà `main-guard` đã dựng sẵn; chỉ người đóng issue mới mở lại được. Lý do của ADR-0010 là đúng: tên nhánh không phải bằng chứng. Hệ quả là một lần merge hỏng thật vào ban đêm làm mọi task còn lại chờ tới sáng.
+- **Bằng chứng:** ADR-0010, mục 2; `scripts/merge-if-green.sh`, đoạn kiểm tra `main-broken`.
+- **Đề xuất sửa:** cho `merge-if-green.sh` một ngoại lệ kiểm chứng bằng nội dung thay vì tên: khi `main-broken` mở, chỉ merge PR có đúng một commit, mà cây file của commit đó trùng khớp với kết quả `git revert <commit bị đổ lỗi>` do chính script dựng trên nhánh chính mới nhất, và CI của PR xanh. Phiên tự chạy được merge bản revert của commit do chính phiên merge, chuyển task đó sang `stopped`, rồi làm tiếp các task không phụ thuộc nó. Issue vẫn chỉ tự đóng bởi `main-guard`, AI vẫn không đóng hay sửa issue. Cần ADR thay một phần ADR-0010, plan rủi ro cao có duyệt chéo.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-035: Plan ghi sẵn phương án dự phòng đã duyệt, để phiên chuyển sang thay vì dừng task
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03 (T-007 hai lần, T-011), RUN-20261023-01.
+- **Chuyện gì:** cả ba lần dừng vì plan đều cùng một dạng: kỹ thuật của plan không chạy (`captureToImage` hết giờ, quy tắc `captureRoboImage(` của `check.sh`, thuộc tính trợ năng không lan xuống node con), và cách thay đã rõ ngay khi gặp lỗi. Phiên phải dừng vì cách thay chưa được duyệt; mỗi lần mất một phiên và một vòng duyệt.
+- **Bằng chứng:** nhật ký plan T-007 (phiên bản 1, 2), T-011 (phiên bản 1); L-001, L-003, L-004, L-006.
+- **Đề xuất sửa:** mẫu plan thêm mục 3.4 Phương án dự phòng (điều kiện chuyển, cách làm thay, file ghi "(dự phòng)" trong mục 3.2) và mục 4.1 Chạy thử; `risk-scoring.md` mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng, chỉ một lần, không vượt các điều kiện dừng khác; `docs/CLAUDE.md` mục Khi viết plan; `plan-check.py` báo lỗi khi plan `draft` có tiêu chí E từ 2 mà thiếu chạy thử bằng `scripts/check.sh`.
+- **Áp dụng:**
+- **Kiểm chứng:**

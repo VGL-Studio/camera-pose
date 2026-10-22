@@ -57,6 +57,8 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 8. Cần thay đổi điều mà test viết trước đang kiểm tra để code qua được.
 9. Phiên rà soát độc lập và phiên viết code hiểu spec khác nhau.
 
+**Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2, giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
+
 Khi dừng, AI làm ba việc:
 
 - Không merge, giữ nguyên nhánh của task để dev xem.
@@ -73,3 +75,4 @@ Khi bắt đầu làm việc lại, nhóm trả lời câu hỏi "vì sao plan c
 | 2026-10-14 | Phiên bản đầu tiên | Thiết lập quy trình |
 | 2026-10-15 | Mục 4: bài học chung ghi vào sổ bài học, retro quyết định sửa gì | Có vòng cải tiến khép kín sau mỗi phiên |
 | 2026-10-17 | Mục 3: ngoại lệ duyệt chéo khi nhóm chỉ có một dev | Retro RUN-20261016-02: nhóm hiện có một dev, plan rủi ro cao không có người duyệt chéo khác |
+| 2026-10-22 | Mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng | Ba lần dừng của T-007, T-011 đều vì kỹ thuật của plan không chạy, trong khi cách thay đã rõ từ lúc viết plan (L-035) |

@@ -56,6 +56,18 @@ ADR liên quan: <ADR-NNNN, ...>
 - Sự kiện phân tích: <sự kiện đã có trong spec, hoặc "Không chạm">
 - File R2: <hoặc "Không chạm">
 
+### 3.4. Phương án dự phòng
+
+<!--
+Cho điểm kỹ thuật chưa chắc chắn (thường là điểm E từ 2), để phiên không phải dừng task khi phương án chính không chạy (risk-scoring.md, mục 4).
+Người duyệt duyệt cả phương án này. File của phương án dự phòng phải có trong mục 3.2, cột Nội dung ghi "(dự phòng)".
+Ghi "Không có" nếu không có.
+-->
+
+- **Điểm chưa chắc:** <phần nào của mục 3.1 có thể không chạy>
+- **Điều kiện chuyển:** <dấu hiệu cụ thể, ví dụ test viết trước vẫn thất bại vì cùng một lỗi sau 2 lần sửa, hay một lỗi biết trước như hết thời gian chờ>
+- **Cách làm thay:** <hướng kỹ thuật thay thế; tiêu chí chấp nhận và test ở mục 4 giữ nguyên>
+
 ## 4. Kiểm thử
 
 <!--
@@ -77,6 +89,19 @@ Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ c�
 | <tiêu chí không tự động được> | Kiểm tra thủ công | <các bước dev làm khi kiểm tra bản staging> |
 
 **Ngoại lệ viết test trước:** <phần thay đổi không thể viết test trước, ví dụ chỉ đổi chuỗi văn bản hoặc tài nguyên, kèm lý do. Ghi "Không có" nếu không có. Người duyệt phải đồng ý với ngoại lệ.>
+
+### 4.1. Chạy thử
+
+<!--
+Bắt buộc khi tiêu chí E ở mục 5 từ 2 trở lên: kỹ thuật hay thư viện lần đầu dùng trong dự án (L-001, L-010).
+Chạy thử bằng một test tạm không commit, bằng đúng lệnh phiên dùng (`scripts/check.sh`) trên nhánh có code liên quan, trước khi duyệt.
+Robolectric không mô phỏng cửa sổ chồng nhau: phần trợ năng và chạm qua cửa sổ thêm bước kiểm tra thủ công.
+Ghi "Không cần (E dưới 2)" nếu không áp dụng. scripts/plan-check.py báo lỗi khi plan draft có E từ 2 mà thiếu mục này.
+-->
+
+- **Đã chạy thử:** <kỹ thuật, test tạm, ngày, commit>
+- **Lệnh:** `scripts/check.sh` <và lệnh khác nếu có>
+- **Kết quả:** <số đo, lỗi gặp, cách xử lý; phương án dự phòng ở mục 3.4 đã thử chưa>
 
 ## 5. Chấm rủi ro
 

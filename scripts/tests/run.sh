@@ -370,6 +370,16 @@ printf -- '---\nticket: T-915\nstatus: draft\nrisk_level: low\ntoken_estimate: 2
   "$(row Sửa feature/demo/A.kt)" > "$plans/T-915-a.md"
 plan_check "$plans/T-915-a.md" > /dev/null
 expect "plan-check: a token estimate removes the warning" 0 "$(grep -c 'token_estimate' "$work/plan-check.out")"
+# A new technique (criterion E from 2) needs a trial run with scripts/check.sh before review (L-001, L-010).
+novel='| E. Độ mới của kỹ thuật | 2 | x |'
+write_plan "$plans/T-919-a.md" medium draft "$(row Sửa feature/demo/A.kt)" "$novel"
+expect "plan-check: a draft plan with a new technique and no trial run stops" stop "$(plan_check "$plans/T-919-a.md")"
+expect "plan-check: names the missing trial run" 1 "$(grep -c 'mục 4.1. Chạy thử' "$work/plan-check.out")"
+write_plan "$plans/T-920-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  "$novel"$'\n\n### 4.1. Chạy thử\n\n- **Lệnh:** `scripts/check.sh`\n'
+expect "plan-check: a draft plan with its trial run passes" pass "$(plan_check "$plans/T-920-a.md")"
+write_plan "$plans/T-921-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$novel"$'\n\n'"$decision_v1"
+expect "plan-check: an approved plan without a trial run only warns" pass "$(plan_check "$plans/T-921-a.md")"
 
 # token-usage.py counts tokens per task from transcripts, one usage per request, never failing the session.
 tokens="$work/token-repo"

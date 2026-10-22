@@ -16,6 +16,9 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
      'Ảnh thiết kế của ticket khác (T-NNN): `Name`, ...'. Each declared image must exist and the line names a ticket.
   5. An approved plan has its reviewers and date.
   6. The plan has a token estimate (token_estimate, docs/ops/token-usage.md); a missing one is only a warning.
+  7. A plan whose criterion E (novelty of the technique, risk-scoring.md) scores 2 or more has a trial-run
+     section 4.1 that names scripts/check.sh (L-001, L-010). An error for a draft plan; only a warning for a plan
+     reviewed before this rule, so a session does not skip it.
 PLAN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
 
@@ -41,6 +44,9 @@ SELF = "scripts/plan-check.py"
 DECISION_PLACEHOLDERS = ["Duyệt / Dừng", "<tên>", "<tên, nếu rủi ro cao>"]
 # A plan smaller than its feature names the design images another ticket draws (rule 4).
 OTHER_TICKET_IMAGES = re.compile(r"Ảnh thiết kế của ticket khác([^:\n]*):([^\n]*)")
+# Score of criterion E in the risk table of section 5 (rule 7).
+NOVELTY_SCORE = re.compile(r"^\|\s*E\.[^|]*\|\s*(\d)", re.M)
+TRIAL_RUN_HEADING = "4.1. Chạy thử"
 
 
 def front_matter(text):
@@ -213,6 +219,13 @@ def check(plan_path):
     if not re.fullmatch(r"[\d.]+\s*[kKmM]?", fields.get("token_estimate", "")):
         warnings.append("thiếu token_estimate hoặc sai dạng (ví dụ 20M); xem scripts/token-usage.py estimate. "
                         "Chỉ để lập kế hoạch, không chặn task.")
+    novelty = NOVELTY_SCORE.search(text)
+    status = fields.get("status")
+    if (novelty and int(novelty.group(1)) >= 2 and status in ("draft", "approved")
+            and "scripts/check.sh" not in section(text, TRIAL_RUN_HEADING)):
+        message = (f"tiêu chí E là {novelty.group(1)} nhưng mục {TRIAL_RUN_HEADING} không có hoặc không ghi lần chạy thử "
+                   "bằng scripts/check.sh (L-001, L-010).")
+        (errors if status == "draft" else warnings).append(message)
     if "## 4. Kiểm thử" not in text:
         warnings.append("không thấy mục 4. Kiểm thử.")
     return errors, warnings

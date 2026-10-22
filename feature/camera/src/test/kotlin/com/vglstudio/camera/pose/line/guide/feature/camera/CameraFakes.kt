@@ -29,6 +29,9 @@ internal class FakeCameraController : CameraController {
     var openError: Throwable? = null
     var captureError: Throwable? = null
 
+    /** When set, open waits for it, so a test can tap during an open. */
+    var pendingOpen: CompletableDeferred<Unit>? = null
+
     /** When set, takePicture waits for it, so a test can tap twice during one capture. */
     var pendingCapture: CompletableDeferred<Unit>? = null
 
@@ -36,6 +39,7 @@ internal class FakeCameraController : CameraController {
 
     override suspend fun open(lens: Lens, flash: FlashMode): CameraCapabilities {
         openCalls += lens
+        pendingOpen?.await()
         openError?.let { throw CameraOpenException(it) }
         return capabilities
     }

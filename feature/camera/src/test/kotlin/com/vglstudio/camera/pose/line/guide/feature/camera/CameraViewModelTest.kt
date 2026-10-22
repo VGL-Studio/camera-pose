@@ -259,6 +259,37 @@ class CameraViewModelTest {
     }
 
     @Test
+    fun flip_twiceQuickly_returnsToBack() = runTest {
+        val pending = CompletableDeferred<Unit>()
+        val viewModel = readyViewModel()
+        controller.pendingOpen = pending
+        viewModel.onFlipClick()
+        runCurrent()
+        // The front camera is still opening; the second tap switches back.
+        viewModel.onFlipClick()
+        pending.complete(Unit)
+        runCurrent()
+        assertEquals(Lens.BACK, viewModel.ready().lens)
+        assertEquals(listOf(Lens.FRONT, Lens.BACK), repository.lensSaves)
+    }
+
+    @Test
+    fun flip_whileCapturing_isIgnored_andPhotoKeepsItsLens() = runTest {
+        val pending = CompletableDeferred<Unit>()
+        controller.pendingCapture = pending
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        viewModel.onFlipClick()
+        runCurrent()
+        assertEquals(listOf(Lens.BACK), controller.openCalls)
+
+        pending.complete(Unit)
+        runCurrent()
+        assertEquals(Lens.BACK, holder.latest.value?.lens)
+    }
+
+    @Test
     fun zoomLevels_withUltraWide_include05() = runTest {
         controller.capabilities = CameraCapabilities(hasFlash = true, minZoomRatio = 0.5f, maxZoomRatio = 10f)
         val viewModel = readyViewModel()

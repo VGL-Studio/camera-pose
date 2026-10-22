@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -34,7 +35,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignSystemR
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
@@ -60,8 +60,9 @@ internal fun LoadingRoute(onFinished: () -> Unit, viewModel: LoadingViewModel = 
 
 /**
  * Stateless screen: everything it shows comes from [uiState]. Tested on the JVM and by screenshots.
- * Layout follows docs/features/loading/design/README.md, section 3: the content starts at a quarter of the
- * screen height in every state, so the logo does not move when the error block appears below the bar.
+ * Layout follows the Sticker design (docs/features/loading/design/README.md, section 3; numbers from design/context/):
+ * the logo starts at 200 of 891 of the screen height in every state, so it does not move when the error block
+ * appears below the bar, and the content is at most 318 wide, centred, on the theme background.
  * On short screens the top space shrinks, and the content and footer scroll together (section 6, T-005).
  */
 @Composable
@@ -77,7 +78,10 @@ internal fun LoadingScreen(
         LoadingUiState.Finished -> 1f
     }
     val failed = uiState is LoadingUiState.Failed
-    Surface(modifier = modifier.fillMaxSize().testTag(LoadingTestTags.SCREEN)) {
+    Surface(
+        modifier = modifier.fillMaxSize().testTag(LoadingTestTags.SCREEN),
+        color = MaterialTheme.colorScheme.background,
+    ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val screenHeight = maxHeight
             // Does not depend on the state, so the logo stays in place when the error block appears.
@@ -100,9 +104,10 @@ internal fun LoadingScreen(
                         appName = appName,
                         onRetry = onRetry,
                         modifier = Modifier
-                            .fillMaxWidth()
                             .padding(top = topSpace)
-                            .padding(horizontal = Spacing.xl + Spacing.md),
+                            .padding(horizontal = Spacing.md)
+                            .widthIn(max = CONTENT_MAX_WIDTH)
+                            .fillMaxWidth(),
                     )
                     LoadingFooter(modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.xl))
                 }
@@ -128,13 +133,13 @@ private fun LoadingContent(
         Text(
             text = appName,
             style = typography.headlineLarge,
-            color = colors.onSurface,
+            color = colors.onBackground,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(LoadingTestTags.APP_NAME),
         )
         Spacer(modifier = Modifier.height(Spacing.sm))
         Text(
-            text = stringResource(DesignSystemR.string.brand_tagline),
+            text = stringResource(R.string.loading_tagline),
             style = typography.bodyMedium,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -153,7 +158,7 @@ private fun LoadingContent(
             Text(
                 text = stringResource(R.string.loading_percent, (progress * PERCENT).roundToInt()),
                 style = typography.bodyMedium,
-                color = if (failed) colors.error else colors.primary,
+                color = if (failed) colors.error else colors.onSurface,
                 modifier = Modifier.testTag(LoadingTestTags.PERCENT),
             )
         }
@@ -165,7 +170,7 @@ private fun LoadingContent(
                 color = colors.error,
                 trackColor = colors.errorContainer,
             )
-            Spacer(modifier = Modifier.height(Spacing.lg + Spacing.xs))
+            Spacer(modifier = Modifier.height(Spacing.lg))
             LoadingError(onRetry = onRetry)
         } else {
             ProgressBar(progress = { progress }, modifier = Modifier.testTag(LoadingTestTags.PROGRESS))
@@ -186,7 +191,6 @@ private fun LoadingError(onRetry: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = Modifier.fillMaxWidth().testTag(LoadingTestTags.ERROR),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm + Spacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -203,12 +207,15 @@ private fun LoadingError(onRetry: () -> Unit) {
                 color = colors.onSurface,
             )
         }
+        Spacer(modifier = Modifier.height(Spacing.sm))
         Text(
             text = stringResource(R.string.loading_error),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        // Design: 8 + an empty 8 frame + 8 = 24.
+        Spacer(modifier = Modifier.height(Spacing.lg))
         PrimaryButton(
             text = stringResource(R.string.loading_retry),
             onClick = onRetry,
@@ -240,15 +247,18 @@ private fun LoadingFooter(modifier: Modifier = Modifier) {
 
 private const val PERCENT = 100
 
-// The content starts at about a quarter of the screen height (design: 220 of 891).
-private const val CONTENT_TOP_FRACTION = 0.25f
+// The logo starts at 200 of 891 of the screen height (design/context/).
+private const val CONTENT_TOP_FRACTION = 200f / 891f
 
 // Below this height the quarter-height top space pushes the error block under the footer (FB-20261017-01), so
 // the top space shrinks to SHORT_SCREEN_TOP_FRACTION (L-028, T-005).
 private val TALL_SCREEN_MIN_HEIGHT = 800.dp
 private const val SHORT_SCREEN_TOP_FRACTION = 0.08f
-private val ALERT_ICON_SIZE = 18.dp
-private val LOCK_ICON_SIZE = 12.dp
+
+// Sizes from design/context/.
+private val ALERT_ICON_SIZE = 20.dp
+private val LOCK_ICON_SIZE = 14.dp
+private val CONTENT_MAX_WIDTH = 318.dp
 
 internal object LoadingTestTags {
     const val SCREEN = "loading_screen"
@@ -260,8 +270,8 @@ internal object LoadingTestTags {
     const val RETRY = "loading_retry"
 }
 
-// Sample app name of the design, for previews only.
-private const val PREVIEW_APP_NAME = "Todo App"
+// App name of the design, for previews only.
+private const val PREVIEW_APP_NAME = "Camera Pose: Lines and Guides"
 
 @Preview
 @Composable

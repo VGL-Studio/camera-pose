@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loading_tagline">Ikuti garis pose, langsung dapat foto keren.</string>
+    <string name="loading_status">Memuat data</string>
+    <string name="loading_guidance">Menyiapkan pose Anda…</string>
+    <string name="loading_status_failed">Proses terhenti</string>
+    <string name="loading_error_title">Tidak dapat memuat data</string>
+    <string name="loading_error">Koneksi terputus. Periksa jaringan Anda, lalu coba lagi untuk melanjutkan.</string>
+    <string name="loading_retry">Coba lagi</string>
+    <string name="loading_footer">Foto Anda hanya tersimpan di perangkat ini</string>
+</resources>

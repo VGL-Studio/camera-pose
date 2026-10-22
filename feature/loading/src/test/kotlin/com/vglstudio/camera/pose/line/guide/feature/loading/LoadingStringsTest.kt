@@ -66,25 +66,25 @@ class LoadingStringsTest {
 
     private companion object {
         val ENGLISH = mapOf(
-        R.string.loading_tagline to "Follow the outline, get a great shot.",
-        R.string.loading_status to "Loading data",
-        R.string.loading_guidance to "Preparing your poses…",
-        R.string.loading_status_failed to "Progress stopped",
-        R.string.loading_error_title to "Unable to load data",
-        R.string.loading_error to "The connection was interrupted. Check your network and try again to continue.",
-        R.string.loading_retry to "Try again",
-        R.string.loading_footer to "Your photos stay on your device",
+            R.string.loading_tagline to "Follow the outline, get a great shot.",
+            R.string.loading_status to "Loading data",
+            R.string.loading_guidance to "Preparing your poses…",
+            R.string.loading_status_failed to "Progress stopped",
+            R.string.loading_error_title to "Unable to load data",
+            R.string.loading_error to "The connection was interrupted. Check your network and try again to continue.",
+            R.string.loading_retry to "Try again",
+            R.string.loading_footer to "Your photos stay on your device",
         )
 
         val VIETNAMESE = mapOf(
-        R.string.loading_tagline to "Tạo dáng theo nét viền, chụp đẹp ngay.",
-        R.string.loading_status to "Đang tải dữ liệu",
-        R.string.loading_guidance to "Đang chuẩn bị bộ tư thế…",
-        R.string.loading_status_failed to "Tiến độ đã dừng",
-        R.string.loading_error_title to "Không thể tải dữ liệu",
-        R.string.loading_error to "Kết nối đang gián đoạn. Vui lòng kiểm tra mạng và thử lại để tiếp tục.",
-        R.string.loading_retry to "Thử lại",
-        R.string.loading_footer to "Ảnh chỉ lưu trên máy của bạn",
+            R.string.loading_tagline to "Tạo dáng theo nét viền, chụp đẹp ngay.",
+            R.string.loading_status to "Đang tải dữ liệu",
+            R.string.loading_guidance to "Đang chuẩn bị bộ tư thế…",
+            R.string.loading_status_failed to "Tiến độ đã dừng",
+            R.string.loading_error_title to "Không thể tải dữ liệu",
+            R.string.loading_error to "Kết nối đang gián đoạn. Vui lòng kiểm tra mạng và thử lại để tiếp tục.",
+            R.string.loading_retry to "Thử lại",
+            R.string.loading_footer to "Ảnh chỉ lưu trên máy của bạn",
         )
     }
 }

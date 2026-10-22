@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Lock icon (Lucide, ISC), from docs/features/loading/design/handoff/ic_lock.svg, without its clip path (same as the frame). Color comes from the tint. -->
+<!-- Material Symbols Rounded "lock" (Apache 2.0, google/material-design-icons@49d4db3, see third_party/material-symbols/LICENSE.txt). Color comes from the tint. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="12dp"
-    android:height="12dp"
-    android:viewportWidth="12"
-    android:viewportHeight="12">
-    <path
-        android:pathData="M3.5 4.99992V3.4998C3.5 2.83671 3.76339 2.20077 4.23223 1.73189C4.70107 1.26302 5.33696 0.999603 6 0.999603C6.66304 0.999603 7.29893 1.26302 7.76777 1.73189C8.23661 2.20077 8.5 2.83671 8.5 3.4998V4.99992M6.5 8.00016C6.5 8.27633 6.27614 8.5002 6 8.5002C5.72386 8.5002 5.5 8.27633 5.5 8.00016C5.5 7.724 5.72386 7.50012 6 7.50012C6.27614 7.50012 6.5 7.724 6.5 8.00016ZM2.5 4.99992H9.5C10.0523 4.99992 10.5 5.44767 10.5 6V10.0003C10.5 10.5527 10.0523 11.0004 9.5 11.0004H2.5C1.94772 11.0004 1.5 10.5527 1.5 10.0003V6C1.5 5.44767 1.94772 4.99992 2.5 4.99992Z"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeLineCap="round"
-        android:strokeWidth="1.5" />
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm0-80h480v-400H240v400Zm240-120q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80ZM240-160v-400 400Z" />
+    </group>
 </vector>

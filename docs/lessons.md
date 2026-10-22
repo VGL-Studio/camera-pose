@@ -58,3 +58,40 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: thay đổi về trợ năng (ẩn, gộp, thứ tự đọc) phải được chạy thử bằng test tạm trước khi duyệt, đo trên cây `AccessibilityNodeInfo` hay node đích, không suy ra từ node cha (mở rộng L-001).
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-005: Môi trường `claude --cloud` chặn máy chủ R2 staging, plan không kiểm được file bằng `curl`
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01, T-010.
+- **Chuyện gì:** plan T-010 (mục 4, dòng cuối; mục 7, điều 3) yêu cầu `curl` 9 địa chỉ trên `https://camera-pose.vgl.io.vn/` trước bước 3. Proxy của môi trường cloud trả 403 cho máy chủ này (chính sách mạng), nên `curl` ra mã `000`. Phiên dựa vào ghi chú của danh sách chạy (dev đã kiểm, `200`) và `AppLaunchTest` trên CI (đã qua).
+- **Bằng chứng:** `curl: (56) CONNECT tunnel failed, response 403` lúc 02:08 UTC; rà soát độc lập T-010 cũng không ra mạng được; CI lần chạy 39710999529 `ui-test` xanh.
+- **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: điều kiện về file trên R2 kiểm bằng một workflow trên GitHub (ví dụ thêm bước vào `device-session.yml` hay một workflow chỉ đọc) hoặc ghi rõ "dev kiểm trước phiên", không bằng `curl` từ phiên; hoặc thêm máy chủ R2 staging vào danh sách mạng cho phép của môi trường cloud (`docs/ops/` hướng dẫn dựng môi trường).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-006: `captureToImage()` hết giờ trên Robolectric; đo điểm ảnh bằng cách vẽ view gốc ra Bitmap
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01, T-008 (lần thứ hai, sau T-007).
+- **Chuyện gì:** plan T-008 ghi test màu nền dùng `onNodeWithTag(...).captureToImage()`. Trên Robolectric (`GraphicsMode.NATIVE`) lệnh này ném `ComposeTimeoutException` sau 2 giây, như T-007 đã gặp. Phiên đổi sang cách của `ComponentsTest` (vẽ `decorView` ra `Bitmap`), điều test kiểm tra không đổi.
+- **Bằng chứng:** `background_isBackgroundRole_light`: `ComposeTimeoutException: Condition still not satisfied after 2000 ms` ở bước 3; nhật ký plan T-008, mục Lệch so với plan.
+- **Đề xuất sửa:** `CLAUDE.md`, mục Viết một feature mới, bước 10: test đo màu điểm ảnh trên JVM vẽ view gốc ra `Bitmap` (hàm `pixelAt` của `ComponentsTest`), không dùng `captureToImage()`. Có thể đưa `pixelAt` vào một tiện ích test dùng chung.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-007: Hàm CameraX trả `ListenableFuture` không gọi được vì Guava không có trên classpath biên dịch
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** app. **Nguồn:** RUN-20261022-01, T-013.
+- **Chuyện gì:** `CameraControl.setZoomRatio` trả `com.google.common.util.concurrent.ListenableFuture`; Kotlin báo "Cannot access class 'ListenableFuture'". Plan cấm thêm thư viện (mục 7, điều 4), nên phiên gọi hàm qua reflection. Rà soát độc lập chỉ ra R8 có thể xóa hàm ở bản minify và làm app dừng khi vào camera; phiên tra hàm lười và thêm luật keep trong `consumer-rules.pro`, kiểm bằng `mapping.txt` của `stagingRelease`.
+- **Bằng chứng:** lỗi biên dịch `CameraXController.kt:114`; rà soát độc lập T-013 (điểm chặn 1); PR #26.
+- **Đề xuất sửa:** một plan rủi ro cao riêng thêm `androidx.concurrent:concurrent-futures-ktx` (hoặc `com.google.guava:listenablefuture`) vào `gradle/libs.versions.toml` cho `:feature:camera`, rồi bỏ reflection. Plan dùng CameraX về sau (T-015 chỉnh zoom, lấy nét) kiểm trước những hàm trả `ListenableFuture`.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-008: Phiên mở bằng `claude --cloud` không có `resume-run.yml` tiếp tục, và `token-usage.py` cần thư mục gốc của checkout chính
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01.
+- **Chuyện gì:** (1) Phiên này mở bằng `claude --cloud`, không qua routine. `resume-run.yml` kích hoạt lại routine khi phiên dừng vì hết hạn mức, nên không nối lại được phiên này; tiến trình của phiên còn bị khởi động lại một lần lúc 04:10 UTC giữa lúc chạy `check.sh` (lệnh bị dừng, mã 137), phiên tự chạy lại. (2) Nhánh báo cáo dùng một worktree riêng (`../report`) để không đổi nhánh dưới bản build của task; `scripts/token-usage.py` chạy trong worktree đó không thấy transcript (lọc theo thư mục gốc), phải đặt `TOKEN_USAGE_ROOT` về checkout chính.
+- **Bằng chứng:** "Không đo được: không có transcript nào của repo này" khi chạy trong `../report`; chạy lại với `TOKEN_USAGE_ROOT=/home/user/camera-pose` ra bảng đầy đủ.
+- **Đề xuất sửa:** `docs/auto-run.md`, mục 1 và mục 4: ghi cách tiếp tục khi phiên mở bằng `claude --cloud` (người mở lại phiên với cùng danh sách chạy, phiên đọc nhánh báo cáo như phiên tiếp tục); khuyến nghị worktree riêng cho nhánh báo cáo và ghi cách chạy `token-usage.py` từ đó. `scripts/token-usage.py` có thể tìm transcript theo tên repo thay vì đường dẫn tuyệt đối.
+- **Áp dụng:**
+- **Kiểm chứng:**
+

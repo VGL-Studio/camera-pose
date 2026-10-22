@@ -12,6 +12,12 @@
         android:name="android.hardware.camera.any"
         android:required="true" />
 
+    <!--
+        Watches the network to show the network dialog (spec network, KB-1). The ads and analytics SDKs already add it
+        to the merged manifest; declared here so every permission of the app is seen in one place.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:name=".TemplateApplication"
         android:allowBackup="false"

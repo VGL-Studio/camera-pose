@@ -24,4 +24,9 @@ object StagingFeatureFlagsModule {
     @IntoSet
     @LocallyEnabledFlags
     fun loading(): FeatureFlag = FeatureFlag.LOADING
+
+    @Provides
+    @IntoSet
+    @LocallyEnabledFlags
+    fun networkDialog(): FeatureFlag = FeatureFlag.NETWORK_DIALOG
 }

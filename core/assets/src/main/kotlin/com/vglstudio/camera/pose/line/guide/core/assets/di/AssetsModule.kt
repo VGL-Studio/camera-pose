@@ -6,6 +6,7 @@ import com.vglstudio.camera.pose.line.guide.core.assets.AssetsConfig
 import com.vglstudio.camera.pose.line.guide.core.assets.DefaultRemoteAssets
 import com.vglstudio.camera.pose.line.guide.core.assets.HttpAssetDownloader
 import com.vglstudio.camera.pose.line.guide.core.assets.RemoteAssets
+import com.vglstudio.camera.pose.line.guide.core.network.NetworkFailureReporter
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -21,7 +22,11 @@ import kotlinx.coroutines.Dispatchers
 internal object AssetsModule {
     @Provides
     @Singleton
-    fun remoteAssets(@ApplicationContext context: Context, config: AssetsConfig): RemoteAssets = DefaultRemoteAssets(
+    fun remoteAssets(
+        @ApplicationContext context: Context,
+        config: AssetsConfig,
+        networkFailures: NetworkFailureReporter,
+    ): RemoteAssets = DefaultRemoteAssets(
         config = config,
         // Not the cache dir: the system may clear that, and files must stay available offline.
         // Not backed up: they can always be downloaded again.
@@ -29,5 +34,6 @@ internal object AssetsModule {
         downloader = HttpAssetDownloader(),
         ioDispatcher = Dispatchers.IO,
         onDownloadFailed = { path, error -> Log.w("Assets", "Could not download ${path.value}", error) },
+        networkFailures = networkFailures,
     )
 }

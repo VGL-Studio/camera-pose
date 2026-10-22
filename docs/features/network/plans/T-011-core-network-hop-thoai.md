@@ -1,8 +1,8 @@
 ---
 ticket: T-011
 title: Nhận ra mất mạng và hộp thoại mất mạng
-status: stopped
-version: 1
+status: approved
+version: 2
 risk_score:
 risk_level: high
 token_estimate: 40M
@@ -10,7 +10,7 @@ blocking_points: [permission, core]
 run_order:
 reviewer: Nhật
 cross_reviewer: Tuấn
-approved_at: 2026-10-21
+approved_at: 2026-10-22
 ---
 
 # PLAN T-011: NHẬN RA MẤT MẠNG VÀ HỘP THOẠI MẤT MẠNG
@@ -50,6 +50,8 @@ ADR liên quan: ADR-0001 (core chỉ phụ thuộc core), ADR-0003 (cờ và `Re
 ## 3. Giải pháp
 
 ### 3.1. Cách làm
+
+Cách tiếp tục: tiếp tục trên nhánh `claude/T-011-core-network-hop-thoai` (RUN-20261021-03: code và 42 trên 43 test đã qua, chưa có PR). Phiên bản 2 chỉ đổi `NetworkDialogHost` sang cửa sổ `Dialog` riêng (hướng (b) người duyệt chọn) cùng các test của nó; mọi phần khác giữ nguyên. Bước 3 làm lại cho `NetworkDialogHostTest`.
 
 **Hướng phụ thuộc giữa module (ADR-0001).**
 
@@ -100,7 +102,7 @@ ADR liên quan: ADR-0001 (core chỉ phụ thuộc core), ADR-0003 (cờ và `Re
 
 **`:app`.**
 
-- `network/NetworkDialogHost.kt`: `NetworkDialogHost(state: NetworkDialogState, onRetry, onBack, modifier, darkTheme: Boolean = isSystemInDarkTheme(), content)`. Vẽ `content`; khi `state is Shown`: thêm `Modifier.semantics { hideFromAccessibility() }` cho phần `content`, vẽ `NetworkDialogScreen` trong `AppTheme(darkTheme)` phủ lên trên, và `BackHandler(enabled = true) { onBack() }`. `BackHandler` được tạo sau `NavHost` nên được ưu tiên hơn nút quay lại của điều hướng (có test). Không dùng cửa sổ `Dialog` riêng: một cửa sổ giúp test được việc chặn thao tác và ảnh chụp đúng phần vẽ. `darkTheme` để T-013, T-016 bắt hộp thoại tối trên camera và màn xem lại (README thiết kế, mục 1).
+- `network/NetworkDialogHost.kt` (phiên bản 2): `NetworkDialogHost(state: NetworkDialogState, onRetry, onBack, modifier, darkTheme: Boolean = isSystemInDarkTheme(), content)`. Vẽ `content` như thường, không thêm thuộc tính ngữ nghĩa nào. Khi `state is Shown`: vẽ `Dialog(onDismissRequest = {}, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false, usePlatformDefaultWidth = false))`, trong đó là `AppTheme(darkTheme) { NetworkDialogScreen(...) }` phủ kín cửa sổ hộp thoại và `BackHandler { onBack() }`. Cửa sổ hộp thoại riêng là cửa sổ trên cùng và phủ kín màn hình, nên hệ thống không đưa chạm và trình đọc màn hình xuống cửa sổ app phía sau. Phím quay lại đi vào bộ điều phối phím quay lại của chính cửa sổ hộp thoại, nên `BackHandler` trong hộp thoại nhận phím, `NavHost` phía sau không điều hướng. Phiên bản 1 dùng một cửa sổ và `Modifier.semantics { hideFromAccessibility() }` trên khung bọc; RUN-20261021-03 cho thấy thuộc tính đó không lan xuống nút con, nên TalkBack vẫn đọc được nút phía sau. Phiên chính đã chạy thử cách này trên nhánh của task (test tạm, không commit): có 2 node gốc, bộ điều phối phím quay lại của hộp thoại khác của activity, gọi nó thì `BackHandler` trong hộp thoại chạy một lần, `NavHost` vẫn ở đích thứ hai, hộp thoại vẫn còn. `darkTheme` để T-013, T-016 bắt hộp thoại tối trên camera và màn xem lại (README thiết kế, mục 1).
 - `AppNavHost` thêm tham số `onPastLoadingChanged: (Boolean) -> Unit = {}`: theo dõi `navController.currentBackStackEntryAsState()`, gọi với `true` khi đích hiện tại tồn tại và không phải `LoadingDestination` (`destination.hasRoute<LoadingDestination>()`), trong `LaunchedEffect`. Cách này đúng cả khi điều hướng được khôi phục sau khi hệ thống tạo lại activity.
 - `MainActivity`: `@Inject lateinit var networkDialog: NetworkDialogController`; trong `setContent`, `val state by networkDialog.state.collectAsState()`, bọc `AppNavHost(onPastLoadingChanged = networkDialog::setActive)` trong `NetworkDialogHost(state, onRetry = networkDialog::retry, onBack = { moveTaskToBack(true) })`.
 - `app/build.gradle.kts`: `implementation(project(":core:network"))`.
@@ -156,7 +158,7 @@ Thư mục gói Kotlin viết tắt: `<pkg>` là `com/vglstudio/camera/pose/line
 | Sửa | `app/src/main/AndroidManifest.xml` | `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />` dưới chú thích về quyền |
 | Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt` | Tiêm `NetworkDialogController`, bọc `AppNavHost` trong `NetworkDialogHost` |
 | Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/navigation/AppNavHost.kt` | Tham số `onPastLoadingChanged` |
-| Tạo | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/network/NetworkDialogHost.kt` | Vỏ hiện hộp thoại, ẩn nội dung khỏi trình đọc màn hình, `BackHandler` |
+| Tạo | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/network/NetworkDialogHost.kt` | Vỏ hiện hộp thoại trong cửa sổ `Dialog` riêng phủ kín màn hình, `BackHandler` trong hộp thoại |
 | Sửa | `app/src/staging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingFeatureFlagsModule.kt` | Bật `FeatureFlag.NETWORK_DIALOG` trên staging |
 | Tạo | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/network/NetworkDialogHostTest.kt` | Test giao diện trên JVM của vỏ (Robolectric) |
 | Tạo | `app/src/test/resources/robolectric.properties` | `sdk=35`, như các module khác |
@@ -166,7 +168,7 @@ Các file đọc file bị sửa, đã xét (L-020):
 
 - `scripts/check.sh` duyệt `core/*/` để tìm screenshot test: module mới `core/network` không có `captureRoboImage`, bị bỏ qua; ảnh mới của `core/designsystem` được ghi và kiểm bình thường. Không cần sửa.
 - `build.gradle.kts` gốc (`checkModuleDependencies`) tự áp dụng cho module mới; mọi phụ thuộc mới là core sang core hoặc `:app` sang core.
-- `app/src/androidTest/.../AppLaunchTest.kt` tìm `sample_screen` bằng `fetchSemanticsNodes()`. Nếu emulator CI không có mạng và hộp thoại hiện, nút vẫn nằm trong cây ngữ nghĩa (`hideFromAccessibility` không gỡ nút; có test JVM khẳng định điều này), nên test không đổi.
+- `app/src/androidTest/.../AppLaunchTest.kt` tìm `sample_screen` bằng `fetchSemanticsNodes()`. Nếu emulator CI không có mạng và hộp thoại hiện, màn mẫu nằm ở node gốc thứ nhất, hộp thoại ở node gốc thứ hai; `onAllNodesWithTag` tìm trên mọi node gốc (có test JVM khẳng định nút phía sau vẫn tìm được), nên test không đổi.
 - `feature/loading` dùng `RemoteAssets` và `AssetResult` không đổi.
 - `scripts/release.sh` nhắc tới `app/build.gradle.kts` vì truyền tham số build production (`-PadmobAppId`, `-PadUnits`, `-PassetsBaseUrl`, khóa ký) mà file đó đọc. Plan chỉ thêm một dòng `implementation(project(":core:network"))`, không đổi tham số, biến thể hay cấu hình ký nào, nên script không bị ảnh hưởng. Plan không đọc, không chạy, không sửa script này (CLAUDE.md, mục Không được làm).
 
@@ -218,8 +220,8 @@ Khung rỗng để test biên dịch được (bước 3): `NetworkDialogControl
 | KB-2, "Vẫn chưa có mạng" | Compose UI test | `NetworkDialogTest.stillOffline_showsMessageBelowButton`: `stillOffline = true`; có chữ "Vẫn chưa có mạng"; cạnh trên của nó thấp hơn cạnh dưới của nút |
 | Nút đang chờ | Compose UI test | `PrimaryButtonLoadingTest.loading_showsSpinner_keepsText_ignoresClick`, `notLoading_hasNoSpinner` |
 | Màn hình thấp | Compose UI test, khung `w360dp-h640dp-xxhdpi` | `NetworkDialogTest.smallScreen_cardFitsAndRetryVisible`: `stillOffline = true`; thẻ nằm trọn trong màn hình (cạnh trái, phải, trên, dưới trong khung), nút `assertIsDisplayed()` |
-| KB-1, chặn thao tác và trình đọc màn hình | Compose UI test (`:app`, Robolectric, `@Config(application = Application::class)` để không khởi tạo Hilt và Firebase) | `NetworkDialogHostTest.shown_blocksContentClicks_andHidesItFromAccessibility`: nội dung là nút có tag; `state = Shown`; bấm nút không tăng bộ đếm; nút mang `SemanticsProperties.HideFromAccessibility`; nút vẫn tìm được bằng `onAllNodesWithTag(...).fetchSemanticsNodes()` (giữ cho `AppLaunchTest`). `hidden_contentWorksNormally`: `state = Hidden`; bấm được, không có tag `network_dialog` |
-| KB-3, nút quay lại | Compose UI test (`:app`) | `NetworkDialogHostTest.back_whileShown_callsOnBack_andKeepsDestination`: `createAndroidComposeRule<ComponentActivity>()`; nội dung là `NavHost` hai đích, đã sang đích thứ hai; `state = Shown`; `activity.onBackPressedDispatcher.onBackPressed()`; `onBack` gọi một lần, vẫn ở đích thứ hai, hộp thoại vẫn còn. `back_whileHidden_navigatesBack`: `state = Hidden`; quay lại về đích đầu, `onBack` không được gọi |
+| KB-1, chặn thao tác và trình đọc màn hình | Compose UI test (`:app`, Robolectric, `@Config(application = Application::class)` để không khởi tạo Hilt và Firebase) | `NetworkDialogHostTest.shown_drawsDialogInSeparateWindow`: nội dung là nút có tag; `state = Shown`; `onAllNodes(isRoot())` có 2 node gốc; tag `network_dialog` nằm ở node gốc thứ hai; nút phía sau vẫn tìm được bằng `onAllNodesWithTag(...).fetchSemanticsNodes()` (giữ cho `AppLaunchTest`). Thất bại trên code của phiên bản 1: chỉ có 1 node gốc. `hidden_contentWorksNormally`: `state = Hidden`; 1 node gốc, bấm được, không có tag `network_dialog`. Robolectric không mô phỏng việc cửa sổ trên cùng chặn chạm và trình đọc màn hình của cửa sổ phía sau, nên phần đó kiểm tra thủ công (dòng "trên máy thật") |
+| KB-3, nút quay lại | Compose UI test (`:app`) | `NetworkDialogHostTest.back_whileShown_callsOnBack_andKeepsDestination`: `createAndroidComposeRule<ComponentActivity>()`; nội dung là `NavHost` hai đích, đã sang đích thứ hai; `state = Shown`; lấy hộp thoại đang hiện bằng `ShadowDialog.getLatestDialog() as ComponentDialog` (Robolectric; `Dialog` của Compose dựng trên `ComponentDialog`) và gọi `onBackPressedDispatcher.onBackPressed()` trên luồng giao diện, đúng chỗ phím quay lại của hệ thống đi vào khi hộp thoại ở trên cùng; không thêm tham số chỉ dùng cho test vào `NetworkDialogHost`; `onBack` gọi một lần, vẫn ở đích thứ hai, hộp thoại vẫn còn. `back_whileHidden_navigatesBack`: `state = Hidden`; `activity.onBackPressedDispatcher.onBackPressed()` về đích đầu, `onBack` không được gọi |
 | Giao diện hộp thoại, sáng | Screenshot test, khung `w411dp-h891dp-xxhdpi` | `NetworkDialogScreenshotTest.default_light`: `captureRoboImage("src/test/screenshots/NetworkDialogScreen_default_light.png")`, `AppTheme(darkTheme = false)`, `Surface` màu `background` phía sau, `NetworkDialogScreen(checking = false, stillOffline = false)` |
 | Giao diện hộp thoại, tối | Screenshot test, khung chuẩn | `NetworkDialogScreenshotTest.default_dark`: `NetworkDialogScreen_default_dark.png`, `AppTheme(darkTheme = true)` |
 | Dòng "Vẫn chưa có mạng" (không có trên ảnh thiết kế) | Screenshot test, khung chuẩn | `NetworkDialogScreenshotTest.stillOffline_light`: `NetworkDialogScreen_stillOffline_light.png`, để người duyệt xem vị trí dòng chữ |
@@ -229,7 +231,7 @@ Khung rỗng để test biên dịch được (bước 3): `NetworkDialogControl
 | Cờ mặc định tắt | Unit test hiện có | `DefaultFeatureFlagsTest` duyệt `FeatureFlag.entries`, tự bao cờ mới |
 | Quy tắc phụ thuộc module | `checkModuleDependencies` | Chạy trong `scripts/check.sh` |
 | App chạy được với callback mạng | Test trên emulator hiện có | `AppLaunchTest.appStarts_andReachesStartScreen` không đổi: sau loading, bộ điều khiển đăng ký callback của `ConnectivityManager`; thiếu quyền thì app dừng bằng `SecurityException` và test đỏ. Không thêm test emulator mới vì trạng thái mạng của emulator CI không điều khiển được |
-| KB-1, KB-2, KB-3 trên máy thật | Kiểm tra thủ công | Trên bản staging: (1) bật chế độ máy bay khi đang ở màn loading: màn loading báo lỗi riêng, không có hộp thoại. (2) Qua màn mẫu, bật chế độ máy bay: hộp thoại hiện sau khoảng 3 giây, đúng chế độ sáng, tối theo máy. (3) Tắt rồi bật Wi-Fi trong dưới 3 giây: không có hộp thoại. (4) Đang có hộp thoại, chạm ra ngoài, chạm vào chỗ có nút phía sau: không có gì xảy ra. (5) Bấm "Thử lại" khi vẫn mất mạng: vòng chờ khoảng 2 giây, rồi dòng "Vẫn chưa có mạng". (6) Bật lại mạng mà không bấm: hộp thoại vẫn còn; bấm "Thử lại": đóng. (7) Đang có hộp thoại, bấm quay lại: app ra nền; mở lại khi vẫn mất mạng: hộp thoại còn. (8) Bật TalkBack khi có hộp thoại: chỉ đọc được hộp thoại. Log xem bằng `adb logcat -v threadtime \| grep ' VGL\.Network'` |
+| KB-1, KB-2, KB-3 trên máy thật | Kiểm tra thủ công | Trên bản staging: (1) bật chế độ máy bay khi đang ở màn loading: màn loading báo lỗi riêng, không có hộp thoại. (2) Qua màn mẫu, bật chế độ máy bay: hộp thoại hiện sau khoảng 3 giây, đúng chế độ sáng, tối theo máy. (3) Tắt rồi bật Wi-Fi trong dưới 3 giây: không có hộp thoại. (4) Đang có hộp thoại, chạm ra ngoài, chạm vào chỗ có nút phía sau: không có gì xảy ra. (5) Bấm "Thử lại" khi vẫn mất mạng: vòng chờ khoảng 2 giây, rồi dòng "Vẫn chưa có mạng". (6) Bật lại mạng mà không bấm: hộp thoại vẫn còn; bấm "Thử lại": đóng. (7) Đang có hộp thoại, bấm quay lại: app ra nền; mở lại khi vẫn mất mạng: hộp thoại còn. (8) Bật TalkBack khi có hộp thoại: chỉ đọc được hộp thoại. Log xem bằng `adb logcat -v threadtime \| grep ' VGL\.Network'` (5) Bật TalkBack, mất mạng ở màn mẫu: TalkBack chỉ đọc và lướt được trong hộp thoại; chạm vào vùng phía sau không bấm được nút của màn mẫu. |
 | KB-4 trên bản staging | Kiểm tra thủ công | Không làm được trên staging vì cờ bật sẵn ở máy; unit test `flagOff_neverShows` thay thế. Người phụ trách sản phẩm kiểm tra trên production khi bật cờ từ xa |
 
 **Ngoại lệ viết test trước:**
@@ -249,7 +251,7 @@ Khung rỗng để test biên dịch được (bước 3): `NetworkDialogControl
 | B. Độ rõ của yêu cầu | 1 | Spec đã xác nhận, mọi câu hỏi đã trả lời, thiết kế đã duyệt. AI tự quyết vài chi tiết: tiêu chí "có mạng", lớp vẽ phủ thay cửa sổ `Dialog`, khai báo quyền ở hai nơi (mục 8) |
 | C. Khả năng kiểm chứng tự động | 2 | Logic thời gian kiểm hết bằng thời gian ảo, giao diện có test JVM và screenshot. Trạng thái mạng thật, việc app ra nền và TalkBack chỉ kiểm thủ công trên máy |
 | D. Ảnh hưởng chéo | 3 | Lớp phủ nằm trên mọi màn hình; `:core:assets` báo thêm tín hiệu mà mọi màn tải file đi qua; sửa `AppNavHost`, `FeatureFlag.kt`, `StagingFeatureFlagsModule`, `settings.gradle.kts`, `PrimaryButton` mà T-007, T-009, T-010 cũng sửa |
-| E. Độ mới của kỹ thuật | 2 | `ConnectivityManager.NetworkCallback` và `hideFromAccessibility` chưa có trong dự án nhưng phổ biến |
+| E. Độ mới của kỹ thuật | 2 | `ConnectivityManager.NetworkCallback` và hộp thoại trong cửa sổ `Dialog` của Compose chưa có trong dự án nhưng phổ biến |
 | **Tổng** | 11 | **Mức: Cao** (điểm chặn 3 và 7) |
 
 ## 6. Ảnh hưởng chéo
@@ -268,7 +270,7 @@ Khung rỗng để test biên dịch được (bước 3): `NetworkDialogControl
 
 1. T-007 chưa merge vào nhánh chính lúc bắt đầu task, hoặc sau T-007 thiếu một giá trị mà mục 2 giả định (`camera/scrim`, bo `sheet`, viền `sticker`, vai trò màu, kiểu chữ Sticker). Không viết cứng giá trị thay thế.
 2. Manifest gộp của `stagingDebug` sau thay đổi có quyền nào khác so với trước, hoặc thiếu `ACCESS_NETWORK_STATE`.
-3. `hideFromAccessibility` làm nút biến khỏi cây ngữ nghĩa trong test (sẽ làm hỏng `AppLaunchTest` khi emulator mất mạng). Dừng, không chuyển sang `clearAndSetSemantics`.
+3. Trên JVM, `Dialog` không tạo node gốc thứ hai, hoặc bộ điều phối phím quay lại của hộp thoại không gọi được `BackHandler` trong hộp thoại: dừng, không quay lại cách một cửa sổ. (Phiên bản 1 dừng vì `hideFromAccessibility` trên khung bọc không lan xuống nút con.)
 4. Test JVM của `:app` không chạy được trên Robolectric dù đã dùng `@Config(application = Application::class)` (ví dụ vì Hilt hay Firebase), và cách sửa cần file ngoài danh sách.
 5. `BackHandler` của vỏ không được ưu tiên hơn nút quay lại của `NavHost` sau 3 lần sửa.
 6. `PrimaryButton` của T-007 có API khác tới mức thêm `loading` phải đổi chữ ký mà nơi khác đang gọi.
@@ -297,6 +299,10 @@ Khung rỗng để test biên dịch được (bước 3): `NetworkDialogControl
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-21); dừng ở RUN-20261021-03, xem mục 10.
+
+Phiên bản 2:
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
 - **Ghi chú:** 
@@ -319,7 +325,7 @@ Khung rỗng để test biên dịch được (bước 3): `NetworkDialogControl
 - **Việc còn lại:** cách ẩn nội dung khỏi trình đọc màn hình; ghi 4 ảnh chuẩn; `scripts/check.sh`; so sánh manifest gộp (đã xem báo cáo gộp manifest: `ACCESS_NETWORK_STATE` có từ `play-services-ads-api` 25.5.0 và `play-services-measurement` 23.2.0, tập quyền không đổi); ảnh so sánh thiết kế; bước 6 đến 10.
 - **Cần người xem:** chọn hướng ẩn nội dung khỏi trình đọc màn hình (bản sửa đề xuất bên dưới).
 
-#### Bản sửa đề xuất, phiên bản 2 (chờ người chọn hướng, `draft`)
+#### Bản sửa đề xuất, phiên bản 2 (đã viết thành plan phiên bản 2: hướng (b), người duyệt chọn ngày 2026-10-22)
 
 - **Vì sao plan chưa đủ tốt:** mục 3.1 giả định `hideFromAccessibility` trên một khung bọc ẩn được cả cây con; plan chưa chạy thử điều này trước khi duyệt (L-029, L-001). Đây là kỹ thuật lần đầu dùng trong dự án (plan tự chấm E = 2).
 - **Thay đổi so với phiên bản 1:** chỉ cách ẩn nội dung phía sau khỏi trình đọc màn hình (mục 3.1 phần `NetworkDialogHost`, dòng KB-1 của mục 4 và mục 7 điều kiện 3). Người chọn một trong các hướng, mỗi hướng phải chạy thử bằng test tạm trước khi duyệt, đo bằng cây `AccessibilityNodeInfo` thật (ví dụ `isVisibleToUser` của nút khi bật trợ năng trong Robolectric), không chỉ bằng cây ngữ nghĩa:

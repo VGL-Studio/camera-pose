@@ -92,7 +92,7 @@ class CameraViewModel @Inject constructor(
     }
 
     fun onPermissionResult(granted: Boolean, dialogShown: Boolean = true) {
-        if (!dialogShown) {
+        if (!granted && !dialogShown) {
             // Permanently denied: the system answered without asking, so there is no user answer to record (KB-7).
             logger.info(LOG_TAG, "Camera permission denied without dialog")
             state.value = CameraUiState.PermissionDenied

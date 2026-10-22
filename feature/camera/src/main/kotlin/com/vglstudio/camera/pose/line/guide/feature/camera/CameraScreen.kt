@@ -23,8 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,8 +57,8 @@ internal fun CameraRoute(
     val currentOnPhotoCaptured by rememberUpdatedState(onPhotoCaptured)
     val activity = LocalActivity.current
     // Read before the request; with the value read after it, tells whether the system dialog was shown (T-026).
-    // Saveable: the activity may be recreated while the dialog is open. No activity (previews only): count it as shown.
-    var rationaleBefore by rememberSaveable { mutableStateOf(false) }
+    // No activity (previews only): count the dialog as shown.
+    var rationaleBefore by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val dialogShown = activity == null ||
             permissionDialogShown(granted, rationaleBefore, activity.shouldShowRationale())

@@ -95,3 +95,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Áp dụng:**
 - **Kiểm chứng:**
 
+### L-009: Hộp hỏi quyền camera còn mở làm hỏng lần đo khởi động nguội của `device-session`
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** app. **Nguồn:** RUN-20261022-01, T-013.
+- **Chuyện gì:** từ T-013, màn chính ở staging là camera và app hỏi quyền camera. Kịch bản chuẩn của `device-session` dừng app bằng force-stop giữa các lần mở nguội; hộp hỏi quyền của lần 2 (`GrantPermissionsActivity`) vẫn ở trong task, nên lần mở thứ 3 đưa hộp đó lên thay vì mở `MainActivity`: `cold_start run=3 total_ms=0`, không có log nào của app. Cùng nguyên nhân làm `AppLaunchTest` đỏ ở vòng 2 của CI T-013.
+- **Bằng chứng:** `scenarios.txt` và logcat của TS-20261022-01 (`onActivityRestartAttempt: ... GrantPermissionsActivity` lúc 04:58:46), lần chạy 39724404079.
+- **Đề xuất sửa:** `scripts/device-session.sh` (kịch bản chuẩn) cấp quyền camera trước các lần mở nguội (`pm grant <gói> android.permission.CAMERA`) hoặc thêm một kịch bản riêng cho luồng hỏi quyền; ghi vào `docs/ops/test-sessions.md`.
+- **Áp dụng:**
+- **Kiểm chứng:**
+

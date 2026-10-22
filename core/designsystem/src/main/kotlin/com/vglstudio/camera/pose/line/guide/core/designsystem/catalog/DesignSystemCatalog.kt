@@ -222,6 +222,12 @@ fun CameraComponentCatalog(modifier: Modifier = Modifier) {
     }
 }
 
+/** The pose components (sticker.md, section 4): chips, badge, thumbnails and step cards. */
+@Composable
+fun PoseComponentCatalog(modifier: Modifier = Modifier) {
+    Box(modifier)
+}
+
 @Composable
 private fun CatalogPage(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Surface(modifier = modifier.fillMaxSize()) {

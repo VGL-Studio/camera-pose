@@ -15,6 +15,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.capture.CapturedPhoto
 import com.vglstudio.camera.pose.line.guide.feature.camera.data.CameraSettingsRepository
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.CameraSettings
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.TimerSetting
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.ActivePoseHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
@@ -45,6 +46,7 @@ class CameraViewModel @Inject constructor(
     private val controller: CameraController,
     private val repository: CameraSettingsRepository,
     private val holder: CapturedPhotoHolder,
+    @Suppress("unused") private val activePose: ActivePoseHolder,
     private val countdownInterruptions: CountdownInterruptions,
     private val analytics: Analytics,
     private val logger: AppLogger,

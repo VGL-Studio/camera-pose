@@ -8,7 +8,7 @@ owner: Nhật
 status: approved
 risk: high
 size: M
-depends_on: [T-007, T-021, T-016]
+depends_on: [T-007, T-021]
 sprint:
 plan: features/settings/plans/T-025-man-cai-dat.md
 created: 2026-10-21

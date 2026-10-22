@@ -1,16 +1,16 @@
 ---
 ticket: T-016
 title: Màn xem lại, lưu, chia sẻ, tư thế tiếp
-status: approved               # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
-token_estimate: 25M          # số gợi ý cỡ L là 9.5M; chỉnh lên, lý do ở mục 5
-blocking_points: [analytics] # thêm permission nếu người duyệt chọn phương án A ở mục 8 câu 1
+token_estimate: 28M          # số gợi ý cỡ L là 9.5M; chỉnh lên, lý do ở mục 5
+blocking_points: [analytics, permission]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Nhật                   # người duyệt
 cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
-approved_at: 2026-10-22
+approved_at:
 ---
 
 # PLAN T-016: MÀN XEM LẠI, LƯU, CHIA SẺ, TƯ THẾ TIẾP
@@ -19,7 +19,7 @@ approved_at: 2026-10-22
 
 Thêm màn xem lại vào `:feature:camera`: chụp xong mở màn xem lại với ảnh vừa chụp; "Lưu vào thư viện" chép ảnh vào thư mục ảnh riêng của app qua MediaStore, ghi `photo_saved`, đếm số ảnh đã lưu; "Chia sẻ" mở hộp chia sẻ của hệ thống; "Chụp lại", "Tư thế tiếp", nút đóng và nút quay lại về camera, hỏi "Bỏ ảnh này?" khi chưa lưu; lưu lỗi vì hết bộ nhớ hiện thông báo kèm "Thử lại"; ô ảnh vừa chụp ở camera hiện và mở ảnh đã lưu gần nhất. MediaStore, giải mã ảnh và chia sẻ nằm sau interface, nên ViewModel và màn hình được test trên JVM bằng bản giả; phần MediaStore và FileProvider thật được test trên emulator của CI. Kiểm chứng bằng unit test ViewModel và repository, test giao diện Robolectric, bốn screenshot test cùng tên ảnh thiết kế và một ảnh khung thấp, test emulator lưu ảnh thật, và kiểm tra thủ công trên máy thật.
 
-**Plan chưa duyệt được trước khi người duyệt trả lời mục 8 câu 1** (lưu ảnh trên Android 8 và 9 cần quyền ghi bộ nhớ mà spec không nêu).
+Phiên bản 2 (2026-10-22): người duyệt chọn phương án A ở mục 8 câu 1: khai báo `WRITE_EXTERNAL_STORAGE` với `android:maxSdkVersion="28"` và hỏi quyền này khi bấm lưu trên Android 9 trở xuống. Spec `camera` đã cập nhật (mục 2, KB-6, mục 4, mục 6, câu hỏi 10 và 11; trạng thái `changed`, chờ xác nhận lại). Thay đổi so với phiên bản 1: `blocking_points` thêm `permission`; `MediaStorePhotoStore` có nhánh Android 9 trở xuống (ghi file vào `Pictures/Camera Pose/` bằng đường dẫn rồi thêm dòng MediaStore có cột `DATA`, vì `RELATIVE_PATH` và `IS_PENDING` chỉ có từ Android 10); hai file mới `photo/StoragePermission.kt` (có cần hỏi không, bị chặn hẳn không) và `photo/PhotoFileNames.kt` (tên file, tránh trùng); `SaveStatus` thêm `PERMISSION_DENIED`, `PERMISSION_BLOCKED`; `ReviewEvent` thêm `RequestStoragePermission`, `OpenAppSettings`; `ReviewViewModel` thêm `onStoragePermissionResult`, `onOpenAppSettings`, `onScreenStarted`; `ReviewRoute` có launcher hỏi quyền và mở cài đặt; hai thông báo mới dùng cùng kiểu với thông báo lưu lỗi (chữ ở câu 10); dòng quyền trong `app/src/main/AndroidManifest.xml` không còn là tùy chọn; 24 test mới (11 unit test ViewModel, 7 test quyền lưu, 3 test tên file, 3 test giao diện kể cả khung thấp); kiểm tra danh sách quyền của APK chặt hơn; kiểm tra thủ công trên Android 8 hoặc 9; điều kiện dừng 1, 8, 9, 10; câu hỏi 10 đến 13. Phần còn lại giữ nguyên phiên bản 1.
 
 ## 2. Hiểu yêu cầu
 
@@ -36,7 +36,12 @@ Ticket xử lý KB-6 của `features/camera/spec.md`, phần sau khi chụp (ph�
 | KB-6 | Khi quay về camera từ màn xem lại thì tư thế, chỉnh nét viền, công cụ chụp giữ như trước khi chụp | Màn xem lại là đích riêng đặt trên camera, camera vẫn nằm trong back stack nên `CameraViewModel` giữ nguyên. Khi màn camera dừng thì đóng camera, bắt đầu lại thì mở lại với cùng công cụ (T-013, test `stoppedThenStarted_closesThenReopensWithSameTools`) |
 | KB-6 | Khi chạm ô ảnh vừa chụp ở camera thì màn xem lại mở với ảnh đã lưu gần nhất; chưa có ảnh nào thì ô trống và không làm gì | Ô hiện ảnh thu nhỏ của ảnh đã lưu gần nhất. Ảnh đó đã bị xóa khỏi thư viện máy thì coi như chưa có ảnh. Màn xem lại mở từ ô này ở trạng thái đã lưu: không hỏi khi rời, không ghi `photo_saved` lần nữa |
 | KB-6, đặc biệt | Khi lưu lỗi vì hết bộ nhớ thì hiện "Không lưu được ảnh: bộ nhớ máy đã đầy." kèm "Thử lại"; ảnh vẫn còn trên màn xem lại | Thông báo nằm cố định trên nút chính cho tới khi bấm "Thử lại" hoặc rời màn, không tự ẩn. Lỗi khác với hết bộ nhớ: mục 8 câu 3 |
-| KB-6, đặc biệt | Khi lưu ảnh thì app không xin quyền đọc ảnh; manifest không có quyền đọc ảnh | Android 10 trở lên: MediaStore không cần quyền. Android 8 và 9: mục 8 câu 1 |
+| KB-6, đặc biệt | Khi lưu ảnh trên Android 10 trở lên thì app không hỏi quyền nào | MediaStore với `RELATIVE_PATH`, không cần quyền. `StoragePermission.needsRequest()` luôn `false` khi `SDK_INT >= 29` (phiên bản 2) |
+| KB-6, đặc biệt | Khi bấm lưu lần đầu trên Android 9 trở xuống mà chưa có quyền lưu thì hộp hỏi quyền hiện; cho phép thì lưu, các lần sau không hỏi | ViewModel phát `RequestStoragePermission`, `ReviewRoute` gọi launcher `RequestPermission()` với `WRITE_EXTERNAL_STORAGE`; cho phép thì lưu tiếp ngay, không cần bấm lại (phiên bản 2) |
+| KB-6, đặc biệt | Khi từ chối thì ảnh không được lưu, ảnh vẫn còn, thông báo cần quyền lưu kèm "Thử lại"; "Thử lại" hỏi lại | `PERMISSION_DENIED`; "Thử lại" gọi `onRetrySave`, hỏi lại (phiên bản 2) |
+| KB-6, đặc biệt | Khi đã từ chối và chọn không hỏi lại thì không hiện hộp hỏi; thông báo hướng dẫn kèm "Mở cài đặt"; cho phép rồi quay lại thì thông báo ẩn, bấm lưu là lưu được | Android 9 trở xuống: bị từ chối mà "nên giải thích" (`shouldShowRequestPermissionRationale`) đọc sau khi hỏi là `false` nghĩa là người dùng đã chọn không hỏi lại (trên các bản này, lần từ chối thường luôn làm giá trị đó thành `true`). `PERMISSION_BLOCKED`; "Mở cài đặt" mở trang cài đặt của app như camera; khi màn xem lại bắt đầu lại mà đã có quyền thì về `NOT_SAVED`, không tự lưu (phiên bản 2, câu 12) |
+| KB-6, đặc biệt | Khi từ chối sau khi bấm "Lưu ảnh" ở hộp thoại thì ở lại màn xem lại với thông báo, ảnh không bị bỏ | Việc chờ (`pendingExit`) giữ trong lúc hỏi quyền, bị bỏ khi từ chối (phiên bản 2) |
+| KB-6, đặc biệt | Khi kiểm tra danh sách quyền thì không có quyền đọc ảnh; quyền lưu chỉ khai báo cho Android 9 trở xuống | Manifest gộp chỉ thêm `WRITE_EXTERNAL_STORAGE` `maxSdkVersion="28"`, không có `READ_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, `READ_MEDIA_VISUAL_USER_SELECTED`. Trên Android 9 trở xuống hệ thống tự cho quyền đọc khi đã có quyền ghi; công cụ `aapt` báo dòng `uses-implied-permission` cho `READ_EXTERNAL_STORAGE`. Đây là hành vi của hệ thống, spec đã ghi rõ (phiên bản 2) |
 | Phạm vi ticket | Đếm số ảnh đã lưu (cho T-018, T-019) | Khóa DataStore mới `camera_saved_photo_count`, tính từ khi cài, lộ ra `SavedPhotosRepository.savedCount`. Mốc quảng cáo của phiên là việc của T-018 |
 | Phạm vi ticket | Ảnh không kèm nét viền | Ảnh lưu đúng byte của file JPEG camera ghi ra, kể cả thẻ EXIF chiều ảnh |
 
@@ -80,8 +85,24 @@ class StorageFullException(cause: Throwable? = null) : IOException(cause)
 fun isStorageFull(error: Throwable): Boolean
 ```
 
-- `MediaStorePhotoStore` (`@Singleton`, nhận `@ApplicationContext`): chạy trên `Dispatchers.IO`. Trước khi ghi: `StatFs(Environment.getExternalStorageDirectory().path).availableBytes < file.length() + FREE_SPACE_MARGIN_BYTES` (5 MB) thì ném `StorageFullException`. Android 10 trở lên: `insert` vào `MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)` với `DISPLAY_NAME = "CameraPose_<yyyyMMdd_HHmmss>.jpg"` (giờ máy lúc chụp, `Locale.US`), `MIME_TYPE = "image/jpeg"`, `RELATIVE_PATH = "Pictures/<camera_album_name>"`, `DATE_TAKEN`, `IS_PENDING = 1`; chép byte bằng `openOutputStream`; `IS_PENDING = 0`. Lỗi giữa chừng thì `delete` dòng vừa thêm rồi ném lại; `IOException` mà `isStorageFull` thì bọc thành `StorageFullException`. Android 8 và 9: theo câu trả lời mục 8 câu 1.
-- `exists(uri)`: `contentResolver.query(uri, arrayOf(_ID), …)` có một dòng; mọi `SecurityException`, `IllegalArgumentException` coi là không còn.
+- `MediaStorePhotoStore` (`@Singleton`, nhận `@ApplicationContext`): chạy trên `Dispatchers.IO`. Trước khi ghi: `StatFs(Environment.getExternalStorageDirectory().path).availableBytes < file.length() + FREE_SPACE_MARGIN_BYTES` (5 MB) thì ném `StorageFullException`. Android 10 trở lên: `insert` vào `MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)` với `DISPLAY_NAME = "CameraPose_<yyyyMMdd_HHmmss>.jpg"` (giờ máy lúc chụp, `Locale.US`), `MIME_TYPE = "image/jpeg"`, `RELATIVE_PATH = "Pictures/<camera_album_name>"`, `DATE_TAKEN`, `IS_PENDING = 1`; chép byte bằng `openOutputStream`; `IS_PENDING = 0`. Lỗi giữa chừng thì `delete` dòng vừa thêm rồi ném lại; `IOException` mà `isStorageFull` thì bọc thành `StorageFullException`.
+- Android 9 trở xuống (phiên bản 2; `RELATIVE_PATH`, `IS_PENDING` và `VOLUME_EXTERNAL_PRIMARY` chỉ có từ API 29, nên không dùng được): thư mục `File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "<camera_album_name>")` (hàm này bị đánh dấu cũ từ API 29 nhưng đúng cho API 26 đến 28, dùng `@Suppress("DEPRECATION")` có chú thích), `mkdirs()`; kiểm tra chỗ trống bằng `StatFs` của thư mục đó; tên file từ `PhotoFileNames.uniqueFile(dir, displayName)`; chép byte bằng `FileOutputStream` rồi `fd.sync()`; thêm dòng vào `MediaStore.Images.Media.EXTERNAL_CONTENT_URI` với `DATA = file.absolutePath` (cũng `@Suppress("DEPRECATION")`), `DISPLAY_NAME`, `MIME_TYPE`, `DATE_TAKEN`, `TITLE`; trả địa chỉ của dòng đó. `insert` trả `null` hoặc lỗi giữa chừng thì xóa file đã ghi rồi ném `IOException`. Thiếu quyền khi ghi (`SecurityException`, hay `FileNotFoundException` do `EACCES`) thì bọc thành `IOException` và ViewModel báo `FAILED`; bình thường không xảy ra vì ViewModel hỏi quyền trước.
+- `PhotoFileNames.kt` (phiên bản 2): `fun displayName(takenAtMillis: Long, zone: TimeZone): String` trả `CameraPose_<yyyyMMdd_HHmmss>.jpg` (`Locale.US`); `fun uniqueFile(dir: File, name: String): File` trả `name` nếu chưa có, không thì `CameraPose_..._1.jpg`, `_2`, ... Nhánh Android 10 dùng `displayName`; MediaStore tự đổi tên khi trùng.
+- `exists(uri)`: `contentResolver.query(uri, arrayOf(_ID), …)` có một dòng; mọi `SecurityException`, `IllegalArgumentException` coi là không còn. Trên Android 9 trở xuống, đọc dòng MediaStore cần quyền đọc, có được nhờ quyền ghi đã cho; người dùng thu hồi quyền trong cài đặt thì ô ảnh vừa chụp trống (coi như không còn ảnh).
+
+**Quyền lưu (`photo/StoragePermission.kt`, phiên bản 2).**
+
+```kotlin
+/** Write access to shared storage, needed to save to the gallery on Android 9 and lower only. */
+interface StoragePermission {
+    /** True when saving must ask for the permission first: Android 9 or lower and not granted. */
+    fun needsRequest(): Boolean
+}
+/** After a denial on Android 9 or lower: true when the user chose "don't ask again" (no rationale any more). */
+fun storagePermissionBlocked(granted: Boolean, rationaleAfter: Boolean): Boolean = !granted && !rationaleAfter
+```
+
+`AndroidStoragePermission(@ApplicationContext context, sdkInt: Int = Build.VERSION.SDK_INT)`: `sdkInt <= 28 && checkSelfPermission(WRITE_EXTERNAL_STORAGE) != GRANTED`. Tham số `sdkInt` để test Robolectric chạy ở SDK 35 sẵn có (`robolectric.properties`) mà không phải tải bản SDK 28. Hằng tên quyền đặt trong file này (`STORAGE_PERMISSION`). Không dùng `permissionDialogShown` của T-026 (cùng module nên dùng được, không vướng ADR-0001): hàm đó trả lời "hộp hỏi có hiện không" để quyết định ghi sự kiện; ở đây không ghi sự kiện (spec câu hỏi 11) và chỉ cần biết còn hỏi lại được không, điều mà "nên giải thích" sau khi hỏi trả lời thẳng trên Android 9 trở xuống.
 - Lớp này `public` (kèm chú thích "public for the device test in :app") để `app/src/androidTest` gọi được; mọi lớp khác của T-016 giữ `internal`.
 
 **Giải mã ảnh (`photo/PhotoDecoder.kt`).** `interface PhotoDecoder { suspend fun decode(location: String, maxSidePx: Int): ImageBitmap? }`. `location` là đường dẫn file tạm hoặc địa chỉ `content://`. `AndroidPhotoDecoder`: `Dispatchers.IO`, `BitmapFactory` đọc cỡ trước (`inJustDecodeBounds`), chọn `inSampleSize` là lũy thừa của 2 sao cho cạnh dài không quá `maxSidePx`, giải mã, xoay và lật theo `android.media.ExifInterface` (thư viện hệ thống, có từ API 24, không thêm thư viện), trả `asImageBitmap()`. Lỗi thì trả `null` và màn hình hiện khung trống. Giải mã chạy trong `Route` bằng `produceState`, nên ViewModel không giữ `Bitmap` và test được trên JVM thuần. Ảnh xem lại cỡ tối đa 1600 px, ảnh thu nhỏ của ô 192 px.
@@ -113,20 +134,31 @@ sealed interface ReviewUiState {
         val pendingExit: ExitAction? = null,
     ) : ReviewUiState
 }
-enum class SaveStatus { NOT_SAVED, SAVING, SAVED, FAILED_STORAGE_FULL, FAILED }
+enum class SaveStatus {
+    NOT_SAVED, SAVING, SAVED, FAILED_STORAGE_FULL, FAILED,
+    /** Android 9 or lower: the storage permission was denied, asking again is possible (version 2). */
+    PERMISSION_DENIED,
+    /** Android 9 or lower: denied with "don't ask again"; only the system settings can grant it (version 2). */
+    PERMISSION_BLOCKED,
+}
 enum class ExitAction { RETAKE, NEXT_POSE, CLOSE }
 sealed interface ReviewEvent {
     data class Leave(val savedThisVisit: Boolean) : ReviewEvent
     data class Share(val location: String) : ReviewEvent
+    data object RequestStoragePermission : ReviewEvent
+    data object OpenAppSettings : ReviewEvent
 }
 ```
 
-**`ReviewViewModel`** (`@HiltViewModel`) nhận `CapturedPhotoHolder`, `CaptureFileStore`, `PhotoStore`, `SavedPhotosRepository`, `NextPoseRequests`, `Analytics`, `AppLogger`, `SavedStateHandle`. Đích có tham số `savedPhotoUri: String?` (đọc từ `SavedStateHandle`).
+**`ReviewViewModel`** (`@HiltViewModel`) nhận `CapturedPhotoHolder`, `CaptureFileStore`, `PhotoStore`, `StoragePermission` (phiên bản 2), `SavedPhotosRepository`, `NextPoseRequests`, `Analytics`, `AppLogger`, `SavedStateHandle`. Đích có tham số `savedPhotoUri: String?` (đọc từ `SavedStateHandle`).
 
 - `init`, mở từ ảnh vừa chụp (`savedPhotoUri == null`): lấy `holder.latest.value`; nếu `null` (tiến trình bị đóng rồi mở lại) thì lấy đường dẫn, `poseId`, giờ chụp đã chép vào `SavedStateHandle` ở lần trước. File không tồn tại hoặc không có gì: log `warn` "Review photo missing", phát `Leave(false)`. Có file: chép vào `SavedStateHandle`, `Ready(path, NOT_SAVED)`, log "Review opened: captured".
 - `init`, mở từ ô ảnh vừa chụp: `photoStore.exists(uri)` thì `Ready(uri, SAVED)`, log "Review opened: last saved"; không thì `Leave(false)`.
-- `onSaveClick()`, `onRetrySave()`: chỉ khi `Ready` và `save` là `NOT_SAVED`, `FAILED_STORAGE_FULL` hoặc `FAILED`. `SAVING`; file không còn thì `FAILED`; `photoStore.save(file, capturedAtMillis)`. Thành công: `SAVED`, chép địa chỉ mới vào `SavedStateHandle`, ghi `photo_saved` (`pose_id`), log "Photo saved", rồi `recordSaved(uri)` trong `try`; `IOException` ở bước này chỉ log `warn` (ảnh đã nằm trong thư viện). `StorageFullException` (hoặc `isStorageFull`): `FAILED_STORAGE_FULL`, log `warn` với lỗi. `IOException` khác: `FAILED`, log `warn`. Có `pendingExit` đang chờ (đi từ "Lưu ảnh" của hộp thoại): lưu xong thì `leave(pendingExit)`; lỗi thì bỏ `pendingExit`.
-- `onRetakeClick()`, `onNextPoseClick()`, `onCloseClick()` (nút đóng và nút quay lại của hệ thống): bỏ qua khi `SAVING`. `SAVED` thì `leave(action)`. Còn lại thì mở hộp thoại (`pendingExit = action`), log "Discard asked".
+- `onSaveClick()`, `onRetrySave()`: chỉ khi `Ready`, không đang chờ hỏi quyền, và `save` là `NOT_SAVED`, `FAILED_STORAGE_FULL`, `FAILED` hoặc `PERMISSION_DENIED`. Phiên bản 2: nếu `storagePermission.needsRequest()` thì đặt `awaiting_storage_permission = true` trong `SavedStateHandle`, log "Asking for the storage permission", phát `RequestStoragePermission`, giữ nguyên `save` và `pendingExit`, dừng ở đây. Ngược lại: `SAVING`; file không còn thì `FAILED`; `photoStore.save(file, capturedAtMillis)`. Thành công: `SAVED`, chép địa chỉ mới vào `SavedStateHandle`, ghi `photo_saved` (`pose_id`), log "Photo saved", rồi `recordSaved(uri)` trong `try`; `IOException` ở bước này chỉ log `warn` (ảnh đã nằm trong thư viện). `StorageFullException` (hoặc `isStorageFull`): `FAILED_STORAGE_FULL`, log `warn` với lỗi. `IOException` khác: `FAILED`, log `warn`. Có `pendingExit` đang chờ (đi từ "Lưu ảnh" của hộp thoại): lưu xong thì `leave(pendingExit)`; lỗi thì bỏ `pendingExit`.
+- `onStoragePermissionResult(granted: Boolean, blocked: Boolean)` (phiên bản 2): bỏ qua khi không đang chờ (đọc cờ trong `SavedStateHandle`, nên vẫn đúng khi activity bị tạo lại lúc hộp hỏi đang mở); xóa cờ. Cho phép: log "Storage permission granted", lưu tiếp như trên. Từ chối: `PERMISSION_BLOCKED` nếu `blocked`, không thì `PERMISSION_DENIED`; bỏ `pendingExit`; log "Storage permission denied" hoặc "Storage permission blocked". Không ghi sự kiện phân tích (spec câu hỏi 11).
+- `onOpenAppSettings()` (phiên bản 2): chỉ khi `PERMISSION_BLOCKED`; log "Opening app settings for storage"; phát `OpenAppSettings`.
+- `onScreenStarted()` (phiên bản 2, mỗi lần màn xem lại bắt đầu, kể cả khi quay lại từ cài đặt): `save` là `PERMISSION_DENIED` hoặc `PERMISSION_BLOCKED` mà `needsRequest()` đã `false` thì về `NOT_SAVED`, log "Storage permission granted in settings". Không tự lưu.
+- `onRetakeClick()`, `onNextPoseClick()`, `onCloseClick()` (nút đóng và nút quay lại của hệ thống): bỏ qua khi `SAVING` hoặc đang chờ hỏi quyền. `SAVED` thì `leave(action)`. Còn lại thì mở hộp thoại (`pendingExit = action`), log "Discard asked".
 - `onDiscardConfirm()` ("Bỏ ảnh"): log "Photo discarded", `leave(pendingExit)`. `onDiscardSave()` ("Lưu ảnh"): đóng hộp thoại nhưng nhớ việc chờ, gọi lưu như trên. `onDismissDialog()` (chạm ra ngoài, nút quay lại khi hộp thoại mở): `pendingExit = null`.
 - `onShareClick()`: bỏ qua khi `SAVING`; phát `Share(location)` (đường dẫn file tạm, hoặc địa chỉ đã lưu nếu `SAVED`); log "Share opened".
 - `leave(action)`, nơi duy nhất rời màn: nếu ảnh là file tạm thì `fileStore.delete(file)` và `holder.clear()`; `NEXT_POSE` thì `nextPoseRequests.request()`; log "Review left: <retake|next_pose|close>"; phát `Leave(savedThisVisit)` (`true` khi lần mở này đã lưu thành công). T-018 và T-019 cắm vào đây.
@@ -137,10 +169,11 @@ sealed interface ReviewEvent {
 - Ảnh: `produceState<ImageBitmap?>(null, location) { value = decoder.decode(location, 1600) }`, `decoder` tiêm qua `ReviewViewModel` (thuộc tính `internal val decoder: PhotoDecoder`).
 - Sự kiện: `LaunchedEffect(lifecycleOwner) { lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { viewModel.events.collect { … } } }`. `Leave` gọi `onLeave`. `Share` dựng địa chỉ: file tạm qua `FileProvider.getUriForFile(context, "${context.packageName}.captures", File(location))`, địa chỉ đã lưu dùng thẳng; rồi `context.startActivity(shareChooser(uri, title))`. `ActivityNotFoundException` thì log `warn`.
 - `BackHandler(enabled = true)`: hộp thoại mở thì `onDismissDialog`, không thì `onCloseClick` (ViewModel tự bỏ qua khi đang lưu).
+- Quyền lưu (phiên bản 2): `rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission())`; `RequestStoragePermission` gọi `launch(STORAGE_PERMISSION)`. Trong callback: `rationaleAfter = activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, STORAGE_PERMISSION) } ?: true` (`LocalActivity.current`, như T-026; không có activity thì coi như còn hỏi lại được), rồi `viewModel.onStoragePermissionResult(granted, storagePermissionBlocked(granted, rationaleAfter))`. `OpenAppSettings` mở `Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))`, cùng cách `CameraRoute` làm. `LifecycleStartEffect(viewModel) { viewModel.onScreenStarted(); onStopOrDispose {} }`.
 
 `review/ShareIntents.kt`: `internal fun shareChooser(uri: Uri, title: String): Intent`: `ACTION_SEND`, `type = "image/jpeg"`, `EXTRA_STREAM`, `clipData = ClipData.newRawUri("", uri)`, `FLAG_GRANT_READ_URI_PERMISSION`, bọc `Intent.createChooser(send, title)`. Tiêu đề hộp chọn "Chia sẻ ảnh" (mục 8 câu 7).
 
-`ReviewScreen(uiState, image: ImageBitmap?, onCloseClick, onSaveClick, onRetrySave, onRetakeClick, onShareClick, onNextPoseClick, onDiscardConfirm, onDiscardSave, onDismissDialog, modifier)` không trạng thái. `Loading` chỉ vẽ nền và thanh trên. Bố cục (số liệu `context/ReviewScreen_*.md`, khung 411 x 891; tính từ mép trên khung vì test không có thanh trạng thái, trên máy thật `safeDrawingPadding` của `AppNavHost` đẩy xuống dưới thanh trạng thái; thiết kế có 24 dp thanh trạng thái nên mọi thứ trong ảnh chuẩn cao hơn thiết kế 24 dp):
+`ReviewScreen(uiState, image: ImageBitmap?, onCloseClick, onSaveClick, onRetrySave, onOpenAppSettings, onRetakeClick, onShareClick, onNextPoseClick, onDiscardConfirm, onDiscardSave, onDismissDialog, modifier)` không trạng thái. `Loading` chỉ vẽ nền và thanh trên. Bố cục (số liệu `context/ReviewScreen_*.md`, khung 411 x 891; tính từ mép trên khung vì test không có thanh trạng thái, trên máy thật `safeDrawingPadding` của `AppNavHost` đẩy xuống dưới thanh trạng thái; thiết kế có 24 dp thanh trạng thái nên mọi thứ trong ảnh chuẩn cao hơn thiết kế 24 dp):
 
 | Phần | Thành phần, màu | Kích thước, khoảng cách |
 | --- | --- | --- |
@@ -149,7 +182,7 @@ sealed interface ReviewEvent {
 | Vùng giữa | `Column` trong `weight(1f)`, căn trên: ảnh, khoảng `Spacing.lg`, hàng nút phụ. Phần dư nằm dưới hàng nút phụ | |
 | Ảnh | `Box` `aspectRatio(3f / 4f, matchHeightConstraintsFirst = true)` trong `weight(1f, fill = false)`, nền `appColors.cameraSurface` (#1E1E1E), viền `Stroke.sticker` màu `outline`, bo `Radius.card`; `Image(image, ContentScale.Crop)` khi có ảnh, `testTag(PHOTO)` | Rộng tối đa khung trừ 2 x `Spacing.md` (379 x 505 ở khung 411 x 891, đúng thiết kế) |
 | Hàng nút phụ | `Row` rộng 331 (`widthIn(max = 331.dp)`, căn giữa), `Arrangement.SpaceBetween`; mỗi nút là `Column` cách nhau `Spacing.xs`: `CameraIconButton` (icon `ic_review_replay`, `ic_review_share`, `ic_review_skip_next`) và chữ `labelLarge` màu `onSurface` | Cao 72. Đang lưu: cả ba `enabled = false` (độ mờ 38% của `CameraIconButton`), chữ cũng độ mờ 38% |
-| Thông báo lưu lỗi | `Snackbar` của Material 3 khi `FAILED_STORAGE_FULL` hoặc `FAILED`: nền `inverseSurface`, chữ `inverseOnSurface` `bodyMedium`, nút "Thử lại" `labelLarge` màu `inversePrimary`, `testTag(SAVE_ERROR)` | Lề ngang `Spacing.md`, cách nút chính `Spacing.md` |
+| Thông báo lưu lỗi | `Snackbar` của Material 3 khi `FAILED_STORAGE_FULL`, `FAILED`, `PERMISSION_DENIED` hoặc `PERMISSION_BLOCKED`: nền `inverseSurface`, chữ `inverseOnSurface` `bodyMedium`, nút `labelLarge` màu `inversePrimary`, `testTag(SAVE_ERROR)`. Nút là "Thử lại" (`onRetrySave`), trừ `PERMISSION_BLOCKED` là "Mở cài đặt" (`onOpenAppSettings`, dùng lại chuỗi `camera_permission_action` đã có trong module). Chữ của hai trạng thái quyền theo câu 10; chữ dài thì xuống dòng, nút vẫn bên phải | Lề ngang `Spacing.md`, cách nút chính `Spacing.md` |
 | Nút chính | `PrimaryButton(text, onSaveClick, icon = ic_review_download, loading = SAVING, enabled = save != SAVED)`, `testTag(SAVE)`. Chữ: "Lưu vào thư viện"; khi `SAVING` "Đang lưu…" | Rộng hết trừ 2 x `Spacing.md`; cách đáy `Spacing.md + Spacing.xs` (20, đúng thiết kế) |
 | Hộp thoại "Bỏ ảnh này?" | Vẽ trong cây giao diện, trên cùng: lớp `appColors.cameraScrim` độ mờ 50%, bấm vào thì `onDismissDialog`; thẻ rộng tối đa 331 nền `surface`, viền `Stroke.sticker` màu `outline`, bo `Radius.sheet`, lề `Spacing.lg`, cách nhau `Spacing.md`: tiêu đề `titleLarge`, lời `bodyMedium` màu `onSurfaceVariant`, `Row` hai nút cách `Spacing.sm` mỗi nút `weight(1f)`: `SecondaryButton("Bỏ ảnh")`, `PrimaryButton("Lưu ảnh")`. Thẻ mang `semantics { paneTitle = "Bỏ ảnh này?" }`, `testTag(DISCARD_DIALOG)` | Căn giữa màn. Khi hộp thoại mở, phần nội dung phía sau mang `clearAndSetSemantics {}` để trình đọc màn hình chỉ thấy hộp thoại (L-004: `hideFromAccessibility` không lan xuống node con) |
 
@@ -173,9 +206,9 @@ Chữ ở màn hình thấp 360 x 640: ảnh co theo chiều cao còn lại (gi�
 
 **Biểu tượng.** 4 vector drawable mới trong `feature/camera/src/main/res/drawable/`, lấy từ Material Symbols Outlined như T-013 (cùng nguồn, cùng cách chú thích tên, nguồn và commit SHA): `ic_review_replay.xml` (`replay`), `ic_review_share.xml` (`share`), `ic_review_skip_next.xml` (`skip_next`), `ic_review_download.xml` (`download`). Nút đóng dùng `ic_camera_close.xml` đã có. Giấy phép đã có ở `feature/camera/third_party/material-symbols/LICENSE.txt`, không đổi.
 
-**Chữ.** File riêng `feature/camera/src/main/res/values/strings_review.xml` (không sửa `strings.xml` mà T-014 cũng thêm chữ): theo bảng chữ của README mục 2: "Xem lại", "Chụp lại", "Chia sẻ", "Tư thế tiếp", "Lưu vào thư viện", "Đang lưu…", "Không lưu được ảnh: bộ nhớ máy đã đầy.", "Thử lại", "Bỏ ảnh này?", "Ảnh chưa được lưu vào thư viện.", "Bỏ ảnh", "Lưu ảnh"; thêm theo mục 8: "Không lưu được ảnh." (câu 3), "Camera Pose" làm tên thư mục ảnh, `translatable="false"` (câu 4), "Đóng" (mô tả nút đóng), "Chia sẻ ảnh" (tiêu đề hộp chọn, câu 7).
+**Chữ.** File riêng `feature/camera/src/main/res/values/strings_review.xml` (không sửa `strings.xml` mà T-014 cũng thêm chữ): theo bảng chữ của README mục 2: "Xem lại", "Chụp lại", "Chia sẻ", "Tư thế tiếp", "Lưu vào thư viện", "Đang lưu…", "Không lưu được ảnh: bộ nhớ máy đã đầy.", "Thử lại", "Bỏ ảnh này?", "Ảnh chưa được lưu vào thư viện.", "Bỏ ảnh", "Lưu ảnh"; thêm theo mục 8: "Không lưu được ảnh." (câu 3), "Camera Pose" làm tên thư mục ảnh, `translatable="false"` (câu 4), "Đóng" (mô tả nút đóng), "Chia sẻ ảnh" (tiêu đề hộp chọn, câu 7); phiên bản 2, chờ câu 10: "Cần quyền lưu ảnh để lưu vào thư viện." (`PERMISSION_DENIED`), "Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện." (`PERMISSION_BLOCKED`).
 
-**Thứ tự làm.** Bước 3: khung rỗng (mục 4), mọi test, `strings_review.xml` đủ chữ; chạy để thấy thất bại đúng lý do; commit. Bước 4: `photo/`, repository, `CapturedPhoto.poseId` (nếu chưa có) và `CaptureFileStore.delete`, `NextPoseRequests`, `ReviewViewModel`, `LastPhotoViewModel`, màn hình và hộp thoại, biểu tượng, manifest và FileProvider, điều hướng, dòng gọi `onNextPose()` nếu phương án A; `scripts/check.sh` ghi 5 ảnh chuẩn mới; `scripts/design-compare.sh camera`; build `stagingDebug`.
+**Thứ tự làm.** Bước 3: khung rỗng (mục 4), mọi test, `strings_review.xml` đủ chữ; chạy để thấy thất bại đúng lý do; commit. Bước 4: `photo/` (cả hai nhánh phiên bản Android, `StoragePermission`, `PhotoFileNames`), repository, `CapturedPhoto.poseId` (nếu chưa có) và `CaptureFileStore.delete`, `NextPoseRequests`, `ReviewViewModel`, `LastPhotoViewModel`, màn hình và hộp thoại, biểu tượng, manifest của module (FileProvider) và dòng quyền trong manifest của app, điều hướng, dòng gọi `onNextPose()` nếu phương án A; `scripts/check.sh` ghi 5 ảnh chuẩn mới; `scripts/design-compare.sh camera`; build `stagingDebug`.
 
 ### 3.2. Danh sách file
 
@@ -194,17 +227,19 @@ Chữ ở màn hình thấp 360 x 640: ảnh co theo chiều cao còn lại (gi�
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/lastphoto/LastPhotoViewModel.kt` | Ảnh đã lưu gần nhất cho ô trên camera |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/PhotoStore.kt` | Interface, `StorageFullException`, `isStorageFull` |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/MediaStorePhotoStore.kt` | Lưu vào thư viện máy qua MediaStore |
+| Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/StoragePermission.kt` | Phiên bản 2: interface, `AndroidStoragePermission`, `storagePermissionBlocked`, `STORAGE_PERMISSION` |
+| Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/PhotoFileNames.kt` | Phiên bản 2: tên file ảnh, tránh trùng ở nhánh Android 9 trở xuống |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/PhotoDecoder.kt` | Interface và `AndroidPhotoDecoder` (thu nhỏ, xoay theo EXIF) |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/data/SavedPhotosRepository.kt` | Interface repository |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/data/DataStoreSavedPhotosRepository.kt` | Hai khóa `camera_last_saved_photo`, `camera_saved_photo_count` |
-| Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/di/ReviewModule.kt` | Gắn `PhotoStore`, `PhotoDecoder`, `SavedPhotosRepository` (file riêng, không sửa `CameraModule.kt`) |
+| Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/di/ReviewModule.kt` | Gắn `PhotoStore`, `PhotoDecoder`, `SavedPhotosRepository`, `StoragePermission` (file riêng, không sửa `CameraModule.kt`) |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/navigation/ReviewNavigation.kt` | `ReviewDestination`, `reviewScreen()` |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/navigation/CameraNavigation.kt` | Tham số `onOpenLastPhoto` |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreen.kt` | `CameraRoute`: `LastPhotoViewModel`, ảnh thu nhỏ, `onOpenLastPhoto`, lấy yêu cầu tư thế tiếp (phương án A: gọi `poseViewModel.onNextPose()`), thu sự kiện bằng `repeatOnLifecycle`. `CameraScreen`: hai tham số mới có mặc định |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraControls.kt` | `CaptureRow`, `LastPhotoSlot`: ảnh thu nhỏ và bấm được |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/capture/CapturedPhotoHolder.kt` | `CapturedPhoto.poseId: String = ""`, chỉ khi T-014 chưa thêm (T-014 thêm đúng trường này) |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/camera/CaptureFileStore.kt` | `fun delete(file: File)` |
-| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewFakes.kt` | `FakePhotoStore`, `FakeSavedPhotosRepository`, `FakeReviewAnalytics` |
+| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewFakes.kt` | `FakePhotoStore`, `FakeSavedPhotosRepository`, `FakeReviewAnalytics`, `FakeStoragePermission` |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewViewModelTest.kt` | Unit test ViewModel (mục 4) |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreenTest.kt` | Test giao diện Robolectric |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreenScreenshotTest.kt` | 5 screenshot test |
@@ -212,6 +247,8 @@ Chữ ở màn hình thấp 360 x 640: ảnh co theo chiều cao còn lại (gi�
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/NextPoseRequestsTest.kt` | Unit test |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/lastphoto/LastPhotoViewModelTest.kt` | Unit test |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/PhotoStoreTest.kt` | Unit test `isStorageFull` |
+| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/StoragePermissionTest.kt` | Phiên bản 2: Robolectric, `AndroidStoragePermission` theo `sdkInt` và quyền; `storagePermissionBlocked` |
+| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/PhotoFileNamesTest.kt` | Phiên bản 2: unit test tên file |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/photo/AndroidPhotoDecoderTest.kt` | Robolectric, `GraphicsMode.NATIVE`: thu nhỏ và xoay theo EXIF |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/data/DataStoreSavedPhotosRepositoryTest.kt` | Unit test repository |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraLastPhotoTest.kt` | Test giao diện ô ảnh vừa chụp (file riêng, không sửa `CameraScreenTest.kt`) |
@@ -224,7 +261,7 @@ Chữ ở màn hình thấp 360 x 640: ảnh co theo chiều cao còn lại (gi�
 | Sửa | `docs/features/camera/design/review/` | Sinh lại bởi `scripts/design-compare.sh camera` (thêm ảnh ghép của 4 ảnh T-016, `summary.md`), không sửa tay |
 | Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/navigation/AppNavHost.kt` | Nối camera sang màn xem lại, đăng ký `reviewScreen` |
 | Tạo | `app/src/androidTest/kotlin/com/vglstudio/camera/pose/line/guide/PhotoSaveDeviceTest.kt` | Test trên emulator: lưu thật qua MediaStore, FileProvider đọc được file tạm |
-| Sửa | `app/src/main/AndroidManifest.xml` | Chỉ khi người duyệt chọn phương án A ở mục 8 câu 1: `WRITE_EXTERNAL_STORAGE` với `android:maxSdkVersion="28"` và chú thích |
+| Sửa | `app/src/main/AndroidManifest.xml` | Phiên bản 2: `<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />` với chú thích "Saving photos to the gallery on Android 9 and lower only (spec camera, KB-6). Android 10 and higher use MediaStore without any permission. No read permission (lesson 13)." Không đổi dòng nào khác |
 
 Không file nào khác. Đặc biệt không sửa `gradle/libs.versions.toml` (không thêm thư viện: MediaStore, `ExifInterface`, `StatFs` thuộc hệ thống; `FileProvider` thuộc `androidx.core` đã có), `build-logic/`, mọi module `:core:*`, `feature/camera/build.gradle.kts`, `strings.xml`, `CameraModule.kt`, `CameraUiState.kt`, `CameraViewModel.kt`, `pose/PoseViewModel.kt` và mọi file `pose/` của T-014, `CameraScreenTest.kt`, `CameraScreenScreenshotTest.kt`, `CameraViewModelTest.kt`, `CameraFakes.kt`, ảnh chuẩn của camera.
 
@@ -235,7 +272,7 @@ Không file nào khác. Đặc biệt không sửa `gradle/libs.versions.toml` (
 - `CaptureFileStore.kt`: chỉ thêm hàm; `CaptureFileStoreTest.kt` (trong danh sách) và `CameraModule.kt` (dựng lớp) không đổi.
 - `CameraNavigation.kt`: chỉ `AppNavHost.kt` (trong danh sách) gọi; tham số mới có mặc định.
 - `AppNavHost.kt`: `AppLaunchTest.kt` chỉ chờ `camera_screen`, không đổi; `MainScreenTest.kt` gọi `chooseMainScreen`, không đọc phần đăng ký đích.
-- `app/src/main/AndroidManifest.xml` (chỉ phương án A): `scripts/app-explore/apk-screens.py` đọc manifest của APK app mẫu, không phải của repo. `feature/camera/src/main/AndroidManifest.xml` là file mới, được AGP gộp vào manifest của app.
+- `app/src/main/AndroidManifest.xml`: `scripts/app-explore/apk-screens.py` đọc manifest của APK app mẫu, không phải của repo. `feature/camera/src/main/AndroidManifest.xml` là file mới, được AGP gộp vào manifest của app.
 
 ### 3.3. Cờ tính năng, quảng cáo, dữ liệu
 
@@ -243,14 +280,14 @@ Không file nào khác. Đặc biệt không sửa `gradle/libs.versions.toml` (
 - Quảng cáo: Không chạm. Không có quảng cáo ở màn xem lại (spec mục 5); quảng cáo khi rời màn là T-018.
 - Sự kiện phân tích (điểm chặn 4, đã có trong spec mục 6): `photo_saved` khi lưu thành công, tham số `pose_id` (lấy từ `CapturedPhoto.poseId`; chuỗi rỗng khi chưa có tư thế, như `photo_captured` ở T-013). Ở phương án A, `pose_selected` với `source = "next"` do `PoseViewModel.onNextPose()` của T-014 ghi (sự kiện, giá trị và test đều thuộc plan T-014); T-016 chỉ gọi hàm, không thêm chỗ ghi sự kiện nào khác. Không gửi địa chỉ ảnh hay tên file.
 - Dữ liệu cục bộ: hai khóa DataStore mới `camera_last_saved_photo`, `camera_saved_photo_count` (spec mục 6, dòng "Số ảnh đã lưu…" và "Ảnh đã lưu"). Khóa mới, không chuyển dữ liệu cũ, nên không chạm điểm chặn 9. Ảnh lưu vào thư viện máy, không tải lên đâu; gỡ app không xóa ảnh.
-- Quyền: Không thêm quyền ở phương án B của mục 8 câu 1. Phương án A thêm `WRITE_EXTERNAL_STORAGE` chỉ cho Android 9 trở xuống (điểm chặn 3).
+- Quyền (điểm chặn 3, phiên bản 2): thêm `WRITE_EXTERNAL_STORAGE` với `maxSdkVersion="28"`, chỉ hỏi khi bấm lưu trên Android 9 trở xuống (spec KB-6, mục 6). Không thêm quyền đọc nào. Không ghi sự kiện cho kết quả hỏi quyền (spec câu hỏi 11). Khai báo quyền và Data safety trên Play Console là việc của dev trước khi phát hành (spec câu hỏi 10).
 - File R2: Không chạm.
 
 ## 4. Kiểm thử
 
-Mọi test dưới đây vào commit test của bước 3, cùng khung rỗng để biên dịch được: `ReviewViewModel` có đủ hàm nhưng không làm gì, `uiState` luôn `Loading`, `events` rỗng; `LastPhotoViewModel.lastPhoto` luôn `null`; `DataStoreSavedPhotosRepository` trả `null` và `0`, không ghi; `isStorageFull` luôn `false`; `AndroidPhotoDecoder.decode` trả `null`; `shareChooser` trả `Intent()`; `NextPoseRequests.consume` luôn `false`; `CaptureFileStore.delete` không làm gì; `ReviewScreen` chỉ vẽ `Box` mang `testTag(SCREEN)`; `CameraScreen` đã có hai tham số mới nhưng chưa dùng; `MediaStorePhotoStore.save` ném `IOException`. `strings_review.xml` đủ chữ ngay ở bước 3. Lý do thất bại ở cột cuối là điều AI dự kiến; bước 3 chạy và ghi lý do thật vào nhật ký.
+Mọi test dưới đây vào commit test của bước 3, cùng khung rỗng để biên dịch được: `ReviewViewModel` có đủ hàm nhưng không làm gì, `uiState` luôn `Loading`, `events` rỗng; `LastPhotoViewModel.lastPhoto` luôn `null`; `DataStoreSavedPhotosRepository` trả `null` và `0`, không ghi; `isStorageFull` luôn `false`; `AndroidPhotoDecoder.decode` trả `null`; `shareChooser` trả `Intent()`; `NextPoseRequests.consume` luôn `false`; `CaptureFileStore.delete` không làm gì; `ReviewScreen` chỉ vẽ `Box` mang `testTag(SCREEN)`; `CameraScreen` đã có hai tham số mới nhưng chưa dùng; `MediaStorePhotoStore.save` ném `IOException`; phiên bản 2: `AndroidStoragePermission.needsRequest` luôn `false`, `storagePermissionBlocked` luôn `false`, `PhotoFileNames` trả `""` và `File(dir, name)`, `ReviewViewModel` đã có `onStoragePermissionResult`, `onOpenAppSettings`, `onScreenStarted` rỗng, dòng quyền trong manifest của app chưa thêm. `strings_review.xml` đủ chữ ngay ở bước 3. Lý do thất bại ở cột cuối là điều AI dự kiến; bước 3 chạy và ghi lý do thật vào nhật ký.
 
-Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/media/7"`, `saveError: IOException?`, `existing: MutableSet<String>`, ghi lại `saveCalls: List<File>`, `save` treo được bằng `CompletableDeferred` để thấy `SAVING`. `FakeSavedPhotosRepository` có `MutableStateFlow` cho hai giá trị, ghi lại `recorded`, `failWrites`. Analytics giả ghi danh sách `AnalyticsEvent`. `RecordingAppLogger` của `:core:logging`. `CapturedPhotoHolder` và `CaptureFileStore` dùng lớp thật với `TemporaryFolder` (file `capture_1.jpg` có thật trong thư mục tạm). `MainDispatcherRule` đã có. Kiểm tra lỗi so loại (`assertTrue(entry.error is IOException)`).
+Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/media/7"`, `saveError: IOException?`, `existing: MutableSet<String>`, ghi lại `saveCalls: List<File>`, `save` treo được bằng `CompletableDeferred` để thấy `SAVING`. `FakeStoragePermission` có `var needsRequest = false` (mọi test của phiên bản 1 chạy như Android 10 trở lên). `FakeSavedPhotosRepository` có `MutableStateFlow` cho hai giá trị, ghi lại `recorded`, `failWrites`. Analytics giả ghi danh sách `AnalyticsEvent`. `RecordingAppLogger` của `:core:logging`. `CapturedPhotoHolder` và `CaptureFileStore` dùng lớp thật với `TemporaryFolder` (file `capture_1.jpg` có thật trong thư mục tạm). `MainDispatcherRule` đã có. Kiểm tra lỗi so loại (`assertTrue(entry.error is IOException)`).
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
@@ -263,6 +300,16 @@ Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/m
 | KB-6, đặc biệt: hết bộ nhớ, thử lại | Unit test | `save_storageFull_showsError_thenRetrySaves`: `saveError = StorageFullException()`; `FAILED_STORAGE_FULL`, không có `photo_saved`, ảnh vẫn `Ready` với cùng `location`; bỏ lỗi, `onRetrySave()`; `SAVED`, `saveCalls.size == 2` |
 | Lỗi khác hết bộ nhớ | Unit test | `save_otherError_showsGenericError`: `saveError = IOException("boom")`; `FAILED`. `save_ioErrorWithNoSpace_isStorageFull`: `IOException(ErrnoException("write", OsConstants.ENOSPC))`; `FAILED_STORAGE_FULL`. `save_fileVanished_showsError`: xóa file trước khi bấm; `FAILED`, `saveCalls` rỗng |
 | `isStorageFull` | Unit test | `PhotoStoreTest`: `StorageFullException()` là `true`; `IOException("write failed: ENOSPC (No space left on device)")` là `true`; `IOException(ErrnoException("write", OsConstants.ENOSPC))` là `true` (bọc hai lớp cũng `true`); `IOException("EACCES")` là `false`. Thất bại: khung rỗng luôn `false` |
+| KB-6, Android 10 trở lên không hỏi quyền (phiên bản 2) | Unit test | `save_whenNoPermissionNeeded_savesWithoutAsking`: `needsRequest = false`; `onSaveClick()`; không có `RequestStoragePermission`; `saveCalls.size == 1` |
+| KB-6, Android 9 trở xuống hỏi trước khi lưu (phiên bản 2) | Unit test | `save_whenPermissionNeeded_asksFirst`: `needsRequest = true`; `onSaveClick()`; `events` phát `RequestStoragePermission`; `saveCalls` rỗng; `save == NOT_SAVED`; bấm lưu lần hai không phát thêm. Thất bại: khung rỗng không phát gì |
+| KB-6, cho phép thì lưu (phiên bản 2) | Unit test | `permissionGranted_savesAtOnce`: tiếp theo trên, `needsRequest = false`, `onStoragePermissionResult(granted = true, blocked = false)`; `SAVED`, có `photo_saved`; `analytics.events` chỉ có `photo_saved` |
+| KB-6, từ chối (phiên bản 2) | Unit test | `permissionDenied_showsDenied_retryAsksAgain`: `onStoragePermissionResult(false, false)`; `PERMISSION_DENIED`; `saveCalls` rỗng; ảnh vẫn `Ready` cùng `location`; file tạm còn; không có sự kiện phân tích; log "Storage permission denied". `onRetrySave()` phát `RequestStoragePermission` lần nữa |
+| KB-6, từ chối và không hỏi lại (phiên bản 2) | Unit test | `permissionBlocked_showsBlocked_andOpensSettings`: `onStoragePermissionResult(false, true)`; `PERMISSION_BLOCKED`; `onRetrySave()` không phát gì; `onOpenAppSettings()` phát `OpenAppSettings` |
+| KB-6, quay lại từ cài đặt (phiên bản 2) | Unit test | `backFromSettings_granted_clearsMessage_withoutSaving`: từ `PERMISSION_BLOCKED`, `needsRequest = false`, `onScreenStarted()`; `NOT_SAVED`, `saveCalls` rỗng. `backFromSettings_stillDenied_keepsMessage`: `needsRequest = true`; vẫn `PERMISSION_BLOCKED` |
+| KB-6, từ chối từ hộp thoại (phiên bản 2) | Unit test | `discardSave_permissionDenied_staysOnReview`: hỏi từ `RETAKE`, `needsRequest = true`, `onDiscardSave()`; có `RequestStoragePermission`; `onStoragePermissionResult(false, false)`; `PERMISSION_DENIED`, `pendingExit == null`, không có `Leave`, file tạm còn. `discardSave_permissionGranted_savesThenLeaves`: cho phép; `Leave(true)` |
+| Hỏi quyền khi activity bị tạo lại (phiên bản 2) | Unit test | `permissionResult_afterRecreation_isHandled`: ViewModel đầu phát `RequestStoragePermission`; dựng ViewModel thứ hai với cùng `SavedStateHandle`; `onStoragePermissionResult(true, false)` lưu được. `permissionResult_whenNotAsked_isIgnored`: gọi khi chưa hỏi; không đổi trạng thái |
+| Quy tắc quyền lưu (phiên bản 2) | Unit test (Robolectric) | `StoragePermissionTest.api28_notGranted_needsRequest`; `api28_granted_doesNotNeedRequest` (`shadowOf(application).grantPermissions(WRITE_EXTERNAL_STORAGE)`); `api29_neverNeedsRequest`; `api35_neverNeedsRequest`; `blocked_deniedWithoutRationale`; `notBlocked_deniedWithRationale`; `notBlocked_whenGranted`. Thất bại: khung trả `false` cho `api28_notGranted_needsRequest` và `blocked_deniedWithoutRationale`; năm test kia qua ngay, giữ làm test chặn |
+| Tên file ảnh (phiên bản 2) | Unit test | `PhotoFileNamesTest.displayName_formatsInGivenZone` (`0L`, UTC thành `CameraPose_19700101_000000.jpg`); `uniqueFile_free_keepsName`; `uniqueFile_taken_addsCounter` (đã có tên gốc và `_1` thì trả `_2`) |
 | KB-6, "Chụp lại" sau khi lưu | Unit test | `retake_afterSave_leavesWithoutDialog`: lưu xong, `onRetakeClick()`; `pendingExit == null`; `Leave(true)`; file tạm đã bị xóa; `holder.latest.value == null` |
 | KB-6, rời khi chưa lưu thì hỏi | Unit test | `retake_notSaved_asks`, `nextPose_notSaved_asks`, `close_notSaved_asks`: `pendingExit` lần lượt `RETAKE`, `NEXT_POSE`, `CLOSE`; không có `Leave` |
 | KB-6, "Bỏ ảnh" | Unit test | `discardConfirm_leavesWithoutSaving`: hỏi từ `RETAKE`, `onDiscardConfirm()`; `Leave(false)`; `saveCalls` rỗng; file tạm đã bị xóa; không có `photo_saved`. `discardConfirm_fromNextPose_requestsNextPose`: `nextPoseRequests.consume() == true` sau khi rời |
@@ -282,6 +329,8 @@ Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/m
 | KB-6, đang lưu | Compose UI test | `saving_showsSavingAndDisablesOthers`: có "Đang lưu…" và `PrimaryButtonTestTags.SPINNER`; ba nút phụ và nút đóng `assertIsNotEnabled`; bấm "Chụp lại" không gọi callback |
 | Sau khi lưu | Compose UI test | `saved_saveButtonDisabled`: `SAVED`; `SAVE` `assertIsNotEnabled`; ba nút phụ bấm được |
 | KB-6, đặc biệt: hết bộ nhớ | Compose UI test | `saveErrorFull_showsMessageAndRetry`: có "Không lưu được ảnh: bộ nhớ máy đã đầy." trong `SAVE_ERROR`; bấm "Thử lại" gọi `onRetrySave`; `PHOTO` vẫn có. `saveErrorOther_showsGenericMessage`: `FAILED` có "Không lưu được ảnh." |
+| KB-6, thông báo quyền lưu (phiên bản 2) | Compose UI test | `permissionDenied_showsMessageAndRetry`: `PERMISSION_DENIED` có chữ của câu 10 trong `SAVE_ERROR`; bấm "Thử lại" gọi `onRetrySave`. `permissionBlocked_showsMessageAndOpensSettings`: `PERMISSION_BLOCKED` có chữ của câu 10 và "Mở cài đặt"; bấm gọi `onOpenAppSettings`, không gọi `onRetrySave`; `SAVE` vẫn bấm được |
+| Màn hình thấp, thông báo dài nhất (phiên bản 2) | Compose UI test, `@GraphicsMode(NATIVE)`, `@Config(qualifiers = "w360dp-h640dp-xxhdpi")` | `small_permissionBlocked_primaryButtonVisible`: như `small_saveError_primaryButtonVisible` nhưng ở `PERMISSION_BLOCKED` (chữ dài nhất, có thể hai dòng) |
 | KB-6, hộp thoại | Compose UI test | `discard_showsDialog_andCallsBack`: `pendingExit = RETAKE`; `DISCARD_DIALOG` có "Bỏ ảnh này?", "Ảnh chưa được lưu vào thư viện."; bấm "Bỏ ảnh" gọi `onDiscardConfirm`, "Lưu ảnh" gọi `onDiscardSave`. `discard_scrimTapDismisses`: bấm vào lớp mờ ở góc (10 dp, 10 dp) gọi `onDismissDialog`. `discard_hidesContentFromAccessibility`: khi hộp thoại mở, không tìm được node "Chụp lại" bằng `onAllNodesWithText(...)` (`fetchSemanticsNodes().isEmpty()`) |
 | Màn hình thấp (L-028) | Compose UI test, `@GraphicsMode(NATIVE)`, `@Config(qualifiers = "w360dp-h640dp-xxhdpi")` | `small_saveError_primaryButtonVisible`: ở `FAILED_STORAGE_FULL`, mép dưới của `SAVE` không quá chiều cao gốc và cao ít nhất 56 dp; `SAVE_ERROR` nằm trên `SAVE`, không chồng lên hàng nút phụ; `PHOTO` có tỷ lệ rộng/cao 0.75 (sai số 1 px) |
 | Intent chia sẻ | Unit test (Robolectric) | `ShareIntentsTest.chooser_wrapsSendWithStreamAndGrant`: `Intent.EXTRA_INTENT` của chooser có `ACTION_SEND`, `type == "image/jpeg"`, `EXTRA_STREAM == uri`, cờ `FLAG_GRANT_READ_URI_PERMISSION`, `clipData` chứa `uri`; tiêu đề "Chia sẻ ảnh" |
@@ -291,37 +340,38 @@ Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/m
 | So với thiết kế | Ảnh so sánh và rà soát độc lập (bước 6) | Chạy `scripts/design-compare.sh camera` sau khi ghi ảnh chuẩn; commit `docs/features/camera/design/review/` và dán `review/summary.md` vào mô tả PR (ADR-0020). Phiên rà soát xem ảnh ghép của 4 ảnh T-016 theo mục 7 của README thiết kế. Khác biệt đã biết: khung ảnh trống thay cho ảnh tạm "person"; mọi thứ cao hơn thiết kế 24 dp vì khung test không có thanh trạng thái (mục 3.1) |
 | Ảnh thiết kế của ticket khác | Khai báo cho `scripts/plan-check.py` | Ảnh thiết kế của ticket khác (T-013, T-014, T-015, T-017, T-020): `CameraScreen_starting_dark`, `CameraScreen_permission-denied_dark`, `CameraScreen_error_dark`, `CameraScreen_countdown_dark`, `CameraScreen_default_dark`, `CameraScreen_no-pose_dark`, `CameraScreen_steps-hidden_dark`, `CameraScreen_adjust_dark`, `CameraScreen_locked_dark`, `CameraScreen_matching_dark`, `CameraScreen_matched_dark`, `CameraScreen_no-person_dark`, `CameraScreen_default_dark_unfolded`, `ReviewScreen_default_dark_unfolded` |
 | Lưu thật vào thư viện máy | Test trên emulator (API 34 của CI) | `PhotoSaveDeviceTest.save_insertsIntoAppAlbum`: ghi một JPEG nhỏ vào `cacheDir/captures/`, gọi `MediaStorePhotoStore(context).save(file, 0L)`; truy vấn địa chỉ trả về: `RELATIVE_PATH == "Pictures/Camera Pose/"`, `MIME_TYPE == "image/jpeg"`, `IS_PENDING == 0`, đọc lại đủ số byte; `exists(uri) == true`; cuối test `contentResolver.delete(uri)` rồi `exists(uri) == false`. `cacheCapture_readableThroughFileProvider`: `FileProvider.getUriForFile(context, "<gói>.captures", file)` mở được `InputStream`. Không mở camera, không qua giao diện |
-| Manifest không có quyền đọc ảnh | Kiểm tra trong bước 5 | `aapt2 dump permissions` (hoặc `apkanalyzer manifest permissions`) trên APK `stagingDebug`: không có `READ_MEDIA_IMAGES`, `READ_EXTERNAL_STORAGE`, `READ_MEDIA_VISUAL_USER_SELECTED`; phương án B: cũng không có `WRITE_EXTERNAL_STORAGE`. Ghi kết quả vào mô tả PR |
+| Danh sách quyền: không có quyền đọc ảnh, quyền lưu chỉ tới Android 9 (phiên bản 2) | Kiểm tra trong bước 5 | `aapt2 dump permissions` trên APK `stagingDebug` của nhánh task và của nhánh chính: khác nhau đúng một dòng `WRITE_EXTERNAL_STORAGE` có `maxSdkVersion=28`; không có `READ_MEDIA_IMAGES`, `READ_EXTERNAL_STORAGE`, `READ_MEDIA_VISUAL_USER_SELECTED`. `aapt2 dump badging` có dòng `uses-implied-permission: name='android.permission.READ_EXTERNAL_STORAGE'` do quyền ghi: đây là hành vi đã ghi trong spec, không phải lỗi. Dán cả hai kết quả vào mô tả PR |
 | KB-6 trên máy thật | Kiểm tra thủ công | Android 10 trở lên: chụp, lưu, mở app Ảnh thấy ảnh trong album "Camera Pose", đúng chiều, không có nét viền; không có hộp hỏi quyền. Chia sẻ trước và sau khi lưu sang một app (ví dụ Gmail nháp): ảnh đi kèm. Chụp lại, Tư thế tiếp, nút quay lại khi chưa lưu: hỏi "Bỏ ảnh này?"; chạm ngoài hộp: ở lại. Phương án A: "Tư thế tiếp" về camera với ô bên cạnh ô lúc chụp (ô cuối thì về ô đầu). Quay về camera: tư thế, nét viền, công cụ giữ nguyên. Ô ảnh vừa chụp hiện ảnh vừa lưu; xóa ảnh đó trong app Ảnh rồi quay lại camera: ô trống |
-| Android 8 hoặc 9 | Kiểm tra thủ công | Theo câu trả lời mục 8 câu 1, trên emulator API 28 tại máy dev (CI chỉ có API 34) |
+| KB-6 trên Android 8 hoặc 9 (phiên bản 2) | Kiểm tra thủ công | Emulator API 28 (hoặc 26) hay máy thật Android 8, 9 tại máy dev (CI chỉ có API 34). Cài mới, chụp, bấm lưu: hộp hỏi quyền hiện; "Từ chối": thông báo cần quyền lưu, ảnh còn; "Thử lại", chọn không hỏi lại rồi từ chối: thông báo "Mở cài đặt"; mở cài đặt, cho phép, quay lại: thông báo ẩn; bấm lưu: lưu được, không hỏi lại. App Ảnh có album "Camera Pose", ảnh đúng chiều. Ô ảnh vừa chụp hiện ảnh. Chụp tiếp, lưu: không hỏi quyền. Log `VGL.Review` có các dòng "Asking for the storage permission", "Storage permission denied", "Storage permission blocked" |
+| KB-6 trên Android 10 trở lên (phiên bản 2) | Kiểm tra thủ công | Cài mới trên máy Android 10 trở lên: bấm lưu không có hộp hỏi quyền nào; trang thông tin app (Cài đặt, Ứng dụng, Quyền) không có quyền bộ nhớ hay ảnh |
 | Hết bộ nhớ | Kiểm tra thủ công | Emulator có bộ nhớ nhỏ, chép file lớn tới khi còn dưới 5 MB trống: bấm lưu hiện thông báo hết bộ nhớ; xóa file, "Thử lại": lưu được |
 | Tiến trình bị đóng | Kiểm tra thủ công | Ở màn xem lại, bật "Don't keep activities" hoặc `adb shell am kill` khi app ở nền, mở lại: vẫn là ảnh vừa chụp, lưu được |
 
 **Ngoại lệ viết test trước:**
 
-- `MediaStorePhotoStore`: gọi MediaStore của hệ thống, Robolectric không có MediaStore thật. Test emulator `PhotoSaveDeviceTest` viết ở bước 3 cùng các test khác (thất bại vì khung rỗng ném `IOException`), nhưng chỉ chạy trên CI sau khi đẩy nhánh, không chạy được trong phiên.
-- `ReviewRoute`, phần dựng `FileProvider` và `startActivity`; trong `CameraRoute`: `repeatOnLifecycle` và dòng gọi `poseViewModel.onNextPose()`: nối Android mỏng, logic nằm ở ViewModel và `shareChooser` đều có test trước; kiểm chứng bằng test emulator (FileProvider) và kiểm tra thủ công.
+- `MediaStorePhotoStore` (cả nhánh Android 9 trở xuống của phiên bản 2): gọi MediaStore của hệ thống, Robolectric không có MediaStore thật; nhánh Android 9 trở xuống chỉ kiểm tra thủ công vì CI chỉ có emulator API 34. Phần tính toán của nhánh này (tên file, tránh trùng) có test trước trong `PhotoFileNamesTest`. Test emulator `PhotoSaveDeviceTest` viết ở bước 3 cùng các test khác (thất bại vì khung rỗng ném `IOException`), nhưng chỉ chạy trên CI sau khi đẩy nhánh, không chạy được trong phiên.
+- `ReviewRoute`, phần dựng `FileProvider` và `startActivity`, launcher hỏi quyền lưu và đọc "nên giải thích" (phiên bản 2); trong `CameraRoute`: `repeatOnLifecycle` và dòng gọi `poseViewModel.onNextPose()`: nối Android mỏng, logic nằm ở ViewModel và `shareChooser` đều có test trước; kiểm chứng bằng test emulator (FileProvider) và kiểm tra thủ công.
 - `AppNavHost.kt` (đăng ký đích): như T-013, không có test JVM riêng cho điều hướng cần `hiltViewModel()`; `AppLaunchTest` vẫn tới `camera_screen`.
-- 4 biểu tượng, `camera_capture_paths.xml`, `AndroidManifest.xml` của module: tài nguyên và cấu hình.
+- 4 biểu tượng, `camera_capture_paths.xml`, `AndroidManifest.xml` của module, dòng quyền trong manifest của app: tài nguyên và cấu hình; dòng quyền kiểm bằng danh sách quyền của APK ở bước 5.
 
 ## 5. Chấm rủi ro
 
-**Điểm chặn bị chạm:** điểm 4 (ghi `photo_saved`, đã có trong spec mục 6; ở phương án A, `pose_selected` `next` do code của T-014 ghi, T-016 chỉ gọi). Điểm 3 nếu người duyệt chọn phương án A ở mục 8 câu 1 (`WRITE_EXTERNAL_STORAGE` cho Android 9 trở xuống); khi đó thêm `permission` vào `blocking_points` và người phụ trách sản phẩm cần biết (khai báo Data safety). Không chạm điểm 2 (không thêm thư viện), điểm 7 (không sửa module core, không đổi cấu hình build; `<provider>` nằm trong manifest của feature), điểm 9 (khóa DataStore mới). Điểm 6: chia sẻ mở hộp chia sẻ của hệ thống với ảnh của chính người dùng, không mở liên kết ra ngoài hay quảng bá app khác; AI cho là không chạm, người duyệt thấy khác thì sửa `blocking_points`.
+**Điểm chặn bị chạm:** điểm 4 (ghi `photo_saved`, đã có trong spec mục 6; ở phương án A, `pose_selected` `next` do code của T-014 ghi, T-016 chỉ gọi). Điểm 3 (phiên bản 2): `WRITE_EXTERNAL_STORAGE` với `maxSdkVersion="28"`; người phụ trách sản phẩm (Nhật) đã chọn phương án này; khai báo quyền và Data safety trên Play Console là việc của dev trước khi phát hành (spec câu hỏi 10). Không chạm điểm 2 (không thêm thư viện), điểm 7 (không sửa module core, không đổi cấu hình build; `<provider>` nằm trong manifest của feature), điểm 9 (khóa DataStore mới). Điểm 6: chia sẻ mở hộp chia sẻ của hệ thống với ảnh của chính người dùng, không mở liên kết ra ngoài hay quảng bá app khác; AI cho là không chạm, người duyệt thấy khác thì sửa `blocking_points`.
 
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
-| A. Phạm vi thay đổi | 3 | Khoảng 45 file trong `:feature:camera` và `:app` (điều hướng, test emulator, có thể cả manifest) |
-| B. Độ rõ của yêu cầu | 2 | Spec đã xác nhận, thiết kế đã duyệt, nhưng còn câu hỏi ảnh hưởng cách làm: lưu trên Android 8 và 9 (câu 1), nút chính sau khi lưu (câu 2), lỗi khác hết bộ nhớ (câu 3), tên thư mục ảnh (câu 4) |
-| C. Khả năng kiểm chứng tự động | 3 | Phụ thuộc thiết bị: MediaStore, bộ nhớ đầy, hộp chia sẻ, tiến trình bị đóng, phiên bản Android. Logic có test trên JVM; MediaStore chỉ test trên emulator API 34; Android 8, 9 và hết bộ nhớ chỉ kiểm tra thủ công |
+| A. Phạm vi thay đổi | 3 | Khoảng 49 file trong `:feature:camera` và `:app` (điều hướng, test emulator, manifest) |
+| B. Độ rõ của yêu cầu | 2 | Câu 1 đến 9 đã trả lời. Spec vừa đổi (`changed`, chờ xác nhận lại); hai thông báo quyền chưa có thiết kế và chữ chưa duyệt (câu 10, 11) |
+| C. Khả năng kiểm chứng tự động | 3 | Phụ thuộc thiết bị: MediaStore, bộ nhớ đầy, hộp chia sẻ, tiến trình bị đóng, phiên bản Android. Logic có test trên JVM; MediaStore chỉ test trên emulator API 34; Android 8, 9 (luồng hỏi quyền lưu, nhánh lưu bằng đường dẫn) và hết bộ nhớ chỉ kiểm tra thủ công |
 | D. Ảnh hưởng chéo | 2 | Sửa `CameraScreen.kt`, `CameraControls.kt`, `CameraNavigation.kt`, có thể `CapturedPhotoHolder.kt` mà T-014 cũng sửa; gọi `PoseViewModel.onNextPose()` của T-014 mà không sửa nó; `AppNavHost.kt` mà T-012, T-021, T-025 cũng sửa; `design/review/` mà mọi ticket camera sinh lại |
-| E. Độ mới của kỹ thuật | 2 | MediaStore với `IS_PENDING`, `FileProvider`, giải mã ảnh theo EXIF: chưa có trong dự án nhưng phổ biến |
+| E. Độ mới của kỹ thuật | 2 | MediaStore với `IS_PENDING` và nhánh cột `DATA` cho Android 9 trở xuống, `FileProvider`, giải mã ảnh theo EXIF: chưa có trong dự án nhưng phổ biến. Hỏi quyền lúc chạy đã có ở camera (T-013, T-026) |
 | **Tổng** | 12 | **Mức: Cao** (chạm điểm chặn, và tổng điểm cũng từ 9 trở lên) |
 
-**`token_estimate`.** Số gợi ý cỡ L là 9.5M (trung vị 7 task L). AI ghi 25M: task gần nhất cùng module và cùng cỡ, T-013, đo được 24.1M lúc merge (60.4M tính cả phần cuối phiên, RUN-20261022-01); T-016 có số file tương đương, một test emulator mới và có thể một vòng CI thêm vì test đó chỉ chạy trên CI.
+**`token_estimate`.** Số gợi ý cỡ L là 9.5M (trung vị 7 task L). Phiên bản 1 ghi 25M; phiên bản 2 ghi 28M vì thêm luồng quyền, hai file, 24 test và một nhánh lưu thứ hai (khoảng 10% việc). Lý do của 25M: task gần nhất cùng module và cùng cỡ, T-013, đo được 24.1M lúc merge (60.4M tính cả phần cuối phiên, RUN-20261022-01); T-016 có số file tương đương, một test emulator mới và có thể một vòng CI thêm vì test đó chỉ chạy trên CI.
 
 ## 6. Ảnh hưởng chéo
 
-- File hoặc thành phần dùng chung bị chạm: `AppNavHost.kt` (thêm đích, nối hai callback của camera); `CameraScreen.kt`, `CameraControls.kt`, `CameraNavigation.kt`, `CaptureFileStore.kt` của T-013; `CapturedPhotoHolder.kt` chỉ khi T-014 chưa thêm `poseId`; `PoseViewModel.onNextPose()` của T-014 (chỉ gọi, ở phương án A); manifest gộp của app (thêm một `<provider>`, phương án A thêm một quyền); DataStore chung (hai khóa mới, tiền tố `camera_` không trùng khóa nào hiện có); `docs/features/camera/design/review/`. Không sửa module core nào.
+- File hoặc thành phần dùng chung bị chạm: `app/src/main/AndroidManifest.xml` (phiên bản 2: một dòng quyền; mọi task khác thêm quyền phải biết dòng này); `AppNavHost.kt` (thêm đích, nối hai callback của camera); `CameraScreen.kt`, `CameraControls.kt`, `CameraNavigation.kt`, `CaptureFileStore.kt` của T-013; `CapturedPhotoHolder.kt` chỉ khi T-014 chưa thêm `poseId`; `PoseViewModel.onNextPose()` của T-014 (chỉ gọi, ở phương án A); manifest gộp của app (thêm một `<provider>` và một quyền); DataStore chung (hai khóa mới, tiền tố `camera_` không trùng khóa nào hiện có); `docs/features/camera/design/review/`. Không sửa module core nào.
 - Task khác có thể xung đột (các plan đang viết song song):
   - T-014 (plan `features/camera/plans/T-014-camera-chon-tu-the.md`, bản nháp viết song song; phần tư thế nằm trong `PoseViewModel` mới, `ActivePoseHolder`, `onNextPose()`): cùng sửa `CameraScreen.kt` (T-014 thêm `poseViewModel` vào `CameraRoute` và `PosePicker` vào `CameraScreen`; T-016 thêm `LastPhotoViewModel`, dòng gọi `onNextPose()`, `repeatOnLifecycle` trong `CameraRoute` và hai tham số có mặc định vào `CameraScreen`), `CameraControls.kt` (T-014 sửa `PreviewContent`, `ReadyPreview`; T-016 chỉ `CaptureRow`, `LastPhotoSlot`), `CameraNavigation.kt` (T-014 thêm `poseId` vào `CameraDestination`; T-016 thêm `onOpenLastPhoto` vào `cameraScreen`), `CapturedPhotoHolder.kt` (cả hai định thêm cùng trường `poseId: String = ""`; task chạy sau dùng lại), `design/review/`. T-016 không sửa `CameraViewModel.kt`, `PoseViewModel.kt`, `strings.xml` (dùng `strings_review.xml`), `CameraScreenTest.kt`, `CameraViewModelTest.kt` hay ảnh chuẩn camera (T-014 ghi lại bảy ảnh đó; T-016 không đổi chúng vì tham số mới có mặc định). Xung đột chỉ là dòng; T-016 dựng phần mình trong file riêng (`review/`, `lastphoto/`, `photo/`, `ReviewModule.kt`, `CameraLastPhotoTest.kt`). `NextPoseRequests` thuộc T-016; T-014 không tạo.
   - T-012 (màn chào), T-021 (thư viện tư thế), T-025 (cài đặt): cùng sửa `AppNavHost.kt` để đăng ký đích và nối `onOpenPoses`, `onOpenSettings` của `cameraScreen`. T-016 chỉ thêm `onPhotoCaptured`, `onOpenLastPhoto` và dòng `reviewScreen`; task chạy sau dựng trên nhánh chính đã có thay đổi của task trước, giữ nguyên các tham số đã nối.
@@ -332,14 +382,16 @@ Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/m
 
 ## 7. Điều kiện dừng riêng
 
-1. Lúc bắt đầu task, mục 8 câu 1 chưa có câu trả lời: không bắt đầu (plan không được duyệt khi chưa có câu trả lời). Người duyệt chọn phương án A mà `blocking_points` chưa có `permission`, hoặc người phụ trách sản phẩm chưa biết: dừng.
+1. Lúc bắt đầu task, spec `camera` chưa ở trạng thái `confirmed` sau thay đổi của phiên bản 2 (mục 10 của spec, dòng 2026-10-22 về quyền lưu), hoặc câu 10 (chữ hai thông báo) chưa có câu trả lời ở mục 8 của plan: dừng.
 2. Lúc bắt đầu task, `CapturedPhotoHolder`, `CapturedPhoto`, `CaptureFileStore`, `CameraScreen` hay `cameraScreen()` trên nhánh chính khác những gì mục 3.1 dựa vào (ví dụ T-014 đã đổi `CapturedPhoto` thành kiểu khác, hay bỏ `LastPhotoSlot`), và thích ứng cần sửa file không có ở mục 3.2: dừng.
 3. Phương án A: `PoseViewModel` trên nhánh chính không có `fun onNextPose()`, hoặc `CameraRoute` không có `poseViewModel` để gọi, hoặc `onNextPose()` không ghi `pose_selected` `next` như plan T-014: dùng phương án B, ghi vào nhật ký; không sửa `PoseViewModel.kt` hay test của T-014.
 4. `CapturedPhoto` trên nhánh chính đã có trường tư thế nhưng tên hay kiểu khác `poseId: String`: dùng trường đó nếu chỉ đổi tên trong code của T-016; cần sửa `CapturedPhotoHolder.kt` theo cách khác thêm trường thì dừng.
 5. `AndroidPhotoDecoderTest.decode_appliesExifRotation` không chạy được trên Robolectric vì `ExifInterface.saveAttributes()` không ghi được: dừng, không bỏ test; đề xuất chuyển test này sang `PhotoSaveDeviceTest` trong plan sửa lại.
 6. `PhotoSaveDeviceTest` đỏ trên CI vì `RELATIVE_PATH` trả về khác mong đợi (ví dụ thiếu dấu `/` cuối) hay vì quyền: sửa trong `MediaStorePhotoStore` được tính vào giới hạn 3 lần sửa chung; không nới điều test kiểm tra.
 7. Dựng FileProvider cần thêm thư viện hay sửa `feature/camera/build.gradle.kts`: dừng (điểm chặn 2).
-8. Kiểm tra quyền của APK ở bước 5 thấy quyền đọc ảnh (do thư viện nào đó gộp vào): dừng, không thêm `tools:node="remove"` khi plan chưa nêu.
+8. Kiểm tra quyền của APK ở bước 5 thấy quyền đọc ảnh trong manifest gộp (`READ_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, `READ_MEDIA_VISUAL_USER_SELECTED`, do thư viện nào đó gộp vào), hoặc danh sách quyền khác nhánh chính ở dòng nào ngoài `WRITE_EXTERNAL_STORAGE` `maxSdkVersion=28`, hoặc dòng đó mất `maxSdkVersion` sau khi gộp: dừng, không thêm `tools:node="remove"` hay `tools:replace` khi plan chưa nêu. Dòng `uses-implied-permission` của `aapt2 dump badging` cho `READ_EXTERNAL_STORAGE` là điều đã biết, không dừng.
+9. (Phiên bản 2) Lint báo lỗi (không phải cảnh báo) cho `WRITE_EXTERNAL_STORAGE`, cho cột `DATA` hay `getExternalStoragePublicDirectory`: dừng, không tắt quy tắc lint. Cảnh báo cũ (deprecation) xử lý bằng `@Suppress("DEPRECATION")` có chú thích như mục 3.1.
+10. (Phiên bản 2) `ActivityCompat.shouldShowRequestPermissionRationale` hay `LocalActivity` không dùng được trong `:feature:camera` mà không thêm thư viện: dừng (điểm chặn 2). T-026 đã dùng `LocalActivity`, nên điều này chỉ xảy ra nếu T-026 chưa merge và `activity-compose` không có trên classpath.
 
 ## 8. Câu hỏi cho người duyệt
 
@@ -349,6 +401,7 @@ Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/m
    - C. Nâng `minSdk` lên 29. Ngoài phạm vi plan (cấu hình build, điểm chặn 7, ảnh hưởng mọi module) và bỏ máy Android 8, 9.
    - Đề xuất của AI: A, vì giữ được lời hứa "ảnh nằm trong thư viện máy, gỡ app không mất" cho mọi máy. Plan đã liệt kê `app/src/main/AndroidManifest.xml` cho phương án A. Nếu chọn A, AI sẽ tăng plan lên phiên bản 2 để thêm luồng hỏi quyền khi lưu, chữ khi bị từ chối và test tương ứng, sau khi spec được cập nhật.
 - Trả lời: Đồng ý với đề xuất của AI.
+   - Phiên bản 2: đã làm theo phương án A. Spec `camera` cập nhật (mục 2, KB-6, mục 4, mục 6, câu hỏi 10, 11), luồng quyền ở mục 3.1, test ở mục 4, câu hỏi mới 10 đến 13.
 2. **Nút chính sau khi đã lưu.** Thiết kế không có trạng thái "đã lưu". Đề xuất của AI: nút giữ chữ "Lưu vào thư viện" nhưng mờ, không bấm được, để người dùng không lưu hai bản. Nếu muốn rõ hơn (ví dụ "Đã lưu" kèm dấu ✓), cần thêm vào thiết kế và bảng chữ trước.
 - Trả lời: Đồng ý với đề xuất của AI.
 3. **Lưu lỗi không phải vì hết bộ nhớ.** Thiết kế chỉ có chữ cho hết bộ nhớ. Đề xuất của AI: lỗi khác hiện cùng kiểu thông báo với chữ "Không lưu được ảnh." và nút "Thử lại" (chữ mới, cần đưa vào bảng chữ của thiết kế). Không đồng ý thì mọi lỗi dùng chữ hết bộ nhớ, dù có thể sai. App coi là hết bộ nhớ khi còn dưới 5 MB trống trước khi ghi, hoặc khi hệ thống báo `ENOSPC`.
@@ -366,19 +419,28 @@ Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/m
 9. **Cỡ task và có nên tách không.** Plan khoảng 45 file, một test emulator chỉ chạy trên CI, và phần "Tư thế tiếp" phụ thuộc T-014. Đề xuất của AI: giữ một plan với phương án A và B như mục 3.1; vì T-014 làm sẵn `onNextPose()`, phần "Tư thế tiếp" của T-016 chỉ còn một dòng nối, nên tách không còn nhiều lợi. Nếu người duyệt vẫn muốn chắc hơn: tách T-016a (màn xem lại, lưu, chia sẻ, hỏi bỏ ảnh, đếm, `photo_saved`; khoảng 35 file) và T-016b (ô ảnh vừa chụp và "Tư thế tiếp", chạy sau T-014; khoảng 8 file).
 - Trả lời: Đồng ý với đề xuất của AI.
 
+10. **(Phiên bản 2) Chữ của hai thông báo quyền lưu.** Bảng chữ của thiết kế không có (spec câu hỏi 10). Đề xuất của AI: từ chối thì "Cần quyền lưu ảnh để lưu vào thư viện." kèm "Thử lại"; từ chối và không hỏi lại thì "Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện." kèm "Mở cài đặt". Cùng kiểu thông báo với `ReviewScreen_save-error_dark`. Cần đưa vào bảng chữ của README thiết kế (việc của người giữ thiết kế, không thuộc file của plan này).
+11. **(Phiên bản 2) Có cần ảnh thiết kế và screenshot test cho hai thông báo quyền không?** Không có ảnh thiết kế. Đề xuất của AI: không thêm ảnh chuẩn, vì bố cục giống hệt `save-error` (đã có ảnh chuẩn) chỉ khác chữ và nút; kiểm bằng test giao diện và test khung thấp ở mục 4. Nếu muốn có ảnh: thêm `ReviewScreen_permission-blocked_dark` vào Figma và gói thiết kế trước, rồi plan thêm screenshot test cùng tên.
+12. **(Phiên bản 2) Cho phép trong cài đặt rồi quay lại: tự lưu hay chờ bấm?** Spec ghi "thông báo ẩn và bấm lưu là lưu được". Đề xuất của AI: không tự lưu, để người dùng thấy rõ việc gì xảy ra; nhưng sau khi cho phép ở hộp hỏi của hệ thống (không qua cài đặt) thì lưu tiếp ngay, vì người dùng vừa bấm lưu.
+13. **(Phiên bản 2) Sự kiện cho kết quả hỏi quyền lưu.** Spec câu hỏi 11. Đề xuất của AI: không ghi; không dùng `permissionDialogShown` của T-026 vì không ghi sự kiện. Nếu muốn đo, thêm sự kiện vào spec mục 6 trước rồi làm ở plan sau.
+
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-22); thay bằng phiên bản 2 trước khi chạy vì câu 1 chọn phương án A.
+
+Phiên bản 2:
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
 
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
 
-### RUN-YYYYMMDD-NN, phiên bản plan 1
+### RUN-YYYYMMDD-NN, phiên bản plan 2
 
 - **Kết quả:** đã merge / dừng / CI thất bại
 - **Nhánh, PR:** <...>

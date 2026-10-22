@@ -168,8 +168,9 @@ internal class CameraXController @Inject constructor(
 
     override fun release() {
         close()
-        // CameraX keeps a camera per lifecycle owner until it is destroyed.
-        registry.currentState = Lifecycle.State.DESTROYED
+        // CameraX keeps a camera per lifecycle owner until it is destroyed. A camera never opened (for example while
+        // the permission prompt shows) is still INITIALIZED, which cannot move to DESTROYED and holds nothing.
+        if (registry.currentState.isAtLeast(Lifecycle.State.CREATED)) registry.currentState = Lifecycle.State.DESTROYED
         shutterSound?.release()
         shutterSound = null
     }

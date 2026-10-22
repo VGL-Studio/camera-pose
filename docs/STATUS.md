@@ -4,6 +4,7 @@
 
 ## 1. Đang chờ người
 
+- Plan `draft` chờ duyệt: [T-011-core-network-hop-thoai.md](features/network/plans/T-011-core-network-hop-thoai.md)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
@@ -64,7 +65,7 @@ Spec: [spec.md](features/network/spec.md) `confirmed`. Ticket: 1 `stopped`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-011](features/network/tickets/T-011-core-network-hop-thoai.md) | Nhận ra mất mạng và hộp thoại mất mạng | `stopped` | `stopped` (bản 1) | 40M | RUN-20261021-01, RUN-20261021-02, RUN-20261021-03, RUN-20261021-04 |
+| [T-011](features/network/tickets/T-011-core-network-hop-thoai.md) | Nhận ra mất mạng và hộp thoại mất mạng | `stopped` | `draft` (bản 2) | 40M | RUN-20261021-01, RUN-20261021-02, RUN-20261021-03, RUN-20261021-04 |
 
 Phản hồi: chưa có.
 

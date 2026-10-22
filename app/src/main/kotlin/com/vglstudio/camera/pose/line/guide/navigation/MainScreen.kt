@@ -10,4 +10,9 @@ internal data class MainScreenInputs(
     val cameraAvailable: Boolean,
 )
 
-internal fun chooseMainScreen(inputs: MainScreenInputs): MainScreen = MainScreen.SAMPLE
+/** Onboarding the first time, then the camera; the sample screen while neither exists or both are off. */
+internal fun chooseMainScreen(inputs: MainScreenInputs): MainScreen = when {
+    inputs.onboardingAvailable && !inputs.onboardingDone -> MainScreen.ONBOARDING
+    inputs.cameraAvailable -> MainScreen.CAMERA
+    else -> MainScreen.SAMPLE
+}

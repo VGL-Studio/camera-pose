@@ -15,6 +15,7 @@ import com.vglstudio.camera.pose.line.guide.core.ads.LocalAdsController
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.network.NetworkDialogController
 import com.vglstudio.camera.pose.line.guide.navigation.AppNavHost
+import com.vglstudio.camera.pose.line.guide.navigation.MainScreenChooser
 import com.vglstudio.camera.pose.line.guide.network.NetworkDialogHost
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -26,6 +27,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var networkDialog: NetworkDialogController
+
+    @Inject
+    internal lateinit var mainScreenChooser: MainScreenChooser
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,7 +49,10 @@ class MainActivity : ComponentActivity() {
                             onRetry = networkDialog::retry,
                             onBack = { moveTaskToBack(true) },
                         ) {
-                            AppNavHost(onPastLoadingChanged = networkDialog::setActive)
+                            AppNavHost(
+                                chooseMainScreen = mainScreenChooser::choose,
+                                onPastLoadingChanged = networkDialog::setActive,
+                            )
                         }
                     }
                 }

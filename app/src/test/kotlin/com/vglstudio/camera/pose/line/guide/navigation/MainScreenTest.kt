@@ -6,34 +6,35 @@ import org.junit.Test
 
 /** The screen after loading (spec loading, KB-1): onboarding the first time, then the camera. */
 class MainScreenTest {
-    private fun choose(onboardingAvailable: Boolean, onboardingDone: Boolean, cameraAvailable: Boolean) =
-        chooseMainScreen(MainScreenInputs(onboardingAvailable, onboardingDone, cameraAvailable))
+    private fun choose(onboarding: Boolean, done: Boolean, camera: Boolean) = chooseMainScreen(
+        MainScreenInputs(onboardingAvailable = onboarding, onboardingDone = done, cameraAvailable = camera),
+    )
 
     @Test
     fun notOnboardedAndOnboardingAvailable_choosesOnboarding() {
-        assertEquals(MainScreen.ONBOARDING, choose(onboardingAvailable = true, onboardingDone = false, cameraAvailable = true))
-        assertEquals(MainScreen.ONBOARDING, choose(onboardingAvailable = true, onboardingDone = false, cameraAvailable = false))
+        assertEquals(MainScreen.ONBOARDING, choose(onboarding = true, done = false, camera = true))
+        assertEquals(MainScreen.ONBOARDING, choose(onboarding = true, done = false, camera = false))
     }
 
     @Test
     fun onboardedAndCameraAvailable_choosesCamera() {
-        assertEquals(MainScreen.CAMERA, choose(onboardingAvailable = true, onboardingDone = true, cameraAvailable = true))
+        assertEquals(MainScreen.CAMERA, choose(onboarding = true, done = true, camera = true))
     }
 
     @Test
     fun onboardingUnavailable_cameraAvailable_choosesCamera() {
-        assertEquals(MainScreen.CAMERA, choose(onboardingAvailable = false, onboardingDone = false, cameraAvailable = true))
-        assertEquals(MainScreen.CAMERA, choose(onboardingAvailable = false, onboardingDone = true, cameraAvailable = true))
+        assertEquals(MainScreen.CAMERA, choose(onboarding = false, done = false, camera = true))
+        assertEquals(MainScreen.CAMERA, choose(onboarding = false, done = true, camera = true))
     }
 
     @Test
     fun onboardingAvailableButDone_cameraUnavailable_choosesSample() {
-        assertEquals(MainScreen.SAMPLE, choose(onboardingAvailable = true, onboardingDone = true, cameraAvailable = false))
+        assertEquals(MainScreen.SAMPLE, choose(onboarding = true, done = true, camera = false))
     }
 
     @Test
     fun nothingAvailable_choosesSample() {
-        assertEquals(MainScreen.SAMPLE, choose(onboardingAvailable = false, onboardingDone = false, cameraAvailable = false))
+        assertEquals(MainScreen.SAMPLE, choose(onboarding = false, done = false, camera = false))
     }
 
     @Test

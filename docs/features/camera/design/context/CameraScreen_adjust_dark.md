@@ -6,7 +6,7 @@ Sinh bởi `scripts/figma-export.py`. Không sửa tay; thiết kế đổi thì
 
 - Link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=16-230
 - Frame: `16:230`, giao diện tối
-- Ngày lấy: 2026-10-21
+- Ngày lấy: 2026-10-22
 
 ## 2. Giá trị dùng
 
@@ -24,161 +24,161 @@ nào trùng; plan quyết định làm tròn về token gần nhất hay thêm t
 | kiểu chữ | 14/20, đậm 500 | titleSmall, labelLarge |
 | kiểu chữ | 16/24, đậm 600 | titleMedium |
 | kiểu chữ | 24/24, đậm 400 | ngoài hệ thống |
-| màu chữ | #111111 | ngoài hệ thống |
-| màu chữ | #FFFFFF | ngoài hệ thống |
-| màu nền | #0A0A0B | ngoài hệ thống |
-| màu nền | #1E1E1E | ngoài hệ thống |
-| màu nền | #2A2A2A | ngoài hệ thống |
-| màu nền | #B5B0A8 | ngoài hệ thống |
-| màu nền | #FFC83D | ngoài hệ thống |
-| màu nền | #FFFFFF | ngoài hệ thống |
+| màu chữ | #111111 | onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl |
+| màu chữ | #FFFFFF | secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke |
+| màu nền | #0A0A0B | camera/background |
+| màu nền | #1E1E1E | surface, surfaceContainer, camera/surface |
+| màu nền | #2A2A2A | surfaceVariant |
+| màu nền | #B5B0A8 | onSurfaceVariant, camera/onSurfaceVariant |
+| màu nền | #FFC83D | secondaryContainer, shadowSticker, category/men |
+| màu nền | #FFFFFF | secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke |
 
 ## 3. Cấu trúc và số liệu
 
 Toạ độ và cỡ tính theo dp, gốc là góc trên trái của khung. Thứ tự từ trên xuống như trong Figma.
 
-- Frame "CameraScreen_adjust_dark", vị trí 0,0, cỡ 411 x 891, nền #0A0A0B (ngoài hệ thống)
+- Frame "CameraScreen_adjust_dark", vị trí 0,0, cỡ 411 x 891, nền #0A0A0B (camera/background)
   - Frame "Top bar", vị trí 16,32, cỡ 379 x 48, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn SPACE_BETWEEN/CENTER
-    - Instance "CameraIconButton", vị trí 16,32, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-      - Text "icon", vị trí 28,44, cỡ 24 x 24, chữ "grid_view", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
+    - Instance "CameraIconButton", vị trí 16,32, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+      - Text "icon", vị trí 28,44, cỡ 24 x 24, chữ "grid_view", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
     - Frame "tools", vị trí 179,32, cỡ 216 x 48, xếp ngang, cách nhau 8 (sm), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
-      - Instance "CameraIconButton", vị trí 179,32, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 191,44, cỡ 24 x 24, chữ "flash_off", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-      - Instance "CameraIconButton", vị trí 235,32, cỡ 48 x 48, nền #FFC83D (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "label", vị trí 250,44, cỡ 19 x 24, chữ "3s", kiểu titleMedium (16/24, đậm 600), màu #111111 (ngoài hệ thống)
-      - Instance "CameraIconButton", vị trí 291,32, cỡ 48 x 48, nền #FFC83D (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 303,44, cỡ 24 x 24, chữ "grid_on", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-      - Instance "CameraIconButton", vị trí 347,32, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 359,44, cỡ 24 x 24, chữ "settings", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-  - Frame "Preview 3:4", vị trí 0,92, cỡ 411 x 548, nền #1E1E1E (ngoài hệ thống)
-    - Rectangle "camera-feed (ảnh tạm)", vị trí 0,92, cỡ 411 x 548, nền #1E1E1E (ngoài hệ thống)
+      - Instance "CameraIconButton", vị trí 179,32, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 191,44, cỡ 24 x 24, chữ "flash_off", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+      - Instance "CameraIconButton", vị trí 235,32, cỡ 48 x 48, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "label", vị trí 250,44, cỡ 19 x 24, chữ "3s", kiểu titleMedium (16/24, đậm 600), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+      - Instance "CameraIconButton", vị trí 291,32, cỡ 48 x 48, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 303,44, cỡ 24 x 24, chữ "grid_on", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+      - Instance "CameraIconButton", vị trí 347,32, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 359,44, cỡ 24 x 24, chữ "settings", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+  - Frame "Preview 3:4", vị trí 0,92, cỡ 411 x 548, nền #1E1E1E (surface, surfaceContainer, camera/surface)
+    - Rectangle "camera-feed (ảnh tạm)", vị trí 0,92, cỡ 411 x 548, nền #1E1E1E (surface, surfaceContainer, camera/surface)
     - Instance "GridOverlay", vị trí 0,92, cỡ 411 x 548
-      - Rectangle "line v1", vị trí 137,92, cỡ 1 x 548, nền #FFFFFF (ngoài hệ thống)
-      - Rectangle "line v2", vị trí 274,92, cỡ 1 x 548, nền #FFFFFF (ngoài hệ thống)
-      - Rectangle "line h1", vị trí 0,275, cỡ 411 x 1, nền #FFFFFF (ngoài hệ thống)
-      - Rectangle "line h2", vị trí 0,457, cỡ 411 x 1, nền #FFFFFF (ngoài hệ thống)
+      - Rectangle "line v1", vị trí 137,92, cỡ 1 x 548, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+      - Rectangle "line v2", vị trí 274,92, cỡ 1 x 548, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+      - Rectangle "line h1", vị trí 0,275, cỡ 411 x 1, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+      - Rectangle "line h2", vị trí 0,457, cỡ 411 x 1, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
     - Frame "Pose overlay", vị trí 106,186, cỡ 200 x 400
-      - Vector "Vector", vị trí 179,199, cỡ 53 x 53, viền #FFFFFF (ngoài hệ thống), dày 3.499999761581421
-      - Vector "Vector", vị trí 125,259, cỡ 144 x 310, viền #FFFFFF (ngoài hệ thống), dày 3.499999761581421
-    - Instance "StepCard", vị trí 16,108, cỡ 379 x 68, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 16, xếp ngang, cách nhau 8 (sm), lề trên/phải/dưới/trái 8 (sm)/4 (xs)/8 (sm)/16 (md), căn MIN/CENTER
-      - Frame "badge", vị trí 34,126, cỡ 41 x 32, nền #FFC83D (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 4 (xs)/8 (sm)/4 (xs)/8 (sm), căn MIN/MIN
-        - Text "step", vị trí 44,132, cỡ 21 x 20, chữ "2/4", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (ngoài hệ thống)
-      - Text "text", vị trí 83,122, cỡ 210 x 40, chữ "Xoay vai 45° về phía máy, cằm hơi hạ.", kiểu bodyMedium (14/20, đậm 400), màu #111111 (ngoài hệ thống)
+      - Vector "Vector", vị trí 179,199, cỡ 53 x 53, viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 3.499999761581421
+      - Vector "Vector", vị trí 125,259, cỡ 144 x 310, viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 3.499999761581421
+    - Instance "StepCard", vị trí 16,108, cỡ 379 x 68, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 16, xếp ngang, cách nhau 8 (sm), lề trên/phải/dưới/trái 8 (sm)/4 (xs)/8 (sm)/16 (md), căn MIN/CENTER
+      - Frame "badge", vị trí 34,126, cỡ 41 x 32, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 4 (xs)/8 (sm)/4 (xs)/8 (sm), căn MIN/MIN
+        - Text "step", vị trí 44,132, cỡ 21 x 20, chữ "2/4", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+      - Text "text", vị trí 83,122, cỡ 210 x 40, chữ "Xoay vai 45° về phía máy, cằm hơi hạ.", kiểu bodyMedium (14/20, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
       - Frame "chevron_left", vị trí 301,118, cỡ 40 x 48, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 309,130, cỡ 24 x 24, chữ "chevron_left", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
+        - Text "icon", vị trí 309,130, cỡ 24 x 24, chữ "chevron_left", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
       - Frame "chevron_right", vị trí 349,118, cỡ 40 x 48, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 357,130, cỡ 24 x 24, chữ "chevron_right", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
+        - Text "icon", vị trí 357,130, cỡ 24 x 24, chữ "chevron_right", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
     - Frame "Overlay tools", vị trí 347,242, cỡ 48 x 216, xếp dọc, cách nhau 8 (sm), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
-      - Instance "CameraIconButton", vị trí 347,242, cỡ 48 x 48, nền #FFC83D (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 359,254, cỡ 24 x 24, chữ "tune", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-      - Instance "CameraIconButton", vị trí 347,298, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 359,310, cỡ 24 x 24, chữ "flip", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-      - Instance "CameraIconButton", vị trí 347,354, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 359,366, cỡ 24 x 24, chữ "lock_open", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-      - Instance "CameraIconButton", vị trí 347,410, cỡ 48 x 48, nền #FFC83D (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 359,422, cỡ 24 x 24, chữ "visibility", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-    - Instance "AdjustPanel", vị trí 16,344, cỡ 379 x 280, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 24, xếp dọc, cách nhau 16 (md), lề trên/phải/dưới/trái 16 (md)/16 (md)/16 (md)/16 (md), căn MIN/MIN
+      - Instance "CameraIconButton", vị trí 347,242, cỡ 48 x 48, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 359,254, cỡ 24 x 24, chữ "tune", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+      - Instance "CameraIconButton", vị trí 347,298, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 359,310, cỡ 24 x 24, chữ "flip", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+      - Instance "CameraIconButton", vị trí 347,354, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 359,366, cỡ 24 x 24, chữ "lock_open", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+      - Instance "CameraIconButton", vị trí 347,410, cỡ 48 x 48, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 359,422, cỡ 24 x 24, chữ "visibility", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+    - Instance "AdjustPanel", vị trí 16,344, cỡ 379 x 280, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 24, xếp dọc, cách nhau 16 (md), lề trên/phải/dưới/trái 16 (md)/16 (md)/16 (md)/16 (md), căn MIN/MIN
       - Frame "header", vị trí 34,362, cỡ 343 x 24, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn SPACE_BETWEEN/CENTER
-        - Text "Chỉnh lớp phủ", vị trí 34,362, cỡ 107 x 24, chữ "Chỉnh lớp phủ", kiểu titleMedium (16/24, đậm 600), màu #111111 (ngoài hệ thống)
-        - Text "icon", vị trí 353,362, cỡ 24 x 24, chữ "close", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
+        - Text "Chỉnh lớp phủ", vị trí 34,362, cỡ 107 x 24, chữ "Chỉnh lớp phủ", kiểu titleMedium (16/24, đậm 600), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+        - Text "icon", vị trí 353,362, cỡ 24 x 24, chữ "close", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
       - Instance "Slider", vị trí 34,402, cỡ 343 x 52, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
         - Frame "header", vị trí 34,402, cỡ 343 x 20, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn SPACE_BETWEEN/MIN
-          - Text "label", vị trí 34,402, cỡ 44 x 20, chữ "Độ mờ", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (ngoài hệ thống)
-          - Text "value", vị trí 347,402, cỡ 30 x 20, chữ "70%", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (ngoài hệ thống)
+          - Text "label", vị trí 34,402, cỡ 44 x 20, chữ "Độ mờ", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+          - Text "value", vị trí 347,402, cỡ 30 x 20, chữ "70%", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
         - Frame "track", vị trí 34,426, cỡ 343 x 28
-          - Rectangle "inactive", vị trí 34,436, cỡ 343 x 8, nền #B5B0A8 (ngoài hệ thống), bo góc 999
-          - Rectangle "active", vị trí 34,436, cỡ 240 x 8, nền #FFC83D (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 1.0, bo góc 999
-          - Ellipse "thumb", vị trí 262,428, cỡ 24 x 24, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0
+          - Rectangle "inactive", vị trí 34,436, cỡ 343 x 8, nền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), bo góc 999
+          - Rectangle "active", vị trí 34,436, cỡ 240 x 8, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 1.0, bo góc 999
+          - Ellipse "thumb", vị trí 262,428, cỡ 24 x 24, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0
       - Instance "Slider", vị trí 34,470, cỡ 343 x 52, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
         - Frame "header", vị trí 34,470, cỡ 343 x 20, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn SPACE_BETWEEN/MIN
-          - Text "label", vị trí 34,470, cỡ 19 x 20, chữ "Cỡ", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (ngoài hệ thống)
-          - Text "value", vị trí 340,470, cỡ 37 x 20, chữ "100%", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (ngoài hệ thống)
+          - Text "label", vị trí 34,470, cỡ 19 x 20, chữ "Cỡ", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+          - Text "value", vị trí 340,470, cỡ 37 x 20, chữ "100%", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
         - Frame "track", vị trí 34,494, cỡ 343 x 28
-          - Rectangle "inactive", vị trí 34,504, cỡ 343 x 8, nền #B5B0A8 (ngoài hệ thống), bo góc 999
-          - Rectangle "active", vị trí 34,504, cỡ 240 x 8, nền #FFC83D (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 1.0, bo góc 999
-          - Ellipse "thumb", vị trí 262,496, cỡ 24 x 24, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0
+          - Rectangle "inactive", vị trí 34,504, cỡ 343 x 8, nền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), bo góc 999
+          - Rectangle "active", vị trí 34,504, cỡ 240 x 8, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 1.0, bo góc 999
+          - Ellipse "thumb", vị trí 262,496, cỡ 24 x 24, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0
       - Frame "actions", vị trí 34,538, cỡ 343 x 68, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn SPACE_BETWEEN/MIN
         - Frame "action Lật", vị trí 34,538, cỡ 48 x 68, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/CENTER
-          - Frame "button", vị trí 34,538, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-            - Text "icon", vị trí 46,550, cỡ 24 x 24, chữ "flip", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-          - Text "Lật", vị trí 49,590, cỡ 18 x 16, chữ "Lật", kiểu labelMedium (12/16, đậm 500), màu #111111 (ngoài hệ thống)
+          - Frame "button", vị trí 34,538, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+            - Text "icon", vị trí 46,550, cỡ 24 x 24, chữ "flip", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+          - Text "Lật", vị trí 49,590, cỡ 18 x 16, chữ "Lật", kiểu labelMedium (12/16, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
         - Frame "action Khóa", vị trí 132,538, cỡ 48 x 68, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/CENTER
-          - Frame "button", vị trí 132,538, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-            - Text "icon", vị trí 144,550, cỡ 24 x 24, chữ "lock_open", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-          - Text "Khóa", vị trí 141,590, cỡ 30 x 16, chữ "Khóa", kiểu labelMedium (12/16, đậm 500), màu #111111 (ngoài hệ thống)
+          - Frame "button", vị trí 132,538, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+            - Text "icon", vị trí 144,550, cỡ 24 x 24, chữ "lock_open", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+          - Text "Khóa", vị trí 141,590, cỡ 30 x 16, chữ "Khóa", kiểu labelMedium (12/16, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
         - Frame "action Ẩn", vị trí 231,538, cỡ 48 x 68, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/CENTER
-          - Frame "button", vị trí 231,538, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-            - Text "icon", vị trí 243,550, cỡ 24 x 24, chữ "visibility_off", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-          - Text "Ẩn", vị trí 247,590, cỡ 16 x 16, chữ "Ẩn", kiểu labelMedium (12/16, đậm 500), màu #111111 (ngoài hệ thống)
+          - Frame "button", vị trí 231,538, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+            - Text "icon", vị trí 243,550, cỡ 24 x 24, chữ "visibility_off", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+          - Text "Ẩn", vị trí 247,590, cỡ 16 x 16, chữ "Ẩn", kiểu labelMedium (12/16, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
         - Frame "action Đặt lại", vị trí 329,538, cỡ 48 x 68, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/CENTER
-          - Frame "button", vị trí 329,538, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-            - Text "icon", vị trí 341,550, cỡ 24 x 24, chữ "restart_alt", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
-          - Text "Đặt lại", vị trí 334,590, cỡ 37 x 16, chữ "Đặt lại", kiểu labelMedium (12/16, đậm 500), màu #111111 (ngoài hệ thống)
+          - Frame "button", vị trí 329,538, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+            - Text "icon", vị trí 341,550, cỡ 24 x 24, chữ "restart_alt", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+          - Text "Đặt lại", vị trí 334,590, cỡ 37 x 16, chữ "Đặt lại", kiểu labelMedium (12/16, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
   - Frame "Group chips", vị trí 16,656, cỡ 581 x 36, xếp ngang, cách nhau 8 (sm), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
-    - Instance "Chip", vị trí 16,656, cỡ 76 x 36, nền #FFC83D (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
-      - Text "label", vị trí 34,664, cỡ 40 x 20, chữ "Tất cả", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (ngoài hệ thống)
-      - Instance "SelectedBadge", vị trí 78,647, cỡ 22 x 22, nền #FFC83D (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 82,651, cỡ 14 x 14, chữ "check", kiểu ngoài hệ thống (14/14, đậm 400), màu #111111 (ngoài hệ thống)
-    - Instance "Chip", vị trí 100,656, cỡ 56 x 36, nền #1E1E1E (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
-      - Text "label", vị trí 118,664, cỡ 20 x 20, chữ "Nữ", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (ngoài hệ thống)
-    - Instance "Chip", vị trí 164,656, cỡ 68 x 36, nền #1E1E1E (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
-      - Text "label", vị trí 182,664, cỡ 32 x 20, chữ "Nam", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (ngoài hệ thống)
-    - Instance "Chip", vị trí 240,656, cỡ 87 x 36, nền #1E1E1E (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
-      - Text "label", vị trí 258,664, cỡ 51 x 20, chữ "Cặp đôi", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (ngoài hệ thống)
-    - Instance "Chip", vị trí 335,656, cỡ 82 x 36, nền #1E1E1E (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
-      - Text "label", vị trí 353,664, cỡ 46 x 20, chữ "Bạn bè", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (ngoài hệ thống)
-    - Instance "Chip", vị trí 425,656, cỡ 82 x 36, nền #1E1E1E (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
-      - Text "label", vị trí 443,664, cỡ 46 x 20, chữ "Du lịch", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (ngoài hệ thống)
-    - Instance "Chip", vị trí 515,656, cỡ 82 x 36, nền #1E1E1E (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
-      - Text "label", vị trí 533,664, cỡ 46 x 20, chữ "Cà phê", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (ngoài hệ thống)
+    - Instance "Chip", vị trí 16,656, cỡ 76 x 36, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
+      - Text "label", vị trí 34,664, cỡ 40 x 20, chữ "Tất cả", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+      - Instance "SelectedBadge", vị trí 78,647, cỡ 22 x 22, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 82,651, cỡ 14 x 14, chữ "check", kiểu ngoài hệ thống (14/14, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+    - Instance "Chip", vị trí 100,656, cỡ 56 x 36, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
+      - Text "label", vị trí 118,664, cỡ 20 x 20, chữ "Nữ", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+    - Instance "Chip", vị trí 164,656, cỡ 68 x 36, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
+      - Text "label", vị trí 182,664, cỡ 32 x 20, chữ "Nam", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+    - Instance "Chip", vị trí 240,656, cỡ 87 x 36, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
+      - Text "label", vị trí 258,664, cỡ 51 x 20, chữ "Cặp đôi", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+    - Instance "Chip", vị trí 335,656, cỡ 82 x 36, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
+      - Text "label", vị trí 353,664, cỡ 46 x 20, chữ "Bạn bè", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+    - Instance "Chip", vị trí 425,656, cỡ 82 x 36, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
+      - Text "label", vị trí 443,664, cỡ 46 x 20, chữ "Du lịch", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+    - Instance "Chip", vị trí 515,656, cỡ 82 x 36, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 18, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/CENTER
+      - Text "label", vị trí 533,664, cỡ 46 x 20, chữ "Cà phê", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
   - Frame "Pose strip", vị trí 16,708, cỡ 568 x 64, xếp ngang, cách nhau 8 (sm), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
     - Instance "PoseThumb", vị trí 16,708, cỡ 64 x 64
-      - Frame "image", vị trí 16,708, cỡ 64 x 64, nền #2A2A2A (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 14
+      - Frame "image", vị trí 16,708, cỡ 64 x 64, nền #2A2A2A (surfaceVariant), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 14
         - Frame "pose-outline", vị trí 35,714, cỡ 26 x 52
-          - Vector "Vector", vị trí 45,716, cỡ 7 x 7, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
-          - Vector "Vector", vị trí 38,724, cỡ 19 x 40, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
+          - Vector "Vector", vị trí 45,716, cỡ 7 x 7, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
+          - Vector "Vector", vị trí 38,724, cỡ 19 x 40, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
     - Instance "PoseThumb", vị trí 88,708, cỡ 64 x 64
-      - Frame "image", vị trí 88,708, cỡ 64 x 64, nền #2A2A2A (ngoài hệ thống), viền #FFC83D (ngoài hệ thống), dày 3.0, bo góc 14
+      - Frame "image", vị trí 88,708, cỡ 64 x 64, nền #2A2A2A (surfaceVariant), viền #FFC83D (secondaryContainer, shadowSticker, category/men), dày 3.0, bo góc 14
         - Frame "pose-outline", vị trí 107,714, cỡ 26 x 52
-          - Vector "Vector", vị trí 117,716, cỡ 7 x 7, viền #FFFFFF (ngoài hệ thống), dày 1.499333381652832
-          - Vector "Vector", vị trí 110,724, cỡ 19 x 40, viền #FFFFFF (ngoài hệ thống), dày 1.499333381652832
-      - Instance "SelectedBadge", vị trí 137,701, cỡ 22 x 22, nền #FFC83D (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-        - Text "icon", vị trí 141,705, cỡ 14 x 14, chữ "check", kiểu ngoài hệ thống (14/14, đậm 400), màu #111111 (ngoài hệ thống)
+          - Vector "Vector", vị trí 117,716, cỡ 7 x 7, viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 1.499333381652832
+          - Vector "Vector", vị trí 110,724, cỡ 19 x 40, viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 1.499333381652832
+      - Instance "SelectedBadge", vị trí 137,701, cỡ 22 x 22, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+        - Text "icon", vị trí 141,705, cỡ 14 x 14, chữ "check", kiểu ngoài hệ thống (14/14, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
     - Instance "PoseThumb", vị trí 160,708, cỡ 64 x 64
-      - Frame "image", vị trí 160,708, cỡ 64 x 64, nền #2A2A2A (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 14
+      - Frame "image", vị trí 160,708, cỡ 64 x 64, nền #2A2A2A (surfaceVariant), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 14
         - Frame "pose-outline", vị trí 179,714, cỡ 26 x 52
-          - Vector "Vector", vị trí 189,716, cỡ 7 x 7, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
-          - Vector "Vector", vị trí 182,724, cỡ 19 x 40, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
+          - Vector "Vector", vị trí 189,716, cỡ 7 x 7, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
+          - Vector "Vector", vị trí 182,724, cỡ 19 x 40, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
     - Instance "PoseThumb", vị trí 232,708, cỡ 64 x 64
-      - Frame "image", vị trí 232,708, cỡ 64 x 64, nền #2A2A2A (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 14
+      - Frame "image", vị trí 232,708, cỡ 64 x 64, nền #2A2A2A (surfaceVariant), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 14
         - Frame "pose-outline", vị trí 251,714, cỡ 26 x 52
-          - Vector "Vector", vị trí 261,716, cỡ 7 x 7, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
-          - Vector "Vector", vị trí 254,724, cỡ 19 x 40, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
+          - Vector "Vector", vị trí 261,716, cỡ 7 x 7, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
+          - Vector "Vector", vị trí 254,724, cỡ 19 x 40, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
     - Instance "PoseThumb", vị trí 304,708, cỡ 64 x 64
-      - Frame "image", vị trí 304,708, cỡ 64 x 64, nền #2A2A2A (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 14
+      - Frame "image", vị trí 304,708, cỡ 64 x 64, nền #2A2A2A (surfaceVariant), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 14
         - Frame "pose-outline", vị trí 323,714, cỡ 26 x 52
-          - Vector "Vector", vị trí 333,716, cỡ 7 x 7, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
-          - Vector "Vector", vị trí 326,724, cỡ 19 x 40, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
+          - Vector "Vector", vị trí 333,716, cỡ 7 x 7, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
+          - Vector "Vector", vị trí 326,724, cỡ 19 x 40, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
     - Instance "PoseThumb", vị trí 376,708, cỡ 64 x 64
-      - Frame "image", vị trí 376,708, cỡ 64 x 64, nền #2A2A2A (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 14
+      - Frame "image", vị trí 376,708, cỡ 64 x 64, nền #2A2A2A (surfaceVariant), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 14
         - Frame "pose-outline", vị trí 395,714, cỡ 26 x 52
-          - Vector "Vector", vị trí 405,716, cỡ 7 x 7, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
-          - Vector "Vector", vị trí 398,724, cỡ 19 x 40, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
+          - Vector "Vector", vị trí 405,716, cỡ 7 x 7, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
+          - Vector "Vector", vị trí 398,724, cỡ 19 x 40, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
     - Instance "PoseThumb", vị trí 448,708, cỡ 64 x 64
-      - Frame "image", vị trí 448,708, cỡ 64 x 64, nền #2A2A2A (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 14
+      - Frame "image", vị trí 448,708, cỡ 64 x 64, nền #2A2A2A (surfaceVariant), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 14
         - Frame "pose-outline", vị trí 467,714, cỡ 26 x 52
-          - Vector "Vector", vị trí 477,716, cỡ 7 x 7, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
-          - Vector "Vector", vị trí 470,724, cỡ 19 x 40, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
+          - Vector "Vector", vị trí 477,716, cỡ 7 x 7, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
+          - Vector "Vector", vị trí 470,724, cỡ 19 x 40, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
     - Instance "PoseThumb", vị trí 520,708, cỡ 64 x 64
-      - Frame "image", vị trí 520,708, cỡ 64 x 64, nền #2A2A2A (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 14
+      - Frame "image", vị trí 520,708, cỡ 64 x 64, nền #2A2A2A (surfaceVariant), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 14
         - Frame "pose-outline", vị trí 539,714, cỡ 26 x 52
-          - Vector "Vector", vị trí 549,716, cỡ 7 x 7, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
-          - Vector "Vector", vị trí 542,724, cỡ 19 x 40, viền #B5B0A8 (ngoài hệ thống), dày 1.499333381652832
-  - Rectangle "Last photo (ảnh tạm)", vị trí 44,798, cỡ 48 x 48, nền #1E1E1E (ngoài hệ thống), viền #FFFFFF (ngoài hệ thống), dày 2.0, bo góc 14
-  - Ellipse "Shutter ring", vị trí 168,784, cỡ 76 x 76, viền #FFFFFF (ngoài hệ thống), dày 4.0
-  - Ellipse "Shutter", vị trí 174,791, cỡ 62 x 62, nền #FFFFFF (ngoài hệ thống)
-  - Instance "CameraIconButton", vị trí 319,798, cỡ 48 x 48, nền #FFFFFF (ngoài hệ thống), viền #111111 (ngoài hệ thống), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
-    - Text "icon", vị trí 331,810, cỡ 24 x 24, chữ "flip_camera_android", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (ngoài hệ thống)
+          - Vector "Vector", vị trí 549,716, cỡ 7 x 7, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
+          - Vector "Vector", vị trí 542,724, cỡ 19 x 40, viền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), dày 1.499333381652832
+  - Rectangle "Last photo (ảnh tạm)", vị trí 44,798, cỡ 48 x 48, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 14
+  - Ellipse "Shutter ring", vị trí 168,784, cỡ 76 x 76, viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 4.0
+  - Ellipse "Shutter", vị trí 174,791, cỡ 62 x 62, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
+  - Instance "CameraIconButton", vị trí 319,798, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
+    - Text "icon", vị trí 331,810, cỡ 24 x 24, chữ "flip_camera_android", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
 
 ## 4. Code tham khảo
 

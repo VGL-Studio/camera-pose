@@ -7,7 +7,7 @@ build: 0.1.0-staging, commit 0c2243e
 feature: loading
 ticket: T-010
 severity: nang
-status: new
+status: wontfix
 created: 2026-10-22
 ---
 
@@ -54,3 +54,5 @@ Artifact `device-session` của lần chạy 39724404079 (giữ 7 ngày).
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 Đề xuất của AI: kiểm tra trên vài máy thật mới cài trước khi quyết. Nếu máy thật không gặp thì giữ `wontfix` như FB-20261017-02; nếu gặp thì cân nhắc cho lần mở đầu tiếp tục với giá trị mặc định khi cấu hình hết giờ (đổi ADR-0018, cần người phụ trách sản phẩm).
+
+Kết quả kiểm trên máy thật (Nhật, 2026-10-22, bản 0.1.0-staging.3): loading chạy bình thường, không gặp hết giờ ở lần mở đầu. Giữ `wontfix` như FB-20261017-02, theo đề xuất ở trên.

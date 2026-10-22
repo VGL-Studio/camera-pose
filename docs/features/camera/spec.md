@@ -1,6 +1,6 @@
 ---
 feature: camera
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -145,7 +145,8 @@ Trường hợp đặc biệt:
 Tiêu chí chấp nhận:
 
 - [ ] Khi chưa có quyền camera và máy còn hỏi được (ví dụ cờ màn chào tắt) thì camera hỏi quyền khi mở; app ghi `camera_permission_result`.
-- [ ] Khi bị từ chối thì khung xem trước hiện tiêu đề "Chưa có quyền dùng camera", lời giải thích và nút "Mở cài đặt"; nút chụp mờ đi; hàng chip và dải tư thế vẫn dùng được.
+- [ ] Khi quyền camera đã bị từ chối vĩnh viễn (máy không còn hiện hộp hỏi) thì camera vào thẳng trạng thái chưa có quyền và app không ghi `camera_permission_result`.
+- [ ] Khi bị từ chối thì khung xem trước hiện tiêu đề "Chưa có quyền dùng camera", lời giải thích và nút "Mở cài đặt"; nút chụp và nút đổi camera mờ đi; hàng chip và dải tư thế vẫn dùng được.
 - [ ] Khi bấm "Mở cài đặt" thì trang cài đặt của app trong máy mở ra; người dùng cho phép rồi quay lại thì camera tự chạy, không cần mở lại app.
 
 ### KB-8. Camera đang mở và không mở được
@@ -219,7 +220,7 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 
 | Tên sự kiện | Khi nào ghi | Tham số | Dùng để trả lời câu hỏi gì |
 | --- | --- | --- | --- |
-| `camera_permission_result` | Khi hộp hỏi quyền trả kết quả ở camera | `result`: `granted`, `denied`; `source`: `camera` | Tỷ lệ cho phép camera |
+| `camera_permission_result` | Khi hộp hỏi quyền hiện ra và trả kết quả ở camera; không ghi khi quyền đã bị từ chối vĩnh viễn và hộp hỏi không hiện | `result`: `granted`, `denied`; `source`: `camera` | Tỷ lệ cho phép camera |
 | `pose_selected` | Khi chọn tư thế ở dải, hoặc mở camera từ chi tiết tư thế | `pose_id`, `category`, `source`: `strip`, `detail`, `next` | Tư thế và nhóm nào được dùng nhiều, cần làm thêm |
 | `overlay_adjusted` | Khi xong một thao tác chỉnh nét viền | `type`: `opacity`, `size`, `move`, `flip`, `lock`, `hide`, `reset` | Người dùng có cần các công cụ chỉnh không (bài học 5) |
 | `photo_captured` | Khi chụp xong một ảnh | `pose_id`, `timer`: `off`, `3`, `10`; `matched`: có hay không đạt ngưỡng lúc chụp | Bao nhiêu ảnh chụp mỗi phiên; điểm khớp có giúp không |
@@ -281,3 +282,4 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế ở dải (đã lưu, gần đây, còn lại), ẩn hiện thẻ bước, chế độ flash, ngưỡng điểm 80, hỏi "Bỏ ảnh này?" khi rời màn xem lại mà chưa lưu, khóa chiều dọc, dữ liệu tư thế đã dùng gần đây; thêm trạng thái thiết kế `steps-hidden`, `discard` |
 | 2026-10-21 | AI | Lập gói bàn giao thiết kế: trạng thái `offline` chuyển sang gói `network` vì hộp thoại do vỏ app hiện, không thuộc `CameraScreen` |
+| 2026-10-22 | AI | Ghi quyết định của Nhật sau RUN-20261022-01: nút đổi camera mờ đi khi camera chưa sẵn sàng (đang mở, chưa có quyền, lỗi), thiết kế sửa theo; không ghi `camera_permission_result` khi quyền đã bị từ chối vĩnh viễn và hộp hỏi không hiện (KB-7, mục 6). Chờ xác nhận lại |

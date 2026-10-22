@@ -103,4 +103,146 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/device-session.sh` (kịch bản chuẩn) cấp quyền camera trước các lần mở nguội (`pm grant <gói> android.permission.CAMERA`) hoặc thêm một kịch bản riêng cho luồng hỏi quyền; ghi vào `docs/ops/test-sessions.md`.
 - **Áp dụng:**
 - **Kiểm chứng:**
+### L-010: Chạy thử kỹ thuật mới bằng đúng lệnh của phiên, ghi vào mục riêng của plan
 
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03, RUN-20261022-01; T-007, T-008, T-011.
+- **Chuyện gì:** ba lần dừng cùng một gốc (L-001, L-003, L-004), và lần thứ tư ở T-008 (L-006): kỹ thuật lần đầu dùng chưa được chạy thử, hoặc chạy thử bằng lệnh khác lệnh mà phiên dùng. Plan T-007 phiên bản 2 được kiểm chứng bằng `./gradlew :core:designsystem:testDebugUnitTest`, nhưng phiên dừng ở `scripts/check.sh`.
+- **Bằng chứng:** nhật ký plan T-007 (phiên bản 1, 2), T-011 (phiên bản 1); phiên bản 3 của T-007 và 2 của T-011 được chạy thử bằng `scripts/check.sh` trên nhánh của task trước khi duyệt và không dừng nữa (T-007 merge ở PR #19, T-011 ở PR #23).
+- **Đề xuất sửa:** `docs/templates/plan.md` thêm mục "Chạy thử" (test tạm, lệnh đã chạy, kết quả) bắt buộc khi tiêu chí E từ 2 trở lên; lệnh phải là `scripts/check.sh` trên nhánh có code liên quan. `scripts/plan-check.py` báo lỗi khi E từ 2 trở lên mà thiếu mục này. Ghi rõ: Robolectric không mô phỏng việc cửa sổ chồng nhau, phần trợ năng và chạm qua cửa sổ phải có bước kiểm tra thủ công; chạy thử đo cả hình ảnh thật, không chỉ cây ngữ nghĩa (báo cáo RUN-20261022-01, Kiểm chứng bài học cũ).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-011: Tài nguyên R2 bắt buộc của app chưa có, PR có code đầu tiên đỏ ở emulator
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #6.
+- **Chuyện gì:** ba file `test/v1/*.txt` mà màn loading của dự án mẫu tải chưa được đưa lên R2 staging khi tạo app; mọi PR trước chỉ sửa tài liệu nên `ui-test` bị bỏ qua, lỗi chỉ lộ ra ở PR có code đầu tiên.
+- **Bằng chứng:** lần chạy 39566140163, logcat `HTTP 404 for https://camera-pose.vgl.io.vn/test/v1/...`, `AppLaunchTest` hết 30 giây chờ.
+- **Đề xuất sửa:** thêm `scripts/setup-check.sh`: `curl -I` mọi file R2 mà app bắt buộc có (danh sách trong một file cấu hình), chạy ở bước cuối của `docs/ops/setup-new-app.md`, trong `env-canary.yml` và ở kiểm tra đầu phiên. Kiểm bằng workflow trên GitHub, vì môi trường `claude --cloud` chặn máy chủ R2 (L-005).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-012: Kiểm tra bí mật staging ở đầu phiên, không để tới cuối
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03 (nối tiếp L-002), RUN-20261022-01.
+- **Chuyện gì:** ba phiên liền chỉ biết bí mật `STAGING_GOOGLE_SERVICES_JSON` là file giả ở bước cuối (`device-session`, `staging`), sau khi đã tốn cả phiên.
+- **Bằng chứng:** báo cáo RUN-20261021-01, -02, -03, mục Cần người kiểm tra.
+- **Đề xuất sửa:** `start-run.yml` hoặc bước kiểm tra đầu phiên chạy một kiểm tra nhỏ, không in giá trị: bí mật có `project_id` khác project giả và có app `...staging`; sai thì không bắt đầu phiên, mở issue `env-broken`. Kiểm luôn nhóm người test trong `STAGING_TESTER_GROUPS` (mặc định `team`) đã có trong App Distribution: RUN-20261022-01 tải bản build lên được nhưng bước phát đỏ (`HTTP Error: 404`) vì chưa tạo nhóm.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-013: Quy tắc của `check.sh` phải hiện ra lúc viết plan
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-02, T-007 (nối tiếp L-003).
+- **Chuyện gì:** quy tắc "mọi `captureRoboImage` ghi vào `src/test/screenshots/`" chỉ nằm trong `check.sh` và một câu của `CLAUDE.md`; người viết plan và phiên chính đều bỏ sót.
+- **Bằng chứng:** `check.sh` dòng 45 đến 55; nhật ký plan T-007 phiên bản 2.
+- **Đề xuất sửa:** `plan-check.py` dò trong plan các mẫu mà `check.sh` từ chối (ví dụ `captureRoboImage(` với đường dẫn ngoài `src/test/screenshots/`); `docs/auto-run.md` có bảng các quy tắc của `check.sh`.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-014: Plan đẩy việc cho nhau, hoặc cùng sửa một file mà không phụ thuộc nhau
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, plan T-009, T-010, T-011, T-013.
+- **Chuyện gì:** plan T-009 (câu hỏi 1) giao việc thêm lý do lỗi tải cho T-011, plan T-011 (câu hỏi 5) giao lại cho T-009; plan T-010 và T-013 cùng sửa `AppNavHost.kt`, `MainActivity.kt`, `app/build.gradle.kts`, `AppLaunchTest.kt` mà ticket không phụ thuộc nhau. Chỉ bắt được khi phiên chính đối chiếu bằng tay.
+- **Bằng chứng:** lịch sử PR #7 và #11; ticket T-011, T-013 thêm phụ thuộc sau đối chiếu.
+- **Đề xuất sửa:** `plan-check.py` cảnh báo khi hai plan `approved` cùng sửa một file mà không có quan hệ `depends_on`; mẫu plan thêm câu "việc giao cho ticket khác phải được plan của ticket đó ghi nhận".
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-015: Danh sách chạy chỉ một chuỗi phụ thuộc thì một task dừng làm cả phiên trống
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261021-02.
+- **Chuyện gì:** danh sách chỉ có T-007 và T-011 (phụ thuộc T-007); T-007 dừng, phiên không merge được gì mà vẫn tốn phần cố định.
+- **Bằng chứng:** báo cáo RUN-20261021-02.
+- **Đề xuất sửa:** khi lập danh sách chạy, nếu chỉ có một chuỗi thì viết thêm plan độc lập trước khi chạy; một lệnh kiểm danh sách chạy cảnh báo trường hợp này.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-016: `docs/STATUS.md` xung đột ở mọi PR
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #11, #14, #16.
+- **Chuyện gì:** mỗi PR tài liệu sinh lại `docs/STATUS.md`; PR sau luôn xung đột với PR trước, phải gộp và sinh lại bằng tay.
+- **Bằng chứng:** PR #11, #14, #16 đều báo `DIRTY` chỉ vì `docs/STATUS.md`.
+- **Đề xuất sửa:** `.gitattributes` khai báo `docs/STATUS.md merge=ours` cùng một bước sinh lại trang trên nhánh chính sau khi merge; hoặc `status.py --check` chỉ chạy trên nhánh chính.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-017: `merge-if-green.sh` cần tự cập nhật nhánh và chịu được job kẹt
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #6, #11, #14.
+- **Chuyện gì:** script từ chối mọi PR có nhánh cũ hơn nhánh chính, người phải cập nhật nhánh, chờ CI, gọi lại; một lần GitHub ghi job `changes` là `in_progress` dù lần chạy đã `completed success`.
+- **Bằng chứng:** lần chạy 39613776353 (PR #11); PR #6 bị từ chối vì chậm 2 commit.
+- **Đề xuất sửa:** thêm `merge-if-green.sh --update`: cập nhật nhánh, chờ CI của commit mới, rồi merge; coi lần chạy `completed success` là xanh khi trạng thái job còn lệch.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-018: PR bị merge trước khi nhận commit cuối
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** PR #7, #8.
+- **Chuyện gì:** commit duyệt plan được đẩy lên nhánh của PR #7 sau khi người đã merge PR đó; plan và ticket trên nhánh chính vẫn `draft`, phải mở PR #8 để đưa lại.
+- **Bằng chứng:** lịch sử nhánh `claude/plans-foundation` (commit 4a11c4b).
+- **Đề xuất sửa:** `merge-if-green.sh` in mã commit sẽ merge và cảnh báo nếu nhánh có commit trong vài phút gần đây; quy ước: thay đổi sau khi PR đã gửi người duyệt thì làm trên nhánh mới.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-019: Trạng thái ticket và plan đổi tay, hay lệch nhau
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22.
+- **Chuyện gì:** ticket được chuyển `approved` khi plan còn `draft`; plan được duyệt mà ticket còn `planned`; plan thiếu `approved_at` (plan-check bắt được).
+- **Bằng chứng:** lịch sử ticket T-008, T-010, T-013 và plan T-007 phiên bản 2.
+- **Đề xuất sửa:** `scripts/status.py --sync`: plan `approved` hay `stopped` thì ticket chuyển theo; `plan-check.py` cảnh báo khi hai trạng thái lệch nhau.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-020: Routine không dùng cloud session credits; mở phiên bằng `claude --cloud` thì dùng được
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22; RUN-20261021-03.
+- **Chuyện gì:** khuyến mãi cloud session credits (Max $250, hết hạn 2026-11-04 23:59 PT) không áp dụng cho "Projects and Routines". Ba phiên chạy qua routine tính vào hạn mức tuần (đã tới 98%); phiên mở bằng `claude --cloud` trừ vào credit.
+- **Bằng chứng:** https://support.claude.com/en/articles/17152539-cloud-sessions-bonus-credit-promotion; số dư $248, $247 sau phiên thử, $237 sau RUN-20261021-03 (khoảng 24M token, khoảng $10).
+- **Đề xuất sửa:** `docs/ops/staging-and-runs.md` ghi cách mở phiên bằng `claude --cloud` khi còn credit: prompt, các kiểm tra phải tự làm (thay `start-run.yml`); cách tiếp tục phiên khi bị ngắt nằm ở L-008. RUN-20261022-01 chạy bằng cách này, 4 trên 4 task merge. `docs/metrics/token-usage.csv` thêm cột tiền credit đã dùng.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-021: Số ước tính token tạm quá cao
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03, RUN-20261022-01.
+- **Chuyện gì:** số tạm 40M cho task cỡ L; thực tế mỗi task 2M đến 15M (T-013 cỡ L khoảng 24M lúc gần xong), cả phiên 4M đến 97M.
+- **Bằng chứng:** `docs/metrics/token-usage.csv`.
+- **Đề xuất sửa:** đổi số tạm của `scripts/token-usage.py estimate` (ví dụ S 5M, M 15M, L 30M) cho tới khi đủ 5 task mỗi cỡ.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-022: Java của máy dev quá mới làm Gradle không chạy
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21.
+- **Chuyện gì:** máy chỉ có Java 26; Gradle 8.14.3 dừng ngay với lỗi chỉ ghi "26".
+- **Bằng chứng:** log `scripts/check.sh` lần đầu trên máy dev; chạy lại với JDK 21 của Android Studio thì qua.
+- **Đề xuất sửa:** `scripts/check.sh` kiểm phiên bản Java trước khi gọi Gradle và gợi ý `JAVA_HOME` trỏ tới JDK của Android Studio; thêm vào `docs/ops/setup-new-app.md`.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-023: Lỗi thiết kế lọt vào gói bàn giao
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22.
+- **Chuyện gì:** độ mờ của lớp tô mất khi gắn biến trên Figma (56 chỗ, lộ ra khi agent viết plan T-013 so README với ảnh); tên frame màn hình gập trong bản đề xuất khác ADR-0020.
+- **Bằng chứng:** PR #11 (xuất lại 18 ảnh camera); PR #3, sửa mục 7 của bản đề xuất.
+- **Đề xuất sửa:** `scripts/figma-export.py` ghi cả độ mờ của lớp tô vào `context/`; script so danh sách frame trong bản đề xuất với frame trên Figma; bước quét chỉ đọc (design-workflow.md, mục 8.4) kiểm instance có giá trị tô khác component gốc.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-024: Cải tiến đã làm ở app, cần đưa về dự án mẫu
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** PR #10, #12, #16, #19.
+- **Chuyện gì:** bốn thay đổi có ích cho mọi app đã merge ở app: `plan-check.py` cho plan khai báo ảnh thiết kế do ticket khác vẽ (PR #16); `.gitignore` chặn `*.b64` và khóa tài khoản dịch vụ (PR #10); `RemoteSettings.string()` (T-009, PR #12); đo màu điểm ảnh bằng cách vẽ `decorView` ra `Bitmap` thay `captureToImage` (T-007, PR #19; L-006).
+- **Bằng chứng:** các PR đã nêu.
+- **Đề xuất sửa:** mở issue `from-app` ở dự án mẫu cho từng thay đổi; ghi cách đo điểm ảnh vào `CLAUDE.md`, mục test giao diện.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-025: Tài liệu của app còn chỗ cũ sau khi quyết định đổi
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** app. **Nguồn:** phiên có người theo dõi 2026-10-22.
+- **Chuyện gì:** `docs/runs/RUN-20261021-04.md` (`draft`, do RUN-20261021-03 lập) trùng với `RUN-20261022-01`; bản đề xuất mục 11 còn khuôn đường dẫn ảnh `<poseId>/<sha8>/` mà `AssetPath` từ chối (plan T-009 đã đổi sang mã băm trong tên file).
+- **Bằng chứng:** `docs/runs/`; plan T-009, câu hỏi 2.
+- **Đề xuất sửa:** ghi chú "không dùng, thay bằng RUN-20261022-01" trong `RUN-20261021-04`; sửa mục 11 của bản đề xuất theo plan T-009.
+- **Áp dụng:**
+- **Kiểm chứng:**

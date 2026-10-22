@@ -1,16 +1,16 @@
 ---
 ticket: T-011
 title: Nhận ra mất mạng và hộp thoại mất mạng
-status: draft
+status: approved
 version: 2
 risk_score:
 risk_level: high
 token_estimate: 40M
 blocking_points: [permission, core]
 run_order:
-reviewer:
-cross_reviewer:
-approved_at:
+reviewer: Nhật
+cross_reviewer: Tuấn
+approved_at: 2026-10-22
 ---
 
 # PLAN T-011: NHẬN RA MẤT MẠNG VÀ HỘP THOẠI MẤT MẠNG
@@ -303,9 +303,9 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-21); dừng ở R
 
 Phiên bản 2:
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

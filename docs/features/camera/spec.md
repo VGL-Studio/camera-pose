@@ -1,6 +1,6 @@
 ---
 feature: camera
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -284,9 +284,9 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 10. **Lưu ảnh trên Android 8 và 9 cần quyền lưu tệp vào bộ nhớ máy.** App chạy từ Android 8. Từ Android 10, app thêm ảnh vào thư viện máy không cần quyền; Android 8 và 9 chỉ cho làm vậy khi có quyền lưu tệp vào bộ nhớ máy. Nhật chọn khai báo quyền này chỉ cho Android 9 trở xuống và hỏi ở lần lưu đầu (plan T-016, câu 1, phương án A, 2026-10-22).
    - Việc của dev trước khi phát hành (không phải việc của AI): cập nhật khai báo quyền và mục An toàn dữ liệu (Data safety) trên Play Console; kiểm tra trang quyền trên Play hiển thị quyền lưu tệp (và quyền đọc bộ nhớ đi kèm trên Android 9 trở xuống).
    - Chữ của hai thông báo chưa có trong bảng chữ của thiết kế. Đề xuất của AI: từ chối thì "Cần quyền lưu ảnh để lưu vào thư viện." kèm "Thử lại"; từ chối và không hỏi lại thì "Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện." kèm "Mở cài đặt". Hai thông báo dùng cùng kiểu với thông báo lưu lỗi của `ReviewScreen_save-error_dark`.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 11. **Có ghi sự kiện cho kết quả hỏi quyền lưu không?** Spec không có sự kiện này. Đề xuất của AI: không ghi; tỷ lệ máy Android 9 trở xuống từ chối quyền lưu xem gián tiếp qua `photo_saved` trên `photo_captured` theo phiên bản Android. Nếu cần đo trực tiếp thì thêm sự kiện mới vào mục 6 trước (điểm chặn 4).
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 10. Lịch sử
 

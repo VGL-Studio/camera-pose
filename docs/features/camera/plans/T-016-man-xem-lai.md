@@ -1,7 +1,7 @@
 ---
 ticket: T-016
 title: Màn xem lại, lưu, chia sẻ, tư thế tiếp
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -10,7 +10,7 @@ blocking_points: [analytics, permission]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Nhật                   # người duyệt
 cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
-approved_at:
+approved_at: 2026-10-22
 ---
 
 # PLAN T-016: MÀN XEM LẠI, LƯU, CHIA SẺ, TƯ THẾ TIẾP
@@ -420,9 +420,13 @@ Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/m
 - Trả lời: Đồng ý với đề xuất của AI.
 
 10. **(Phiên bản 2) Chữ của hai thông báo quyền lưu.** Bảng chữ của thiết kế không có (spec câu hỏi 10). Đề xuất của AI: từ chối thì "Cần quyền lưu ảnh để lưu vào thư viện." kèm "Thử lại"; từ chối và không hỏi lại thì "Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện." kèm "Mở cài đặt". Cùng kiểu thông báo với `ReviewScreen_save-error_dark`. Cần đưa vào bảng chữ của README thiết kế (việc của người giữ thiết kế, không thuộc file của plan này).
+- Trả lời: Đồng ý với đề xuất của AI.
 11. **(Phiên bản 2) Có cần ảnh thiết kế và screenshot test cho hai thông báo quyền không?** Không có ảnh thiết kế. Đề xuất của AI: không thêm ảnh chuẩn, vì bố cục giống hệt `save-error` (đã có ảnh chuẩn) chỉ khác chữ và nút; kiểm bằng test giao diện và test khung thấp ở mục 4. Nếu muốn có ảnh: thêm `ReviewScreen_permission-blocked_dark` vào Figma và gói thiết kế trước, rồi plan thêm screenshot test cùng tên.
+- Trả lời: Đồng ý với đề xuất của AI.
 12. **(Phiên bản 2) Cho phép trong cài đặt rồi quay lại: tự lưu hay chờ bấm?** Spec ghi "thông báo ẩn và bấm lưu là lưu được". Đề xuất của AI: không tự lưu, để người dùng thấy rõ việc gì xảy ra; nhưng sau khi cho phép ở hộp hỏi của hệ thống (không qua cài đặt) thì lưu tiếp ngay, vì người dùng vừa bấm lưu.
+- Trả lời: Đồng ý với đề xuất của AI.
 13. **(Phiên bản 2) Sự kiện cho kết quả hỏi quyền lưu.** Spec câu hỏi 11. Đề xuất của AI: không ghi; không dùng `permissionDialogShown` của T-026 vì không ghi sự kiện. Nếu muốn đo, thêm sự kiện vào spec mục 6 trước rồi làm ở plan sau.
+- Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
@@ -432,9 +436,9 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-22); thay bằng 
 
 Phiên bản 2:
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

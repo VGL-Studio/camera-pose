@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_title">โพสสวยได้ ไม่ต้องเดา</string>
+    <string name="onboarding_body">เลือกท่าโพส ยืนให้ตรงเส้นโครง แล้วแตะเพื่อถ่าย รูปจะบันทึกลงคลังภาพโดยไม่มีเส้นโครง</string>
+    <string name="onboarding_point_poses">ท่าโพสกว่า 200 ท่า: คนเดียว คู่รัก กลุ่มเพื่อน</string>
+    <string name="onboarding_point_adjust">ปรับความโปร่งใส ขนาด และตำแหน่งของเส้นโครง</string>
+    <string name="onboarding_point_saved">บันทึกท่าโพสที่ชอบไว้ถ่ายอีกครั้งภายหลัง</string>
+    <string name="onboarding_enable_camera">เปิดกล้อง</string>
+    <string name="onboarding_note">แอปต้องใช้สิทธิ์กล้องเพื่อแสดงภาพตัวอย่าง รูปภาพจะเก็บไว้ในเครื่องของคุณเท่านั้น</string>
+</resources>

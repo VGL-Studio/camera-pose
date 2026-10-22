@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pose outline of the onboarding illustration: frame "pose-outline" of the "couple" card in the Figma design
+     (node in frame 18:129), exported by the dev to docs/features/onboarding/design/handoff/pose_outline.svg.
+     Head and body, 2 dp stroke, no fill. Color comes from the tint. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="70dp"
+    android:height="140dp"
+    android:viewportWidth="70"
+    android:viewportHeight="140">
+    <path
+        android:pathData="M44.3333 14C44.3333 19.1546 40.1546 23.3333 35 23.3333C29.8453 23.3333 25.6667 19.1546 25.6667 14C25.6667 8.8453 29.8453 4.66663 35 4.66663C40.1546 4.66663 44.3333 8.8453 44.3333 14Z"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFFFF" />
+    <path
+        android:pathData="M30.3333 25.6666H39.6667C46.6667 26.8333 51.3333 29.1666 52.5 33.8333L56 58.3333L57.1667 77C57.1667 80.5 52.5 80.5 52.5 77L50.1667 60.6666L47.8333 45.5L46.6667 68.8333L49 87.5L47.8333 133L40.8333 134.167L38.5 93.3333L35 87.5L31.5 93.3333L29.1667 134.167L22.1667 133L21 87.5L23.3333 70L22.1667 65.3333L8.16667 57.1666C5.83334 54.8333 7 50.1666 9.33334 49L17.5 32.6666C19.8333 28 24.5 26.25 30.3333 25.6666Z"
+        android:strokeLineJoin="round"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFFFF" />
+</vector>

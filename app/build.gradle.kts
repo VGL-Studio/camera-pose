@@ -108,6 +108,7 @@ dependencies {
     implementation(project(":feature:sample"))
     implementation(project(":feature:loading"))
     implementation(project(":feature:camera"))
+    implementation(project(":feature:onboarding"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

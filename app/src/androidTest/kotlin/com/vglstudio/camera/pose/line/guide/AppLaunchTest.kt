@@ -3,6 +3,8 @@ package com.vglstudio.camera.pose.line.guide
 import android.Manifest
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
@@ -12,10 +14,13 @@ import org.junit.runner.RunWith
 import org.junit.runners.model.Statement
 
 /**
- * Smoke test on a real emulator: the app starts, goes through loading and reaches its start screen, the camera
- * (flag on in staging, T-013). Runs in CI only. No camera state is checked: the CI emulator may have no camera.
+ * Smoke test on a real emulator: the app starts, goes through loading, passes onboarding with "Turn on camera" and
+ * reaches the camera (flags on in staging, T-012, T-013). Runs in CI only. No camera state is checked: the CI
+ * emulator may have no camera. A fresh install always shows onboarding; the test also accepts landing on the camera
+ * directly, so it does not depend on data left on the emulator.
  * The camera permission is granted before launch: the system permission prompt is another activity, and while it
- * covers the app the test finds no Compose hierarchy at all.
+ * covers the app the test finds no Compose hierarchy at all. With the permission granted, "Turn on camera" goes to the
+ * camera without a prompt.
  * Checks only the stable end state: the loading screen is brief and covered by unit and JVM UI tests. A fresh
  * staging install shows the ad consent form over the app, so the start screen is looked up in the semantics tree
  * rather than asserted as displayed (CLAUDE.md, step 10).
@@ -42,13 +47,23 @@ class AppLaunchTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun appStarts_andReachesStartScreen() {
+    fun appStarts_passesOnboarding_andReachesCamera() {
         composeRule.waitUntil(timeoutMillis = START_SCREEN_TIMEOUT_MILLIS) {
-            composeRule.onAllNodesWithTag("camera_screen").fetchSemanticsNodes().isNotEmpty()
+            exists(ONBOARDING_SCREEN) || exists(CAMERA_SCREEN)
+        }
+        if (exists(ONBOARDING_SCREEN)) {
+            composeRule.onNodeWithTag(ENABLE_CAMERA).performClick()
+            composeRule.waitUntil(timeoutMillis = CAMERA_TIMEOUT_MILLIS) { exists(CAMERA_SCREEN) }
         }
     }
 
+    private fun exists(tag: String): Boolean = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+
     private companion object {
         const val START_SCREEN_TIMEOUT_MILLIS = 60_000L
+        const val CAMERA_TIMEOUT_MILLIS = 10_000L
+        const val ONBOARDING_SCREEN = "onboarding_screen"
+        const val ENABLE_CAMERA = "onboarding_enable_camera"
+        const val CAMERA_SCREEN = "camera_screen"
     }
 }

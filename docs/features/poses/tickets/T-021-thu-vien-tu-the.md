@@ -5,10 +5,10 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: [KB-1, KB-2, KB-3, KB-5]
 owner: Nhật
-status: planned
+status: approved
 risk: high
 size: L
-depends_on: [T-009, T-007]
+depends_on: [T-009, T-007, T-014]
 sprint:
 plan: features/poses/plans/T-021-thu-vien-tu-the.md
 created: 2026-10-21

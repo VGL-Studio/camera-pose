@@ -1,16 +1,16 @@
 ---
 ticket: T-021
 title: Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 45M          # cỡ L, số gợi ý 9.5M; nâng lên vì là module feature mới như T-013 (thật 60.4M), xem mục 8 câu 12
 blocking_points: [analytics, core]  # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-22
 ---
 
 # PLAN T-021: THƯ VIỆN TƯ THẾ: LƯỚI, NHÓM, ĐÃ LƯU, TẢI VÀ LỖI
@@ -333,38 +333,51 @@ Bảng điểm dưới đây chỉ để tham khảo:
 
 1. **`StickerChip`, `SelectedBadge` lấy từ T-014.** Ticket T-021 chỉ phụ thuộc T-009, T-007; T-014 cũng ghi tạo hai thành phần này.
    - Đề xuất của AI: T-021 dùng của T-014, chạy sau T-014; dev thêm T-014 vào `depends_on` của ticket T-021 để phiên tự chạy bỏ qua T-021 khi T-014 dừng. Nếu muốn T-021 chạy trước, plan T-014 và plan này phải đổi: T-021 tạo hai thành phần.
+   - Trả lời: Đồng ý với đề xuất của AI.
 2. **Ảnh lỗi có dòng tổng số và chip** (`PosesScreen_error_*`), nhưng khi đọc catalog lỗi app chưa có số tư thế hay nhóm nào. Đây là mâu thuẫn giữa thiết kế và dữ liệu.
    - Đề xuất của AI: trạng thái lỗi chỉ có thanh trên và `StateMessage`; vùng dòng tổng số và chip trên ảnh so sánh sẽ khác thiết kế. Người làm thiết kế cập nhật frame Figma sau.
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Thứ tự khi lưu ngay trên màn.** Spec xếp tư thế đã lưu lên đầu. Nếu xếp lại ngay, thẻ vừa bấm lưu nhảy lên đầu lưới.
    - Đề xuất của AI: thứ tự cố định khi lưới đang hiện; đổi chip hay mở lại thư viện thì xếp lại. Ở "Đã lưu", bỏ lưu một thẻ thì thẻ còn đó (trạng thái chưa lưu) tới khi đổi chip, để người dùng lưu lại được nếu bấm nhầm.
+   - Trả lời: Đồng ý với đề xuất của AI.
 4. **Mã nhóm trong catalog sang màu nền ảnh.** `AppColors` có 8 màu nhóm; catalog mẫu dùng `women`, `men`, `couples`.
    - Đề xuất của AI: `women`, `men`, `couples`, `friends`, `family`, `kids`, `travel`, `cafe`; mã khác dùng `surfaceVariant`. Người làm nội dung giữ đúng các mã này.
+   - Trả lời: Đồng ý với đề xuất của AI.
 5. **Chữ chưa có trong bảng chữ:** thông báo lưu lỗi "Chưa lưu được tư thế. Thử lại sau."; mô tả cho trình đọc màn hình "Quay lại", "Cài đặt", "Lưu tư thế", "Bỏ lưu tư thế", "Tải lại ảnh".
    - Đề xuất của AI: dùng các chữ này; dev sửa nếu muốn chữ khác.
+   - Trả lời: Đồng ý với đề xuất của AI.
 6. **Cỡ khung xương và chữ của thẻ.** `context/` cho khung xương cao 274, thẻ cao 284; README ghi "cùng cỡ thẻ" và spec yêu cầu không xô lệch lưới. Khoảng cách 2 giữa tên và dòng phụ nằm ngoài hệ thống.
    - Đề xuất của AI: khung xương cùng cỡ thẻ có tên một dòng (theo README và spec); tên tối đa 2 dòng, thẻ tên hai dòng cao hơn khung xương 24 dp (chỉ hàng đó đổi khi ảnh về). Khoảng 2 dp viết bằng `Spacing.xs / 2`, không thêm token.
+   - Trả lời: Đồng ý với đề xuất của AI.
 7. **Định dạng và tần suất sự kiện.** `saved` là `true`/`false`. `content_load_failed` của ảnh nhỏ ghi mỗi lần tải lỗi, nên khi mất mạng có thể ghi nhiều lần trong một lần mở thư viện.
    - Đề xuất của AI: giữ như vậy để số liệu đúng với số lần lỗi; nếu chỉ muốn đếm "lần mở thư viện có lỗi" thì ghi tối đa một lần cho mỗi tư thế mỗi lần mở màn.
+   - Trả lời: Đồng ý với đề xuất của AI.
 8. **Lỗi catalog do mất mạng.** Spec: hộp thoại mạng thay cho thông báo lỗi riêng.
    - Đề xuất của AI: dưới hộp thoại màn hiện khung xương; hộp thoại đóng bằng "Thử lại" thì tải lại. Cờ hộp thoại tắt thì hiện lỗi thường, để không chờ mãi (bài học 7).
+   - Trả lời: Đồng ý với đề xuất của AI.
 9. **Nút cài đặt.** Màn cài đặt (T-025) chưa có.
    - Đề xuất của AI: như mục 6; ảnh screenshot luôn có nút để giống thiết kế.
+   - Trả lời: Đồng ý với đề xuất của AI.
 10. **Thẻ log `Poses` trùng với `:core:poses`.** CLAUDE.md: thẻ log là tên feature.
     - Đề xuất của AI: giữ `Poses` theo quy tắc; nội dung dòng log của feature (lọc, lưu, thử lại) khác dòng của core (catalog, tải file).
+    - Trả lời: Đồng ý với đề xuất của AI.
 11. **Chữ mẫu trên ảnh thiết kế lệch bảng chữ.** Ảnh ghi dòng phụ "Du lịch · 3 bước", "Cà phê · 3 bước" (tên nhóm), bảng chữ và spec ghi "loại · số bước" (Một người, Cặp đôi, Nhóm).
     - Đề xuất của AI: theo bảng chữ và spec; chữ mẫu trên ảnh chỉ để minh họa (README mục 2).
+    - Trả lời: Đồng ý với đề xuất của AI.
 12. **Cỡ task và `token_estimate`.** Số gợi ý cho cỡ L là 9.5M (trung vị 7 task), nhưng T-013, cũng tạo module feature mới với thành phần core, dùng 60.4M. Plan có khoảng 50 file.
     - Đề xuất của AI: ghi 45M, không tách ticket. Nếu muốn nhẹ hơn, tách thành hai plan chạy nối tiếp: (a) `PoseCard`, `PoseCardSkeleton`, biểu tượng, catalog; (b) module `:feature:poses` và điều hướng.
+    - Trả lời: Đồng ý với đề xuất của AI.
 13. **Lúc catalog đang tải** (thiết kế không có trạng thái này; thường không thấy vì màn loading đã tải catalog).
     - Đề xuất của AI: thanh trên và 6 khung xương, không có dòng tổng số và chip.
+    - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:**
 
 ## 10. Nhật ký thực hiện
 

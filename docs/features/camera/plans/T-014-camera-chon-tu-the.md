@@ -1,16 +1,16 @@
 ---
 ticket: T-014
 title: Camera: chọn tư thế, nét viền, thẻ bước
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 30M          # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn             # bắt buộc khi risk_level là high
+approved_at: 2026-10-22
 ---
 
 # PLAN T-014: CAMERA: CHỌN TƯ THẾ, NÉT VIỀN, THẺ BƯỚC
@@ -391,30 +391,47 @@ Bản giả (`PoseFakes.kt`): `PoseFixtures.catalog()` có nhóm `women` ("Nữ"
 ## 8. Câu hỏi cho người duyệt
 
 1. **Khi nào camera ở trạng thái không có tư thế?** Spec KB-1 luôn chọn sẵn tư thế dùng lần trước hoặc tư thế mặc định, nên với catalog có tư thế thì không bao giờ "chưa chọn tư thế nào". Ảnh `no-pose` lại có dải đầy ô và không ô nào được chọn. Đề xuất của AI: chỉ xảy ra khi catalog không có tư thế nào; chạm lại ô đang chọn không bỏ chọn. Nếu muốn người dùng tự bỏ tư thế (chụp không nét viền) thì cần thêm tiêu chí vào spec, ví dụ chạm lại ô đang chọn để bỏ chọn.
+- Trả lời: Đồng ý với đề xuất của AI.
 2. **Thứ tự dải có giữ cố định trong lúc camera mở không?** Chọn một ô thì ô đó thành "đã dùng gần đây" và theo luật xếp sẽ nhảy lên đầu, làm dải xáo trộn dưới ngón tay và làm "Tư thế tiếp" (T-016) không còn là ô bên cạnh. Đề xuất của AI: thứ tự chụp lại một lần khi camera mở, giữ tới khi màn camera bị hủy (thường là khi mở lại app); tư thế vừa lưu ở thư viện (T-021) cũng lên đầu ở lần mở sau.
+- Trả lời: Đồng ý với đề xuất của AI.
 3. **Ai ghi `pose_selected` với `source` `detail`?** Spec camera (mục 6) ghi sự kiện "khi mở camera từ chi tiết tư thế", spec poses (KB-3, mục 6) và ticket T-022 ghi khi bấm "Chụp với tư thế này". Hai bên cùng ghi thì đếm đôi. Đề xuất của AI: T-022 ghi lúc bấm nút; camera chỉ chọn tư thế và ghi "đã dùng".
+- Trả lời: Đồng ý với đề xuất của AI.
 4. **`reason` của `content_load_failed`.** Spec camera liệt kê `network`, `not_found`, `other`; spec poses có thêm `timeout`, và `:core:poses` có `LoadFailureReason.TIMEOUT` (chờ quá 15 giây). Đề xuất của AI: dùng đúng `analyticsValue` của `:core:poses` (có `timeout`) để hai màn cùng cách đếm, và bổ sung `timeout` vào spec camera. Nếu không, gộp `timeout` vào `network`.
+- Trả lời: Đồng ý với đề xuất của AI.
 5. **Chạm ô đang lỗi.** Spec ghi "chạm lại để thử tải". Đề xuất của AI: chạm ô lỗi vừa chọn tư thế vừa tải lại ảnh nhỏ (chọn không cần ảnh nhỏ). Nếu chỉ muốn tải lại mà không chọn thì người dùng phải chạm hai lần.
+- Trả lời: Đồng ý với đề xuất của AI.
 6. **Khi nào tải nét viền.** Spec mục 7 ghi nét viền tải "như trên" (khi ô hiện ở dải), nét viền tư thế đang chọn tải trước. Đề xuất của AI: chỉ tải nét viền khi chọn tư thế, vì bộ khởi đầu đã có trên máy và tải trước nét viền của mọi ô hiện ra tốn dữ liệu mà ít dùng. Đổi ý thì chỉ thêm một lần tải trong `onThumbShown`.
+- Trả lời: Đồng ý với đề xuất của AI.
 7. **Giao diện khi nét viền tải lỗi.** Spec mục 7 có "Chưa tải được nét viền" kèm "Thử lại" trong thẻ bước, nhưng thiết kế không có trạng thái này và bảng chữ không có hai chữ đó. Đề xuất của AI: thẻ bước giữ nền, viền, vị trí như thường, chữ "Chưa tải được nét viền" ở chỗ nội dung bước, nút chữ "Thử lại" thay hai mũi tên, không có nhãn số bước; người dùng không đọc được bước cho tới khi tải lại xong. Cần bổ sung vào thiết kế nếu muốn khác.
+- Trả lời: Đồng ý với đề xuất của AI.
 8. **Catalog tải lỗi trên camera.** Bình thường camera chỉ mở sau khi loading đã có catalog; nhưng khi hệ thống khôi phục app vào thẳng camera (loading đã rời ngăn điều hướng) thì catalog phải tải lại và có thể lỗi. Thiết kế không có trạng thái này. Đề xuất của AI: vùng chip và dải hiện "Chưa tải được danh sách tư thế." và "Thử lại"; camera vẫn chụp được, không có nét viền. Khi đang tải thì vùng này trống.
+- Trả lời: Đồng ý với đề xuất của AI.
 9. **Ô đang chọn khi camera chưa sẵn sàng, và nút đổi camera (việc còn mở từ T-013).** Ảnh `starting`, `permission-denied`, `error` không có ô nào được chọn, trong khi theo KB-1 luôn có tư thế được chọn. Đề xuất của AI: vẫn đánh dấu ô đang chọn (người dùng chọn được ở các trạng thái này, KB-7, nên cần thấy mình đã chọn gì); ảnh so sánh lệch một ô. Cùng ba ảnh này, nút đổi camera đang mờ theo plan T-013 còn thiết kế để trắng (báo cáo RUN-20261022-01). Việc này ngoài phạm vi ticket; nếu người duyệt chốt "trắng" trước khi duyệt plan này, T-014 đổi `enabled` của nút đổi camera trong `CaptureRow` (`CameraControls.kt`, đã có trong mục 3.2) thành luôn bật khi không đang chụp, và ghi lại ảnh chuẩn trong cùng lượt; `CameraScreenTest` không có test nào khẳng định nút này mờ. Không chốt thì giữ nguyên.
+- Trả lời: Đồng ý với đề xuất của AI.
 10. **Thẻ bước ở màn hình thấp.** Ở khung 360 x 640, khung xem trước chỉ rộng khoảng 223 dp; thẻ bước theo thiết kế còn khoảng 25 dp cho chữ. Đề xuất của AI: khung hẹp hơn 300 dp thì hai mũi tên xuống hàng dưới (chữ rộng khoảng 120 dp, thẻ cao hơn). Cách khác: thẻ bước rộng hết màn hình, đè ra ngoài khung xem trước (trái README mục 6).
+- Trả lời: Đồng ý với đề xuất của AI.
 11. **Mô tả cho trình đọc màn hình.** Bảng chữ không có mô tả cho mũi tên, thẻ bước, ô lỗi. Đề xuất của AI: "Bước trước", "Bước sau", hành động "Ẩn thẻ bước", "Hiện thẻ bước" cho nút "Bước", ô dùng tên tư thế, ô lỗi "<tên>, chưa tải được ảnh, chạm để thử lại".
+- Trả lời: Đồng ý với đề xuất của AI.
 12. **`selected` trên mọi `CameraIconButton`** (ghi chú rà soát T-013: TalkBack có thể đọc "chưa chọn" cho cả nút không phải công tắc). T-014 không thêm nút `CameraIconButton` nào. Đề xuất của AI: sửa ở T-015, vì T-015 thêm bốn nút vào cột công cụ (chỉnh, lật, khóa, hiện tư thế; ba nút có trạng thái đang bật), bằng một tham số cho biết nút có phải công tắc không, mặc định giữ hành vi cũ để không phải sửa test của T-013.
+- Trả lời: Đồng ý với đề xuất của AI.
 13. **Chọn tự động có tính là "đã dùng" không?** Đề xuất của AI: không. Tư thế tự chọn lúc mở không ghi `markUsed` và không ghi `pose_selected`; chỉ chọn của người dùng (ở dải, từ chi tiết, tư thế tiếp) mới tính.
+- Trả lời: Đồng ý với đề xuất của AI.
 14. **`onNextPose()` làm sẵn ở T-014.** Đề xuất của AI: T-014 làm hàm và test (cùng sự kiện `pose_selected` với `source` `next`), T-016 chỉ nối nút "Tư thế tiếp" và đường quay về camera (`NextPoseRequests` của plan T-016, gọi `onNextPose()` từ `CameraRoute`); phương án A của plan T-016 cần sửa theo, vì nó đang giả định dải nằm trong `CameraViewModel`. Nếu muốn ranh giới ticket chặt hơn thì để toàn bộ cho T-016 (T-016 khi đó phải sửa `PoseViewModel`).
+- Trả lời: Đồng ý với đề xuất của AI.
 15. **Lỗi ghi "đã dùng" và lỗi lưu ẩn thẻ bước không báo người dùng.** `CLAUDE.md` (bước 4) muốn lỗi ghi đưa vào `UiState` để báo; thiết kế không có chữ cho hai lỗi này. Đề xuất của AI: như T-013 câu 4, chỉ ghi log; lựa chọn vẫn có hiệu lực trong lần dùng này.
+- Trả lời: Đồng ý với đề xuất của AI.
 16. **Bộ nhớ ảnh nhỏ.** Ảnh nhỏ đã giải mã giữ trong ViewModel (khoảng 260 KB mỗi ô sau khi thu nhỏ). Với catalog mẫu 18 tư thế là khoảng 5 MB. Đề xuất của AI: chưa giới hạn ở T-014; khi catalog thật vượt khoảng 100 tư thế thì thêm bộ đệm có giới hạn (ticket riêng).
+- Trả lời: Đồng ý với đề xuất của AI.
 17. **Cỡ task.** Khoảng 55 file, như T-013 (T-013 dùng 60.4M token, 3 vòng CI). Người duyệt T-013 chọn giữ một plan. Nếu muốn tách: T-014a gồm bốn thành phần core, `PoseLibrary.from`, `PoseViewModel` phần chip, dải, chọn tư thế, ảnh nhỏ, `pose_selected`, `content_load_failed` (thumbnail), mở từ chi tiết; T-014b gồm nét viền, thẻ bước, ẩn hiện và khóa `camera_steps_hidden`, trạng thái không có tư thế, nét viền lỗi, ba ảnh thiết kế mới. Đề xuất của AI: giữ một plan, vì hai phần dùng chung `PoseViewModel` và cùng ghi lại bảy ảnh chuẩn.
+- Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

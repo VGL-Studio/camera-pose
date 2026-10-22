@@ -5,10 +5,10 @@ feature: settings
 spec: features/settings/spec.md
 scenarios: [KB-1, KB-2, KB-3, KB-4, KB-5, KB-6]
 owner: Nhật
-status: planned
+status: approved
 risk: high
 size: M
-depends_on: [T-007]
+depends_on: [T-007, T-021, T-016]
 sprint:
 plan: features/settings/plans/T-025-man-cai-dat.md
 created: 2026-10-21

@@ -1,16 +1,16 @@
 ---
 ticket: T-016
 title: Màn xem lại, lưu, chia sẻ, tư thế tiếp
-status: draft                # draft | approved | stopped | done
+status: approved               # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 25M          # số gợi ý cỡ L là 9.5M; chỉnh lên, lý do ở mục 5
 blocking_points: [analytics] # thêm permission nếu người duyệt chọn phương án A ở mục 8 câu 1
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-22
 ---
 
 # PLAN T-016: MÀN XEM LẠI, LƯU, CHIA SẺ, TƯ THẾ TIẾP
@@ -348,22 +348,31 @@ Bản giả: `FakePhotoStore` có `savedUri = "content://media/external/images/m
    - B. Không thêm quyền. Android 8 và 9 lưu vào thư mục ảnh riêng của app trên bộ nhớ ngoài (`getExternalFilesDir(DIRECTORY_PICTURES)`, không cần quyền) rồi báo cho hệ thống quét file. Ảnh có thể hiện trong app Ảnh tùy máy, và **bị xóa khi gỡ app**, trái spec mục 6 ("gỡ app không xóa"). Cần ghi điều này vào spec.
    - C. Nâng `minSdk` lên 29. Ngoài phạm vi plan (cấu hình build, điểm chặn 7, ảnh hưởng mọi module) và bỏ máy Android 8, 9.
    - Đề xuất của AI: A, vì giữ được lời hứa "ảnh nằm trong thư viện máy, gỡ app không mất" cho mọi máy. Plan đã liệt kê `app/src/main/AndroidManifest.xml` cho phương án A. Nếu chọn A, AI sẽ tăng plan lên phiên bản 2 để thêm luồng hỏi quyền khi lưu, chữ khi bị từ chối và test tương ứng, sau khi spec được cập nhật.
+- Trả lời: Đồng ý với đề xuất của AI.
 2. **Nút chính sau khi đã lưu.** Thiết kế không có trạng thái "đã lưu". Đề xuất của AI: nút giữ chữ "Lưu vào thư viện" nhưng mờ, không bấm được, để người dùng không lưu hai bản. Nếu muốn rõ hơn (ví dụ "Đã lưu" kèm dấu ✓), cần thêm vào thiết kế và bảng chữ trước.
+- Trả lời: Đồng ý với đề xuất của AI.
 3. **Lưu lỗi không phải vì hết bộ nhớ.** Thiết kế chỉ có chữ cho hết bộ nhớ. Đề xuất của AI: lỗi khác hiện cùng kiểu thông báo với chữ "Không lưu được ảnh." và nút "Thử lại" (chữ mới, cần đưa vào bảng chữ của thiết kế). Không đồng ý thì mọi lỗi dùng chữ hết bộ nhớ, dù có thể sai. App coi là hết bộ nhớ khi còn dưới 5 MB trống trước khi ghi, hoặc khi hệ thống báo `ENOSPC`.
+- Trả lời: Đồng ý với đề xuất của AI.
 4. **Tên thư mục ảnh.** Bản đề xuất ghi `Pictures/<TênApp>/`. Tên app đầy đủ "Camera Pose: Lines and Guides" có dấu hai chấm, không dùng được trong tên thư mục trên mọi máy. Đề xuất của AI: `Pictures/Camera Pose/`, tên file `CameraPose_<yyyyMMdd_HHmmss>.jpg`, không dịch theo ngôn ngữ máy.
+- Trả lời: Đồng ý với đề xuất của AI.
 5. **Rời màn xem lại bằng nút đóng.** Spec liệt kê "Chụp lại", "Tư thế tiếp" và nút quay lại; thiết kế có thêm nút `close` ở thanh trên. Đề xuất của AI: nút đóng làm giống nút quay lại (hỏi khi chưa lưu, về camera).
+- Trả lời: Đồng ý với đề xuất của AI.
 6. **Nút quay lại khi đang lưu.** Đề xuất của AI: bỏ qua cho tới khi lưu xong (thường dưới một giây), để không bỏ dở một lần ghi vào thư viện.
+- Trả lời: Đồng ý với đề xuất của AI.
 7. **Tiêu đề hộp chọn khi chia sẻ và mô tả cho trình đọc màn hình.** Không có trong bảng chữ. Đề xuất của AI: hộp chọn "Chia sẻ ảnh"; nút đóng "Đóng"; ba nút phụ đọc theo chữ của chúng.
+- Trả lời: Đồng ý với đề xuất của AI.
 8. **Ảnh camera trước.** Ảnh lưu như CameraX ghi (không lật gương), đúng câu trả lời câu 7 của plan T-013. Màn xem lại cũng hiện như vậy, nên ảnh trên màn xem lại có thể ngược với khung xem trước. Đề xuất của AI: giữ như vậy; muốn lật thì làm ở plan riêng.
+- Trả lời: Đồng ý với đề xuất của AI.
 9. **Cỡ task và có nên tách không.** Plan khoảng 45 file, một test emulator chỉ chạy trên CI, và phần "Tư thế tiếp" phụ thuộc T-014. Đề xuất của AI: giữ một plan với phương án A và B như mục 3.1; vì T-014 làm sẵn `onNextPose()`, phần "Tư thế tiếp" của T-016 chỉ còn một dòng nối, nên tách không còn nhiều lợi. Nếu người duyệt vẫn muốn chắc hơn: tách T-016a (màn xem lại, lưu, chia sẻ, hỏi bỏ ảnh, đếm, `photo_saved`; khoảng 35 file) và T-016b (ô ảnh vừa chụp và "Tư thế tiếp", chạy sau T-014; khoảng 8 file).
+- Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

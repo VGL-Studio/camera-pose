@@ -1,16 +1,16 @@
 ---
 ticket: T-012
 title: Màn chào và xin quyền camera
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 20.0M        # cỡ M, số gợi ý của scripts/token-usage.py estimate (tạm, chưa đủ 5 task)
 blocking_points: [analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                    # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-22
 ---
 
 # PLAN T-012: MÀN CHÀO VÀ XIN QUYỀN CAMERA
@@ -329,37 +329,37 @@ Bảng điểm dưới đây chỉ để tham khảo:
 
 1. **Nét viền tư thế trong hình minh họa lấy ở đâu?** `context/` chỉ ghi khung của hai nét (đầu và thân), không có đường vẽ; repo chưa có file SVG; phiên tự chạy không dùng Figma (figma-export.py chỉ chạy trong phiên có người).
    - Đề xuất của AI: dev xuất frame "pose-outline" của thẻ "couple" ra SVG, lưu `docs/features/onboarding/design/handoff/pose_outline.svg` trước phiên (ghi vào "Việc dev làm trước khi kích hoạt" của danh sách chạy). Không có file thì AI vẽ tay một nét viền người đứng gần giống, đúng khung 70 x 140 và vị trí hai nét, ghi vào Cần người xem; dev thay bằng nét thật ở plan sau nếu cần.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 2. **Màn chào khi cờ camera tắt.** Màn chào chỉ dẫn tới camera; nếu cờ camera tắt mà cờ màn chào bật thì "Bật camera" không có nơi để đến.
    - Đề xuất của AI: màn chào chỉ có khi cả hai cờ bật (`onboardingAvailable = ONBOARDING && CAMERA` trong `MainScreenChooser`, không đổi `chooseMainScreen`). Cờ camera tắt thì vào màn mẫu như plan T-010, câu 3. Sau màn chào luôn điều hướng tới camera.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Đọc trạng thái "đã qua" lỗi thì làm gì?** (ghi chú rà soát T-010)
    - Đề xuất của AI: log `warn` và coi là chưa qua, tức hiện màn chào. Người đã qua phải bấm thêm một lần, còn người mới không bị bỏ lỡ màn giải thích trước khi hỏi quyền. Chỉ bắt `IOException` (cách của dự án); lỗi khác vẫn ném như mọi chỗ đọc DataStore khác.
-   - Trả lời:
+   - Trả lời:  Đồng ý với đề xuất của AI.
 4. **Quyền camera đã có sẵn khi màn chào hiện** (ví dụ cài đè, hay quyền được cấp bằng `adb`).
    - Đề xuất của AI: không hỏi, không ghi `camera_permission_result` (hệ thống không trả kết quả nào), vẫn ghi `onboarding_complete` và sang camera. Spec ghi "khi hệ thống trả kết quả quyền thì ghi", nên không ghi là đúng chữ của spec; tỷ lệ cho phép (`granted` trên `onboarding_complete`) sẽ thấp hơn thật một chút trong trường hợp hiếm này.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 5. **Quyết định còn mở của RUN-20261022-01: ghi `camera_permission_result: denied` khi quyền đã bị từ chối vĩnh viễn (không có hộp).** Ở màn chào điều này hiếm (chỉ lần qua màn chào đầu tiên, và chỉ khi quyền đã bị khóa từ trước), nhưng cùng sự kiện với camera nên nên làm giống nhau.
    - Đề xuất của AI: T-012 làm giống camera hiện nay (ghi `denied`). Nếu người duyệt quyết không ghi khi không có hộp, AI đề xuất cách đo: hệ thống trả kết quả trong dưới 300 ms sau khi gọi, hoặc `shouldShowRequestPermissionRationale` là `false` cả trước và sau khi hỏi; sửa cả camera và màn chào trong một plan riêng, cần spec ghi rõ.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 6. **Hộp đồng ý quảng cáo và "đúng 2 chạm".** Ở vùng cần đồng ý (ví dụ EEA), `MainActivity` hiện hộp đồng ý UMP khi mở app lần đầu (ADR-0013). Nếu người dùng chưa trả lời lúc loading xong, hộp còn phủ lên màn chào và thêm chạm.
    - Đề xuất của AI: không đổi trong ticket này (điểm chặn 5); coi hộp đồng ý là yêu cầu pháp lý, không tính vào 2 chạm của spec. Nếu muốn đo, thêm câu hỏi vào spec `onboarding` mục đo kết quả.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 7. **Hình minh họa co tới đâu ở màn thấp?** README cho phép co trước tiên nhưng không ghi mức thấp nhất.
    - Đề xuất của AI: thấp nhất 160 dp (thẻ khoảng 114 dp, vẫn nhận ra ba thẻ và nét viền). Ở 360 x 640 phần chữ vẫn cần cuộn với mọi ngôn ngữ.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 8. **`AppLaunchTest` bấm qua màn chào.** Test emulator sẽ bấm "Bật camera" khi hộp đồng ý quảng cáo có thể đang phủ lên app. Bấm của Compose test gửi thẳng vào view của app nên AI cho là vẫn được, nhưng chưa thử (L-001).
    - Đề xuất của AI: giữ bước bấm (kiểm KB-1 trên app thật). Nếu CI cho thấy không bấm được, phương án dự phòng: test chỉ chờ `onboarding_screen` hoặc `camera_screen`; người duyệt đồng ý trước thì phiên dùng phương án này mà không dừng, ghi vào nhật ký. Không đồng ý thì phiên dừng (mục 7, điều 4).
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 9. **Vùng sau thanh trạng thái.** Như câu 12 của plan T-013: `AppNavHost` đặt `safeDrawingPadding` cho mọi màn, nên trên máy thật lề trên 56 tính từ dưới thanh trạng thái, nội dung thấp hơn ảnh thiết kế một khoảng bằng thanh trạng thái.
    - Đề xuất của AI: giữ nguyên; màn chào theo theme máy nên màu sau thanh trạng thái trùng nền, không lộ dải khác màu. Phần chữ cuộn được nên không mất nội dung.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 10. **Bản dịch.** Mục 3.1 có bảng 7 ngôn ngữ do AI dịch. Riêng tiếng Anh, tiêu đề "Strike a great pose, no guesswork" và nút "Turn on camera".
     - Đề xuất của AI: dùng bảng này; người biết tiếng duyệt trước khi phát hành (spec, câu hỏi 1). Người duyệt muốn đổi chữ nào thì sửa thẳng vào bảng trước khi duyệt.
-    - Trả lời:
+    - Trả lời: Đồng ý với đề xuất của AI.
 11. **Thứ tự chạy với T-014, T-016, T-021, T-025** (mục 6).
     - Đề xuất của AI: T-012 chạy trước bốn task này trong cùng phiên.
-    - Trả lời:
+    - Trả lời: Đồng ý với đề xuất của AI.
 
 Ghi nhận khi đọc tài liệu, không phải mâu thuẫn chặn plan: chữ của `:feature:camera` đang nằm trong `values/` bằng tiếng Việt, trong khi T-008 và spec `onboarding` câu hỏi 1 đặt tiếng Anh làm ngôn ngữ gốc. Plan này không chạm camera; đề xuất tạo ticket dịch chữ camera. Trong `context/`, tên lớp chữ của điểm 3 là "60 tư thế dùng được khi không ..." (tên cũ), nội dung là "Lưu tư thế yêu thích để chụp lại sau"; plan theo nội dung và bảng chữ.
 
@@ -367,9 +367,9 @@ Ghi nhận khi đọc tài liệu, không phải mâu thuẫn chặn plan: chữ
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

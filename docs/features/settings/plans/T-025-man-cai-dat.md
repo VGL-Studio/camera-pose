@@ -1,16 +1,16 @@
 ---
 ticket: T-025
 title: Màn cài đặt
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 20.0M        # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [consent, external-link, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                    # người duyệt
+cross_reviewer: Tuấn             # bắt buộc khi risk_level là high
+approved_at: 2026-10-22
 ---
 
 # PLAN T-025: MÀN CÀI ĐẶT
@@ -397,25 +397,37 @@ Plan chạm hộp thoại đồng ý: người phụ trách sản phẩm cần b
 ## 8. Câu hỏi cho người duyệt
 
 1. **Dùng chung lựa chọn qua `:core:data`.** Giao diện sáng tối do `:app` áp, âm chụp do camera đọc, nên ba lựa chọn không thể nằm trong `:feature:settings` (ADR-0001). Đề xuất của AI: `UserPreferences` trong `:core:data` (đúng gợi ý ở câu hỏi 6 của plan T-013), không tạo module core mới.
+- Trả lời: Đồng ý với đề xuất của AI.
 2. **Hộp chọn: tự vẽ hay của Material 3?** `sticker.md` ghi `RadioRow`, `ChoiceDialog` dùng `RadioButton` và `AlertDialog` của Material 3; spec mục 4 ghi "thành phần có sẵn"; README thiết kế chỉ liệt kê `SettingsRow`, `SectionHeader` là thành phần mới. Nhưng ảnh thiết kế có nút chọn nền vàng viền đen và lớp mờ 50%, `RadioButton` của Material 3 không vẽ được nền vàng, `AlertDialog` dùng lớp mờ của hệ thống và screenshot của Robolectric không chụp cửa sổ hộp thoại. Ba tài liệu không khớp nhau. Đề xuất của AI: `ChoiceDialog` và `RadioRow` tự vẽ trong `:core:designsystem`, theo đúng cách `NetworkDialog` đã làm (thẻ và lớp mờ do màn vẽ, cửa sổ `Dialog` riêng, tắt lớp mờ hệ thống); sau khi duyệt, cập nhật `sticker.md` và README thiết kế ở một PR tài liệu.
+- Trả lời: Đồng ý với đề xuất của AI.
 3. **Ngôn ngữ gốc của chữ.** T-008 đặt tiếng Anh làm gốc trong `values/` và dịch đủ 7 ngôn ngữ; T-013 (camera) để tiếng Việt trong `values/`, chưa dịch. Đề xuất của AI: màn cài đặt làm theo T-008 (đây là màn đổi ngôn ngữ, phải hiện đúng ngôn ngữ đã chọn), bảng dịch ở mục 3.1 do AI dịch, người biết tiếng duyệt trước khi phát hành. Camera và các màn khác dịch ở ticket riêng; cho đến khi đó, đổi ngôn ngữ chỉ thấy ở loading và cài đặt.
+- Trả lời: Đồng ý với đề xuất của AI.
 4. **Thông báo khi lưu lỗi.** CLAUDE.md yêu cầu báo người dùng khi ghi dữ liệu lỗi; thiết kế không có chữ cho trường hợp này. Đề xuất của AI: `Snackbar` của Material 3 ("Không lưu được lựa chọn. Hãy thử lại.", `sticker.md` đã có `Snackbar` đổi màu); lựa chọn không đổi. Nếu không muốn thêm chữ ngoài thiết kế thì chỉ ghi log như camera (câu hỏi 4 của T-013).
+- Trả lời: Đồng ý với đề xuất của AI.
 5. **Ngôn ngữ dưới Android 13 không có AppCompat.** Đề xuất của AI: lưu thẻ ngôn ngữ trong DataStore, đọc chặn tối đa 500 ms trong `attachBaseContext` (chỉ dưới Android 13, trước khi Hilt tiêm nên dùng `EntryPoint`), chọn xong thì `recreate()`. Phương án khác: thêm `androidx.appcompat` để dùng `AppCompatDelegate.setApplicationLocales` (sửa `gradle/libs.versions.toml`, đổi `MainActivity` sang `AppCompatActivity`, cần plan riêng). Lưu ý: chữ lấy qua context của `Application` (ví dụ thông báo) vẫn theo ngôn ngữ máy; hiện app chưa có chữ nào như vậy.
+- Trả lời: Đồng ý với đề xuất của AI.
 6. **Chớp màu lúc mở app.** Người dùng chọn "Tối" trên máy để sáng thì cửa sổ và lần vẽ đầu theo máy. Đề xuất của AI: đọc giá trị đầu trong `onCreate` bằng `runBlocking` tối đa 200 ms, nên lần vẽ đầu đã đúng màu; nền cửa sổ trước khi Compose vẽ (`Theme.App` theo `values-night`) vẫn theo máy trong vài khung hình. Muốn bỏ hẳn cần thư viện splash screen, ngoài phạm vi.
+- Trả lời: Đồng ý với đề xuất của AI.
 7. **Camera luôn tối nhưng dải thanh trạng thái theo app.** Câu hỏi 12 của T-013: phía trên camera có dải màu nền của app. Khi người dùng chọn "Sáng", dải này sáng và rõ hơn trước. Đề xuất của AI: giữ nguyên ở T-025, gộp vào ticket camera tràn viền (đề xuất của T-013) hoặc T-020.
+- Trả lời: Đồng ý với đề xuất của AI.
 8. **Lề trên 24 trong ảnh thiết kế.** Khung thiết kế có lề trên 24 cho thanh trạng thái; trên máy, `safeDrawingPadding` của `AppNavHost` lo phần này; Robolectric không có thanh trạng thái. Đề xuất của AI: màn không thêm lề; screenshot test đặt màn dưới một `Spacer` cao `Spacing.lg` để ảnh trùng khung thiết kế. Không làm vậy thì ảnh so sánh lệch 24 dp toàn bộ.
+- Trả lời: Đồng ý với đề xuất của AI.
 9. **Âm chụp ở nước bắt buộc.** Spec câu hỏi 1: cho tắt ở mọi nơi. Từ Android 13 có `MediaActionSound.mustPlayShutterSound()`. Đề xuất của AI: T-025 làm đúng spec (tắt là không phát); khi phát hành ở nước bắt buộc thì ẩn lựa chọn và luôn phát ở ticket riêng.
+- Trả lời: Đồng ý với đề xuất của AI.
 10. **Mô tả cho trình đọc màn hình.** Bảng chữ không có mô tả cho nút quay lại. Đề xuất của AI: "Quay lại" (`settings_back`); các icon đầu dòng không có mô tả vì chữ của dòng đã đủ nghĩa.
+- Trả lời: Đồng ý với đề xuất của AI.
 11. **Khi máy không mở được trang ngoài.** Máy không có trình duyệt hay không có trang ngôn ngữ của app (một số bản Android sửa đổi): đề xuất của AI là chỉ ghi log `warn`, không báo người dùng (không có chữ trong thiết kế). Nếu muốn, dùng lại `Snackbar` của câu 4 với chữ mới.
+- Trả lời: Đồng ý với đề xuất của AI.
 12. **Phiên bản hiện gì.** Đề xuất của AI: `versionName` nguyên văn, nên bản staging hiện "0.1.0-staging.42" (biết được bản nào đang thử), bản production hiện "0.1.0". Thiết kế minh họa "1.0.0".
+- Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

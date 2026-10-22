@@ -5,3 +5,7 @@ plugins {
 android {
     namespace = "com.vglstudio.camera.pose.line.guide.feature.loading"
 }
+
+dependencies {
+    implementation(project(":core:poses"))
+}

@@ -105,7 +105,7 @@ class LoadingViewModel @Inject constructor(
     /** An unexpected error in one task is a failed task, not a crash of the whole app. */
     private suspend fun runSafely(task: PreparationTask): Boolean {
         val done = try {
-            repository.run(task)
+            repository.run(task) { _, _ -> }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

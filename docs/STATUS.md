@@ -4,7 +4,9 @@
 
 ## 1. Đang chờ người
 
-- Phản hồi chờ phân loại: [FB-20261022-01-cau-hinh-lan-dau-15-giay.md](features/loading/feedback/FB-20261022-01-cau-hinh-lan-dau-15-giay.md) (Lần mở đầu sau khi cài, tải cấu hình vẫn hết 15 giây rồi báo lỗi trên emulator)
+- Spec `changed` chờ xác nhận: [spec.md](features/camera/spec.md) (camera)
+- Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
+- Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
 - Ticket đã duyệt, chưa vào danh sách chạy nào: [T-006-cuon-man-hinh-rat-thap.md](features/loading/tickets/T-006-cuon-man-hinh-rat-thap.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
@@ -14,7 +16,7 @@
 
 | Yêu cầu | Ngày | Feature | Trạng thái | Ticket xong |
 | --- | --- | --- | --- | --- |
-| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | 1/8 |
+| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | 1/9 |
 | Màn hình loading có thanh tiến trình ([2026-10-15-man-hinh-loading.md](features/loading/requests/2026-10-15-man-hinh-loading.md)) | 2026-10-15 | loading | `specified` đã có spec | 8/9 |
 | Màn loading cho camera pose ([2026-10-21-loading-cua-camera-pose.md](features/loading/requests/2026-10-21-loading-cua-camera-pose.md)) | 2026-10-21 | loading | `specified` đã có spec | 8/9 |
 | App luôn cần mạng, báo mất mạng khi đang dùng ([2026-10-21-hop-thoai-mat-mang.md](features/network/requests/2026-10-21-hop-thoai-mat-mang.md)) | 2026-10-21 | network | `specified` đã có spec | 1/1 |
@@ -26,7 +28,7 @@
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 7 `ready`, 1 `on-staging`.
+Spec: [spec.md](features/camera/spec.md) `changed`. Ticket: 7 `ready`, 1 `backlog`, 1 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -38,6 +40,7 @@ Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 7 `ready`, 1 `on-s
 | [T-018](features/camera/tickets/T-018-quang-cao-xem-lai.md) | Quảng cáo toàn màn hình khi rời màn xem lại | `ready` | chưa có | - | - |
 | [T-019](features/camera/tickets/T-019-hoi-danh-gia.md) | Hỏi đánh giá app trong app | `ready` | chưa có | - | - |
 | [T-020](features/camera/tickets/T-020-camera-may-gap.md) | Camera và màn xem lại trên máy gập | `ready` | chưa có | - | - |
+| [T-026](features/camera/tickets/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md) | Không ghi camera_permission_result khi quyền camera đã bị từ chối vĩnh viễn | `backlog` | chưa có | - | - |
 
 Phản hồi: chưa có.
 
@@ -57,8 +60,9 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 8 `on-staging`, 1
 | [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `on-staging` | `done` (bản 1) | 20.0M | RUN-20261021-04, RUN-20261022-01 |
 | [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `on-staging` | `done` (bản 1) | 20M | RUN-20261021-04, RUN-20261022-01 |
 
-Phản hồi: 1 `fixed`, 1 `new`, 1 `wontfix`.
-- Đang mở: [FB-20261022-01-cau-hinh-lan-dau-15-giay.md](features/loading/feedback/FB-20261022-01-cau-hinh-lan-dau-15-giay.md) `new`, mức `nang`: Lần mở đầu sau khi cài, tải cấu hình vẫn hết 15 giây rồi báo lỗi trên emulator
+Phản hồi: 2 `fixed`, 2 `new`, 2 `wontfix`.
+- Đang mở: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) `new`, mức `gop-y`: Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được
+- Đang mở: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) `new`, mức `gop-y`: Log tải file thất bại không cho biết lý do cụ thể
 
 ### network
 

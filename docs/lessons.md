@@ -246,3 +246,21 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** ghi chú "không dùng, thay bằng RUN-20261022-01" trong `RUN-20261021-04`; sửa mục 11 của bản đề xuất theo plan T-009.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-026: Mã phiên thử trên máy thật trùng mã phiên emulator của phiên tự chạy
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** TS-20261022-02.
+- **Chuyện gì:** `scripts/device-session.sh` cấp mã `TS-20261022-01` cho phiên trên máy thật, trùng phiên emulator của RUN-20261022-01. Script chỉ tránh mã có thư mục trên máy hoặc có báo cáo trong `docs/test-sessions/`; phiên emulator chỉ được ghi trong báo cáo phiên tự chạy.
+- **Bằng chứng:** `scripts/device-session.sh` hàm `next_session_dir`; báo cáo RUN-20261022-01, mục Kiểm thử trên máy ảo; báo cáo phải đổi sang `TS-20261022-02`.
+- **Đề xuất sửa:** `next_session_dir` tìm thêm mã trong `docs/runs/*.md`; hoặc phiên emulator dùng tiền tố riêng.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-027: Lỗi DNS của tên miền file tĩnh chỉ lộ ra trên máy thật
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** TS-20261022-02.
+- **Chuyện gì:** vùng `io.vn` không qua bước kiểm DNSSEC ở Cloudflare và Google DNS, nên `camera-pose.vgl.io.vn` không phân giải được; máy thật không tải được catalog, trong khi phiên emulator trên GitHub vài giờ trước vẫn qua. Log không cho biết lý do vì Android bỏ stack trace của `UnknownHostException`.
+- **Bằng chứng:** TS-20261022-02, P-1; FB-20261022-02, FB-20261022-04.
+- **Đề xuất sửa:** `env-canary.yml` kiểm phân giải tên miền file tĩnh qua 1.1.1.1 và 8.8.8.8 (không chỉ DNS của runner); `:core:assets` ghi tên lớp lỗi trong câu log; `docs/ops/setup-new-app.md` khuyên chọn tên miền thuộc vùng có DNSSEC ổn định.
+- **Áp dụng:**
+- **Kiểm chứng:**

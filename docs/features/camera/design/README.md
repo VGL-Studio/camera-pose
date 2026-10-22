@@ -91,7 +91,7 @@ Dấu ba chấm là một ký tự (`…`).
 | Dải tư thế | `PoseThumb` cuộn ngang | Đang chọn viền `secondaryContainer` 3 và `SelectedBadge` | | Ô 64, đỉnh ở 708, cách nhau `Spacing.sm` |
 | Nút chụp | Vòng 76 viền 4 và tròn 62 | `camera/onCamera`; đạt điểm viền `successContainer`; đếm ngược hiện icon `close` | | Tâm ở (205.5, 822) |
 | Ô ảnh vừa chụp | Ảnh thu nhỏ | Viền `camera/onCamera` 2 | | 48, bo `thumb`, trái |
-| Nút đổi camera | `CameraIconButton` `flip_camera_android` | | | 48, phải |
+| Nút đổi camera | `CameraIconButton` `flip_camera_android` | Mờ (độ mờ 38%, không bấm được) khi camera chưa sẵn sàng: `starting`, `permission-denied`, `error` (quyết định 2026-10-22) | | 48, phải |
 | Xem lại: thanh trên | `TopAppBar`, nút `close` | `onSurface` | `titleLarge` | |
 | Xem lại: ảnh | Ảnh vừa chụp, tỷ lệ 3:4 | Viền `outline` 2 | | Rộng khung trừ 2 x `Spacing.md`, bo `card` |
 | Xem lại: nút phụ | Cột icon tròn 48 và chữ | `camera/control`, `camera/onControl`; chữ `onSurface` | `labelLarge` | Ba nút chia đều |

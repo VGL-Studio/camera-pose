@@ -187,6 +187,11 @@ fun BrandCatalog(modifier: Modifier = Modifier) {
 private const val CATALOG_PROGRESS = 0.68f
 
 @Composable
+fun CameraComponentCatalog(modifier: Modifier = Modifier) {
+    Box(modifier)
+}
+
+@Composable
 private fun CatalogPage(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Surface(modifier = modifier.fillMaxSize()) {
         Column(

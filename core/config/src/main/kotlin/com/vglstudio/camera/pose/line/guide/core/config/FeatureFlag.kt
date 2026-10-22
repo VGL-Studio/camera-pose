@@ -11,4 +11,5 @@ enum class FeatureFlag(val key: String, val defaultValue: Boolean = false) {
     SAMPLE("feature_sample_enabled"),
     LOADING("feature_loading_enabled"),
     NETWORK_DIALOG("feature_network_dialog_enabled"),
+    CAMERA("feature_camera_enabled"),
 }

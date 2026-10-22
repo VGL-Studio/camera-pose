@@ -8,7 +8,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Smoke test on a real emulator: the app starts, goes through loading and reaches its start screen. Runs in CI only.
+ * Smoke test on a real emulator: the app starts, goes through loading and reaches its start screen, the camera
+ * (flag on in staging, T-013). Runs in CI only. No camera state is checked: the CI emulator may have no camera, and
+ * the system permission prompt covers the app.
  * Checks only the stable end state: the loading screen is brief and covered by unit and JVM UI tests. A fresh
  * staging install shows the ad consent form over the app, so the start screen is looked up in the semantics tree
  * rather than asserted as displayed (CLAUDE.md, step 10).
@@ -23,7 +25,7 @@ class AppLaunchTest {
     @Test
     fun appStarts_andReachesStartScreen() {
         composeRule.waitUntil(timeoutMillis = START_SCREEN_TIMEOUT_MILLIS) {
-            composeRule.onAllNodesWithTag("sample_screen").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag("camera_screen").fetchSemanticsNodes().isNotEmpty()
         }
     }
 

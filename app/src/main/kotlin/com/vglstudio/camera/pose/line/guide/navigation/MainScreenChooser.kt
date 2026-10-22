@@ -1,9 +1,10 @@
 package com.vglstudio.camera.pose.line.guide.navigation
 
+import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import javax.inject.Inject
 
 /** Chooses the screen to open when loading is done. Only :app knows every feature (ADR-0001). */
-internal class MainScreenChooser @Inject constructor() {
+internal class MainScreenChooser @Inject constructor(private val featureFlags: FeatureFlags) {
     suspend fun choose(): MainScreen = chooseMainScreen(inputs())
 
     /**

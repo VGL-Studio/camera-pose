@@ -38,7 +38,7 @@ OPERATIONS = {"tạo": "create", "sửa": "change", "ghi lại": "change", "xóa
 # Places that read files by name. Docs are left out: a doc naming a file does not break when the file changes.
 READER_DIRS = ["scripts", ".github", "build-logic"]
 READER_GLOBS = ["**/build.gradle.kts", "**/src/test/**/*", "**/src/androidTest/**/*"]
-SKIP_DIRS = {"build", "bin", ".gradle", ".git", "node_modules"}
+SKIP_DIRS = {"build", "bin", ".gradle", ".git", ".claude", "node_modules"}
 # Files searched by name as well as by path: data and config files that scripts open by name.
 NAME_SEARCH_SUFFIXES = {".json", ".yml", ".yaml", ".toml", ".properties", ".py", ".sh", ".txt", ".md"}
 GENERIC_NAMES = {"README.md", "CLAUDE.md", "build.gradle.kts", "settings.gradle.kts", "gradle.properties"}
@@ -164,7 +164,7 @@ def other_ticket_images(text):
 def manifest_permissions():
     found = set()
     for manifest in ROOT.glob("**/src/main/AndroidManifest.xml"):
-        if SKIP_DIRS.isdisjoint(manifest.relative_to(ROOT).parts) and ".claude" not in manifest.parts:
+        if SKIP_DIRS.isdisjoint(manifest.relative_to(ROOT).parts):
             found.update(re.findall(r"android\.permission\.([A-Z_]+)", manifest.read_text()))
     return found
 

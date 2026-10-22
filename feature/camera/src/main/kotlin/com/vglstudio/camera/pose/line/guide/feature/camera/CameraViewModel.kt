@@ -91,7 +91,7 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    fun onPermissionResult(granted: Boolean) {
+    fun onPermissionResult(granted: Boolean, dialogShown: Boolean = true) {
         val result = if (granted) "granted" else "denied"
         analytics.log(AnalyticsEvent(EVENT_PERMISSION_RESULT, mapOf("result" to result, "source" to "camera")))
         logger.info(LOG_TAG, "Camera permission $result")

@@ -264,3 +264,39 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `env-canary.yml` kiểm phân giải tên miền file tĩnh qua 1.1.1.1 và 8.8.8.8 (không chỉ DNS của runner); `:core:assets` ghi tên lớp lỗi trong câu log; `docs/ops/setup-new-app.md` khuyên chọn tên miền thuộc vùng có DNSSEC ổn định.
 - **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#73, VGL-Studio/app-project-template#78.
 - **Kiểm chứng:**
+
+### L-028: Phiên kiểm `main-broken` trước khi `main-guard` của lần merge vừa rồi chạy xong
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, T-026, T-012.
+- **Chuyện gì:** T-026 merge lúc 16:50 UTC; phiên kiểm `main-broken` ngay sau đó (0 issue) rồi bắt đầu T-012. `main-guard` của commit merge e9bf4bb chạy xong lúc 16:58 và mở issue #35. Phiên chỉ thấy issue khi kiểm lại lúc 17:35, sau khi T-012 đã làm xong bước 7 (khoảng 45 phút và 22M token cho một task không merge được).
+- **Bằng chứng:** `main-guard` lần chạy 39817360705 (16:50 tới 16:58); issue #35 tạo 16:58:17; RUN-20261023-01, Dòng thời gian.
+- **Đề xuất sửa:** `docs/auto-run.md` bước 9: sau khi merge, chờ `main-guard` của commit merge bằng `scripts/wait-run.sh --workflow main-guard.yml --since <giờ merge>` ở chế độ nền, trong lúc làm bước 10 và bước 1, 2 của task sau; kiểm lại `main-broken` trước khi đẩy commit đầu tiên của task sau. Hoặc `merge-if-green.sh` in nhắc lệnh này.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-029: Screenshot test của trạng thái có vòng chờ đỏ trên `main-guard` dù xanh ở PR và cục bộ
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** app. **Nguồn:** RUN-20261023-01, issue #35.
+- **Chuyện gì:** `CameraScreenScreenshotTest > starting_dark` (trạng thái `Starting`, có vòng chờ chạy mãi) thất bại trên `main-guard` ở e9bf4bb với `AssertionFailedWithCauseError` tại dòng `captureRoboImage`. Cùng code xanh ở CI của PR #34 (lần chạy 39815764346), ở `build-and-test` của PR #36 (dựng trên e9bf4bb, lần chạy 39821691045) và ở 3 lần `scripts/check.sh` cục bộ. T-026 không đổi giao diện camera. Nhiều khả năng là test chập chờn vì hiệu ứng vô hạn; chưa xác nhận.
+- **Bằng chứng:** log `main-guard` lần chạy 39817360705, dòng "CameraScreenScreenshotTest > starting_dark FAILED"; nhánh `revert/e9bf4bb`.
+- **Đề xuất sửa:** screenshot test của trạng thái có hiệu ứng vô hạn dừng đồng hồ của Compose (`mainClock.autoAdvance = false`) hoặc dùng bản tĩnh của vòng chờ; `main-guard` chạy lại một lần test thất bại trước khi mở `main-broken` nếu lỗi là hết giờ chờ của Compose.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-030: Điều hướng sau một hàm `suspend` đọc DataStore chạy ngoài luồng chính dưới Compose test
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, T-012.
+- **Chuyện gì:** T-012 cho `chooseMainScreen()` đọc DataStore. `AppLaunchTest` trên emulator báo `IllegalStateException: Method setCurrentState must be called on the main thread` ở `navController.navigate` trong `scope.launch` của `AppNavHost`: coroutine được tiếp tục trên `LimitedDispatcher$Worker`. `AppNavHost` nằm trong ngoại lệ viết test trước của plan (không có test JVM), nên lỗi chỉ lộ ra ở `ui-test`, vòng CI dài nhất.
+- **Bằng chứng:** lần chạy 39821691045, job `ui-test`, bước "Chi tiết test trên emulator".
+- **Đề xuất sửa:** `CLAUDE.md` mục Viết một feature mới: điều hướng chạy trên `Dispatchers.Main.immediate` khi đứng sau một lời gọi `suspend`; plan đổi hàm `suspend` mà `AppNavHost` gọi phải có test JVM (Robolectric) dựng `AppNavHost` với bản giả đổi luồng, thay vì ngoại lệ.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-031: Giao bước 3 đến 5 của task lớn cho một phiên AI viết code riêng
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, T-012.
+- **Chuyện gì:** với T-012 (47 file), phiên chính giao bước 3 đến 5 cho một phiên con có đủ quy tắc (danh sách file, thứ tự commit, đẩy sau mỗi commit, điều kiện dừng, báo cáo theo mẫu nhật ký). Phiên con xong trong 22 phút, `check.sh` qua, không file nào ngoài plan; phiên chính chỉ kiểm danh sách file, giao rà soát độc lập cho một phiên khác và giữ ngữ cảnh gọn cho các task sau. Cũng trong phiên: phiên chính lỡ sửa file khi `check.sh` đang chạy nền trong cùng thư mục (T-026) và phải chạy lại.
+- **Bằng chứng:** commit dabc2a3 tới 15f10b2 (16:58 tới 17:12); token T-012 21,9M so với ước tính 20M.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 3: cho phép và mô tả cách giao bước 3 đến 5 cho phiên con (nội dung giao việc tối thiểu); nhắc không sửa file trong thư mục đang chạy `check.sh` nền, chỉ chạy rà soát độc lập song song.
+- **Áp dụng:**
+- **Kiểm chứng:**

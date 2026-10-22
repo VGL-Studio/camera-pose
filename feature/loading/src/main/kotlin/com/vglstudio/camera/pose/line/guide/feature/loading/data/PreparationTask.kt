@@ -1,9 +1,16 @@
 package com.vglstudio.camera.pose.line.guide.feature.loading.data
 
-/** The four things the app prepares before its start screen. Each one is a quarter of the progress bar. */
-enum class PreparationTask {
-    REMOTE_CONFIG,
-    HELLO_FILE,
-    CONTENT_FILE,
-    GOODBYE_FILE,
+/**
+ * The three things the app prepares before its main screen, in the order they run (spec loading, section 2).
+ * [share] is the part of the progress bar, in thousandths: 10%, 10%, 80%.
+ */
+enum class PreparationTask(val share: Int) {
+    REMOTE_CONFIG(100),
+    CATALOG(100),
+    STARTER_SET(800),
+    ;
+
+    companion object {
+        const val TOTAL_SHARE = 1000
+    }
 }

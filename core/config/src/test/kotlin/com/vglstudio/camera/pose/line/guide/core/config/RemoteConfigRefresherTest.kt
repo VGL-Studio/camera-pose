@@ -63,13 +63,19 @@ class RemoteConfigRefresherTest {
     }
 
     @Test
-    fun fetchLongerThanTenSeconds_returnsFalse() = runTest {
-        assertFalse(policy(fetch = { delay(10_001) }).refresh())
+    fun fetchLongerThanFifteenSeconds_returnsFalse() = runTest {
+        assertFalse(policy(fetch = { delay(15_001) }).refresh())
         assertEquals(listOf(LogLevel.WARN), logger.entries.map { it.level })
     }
 
     @Test
-    fun fetchJustUnderTenSeconds_returnsTrue() = runTest {
-        assertTrue(policy(fetch = { delay(9_999) }).refresh())
+    fun fetchJustUnderFifteenSeconds_returnsTrue() = runTest {
+        assertTrue(policy(fetch = { delay(14_999) }).refresh())
+    }
+
+    /** ADR-1001: this app waits 15 seconds, not the 10 of the template project. */
+    @Test
+    fun fetchBetweenTenAndFifteenSeconds_returnsTrue() = runTest {
+        assertTrue(policy(fetch = { delay(12_000) }).refresh())
     }
 }

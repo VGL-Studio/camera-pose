@@ -12,6 +12,8 @@ import org.junit.runner.RunWith
  * Checks only the stable end state: the loading screen is brief and covered by unit and JVM UI tests. A fresh
  * staging install shows the ad consent form over the app, so the start screen is looked up in the semantics tree
  * rather than asserted as displayed (CLAUDE.md, step 10).
+ * Loading downloads the sample pose catalog and its starter set, so the test needs those files on R2 staging
+ * (plan T-010, section 3.3). The slowest load that still succeeds takes about 47 seconds, hence the 60 second wait.
  */
 @RunWith(AndroidJUnit4::class)
 class AppLaunchTest {
@@ -26,6 +28,6 @@ class AppLaunchTest {
     }
 
     private companion object {
-        const val START_SCREEN_TIMEOUT_MILLIS = 30_000L
+        const val START_SCREEN_TIMEOUT_MILLIS = 60_000L
     }
 }

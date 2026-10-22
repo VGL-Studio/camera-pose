@@ -1,7 +1,7 @@
 ---
 ticket: T-006
 title: Test cuộn tới nút "Thử lại" trên màn hình rất thấp
-status: approved
+status: done
 version: 1
 risk_score: 1
 risk_level: low
@@ -132,3 +132,16 @@ Hàng `w320dp-h640dp` cho thấy lỗi gốc của FB-20261017-01 (chiều rộn
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261023-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #33, commit a7e3a12)
+- **Nhánh, PR:** `claude/T-006-cuon-man-hinh-rat-thap`, PR #33
+- **Đã làm:** hằng số `VERY_SHORT_SCREEN` và hai test `failed_onVeryShortScreen_retryButtonReachableByScrolling`, `failed_onVeryShortScreen_footerBelowRetryAfterScrolling` trong `LoadingScreenTest`, đúng mục 3.1.
+- **Test viết trước:** ngoại lệ đã duyệt (câu hỏi 1): hai test qua ngay trên code hiện tại. Lần thử tạm bỏ `verticalScroll` trong `LoadingScreen.kt` (không commit, đã hoàn tác): cả hai test thất bại ở `performScrollTo` ("Semantic Node has no parent layout with a Scroll SemanticsAction"); test 1 đã qua bước "nút ở ngoài màn hình" trước đó. Điều kiện dừng 1 và 2 không xảy ra.
+- **Số đo thật** (tên app "Camera Pose: Lines and Guides", dp theo `getUnclippedBoundsInRoot()`, khung `w320dp-h480dp`; mục 4 đo với tên app khác và nút cao 52 dp): trước khi cuộn nút 486,3 tới 542,3, chân trang 566,3 tới 582,3; cuộn tới nút: nút 424 tới 480, chân trang 504 tới 520; cuộn tới chân trang: nút 384 tới 440, chân trang 464 tới 480.
+- **Rà soát độc lập:** 0 chặn, 2 nên sửa (đã xử lý bằng ghi chép: lệch danh sách file, số đo thật), 7 ghi chú. Đáng để ý: test 1 không có khoảng dư ở đáy (480 ≤ 480); test 2 không kiểm chân trang hiện trọn (plan không yêu cầu).
+- **Kết quả CI:** xanh ở vòng đầu, lần chạy 39811909972 (`ui-test` bỏ qua vì chỉ đổi test JVM).
+- **Lệch so với plan:** không sửa `LoadingScreenScreenshotTest.kt`: chú thích lớp trên nhánh chính đã nói đúng về các ảnh `_small` (ADR-0020), nên PR chỉ có một file.
+- **Việc còn lại:** Không có.
+- **Cần người xem:** Không có.

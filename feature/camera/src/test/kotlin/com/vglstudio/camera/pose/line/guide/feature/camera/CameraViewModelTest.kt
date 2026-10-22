@@ -187,6 +187,28 @@ class CameraViewModelTest {
         assertEquals(1, analytics.events.size)
     }
 
+    @Test
+    fun permissionDeniedWithoutDialog_logsNoEvent_andShowsDenied() = runTest {
+        val viewModel = viewModel()
+        viewModel.onPermissionResult(granted = false, dialogShown = false)
+        runCurrent()
+        assertTrue(analytics.events.isEmpty())
+        assertEquals(CameraUiState.PermissionDenied, viewModel.uiState.value)
+        assertTrue(controller.openCalls.isEmpty())
+        assertTrue(logger.entries.any { it.message == "Camera permission denied without dialog" })
+    }
+
+    @Test
+    fun permissionDeniedWithDialog_logsEvent() = runTest {
+        val viewModel = viewModel()
+        viewModel.onPermissionResult(granted = false, dialogShown = true)
+        runCurrent()
+        assertEquals(
+            listOf(AnalyticsEvent("camera_permission_result", mapOf("result" to "denied", "source" to "camera"))),
+            analytics.events,
+        )
+    }
+
     // KB-4
 
     @Test

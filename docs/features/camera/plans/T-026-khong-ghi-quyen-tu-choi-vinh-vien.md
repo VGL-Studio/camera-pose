@@ -1,7 +1,7 @@
 ---
 ticket: T-026
 title: Không ghi camera_permission_result khi quyền camera đã bị từ chối vĩnh viễn
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -131,3 +131,15 @@ Quy tắc: hộp hỏi được coi là đã hiện khi `granted || rationaleBef
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261023-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #34, commit 014bae9)
+- **Nhánh, PR:** `claude/T-026-khong-ghi-quyen-tu-choi-vinh-vien`, PR #34
+- **Đã làm:** `PermissionPrompt.kt` (`permissionDialogShown`), `CameraViewModel.onPermissionResult(granted, dialogShown = true)`, `CameraRoute` đọc "nên giải thích" bằng `LocalActivity` trước khi `launch` và trong callback, đúng mục 3.1. Năm file đúng mục 3.2.
+- **Test viết trước:** 7 test mới. Trên khung rỗng (`permissionDialogShown` trả `false`, `dialogShown` chưa dùng; commit 96675b7): 5 thất bại ở khẳng định (`granted_isShown`, `firstDenial_isShown`, `secondDenial_isShown`, `deniedWithBothRationales_isShown`, `permissionDeniedWithoutDialog_logsNoEvent_andShowsDenied`); 2 qua ngay vì là test chặn hồi quy (`permanentDenial_isNotShown` trùng giá trị khung; `permissionDeniedWithDialog_logsEvent` giữ hành vi T-013). Ba test cũ của T-013 qua, không sửa.
+- **Rà soát độc lập:** 0 chặn, 2 nên sửa, 5 ghi chú. Đã sửa ghi chú 4: chỉ bỏ sự kiện khi `!granted && !dialogShown`. Nên sửa 1 (bước thủ công khi activity bị tạo lại lúc hộp hỏi đang mở) đưa vào Cần người xem. Nên sửa 2 (test JVM cho `CameraRoute` bằng `ActivityResultRegistry` giả) để ticket sau, vì plan đã duyệt ngoại lệ.
+- **Kết quả CI:** xanh ở vòng đầu (`changes`, `build-and-test`, `ui-test`), lần chạy 39815764346.
+- **Lệch so với plan:** điều kiện bỏ sự kiện là `!granted && !dialogShown` thay vì `!dialogShown` (hàm thuần không bao giờ trả tổ hợp `granted = true, dialogShown = false`, nên hành vi thật không đổi). Trong lúc làm, phiên có thử `rememberSaveable` cho "nên giải thích trước" rồi hoàn tác về `remember`, đúng mục 3.1 và câu 12 của plan T-012 đã duyệt.
+- **Việc còn lại:** Không có.
+- **Cần người xem:** kiểm tra thủ công mục 4 trên máy thật, thêm (5) lần hỏi thứ hai, xoay máy khi hộp đang mở rồi từ chối và (6) như (5) với "Không giữ hoạt động". Với `remember`, (5) có thể không ghi `denied` (giá trị trước bị đặt lại `false`); nếu cần thì ticket camera sau đổi sang `rememberSaveable`. ROM tùy biến luôn trả `false` cho "nên giải thích" (rà soát, ghi chú 3) sẽ làm mọi lần từ chối bị coi là không hiện hộp; nên thử trên một máy Xiaomi nếu có.

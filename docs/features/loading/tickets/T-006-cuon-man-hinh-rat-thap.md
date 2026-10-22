@@ -5,7 +5,7 @@ feature: loading
 spec: features/loading/spec.md
 scenarios: [KB-2, KB-3]
 owner: Nhật
-status: approved
+status: on-staging
 risk: low
 size: S
 depends_on: [T-005]

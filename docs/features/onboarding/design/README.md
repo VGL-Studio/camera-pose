@@ -82,5 +82,12 @@ Nhận xét của phiên viết code (rà soát độc lập bổ sung ở bư�
 
 - `default_light`, `default_dark`: đủ các phần, đúng thứ tự, chữ đúng bảng chữ. Hình minh họa trùng vị trí với thiết kế: ba thẻ, góc nghiêng, nét viền tư thế (lấy từ `handoff/pose_outline.svg`) và huy hiệu camera. Viền thẻ, vòng icon và huy hiệu đổi màu theo chế độ (`outline`: đen ở chế độ sáng, trắng ở chế độ tối); nét viền tư thế luôn #111111 (`onCategory`).
 - Tiêu đề vẫn hai dòng nhưng ngắt khác: "không" ở dòng một, "cần đoán" ở dòng hai (thiết kế: "không cần" ở dòng một). Ghi chú ngắt dòng sau "lưu trên" thay vì sau "lưu". Do cách đo chữ của hệ thống, chiều cao khối chữ không đổi.
-- Nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56), nên nút và ghi chú thấp hơn khoảng 2 đến 4 dp. Không có lệch chặn.
+- Nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56), nên đỉnh nút thấp hơn khoảng 2 dp và ghi chú cao hơn khoảng 2 dp, trong một bước lưới 4 dp. Không có lệch chặn.
 - Ảnh khung 360 x 640 (`_small`): hình minh họa co còn 160, nút "Bật camera" và ghi chú ghim ở đáy, phần chữ cuộn được.
+
+Nhận xét của rà soát độc lập (bước 6, RUN-20261023-01):
+
+- Đủ các phần, đúng thứ tự, chữ đúng bảng chữ, không bị cắt hay tràn. Vai trò màu đúng ở cả hai chế độ: thẻ hồng, xanh lá, xanh dương; huy hiệu và vòng icon vàng (`secondaryContainer`); viền `outline` đen ở chế độ sáng, trắng ở chế độ tối; nét viền tư thế luôn #111111; nút `secondary`.
+- Ba thẻ trùng vị trí, góc nghiêng và chiều nghiêng với thiết kế.
+- Lệch nhỏ, không chặn: chỗ ngắt dòng của tiêu đề và ghi chú (README mục 6 cho phép); nút cao 56 thay vì 60. Tỷ lệ khác 4,3% chủ yếu do viền chữ khi vẽ và chỗ ngắt dòng.
+- Màu viền theo chế độ mới kiểm bằng mắt trên ảnh chuẩn, chưa có test tự động; nên thêm ở plan sau.

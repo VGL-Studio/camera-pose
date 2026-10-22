@@ -19,6 +19,7 @@ import com.vglstudio.camera.pose.line.guide.feature.onboarding.navigation.Onboar
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.navigation.onboardingScreen
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.SampleDestination
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.sampleScreen
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 
 /**
@@ -63,7 +64,8 @@ internal fun AppNavHost(
             },
         )
         onboardingScreen(
-            onStarted = { scope.launch { currentMarkOnboardingDone() } },
+            // Undispatched: markDone enters NonCancellable within the tap, even if the activity is recreated next.
+            onStarted = { scope.launch(start = CoroutineStart.UNDISPATCHED) { currentMarkOnboardingDone() } },
             onFinished = {
                 // Navigate once, only while still on onboarding (as loading above).
                 if (navController.currentDestination?.hasRoute<OnboardingDestination>() == true) {

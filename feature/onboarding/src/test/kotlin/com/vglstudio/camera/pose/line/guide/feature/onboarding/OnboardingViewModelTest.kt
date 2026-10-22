@@ -166,6 +166,17 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun restoredReady_withCompletionLogged_tapDoesNotLogAgain() = runTest {
+        val viewModel = viewModel(SavedStateHandle(mapOf("completion_logged" to true)))
+        viewModel.events.test {
+            viewModel.onEnableCameraClick(permissionGranted = false)
+            assertEquals(OnboardingEvent.Started, awaitItem())
+            assertEquals(OnboardingEvent.RequestPermission, awaitItem())
+        }
+        assertTrue(analytics.events.none { it.name == "onboarding_complete" })
+    }
+
+    @Test
     fun logs_useOnboardingTag() = runTest {
         val viewModel = viewModel()
         viewModel.events.test {

@@ -2,11 +2,17 @@ package com.vglstudio.camera.pose.line.guide.navigation
 
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
+import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
+import com.vglstudio.camera.pose.line.guide.onboarding.OnboardingStatus
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
 /** Chooses the screen to open when loading is done. Only :app knows every feature (ADR-0001). */
-internal class MainScreenChooser @Inject constructor(private val featureFlags: FeatureFlags) {
+internal class MainScreenChooser @Inject constructor(
+    private val featureFlags: FeatureFlags,
+    @Suppress("unused") private val onboardingStatus: OnboardingStatus,
+    @Suppress("unused") private val logger: AppLogger,
+) {
     suspend fun choose(): MainScreen = chooseMainScreen(inputs())
 
     /**

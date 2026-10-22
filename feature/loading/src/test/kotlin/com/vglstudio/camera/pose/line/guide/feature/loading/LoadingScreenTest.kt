@@ -36,7 +36,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * UI behaviour of the stateless screen, run on the JVM with Robolectric (no emulator needed).
- * Text follows the text table of the design (docs/features/loading/design/README.md, section 2).
+ * The class frame has no language, so text is the default English; the two layout tests use the Vietnamese text
+ * of the design (docs/features/loading/design/README.md, section 2).
  * Native graphics give real text sizes; the frame is the standard design frame.
  */
 @RunWith(AndroidJUnit4::class)
@@ -247,14 +248,15 @@ class LoadingScreenTest {
             }
         }
         val retry = composeRule.onNodeWithTag(LoadingTestTags.RETRY)
+        // Unclipped bounds: a button cut by the scroll viewport must fail, not report its visible part only.
         retry.performScrollTo().assertIsDisplayed()
         val screenBottom = composeRule.onNodeWithTag(LoadingTestTags.SCREEN).getBoundsInRoot().bottom
-        assertTrue("retry is cut by the screen bottom", retry.getBoundsInRoot().bottom <= screenBottom)
+        assertTrue("retry is cut by the screen bottom", retry.getUnclippedBoundsInRoot().bottom <= screenBottom)
 
         val footer = composeRule.onNodeWithText(string(R.string.loading_footer))
         footer.performScrollTo()
-        val retryBottom = retry.getBoundsInRoot().bottom
-        val footerTop = footer.getBoundsInRoot().top
+        val retryBottom = retry.getUnclippedBoundsInRoot().bottom
+        val footerTop = footer.getUnclippedBoundsInRoot().top
         assertTrue("footer top $footerTop overlaps retry bottom $retryBottom", footerTop >= retryBottom)
 
         retry.performScrollTo().performClick()

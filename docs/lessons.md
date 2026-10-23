@@ -280,8 +280,8 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `CameraScreenScreenshotTest > starting_dark` (trạng thái `Starting`, có vòng chờ chạy mãi) thất bại trên `main-guard` ở e9bf4bb với `AssertionFailedWithCauseError` tại dòng `captureRoboImage`. Cùng code xanh ở CI của PR #34 (lần chạy 39815764346), ở `build-and-test` của PR #36 (dựng trên e9bf4bb, lần chạy 39821691045) và ở 3 lần `scripts/check.sh` cục bộ. T-026 không đổi giao diện camera. Nhiều khả năng là test chập chờn vì hiệu ứng vô hạn; chưa xác nhận.
 - **Bằng chứng:** log `main-guard` lần chạy 39817360705, dòng "CameraScreenScreenshotTest > starting_dark FAILED"; nhánh `revert/e9bf4bb`.
 - **Đề xuất sửa:** screenshot test của trạng thái có hiệu ứng vô hạn dừng đồng hồ của Compose (`mainClock.autoAdvance = false`) hoặc dùng bản tĩnh của vòng chờ; `main-guard` chạy lại một lần test thất bại trước khi mở `main-broken` nếu lỗi là hết giờ chờ của Compose.
-- **Áp dụng:** app: PR #39 (`CLAUDE.md`, bước 10: chụp trạng thái có hiệu ứng chạy mãi bằng đồng hồ dừng; nguyên nhân đã xác nhận bằng chạy thử, ghi ở plan T-027 mục 4.1), plan T-027 (sửa `starting_dark`), plan T-028 (chạy lại test hỏng trên `main-guard`). dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-047).
-- **Kiểm chứng:**
+- **Áp dụng:** app: RUN-20261023-02, T-014 (`CameraScreenStartingScreenshotTest`) và T-016 (`ReviewScreenScreenshotTest.saving_dark`) chụp vòng chờ với đồng hồ Compose dừng; PR #39 (`CLAUDE.md`, bước 10: quy tắc chung); plan T-028, PR #40 (chạy lại test hỏng trên `main-guard`). dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-047).
+- **Kiểm chứng:** RUN-20261023-02: nguyên nhân xác nhận bằng chạy thử ngày 2026-10-22 (vòng chờ giữ màn hình không rảnh, Robolectric vẽ tới khi máy test hết bộ nhớ, ảnh đổi theo cỡ bộ nhớ). Sau khi dừng đồng hồ, `starting_dark` chạy dưới 1 giây; `main-guard` xanh cả 5 lần merge của phiên (lần chạy 39872832021 tới 39893107034).
 
 ### L-030: Điều hướng sau một hàm `suspend` đọc DataStore chạy ngoài luồng chính dưới Compose test
 
@@ -301,7 +301,43 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Áp dụng:**
 - **Kiểm chứng:**
 
-### L-032: Chạy lại `main-guard` trên đúng commit bị đổ lỗi, xanh, nhưng issue `main-broken` không tự đóng
+### L-032: Nút chữ trong thành phần có nền khác màu tự đặt màu chữ, đè màu thiết kế
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261023-02, T-016.
+- **Chuyện gì:** thông báo lưu lỗi của màn xem lại dùng `Snackbar` có nút `TextButton` "Thử lại". `TextButton` tự đặt màu chữ bằng `ButtonDefaults.textButtonColors()` (`primary`), đè `actionContentColor` mà `Snackbar` truyền xuống, nên chữ ra #6E9BFF thay vì `inversePrimary` #2F6BFF của thiết kế, độ tương phản giảm từ khoảng 3,9:1 xuống 2,4:1. Ảnh chuẩn ghi lại màu sai; không test nào đo màu chữ của nút; chỉ phiên rà soát độc lập thấy khi đo điểm ảnh.
+- **Bằng chứng:** RUN-20261023-02, rà soát độc lập T-016 (điểm chặn); commit e2030bd; test `saveError_retryUsesInversePrimary`.
+- **Đề xuất sửa:** mẫu plan và `CLAUDE.md` mục test giao diện: thành phần có nút chữ đặt trên nền khác màu (`inverseSurface`, thẻ màu, hộp thoại) phải có test đo màu chữ của nút bằng cách vẽ view gốc ra `Bitmap`; khi dựng, truyền `colors` cho `TextButton` thay vì dựa vào màu mà thành phần cha truyền xuống.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-033: Các plan viết song song cùng ghi "Tạo" cho một file mà task chạy trước trong phiên tạo ra
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-02, T-014, T-025.
+- **Chuyện gì:** plan T-014 và T-025 cùng ghi "Tạo" `core/designsystem/src/main/res/drawable/ic_chevron_right.xml`, một bản kiểu Outlined, một bản kiểu Rounded. T-014 chạy trước và tạo file; `scripts/plan-check.py` chỉ cảnh báo lúc bắt đầu T-025. Phiên con dùng lại bản có sẵn để không đổi giao diện camera, và ghi lệch plan. Tương tự, chú thích "until T-025 wires it" do T-021 viết ở `PosesNavigation.kt` trở nên lỗi thời mà file đó không thuộc plan T-025.
+- **Bằng chứng:** kết quả `plan-check.py` lúc 02:26 UTC; nhật ký plan T-025, mục Lệch so với plan.
+- **Đề xuất sửa:** `docs/CLAUDE.md` mục Khi lập danh sách chạy: chạy `plan-check.py` cho các plan theo thứ tự chạy dự kiến và tìm file "Tạo" trùng giữa các plan; mỗi file dùng chung chỉ một plan tạo, plan sau ghi "dùng lại" và ghi rõ kiểu. Plan để lại chú thích "task sau nối" thì liệt kê file đó cho task sau.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-034: Phiên con viết code trong thư mục chính làm phiên chính không làm gì song song được
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-02.
+- **Chuyện gì:** bốn phiên con (T-014, T-021, T-016, T-025) làm việc ngay trong thư mục chính của repo. Trong lúc chờ, hook dừng phiên của môi trường cloud ba lần báo "có thay đổi chưa commit" (đó là phần làm dở của phiên con, phiên chính không được commit chen vào). Phiên chính cũng không thể chạy `check.sh`, chuẩn bị nhánh task sau hay sửa file song song trong thư mục đó (L-031).
+- **Bằng chứng:** phản hồi của hook trong phiên, lúc phiên con T-014, T-021, T-025 đang làm.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 3 (cùng chỗ với L-031): phiên chính tạo worktree riêng cho nhánh task (`git worktree add ../task-T-NNN claude/T-NNN-...`) và giao việc cho phiên con trong worktree đó; thư mục chính giữ sạch cho việc của phiên chính. Bộ nhớ đệm Gradle ở `~/.gradle` dùng chung nên không tốn thêm thời gian tải.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-035: Thêm một bước đối chứng để test viết trước không qua ngay trên khung rỗng
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-02, T-014, T-021, T-016, T-025.
+- **Chuyện gì:** ở cả bốn task lớn, một số test viết theo mục 4 của plan qua ngay trên khung rỗng, vì khung trả đúng giá trị mặc định mà test mong đợi (ví dụ "chưa lưu gì thì trả mặc định", "tệp hỏng thì trả `null`"). Phiên con tự viết chặt lại trước commit test bằng một bước đối chứng: ghi rồi đọc lại, hoặc đặt dữ liệu đúng cạnh dữ liệu sai. Sau đó các test này thất bại đúng lý do. Số test được viết chặt như vậy: T-014 2, T-016 8, T-025 9; ở T-021, 2 test được viết chặt ngay từ đầu.
+- **Bằng chứng:** nhật ký plan T-014, T-021, T-016, T-025 (RUN-20261023-02), mục Test viết trước.
+- **Đề xuất sửa:** `docs/auto-run.md` bước 3: nêu "thêm bước đối chứng" làm cách mặc định khi một test không phải test chặn qua ngay; mẫu plan nhắc người viết plan rằng test kiểm giá trị mặc định thường qua trên khung và nên có sẵn bước đối chứng.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-036: Chạy lại `main-guard` trên đúng commit bị đổ lỗi, xanh, nhưng issue `main-broken` không tự đóng
 
 - **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** issue #35, sau RUN-20261023-01.
 - **Chuyện gì:** dev chạy lại `main-guard` (lần chạy 39817360705, lần 2) trên e9bf4bb, commit bị đổ lỗi; lần chạy xanh. Bước đóng issue chỉ đóng khi `compare/<commit bị đổ lỗi>...<commit xanh>` trả `ahead`; cùng một commit thì trả `identical`, nên issue #35 vẫn mở và dev phải tự đóng trước khi phiên sau chạy được.
@@ -310,7 +346,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-046).
 - **Kiểm chứng:**
 
-### L-033: Một test chập chờn trên `main-guard` kết thúc cả phiên
+### L-037: Một test chập chờn trên `main-guard` kết thúc cả phiên
 
 - **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, issue #35.
 - **Chuyện gì:** `CameraScreenScreenshotTest > starting_dark` thất bại một lần trên `main-guard` (L-029), xanh ở PR, ở cục bộ và khi chạy lại. Một lần đỏ đó mở `main-broken`, phiên kết thúc khi mới xong 2 trên 7 task; 4 task chưa bắt đầu và T-012 dở dang phải chờ người tới sáng.
@@ -319,7 +355,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-047).
 - **Kiểm chứng:**
 
-### L-034: Phiên không tự đưa nhánh chính về trạng thái xanh được, kể cả bằng một bản revert đúng
+### L-038: Phiên không tự đưa nhánh chính về trạng thái xanh được, kể cả bằng một bản revert đúng
 
 - **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, issue #35.
 - **Chuyện gì:** khi `main-broken` mở, `merge-if-green.sh` từ chối mọi PR, kể cả PR từ nhánh `revert/<commit>` mà `main-guard` đã dựng sẵn; chỉ người đóng issue mới mở lại được. Lý do của ADR-0010 là đúng: tên nhánh không phải bằng chứng. Hệ quả là một lần merge hỏng thật vào ban đêm làm mọi task còn lại chờ tới sáng.
@@ -328,7 +364,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-048).
 - **Kiểm chứng:**
 
-### L-035: Plan ghi sẵn phương án dự phòng đã duyệt, để phiên chuyển sang thay vì dừng task
+### L-039: Plan ghi sẵn phương án dự phòng đã duyệt, để phiên chuyển sang thay vì dừng task
 
 - **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03 (T-007 hai lần, T-011), RUN-20261023-01.
 - **Chuyện gì:** cả ba lần dừng vì plan đều cùng một dạng: kỹ thuật của plan không chạy (`captureToImage` hết giờ, quy tắc `captureRoboImage(` của `check.sh`, thuộc tính trợ năng không lan xuống node con), và cách thay đã rõ ngay khi gặp lỗi. Phiên phải dừng vì cách thay chưa được duyệt; mỗi lần mất một phiên và một vòng duyệt.
@@ -337,7 +373,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Áp dụng:** app: PR #39. dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-040).
 - **Kiểm chứng:**
 
-### L-036: Mâu thuẫn và test yếu chỉ được tìm thấy khi phiên đã chạy, hoặc nhờ người tình cờ thấy
+### L-040: Mâu thuẫn và test yếu chỉ được tìm thấy khi phiên đã chạy, hoặc nhờ người tình cờ thấy
 
 - **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** chuẩn bị RUN-20261023-01, RUN-20261023-02.
 - **Chuyện gì:** khi chuẩn bị RUN-20261023-01, các lỗi sau chỉ lộ ra nhờ rà soát bằng tay, không có bước nào bắt buộc tìm:
@@ -351,7 +387,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Áp dụng:** app: PR #39. dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-044).
 - **Kiểm chứng:**
 
-### L-037: Quyền và thư viện cần thêm chỉ lộ ra khi viết code, phiên phải dừng hoặc đi vòng
+### L-041: Quyền và thư viện cần thêm chỉ lộ ra khi viết code, phiên phải dừng hoặc đi vòng
 
 - **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01 (T-013), chuẩn bị RUN-20261023-01 (T-016).
 - **Chuyện gì:**

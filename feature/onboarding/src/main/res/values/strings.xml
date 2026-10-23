@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English is the default language; translations live in values-<language> (plan T-008, plan T-012). -->
+<resources>
+    <string name="onboarding_title">Strike a great pose, no guesswork</string>
+    <string name="onboarding_body">Pick a pose, step into the outline, then tap to shoot. Photos save to your gallery without the outline.</string>
+    <string name="onboarding_point_poses">200+ poses: solo, couples, friends</string>
+    <string name="onboarding_point_adjust">Adjust outline opacity, size and position</string>
+    <string name="onboarding_point_saved">Save favorite poses to shoot again later</string>
+    <string name="onboarding_enable_camera">Turn on camera</string>
+    <string name="onboarding_note">The app needs camera access to show the preview. Photos are stored only on your device.</string>
+</resources>

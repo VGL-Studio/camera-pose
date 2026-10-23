@@ -1,7 +1,7 @@
 ---
 ticket: T-016
 title: Màn xem lại, lưu, chia sẻ, tư thế tiếp
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -455,3 +455,22 @@ Phiên bản 2:
 - **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
 - **Việc còn lại:** <...>
 - **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+
+### RUN-20261023-02, phiên bản plan 2
+
+- **Kết quả:** đã merge (PR #44, commit 3c90bdc, 02:25 UTC).
+- **Nhánh, PR:** `claude/T-016-man-xem-lai`, PR #44. Commit: eb71c4c (test và khung), 24631ce (code), ac4b19f (5 ảnh chuẩn), 3cbef34 (đối chiếu thiết kế), f04edcc (test theo rà soát), e2030bd (sửa theo rà soát), e95aba9 (ghi lại 2 ảnh `save-error`), e1a1ae1 (ảnh so sánh).
+- **Đã làm:** đủ mục 3.1 và 3.2 (54 file, đều trong danh sách). Phương án A: `PoseViewModel.onNextPose()` có trên nhánh chính; `CameraRoute` gọi nó trong `LifecycleStartEffect` khi `consumeNextPoseRequest()` đúng. Bước 2 đến 5 và phần sửa theo rà soát do một phiên AI viết code riêng làm; phiên chính kiểm điều kiện dừng 1, 3, danh sách file, chạy rà soát độc lập, mở PR. Điều kiện dừng mục 7: điều 2, 4 không xảy ra (`CapturedPhoto.poseId` đã có từ T-014, không sửa `CapturedPhotoHolder.kt`); điều 5: `ExifInterface.saveAttributes()` ghi được trên Robolectric; điều 7, 10: không thêm thư viện; điều 8: quyền của APK `stagingDebug` khác nhánh chính đúng một dòng `WRITE_EXTERNAL_STORAGE` `maxSdkVersion='28'`, không có quyền đọc ảnh, dòng `uses-implied-permission` của `READ_EXTERNAL_STORAGE` là điều đã biết; điều 9: lint chỉ có cảnh báo.
+- **Test viết trước:** 88 test JVM (kể cả 5 screenshot test) và `PhotoSaveDeviceTest` (emulator, chỉ biên dịch cục bộ). 78 thất bại đúng lý do trên khung rỗng (trạng thái luôn `Loading`, không có sự kiện, không có node, `isStorageFull` và `needsRequest` trả `false`, bộ giải mã trả `null`, repository trả `null` hoặc `0`, chooser không có action). 8 test qua ngay trên khung được viết chặt lại bằng bước đối chứng trước commit test rồi thất bại đúng lý do. Qua ngay như mục 4: 5 test chặn `StoragePermissionTest`, `withoutPhoto_isNotClickable`, 5 screenshot test. Bước 4: lần chạy đầu hỏng 2 test hộp thoại (lớp mờ `clickable` gộp `paneTitle`), sửa code không sửa test. Sau rà soát: 7 test mới hoặc siết lại, đều thất bại đúng lý do trước khi sửa.
+- **Rà soát độc lập:** 1 chặn, 3 nên sửa, đã sửa cả 4 (một vòng sửa): (chặn) chữ "Thử lại" và "Mở cài đặt" của thông báo có màu `primary` (#6E9BFF) vì `TextButton` đè `actionContentColor`, thiết kế dùng `inversePrimary` (#2F6BFF); nay đặt `contentColor = inversePrimary`, có test đo điểm ảnh; (nên sửa) ở khung thấp thông báo nằm sát hàng nút phụ (0 dp), nay cách `Spacing.md`, test siết thành ít nhất `Spacing.sm`; lỗi `IllegalStateException`, `IllegalArgumentException` của MediaStore làm app dừng, nay bọc thành `IOException`; `recordSaved` có thể bị hủy khi bấm "Chụp lại" ngay, nay chạy trong `NonCancellable`. Ghi chú: "Tư thế tiếp" bị bỏ không báo nếu tiến trình bị đóng ở màn xem lại và thư viện chưa tải xong, hoặc chờ tới lần camera bắt đầu sau nếu bấm khi hiệu ứng chuyển màn chưa xong; cờ `awaiting_storage_permission` chặn nút quay lại nếu kết quả hỏi quyền không về (rất hiếm); thông báo cao 48 dp so với 56; chú thích "no storage permission" ở `app/src/main/AndroidManifest.xml:9` đã lỗi thời (plan không cho đổi dòng đó); KDoc ở `CameraNavigation.kt:11` đặt nhầm chỗ; ở trạng thái `PERMISSION_BLOCKED`, "Lưu ảnh" trong hộp thoại bỏ ảnh chỉ đóng hộp thoại.
+- **Kết quả CI:** lần chạy 39888674161 (e1a1ae1): `changes`, `build-and-test`, `ui-test` (gồm `PhotoSaveDeviceTest`) xanh vòng đầu. `scripts/check.sh` cục bộ qua: 669 test JVM, 0 lỗi, 56 ảnh screenshot.
+- **Lệch so với plan:**
+  - `MediaStorePhotoStore` để `public` vì `PhotoSaveDeviceTest` trong `:app` gọi trực tiếp (mục 3.1 chỉ ghi `AndroidStoragePermission` là `public`, có vẻ ghi nhầm lớp); các interface `PhotoStore`, `PhotoDecoder`, `SavedPhotosRepository`, `StoragePermission` và `NextPoseRequests` `public` vì nằm trong constructor của hai ViewModel public.
+  - `ReviewViewModelTest`, `PhotoStoreTest` chạy Robolectric để dựng `ErrnoException`; `ThrowingMediaProvider` public trong `PhotoStoreTest.kt` (Robolectric dựng bằng reflection).
+  - `ReviewViewModel` thêm `onShareFailed` (log `warn`) và lưu việc chờ sau khi lưu vào `SavedStateHandle`; `ReviewFakes.kt` thêm `FakePhotoDecoder`.
+  - Lớp mờ của hộp thoại `clearAndSetSemantics` (TalkBack đóng bằng nút quay lại, `BackHandler`).
+  - `PhotoSaveDeviceTest` `@SdkSuppress(minSdkVersion = 29)` (cột `RELATIVE_PATH`, `IS_PENDING`).
+  - `AppNavHost` chỉ `popBackStack()` khi màn xem lại ở trên cùng.
+  - Biểu tượng lấy từ `symbols/android/<tên>/materialsymbolsoutlined/<tên>_24px.xml` ở `49d4db3` (cùng repo và SHA, khác dạng nhóm `translateY` của biểu tượng camera cũ).
+- **Việc còn lại:** kiểm tra thủ công ở mục 4 (Android 8 hoặc 9 với luồng hỏi quyền lưu, hết bộ nhớ, tiến trình bị đóng, chia sẻ, "Tư thế tiếp" trên máy thật). Trước bản production đầu tiên: cập nhật khai báo quyền trên Play Console (spec camera).
+- **Cần người xem:** 5 ảnh chuẩn mới `ReviewScreen_*` (nhất là `ReviewScreen_save-error_small.png`); ảnh so sánh `docs/features/camera/design/review/ReviewScreen_*`; chữ hai thông báo quyền chưa có trong bảng chữ của README thiết kế (câu 10, việc của người giữ thiết kế).

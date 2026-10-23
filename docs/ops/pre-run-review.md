@@ -47,14 +47,14 @@ Nội dung giao việc tối thiểu: "Rà soát danh sách chạy `<đường d
   - đồng hồ thật, `Thread.sleep`, mạng thật;
   - thứ tự không cố định;
   - test trên emulator khẳng định màn hình thoáng qua (`CLAUDE.md`, bước 10).
-  Test chập chờn trên `main-guard` kết thúc cả phiên (L-033), nên đây là mức chặn.
+  Test chập chờn trên `main-guard` kết thúc cả phiên (L-037), nên đây là mức chặn.
 - Ngoại lệ viết test trước có lý do thật; phần vỏ app không có test JVM thì đề xuất test Robolectric (L-030).
 - Tiêu chí chỉ kiểm thủ công: xem có cách tự động không; nếu không thì bước kiểm thủ công phải đủ cụ thể để dev làm được trên bản staging.
 
 ### 2.3. Chạy được trong phiên
 
 - Kỹ thuật lần đầu dùng (tiêu chí E từ 2) đã chạy thử bằng `scripts/check.sh`, ghi ở mục 4.1 (L-001, L-010).
-- Điểm còn chưa chắc có phương án dự phòng ở mục 3.4 với điều kiện chuyển cụ thể (L-035).
+- Điểm còn chưa chắc có phương án dự phòng ở mục 3.4 với điều kiện chuyển cụ thể (L-039).
 - Plan không dùng cách mà `scripts/check.sh` từ chối (L-003, L-013).
 - Quyền và thư viện đã được quyết trong mục 3.3:
   - mỗi API Android mà plan gọi có quyền cần thiết trên mọi phiên bản từ `minSdk` tới `targetSdk`;

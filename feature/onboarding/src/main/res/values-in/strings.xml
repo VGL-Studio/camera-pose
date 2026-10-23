@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_title">Pose keren, tanpa menebak</string>
+    <string name="onboarding_body">Pilih pose, berdiri di dalam garis pose, lalu ketuk untuk memotret. Foto tersimpan di galeri tanpa garis pose.</string>
+    <string name="onboarding_point_poses">Lebih dari 200 pose: sendiri, pasangan, bersama teman</string>
+    <string name="onboarding_point_adjust">Atur transparansi, ukuran, dan posisi garis pose</string>
+    <string name="onboarding_point_saved">Simpan pose favorit untuk dipakai lagi nanti</string>
+    <string name="onboarding_enable_camera">Aktifkan kamera</string>
+    <string name="onboarding_note">Aplikasi perlu akses kamera untuk menampilkan pratinjau. Foto hanya tersimpan di perangkat Anda.</string>
+</resources>

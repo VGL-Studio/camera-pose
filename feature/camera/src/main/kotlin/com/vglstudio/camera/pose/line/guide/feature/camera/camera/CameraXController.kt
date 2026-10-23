@@ -128,12 +128,17 @@ internal class CameraXController @Inject constructor(
             .onFailure { logger.warn(LOG_TAG, "Zoom could not be set", it) }
     }
 
-    override suspend fun takePicture(): File = withContext(Dispatchers.Main) {
+    override suspend fun takePicture(playShutterSound: Boolean): File = withContext(Dispatchers.Main) {
         val capture = imageCapture ?: throw CaptureFailedException(IllegalStateException("The camera is not open"))
         val file = fileStore.newFile(clock.nowMillis())
-        val sound = shutterSound ?: MediaActionSound().also {
-            it.load(MediaActionSound.SHUTTER_CLICK)
-            shutterSound = it
+        // Loaded only when the user keeps the shutter sound on (spec settings, KB-3).
+        val sound = if (!playShutterSound) {
+            null
+        } else {
+            shutterSound ?: MediaActionSound().also {
+                it.load(MediaActionSound.SHUTTER_CLICK)
+                shutterSound = it
+            }
         }
         suspendCancellableCoroutine { continuation ->
             capture.takePicture(
@@ -141,7 +146,7 @@ internal class CameraXController @Inject constructor(
                 ContextCompat.getMainExecutor(context),
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onCaptureStarted() {
-                        sound.play(MediaActionSound.SHUTTER_CLICK)
+                        sound?.play(MediaActionSound.SHUTTER_CLICK)
                     }
 
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {

@@ -1,7 +1,7 @@
 ---
 ticket: T-021
 title: Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -382,3 +382,23 @@ Bảng điểm dưới đây chỉ để tham khảo:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261023-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #43, commit 25a87c8, 01:41 UTC).
+- **Nhánh, PR:** `claude/T-021-thu-vien-tu-the`, PR #43. Commit: 0525ec4 (test và khung), a3c390d (code), 8fa1a81 (11 ảnh chuẩn), e1d6ca9 (đối chiếu thiết kế), 2c020f1 (test theo rà soát), 6833b2a (sửa theo rà soát).
+- **Đã làm:** đủ mục 3.1 và 3.2 (60 file, đều trong danh sách). Bước 2 đến 5 và phần sửa theo rà soát do một phiên AI viết code riêng làm; phiên chính kiểm danh sách file, chạy rà soát độc lập, mở PR. Không gặp điều kiện dừng nào của mục 7 (`StickerChip`, `SelectedBadge` có sẵn; không sửa `:core:poses`, `:feature:camera`; không thêm thư viện; `NetworkStatus` có trong đồ thị Hilt, build `stagingDebug` qua).
+- **Test viết trước:** 75 test logic và giao diện, 11 screenshot test. 59 test thất bại đúng lý do trên khung rỗng (trạng thái luôn `Loading`, không có node, không có lần ghi hay sự kiện, bộ giải mã trả `null`, thẻ cao 0 dp thay vì 284, `posesOpener` trả `null`). Qua ngay đúng như mục 4: `libraryLoading_isLoading`, `settings_hiddenWhenNull`, `decoderReturnsNull_returnsFailedOther`, `corruptFile_returnsNull`, `skeleton_withoutOnClick_notClickable`, `flagOff_noOpener`. `skeleton_sameSizeAsOneLineCard` và `catalogFailureRepeated_logsOnce` viết chặt ngay từ đầu để không qua trên khung. Sau rà soát: 2 test số bước theo ngôn ngữ (thất bại đúng lý do: màn tiếng Việt hiện "5 bước" theo ngôn ngữ đầu của catalog), 2 test chặn (qua ngay; tạm bỏ đoạn code tương ứng thì thất bại, không commit phần tạm).
+- **Rà soát độc lập:** 0 chặn, 3 nên sửa (đã sửa cả 3), các ghi chú. Nên sửa: (1) số bước của thẻ lấy theo ngôn ngữ đầu tiên của catalog, nay đếm `steps.resolve(locale)` như camera; (2) chưa có test cho ghi đè trạng thái lưu khi thư viện phát trễ; (3) chưa có test cho lần cuộn về đầu thứ hai. Ghi chú: tiêu chí KB-1 "bấm cài đặt thì màn cài đặt mở" chờ T-025 nối (`onOpenSettings = null`); ở chip "Đã lưu", tư thế lưu từ màn chi tiết thêm vào cuối lưới tới khi đổi chip (câu 3, T-022 kiểm lại); lần tải ảnh của tư thế rời catalog không bị hủy; `saved-empty` nút nhỏ hơn thiết kế 4 đến 5 dp (`StateMessage` có sẵn); màn lỗi thiếu dòng tổng số và chip so với frame thiết kế (câu 2, nhắc người làm thiết kế cập nhật frame).
+- **Kết quả CI:** lần chạy 39884288715 (6833b2a): `changes`, `build-and-test`, `ui-test` xanh vòng đầu. `scripts/check.sh` cục bộ qua: 576 test JVM, 0 lỗi, 51 ảnh screenshot.
+- **Lệch so với plan:**
+  - `PoseCardItem` mang `steps: LocalizedList` thay `stepCount: Int` (sửa theo rà soát, để màn hình đếm theo ngôn ngữ).
+  - Lưới cuộn về đầu thêm một lần khi danh sách thẻ của chip mới hiện (lưới giữ vị trí theo `key`).
+  - Ghi đè trạng thái lưu giữ tới khi thư viện phát giá trị đã ghi, để nút không nhấp nháy.
+  - `posesScreen(onBack)` chỉ `popBackStack()` khi thư viện đang ở trên cùng (như màn chào).
+  - `FakePosesLibrarySource` ghép thêm `MutableSharedFlow` để phát lại cùng giá trị; `PosesFixtures` và hình người tạm nằm trong `PosesFakes.kt` và file screenshot test.
+  - Hàng chip có lề trên `Spacing.md` để dấu chọn thò ra 9 dp không bị cắt.
+  - Thêm log "Retrying thumbnail".
+  - `PosesScreenTest.card_showsNameMetaAndSaveButton` sửa sau bước 3 (bản giả có hai thẻ cùng dòng phụ, lệnh tìm thấy 2 node): nay kiểm dòng phụ trong thẻ `w01`, chặt hơn, không đổi điều kiểm tra.
+- **Việc còn lại:** T-025 nối nút cài đặt của thư viện; kiểm tra thủ công ở mục 4.
+- **Cần người xem:** 11 ảnh chuẩn mới (nhất là `PosesScreen_default_small.png`: thẻ tên hai dòng cao hơn thẻ bên cạnh); ảnh so sánh `docs/features/poses/design/review/` (`default` 22,1%, do dải trạng thái 24 dp và ảnh tạm); kiểm tra thủ công mục 4 (quay lại camera giữ tư thế, mở lại app còn danh sách đã lưu, chế độ máy bay, đổi ngôn ngữ máy).

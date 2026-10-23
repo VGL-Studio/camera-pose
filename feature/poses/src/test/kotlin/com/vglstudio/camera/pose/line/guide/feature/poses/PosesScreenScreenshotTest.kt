@@ -126,7 +126,25 @@ class PosesScreenScreenshotTest {
         }
     }
 
+    // Design `unfolded` (KB-7): three columns, the same data as `default` (six cards in two rows).
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun default_light_unfolded() {
+        captureRoboImage("src/test/screenshots/PosesScreen_default_light_unfolded.png") {
+            Screen(defaultState(), dark = false)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun default_dark_unfolded() {
+        captureRoboImage("src/test/screenshots/PosesScreen_default_dark_unfolded.png") {
+            Screen(defaultState(), dark = true)
+        }
+    }
+
     private companion object {
+        const val UNFOLDED = "w673dp-h841dp-xxhdpi"
         const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
 
         val ERROR = PosesUiState.Error(LoadFailureReason.OTHER)

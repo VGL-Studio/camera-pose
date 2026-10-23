@@ -2,19 +2,23 @@ package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -35,6 +39,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
@@ -108,7 +113,12 @@ internal fun PoseDetailTopBar(title: String?, saved: Boolean?, onBack: () -> Uni
 
 /** The large image: the figure on the color of its category, a progress ring while it loads, or the error message. */
 @Composable
-internal fun PoseDetailImage(categoryId: String, image: DetailImageState, onRetry: () -> Unit) {
+internal fun PoseDetailImage(
+    categoryId: String,
+    image: DetailImageState,
+    onRetry: () -> Unit,
+    imageHeight: Dp = ImageHeight,
+) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Radius.card)
     val background = when (image) {
@@ -119,7 +129,7 @@ internal fun PoseDetailImage(categoryId: String, image: DetailImageState, onRetr
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(ImageHeight)
+            .height(imageHeight)
             .clip(shape)
             .background(background)
             .border(BorderStroke(Stroke.sticker, colors.outline), shape)
@@ -137,7 +147,7 @@ internal fun PoseDetailImage(categoryId: String, image: DetailImageState, onRetr
                 Image(
                     painter = painter,
                     contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(ImageHeight),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
                 )
             }
@@ -151,6 +161,15 @@ internal fun PoseDetailImage(categoryId: String, image: DetailImageState, onRetr
             )
         }
     }
+}
+
+/** The text part of the detail: second line, the steps, and the common mistakes when the catalog has some. */
+@Composable
+internal fun PoseDetailInfo(pose: PoseDetail, locale: Locale) {
+    PoseDetailMeta(pose)
+    PoseDetailSteps(pose.steps.resolve(locale), locale)
+    val mistakes = pose.mistakes.resolve(locale)
+    if (mistakes.isNotEmpty()) PoseDetailMistakes(mistakes)
 }
 
 /** Second line: subject type, group, framing, number of steps; the group is left out when the catalog has no name. */
@@ -263,6 +282,49 @@ internal fun PoseDetailBottomBar(onShoot: () -> Unit) {
             icon = painterResource(R.drawable.ic_poses_photo_camera),
         )
     }
+}
+
+/**
+ * The phone layout: one scrolling column (image, then the text) with the button bar and the banner under it
+ * (design README, section 3).
+ */
+@Composable
+internal fun PhoneDetailLayout(
+    ready: PoseDetailUiState.Ready,
+    locale: Locale,
+    scrollState: ScrollState,
+    onRetryImage: () -> Unit,
+    onShoot: () -> Unit,
+    bottomBanner: @Composable () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scrollState)
+                .padding(horizontal = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            PoseDetailImage(ready.pose.categoryId, ready.image, onRetryImage)
+            PoseDetailInfo(ready.pose, locale)
+            Spacer(modifier = Modifier.height(Spacing.md))
+        }
+        PoseDetailBottomBar(onShoot = onShoot)
+        bottomBanner()
+    }
+}
+
+/** The wide layout for an unfolded foldable (spec poses, KB-7): the image on the left, the text on the right. */
+@Composable
+internal fun WideDetailLayout(
+    ready: PoseDetailUiState.Ready,
+    locale: Locale,
+    scrollState: ScrollState,
+    onRetryImage: () -> Unit,
+    onShoot: () -> Unit,
+    bottomBanner: @Composable () -> Unit,
+) {
+    PhoneDetailLayout(ready, locale, scrollState, onRetryImage, onShoot, bottomBanner)
 }
 
 @Composable

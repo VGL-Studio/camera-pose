@@ -1,16 +1,12 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -27,9 +23,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.feature.poses.PosesBottomBanner
 import com.vglstudio.camera.pose.line.guide.feature.poses.R
+import com.vglstudio.camera.pose.line.guide.feature.poses.isWide
 import com.vglstudio.camera.pose.line.guide.feature.poses.screenLocale
 
 object PoseDetailTestTags {
@@ -74,6 +70,8 @@ fun PoseDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val ready = uiState as? PoseDetailUiState.Ready
     val locale = screenLocale()
+    // One scroll state for both layouts: the reading position stays when the screen is folded or unfolded.
+    val scrollState = rememberScrollState()
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -99,23 +97,12 @@ fun PoseDetailScreen(
                     val currentOnBack by rememberUpdatedState(onBack)
                     LaunchedEffect(Unit) { currentOnBack() }
                 }
-                is PoseDetailUiState.Ready -> {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = Spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-                    ) {
-                        PoseDetailImage(uiState.pose.categoryId, uiState.image, onRetryImage)
-                        PoseDetailMeta(uiState.pose)
-                        PoseDetailSteps(uiState.pose.steps.resolve(locale), locale)
-                        val mistakes = uiState.pose.mistakes.resolve(locale)
-                        if (mistakes.isNotEmpty()) PoseDetailMistakes(mistakes)
-                        Spacer(modifier = Modifier.height(Spacing.md))
+                is PoseDetailUiState.Ready -> BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    if (isWide()) {
+                        WideDetailLayout(uiState, locale, scrollState, onRetryImage, onShoot, bottomBanner)
+                    } else {
+                        PhoneDetailLayout(uiState, locale, scrollState, onRetryImage, onShoot, bottomBanner)
                     }
-                    PoseDetailBottomBar(onShoot = onShoot)
-                    bottomBanner()
                 }
             }
         }

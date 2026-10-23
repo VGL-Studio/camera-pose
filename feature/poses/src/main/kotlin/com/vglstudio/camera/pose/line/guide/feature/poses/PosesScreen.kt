@@ -3,6 +3,8 @@ package com.vglstudio.camera.pose.line.guide.feature.poses
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -52,6 +54,10 @@ object PosesTestTags {
 
 // Skeleton cards while the catalog loads (plan T-021, question 13).
 private const val LOADING_CARDS = 6
+
+// Columns of the grid: 2 on a phone, 3 on an unfolded foldable (KB-7).
+private const val PHONE_COLUMNS = 2
+private const val WIDE_COLUMNS = 3
 
 @Composable
 fun PosesRoute(
@@ -204,23 +210,26 @@ private fun ColumnScope.ReadyContent(
             )
         }
     } else {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            state = gridState,
-            modifier = Modifier.weight(1f).testTag(PosesTestTags.GRID),
-            contentPadding = gridPadding(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            items(state.cards, key = { it.id }) { item ->
-                PoseGridCell(
-                    item = item,
-                    onOpenPose = onOpenPose,
-                    onToggleSave = onToggleSave,
-                    onThumbnailNeeded = onThumbnailNeeded,
-                    onThumbnailReleased = onThumbnailReleased,
-                    onRetryThumbnail = onRetryThumbnail,
-                )
+        // The columns follow the width of the room under the chips (KB-7): 3 when unfolded, 2 on a phone.
+        BoxWithConstraints(modifier = Modifier.weight(1f)) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns()),
+                state = gridState,
+                modifier = Modifier.fillMaxSize().testTag(PosesTestTags.GRID),
+                contentPadding = gridPadding(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                items(state.cards, key = { it.id }) { item ->
+                    PoseGridCell(
+                        item = item,
+                        onOpenPose = onOpenPose,
+                        onToggleSave = onToggleSave,
+                        onThumbnailNeeded = onThumbnailNeeded,
+                        onThumbnailReleased = onThumbnailReleased,
+                        onRetryThumbnail = onRetryThumbnail,
+                    )
+                }
             }
         }
     }
@@ -229,17 +238,21 @@ private fun ColumnScope.ReadyContent(
 /** Catalog still loading: skeleton cards under the top bar, no summary or chips yet. */
 @Composable
 private fun LoadingGrid(modifier: Modifier = Modifier) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = modifier,
-        contentPadding = gridPadding(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        userScrollEnabled = false,
-    ) {
-        items(LOADING_CARDS) { PoseCardSkeleton() }
+    BoxWithConstraints(modifier = modifier) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(gridColumns()),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = gridPadding(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            userScrollEnabled = false,
+        ) {
+            items(LOADING_CARDS) { PoseCardSkeleton() }
+        }
     }
 }
+
+private fun BoxWithConstraintsScope.gridColumns() = if (isWide()) WIDE_COLUMNS else PHONE_COLUMNS
 
 // Design: the grid starts 8 below the chips plus its own 4; the last card stays off the bottom edge.
 private fun gridPadding() = PaddingValues(

@@ -1,12 +1,16 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
@@ -24,8 +28,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
@@ -61,19 +67,33 @@ class PoseDetailScreenTest {
 
     private var state by mutableStateOf<PoseDetailUiState>(PoseDetailUiState.Loading)
 
-    private fun setScreen(initial: PoseDetailUiState, bottomBanner: @Composable () -> Unit = {}) {
+    private fun setScreen(
+        initial: PoseDetailUiState,
+        bottomBanner: @Composable () -> Unit = {},
+        width: (() -> Dp)? = null,
+    ) {
         state = initial
         composeRule.setContent {
             AppTheme(darkTheme = false) {
-                PoseDetailScreen(
-                    uiState = state,
-                    onBack = { backs++ },
-                    onToggleSave = { toggles++ },
-                    onRetryImage = { retries++ },
-                    onShoot = { shoots++ },
-                    onSaveFailedShown = { saveFailedShown++ },
-                    bottomBanner = bottomBanner,
-                )
+                val screen = @Composable {
+                    PoseDetailScreen(
+                        uiState = state,
+                        onBack = { backs++ },
+                        onToggleSave = { toggles++ },
+                        onRetryImage = { retries++ },
+                        onShoot = { shoots++ },
+                        onSaveFailedShown = { saveFailedShown++ },
+                        bottomBanner = bottomBanner,
+                    )
+                }
+                if (width == null) {
+                    screen()
+                } else {
+                    // The screen gets that width of the window, from the left edge (KB-7).
+                    Box(Modifier.fillMaxSize()) {
+                        Box(Modifier.align(Alignment.TopStart).fillMaxHeight().requiredWidth(width())) { screen() }
+                    }
+                }
             }
         }
     }
@@ -355,6 +375,129 @@ class PoseDetailScreenTest {
         assertEquals("bar reaches the bottom of the screen", root.bottom.value, bar.bottom.value, 0.5f)
     }
 
+    // KB-7: unfolded foldable
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun wide_imageLeft_infoRight_bottomBarInRightColumn() {
+        // Control: the same data at a phone width has the text under the image, so the checks below can fail.
+        var width by mutableStateOf(411.dp)
+        setScreen(ready(), width = { width })
+        val phoneMeta = composeRule.onNodeWithText(META).getUnclippedBoundsInRoot()
+        val phoneImage = composeRule.onNodeWithTag(PoseDetailTestTags.IMAGE).getUnclippedBoundsInRoot()
+        assertTrue("text under the image on a phone: $phoneMeta $phoneImage", phoneMeta.top >= phoneImage.bottom)
+        width = 673.dp
+        composeRule.waitForIdle()
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val image = composeRule.onNodeWithTag(PoseDetailTestTags.IMAGE).getUnclippedBoundsInRoot()
+        val meta = composeRule.onNodeWithText(META).getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        val button = composeRule.onNodeWithText("Chụp với tư thế này").getUnclippedBoundsInRoot()
+        assertEquals("image width", 315f, image.width.value, 1f)
+        assertEquals("image height", 440f, image.height.value, 1f)
+        assertEquals("image left", 16f, image.left.value, 1f)
+        assertEquals("image top", 80f, image.top.value, 1f)
+        assertEquals("meta left", 347f, meta.left.value, 1f)
+        assertTrue("meta beside the image: $meta $image", meta.top < image.bottom && meta.left >= image.right)
+        assertEquals("bar left", 347f, bar.left.value, 1f)
+        assertEquals("bar right", root.right.value, bar.right.value, 0.5f)
+        assertEquals("bar bottom", root.bottom.value, bar.bottom.value, 0.5f)
+        assertTrue("button in the right column: $button $bar", button.left >= bar.left && button.right <= bar.right)
+        composeRule.onNodeWithText("Chụp với tư thế này").performClick()
+        assertEquals(1, shoots)
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun wide_infoScrolls_bottomBarStaysVisible() {
+        setScreen(ready(detail = longDetail()), width = { 673.dp })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR)
+        val barBounds = bar.getUnclippedBoundsInRoot()
+        val lastMistake = composeRule.onNodeWithText(LONG_MISTAKE)
+        // The text is longer than the room above the bar, so it has to scroll.
+        assertTrue(
+            "last line below the bar before scrolling",
+            lastMistake.getUnclippedBoundsInRoot().bottom > barBounds.top,
+        )
+        // The text sits in the right column.
+        assertEquals(347f, composeRule.onNodeWithText(LONG_META).getUnclippedBoundsInRoot().left.value, 1f)
+        lastMistake.performScrollTo()
+        composeRule.waitForIdle()
+        val last = lastMistake.getUnclippedBoundsInRoot()
+        val after = bar.getUnclippedBoundsInRoot()
+        assertEquals("bar does not move", barBounds.top.value, after.top.value, 0.5f)
+        assertTrue("bar inside the screen", after.bottom <= root.bottom)
+        assertTrue("last mistake ${last.bottom} above bar ${after.top}", last.bottom.value <= after.top.value + 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun wide_banner_belowBottomBar_inRightColumn() {
+        setScreen(ready(), bottomBanner = { TestBanner() }, width = { 673.dp })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val banner = composeRule.onNodeWithTag(BANNER).getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        assertEquals("bar in the right column", 347f, bar.left.value, 1f)
+        assertEquals(58f, banner.height.value, 0.5f)
+        assertEquals("banner starts where the bar ends", bar.bottom.value, banner.top.value, 0.5f)
+        assertEquals("banner in the right column", bar.left.value, banner.left.value, 0.5f)
+        assertEquals("banner at the bottom of the screen", root.bottom.value, banner.bottom.value, 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED_LOW)
+    fun widthChange_keepsPoseAndScroll() {
+        var width by mutableStateOf(673.dp)
+        setScreen(ready(detail = longDetail()), width = { width })
+        val wideMetaTop = composeRule.onNodeWithText(LONG_META).getUnclippedBoundsInRoot().top
+        assertEquals("wide layout: text in the right column", 347f, metaLeft(), 1f)
+        width = 411.dp
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Tựa lan can").assertExists()
+        assertTrue("phone layout: text under the image", metaLeft() < 100f)
+        composeRule.onNodeWithText(LONG_MISTAKE).performScrollTo()
+        composeRule.waitForIdle()
+        assertTrue("scrolled: image is above the screen", imageTop() < 0f)
+        width = 673.dp
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Tựa lan can").assertExists()
+        assertEquals("wide layout again: text in the right column", 347f, metaLeft(), 1f)
+        val metaTop = composeRule.onNodeWithText(LONG_META).getUnclippedBoundsInRoot().top
+        assertTrue("scroll kept: text moved up from $wideMetaTop to $metaTop", metaTop.value < wideMetaTop.value - 1f)
+        width = 411.dp
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Tựa lan can").assertExists()
+        assertTrue("scroll kept after folding again", imageTop() < 0f)
+    }
+
+    private fun longDetail() = detail(steps = MANY_STEPS, mistakes = listOf(MISTAKE, LONG_MISTAKE))
+
+    private fun metaLeft() = composeRule.onNodeWithText(LONG_META).getUnclippedBoundsInRoot().left.value
+
+    private fun imageTop() = composeRule.onNodeWithTag(PoseDetailTestTags.IMAGE).getUnclippedBoundsInRoot().top.value
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun wide_imageFailed_retryInLeftColumn() {
+        setScreen(ready(image = DetailImageState.Failed), width = { 673.dp })
+        val image = composeRule.onNodeWithTag(PoseDetailTestTags.IMAGE).getUnclippedBoundsInRoot()
+        assertEquals("image area width", 315f, image.width.value, 1f)
+        listOf("Không tải được ảnh", "Thử lại").forEach { text ->
+            val bounds = composeRule.onNodeWithText(text).getUnclippedBoundsInRoot()
+            assertTrue(
+                "$text $bounds inside the image area $image",
+                bounds.left >= image.left &&
+                    bounds.right <= image.right &&
+                    bounds.top >= image.top &&
+                    bounds.bottom <= image.bottom,
+            )
+        }
+        composeRule.onNodeWithText("Thử lại").performClick()
+        assertEquals(1, retries)
+        composeRule.onNodeWithText(STEPS[0]).assertExists()
+    }
+
     private fun ready(
         detail: PoseDetail = detail(),
         saved: Boolean = false,
@@ -382,6 +525,10 @@ class PoseDetailScreenTest {
     )
 
     private companion object {
+        const val UNFOLDED = "vi-w673dp-h841dp-xxhdpi"
+        const val UNFOLDED_LOW = "vi-w673dp-h641dp-xxhdpi"
+        const val META = "Một người · Nữ · Toàn thân · 4 bước"
+        const val LONG_META = "Một người · Nữ · Toàn thân · 12 bước"
         const val BANNER = "test_banner"
 
         val IMAGE = ImageBitmap(379, 380)
@@ -391,6 +538,7 @@ class PoseDetailScreenTest {
             "Tay phải thả lỏng dọc thân.",
             "Xoay vai về phía máy, cằm hơi hạ.",
         )
+        val MANY_STEPS = STEPS + (5..12).map { "Bước $it: giữ tư thế, thả lỏng vai và hít thở đều trong vài giây." }
         val FIVE_STEPS = STEPS + "Nhìn qua vai về phía ống kính, mắt mở tự nhiên và thả lỏng cổ."
         const val LONG_MISTAKE = "Vai trái bị che mất khi hai người đứng sát nhau và cùng xoay về một phía."
         const val MISTAKE = "Rút vai lên sát tai làm cổ ngắn lại. Thả vai xuống trước khi chụp."

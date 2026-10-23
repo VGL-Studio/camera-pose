@@ -1,14 +1,18 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
@@ -23,16 +27,20 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_IMAGE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
@@ -77,26 +85,37 @@ class PosesScreenTest {
         onOpenSettings: (() -> Unit)? = { settingsOpened++ },
         onOpenPose: ((String) -> Unit)? = { opened += it },
         bottomBanner: @Composable () -> Unit = {},
+        width: (() -> Dp)? = null,
     ) {
         state = initial
         composeRule.setContent {
             AppTheme(darkTheme = false) {
-                PosesScreen(
-                    uiState = state,
-                    gridState = gridState ?: rememberLazyGridState(),
-                    onBack = { backs++ },
-                    onOpenSettings = onOpenSettings,
-                    onOpenPose = onOpenPose,
-                    onSelectFilter = { filters += it },
-                    onShowAll = { showAll++ },
-                    onToggleSave = { toggles += it },
-                    onRetry = { retries++ },
-                    onThumbnailNeeded = { needed += it },
-                    onThumbnailReleased = { released += it },
-                    onRetryThumbnail = { thumbnailRetries += it },
-                    onSaveFailedShown = { saveFailedShown++ },
-                    bottomBanner = bottomBanner,
-                )
+                val screen = @Composable {
+                    PosesScreen(
+                        uiState = state,
+                        gridState = gridState ?: rememberLazyGridState(),
+                        onBack = { backs++ },
+                        onOpenSettings = onOpenSettings,
+                        onOpenPose = onOpenPose,
+                        onSelectFilter = { filters += it },
+                        onShowAll = { showAll++ },
+                        onToggleSave = { toggles += it },
+                        onRetry = { retries++ },
+                        onThumbnailNeeded = { needed += it },
+                        onThumbnailReleased = { released += it },
+                        onRetryThumbnail = { thumbnailRetries += it },
+                        onSaveFailedShown = { saveFailedShown++ },
+                        bottomBanner = bottomBanner,
+                    )
+                }
+                if (width == null) {
+                    screen()
+                } else {
+                    // The screen gets that width of the window, from the left edge (KB-7).
+                    Box(Modifier.fillMaxSize()) {
+                        Box(Modifier.align(Alignment.TopStart).fillMaxHeight().requiredWidth(width())) { screen() }
+                    }
+                }
             }
         }
     }
@@ -225,6 +244,95 @@ class PosesScreenTest {
         val loaded = card("w03").getUnclippedBoundsInRoot()
         assertEquals(skeleton, loaded)
         assertTrue("card has a size", loaded.bottom - loaded.top > (loaded.right - loaded.left))
+    }
+
+    // KB-7: unfolded foldable
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun wide_hasThreeColumns() {
+        setScreen(ready(cards = manyCards()))
+        val cards = listOf("p01", "p02", "p03", "p04").map { card(it).getUnclippedBoundsInRoot() }
+        val (first, second, third, fourth) = cards
+        assertEquals(first.top, second.top)
+        assertEquals(first.top, third.top)
+        assertTrue("cards go to the right: $cards", first.left < second.left && second.left < third.left)
+        assertTrue("fourth card under the first: $cards", fourth.top > first.bottom)
+        assertEquals(first.left, fourth.left)
+        cards.take(3).forEach { assertEquals("card width of $it", 203f, it.width.value, 1f) }
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun wideLoading_hasThreeColumns() {
+        // Control: on a phone width the skeleton grid has two columns, so the check below can fail.
+        var width by mutableStateOf(411.dp)
+        setScreen(PosesUiState.Loading, width = { width })
+        assertSkeletonColumns(2)
+        width = 673.dp
+        composeRule.waitForIdle()
+        assertSkeletonColumns(3)
+    }
+
+    private fun assertSkeletonColumns(columns: Int) {
+        val images = composeRule.onAllNodesWithTag(POSE_CARD_IMAGE_TAG, useUnmergedTree = true)
+        // Tall skeleton cards: only the rows that fit are composed, at least the first row and one card of the next.
+        val shown = images.fetchSemanticsNodes().size
+        assertTrue("skeletons shown: $shown", shown > columns)
+        val bounds = (0 until shown).map { images[it].getUnclippedBoundsInRoot() }
+        assertEquals("first row: $bounds", columns, bounds.count { it.top == bounds[0].top })
+        assertTrue("next row is lower: $bounds", bounds[columns].top > bounds[0].bottom)
+        assertEquals(bounds[0].left, bounds[columns].left)
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun width599_isTwoColumns_width600_isThreeColumns() {
+        var width by mutableStateOf(599.dp)
+        setScreen(ready(cards = manyCards()), width = { width })
+        assertColumns(2, "p01")
+        width = 600.dp
+        composeRule.waitForIdle()
+        assertColumns(3, "p01")
+        width = 599.dp
+        composeRule.waitForIdle()
+        assertColumns(2, "p01")
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun widthChange_keepsScrollAndSelectedChip() {
+        var width by mutableStateOf(411.dp)
+        val gridState = LazyGridState()
+        setScreen(
+            ready(selected = PoseFilter.Category("men"), cards = manyCards()),
+            gridState = gridState,
+            width = { width },
+        )
+        composeRule.onNodeWithText("Nam").assertIsSelected()
+        composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(6)
+        composeRule.runOnIdle { assertEquals(6, gridState.firstVisibleItemIndex) }
+        assertColumns(2, "p07")
+        width = 673.dp
+        composeRule.waitForIdle()
+        composeRule.runOnIdle { assertEquals(6, gridState.firstVisibleItemIndex) }
+        assertColumns(3, "p07")
+        composeRule.onNodeWithText("Nam").assertIsSelected()
+        width = 411.dp
+        composeRule.waitForIdle()
+        composeRule.runOnIdle { assertEquals(6, gridState.firstVisibleItemIndex) }
+        assertColumns(2, "p07")
+        composeRule.onNodeWithText("Nam").assertIsSelected()
+    }
+
+    /** The row of [first] holds [columns] cards: the cards after it share its top, and the one after the row is lower. */
+    private fun assertColumns(columns: Int, first: String) {
+        val start = first.removePrefix("p").toInt()
+        val bounds = (start..start + columns).map { card("p%02d".format(it)).getUnclippedBoundsInRoot() }
+        val row = bounds.take(columns)
+        assertEquals("one row of $columns cards: $bounds", 1, row.map { it.top }.toSet().size)
+        assertTrue("cards go to the right: $bounds", row.zipWithNext().all { (a, b) -> a.right <= b.left })
+        assertTrue("next card in a lower row: $bounds", bounds[columns].top > row[0].bottom)
     }
 
     // KB-2
@@ -455,6 +563,7 @@ class PosesScreenTest {
     // Small screens
 
     private companion object {
+        const val UNFOLDED = "vi-w673dp-h841dp-xxhdpi"
         const val BANNER = "test_banner"
         const val BANNER_HEIGHT = 58f
 

@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PoseDetailDestination(val poseId: String)
 
+/** [onShootWithPose] opens the camera with the pose; :app wires it (ADR-0001: features never open each other). */
 fun NavGraphBuilder.poseDetailScreen(onBack: () -> Unit, onShootWithPose: (String) -> Unit) {
     composable<PoseDetailDestination> {
         PoseDetailRoute(onBack = onBack, onShootWithPose = onShootWithPose)

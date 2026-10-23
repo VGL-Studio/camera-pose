@@ -2,19 +2,36 @@ package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.vglstudio.camera.pose.line.guide.core.analytics.Analytics
+import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
+import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.core.network.NetworkStatus
+import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
+import com.vglstudio.camera.pose.line.guide.core.poses.model.Pose
+import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
+import com.vglstudio.camera.pose.line.guide.feature.poses.data.LibraryContent
+import com.vglstudio.camera.pose.line.guide.feature.poses.data.LibraryResult
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.PoseImageRepository
+import com.vglstudio.camera.pose.line.guide.feature.poses.data.PoseImageResult
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.PosesLibrarySource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.IOException
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 
-/** Empty frame (plan T-022, step 3): every function exists, the state stays Loading. */
+/**
+ * The pose detail (spec poses, KB-3, KB-4, KB-5; plan T-022, section 3.1). The pose id is the argument of the
+ * destination, read from [savedStateHandle]. Logs hold no pose id or name.
+ */
 @HiltViewModel
 class PoseDetailViewModel @Inject constructor(
     private val librarySource: PosesLibrarySource,
@@ -28,18 +45,217 @@ class PoseDetailViewModel @Inject constructor(
     private val state = MutableStateFlow<PoseDetailUiState>(PoseDetailUiState.Loading)
     val uiState: StateFlow<PoseDetailUiState> = state.asStateFlow()
 
-    fun onToggleSave() = Unit
+    private val poseId: String = savedStateHandle.get<String>(KEY_POSE_ID).orEmpty()
 
-    fun onSaveFailedShown() = Unit
+    /** Null until the flag is known. */
+    private var enabled: Boolean? = null
+    private var library: LibraryResult = LibraryResult.Loading
+    private var content: LibraryContent? = null
+    private var pose: Pose? = null
+    private var missingLogged = false
 
-    fun onRetryImage() = Unit
+    private var image: DetailImageState = DetailImageState.Loading
+    private var imageStarted = false
+    private var imageJob: Job? = null
+
+    /** Whether the last failure of the image was for lack of network (the network dialog may be over it). */
+    private var imageFailedNetwork = false
+    private var imageFailed = false
+
+    /** Saved state shown while a write runs, or until the library has the written value. */
+    private var savedOverride: Boolean? = null
+    private var writing = false
+    private var saveFailed = false
+
+    init {
+        viewModelScope.launch {
+            featureFlags.enabled(FeatureFlag.POSES).distinctUntilChanged().collectLatest { on ->
+                enabled = on
+                publish()
+                if (on) librarySource.library.collect(::onLibrary)
+            }
+        }
+        viewModelScope.launch { networkStatus.dialogShown.collect { publish() } }
+        viewModelScope.launch { networkStatus.recovered.collect { onNetworkRecovered() } }
+    }
+
+    fun onToggleSave() {
+        val content = content ?: return
+        val pose = pose ?: return
+        if (writing) return
+        val saved = !(savedOverride ?: (pose.id in content.savedIds))
+        writing = true
+        savedOverride = saved
+        publish()
+        viewModelScope.launch {
+            try {
+                librarySource.setSaved(pose.id, saved)
+                analytics.log(
+                    AnalyticsEvent(EVENT_POSE_SAVED, mapOf("pose_id" to pose.id, "saved" to saved.toString())),
+                )
+                logger.info(LOG_TAG, "Pose saved: $saved")
+                // Keep showing the new value until the library has it.
+                if (this@PoseDetailViewModel.content?.let { (pose.id in it.savedIds) == saved } != false) {
+                    savedOverride = null
+                }
+            } catch (e: IOException) {
+                savedOverride = null
+                saveFailed = true
+                logger.warn(LOG_TAG, "Pose could not be saved", e)
+            } finally {
+                writing = false
+                publish()
+            }
+        }
+    }
+
+    fun onSaveFailedShown() {
+        if (!saveFailed) return
+        saveFailed = false
+        publish()
+    }
+
+    fun onRetryImage() {
+        if (pose == null) return
+        logger.info(LOG_TAG, "Retrying image")
+        loadImage()
+    }
 
     /** The id of the pose to shoot with, or null when the screen is not ready. */
-    fun onShoot(): String? = null
+    fun onShoot(): String? {
+        val ready = state.value as? PoseDetailUiState.Ready ?: return null
+        analytics.log(
+            AnalyticsEvent(
+                EVENT_POSE_SELECTED,
+                mapOf("pose_id" to ready.pose.id, "category" to ready.pose.categoryId, "source" to "detail"),
+            ),
+        )
+        logger.info(LOG_TAG, "Shoot with pose")
+        return ready.pose.id
+    }
+
+    private fun onLibrary(result: LibraryResult) {
+        library = result
+        when (result) {
+            LibraryResult.Loading -> Unit
+            is LibraryResult.Failed -> {
+                content = null
+                pose = null
+            }
+            is LibraryResult.Ready -> {
+                content = result.content
+                val found = result.content.posesFor(PoseFilter.All).firstOrNull { it.id == poseId }
+                if (found == null) {
+                    if (!missingLogged) {
+                        logger.warn(LOG_TAG, "Pose detail: pose not in catalog")
+                        missingLogged = true
+                    }
+                    pose = null
+                } else {
+                    pose = found
+                    // Drop the override once the library agrees with it.
+                    if (!writing && savedOverride == (found.id in result.content.savedIds)) savedOverride = null
+                    onPoseReady(found)
+                }
+            }
+        }
+        publish()
+    }
+
+    private fun onPoseReady(found: Pose) {
+        if (!imageStarted) {
+            imageStarted = true
+            loadImage()
+        }
+        if (savedStateHandle.get<Boolean>(KEY_OPENED_LOGGED) != true) {
+            savedStateHandle[KEY_OPENED_LOGGED] = true
+            analytics.log(
+                AnalyticsEvent(EVENT_POSE_DETAIL_OPENED, mapOf("pose_id" to found.id, "category" to found.categoryId)),
+            )
+            logger.info(LOG_TAG, "Pose detail opened")
+        }
+    }
+
+    private fun loadImage() {
+        val pose = pose ?: return
+        imageJob?.cancel()
+        image = DetailImageState.Loading
+        imageFailed = false
+        imageFailedNetwork = false
+        publish()
+        imageJob = viewModelScope.launch {
+            when (val result = imageRepository.load(pose)) {
+                is PoseImageResult.Ready -> image = DetailImageState.Ready(result.image)
+                is PoseImageResult.Failed -> {
+                    val reason = result.failure.reason
+                    analytics.log(
+                        AnalyticsEvent(
+                            EVENT_CONTENT_LOAD_FAILED,
+                            mapOf("content" to CONTENT_IMAGE, "reason" to reason.analyticsValue),
+                        ),
+                    )
+                    logger.warn(LOG_TAG, "Image failed: ${reason.analyticsValue}")
+                    imageFailed = true
+                    imageFailedNetwork = reason == LoadFailureReason.NETWORK
+                }
+            }
+            publish()
+        }
+    }
+
+    private fun onNetworkRecovered() {
+        if (pose == null || !imageFailed) return
+        logger.info(LOG_TAG, "Reloading image after the network came back")
+        loadImage()
+    }
+
+    private fun publish() {
+        state.value = when (enabled) {
+            null -> PoseDetailUiState.Loading
+            false -> PoseDetailUiState.Disabled
+            true -> when (library) {
+                LibraryResult.Loading -> PoseDetailUiState.Loading
+                is LibraryResult.Failed -> PoseDetailUiState.Missing
+                is LibraryResult.Ready -> ready()
+            }
+        }
+    }
+
+    private fun ready(): PoseDetailUiState {
+        val pose = pose ?: return PoseDetailUiState.Missing
+        val content = content ?: return PoseDetailUiState.Missing
+        return PoseDetailUiState.Ready(
+            pose = PoseDetail(
+                id = pose.id,
+                categoryId = pose.categoryId,
+                name = pose.name,
+                categoryName = content.categories.firstOrNull { it.id == pose.categoryId }?.name,
+                subjectType = pose.subjectType,
+                framing = pose.framing,
+                steps = pose.steps,
+                mistakes = pose.mistakes,
+            ),
+            saved = savedOverride ?: (pose.id in content.savedIds),
+            image = shownImage(),
+            saveFailed = saveFailed,
+        )
+    }
+
+    /** A failure for lack of network under the network dialog keeps the spinner (spec poses, KB-5). */
+    private fun shownImage(): DetailImageState = when {
+        !imageFailed -> image
+        imageFailedNetwork && networkStatus.dialogShown.value -> DetailImageState.Loading
+        else -> DetailImageState.Failed
+    }
 
     internal companion object {
         const val LOG_TAG = "Poses"
         const val KEY_POSE_ID = "poseId"
         const val KEY_OPENED_LOGGED = "detail_opened_logged"
+        const val EVENT_POSE_DETAIL_OPENED = "pose_detail_opened"
+        const val EVENT_POSE_SELECTED = "pose_selected"
+        const val EVENT_POSE_SAVED = "pose_saved"
+        const val EVENT_CONTENT_LOAD_FAILED = "content_load_failed"
+        const val CONTENT_IMAGE = "image"
     }
 }

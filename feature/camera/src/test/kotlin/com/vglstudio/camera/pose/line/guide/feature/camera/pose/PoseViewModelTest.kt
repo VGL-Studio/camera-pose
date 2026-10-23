@@ -729,4 +729,31 @@ class PoseViewModelTest {
         withPose.onToggleMirror()
         assertTrue(withPose.adjust().settings.mirrored)
     }
+
+    @Test
+    fun twoFingerJitter_isNotAPinch() {
+        val viewModel = readyViewModel()
+        repeat(5) { viewModel.onOverlayTransform(0.02f, 0f, 1.004f) }
+        viewModel.onOverlayGestureEnd()
+        assertEquals(1f, viewModel.adjust().settings.scale, 1e-4f)
+        assertEquals(0.1f, viewModel.adjust().offsetX, 1e-4f)
+        assertEquals(listOf(overlayEvent("move")), analytics.events)
+        assertTrue(overlay.overlaySaves.isEmpty())
+
+        // Control: a real pinch in the same kind of gesture is a size change.
+        repeat(5) { viewModel.onOverlayTransform(0.02f, 0f, 1.04f) }
+        viewModel.onOverlayGestureEnd()
+        assertEquals(overlayEvent("size"), analytics.events.last())
+        assertTrue(viewModel.adjust().settings.scale > 1.15f)
+    }
+
+    @Test
+    fun libraryReadyAgain_keepsTheAdjustment() {
+        val viewModel = readyViewModel()
+        viewModel.onToggleMirror()
+        viewModel.onOverlayTransform(0.2f, 0f, 1f)
+        library.ready(PoseFixtures.library(saved = listOf(SavedPose("w03", 1))))
+        assertTrue(viewModel.adjust().settings.mirrored)
+        assertEquals(0.2f, viewModel.adjust().offsetX, 1e-4f)
+    }
 }

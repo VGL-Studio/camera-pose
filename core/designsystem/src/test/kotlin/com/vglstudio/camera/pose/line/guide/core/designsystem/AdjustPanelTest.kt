@@ -132,12 +132,17 @@ class AdjustPanelTest {
         ).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
             .assertHeightIsAtLeast(48.dp)
 
-        // A tap 18 dp above the middle of the track, 6 dp above the thumb, still moves it: the touch area is taller
-        // than the 28 dp track box.
-        composeRule.onNodeWithTag(SLIDER).performTouchInput { click(Offset(width * 0.25f, 20.dp.toPx())) }
+        // Real touches 22 dp above and 22 dp below the middle of the track (38 dp), both outside the 28 dp track box
+        // and the 24 dp thumb, still move the thumb: the touch area is 48 dp inside the bounds of the component.
+        composeRule.onNodeWithTag(SLIDER).performTouchInput { click(Offset(width * 0.25f, 16.dp.toPx())) }
         composeRule.waitForIdle()
-        assertTrue("changes $changes", changes.isNotEmpty())
+        assertTrue("above: $changes", changes.isNotEmpty())
         assertEquals(0.25f, changes.last(), 0.05f)
+        changes.clear()
+        composeRule.onNodeWithTag(SLIDER).performTouchInput { click(Offset(width * 0.75f, 60.dp.toPx())) }
+        composeRule.waitForIdle()
+        assertTrue("below: $changes", changes.isNotEmpty())
+        assertEquals(0.75f, changes.last(), 0.05f)
     }
 
     @Test

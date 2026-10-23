@@ -311,6 +311,27 @@ class CameraScreenOverlayTest {
         assertTrue(exists(CameraTestTags.STRIP))
     }
 
+    @Test
+    fun panel_blocksGesturesUnderIt() {
+        setScreen(OverlayState(panelOpen = true))
+        // Control: a drag on the free part of the frame is reported.
+        gestureArea().performTouchInput {
+            swipe(Offset(width * 0.3f, height * 0.35f), Offset(width * 0.5f, height * 0.35f))
+        }
+        composeRule.waitForIdle()
+        assertTrue(transforms.isNotEmpty())
+        transforms.clear()
+        calls.clear()
+
+        // A drag along the top edge of the panel, in its border and padding, moves nothing.
+        composeRule.onNodeWithTag(CameraTestTags.ADJUST_PANEL).performTouchInput {
+            swipe(Offset(60f, 12f), Offset(300f, 12f))
+        }
+        composeRule.waitForIdle()
+        assertTrue("transforms $transforms", transforms.isEmpty())
+        assertTrue("calls $calls", calls.isEmpty())
+    }
+
     // Lock
 
     @Test

@@ -5,9 +5,9 @@ reporter: AI (phân tích phiên thử TS-20261022-02)
 source: staging
 build: 0.1.0-staging.3
 feature: loading
-ticket: T-010
+ticket: T-032                # trước đây T-010 (ticket gây ra log cũ)
 severity: gop-y
-status: new
+status: fixed
 created: 2026-10-22
 ---
 
@@ -41,3 +41,8 @@ Không có.
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 Đề xuất của AI: góp ý mới cho `:core:assets`, phần dùng chung; làm ở dự án mẫu rồi kéo về (`docs/ops/from-app.md`).
+
+- **Loại:** góp ý mới
+- **Xử lý:** sửa trong sprint này, làm ở app trước (plan T-032 rủi ro cao, Nhật duyệt, Tuấn duyệt chéo), đề xuất về dự án mẫu sau
+- **Lý do:** log không cho biết lý do tải file thất bại làm mất thời gian tìm lỗi DNS (TS-20261022-02, P-1; L-027)
+- **Liên kết:** T-032, PR #51 (đã merge 2026-10-23). Tuấn chuyển `fixed` ngày 2026-10-23; kiểm tay trên staging còn chờ (plan T-032, mục 10)

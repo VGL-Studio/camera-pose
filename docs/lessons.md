@@ -403,3 +403,39 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
   - `pre-run-review.md`: thiếu một trong các điểm trên là mức chặn.
 - **Áp dụng:** app: PR #39. dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-045).
 - **Kiểm chứng:**
+
+### L-042: Bài học thêm ngoài phiên trùng số với bài học mà phiên thêm cùng lúc
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-22, RUN-20261023-02.
+- **Chuyện gì:** PR #39 (mở trong lúc RUN-20261023-02 chạy) thêm bài học L-032 tới L-037; phiên thêm L-032 tới L-035 trong PR báo cáo. Sau khi phiên merge, PR #39 xung đột ở `docs/lessons.md` và phải đổi số 6 bài học cùng mọi chỗ nhắc tới chúng, ở PR #39, PR #40, dự án mẫu (PR #80, issue #79). Không công cụ nào báo trùng số nếu hai bài học nằm ở hai chỗ khác nhau trong sổ và git gộp được mà không xung đột.
+- **Bằng chứng:** commit 02ebd3b (PR #39), 0348331 (PR #40); bình luận ở VGL-Studio/app-project-template#79.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 6: trước khi merge PR thêm bài học, gộp nhánh chính và đổi số cho liền sau sổ. `scripts/status.py` báo lỗi khi một số bài học dùng hai lần.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-043: Trang tiến độ đếm 0 bài học vì sổ của app viết khác mẫu
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23.
+- **Chuyện gì:** `docs/STATUS.md` ghi "Bài học: 0 bài; chưa có" trong khi sổ có 41 bài. `scripts/status.py` chỉ nhận tiêu đề dạng `### L-001.` và dòng trạng thái chỉ có trạng thái; sổ của app viết `### L-001:` và `- **Trạng thái:** proposed. **Loại:** ...`. Vì vậy trang không cho thấy bài học nào chờ retro, và cả 41 bài vẫn `proposed`, chưa bài nào được nhận ở retro.
+- **Bằng chứng:** `docs/STATUS.md` mục 5 trước commit của bài học này; `grep -c '^### L-[0-9]*:' docs/lessons.md` ra 41.
+- **Đề xuất sửa:** `scripts/status.py` nhận cả hai dạng tiêu đề và đọc chữ trạng thái đầu tiên; có test cho dạng của app.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-044: Plan đổi cổng chất lượng bỏ sót một kiểm tra mà trường hợp mới phải đi qua
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** T-028, phiên có người theo dõi 2026-10-23.
+- **Chuyện gì:** plan T-028 cho `merge-if-green.sh` nhận bản revert đúng khi `main-broken` mở, "rồi đi tiếp tới các kiểm tra còn lại". Kiểm tra "phiên đang chạy" ngay sau đó từ chối mọi nhánh ngoài `claude/T-*` và nhánh báo cáo, nên trong phiên, bản revert vẫn bị từ chối và điểm 4 của ADR-1002 không làm được. Plan đã qua duyệt và duyệt chéo; lỗi chỉ thấy khi viết code.
+- **Bằng chứng:** nhật ký plan T-028, mục Lệch so với plan; test `merge-if-green lets the exact revert through while a run is running` (đỏ trước khi sửa); PR #47.
+- **Đề xuất sửa:** `docs/CLAUDE.md` mục Khi viết plan: plan đổi `merge-if-green.sh` hay `main-guard.yml` liệt kê mọi kiểm tra hiện có và nói trường hợp mới qua hay bị chặn ở từng kiểm tra, mỗi kiểm tra một test.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-045: Plan đã duyệt nhưng ticket vẫn `ready`, mục 9 còn chữ mẫu
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** T-028, phiên có người theo dõi 2026-10-23.
+- **Chuyện gì:** người duyệt chuyển plan T-028 sang `approved` và trả lời câu hỏi, nhưng ticket để `ready` và mục 9 còn chữ mẫu. `plan-check.py` chỉ báo mục 9; trạng thái ticket chỉ được `run-check.py` kiểm, mà task chạy trong phiên có người theo dõi không qua danh sách chạy. Phải thêm một lượt sửa trước khi merge.
+- **Bằng chứng:** PR #47, commit e00cd7d.
+- **Đề xuất sửa:** `plan-check.py` báo chú ý khi plan `approved` mà ticket còn `backlog`, `ready` hay `planned`; `docs/CLAUDE.md` nhắc người duyệt chuyển ticket cùng lúc.
+- **Áp dụng:**
+- **Kiểm chứng:**

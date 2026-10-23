@@ -14,7 +14,7 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
   4. A plan that runs scripts/design-compare.sh writes a screenshot for every design image of its feature,
      except the images it declares as drawn by another ticket, on a line
      'Ảnh thiết kế của ticket khác (T-NNN): `Name`, ...'. Each declared image must exist and the line names a ticket.
-  5. An approved plan has its reviewers and date.
+  5. An approved plan has its reviewers and date; its ticket not approved yet is a warning (L-019).
   6. The plan has a token estimate (token_estimate, docs/ops/token-usage.md); a missing one is only a warning.
   7. A plan whose criterion E (novelty of the technique, risk-scoring.md) scores 2 or more has a trial-run
      section 4.1 that names scripts/check.sh (L-001, L-010). An error for a draft plan; only a warning for a plan
@@ -302,6 +302,12 @@ def check(plan_path):
         decision = current_decision(text, fields.get("version", ""))
         if any(placeholder in decision for placeholder in DECISION_PLACEHOLDERS):
             errors.append("plan approved nhưng mục 9 (Quyết định duyệt) của phiên bản hiện tại còn chữ mẫu (L-023).")
+        ticket_id = fields.get("ticket", "")
+        for ticket in sorted((ROOT / "docs" / "features").glob(f"*/tickets/{ticket_id}-*.md")) if ticket_id else []:
+            ticket_status = front_matter(ticket.read_text()).get("status", "")
+            if ticket_status in ("backlog", "ready", "planned"):
+                warnings.append(f"plan approved nhưng ticket {ticket_id} đang '{ticket_status}', chưa approved; "
+                                "người duyệt chuyển ticket cùng lúc với plan (L-019).")
     if not re.fullmatch(r"[\d.]+\s*[kKmM]?", fields.get("token_estimate", "")):
         warnings.append("thiếu token_estimate hoặc sai dạng (ví dụ 20M); xem scripts/token-usage.py estimate. "
                         "Chỉ để lập kế hoạch, không chặn task.")

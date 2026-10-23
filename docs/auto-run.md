@@ -72,11 +72,20 @@ Mỗi task đi qua 10 bước theo thứ tự. Điều kiện dừng ở mục 4
 
 - Viết toàn bộ test được nêu trong mục Kiểm thử của plan, trước khi viết bất kỳ dòng code nào của chức năng.
 - Chạy test và xác nhận test **thất bại đúng lý do**: vì chức năng chưa có, không phải vì test viết sai cú pháp hay lỗi môi trường. Với màn hình hay lớp chưa tồn tại, AI tạo khung rỗng (hàm trả về giá trị mặc định) để test biên dịch được và thất bại ở phần kiểm tra.
-- Test nào qua ngay khi chưa có code là test không kiểm tra gì, phải viết lại.
+- Test nào qua ngay khi chưa có code là test không kiểm tra gì, phải viết lại, trừ test chặn mà plan nêu là qua ngay. Cách mặc định: thêm một bước đối chứng trước khi khẳng định (ghi rồi đọc lại, đặt dữ liệu đúng cạnh dữ liệu sai), rồi chạy lại để thấy test thất bại đúng lý do. Ghi số test được viết chặt như vậy vào nhật ký (L-035).
 - Commit test riêng, trước commit code, để lịch sử cho thấy test có trước.
 - Đẩy nhánh của task lên ngay sau mỗi commit, ở bước này và bước 4, không đợi tới bước 7. Hết hạn mức thì phiên dừng ngay, không kịp làm gì thêm; phần chưa đẩy lên là phần mất. Commit trên nhánh cũng là dấu hiệu phiên còn sống cho `resume-run.yml`.
 - Chỉ được bỏ qua bước này với phần thay đổi nằm trong mục ngoại lệ đã được người duyệt đồng ý trong plan.
 - Screenshot test cho màn hình mới: mỗi lệnh `captureRoboImage` ghi rõ đường dẫn ảnh, dạng `"src/test/screenshots/<Ten>.png"`. Chạy cục bộ, `scripts/check.sh` tự ghi ảnh chuẩn cho những ảnh còn thiếu và giữ nguyên ảnh đã có. Commit ảnh chuẩn cùng PR (CI báo lỗi cho từng ảnh thiếu) và đánh dấu trong báo cáo để người xem. Ảnh chuẩn của màn hình cũ chỉ được cập nhật khi plan nêu rõ.
+
+### Giao bước 3 đến 5 cho phiên con
+
+Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho một phiên AI con, để giữ ngữ cảnh của phiên chính cho các task sau (L-031).
+
+- Phiên con làm trong worktree riêng của nhánh task: `git worktree add ../task-T-NNN claude/T-NNN-<tu-khoa>`. Thư mục chính giữ sạch, để phiên chính làm việc khác song song: chạy `check.sh` nền, chờ `main-guard`, chuẩn bị task sau, viết báo cáo. Bộ nhớ đệm Gradle ở `~/.gradle` dùng chung nên không tải lại (L-034).
+- Nội dung giao việc tối thiểu: đường dẫn plan và worktree; danh sách file của mục 3.2 là ranh giới; thứ tự commit (test trước, rồi code); đẩy nhánh sau mỗi commit; điều kiện dừng (`risk-scoring.md` mục 4 và mục 7 của plan); báo cáo theo các dòng của nhật ký plan (Test viết trước, Lệch so với plan).
+- Phiên con xong: phiên chính kiểm `git diff --name-only origin/main...` khớp mục 3.2, đọc báo cáo, rồi giao rà soát độc lập (bước 6) cho một phiên khác. Xóa worktree sau khi merge (`git worktree remove`).
+- Không sửa file trong thư mục đang chạy `check.sh` nền: lần chạy đó kiểm một trạng thái lẫn lộn và phải chạy lại.
 
 ### Bước 4. Viết code
 
@@ -269,6 +278,8 @@ Mỗi phiên là một lần học. Bài học được ghi trong phiên, quyế
 - Một cách làm hiệu quả đáng ghi thành hướng dẫn cho lần sau.
 
 Mỗi bài học ghi: chuyện gì đã xảy ra, bằng chứng (log, PR, thời gian), đề xuất sửa tài liệu nào và sửa gì, loại và phạm vi theo [lessons.md](lessons.md). PR báo cáo thêm các bài học này vào sổ với trạng thái `proposed`.
+
+**Số bài học:** bài học thêm ngoài phiên (phiên có người theo dõi, PR cải tiến) có thể trùng số với bài học mà phiên thêm cùng lúc. Trước khi merge PR thêm bài học, gộp nhánh chính mới nhất và đổi số bài học của PR (cùng mọi chỗ nhắc tới nó) thành số tiếp theo của sổ. `scripts/status.py` báo lỗi khi một số dùng hai lần (L-042).
 
 **Phiên kiểm chứng bài học cũ:** đọc các bài học `applied` trong sổ; bài học nào liên quan tới việc phiên vừa làm thì ghi vào báo cáo cải tiến đó có hiệu quả hay không, kèm bằng chứng, và cập nhật dòng **Kiểm chứng** trong sổ.
 

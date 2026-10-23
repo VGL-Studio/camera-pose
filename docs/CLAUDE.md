@@ -78,9 +78,13 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Chấm rủi ro theo [risk-scoring.md](risk-scoring.md), ghi lý do cho từng tiêu chí. Không hạ điểm để plan dễ được duyệt.
 - Ghi `token_estimate` theo cỡ của ticket, lấy số gợi ý từ `scripts/token-usage.py estimate`; task khác thường thì chỉnh và ghi lý do. Ước tính chỉ để lập kế hoạch, không chặn task ([ops/token-usage.md](ops/token-usage.md)).
 - Nêu thẳng điều chưa chắc chắn trong mục câu hỏi cho người duyệt.
+- Test kiểm giá trị mặc định ("chưa lưu gì thì trả mặc định", "tệp hỏng thì trả `null`") thường qua ngay trên khung rỗng của bước 3. Ghi sẵn trong mục 4 một bước đối chứng: ghi rồi đọc lại, hoặc đặt dữ liệu đúng cạnh dữ liệu sai, để test thất bại đúng lý do (L-035).
+- Plan đổi hàm `suspend` mà vỏ app gọi (`AppNavHost`, `MainActivity`): thêm test Robolectric dựng vỏ app với bản giả, không để phần đó vào ngoại lệ viết test trước; lỗi luồng ở đó chỉ lộ ra ở `ui-test`, vòng CI dài nhất (L-030).
+- File dùng chung mà plan khác chưa merge cũng tạo (tài nguyên, thành phần của `:core:designsystem`): thống nhất với plan đó, một plan ghi Tạo, plan kia ghi Sửa hoặc dùng lại; chú thích kiểu "task sau nối" thì ghi tên file cho task sau (L-033).
+- Plan đổi `scripts/merge-if-green.sh` hay `.github/workflows/main-guard.yml`: liệt kê mọi kiểm tra hiện có mà trường hợp mới phải đi qua (nhãn, `main-broken`, phiên đang chạy, nhánh cập nhật, CI) và nói trường hợp mới qua hay bị chặn ở từng kiểm tra, mỗi kiểm tra một test (L-044).
 - Hàm phụ trợ nằm trong file test mà cũng phải đổi (ví dụ danh sách mà test so sánh): ghi rõ phần nào vào commit test của bước 3, phần nào vào commit code của bước 4, để test viết trước thất bại đúng lý do (L-025).
 - Viết xong thì chạy `scripts/plan-check.py <plan>`, sửa hết lỗi trước khi đưa người duyệt, dán kết quả vào mô tả PR. Phiên tự chạy chạy lại script này ngay trước task và bỏ qua plan có lỗi.
-- Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`.
+- Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`. Người duyệt chuyển ticket sang `approved` cùng lúc với plan; `plan-check.py` báo chú ý khi plan `approved` mà ticket chưa (L-045).
 
 ## Khi lập danh sách chạy
 

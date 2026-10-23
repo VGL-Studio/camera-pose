@@ -1,6 +1,13 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -13,6 +20,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
@@ -20,6 +28,7 @@ import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedText
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
+import com.vglstudio.camera.pose.line.guide.feature.poses.PosesAdSeparator
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -97,6 +106,30 @@ class PoseDetailScreenScreenshotTest {
     fun error_small() {
         captureRoboImage("src/test/screenshots/PoseDetailScreen_error_small.png") {
             Screen(readyState(DetailImageState.Failed), dark = false)
+        }
+    }
+
+    // Design `ad`: the bottom banner under the main button (a test banner: the real ad is never drawn in tests).
+    @Test
+    fun ad_light() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_ad_light.png") {
+            Screen(readyState(), dark = false, banner = true)
+        }
+    }
+
+    @Test
+    fun ad_dark() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_ad_dark.png") {
+            Screen(readyState(), dark = true, banner = true)
+        }
+    }
+
+    // The most steps, with the banner: the main button and the banner are both on screen.
+    @Test
+    @Config(qualifiers = SHORT_SCREEN)
+    fun ad_small() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_ad_small.png") {
+            Screen(readyState(detail = longDetail()), dark = false, banner = true)
         }
     }
 
@@ -196,7 +229,7 @@ class PoseDetailScreenScreenshotTest {
 }
 
 @Composable
-private fun Screen(uiState: PoseDetailUiState, dark: Boolean) {
+private fun Screen(uiState: PoseDetailUiState, dark: Boolean, banner: Boolean = false) {
     AppTheme(darkTheme = dark) {
         PoseDetailScreen(
             uiState = uiState,
@@ -205,6 +238,20 @@ private fun Screen(uiState: PoseDetailUiState, dark: Boolean) {
             onRetryImage = {},
             onShoot = {},
             onSaveFailedShown = {},
+            bottomBanner = if (banner) {
+                { TestBanner() }
+            } else {
+                {}
+            },
         )
+    }
+}
+
+/** The banner of the design: the separator, then 56 dp of ad (58 dp in all, as the design's ad slot). */
+@Composable
+private fun TestBanner() {
+    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
+        PosesAdSeparator()
+        Box(Modifier.fillMaxWidth().height(56.dp))
     }
 }

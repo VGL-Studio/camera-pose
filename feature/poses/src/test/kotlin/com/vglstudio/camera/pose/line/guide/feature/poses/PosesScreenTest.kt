@@ -1,11 +1,17 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsNotSelected
@@ -23,7 +29,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
@@ -67,6 +76,7 @@ class PosesScreenTest {
         gridState: LazyGridState? = null,
         onOpenSettings: (() -> Unit)? = { settingsOpened++ },
         onOpenPose: ((String) -> Unit)? = { opened += it },
+        bottomBanner: @Composable () -> Unit = {},
     ) {
         state = initial
         composeRule.setContent {
@@ -85,6 +95,7 @@ class PosesScreenTest {
                     onThumbnailReleased = { released += it },
                     onRetryThumbnail = { thumbnailRetries += it },
                     onSaveFailedShown = { saveFailedShown++ },
+                    bottomBanner = bottomBanner,
                 )
             }
         }
@@ -401,7 +412,52 @@ class PosesScreenTest {
         assertTrue("button $button in $root", button.left >= root.left && button.right <= root.right)
     }
 
+    // KB-6
+
+    @Test
+    fun banner_sitsBelowGrid_lastCardScrollsAboveIt() {
+        setScreen(ready(cards = manyCards()), bottomBanner = { TestBanner() })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val grid = composeRule.onNodeWithTag(PosesTestTags.GRID).getUnclippedBoundsInRoot()
+        val banner = composeRule.onNodeWithTag(BANNER).getUnclippedBoundsInRoot()
+        assertEquals(BANNER_HEIGHT, banner.height.value, 0.5f)
+        assertEquals("grid ends where the banner starts", banner.top.value, grid.bottom.value, 0.5f)
+        assertEquals("banner at the bottom of the screen", root.bottom.value, banner.bottom.value, 0.5f)
+        composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(11)
+        composeRule.waitForIdle()
+        val last = card("p12").getUnclippedBoundsInRoot()
+        assertTrue("last card ${last.bottom} above banner ${banner.top}", last.bottom.value <= banner.top.value + 0.5f)
+    }
+
+    @Test
+    fun banner_shownAlsoOnErrorAndSavedEmpty() {
+        setScreen(PosesUiState.Error(LoadFailureReason.OTHER), bottomBanner = { TestBanner() })
+        composeRule.onNodeWithTag(BANNER).assertExists()
+        state = ready(selected = PoseFilter.Saved, cards = emptyList())
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Xem tất cả tư thế").assertExists()
+        composeRule.onNodeWithTag(BANNER).assertExists()
+        state = ready()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(BANNER).assertExists()
+    }
+
+    @Test
+    fun realBottomBanner_withoutAds_takesNoSpace() {
+        setScreen(ready(cards = manyCards()), bottomBanner = { PosesBottomBanner(AdPlacement.POSES_BANNER) })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val grid = composeRule.onNodeWithTag(PosesTestTags.GRID).getUnclippedBoundsInRoot()
+        val slot = composeRule.onNodeWithTag("poses_banner_slot").getUnclippedBoundsInRoot()
+        assertEquals(0f, slot.height.value, 0.5f)
+        assertEquals("grid reaches the bottom of the screen", root.bottom.value, grid.bottom.value, 0.5f)
+    }
+
+    // Small screens
+
     private companion object {
+        const val BANNER = "test_banner"
+        const val BANNER_HEIGHT = 58f
+
         val IMAGE = ImageBitmap(162, 210)
 
         fun item(pose: Pose, saved: Boolean, thumbnail: ThumbnailState) = PoseCardItem(
@@ -447,4 +503,10 @@ class PosesScreenTest {
             saveFailed = saveFailed,
         )
     }
+}
+
+/** A banner of the design's size (58 dp with the separator), drawn where the real ad is not available in tests. */
+@Composable
+private fun TestBanner() {
+    Box(Modifier.fillMaxWidth().height(58.dp).testTag("test_banner"))
 }

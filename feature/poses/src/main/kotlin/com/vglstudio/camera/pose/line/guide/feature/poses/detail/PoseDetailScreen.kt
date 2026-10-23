@@ -26,7 +26,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
+import com.vglstudio.camera.pose.line.guide.feature.poses.PosesBottomBanner
 import com.vglstudio.camera.pose.line.guide.feature.poses.R
 import com.vglstudio.camera.pose.line.guide.feature.poses.screenLocale
 
@@ -50,10 +52,14 @@ fun PoseDetailRoute(
         onRetryImage = viewModel::onRetryImage,
         onShoot = { viewModel.onShoot()?.let(onShootWithPose) },
         onSaveFailedShown = viewModel::onSaveFailedShown,
+        bottomBanner = { PosesBottomBanner(AdPlacement.POSES_DETAIL_BANNER) },
     )
 }
 
-/** The pose detail (spec poses, KB-3, KB-4, KB-5; design README). */
+/**
+ * The pose detail (spec poses, KB-3, KB-4, KB-5, KB-6; design README). [bottomBanner] sits under the main button bar,
+ * once the pose is shown.
+ */
 @Composable
 fun PoseDetailScreen(
     uiState: PoseDetailUiState,
@@ -63,6 +69,7 @@ fun PoseDetailScreen(
     onShoot: () -> Unit,
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomBanner: @Composable () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val ready = uiState as? PoseDetailUiState.Ready
@@ -108,6 +115,7 @@ fun PoseDetailScreen(
                         Spacer(modifier = Modifier.height(Spacing.md))
                     }
                     PoseDetailBottomBar(onShoot = onShoot)
+                    bottomBanner()
                 }
             }
         }

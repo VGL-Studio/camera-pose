@@ -34,6 +34,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
@@ -44,6 +45,7 @@ import kotlinx.coroutines.launch
 object PosesTestTags {
     const val SCREEN = "poses_screen"
     const val GRID = "poses_grid"
+    const val BANNER_SLOT = "poses_banner_slot"
 
     fun card(id: String) = "poses_card_$id"
 }
@@ -74,12 +76,14 @@ fun PosesRoute(
         onThumbnailReleased = viewModel::onThumbnailReleased,
         onRetryThumbnail = viewModel::onRetryThumbnail,
         onSaveFailedShown = viewModel::onSaveFailedShown,
+        bottomBanner = { PosesBottomBanner(AdPlacement.POSES_BANNER) },
     )
 }
 
 /**
  * The pose library (spec poses; design README). [onOpenSettings] null hides the settings button; [onOpenPose] null
- * leaves the cards without a tap action.
+ * leaves the cards without a tap action. [bottomBanner] sits under the grid, at the bottom of the screen, in every
+ * state that shows the screen (KB-6).
  */
 @Composable
 fun PosesScreen(
@@ -97,6 +101,7 @@ fun PosesScreen(
     onRetryThumbnail: (String) -> Unit,
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomBanner: @Composable () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     Box(
@@ -136,6 +141,7 @@ fun PosesScreen(
                     onRetryThumbnail = onRetryThumbnail,
                 )
             }
+            bottomBanner()
         }
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }

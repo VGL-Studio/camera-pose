@@ -457,6 +457,7 @@ class PoseViewModel @Inject constructor(
     }
 
     private fun publish() {
+        activePose.setOutline(OutlineView(visible = !outlineSettings.hidden, mirrored = outlineSettings.mirrored))
         val library = library ?: return
         state.value = PoseUiState.Ready(
             categories = library.categories.map { CategoryChip(it.id, it.name.resolve()) },

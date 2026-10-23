@@ -22,8 +22,9 @@ class ActivePoseHolder @Inject constructor() {
     /** How the outline is shown now, for the pose matching to follow (plan T-017). */
     val outline: StateFlow<OutlineView> = outlineView.asStateFlow()
 
-    @Suppress("UNUSED_PARAMETER")
-    fun setOutline(view: OutlineView) = Unit
+    fun setOutline(view: OutlineView) {
+        outlineView.value = view
+    }
 }
 
 /** Whether the outline is on screen and flipped: the matching runs only while it is visible. */

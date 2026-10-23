@@ -2,29 +2,37 @@ package com.vglstudio.camera.pose.line.guide.feature.camera.camera
 
 import android.content.Context
 import android.media.MediaActionSound
+import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceRequest
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.lifecycle.awaitInstance
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
+import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.feature.camera.CaptureClock
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.MlKitPoseAnalyzer
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.FlashMode
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.Lens
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ViewModelScoped
 import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
@@ -34,13 +42,15 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
 /**
  * The camera through CameraX: a 3:4 preview and photo capture. Holds its own lifecycle, so the view model never holds
- * the lifecycle of the screen; the screen opens and closes it through the view model. A thin layer over the hardware,
+ * the lifecycle of the screen; the screen opens and closes it through the view model. With the pose matching flag on
+ * it binds a third use case, an analysis of small frames for ML Kit (plan T-017). A thin layer over the hardware,
  * checked on devices (plan T-013, section 4); the decisions live in CameraViewModel.
  */
 @ViewModelScoped
@@ -49,6 +59,8 @@ internal class CameraXController @Inject constructor(
     private val fileStore: CaptureFileStore,
     private val clock: CaptureClock,
     private val logger: AppLogger,
+    private val poseAnalyzer: MlKitPoseAnalyzer,
+    private val featureFlags: FeatureFlags,
 ) : CameraController,
     LifecycleOwner {
     private val registry = LifecycleRegistry(this)
@@ -60,6 +72,7 @@ internal class CameraXController @Inject constructor(
     private var provider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private var imageCapture: ImageCapture? = null
+    private var analysisExecutor: ExecutorService? = null
     private var shutterSound: MediaActionSound? = null
 
     // The app is locked to portrait, so the photo rotation follows how the phone is held.
@@ -90,9 +103,11 @@ internal class CameraXController @Inject constructor(
                 .build()
             val selector =
                 if (lens == Lens.BACK) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
+            val analysis = if (featureFlags.enabled(FeatureFlag.POSE_MATCHING).first()) buildAnalysis() else null
+            poseAnalyzer.lens = lens
             provider.unbindAll()
             registry.currentState = Lifecycle.State.CREATED
-            val bound = provider.bindToLifecycle(this@CameraXController, selector, preview, capture)
+            val bound = bindUseCases(provider, selector, preview, capture, analysis)
             registry.currentState = Lifecycle.State.RESUMED
             camera = bound
             imageCapture = capture
@@ -109,6 +124,43 @@ internal class CameraXController @Inject constructor(
             throw CameraOpenException(e)
         } catch (e: Exception) {
             throw CameraOpenException(e)
+        }
+    }
+
+    /** Small frames, only the latest one kept while ML Kit is busy: the preview stays smooth on a modest phone. */
+    private fun buildAnalysis(): ImageAnalysis {
+        val selector = ResolutionSelector.Builder()
+            .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+            .setResolutionStrategy(
+                ResolutionStrategy(
+                    Size(ANALYSIS_WIDTH, ANALYSIS_HEIGHT),
+                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
+                ),
+            )
+            .build()
+        val executor = analysisExecutor ?: Executors.newSingleThreadExecutor().also { analysisExecutor = it }
+        return ImageAnalysis.Builder()
+            .setResolutionSelector(selector)
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+            .also { it.setAnalyzer(executor, poseAnalyzer) }
+    }
+
+    /** Some phones cannot run three use cases at once: then the camera works as before, without the matching. */
+    private fun bindUseCases(
+        provider: ProcessCameraProvider,
+        selector: CameraSelector,
+        preview: Preview,
+        capture: ImageCapture,
+        analysis: ImageAnalysis?,
+    ): Camera {
+        if (analysis == null) return provider.bindToLifecycle(this, selector, preview, capture)
+        return try {
+            provider.bindToLifecycle(this, selector, preview, capture, analysis)
+        } catch (e: IllegalArgumentException) {
+            logger.warn(LOG_TAG, "Pose analysis not supported on this camera", e)
+            provider.unbindAll()
+            provider.bindToLifecycle(this, selector, preview, capture)
         }
     }
 
@@ -161,6 +213,7 @@ internal class CameraXController @Inject constructor(
         camera = null
         imageCapture = null
         requests.value = null
+        poseAnalyzer.reset()
         logger.debug(LOG_TAG, "Camera unbound")
     }
 
@@ -171,6 +224,9 @@ internal class CameraXController @Inject constructor(
         if (registry.currentState.isAtLeast(Lifecycle.State.CREATED)) registry.currentState = Lifecycle.State.DESTROYED
         shutterSound?.release()
         shutterSound = null
+        poseAnalyzer.release()
+        analysisExecutor?.shutdown()
+        analysisExecutor = null
     }
 
     private fun FlashMode.toCameraX(): Int = when (this) {
@@ -181,5 +237,7 @@ internal class CameraXController @Inject constructor(
 
     private companion object {
         const val LOG_TAG = "Camera"
+        const val ANALYSIS_WIDTH = 640
+        const val ANALYSIS_HEIGHT = 480
     }
 }

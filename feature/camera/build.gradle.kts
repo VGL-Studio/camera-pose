@@ -18,4 +18,6 @@ dependencies {
     implementation(libs.androidx.camera.compose)
     // CameraX returns Guava ListenableFuture; Guava is on the runtime classpath only, through Firebase (plan T-031, L-007).
     implementation(libs.guava)
+    // Pose detection on the device, for the pose matching (plan T-017; the library is chosen in spec question 9).
+    implementation(libs.mlkit.pose.detection)
 }

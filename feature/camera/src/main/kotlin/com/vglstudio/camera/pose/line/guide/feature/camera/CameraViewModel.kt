@@ -237,11 +237,11 @@ class CameraViewModel @Inject constructor(
                 analytics.log(
                     AnalyticsEvent(
                         EVENT_PHOTO_CAPTURED,
-                        // No match score yet: T-017 fills it in.
+                        // Whether the pose matched at the moment of the photo (false when matching is off).
                         mapOf(
                             "pose_id" to poseId,
                             "timer" to if (timer == TimerSetting.OFF) "off" else timer.seconds.toString(),
-                            "matched" to "false",
+                            "matched" to matchHolder.matched.value.toString(),
                         ),
                     ),
                 )

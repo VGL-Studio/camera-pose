@@ -49,6 +49,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.feature.camera.lastphoto.LastPhotoViewModel
 import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchUiState
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.PoseMatchViewModel
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.OverlayToolColumn
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
@@ -71,9 +72,11 @@ internal fun CameraRoute(
     viewModel: CameraViewModel = hiltViewModel(),
     poseViewModel: PoseViewModel = hiltViewModel(),
     lastPhotoViewModel: LastPhotoViewModel = hiltViewModel(),
+    matchViewModel: PoseMatchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val poseState by poseViewModel.uiState.collectAsStateWithLifecycle()
+    val matchState by matchViewModel.uiState.collectAsStateWithLifecycle()
     val poseActions = remember(poseViewModel) {
         PoseActions(
             onCategorySelect = poseViewModel::onCategorySelect,
@@ -164,13 +167,15 @@ internal fun CameraRoute(
             poseActions = poseActions,
             lastPhoto = lastPhoto,
             onLastPhotoClick = lastPhotoUri?.let { uri -> { currentOnOpenLastPhoto(uri) } },
+            matchState = matchState,
         )
     }
 }
 
 /**
  * Stateless screen: everything it shows comes from [uiState] and [poseState]. [lastPhoto] is the thumbnail of the
- * latest saved photo; the slot can be tapped only with [onLastPhotoClick] (T-016). Tested on the JVM and by
+ * latest saved photo; the slot can be tapped only with [onLastPhotoClick] (T-016). [matchState] is the pose matching
+ * (T-017): its hint on the frame, and the green outline and shutter ring when the pose matches. Tested on the JVM and by
  * screenshots, without [preview], so the frame shows the camera surface colour. Layout from design/context/
  * (411 x 891): top bar at 32, the 3:4 preview below it (with the pose overlay when the camera is ready), the chip row
  * and pose strip, and the capture row.
@@ -248,6 +253,7 @@ internal fun CameraScreen(
                                 null
                             },
                             onStepBottomChange = { stepBottom = it },
+                            matchState = matchState,
                         )
                     },
                     zoomVisible = overlay?.panelOpen != true,

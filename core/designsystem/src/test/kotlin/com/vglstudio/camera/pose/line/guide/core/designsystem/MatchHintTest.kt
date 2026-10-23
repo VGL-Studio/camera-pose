@@ -103,7 +103,7 @@ class MatchHintTest {
     fun scoring_isWhiteWithYellowCircle() {
         setHint(score = 68)
         val bitmap = screen()
-        assertColor(YELLOW, bitmap.at(30.dp, 28.dp), "circle")
+        assertColor(YELLOW, bitmap.at(13.dp, 28.dp), "circle")
         assertColor(Color.White, bitmap.at(5.dp, 28.dp), "pill")
         assertTrue(composeRule.onAllNodesWithText("68", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
     }
@@ -113,7 +113,7 @@ class MatchHintTest {
         setHint(score = 92, matched = true)
         val bitmap = screen()
         assertColor(GREEN, bitmap.at(5.dp, 28.dp), "pill")
-        assertColor(Color.White, bitmap.at(30.dp, 28.dp), "circle")
+        assertColor(Color.White, bitmap.at(13.dp, 28.dp), "circle")
         assertTrue(composeRule.onAllNodesWithText("92", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
     }
 
@@ -122,7 +122,7 @@ class MatchHintTest {
         setHint(text = "Lùi lại", score = null, icon = ColorPainter(Color.Red))
         val bitmap = screen()
         // The icon is tinted dark and drawn in the middle of a white circle; no number.
-        assertColor(DARK, bitmap.at(32.dp, 28.dp), "icon")
+        assertColor(DARK, bitmap.at(30.dp, 28.dp), "icon")
         assertColor(Color.White, bitmap.at(15.dp, 28.dp), "circle")
         val digits = texts().filter { text -> text.any { it.isDigit() } }
         assertTrue("texts $digits", digits.isEmpty())

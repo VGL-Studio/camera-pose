@@ -49,6 +49,8 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Stroke
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraTestTags
 import com.vglstudio.camera.pose.line.guide.feature.camera.R
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchHintOverlay
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchUiState
 
 // The outline box of the design: 200 x 400 in the 411 x 548 frame.
 private const val OUTLINE_WIDTH_FRACTION = 200f / 411f
@@ -63,7 +65,8 @@ private val SMALL_ICON_SIZE = 20.dp
  * button when it is hidden), the tool column when [toolsOffset] puts it in the frame, the adjust panel and the lock
  * hint. Without a pose it draws the hint to pick one. [hintBottomPadding] is the space under the lock hint: above the
  * zoom control, which is why it is the caller's. [onStepBottomChange] tells where the step card ends, for the place of
- * the tool column.
+ * the tool column. [matchState] (plan T-017) turns the outline green when the pose matches and shows the matching hint
+ * in the place of the lock hint, which wins while it shows; the adjust panel covers that place, so it hides it too.
  */
 @Composable
 internal fun BoxScope.PoseOverlay(
@@ -72,6 +75,7 @@ internal fun BoxScope.PoseOverlay(
     hintBottomPadding: Dp = Spacing.md,
     toolsOffset: DpOffset? = null,
     onStepBottomChange: (Dp) -> Unit = {},
+    matchState: MatchUiState = MatchUiState.Off,
 ) {
     if (state !is PoseUiState.Ready) return
     val selected = state.selected
@@ -111,6 +115,11 @@ internal fun BoxScope.PoseOverlay(
         ) {
             PoseOutline(
                 bitmap = outline.bitmap,
+                color = if (matchState is MatchUiState.Matched) {
+                    MaterialTheme.appColors.success
+                } else {
+                    MaterialTheme.appColors.cameraOverlayStroke
+                },
                 modifier = Modifier
                     .align(Alignment.Center)
                     .fillMaxWidth(OUTLINE_WIDTH_FRACTION)
@@ -175,6 +184,14 @@ internal fun BoxScope.PoseOverlay(
         ) {
             OverlayAdjustPanel(overlay = overlay, actions = actions, modifier = Modifier.fillMaxWidth())
         }
+    }
+    if (matchState !is MatchUiState.Off && !overlay.lockHintVisible && !overlay.panelOpen) {
+        MatchHintOverlay(
+            state = matchState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = Spacing.md, end = Spacing.md, bottom = hintBottomPadding),
+        )
     }
     if (overlay.lockHintVisible) {
         PreviewHint(

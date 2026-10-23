@@ -1,7 +1,7 @@
 ---
 ticket: T-015
 title: Camera: chỉnh nét viền
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -347,3 +347,11 @@ Mọi test dưới đây vào commit test của bước 3, cùng khung rỗng đ
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, RUN-20261023-04: đã merge
+
+- **Kết quả:** đã merge, PR #73, commit `1240201`. CI xanh ngay vòng đầu.
+- **Test viết trước:** 55 test JVM mới (+3 screenshot), cả 55 thất bại đúng lý do trên khung rỗng. Viết chặt lại có đối chứng: 2 (`toolColumn_absentWithoutPose`, `toolColumn_absentWhenCameraNotReady`) và 5 test có đối chứng từ đầu; bỏ 2 test qua ngay vô nghĩa (hằng số, ca khung chuẩn gộp vào `toolColumnPlacement_byFrame`).
+- **Lệch so với plan:** (1) `AdjustAction`: nút trong là nút bấm riêng nên nút có `contentDescription = label`, chữ nhãn `clearAndSetSemantics`; test tìm nút theo mô tả thay vì chữ. (2) `AdjustSlider`: node ngoài tự đặt semantics của thanh trượt; chữ nhãn và giá trị chỉ tìm được ở cây chưa gộp. (3) `adjustSlider_touchHeight48` đổi từ đo chiều cao node sang chạm thật. (4) Hàng bốn nút dùng `FlowRow`; ở khung 360 x 640 bảng chỉ rộng 190 dp nên nút xuống hai hàng và bảng cuộn. (5) Không ghi log "Overlay tools overflow the frame" vì `CameraScreen` không có logger. (6) Nút "sát mép khung" đặt giữa lề.
+- **Rà soát độc lập:** 1 chặn: vùng chạm `AdjustSlider` dưới 48 dp (`Slider` `requiredHeight(48.dp)` trong `Box(28.dp)`). Không tái hiện: test chạm thật cách tâm rãnh 22 dp ở cả hai phía (16 dp và 60 dp từ đỉnh, ngoài biên 52 dp của thanh trượt) đều đổi giá trị trên code cũ, nên không đổi code, thay phép đo cũ bằng test chạm thật. 3 nên sửa: bảng không chặn cử chỉ (có thật, đã sửa bằng `pointerInput`, test `panel_blocksGesturesUnderIt`); chụm rung ghi `size` (có thật, ngưỡng cộng dồn 3%, test `twoFingerJitter_isNotAPinch`); đọc lại cài đặt đè chỉnh dở (không phải lỗi, thêm test hồi quy). Ghi chú: nút chỉnh và lật mờ khi khóa theo spec (thiết kế để trắng); núm "Cỡ" ở 50% thay vì 70%.
+- **Cần người kiểm tra:** vùng chạm thanh trượt trên máy thật; kéo, chụm, TalkBack; 3 ảnh chuẩn mới và 7 ảnh ghi lại; ảnh so sánh `docs/features/camera/design/review/` (locked 6,8%, steps-hidden 6,0%).

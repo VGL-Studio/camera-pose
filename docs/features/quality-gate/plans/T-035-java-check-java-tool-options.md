@@ -123,3 +123,9 @@ Không có.
 - **Ghi chú:** Ngày 2026-10-23, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. L-049 chuyển sang accepted.
 
 ## 10. Nhật ký thực hiện
+
+### 2026-10-23, phiên có người theo dõi (Tuấn)
+
+- Bước 3: ba test mới trong `scripts/tests/run.sh` thất bại đúng lý do trên code cũ (thoát 1, "không đọc được phiên bản Java từ 'Picked up ...'"); commit test riêng.
+- Bước 4: `scripts/java-check.sh` lấy dòng đầu tiên có ` version "`, không có thì dòng đầu như cũ. Toàn bộ test của script qua ("All script tests passed"). Trên máy dev, `JAVA_TOOL_OPTIONS="-Dhttps.proxyHost=x" scripts/java-check.sh` in "Java 21: dùng được với Gradle 8.14.3."
+- `scripts/check.sh` đầy đủ chạy trên CI của PR (`pr-check.yml`).

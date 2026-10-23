@@ -1,6 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.core.poses.model
 
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLoadFailure
+import com.vglstudio.camera.pose.line.guide.core.poses.internal.buildPoseLibrary
 
 data class SavedPose(val id: String, val savedAtMillis: Long)
 
@@ -45,5 +46,14 @@ class PoseLibrary internal constructor(
         PoseFilter.All -> all
         PoseFilter.Saved -> saved
         is PoseFilter.Category -> byCategory[filter.id].orEmpty()
+    }
+
+    companion object {
+        /** The library of [catalog] with [saved] and [recent] applied: the same ordering the repository uses. */
+        fun from(
+            catalog: PoseCatalog,
+            saved: List<SavedPose> = emptyList(),
+            recent: List<UsedPose> = emptyList(),
+        ): PoseLibrary = buildPoseLibrary(catalog, saved, recent)
     }
 }

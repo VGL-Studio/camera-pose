@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -141,7 +142,7 @@ private fun TimerButton(timer: TimerSetting, onClick: () -> Unit) {
     }
 }
 
-/** What the 3:4 frame shows in each state. */
+/** What the 3:4 frame shows in each state. [poseOverlay] (outline, step card) is drawn only when the camera is ready. */
 @Composable
 internal fun PreviewContent(
     uiState: CameraUiState,
@@ -149,6 +150,7 @@ internal fun PreviewContent(
     onRetry: () -> Unit,
     onOpenAppSettings: () -> Unit,
     preview: @Composable (Modifier) -> Unit,
+    poseOverlay: @Composable BoxScope.() -> Unit = {},
 ) {
     when (uiState) {
         CameraUiState.Starting -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -179,7 +181,12 @@ internal fun PreviewContent(
             actionIcon = painterResource(R.drawable.ic_camera_refresh),
             onAction = onRetry,
         )
-        is CameraUiState.Ready -> ReadyPreview(ready = uiState, onZoomSelect = onZoomSelect, preview = preview)
+        is CameraUiState.Ready -> ReadyPreview(
+            ready = uiState,
+            onZoomSelect = onZoomSelect,
+            preview = preview,
+            poseOverlay = poseOverlay,
+        )
     }
 }
 
@@ -188,10 +195,13 @@ private fun ReadyPreview(
     ready: CameraUiState.Ready,
     onZoomSelect: (Float) -> Unit,
     preview: @Composable (Modifier) -> Unit,
+    poseOverlay: @Composable BoxScope.() -> Unit = {},
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         preview(Modifier.fillMaxSize())
         if (ready.gridVisible) GridOverlay(modifier = Modifier.testTag(CameraTestTags.GRID))
+        // Above the grid, below the zoom and the countdown.
+        poseOverlay()
         if (ready.zoomLevels.size > 1) {
             ZoomControl(
                 levels = ready.zoomLevels.map { zoomLabel(it, selected = it == ready.zoom) },

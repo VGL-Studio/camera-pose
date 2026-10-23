@@ -24,4 +24,20 @@
     <string name="camera_cd_shutter">Chụp ảnh</string>
     <string name="camera_cd_cancel_countdown">Hủy đếm ngược</string>
     <string name="camera_cd_last_photo">Ảnh vừa chụp</string>
+    <!-- Pose part (plan T-014). Text table of the design. -->
+    <string name="camera_chip_all">Tất cả</string>
+    <string name="camera_step_count">%1$d/%2$d</string>
+    <string name="camera_show_steps">Bước</string>
+    <string name="camera_no_pose_hint">Chọn một tư thế ở dải bên dưới</string>
+    <!-- Spec camera, section 7. -->
+    <string name="camera_outline_failed">Chưa tải được nét viền</string>
+    <string name="camera_outline_retry">Thử lại</string>
+    <!-- Proposed by the plan (questions 8 and 11). -->
+    <string name="camera_poses_failed">Chưa tải được danh sách tư thế.</string>
+    <string name="camera_poses_retry">Thử lại</string>
+    <string name="camera_cd_step_previous">Bước trước</string>
+    <string name="camera_cd_step_next">Bước sau</string>
+    <string name="camera_cd_hide_steps">Ẩn thẻ bước</string>
+    <string name="camera_cd_show_steps">Hiện thẻ bước</string>
+    <string name="camera_cd_thumb_failed">%1$s, chưa tải được ảnh, chạm để thử lại</string>
 </resources>

@@ -5,7 +5,7 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-10]
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: S
 depends_on: [T-016, T-018]

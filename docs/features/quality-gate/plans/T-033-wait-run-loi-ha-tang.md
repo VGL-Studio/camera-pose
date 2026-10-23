@@ -1,7 +1,7 @@
 ---
 ticket: T-033
 title: wait-run.sh nhận ra job GitHub không chạy (hạn mức Actions) hay PR xung đột, và phiên tự tiếp tục sau đó
-status: approved                # draft | approved | stopped | done
+status: done                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -198,3 +198,9 @@ Test trong `scripts/tests/run.sh`, viết trước code, dùng hàm `wait_run` v
 - **Bước 5:** `scripts/tests/run.sh` qua 319 test. `scripts/check.sh` để CI của PR chạy.
 - **Sự cố khi làm:** một lệnh chờ chạy nền đang chạy `scripts/wait-run.sh` của cây làm việc trong lúc file được sửa; bash đọc script dần nên báo lỗi cú pháp và PR #57 không được merge tự động. Merge lại bằng tay ngay sau đó. Chạy lệnh chờ từ một bản chép của script khi đang sửa chính script đó.
 - **Còn lại:** kiểm tay ở lần GitHub không chạy job tới (nếu có): báo cáo phiên ghi dòng `HẠ TẦNG` và lần tiếp tục.
+
+### 2026-10-23, sau khi merge
+
+- PR #58 merge bằng `merge-if-green.sh` (commit ed210e7 trên nhánh chính). PR không commit `docs/STATUS.md` và không xung đột (T-034).
+- main-guard trên ed210e7 xanh (39936748629); `status-page` (39936748633) cập nhật nhánh `status`.
+- Còn lại: kiểm tay ở lần GitHub không chạy job tới (nếu có).

@@ -1,6 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.feature.camera.pose
 
 import androidx.compose.ui.graphics.ImageBitmap
+import com.vglstudio.camera.pose.line.guide.feature.camera.data.OverlaySettings
 
 /** The pose part of the camera: chip row, pose strip, outline and step card (spec camera, KB-1, KB-2). */
 sealed interface PoseUiState {
@@ -22,8 +23,18 @@ sealed interface PoseUiState {
         val stepsHidden: Boolean,
         /** The strip scrolls to [StripScroll.index] once per new key. */
         val scrollRequest: StripScroll? = null,
+        val overlay: OverlayState = OverlayState(),
     ) : PoseUiState
 }
+
+/** How the outline is adjusted (spec camera, KB-3). Offsets are parts of the frame from its centre: -0.5 to 0.5. */
+data class OverlayState(
+    val settings: OverlaySettings = OverlaySettings(),
+    val offsetX: Float = 0f,
+    val offsetY: Float = 0f,
+    val panelOpen: Boolean = false,
+    val lockHintVisible: Boolean = false,
+)
 
 data class CategoryChip(val id: String, val label: String)
 

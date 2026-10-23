@@ -31,8 +31,9 @@ private const val DISABLED_ALPHA = 0.38f
 
 /**
  * Round 48 dp camera control (sticker.md, section 4): white with a dark sticker border, yellow while [active]
- * (a tool that is on). Disabled: faded and not clickable. Screen readers hear [contentDescription] and whether it is
- * selected.
+ * (a tool that is on). Disabled: faded and not clickable. Screen readers hear [contentDescription] and, for a switch
+ * ([toggleable], the default), whether it is selected. A button that only acts (library, settings, flash, switch
+ * camera) passes `toggleable = false`, so it is not read as "not selected".
  */
 @Composable
 fun CameraIconButton(
@@ -41,6 +42,7 @@ fun CameraIconButton(
     modifier: Modifier = Modifier,
     active: Boolean = false,
     enabled: Boolean = true,
+    toggleable: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -56,7 +58,7 @@ fun CameraIconButton(
             .border(Stroke.sticker, appColors.cameraOnControl, CircleShape)
             .semantics {
                 if (contentDescription != null) this.contentDescription = contentDescription
-                selected = active
+                if (toggleable) selected = active
             }
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -73,8 +75,9 @@ fun CameraIconButton(
     modifier: Modifier = Modifier,
     active: Boolean = false,
     enabled: Boolean = true,
+    toggleable: Boolean = true,
 ) {
-    CameraIconButton(onClick, contentDescription, modifier, active, enabled) {
+    CameraIconButton(onClick, contentDescription, modifier, active, enabled, toggleable) {
         Icon(painter = icon, contentDescription = null, modifier = Modifier.size(IconSize))
     }
 }
@@ -88,8 +91,9 @@ fun CameraIconButton(
     modifier: Modifier = Modifier,
     active: Boolean = false,
     enabled: Boolean = true,
+    toggleable: Boolean = true,
 ) {
-    CameraIconButton(onClick, contentDescription, modifier, active, enabled) {
+    CameraIconButton(onClick, contentDescription, modifier, active, enabled, toggleable) {
         Text(text = text, style = MaterialTheme.typography.titleMedium, color = LocalContentColor.current)
     }
 }

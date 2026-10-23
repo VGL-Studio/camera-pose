@@ -23,6 +23,7 @@ import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseLibrary
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SavedPose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
 import com.vglstudio.camera.pose.line.guide.core.poses.model.UsedPose
+import com.vglstudio.camera.pose.line.guide.feature.camera.data.OverlaySettings
 import com.vglstudio.camera.pose.line.guide.feature.camera.data.PoseOverlaySettingsRepository
 import java.io.File
 import java.io.IOException
@@ -151,6 +152,17 @@ internal class FakePoseOverlaySettingsRepository : PoseOverlaySettingsRepository
         if (failWrites) throw IOException("disk full")
         saves += hidden
         stored.value = hidden
+    }
+
+    val storedOverlay = MutableStateFlow(OverlaySettings())
+    val overlaySaves = mutableListOf<OverlaySettings>()
+
+    override val overlay: Flow<OverlaySettings> = storedOverlay
+
+    override suspend fun setOverlay(settings: OverlaySettings) {
+        if (failWrites) throw IOException("disk full")
+        overlaySaves += settings
+        storedOverlay.value = settings
     }
 }
 

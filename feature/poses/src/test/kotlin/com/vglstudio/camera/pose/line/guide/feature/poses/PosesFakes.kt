@@ -20,6 +20,8 @@ import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseGender
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.LibraryContent
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.LibraryResult
+import com.vglstudio.camera.pose.line.guide.feature.poses.data.PoseImageRepository
+import com.vglstudio.camera.pose.line.guide.feature.poses.data.PoseImageResult
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.PoseThumbnailRepository
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.PosesLibrarySource
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.ThumbnailResult
@@ -39,18 +41,20 @@ internal fun testPose(
     stepCount: Int = 4,
     name: String = "Pose $id",
     englishName: String = "Pose $id (en)",
+    framing: Framing = Framing.FULL,
+    mistakes: List<String> = emptyList(),
 ): Pose = Pose(
     id = id,
     categoryId = categoryId,
     subjectType = subjectType,
     gender = PoseGender.ANY,
-    framing = Framing.FULL,
+    framing = framing,
     tags = emptyList(),
     difficulty = 1,
     starter = false,
     name = LocalizedText(mapOf("vi" to name, "en" to englishName)),
     steps = LocalizedList(mapOf("en" to (1..stepCount).map { "Step $it" })),
-    mistakes = LocalizedList(emptyMap()),
+    mistakes = if (mistakes.isEmpty()) LocalizedList(emptyMap()) else LocalizedList(mapOf("en" to mistakes)),
     keypoints = null,
     thumbnailPath = AssetPath("poses/img/$id/preview_540-0123abcd.webp"),
     imagePath = AssetPath("poses/img/$id/preview_1200-0123abcd.webp"),
@@ -185,6 +189,31 @@ internal class FakePoseThumbnailRepository(private val image: () -> ImageBitmap)
         } finally {
             running--
         }
+    }
+}
+
+/**
+ * Large images by pose id: [results] (default a Ready image from [image]), after [delays] of virtual time when set.
+ * Counts loads by id.
+ */
+internal class FakePoseImageRepository(private val image: () -> ImageBitmap) : PoseImageRepository {
+    val results = mutableMapOf<String, PoseImageResult>()
+    val delays = mutableMapOf<String, Long>()
+    val gates = mutableMapOf<String, CompletableDeferred<Unit>>()
+    val loads = mutableMapOf<String, Int>()
+    val images = mutableMapOf<String, ImageBitmap>()
+
+    fun imageOf(id: String) = images.getOrPut(id) { image() }
+
+    fun fail(id: String, reason: LoadFailureReason) {
+        results[id] = PoseImageResult.Failed(PoseLoadFailure(PoseContent.IMAGE, reason))
+    }
+
+    override suspend fun load(pose: Pose): PoseImageResult {
+        loads[pose.id] = (loads[pose.id] ?: 0) + 1
+        delays[pose.id]?.let { delay(it) }
+        gates[pose.id]?.await()
+        return results[pose.id] ?: PoseImageResult.Ready(imageOf(pose.id))
     }
 }
 

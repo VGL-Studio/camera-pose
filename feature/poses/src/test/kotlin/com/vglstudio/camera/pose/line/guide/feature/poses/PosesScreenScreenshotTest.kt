@@ -1,7 +1,14 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -11,6 +18,7 @@ import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
@@ -94,7 +102,49 @@ class PosesScreenScreenshotTest {
         }
     }
 
+    // Design `ad`: the bottom banner under the grid (a test banner: the real ad is never drawn in tests).
+    @Test
+    fun ad_light() {
+        captureRoboImage("src/test/screenshots/PosesScreen_ad_light.png") {
+            Screen(defaultState(), dark = false, banner = true)
+        }
+    }
+
+    @Test
+    fun ad_dark() {
+        captureRoboImage("src/test/screenshots/PosesScreen_ad_dark.png") {
+            Screen(defaultState(), dark = true, banner = true)
+        }
+    }
+
+    // The grid scrolls above the banner.
+    @Test
+    @Config(qualifiers = SHORT_SCREEN)
+    fun ad_small() {
+        captureRoboImage("src/test/screenshots/PosesScreen_ad_small.png") {
+            Screen(defaultState(longName = true), dark = false, banner = true)
+        }
+    }
+
+    // Design `unfolded` (KB-7): three columns, the same data as `default` (six cards in two rows).
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun default_light_unfolded() {
+        captureRoboImage("src/test/screenshots/PosesScreen_default_light_unfolded.png") {
+            Screen(defaultState(), dark = false)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun default_dark_unfolded() {
+        captureRoboImage("src/test/screenshots/PosesScreen_default_dark_unfolded.png") {
+            Screen(defaultState(), dark = true)
+        }
+    }
+
     private companion object {
+        const val UNFOLDED = "w673dp-h841dp-xxhdpi"
         const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
 
         val ERROR = PosesUiState.Error(LoadFailureReason.OTHER)
@@ -201,7 +251,7 @@ class PosesScreenScreenshotTest {
 }
 
 @Composable
-private fun Screen(uiState: PosesUiState, dark: Boolean) {
+private fun Screen(uiState: PosesUiState, dark: Boolean, banner: Boolean = false) {
     AppTheme(darkTheme = dark) {
         PosesScreen(
             uiState = uiState,
@@ -217,6 +267,20 @@ private fun Screen(uiState: PosesUiState, dark: Boolean) {
             onThumbnailReleased = {},
             onRetryThumbnail = {},
             onSaveFailedShown = {},
+            bottomBanner = if (banner) {
+                { TestBanner() }
+            } else {
+                {}
+            },
         )
+    }
+}
+
+/** The banner of the design: the separator, then 56 dp of ad (58 dp in all, as the design's ad slot). */
+@Composable
+private fun TestBanner() {
+    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
+        PosesAdSeparator()
+        Box(Modifier.fillMaxWidth().height(56.dp))
     }
 }

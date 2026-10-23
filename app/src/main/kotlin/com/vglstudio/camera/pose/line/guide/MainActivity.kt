@@ -24,6 +24,8 @@ import com.vglstudio.camera.pose.line.guide.core.data.ThemeMode
 import com.vglstudio.camera.pose.line.guide.core.data.UserPreferences
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.network.NetworkDialogController
+import com.vglstudio.camera.pose.line.guide.core.review.InAppReview
+import com.vglstudio.camera.pose.line.guide.core.review.LocalInAppReview
 import com.vglstudio.camera.pose.line.guide.navigation.AppNavHost
 import com.vglstudio.camera.pose.line.guide.navigation.MainScreenChooser
 import com.vglstudio.camera.pose.line.guide.network.NetworkDialogHost
@@ -56,6 +58,9 @@ class MainActivity : ComponentActivity() {
     lateinit var featureFlags: FeatureFlags
 
     @Inject
+    lateinit var inAppReview: InAppReview
+
+    @Inject
     lateinit var userPreferences: UserPreferences
 
     // Below Android 13 the language chosen in the app is applied here, before anything reads a resource (spec
@@ -86,7 +91,7 @@ class MainActivity : ComponentActivity() {
                 )
                 onDispose {}
             }
-            CompositionLocalProvider(LocalAdsController provides ads) {
+            CompositionLocalProvider(LocalAdsController provides ads, LocalInAppReview provides inAppReview) {
                 AppTheme(darkTheme = darkTheme) {
                     // The surface fills the whole window, including the area behind the system bars,
                     // so those areas take the theme background in both light and dark mode.

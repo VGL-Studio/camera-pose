@@ -3,6 +3,8 @@ package com.vglstudio.camera.pose.line.guide.feature.poses
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
@@ -44,12 +47,17 @@ import kotlinx.coroutines.launch
 object PosesTestTags {
     const val SCREEN = "poses_screen"
     const val GRID = "poses_grid"
+    const val BANNER_SLOT = "poses_banner_slot"
 
     fun card(id: String) = "poses_card_$id"
 }
 
 // Skeleton cards while the catalog loads (plan T-021, question 13).
 private const val LOADING_CARDS = 6
+
+// Columns of the grid: 2 on a phone, 3 on an unfolded foldable (KB-7).
+private const val PHONE_COLUMNS = 2
+private const val WIDE_COLUMNS = 3
 
 @Composable
 fun PosesRoute(
@@ -74,12 +82,14 @@ fun PosesRoute(
         onThumbnailReleased = viewModel::onThumbnailReleased,
         onRetryThumbnail = viewModel::onRetryThumbnail,
         onSaveFailedShown = viewModel::onSaveFailedShown,
+        bottomBanner = { PosesBottomBanner(AdPlacement.POSES_BANNER) },
     )
 }
 
 /**
  * The pose library (spec poses; design README). [onOpenSettings] null hides the settings button; [onOpenPose] null
- * leaves the cards without a tap action.
+ * leaves the cards without a tap action. [bottomBanner] sits under the grid, at the bottom of the screen, in every
+ * state that shows the screen (KB-6).
  */
 @Composable
 fun PosesScreen(
@@ -97,6 +107,7 @@ fun PosesScreen(
     onRetryThumbnail: (String) -> Unit,
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomBanner: @Composable () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     Box(
@@ -136,6 +147,7 @@ fun PosesScreen(
                     onRetryThumbnail = onRetryThumbnail,
                 )
             }
+            bottomBanner()
         }
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
@@ -198,23 +210,26 @@ private fun ColumnScope.ReadyContent(
             )
         }
     } else {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            state = gridState,
-            modifier = Modifier.weight(1f).testTag(PosesTestTags.GRID),
-            contentPadding = gridPadding(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            items(state.cards, key = { it.id }) { item ->
-                PoseGridCell(
-                    item = item,
-                    onOpenPose = onOpenPose,
-                    onToggleSave = onToggleSave,
-                    onThumbnailNeeded = onThumbnailNeeded,
-                    onThumbnailReleased = onThumbnailReleased,
-                    onRetryThumbnail = onRetryThumbnail,
-                )
+        // The columns follow the width of the room under the chips (KB-7): 3 when unfolded, 2 on a phone.
+        BoxWithConstraints(modifier = Modifier.weight(1f)) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns()),
+                state = gridState,
+                modifier = Modifier.fillMaxSize().testTag(PosesTestTags.GRID),
+                contentPadding = gridPadding(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                items(state.cards, key = { it.id }) { item ->
+                    PoseGridCell(
+                        item = item,
+                        onOpenPose = onOpenPose,
+                        onToggleSave = onToggleSave,
+                        onThumbnailNeeded = onThumbnailNeeded,
+                        onThumbnailReleased = onThumbnailReleased,
+                        onRetryThumbnail = onRetryThumbnail,
+                    )
+                }
             }
         }
     }
@@ -223,17 +238,21 @@ private fun ColumnScope.ReadyContent(
 /** Catalog still loading: skeleton cards under the top bar, no summary or chips yet. */
 @Composable
 private fun LoadingGrid(modifier: Modifier = Modifier) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = modifier,
-        contentPadding = gridPadding(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        userScrollEnabled = false,
-    ) {
-        items(LOADING_CARDS) { PoseCardSkeleton() }
+    BoxWithConstraints(modifier = modifier) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(gridColumns()),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = gridPadding(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            userScrollEnabled = false,
+        ) {
+            items(LOADING_CARDS) { PoseCardSkeleton() }
+        }
     }
 }
+
+private fun BoxWithConstraintsScope.gridColumns() = if (isWide()) WIDE_COLUMNS else PHONE_COLUMNS
 
 // Design: the grid starts 8 below the chips plus its own 4; the last card stays off the bottom edge.
 private fun gridPadding() = PaddingValues(

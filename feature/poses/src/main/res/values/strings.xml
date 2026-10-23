@@ -24,4 +24,16 @@
     <string name="poses_cd_save">Lưu tư thế</string>
     <string name="poses_cd_unsave">Bỏ lưu tư thế</string>
     <string name="poses_cd_reload_image">Tải lại ảnh</string>
+    <!-- Pose detail (design README, section 2; plan T-022). -->
+    <string name="poses_detail_meta">%1$s · %2$s · %3$s · %4$d bước</string>
+    <!-- Same line when the catalog has no name for the group. -->
+    <string name="poses_detail_meta_no_group">%1$s · %2$s · %3$d bước</string>
+    <string name="poses_framing_full">Toàn thân</string>
+    <string name="poses_framing_half">Nửa người</string>
+    <string name="poses_framing_close">Cận mặt</string>
+    <string name="poses_detail_steps_title">Các bước</string>
+    <string name="poses_detail_mistakes_title">Lỗi hay gặp</string>
+    <string name="poses_detail_shoot">Chụp với tư thế này</string>
+    <string name="poses_image_error_title">Không tải được ảnh</string>
+    <string name="poses_image_error_message">Đã có lỗi khi tải ảnh. Thử lại sau ít phút.</string>
 </resources>

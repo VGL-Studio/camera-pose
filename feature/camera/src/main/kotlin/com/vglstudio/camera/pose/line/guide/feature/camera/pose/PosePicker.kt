@@ -45,6 +45,19 @@ class PoseActions(
     val onShowSteps: () -> Unit = {},
     val onRetryOutline: () -> Unit = {},
     val onRetryLibrary: () -> Unit = {},
+    // Outline adjustment (T-015). Pan is a part of the frame, zoom a factor.
+    val onOverlayTransform: (panX: Float, panY: Float, zoom: Float) -> Unit = { _, _, _ -> },
+    val onOverlayGestureEnd: () -> Unit = {},
+    val onOpacityChange: (Float) -> Unit = {},
+    val onOpacityChangeFinished: () -> Unit = {},
+    val onScaleChange: (Float) -> Unit = {},
+    val onScaleChangeFinished: () -> Unit = {},
+    val onTogglePanel: () -> Unit = {},
+    val onClosePanel: () -> Unit = {},
+    val onToggleMirror: () -> Unit = {},
+    val onToggleLock: () -> Unit = {},
+    val onToggleHidden: () -> Unit = {},
+    val onResetOverlay: () -> Unit = {},
 )
 
 /**
@@ -52,14 +65,21 @@ class PoseActions(
  * catalog loads the area is empty; when it failed, a message and "Thử lại" (plan T-014, question 8).
  */
 @Composable
-internal fun PosePicker(state: PoseUiState, actions: PoseActions, modifier: Modifier = Modifier) {
+internal fun PosePicker(
+    state: PoseUiState,
+    actions: PoseActions,
+    modifier: Modifier = Modifier,
+    // Hoisted by the screen so the scroll positions outlive a change of layout (plan T-020).
+    chipsState: LazyListState = rememberLazyListState(),
+    stripState: LazyListState = rememberLazyListState(),
+) {
     Box(modifier = modifier.fillMaxWidth().height(POSE_AREA_HEIGHT), contentAlignment = Alignment.Center) {
         when (state) {
             PoseUiState.Loading -> Unit
             PoseUiState.Unavailable -> PosesUnavailable(onRetry = actions.onRetryLibrary)
             is PoseUiState.Ready -> Column(modifier = Modifier.fillMaxWidth()) {
-                CategoryChips(state = state, onSelect = actions.onCategorySelect)
-                PoseStrip(state = state, actions = actions)
+                CategoryChips(state = state, onSelect = actions.onCategorySelect, listState = chipsState)
+                PoseStrip(state = state, actions = actions, listState = stripState)
             }
         }
     }
@@ -67,8 +87,9 @@ internal fun PosePicker(state: PoseUiState, actions: PoseActions, modifier: Modi
 
 /** "Tất cả" first, then the categories of the catalog. The selected chip lasts for this opening of the camera. */
 @Composable
-private fun CategoryChips(state: PoseUiState.Ready, onSelect: (String?) -> Unit) {
+private fun CategoryChips(state: PoseUiState.Ready, onSelect: (String?) -> Unit, listState: LazyListState) {
     LazyRow(
+        state = listState,
         modifier = Modifier.fillMaxWidth().height(CHIP_ROW_HEIGHT).testTag(CameraTestTags.CHIPS),
         contentPadding = PaddingValues(start = Spacing.md, top = Spacing.md, end = Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -95,8 +116,7 @@ private fun CategoryChips(state: PoseUiState.Ready, onSelect: (String?) -> Unit)
  * [PoseUiState.Ready.scrollRequest] scrolls to its cell unless that cell is already fully on screen.
  */
 @Composable
-private fun PoseStrip(state: PoseUiState.Ready, actions: PoseActions) {
-    val listState = rememberLazyListState()
+private fun PoseStrip(state: PoseUiState.Ready, actions: PoseActions, listState: LazyListState) {
     val request = state.scrollRequest
     LaunchedEffect(request) {
         if (request != null && !listState.isFullyVisible(request.index)) listState.animateScrollToItem(request.index)

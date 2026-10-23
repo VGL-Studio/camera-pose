@@ -615,4 +615,18 @@ class ReviewViewModelTest {
         viewModel(SavedStateHandle(mapOf("savedPhotoUri" to "content://media/external/images/media/3")))
         assertEquals(listOf<ReviewEvent>(Leave(false)), events)
     }
+
+    // The count for the store review request (plan T-019)
+
+    @Test
+    fun savedCount_followsRepository() = runTest {
+        repository.count.value = 2
+        val viewModel = viewModel()
+        assertEquals(2, viewModel.savedCount.value)
+
+        viewModel.onSaveClick()
+        runCurrent()
+
+        assertEquals(3, viewModel.savedCount.value)
+    }
 }

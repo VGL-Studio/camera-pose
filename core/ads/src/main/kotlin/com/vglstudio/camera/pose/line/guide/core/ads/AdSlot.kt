@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
@@ -11,8 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -24,8 +28,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -36,10 +43,11 @@ val LocalAdsController = staticCompositionLocalOf<AdsController?> { null }
 
 /**
  * Shows the banner of [placement] in a screen. Features call this, never an ads SDK directly.
- * It takes no space until ads are allowed (consent given, SDK started, placement switched on remotely).
+ * It takes no space until ads are allowed (consent given, SDK started, placement switched on remotely), nor after the
+ * ad fails to load. [separator] (a line above the banner, for example) is drawn only while the banner takes room.
  */
 @Composable
-fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier) {
+fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier, separator: (@Composable () -> Unit)? = null) {
     require(placement.format == AdFormat.BANNER) { "${placement.key} is not a banner placement" }
     val ads = LocalAdsController.current
     if (ads == null) {
@@ -53,11 +61,11 @@ fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier) {
         Box(modifier = modifier)
         return
     }
-    BannerAd(ads = ads, unitId = unitId, modifier = modifier)
+    BannerAd(ads = ads, unitId = unitId, separator = separator, modifier = modifier)
 }
 
 @Composable
-private fun BannerAd(ads: AdsController, unitId: String, modifier: Modifier) {
+private fun BannerAd(ads: AdsController, unitId: String, separator: (@Composable () -> Unit)?, modifier: Modifier) {
     BoxWithConstraints(modifier = modifier) {
         val context = LocalContext.current
         val screenWidthDp = LocalConfiguration.current.screenWidthDp
@@ -87,9 +95,36 @@ private fun BannerAd(ads: AdsController, unitId: String, modifier: Modifier) {
             }
         }
 
-        // The height is reserved before the ad loads, so the screen does not jump when it appears.
-        AndroidView(factory = { adView }, modifier = Modifier.fillMaxWidth().height(adSize.height.dp))
+        BannerView(adView = adView, heightDp = adSize.height, separator = separator, modifier = Modifier)
     }
+}
+
+/**
+ * The banner and, above it, the optional [separator]. The height of the banner is reserved before the ad loads, so the
+ * screen does not jump when it appears. When the ad fails to load, the banner shrinks to 0 dp and the separator goes,
+ * so no empty strip stays; the view stays in the tree, so a later automatic refresh that succeeds brings both back.
+ */
+@Composable
+internal fun BannerView(adView: AdView, heightDp: Int, separator: (@Composable () -> Unit)?, modifier: Modifier) {
+    var failed by remember(adView) { mutableStateOf(false) }
+    DisposableEffect(adView) {
+        adView.adListener = bannerListener { failed = it }
+        onDispose {}
+    }
+    Column(modifier = modifier) {
+        if (!failed) separator?.invoke()
+        AndroidView(
+            factory = { adView },
+            modifier = Modifier.fillMaxWidth().height(if (failed) 0.dp else heightDp.dp),
+        )
+    }
+}
+
+/** Reports whether the last load of the banner failed: true on [AdListener.onAdFailedToLoad], false on a load. */
+internal fun bannerListener(onFailedChange: (Boolean) -> Unit): AdListener = object : AdListener() {
+    override fun onAdFailedToLoad(error: LoadAdError) = onFailedChange(true)
+
+    override fun onAdLoaded() = onFailedChange(false)
 }
 
 /**
@@ -97,13 +132,30 @@ private fun BannerAd(ads: AdsController, unitId: String, modifier: Modifier) {
  * Call the action at a natural break only. It does nothing in tests and previews.
  */
 @Composable
-fun rememberShowInterstitial(placement: AdPlacement): () -> Unit {
+fun rememberShowInterstitial(placement: AdPlacement): () -> Unit = rememberShowInterstitial(placement) {}
+
+/**
+ * Like [rememberShowInterstitial] with only the placement, and calls [onFinished] once per call of the action, on the
+ * main thread, when the request ends: with true when the ad was shown, false when it was skipped. A screen that goes
+ * on after the ad (leaving a screen) continues there. It reports false at once in tests and previews.
+ */
+@Composable
+fun rememberShowInterstitial(placement: AdPlacement, onFinished: (shown: Boolean) -> Unit): () -> Unit {
     require(placement.format == AdFormat.INTERSTITIAL) { "${placement.key} is not a full-screen placement" }
     val ads = LocalAdsController.current
     val activity = LocalActivity.current
     val scope = rememberCoroutineScope()
+    val currentOnFinished by rememberUpdatedState(onFinished)
     return remember(ads, activity, placement) {
-        { if (ads != null && activity != null) scope.launch { ads.showInterstitial(activity, placement) } }
+        {
+            if (ads == null || activity == null) {
+                currentOnFinished(false)
+            } else {
+                scope.launch(Dispatchers.Main.immediate) {
+                    currentOnFinished(ads.showInterstitial(activity, placement))
+                }
+            }
+        }
     }
 }
 

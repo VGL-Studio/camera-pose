@@ -103,6 +103,7 @@ dependencies {
     implementation(project(":core:assets"))
     implementation(project(":core:logging"))
     implementation(project(":core:poses"))
+    implementation(project(":core:review"))
     implementation(project(":core:network"))
 
     implementation(project(":feature:sample"))

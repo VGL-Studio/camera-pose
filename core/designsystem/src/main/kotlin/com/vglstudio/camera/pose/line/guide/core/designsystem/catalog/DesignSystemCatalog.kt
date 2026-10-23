@@ -37,6 +37,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.AdjustAction
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.AdjustPanel
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.AdjustSlider
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.CameraIconButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ChoiceDialog
@@ -239,6 +242,30 @@ fun CameraComponentCatalog(modifier: Modifier = Modifier) {
                 actionIcon = refresh,
                 onAction = {},
             )
+        }
+        AdjustPanel(title = "Adjust overlay", onClose = {}, closeDescription = "Close") {
+            AdjustSlider(
+                label = "Opacity",
+                valueText = "70%",
+                value = 0.7f,
+                valueRange = 0.2f..1f,
+                onValueChange = {},
+                onValueChangeFinished = {},
+            )
+            AdjustSlider(
+                label = "Size",
+                valueText = "100%",
+                value = 1f,
+                valueRange = 0.4f..1.6f,
+                onValueChange = {},
+                onValueChangeFinished = {},
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                AdjustAction(icon = refresh, label = "Flip", onClick = {})
+                AdjustAction(icon = refresh, label = "Lock", onClick = {}, active = true)
+                AdjustAction(icon = refresh, label = "Hide", onClick = {})
+                AdjustAction(icon = refresh, label = "Reset", onClick = {}, enabled = false)
+            }
         }
     }
 }

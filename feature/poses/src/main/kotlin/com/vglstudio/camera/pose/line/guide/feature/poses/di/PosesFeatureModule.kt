@@ -1,9 +1,11 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.di
 
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.BitmapPoseImageDecoder
+import com.vglstudio.camera.pose.line.guide.feature.poses.data.DefaultPoseImageRepository
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.DefaultPoseThumbnailRepository
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.DefaultPosesLibrarySource
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.PoseImageDecoder
+import com.vglstudio.camera.pose.line.guide.feature.poses.data.PoseImageRepository
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.PoseThumbnailRepository
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.PosesLibrarySource
 import dagger.Binds
@@ -29,6 +31,9 @@ internal abstract class PosesFeatureModule {
 
     @Binds
     abstract fun bindThumbnailRepository(impl: DefaultPoseThumbnailRepository): PoseThumbnailRepository
+
+    @Binds
+    abstract fun bindImageRepository(impl: DefaultPoseImageRepository): PoseImageRepository
 
     @Binds
     abstract fun bindImageDecoder(impl: BitmapPoseImageDecoder): PoseImageDecoder

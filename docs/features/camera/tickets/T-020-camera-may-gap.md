@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-11]
 owner: Nhật
-status: ready
+status: approved
 risk: medium
 size: M
-depends_on: [T-014, T-016]
+depends_on: [T-014, T-015, T-016]
 sprint:
-plan:
+plan: features/camera/plans/T-020-camera-may-gap.md
 created: 2026-10-21
 ---
 

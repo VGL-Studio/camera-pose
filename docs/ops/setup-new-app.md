@@ -27,7 +27,7 @@ AI không làm các bước trong tài liệu này. Mọi bước có bí mật 
 2. Cài `git`, `gh` (GitHub CLI), `jq`, `python3`. Trên macOS: `brew install gh jq`.
 3. Đăng nhập GitHub CLI: `gh auth login`, chọn GitHub.com, HTTPS, đăng nhập bằng trình duyệt. `scripts/merge-if-green.sh` dùng phiên đăng nhập này.
 
-Kiểm tra: trong thư mục repo, `scripts/check.sh` in `== Cổng chất lượng: QUA`.
+Kiểm tra: trong thư mục repo, `scripts/check.sh` in `== Cổng chất lượng: QUA`. Java của máy không chạy được Gradle của dự án thì `check.sh` dừng ngay ở dòng đầu, nói phiên bản và cách đặt `JAVA_HOME` (`scripts/java-check.sh`).
 
 Lưu ý: test trên emulator (`app/src/androidTest`) chạy trong CI trên API 34. Trên emulator API 37 đã gặp lỗi `InputManager.getInstance` của bản Espresso hiện tại; muốn chạy trên máy thì dùng emulator API 34.
 
@@ -68,7 +68,7 @@ Làm theo `docs/ops/staging-and-runs.md`, mục 1.1. Tóm tắt:
 
 Làm theo `docs/ops/staging-and-runs.md`, mục 1.2 đến 1.4: tạo khóa ký staging, thêm 5 bí mật, chạy **Actions > staging** trên `main`.
 
-Kiểm tra: workflow `staging` xanh, người trong nhóm `team` nhận email mời cài bản staging.
+Kiểm tra: workflow `staging` xanh, người trong nhóm `team` nhận email mời cài bản staging. Sau đó chạy **Actions > preflight > Run workflow** một lần, phải xanh (`docs/ops/staging-and-runs.md`, mục 2.8).
 
 ## 6. Routine Claude Code
 

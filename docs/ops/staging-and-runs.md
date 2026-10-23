@@ -187,6 +187,21 @@ scripts/token-usage.py credit --run RUN-YYYYMMDD-NN --usd 10
 
 Lệnh chỉ sửa dòng Chung của phiên; commit file CSV trong PR báo cáo nếu PR còn mở, hoặc trong một PR tài liệu sau đó. `scripts/token-usage.py estimate` in thêm số USD trung bình cho mỗi 1M token, để ước tính một danh sách chạy tốn bao nhiêu credit.
 
+### 2.8. Kiểm tra môi trường trước phiên (`preflight.yml`)
+
+Bí mật staging sai, nhóm người test chưa có, file R2 thiếu hay tên miền file tĩnh không phân giải được từng chỉ lộ ra khi phiên đã chạy (L-002, L-011, L-012, L-027). Mỗi sáng 07:45 (giờ Việt Nam), workflow `preflight` chạy `scripts/preflight.sh` trên GitHub, nơi gọi được R2:
+
+- bí mật `STAGING_GOOGLE_SERVICES_JSON` là JSON, không phải file giả của repo, và có app `.staging`;
+- App Distribution có mọi nhóm trong biến `STAGING_TESTER_GROUPS` (mặc định `team`); lệnh `firebase-tools` không chạy được thì chỉ ghi `CHÚ Ý`;
+- tên miền của `ASSETS_BASE_URL` (bản staging, `app/build.gradle.kts`) phân giải được qua 1.1.1.1 và 8.8.8.8;
+- mỗi file trong `scripts/required-assets.txt` trả `200`.
+
+Script không bao giờ in giá trị của bí mật, chỉ in đúng hay sai kèm tên điều kiện. Đỏ thì mở issue `setup-broken` (hay bình luận vào issue đang mở); `start-run.yml` không bắt đầu phiên khi issue này còn mở, và tự chạy lại cùng script ngay trước khi kích hoạt routine. Xanh thì tự đóng issue. Nhãn riêng, không dùng `env-broken`, vì `env-canary` đóng mọi issue `env-broken` khi môi trường cloud xanh.
+
+- **Thêm file bắt buộc:** plan thêm file R2 mà app cần có thì thêm đường dẫn (tương đối, dưới địa chỉ gốc staging) vào `scripts/required-assets.txt` trong cùng PR.
+- **Chạy tay:** **Actions > preflight > Run workflow**. Ô `extra_asset` thêm một đường dẫn cho lần chạy đó, chỉ để kiểm đường đỏ của workflow; để trống khi chạy thật.
+- **Khi có issue `setup-broken`:** sửa theo các dòng `LỖI` trong issue (thêm lại bí mật, tạo nhóm người test, tải file lên R2, sửa DNS theo `docs/ops/setup-new-app.md`, mục 3), rồi chạy lại **preflight**.
+
 ## 3. Việc còn phải kiểm chứng
 
 - `resume-run.yml` kích hoạt lại được một phiên hết hạn mức, và phiên đó tiếp tục đúng task đang làm dở: chờ lần hết hạn mức thật đầu tiên. Phiên kích hoạt lại khi hạn mức chưa được làm mới có làm tốn gì không (chỉ là một phiên dừng ngay) cũng cần xem lần đó.

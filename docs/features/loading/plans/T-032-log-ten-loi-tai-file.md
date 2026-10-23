@@ -1,7 +1,7 @@
 ---
 ticket: T-032
 title: Log tải file thất bại ghi loại lỗi và lý do
-status: approved                # draft | approved | stopped | done
+status: done                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -168,3 +168,8 @@ Không cần (E dưới 2): dùng lại `RecordingAppLogger` và mẫu phụ thu
 - Bước 4 (commit 73e7f9e): viết thân hai hàm; `AssetsModule` nhận `AppLogger` và bỏ `android.util.Log`. `:core:assets:testDebugUnitTest` qua cả 30 test, không sửa test cũ nào.
 - Bước 5, trên máy local: `checkModuleDependencies ktlintCheck :core:assets:testDebugUnitTest :app:testStagingDebugUnitTest :app:lintStagingDebug :app:assembleStagingDebug` cho `BUILD SUCCESSFUL`. Hilt cung cấp được `AppLogger` ở `:app`, nên không dùng phương án dự phòng 3.4. Bản `scripts/check.sh` đầy đủ chạy trong CI của PR.
 - Chưa làm: bước kiểm tay trên staging (`W VGL.Assets: Could not download ... (reason=NETWORK, error=UnknownHostException)`). Ticket giữ `approved` tới khi người merge bằng `scripts/merge-if-green.sh 51`.
+
+### 2026-10-23, sau khi merge
+
+- PR #51 merge bằng `merge-if-green.sh` (commit bf53843 trên nhánh chính), sau khi gộp nhánh chính vào nhánh (xung đột `docs/STATUS.md`, L-047) và CI chạy lại xanh (lần chạy 39922669924); main-guard 39923794555 xanh.
+- Còn lại cho người: kiểm tay trên staging khi tắt mạng (`W VGL.Assets: Could not download ... (reason=NETWORK, error=UnknownHostException)`). FB-20261022-04 vẫn `new`, chủ feature chuyển trạng thái.

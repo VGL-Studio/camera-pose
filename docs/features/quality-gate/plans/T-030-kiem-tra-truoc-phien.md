@@ -1,7 +1,7 @@
 ---
 ticket: T-030
 title: Kiểm tra môi trường trước phiên trên GitHub (bí mật staging, file R2, DNS) và phiên bản Java của check.sh
-status: approved                # draft | approved | stopped | done
+status: done                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -272,3 +272,11 @@ Test của script trong `scripts/tests/run.sh`, viết trước code. Lệnh ngo
   - (c) lần `start-run` đầu tiên có bước "Kiểm tra môi trường staging" xanh trước "Kích hoạt routine".
   - Lần chạy (a) đỏ ở điều kiện bí mật hay DNS trong khi `staging.yml` gần nhất xanh thì dừng: revert phần `start-run.yml` cho tới khi rõ nguyên nhân.
   - Lệnh `appdistribution:groups:list` chạy thử ở lần (a); không được thì làm theo mục 3.4.
+
+### 2026-10-23, sau khi merge
+
+- PR #50 merge bằng `merge-if-green.sh` (commit 3f13223 trên nhánh chính); main-guard 39922445785 xanh.
+- Kiểm tay (a): `preflight` chạy tay, lần chạy 39922458198, xanh cả bốn điều. Lệnh `appdistribution:groups:list` chạy được, không cần phương án dự phòng 3.4. Log chỉ có các dòng `QUA`, có tên gói, không có giá trị nào của bí mật.
+- Kiểm tay (b): chạy với `extra_asset=poses/khong-co-that/test-T-030.json`, lần chạy 39926047503 đỏ với `LỖI: ... trả 404`, mở issue #53 `setup-broken`. Lần chạy xanh ngay sau (39926189393) đóng issue #53 kèm bình luận.
+- Điều kiện dừng 3 không xảy ra.
+- Còn lại: kiểm tay (c) ở lần `start-run` đầu tiên (bước "Kiểm tra môi trường staging" xanh trước "Kích hoạt routine"). Người bắt đầu phiên tiếp theo xem log của `start-run`.

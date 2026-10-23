@@ -1,7 +1,7 @@
 ---
 ticket: T-029
 title: merge-if-green.sh tự cập nhật nhánh và chịu được job kẹt trạng thái
-status: approved                # draft | approved | stopped | done
+status: done                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -198,3 +198,10 @@ Test trong `scripts/tests/run.sh`, viết trước code, dùng `scripts/tests/fa
   - Hàm `update_writes` của test in `0` khi chưa có file `writes`, thay vì in rỗng. Đây là lỗi của hàm phụ trợ, không đổi điều test kiểm tra.
 - **Bước 5:** `scripts/tests/run.sh` qua 271 test. `scripts/check.sh` để CI của PR chạy, vì plan không đổi code của app (mục 4.1).
 - **Còn lại:** kiểm tay `--update` trên GitHub thật ở lần đầu dùng (mục 4, dòng cuối). Sau khi merge, ghi kết quả vào đây.
+
+### 2026-10-23, sau khi merge
+
+- PR #49 merge bằng `merge-if-green.sh` (commit 1024974 trên nhánh chính).
+- main-guard 39916343646 trên 1024974: lần chạy đầu GitHub không cấp máy (hết hạn mức Actions, L-046), chạy lại sau khi người nâng hạn mức thì xanh.
+- `--update` trên GitHub thật, hai lần (PR #51, PR #52): GitHub trả `422 merge conflict` vì `docs/STATUS.md`; script từ chối với mã 1 và hướng dẫn gộp tay, đúng mục 3.1. Đường cập nhật thành công chưa gặp, vì PR nào cũng xung đột ở trang tiến độ (L-047). Không cần phương án dự phòng 3.4: proxy không chặn, lỗi là xung đột thật.
+- Ba lần merge sau (#50, #51, #52) qua script mới không có cảnh báo hay lỗi.

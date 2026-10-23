@@ -5,7 +5,7 @@ feature: quality-gate
 spec:
 scenarios: []
 owner: Tuấn
-status: planned
+status: approved
 risk: high
 size: M
 depends_on: []

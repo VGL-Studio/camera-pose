@@ -1,16 +1,16 @@
 ---
 ticket: T-030
 title: Kiểm tra môi trường trước phiên trên GitHub (bí mật staging, file R2, DNS) và phiên bản Java của check.sh
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 20M          # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [ci, process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                    # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-22
 ---
 
 # PLAN T-030: KIỂM TRA MÔI TRƯỜNG TRƯỚC PHIÊN TRÊN GITHUB VÀ PHIÊN BẢN JAVA CỦA CHECK.SH
@@ -224,27 +224,27 @@ Test của script trong `scripts/tests/run.sh`, viết trước code. Lệnh ngo
 
 1. **Lỗi nào chặn bắt đầu phiên?** L-012 đề xuất chặn mọi lỗi. Nhưng bí mật staging hay nhóm người test sai chỉ làm hỏng bước phát staging ở cuối phiên; các task vẫn làm và merge được. File R2 thiếu hay DNS lỗi thì làm `ui-test` của PR đỏ, nên task dừng.
    - Đề xuất của AI: chặn với mọi lỗi, đúng L-012, để người sửa trong ngày. Nếu muốn phiên vẫn chạy khi chỉ phần staging lỗi, thì đổi hai kiểm tra đó thành `CHÚ Ý`, phiên chạy tiếp và ghi vào báo cáo "không phát staging".
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 2. **Nhãn mới `setup-broken` hay dùng chung `env-broken`?**
    - Đề xuất của AI: nhãn mới. `scripts/env-canary.sh` đóng mọi issue `env-broken` khi môi trường cloud xanh, nên dùng chung thì issue của `preflight` bị đóng nhầm. Dùng chung thì phải sửa `env-canary.sh`, một file nữa của cổng.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Danh sách file R2 bắt buộc gồm những gì?** Hiện chỉ có catalog mặc định.
    - Đề xuất của AI: ghi tay vào `scripts/required-assets.txt`. Mỗi plan thêm file R2 bắt buộc thì thêm dòng (ghi vào `docs/CLAUDE.md` ở PR này). Chưa đọc catalog để kiểm từng ảnh của bộ khởi đầu: 60 tư thế nhân 3 file là 180 lần `curl` mỗi sáng. Nếu muốn, ticket sau thêm tùy chọn kiểm các ảnh mà catalog ghi.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 4. **Xung đột `docs/STATUS.md` ở mọi PR (L-016) xử lý thế nào?** Plan này không làm. Các cách:
    - (a) PR thường không commit `STATUS.md`; chỉ PR báo cáo của phiên và một workflow trên nhánh chính sau mỗi lần merge sinh lại trang. Test "status matches" chuyển sang chỉ chạy trên nhánh chính. Workflow này phải đẩy commit lên nhánh chính, trái với quy tắc chỉ merge qua `merge-if-green.sh`, nên cần một ADR.
    - (b) `.gitattributes` với `docs/STATUS.md merge=ours`. Cách này không làm GitHub hết báo `DIRTY`, vì kiểm tra gộp của GitHub không dùng merge driver riêng, nên không giải quyết được xung đột trên PR.
    - (c) Giữ như hiện nay. `merge-if-green.sh` báo nhánh chậm thì người hay phiên gộp nhánh chính rồi chạy `scripts/status.py`. Có thể thêm hướng dẫn một lệnh làm việc này.
    - Đề xuất của AI: tạm làm (c) bằng một câu trong `docs/CLAUDE.md`. Chọn (a) thì viết ADR và ticket riêng.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

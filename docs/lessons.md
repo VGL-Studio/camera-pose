@@ -300,3 +300,39 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `docs/auto-run.md` mục 3: cho phép và mô tả cách giao bước 3 đến 5 cho phiên con (nội dung giao việc tối thiểu); nhắc không sửa file trong thư mục đang chạy `check.sh` nền, chỉ chạy rà soát độc lập song song.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-032: Nút chữ trong thành phần có nền khác màu tự đặt màu chữ, đè màu thiết kế
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261023-02, T-016.
+- **Chuyện gì:** thông báo lưu lỗi của màn xem lại dùng `Snackbar` có nút `TextButton` "Thử lại". `TextButton` tự đặt màu chữ bằng `ButtonDefaults.textButtonColors()` (`primary`), đè `actionContentColor` mà `Snackbar` truyền xuống, nên chữ ra #6E9BFF thay vì `inversePrimary` #2F6BFF của thiết kế, độ tương phản giảm từ khoảng 3,9:1 xuống 2,4:1. Ảnh chuẩn ghi lại màu sai; không test nào đo màu chữ của nút; chỉ phiên rà soát độc lập thấy khi đo điểm ảnh.
+- **Bằng chứng:** RUN-20261023-02, rà soát độc lập T-016 (điểm chặn); commit e2030bd; test `saveError_retryUsesInversePrimary`.
+- **Đề xuất sửa:** mẫu plan và `CLAUDE.md` mục test giao diện: thành phần có nút chữ đặt trên nền khác màu (`inverseSurface`, thẻ màu, hộp thoại) phải có test đo màu chữ của nút bằng cách vẽ view gốc ra `Bitmap`; khi dựng, truyền `colors` cho `TextButton` thay vì dựa vào màu mà thành phần cha truyền xuống.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-033: Các plan viết song song cùng ghi "Tạo" cho một file mà task chạy trước trong phiên tạo ra
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-02, T-014, T-025.
+- **Chuyện gì:** plan T-014 và T-025 cùng ghi "Tạo" `core/designsystem/src/main/res/drawable/ic_chevron_right.xml`, một bản kiểu Outlined, một bản kiểu Rounded. T-014 chạy trước và tạo file; `scripts/plan-check.py` chỉ cảnh báo lúc bắt đầu T-025. Phiên con dùng lại bản có sẵn để không đổi giao diện camera, và ghi lệch plan. Tương tự, chú thích "until T-025 wires it" do T-021 viết ở `PosesNavigation.kt` trở nên lỗi thời mà file đó không thuộc plan T-025.
+- **Bằng chứng:** kết quả `plan-check.py` lúc 02:26 UTC; nhật ký plan T-025, mục Lệch so với plan.
+- **Đề xuất sửa:** `docs/CLAUDE.md` mục Khi lập danh sách chạy: chạy `plan-check.py` cho các plan theo thứ tự chạy dự kiến và tìm file "Tạo" trùng giữa các plan; mỗi file dùng chung chỉ một plan tạo, plan sau ghi "dùng lại" và ghi rõ kiểu. Plan để lại chú thích "task sau nối" thì liệt kê file đó cho task sau.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-034: Phiên con viết code trong thư mục chính làm phiên chính không làm gì song song được
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-02.
+- **Chuyện gì:** bốn phiên con (T-014, T-021, T-016, T-025) làm việc ngay trong thư mục chính của repo. Trong lúc chờ, hook dừng phiên của môi trường cloud ba lần báo "có thay đổi chưa commit" (đó là phần làm dở của phiên con, phiên chính không được commit chen vào). Phiên chính cũng không thể chạy `check.sh`, chuẩn bị nhánh task sau hay sửa file song song trong thư mục đó (L-031).
+- **Bằng chứng:** phản hồi của hook trong phiên, lúc phiên con T-014, T-021, T-025 đang làm.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 3 (cùng chỗ với L-031): phiên chính tạo worktree riêng cho nhánh task (`git worktree add ../task-T-NNN claude/T-NNN-...`) và giao việc cho phiên con trong worktree đó; thư mục chính giữ sạch cho việc của phiên chính. Bộ nhớ đệm Gradle ở `~/.gradle` dùng chung nên không tốn thêm thời gian tải.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-035: Thêm một bước đối chứng để test viết trước không qua ngay trên khung rỗng
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-02, T-014, T-021, T-016, T-025.
+- **Chuyện gì:** ở cả bốn task lớn, một số test viết theo mục 4 của plan qua ngay trên khung rỗng, vì khung trả đúng giá trị mặc định mà test mong đợi (ví dụ "chưa lưu gì thì trả mặc định", "tệp hỏng thì trả `null`"). Phiên con tự viết chặt lại trước commit test bằng một bước đối chứng: ghi rồi đọc lại, hoặc đặt dữ liệu đúng cạnh dữ liệu sai. Sau đó các test này thất bại đúng lý do. Số test được cứu: T-014 2, T-021 2, T-016 8, T-025 9.
+- **Bằng chứng:** nhật ký plan T-014, T-021, T-016, T-025 (RUN-20261023-02), mục Test viết trước.
+- **Đề xuất sửa:** `docs/auto-run.md` bước 3: nêu "thêm bước đối chứng" làm cách mặc định khi một test không phải test chặn qua ngay; mẫu plan nhắc người viết plan rằng test kiểm giá trị mặc định thường qua trên khung và nên có sẵn bước đối chứng.
+- **Áp dụng:**
+- **Kiểm chứng:**

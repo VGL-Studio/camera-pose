@@ -71,6 +71,7 @@ internal fun ReviewUnfoldedContent(
                         onRetrySave = onRetrySave,
                         onOpenAppSettings = onOpenAppSettings,
                         modifier = Modifier.fillMaxWidth(),
+                        actionOnNewLine = true,
                     )
                     Spacer(modifier = Modifier.height(Spacing.md))
                 }

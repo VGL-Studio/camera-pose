@@ -227,6 +227,8 @@ internal fun SaveErrorMessage(
     onRetrySave: () -> Unit,
     onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    // True in a narrow column, where the message wraps and the action would be drawn over it.
+    actionOnNewLine: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val message = when (save) {
@@ -238,6 +240,7 @@ internal fun SaveErrorMessage(
     val blocked = save == SaveStatus.PERMISSION_BLOCKED
     Snackbar(
         modifier = modifier.testTag(ReviewTestTags.SAVE_ERROR),
+        actionOnNewLine = actionOnNewLine,
         shape = RoundedCornerShape(Radius.card),
         containerColor = colors.inverseSurface,
         contentColor = colors.inverseOnSurface,

@@ -121,6 +121,10 @@ class ReviewScreenUnfoldedTest {
         assertTrue("error ${error.left} right of the photo ${photo.right}", error.left >= photo.right)
         assertTrue("error ${error.bottom} above save ${save.top}", error.bottom <= save.top)
         composeRule.onNode(inSaveError("Không lưu được ảnh: bộ nhớ máy đã đầy.")).assertExists()
+        // In the narrow column the message wraps; the action goes under it, not over it.
+        val text = composeRule.onNode(inSaveError("Không lưu được ảnh: bộ nhớ máy đã đầy.")).getUnclippedBoundsInRoot()
+        val retry = composeRule.onNode(inSaveError("Thử lại")).getUnclippedBoundsInRoot()
+        assertTrue("retry ${retry.top} under the message ${text.bottom}", retry.top >= text.bottom)
         composeRule.onNode(inSaveError("Thử lại")).performClick()
         assertEquals(listOf("retry"), calls)
     }

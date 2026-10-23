@@ -97,6 +97,7 @@ fun PosesScreen(
     onRetryThumbnail: (String) -> Unit,
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomBanner: @Composable () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     Box(

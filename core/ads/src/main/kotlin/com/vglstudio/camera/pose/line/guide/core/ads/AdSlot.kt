@@ -25,6 +25,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,7 @@ val LocalAdsController = staticCompositionLocalOf<AdsController?> { null }
  * It takes no space until ads are allowed (consent given, SDK started, placement switched on remotely).
  */
 @Composable
-fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier) {
+fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier, separator: (@Composable () -> Unit)? = null) {
     require(placement.format == AdFormat.BANNER) { "${placement.key} is not a banner placement" }
     val ads = LocalAdsController.current
     if (ads == null) {
@@ -55,11 +56,11 @@ fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier) {
         Box(modifier = modifier)
         return
     }
-    BannerAd(ads = ads, unitId = unitId, modifier = modifier)
+    BannerAd(ads = ads, unitId = unitId, separator = separator, modifier = modifier)
 }
 
 @Composable
-private fun BannerAd(ads: AdsController, unitId: String, modifier: Modifier) {
+private fun BannerAd(ads: AdsController, unitId: String, separator: (@Composable () -> Unit)?, modifier: Modifier) {
     BoxWithConstraints(modifier = modifier) {
         val context = LocalContext.current
         val screenWidthDp = LocalConfiguration.current.screenWidthDp
@@ -90,9 +91,17 @@ private fun BannerAd(ads: AdsController, unitId: String, modifier: Modifier) {
         }
 
         // The height is reserved before the ad loads, so the screen does not jump when it appears.
-        AndroidView(factory = { adView }, modifier = Modifier.fillMaxWidth().height(adSize.height.dp))
+        BannerView(adView = adView, heightDp = adSize.height, separator = separator, modifier = Modifier)
     }
 }
+
+// Skeleton (plan T-023, step 3): keeps the old drawing. The real one comes with the code commit.
+@Composable
+internal fun BannerView(adView: AdView, heightDp: Int, separator: (@Composable () -> Unit)?, modifier: Modifier) {
+    AndroidView(factory = { adView }, modifier = modifier.fillMaxWidth().height(heightDp.dp))
+}
+
+internal fun bannerListener(onFailedChange: (Boolean) -> Unit): AdListener = object : AdListener() {}
 
 /**
  * Returns an action that shows the full-screen ad of [placement] if the guardrails allow it (ADR-0004).

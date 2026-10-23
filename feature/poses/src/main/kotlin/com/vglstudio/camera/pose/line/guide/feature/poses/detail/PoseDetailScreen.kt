@@ -63,6 +63,7 @@ fun PoseDetailScreen(
     onShoot: () -> Unit,
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomBanner: @Composable () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val ready = uiState as? PoseDetailUiState.Ready

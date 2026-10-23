@@ -13,7 +13,21 @@ class AdUnitIdsTest {
             "; other_key=unit/2;"
         val ids = ConfiguredAdUnitIds(config)
         AdPlacement.entries.forEach { assertEquals("unit/${it.key}", ids.of(it)) }
+        assertEquals("unit/poses_banner", ids.of(AdPlacement.POSES_BANNER))
         assertTrue(ids.missing.isEmpty())
+    }
+
+    @Test
+    fun posesPlacements_areBannersWithSpecKeys() {
+        assertEquals("poses_banner", AdPlacement.POSES_BANNER.key)
+        assertEquals("poses_detail_banner", AdPlacement.POSES_DETAIL_BANNER.key)
+        assertEquals(AdFormat.BANNER, AdPlacement.POSES_BANNER.format)
+        assertEquals(AdFormat.BANNER, AdPlacement.POSES_DETAIL_BANNER.format)
+        assertEquals("ads_poses_banner_enabled", AdsSettings.placementEnabledKey(AdPlacement.POSES_BANNER))
+        assertEquals(
+            "ads_poses_detail_banner_enabled",
+            AdsSettings.placementEnabledKey(AdPlacement.POSES_DETAIL_BANNER),
+        )
     }
 
     @Test

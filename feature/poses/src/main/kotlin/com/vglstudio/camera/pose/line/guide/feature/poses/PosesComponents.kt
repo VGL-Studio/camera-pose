@@ -1,6 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCard
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StickerChip
@@ -220,4 +222,16 @@ private fun PoseChip.key(): String = when (this) {
     PoseChip.All -> "all"
     PoseChip.Saved -> "saved"
     is PoseChip.Category -> "category:$id"
+}
+
+// Skeleton (plan T-023, step 3): draws nothing yet.
+@Composable
+@Suppress("UNUSED_PARAMETER")
+internal fun PosesBottomBanner(placement: AdPlacement) {
+    Box {}
+}
+
+@Composable
+internal fun PosesAdSeparator() {
+    Box {}
 }

@@ -1,9 +1,15 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -18,13 +24,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedText
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
+import com.vglstudio.camera.pose.line.guide.feature.poses.PosesBottomBanner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -52,7 +61,7 @@ class PoseDetailScreenTest {
 
     private var state by mutableStateOf<PoseDetailUiState>(PoseDetailUiState.Loading)
 
-    private fun setScreen(initial: PoseDetailUiState) {
+    private fun setScreen(initial: PoseDetailUiState, bottomBanner: @Composable () -> Unit = {}) {
         state = initial
         composeRule.setContent {
             AppTheme(darkTheme = false) {
@@ -63,6 +72,7 @@ class PoseDetailScreenTest {
                     onRetryImage = { retries++ },
                     onShoot = { shoots++ },
                     onSaveFailedShown = { saveFailedShown++ },
+                    bottomBanner = bottomBanner,
                 )
             }
         }
@@ -299,6 +309,52 @@ class PoseDetailScreenTest {
         composeRule.onNodeWithText("Chụp với tư thế này").assertExists()
     }
 
+    // KB-6: banner
+
+    @Test
+    fun banner_belowBottomBar_buttonNotCovered() {
+        setScreen(ready(), bottomBanner = { TestBanner() })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val banner = composeRule.onNodeWithTag(BANNER).getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        val button = composeRule.onNodeWithText("Chụp với tư thế này").getUnclippedBoundsInRoot()
+        assertEquals(58f, banner.height.value, 0.5f)
+        assertEquals("banner starts where the bar ends", bar.bottom.value, banner.top.value, 0.5f)
+        assertEquals("banner at the bottom of the screen", root.bottom.value, banner.bottom.value, 0.5f)
+        assertTrue("button $button inside the screen $root", button.top >= root.top && button.bottom <= root.bottom)
+        assertTrue("button ${button.bottom} above banner ${banner.top}", button.bottom.value <= banner.top.value + 0.5f)
+        composeRule.onNodeWithText("Chụp với tư thế này").performClick()
+        assertEquals(1, shoots)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
+    fun smallScreen_withBanner_buttonFullyVisible() {
+        val long = detail(steps = FIVE_STEPS, mistakes = listOf(MISTAKE, LONG_MISTAKE))
+        setScreen(ready(detail = long), bottomBanner = { TestBanner() })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val banner = composeRule.onNodeWithTag(BANNER).getUnclippedBoundsInRoot()
+        val button = composeRule.onNodeWithText("Chụp với tư thế này").getUnclippedBoundsInRoot()
+        assertTrue("button $button inside the screen $root", button.top >= root.top && button.bottom <= root.bottom)
+        assertTrue("button ${button.bottom} above banner ${banner.top}", button.bottom.value <= banner.top.value + 0.5f)
+        val lastMistake = composeRule.onNodeWithText(LONG_MISTAKE)
+        lastMistake.performScrollTo()
+        composeRule.waitForIdle()
+        val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        val last = lastMistake.getUnclippedBoundsInRoot()
+        assertTrue("last mistake ${last.bottom} above bar ${bar.top}", last.bottom.value <= bar.top.value + 0.5f)
+    }
+
+    @Test
+    fun realBottomBanner_withoutAds_takesNoSpace() {
+        setScreen(ready(), bottomBanner = { PosesBottomBanner(AdPlacement.POSES_DETAIL_BANNER) })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        val slot = composeRule.onNodeWithTag("poses_banner_slot").getUnclippedBoundsInRoot()
+        assertEquals(0f, slot.height.value, 0.5f)
+        assertEquals("bar reaches the bottom of the screen", root.bottom.value, bar.bottom.value, 0.5f)
+    }
+
     private fun ready(
         detail: PoseDetail = detail(),
         saved: Boolean = false,
@@ -326,6 +382,8 @@ class PoseDetailScreenTest {
     )
 
     private companion object {
+        const val BANNER = "test_banner"
+
         val IMAGE = ImageBitmap(379, 380)
         val STEPS = listOf(
             "Đứng chéo 45° so với máy, chân trước hơi khuỵu.",
@@ -337,4 +395,10 @@ class PoseDetailScreenTest {
         const val LONG_MISTAKE = "Vai trái bị che mất khi hai người đứng sát nhau và cùng xoay về một phía."
         const val MISTAKE = "Rút vai lên sát tai làm cổ ngắn lại. Thả vai xuống trước khi chụp."
     }
+}
+
+/** A banner of the design's size (58 dp with the separator), drawn where the real ad is not available in tests. */
+@Composable
+private fun TestBanner() {
+    Box(Modifier.fillMaxWidth().height(58.dp).testTag("test_banner"))
 }

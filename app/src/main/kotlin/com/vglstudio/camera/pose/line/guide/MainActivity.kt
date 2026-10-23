@@ -12,6 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsController
 import com.vglstudio.camera.pose.line.guide.core.ads.LocalAdsController
+import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
+import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.network.NetworkDialogController
 import com.vglstudio.camera.pose.line.guide.navigation.AppNavHost
@@ -35,6 +37,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     internal lateinit var onboardingStatus: OnboardingStatus
 
+    @Inject
+    lateinit var featureFlags: FeatureFlags
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -47,6 +52,8 @@ class MainActivity : ComponentActivity() {
                     // so those areas take the theme background in both light and dark mode.
                     Surface(modifier = Modifier.fillMaxSize()) {
                         val networkDialogState by networkDialog.state.collectAsState()
+                        // Followed, not read once: the library button shows and hides with the remote value (ADR-0003).
+                        val posesEnabled by featureFlags.enabled(FeatureFlag.POSES).collectAsState(initial = false)
                         // Back while the network dialog shows sends the app to the background (spec network, KB-3).
                         NetworkDialogHost(
                             state = networkDialogState,
@@ -57,6 +64,7 @@ class MainActivity : ComponentActivity() {
                                 chooseMainScreen = mainScreenChooser::choose,
                                 markOnboardingDone = onboardingStatus::markDone,
                                 onPastLoadingChanged = networkDialog::setActive,
+                                posesEnabled = posesEnabled,
                             )
                         }
                     }

@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -134,7 +136,8 @@ class PosesScreenTest {
     fun card_showsNameMetaAndSaveButton() {
         setScreen(ready())
         composeRule.onNodeWithText("Tựa lan can").assertExists()
-        composeRule.onNodeWithText("Một người · 4 bước").assertExists()
+        // w03 has the same second line: check the one of w01.
+        card("w01").assert(hasText("Một người · 4 bước"))
         saveButtonOf("w01", "Lưu tư thế").assertExists()
     }
 

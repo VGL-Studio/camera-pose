@@ -290,6 +290,49 @@ expect "wait-run: the red line names ui-test" 1 \
      PATH="$work/bin:$PATH" FIXTURE="$work/wait.json" WAIT_RUN_POLL_SECONDS=0 scripts/wait-run.sh --pr 7 2>&1 | grep -c 'job: ui-test')"
 expect "wait-run: a run still going when time runs out asks to call again" "2 CHƯA" \
   "$(wait_run "$(pr_routes "$pending")" --pr 7 --timeout 1)"
+# A run GitHub never started (no runner: spending limit, billing) is not a red check: exit 4 (plan T-033, L-046).
+# Fixture from main-guard 39916343646, attempt 1: the job has no steps, its check run carries the reason.
+unstarted='{"jobs": [{"id": 120, "name": "guard", "conclusion": "failure", "steps": []}]}'
+billing='[{"annotation_level": "failure", "message": "The job was not started because recent account payments have failed or your spending limit needs to be increased."}, {"annotation_level": "notice", "message": "The ubuntu-latest label will migrate to Ubuntu 26"}]'
+infra_routes() { # <jobs answer> <annotations answer>
+  printf '{"routes": {"pulls/7": {"head": {"sha": "abc1234"}}, "actions/workflows/pr-check.yml/runs?head_sha=abc1234&per_page=10": %s, "actions/runs/91/jobs?per_page=50": %s, "check-runs/120/annotations": %s}}' \
+    "$red" "$1" "$2"
+}
+infra_line() { echo "$1" > "$work/wait.json"; PATH="$work/bin:$PATH" FIXTURE="$work/wait.json" WAIT_RUN_POLL_SECONDS=0 scripts/wait-run.sh --pr 7 2>&1 || true; }
+expect "wait-run: a job GitHub never started is an infrastructure failure" "4 HẠ" \
+  "$(wait_run "$(infra_routes "$unstarted" "$billing")" --pr 7)"
+expect "wait-run: the infrastructure line quotes GitHub's annotation" "1 0" \
+  "$(out="$(infra_line "$(infra_routes "$unstarted" "$billing")")"; echo "$(grep -c 'spending limit' <<< "$out") $(grep -c 'Ubuntu 26' <<< "$out" || true)")"
+expect "wait-run: an unstarted job without annotations is still infrastructure" "4 HẠ" \
+  "$(wait_run "$(infra_routes "$unstarted" '[]')" --pr 7)"
+expect "wait-run: says when GitHub gave no reason" 1 \
+  "$(infra_line "$(infra_routes "$unstarted" '[]')" | grep -c 'GitHub không ghi lý do')"
+expect "wait-run: a failed job that ran steps stays red" "1 ĐỎ" \
+  "$(wait_run "$(infra_routes '{"jobs": [{"id": 120, "name": "guard", "conclusion": "failure", "steps": [{"name": "Set up job"}]}]}' "$billing")" --pr 7)"
+expect "wait-run: one unstarted and one failed job that ran stays red" "1 ĐỎ" \
+  "$(wait_run "$(infra_routes '{"jobs": [{"id": 120, "name": "guard", "conclusion": "failure", "steps": []}, {"id": 121, "name": "ui-test", "conclusion": "failure", "steps": [{"name": "Set up job"}]}]}' "$billing")" --pr 7)"
+expect "wait-run: an unstarted main-guard run is an infrastructure failure" "4 HẠ" \
+  "$(wait_run '{"routes": {"actions/workflows/main-guard.yml/runs?branch=main&per_page=20": {"workflow_runs": [{"id": 91, "created_at": "2026-10-23T07:13:10Z", "status": "completed", "conclusion": "failure", "html_url": "u"}]}, "actions/runs/91/jobs?per_page=50": '"$unstarted"', "check-runs/120/annotations": '"$billing"'}}' \
+    --workflow main-guard.yml --since 2026-10-23T07:10:00Z)"
+
+# GitHub runs no pull_request workflow for a PR in conflict with main: say so at once, exit 5 (plan T-033, L-048).
+conflict_routes() { # <mergeable_state> <runs answer>
+  printf '{"routes": {"pulls/7": {"head": {"sha": "abc1234"}, "mergeable_state": "%s"}, "actions/workflows/pr-check.yml/runs?head_sha=abc1234&per_page=10": %s, "actions/runs/91/jobs?per_page=50": {"jobs": []}}}' "$1" "$2"
+}
+conflict_run() { # <fixture>; long timeout, so only the conflict check can end the wait early
+  echo "$1" > "$work/wait.json"; rm -f "$work/wait.json.seen"
+  local out code=0
+  out="$(PATH="$work/bin:$PATH" FIXTURE="$work/wait.json" WAIT_RUN_POLL_SECONDS=0 WAIT_RUN_TIMEOUT_SECONDS="${2:-30}" \
+    scripts/wait-run.sh --pr 7 2>&1)" || code=$?
+  echo "$code ${out%%[: ]*}"
+}
+expect "wait-run: a conflicting PR without runs stops at once" "5 XUNG" \
+  "$(conflict_run "$(conflict_routes dirty '{"workflow_runs": []}')")"
+expect "wait-run: an unknown mergeable state keeps waiting" "2 CHƯA" \
+  "$(conflict_run "$(conflict_routes unknown '{"workflow_runs": []}')" 1)"
+expect "wait-run: a run that exists is waited for even if the PR became dirty" "0 XANH" \
+  "$(conflict_run "$(conflict_routes dirty "$green")")"
+
 dispatch_routes='{"routes": {"actions/workflows/staging.yml/runs?branch=main&per_page=20": {"workflow_runs": [
   {"id": 93, "created_at": "2026-10-18T02:25:00Z", "status": "completed", "conclusion": "failure", "html_url": "u"},
   {"id": 92, "created_at": "2026-10-18T02:21:00Z", "status": "completed", "conclusion": "success", "html_url": "u"},

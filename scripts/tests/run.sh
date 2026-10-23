@@ -68,7 +68,8 @@ expect "start of history: blame the oldest red" bbbbbb2 "$(find_breaking '{
   "ddddd04":{"parent":"bbbbbb2","states":["failure"]}}')"
 
 # merge-if-green.sh must reject any argument other than exactly "<PR> [--dry-run]" before doing anything.
-for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" ""; do
+for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" "" \
+  "12 --update extra" "12 --updat" "12 --update --dry-run"; do
   # shellcheck disable=SC2086
   if PATH="$work/bin:$PATH" scripts/merge-if-green.sh $args > /dev/null 2>&1; then
     expect "merge-if-green rejects '$args'" rejected accepted
@@ -102,6 +103,78 @@ expect "merge-if-green ignores finished runs" 3 "$(merge_during_run claude/templ
 expect "merge-if-green refuses a PR labelled needs-human" 1 \
   "$(merge_during_run claude/fix-T-002-x finished '[{"name": "needs-human"}]')"
 expect "merge-if-green accepts other labels" 3 "$(merge_during_run claude/template-x finished '[{"name": "docs"}]')"
+expect "merge-if-green without --update does not update the branch" 0 \
+  "$(cat "$work/merge.json.writes" 2>/dev/null | grep -c update-branch || true)"
+
+# merge-if-green.sh --update (plan T-029, L-017): a branch behind main is updated by GitHub, then exit 2 ("wait for CI").
+# Every check that comes before still refuses first (L-044).
+merge_update() { # <head ref> <run status> <main-broken issues JSON> [fail_writes JSON]; prints the exit code
+  rm -f "$work/update.json.writes"
+  cat > "$work/update.json" << JSON
+{"fail_writes": ${4:-[]},
+ "routes": {
+  "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "abc1234", "ref": "$1"}, "title": "t", "labels": []},
+  "issues?state=open&labels=main-broken&per_page=10": $3,
+  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
+  "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: $2\n---\n",
+  "compare/main...abc1234": {"behind_by": 2}
+}}
+JSON
+  local code=0
+  PATH="$work/bin:$PATH" FIXTURE="$work/update.json" scripts/merge-if-green.sh 12 --update > "$work/update.out" 2>&1 || code=$?
+  echo "$code"
+}
+update_writes() { grep -c '^PUT pulls/12/update-branch$' "$work/update.json.writes" 2>/dev/null || true; }
+expect "merge-if-green --update updates a branch behind main" 2 "$(merge_update claude/template-x finished '[]')"
+expect "merge-if-green --update asks GitHub to update the branch" 1 "$(update_writes)"
+expect "merge-if-green --update says to wait for CI" 1 "$(grep -c '^CHƯA XONG: đã cập nhật nhánh' "$work/update.out")"
+expect "merge-if-green --update refuses when GitHub cannot update" 1 \
+  "$(merge_update claude/template-x finished '[]' '["PUT pulls/12/update-branch"]')"
+expect "merge-if-green --update says GitHub could not update" 1 "$(grep -c 'không cập nhật được nhánh' "$work/update.out")"
+expect "merge-if-green --update still refuses a person's PR while a run is running" 1 \
+  "$(merge_update claude/template-x running '[]')"
+expect "merge-if-green --update does not update a refused PR" 0 "$(update_writes)"
+expect "merge-if-green --update still refuses while main is broken" 1 \
+  "$(merge_update claude/template-x finished '[{"number": 7, "body": "Nhánh chính đỏ."}]')"
+expect "merge-if-green --update does not update while main is broken" 0 "$(update_writes)"
+
+# A check run still queued or in progress whose check suite completed with success counts as green (plan T-029, L-017).
+# A commit pushed less than 3 minutes ago gets a warning, not a refusal (L-018).
+merge_checks() { # <changes status> <suite answer> <commit date>; prints the exit code
+  local changes_conclusion=null
+  [[ "$1" == "completed" ]] && changes_conclusion='"success"'
+  cat > "$work/checks.json" << JSON
+{"routes": {
+  "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "abc1234", "ref": "claude/template-x"}, "title": "t", "labels": []},
+  "issues?state=open&labels=main-broken&per_page=10": [],
+  "branches?per_page=100": [{"name": "main"}],
+  "compare/main...abc1234": {"behind_by": 0},
+  "commits/abc1234/check-runs?per_page=100": {"check_runs": [
+    {"name": "changes", "status": "$1", "conclusion": $changes_conclusion, "started_at": "2026-10-23T08:00:00Z", "check_suite": {"id": 77}},
+    {"name": "build-and-test", "status": "completed", "conclusion": "success", "started_at": "2026-10-23T08:00:10Z", "check_suite": {"id": 77}},
+    {"name": "ui-test", "status": "completed", "conclusion": "skipped", "started_at": "2026-10-23T08:00:10Z", "check_suite": {"id": 77}}]},
+  "check-suites/77": $2,
+  "commits/abc1234": {"sha": "abc1234", "commit": {"committer": {"date": "$3"}}}
+}}
+JSON
+  local code=0
+  PATH="$work/bin:$PATH" FIXTURE="$work/checks.json" MERGE_IF_GREEN_NOW=1792742400 \
+    scripts/merge-if-green.sh 12 --dry-run > "$work/checks.out" 2>&1 || code=$?
+  echo "$code"
+}
+# MERGE_IF_GREEN_NOW=1792742400 is 2026-10-23T08:00:00Z.
+suite_ok='{"id": 77, "status": "completed", "conclusion": "success"}'
+expect "merge-if-green treats a stuck check as green when its suite succeeded" 0 \
+  "$(merge_checks in_progress "$suite_ok" 2026-10-23T07:50:00Z)"
+expect "merge-if-green says it trusted the suite" 1 "$(grep -c "^CHÚ Ý: kiểm tra 'changes'" "$work/checks.out")"
+expect "merge-if-green waits for a check whose suite is still running" 2 \
+  "$(merge_checks queued '{"id": 77, "status": "in_progress", "conclusion": null}' 2026-10-23T07:50:00Z)"
+expect "merge-if-green does not trust a failed suite" 2 \
+  "$(merge_checks in_progress '{"id": 77, "status": "completed", "conclusion": "failure"}' 2026-10-23T07:50:00Z)"
+expect "merge-if-green warns about a commit pushed a minute ago" 0 "$(merge_checks completed "$suite_ok" 2026-10-23T07:59:00Z)"
+expect "merge-if-green names the fresh commit" 1 "$(grep -c "^CHÚ Ý: commit cuối abc1234" "$work/checks.out")"
+expect "merge-if-green does not warn about an older commit" 0 "$(merge_checks completed "$suite_ok" 2026-10-23T07:50:00Z)"
+expect "merge-if-green has no warning for an older commit" 0 "$(grep -c "^CHÚ Ý" "$work/checks.out" || true)"
 
 # failure-kind.sh (ADR-1002, point 1): "tests" only when every failed Gradle task is a test task with failing tests.
 failure_kind() { printf '%b' "$1" > "$work/fk.log"; scripts/failure-kind.sh "$work/fk.log"; }

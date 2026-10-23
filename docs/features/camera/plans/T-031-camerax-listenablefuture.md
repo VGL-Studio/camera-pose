@@ -168,3 +168,20 @@ Nơi khác đọc file plan sửa: `gradle/libs.versions.toml` được mọi mo
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23: đã làm, chờ merge (PR #52)
+
+- Phiên có người theo dõi, nhánh `claude/T-031-camerax-listenablefuture`.
+- Bước 3, commit 9b00c1e: commit gồm catalog, `build.gradle.kts`, khung rỗng `applyZoom` và `CameraZoomTest`. Hai test thất bại đúng lý do:
+  - `setZoomRatio(2.0)` không được gọi;
+  - có 0 dòng log thay vì 1, nhờ bước đối chứng L-035.
+- Bước 4, commit ae01f91: thân `applyZoom`; `CameraXController.setZoom` gọi `applyZoom`, bỏ reflection và import thừa. `consumer-rules.pro` chỉ còn một dòng chú thích.
+- Bước 5: `scripts/check.sh` QUA.
+  - Test JVM: 743 test, 0 lỗi (`:feature:camera`: 222); 65 ảnh screenshot; script test qua hết.
+  - Lần chạy đầu thất bại ở 6 script test của `release.sh` với "không tìm thấy gh". Nguyên nhân là môi trường: `gh` không có trong PATH của lệnh. Thêm `/opt/homebrew/bin` vào PATH rồi chạy lại thì qua, không đổi code.
+- Manifest gộp `stagingDebug`: `uses-permission` giống hệt trước và sau (12 dòng).
+- `:app` `stagingDebugRuntimeClasspath`: chỉ có `guava:31.1-android`, thêm một cạnh trực tiếp từ `:feature:camera`. Không cần phương án dự phòng ở mục 3.4.
+- Còn lại:
+  - người merge bằng `scripts/merge-if-green.sh 52`;
+  - kiểm tay zoom trên bản staging minify (mục 4);
+  - chuyển ticket sang `on-staging` sau khi merge.

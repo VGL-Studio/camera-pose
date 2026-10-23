@@ -1,7 +1,7 @@
 ---
 ticket: T-022
 title: Chi tiết tư thế và "Chụp với tư thế này"
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -278,3 +278,12 @@ Bảng điểm dưới đây chỉ để tham khảo:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, RUN-20261023-04: đã merge
+
+- **Kết quả:** đã merge, PR #71, commit `a81126d`.
+- **Test viết trước:** 59 test mới (57 trong `:feature:poses`, 2 trong `:app`), 44 thất bại đúng lý do ở `:feature:poses` và 1 ở `:app` trên khung rỗng; 8 screenshot test thất bại vì chưa có ảnh chuẩn (chạy `verifyRoborazziDebug` riêng). Viết chặt lại có đối chứng: 2 (`noMistakes_hidesMistakesBlock`, `notOnDetail_doesNothing`); thêm `backFromDetail_controlWithPlainRemember_losesGridScroll`.
+- **Lệch so với plan:** thêm chuỗi `poses_detail_meta_no_group` (nhóm không có tên); `PoseDetailComponents.kt` có hằng `DETAIL_IMAGE_HEIGHT_DP` ở bước 3 vì ktlint cấm file rỗng; `openCameraWithPose` chỉ bắt `IllegalArgumentException` khi không có mục camera; thêm một log `warn` "Pose detail: library failed" theo rà soát.
+- **Rà soát độc lập:** 0 chặn, 2 nên sửa (log khi thư viện lỗi: đã sửa; `PosesBackStackTest` tự dựng `rememberLazyGridState` chứ không chạy `PosesRoute` thật: chỉ chứng minh cơ chế Navigation, để người xem), 11 ghi chú (lệch nhỏ 3 đến 6 dp so với thiết kế vì khung thiết kế có 24 dp thanh trạng thái; vòng chờ 40 dp thay icon 36 dp).
+- **CI:** `ui-test` đỏ hai lần (lần chạy lại một lần) vì `AppLaunchTest` hết 60 giây: tải file từ R2 trên runner hết giờ chờ ở lần đầu (`Could not load outline/thumbnail: timeout`), màn tải chờ bấm "Thử lại" mà test không bấm. Không liên quan code của task. Commit log `warn` đẩy lên, `ui-test` xanh.
+- **Cần người kiểm tra:** kiểm tra thủ công mục 4 (7 bước trên staging); 8 ảnh chuẩn mới; ảnh so sánh `docs/features/poses/design/review/`.

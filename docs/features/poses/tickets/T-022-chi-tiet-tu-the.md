@@ -5,12 +5,12 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: [KB-3, KB-4, KB-5]
 owner: Nhật
-status: ready
+status: approved
 risk: high
 size: M
 depends_on: [T-021]
 sprint:
-plan:
+plan: features/poses/plans/T-022-chi-tiet-tu-the.md
 created: 2026-10-21
 ---
 

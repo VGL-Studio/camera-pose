@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Text table of the design (docs/features/poses/design/README.md, section 2). -->
+    <string name="poses_title">Thư viện tư thế</string>
+    <string name="poses_summary">%1$d tư thế trong %2$d nhóm</string>
+    <string name="poses_chip_all">Tất cả</string>
+    <string name="poses_chip_saved">Đã lưu</string>
+    <!-- Card second line: subject type, then the number of steps. -->
+    <string name="poses_card_meta">%1$s · %2$d bước</string>
+    <string name="poses_subject_single">Một người</string>
+    <string name="poses_subject_couple">Cặp đôi</string>
+    <string name="poses_subject_group">Nhóm</string>
+    <string name="poses_error_title">Không tải được thư viện</string>
+    <string name="poses_error_message">Đã có lỗi khi tải thư viện. Thử lại sau ít phút.</string>
+    <string name="poses_error_action">Thử lại</string>
+    <string name="poses_saved_empty_title">Chưa lưu tư thế nào</string>
+    <string name="poses_saved_empty_message">Chạm biểu tượng lưu trên thẻ tư thế để giữ lại ở đây.</string>
+    <string name="poses_saved_empty_action">Xem tất cả tư thế</string>
+    <!-- Not in the text table yet (plan T-021, question 5). -->
+    <string name="poses_save_failed">Chưa lưu được tư thế. Thử lại sau.</string>
+    <!-- Screen reader descriptions (plan T-021, question 5). -->
+    <string name="poses_cd_back">Quay lại</string>
+    <string name="poses_cd_settings">Cài đặt</string>
+    <string name="poses_cd_save">Lưu tư thế</string>
+    <string name="poses_cd_unsave">Bỏ lưu tư thế</string>
+    <string name="poses_cd_reload_image">Tải lại ảnh</string>
+</resources>

@@ -6,6 +6,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.AppColorCa
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.BrandCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.CameraComponentCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.ColorCatalog
+import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.PoseCardCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.PoseComponentCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.ShapeCatalog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.catalog.SpacingAndComponentCatalog
@@ -112,6 +113,13 @@ class DesignSystemCatalogScreenshotTest {
     fun poseComponents_dark() {
         captureRoboImage("src/test/screenshots/DesignSystem_pose_components_dark.png") {
             AppTheme(darkTheme = true) { PoseComponentCatalog() }
+        }
+    }
+
+    @Test
+    fun poseCards_light() {
+        captureRoboImage("src/test/screenshots/DesignSystem_pose_cards_light.png") {
+            AppTheme(darkTheme = false) { PoseCardCatalog() }
         }
     }
 }

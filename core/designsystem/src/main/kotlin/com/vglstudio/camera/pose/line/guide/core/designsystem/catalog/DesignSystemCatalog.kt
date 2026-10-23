@@ -298,6 +298,12 @@ fun PoseComponentCatalog(modifier: Modifier = Modifier) {
     }
 }
 
+/** Pose cards of the library (sticker.md, section 4; plan T-021). Step 3 skeleton. */
+@Composable
+fun PoseCardCatalog(modifier: Modifier = Modifier) {
+    Box(modifier)
+}
+
 @Composable
 private fun CatalogArrows(previousEnabled: Boolean) {
     StepCardArrows(

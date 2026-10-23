@@ -2,6 +2,8 @@ package com.vglstudio.camera.pose.line.guide.feature.camera
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
@@ -15,6 +17,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseThumbItem
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseUiState
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.SelectedPose
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.TestPoseImages
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -24,18 +27,13 @@ import org.robolectric.annotation.GraphicsMode
  * Screenshot tests (Roborazzi). The tests in the standard frame named like a design image in
  * docs/features/camera/design/screens/ are compared by scripts/design-compare.sh (ADR-0020). Every test shows the
  * sample pose state of the design (chips, strip, outline and step card) with placeholder images; the overlay tool
- * column of T-015 is not drawn yet. ready_dark and the _small tests have no design image and are not compared. Both
- * top callbacks are set, so the top bar looks like the design.
+ * column of T-015 is not drawn yet. ready_dark and the _small tests have no design image and are not compared.
+ * starting_dark is in CameraScreenStartingScreenshotTest below.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
 class CameraScreenScreenshotTest {
-    @Test
-    fun starting_dark() {
-        captureRoboImage("src/test/screenshots/CameraScreen_starting_dark.png") { Screen(CameraUiState.Starting) }
-    }
-
     @Test
     fun permissionDenied_dark() {
         captureRoboImage("src/test/screenshots/CameraScreen_permission-denied_dark.png") {
@@ -99,28 +97,7 @@ class CameraScreenScreenshotTest {
         captureRoboImage("src/test/screenshots/CameraScreen_default_small.png") { Screen(DEFAULT) }
     }
 
-    @Composable
-    private fun Screen(uiState: CameraUiState, poseState: PoseUiState = samplePoses()) {
-        AppTheme(darkTheme = true) {
-            CameraScreen(
-                uiState = uiState,
-                onFlashClick = {},
-                onTimerClick = {},
-                onGridClick = {},
-                onFlipClick = {},
-                onZoomSelect = {},
-                onShutterClick = {},
-                onCancelCountdown = {},
-                onRetry = {},
-                onOpenAppSettings = {},
-                onOpenPoses = {},
-                onOpenSettings = {},
-                poseState = poseState,
-            )
-        }
-    }
-
-    private companion object {
+    companion object {
         const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
 
         // Chips and step text of the design (context/CameraScreen_default_dark.md).
@@ -190,6 +167,49 @@ class CameraScreenScreenshotTest {
             lens = Lens.BACK,
             zoomLevels = listOf(1f, 2f),
             zoom = 1f,
+        )
+    }
+}
+
+/**
+ * starting_dark, with the frame clock of Compose stopped. Its spinner never ends: captured like the other tests, the
+ * capture waited about five minutes while Robolectric kept every trace section of every frame, and the test JVM ran
+ * out of memory once the pose strip was on screen (L-029; plan T-014, step 4).
+ */
+@RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+class CameraScreenStartingScreenshotTest {
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun starting_dark() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent { Screen(CameraUiState.Starting) }
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.onRoot().captureRoboImage("src/test/screenshots/CameraScreen_starting_dark.png")
+    }
+}
+
+/** The camera screen with both top callbacks, so the top bar looks like the design. */
+@Composable
+private fun Screen(uiState: CameraUiState, poseState: PoseUiState = CameraScreenScreenshotTest.samplePoses()) {
+    AppTheme(darkTheme = true) {
+        CameraScreen(
+            uiState = uiState,
+            onFlashClick = {},
+            onTimerClick = {},
+            onGridClick = {},
+            onFlipClick = {},
+            onZoomSelect = {},
+            onShutterClick = {},
+            onCancelCountdown = {},
+            onRetry = {},
+            onOpenAppSettings = {},
+            onOpenPoses = {},
+            onOpenSettings = {},
+            poseState = poseState,
         )
     }
 }

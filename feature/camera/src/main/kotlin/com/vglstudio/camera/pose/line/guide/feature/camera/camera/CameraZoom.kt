@@ -8,4 +8,8 @@ import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
  * A call that throws only stops zoom from working; it is logged, never thrown to the caller.
  */
 internal fun applyZoom(control: CameraControl, ratio: Float, logger: AppLogger) {
+    runCatching { control.setZoomRatio(ratio) }
+        .onFailure { logger.warn(LOG_TAG, "Zoom could not be set", it) }
 }
+
+private const val LOG_TAG = "Camera"

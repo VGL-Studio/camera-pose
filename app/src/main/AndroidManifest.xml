@@ -8,6 +8,13 @@
 
     <!-- Camera preview and capture (spec camera). Photos are saved through MediaStore, so no storage permission. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!--
+        Saving photos to the gallery on Android 9 and lower only (spec camera, KB-6). Android 10 and higher use
+        MediaStore without any permission. No read permission (lesson 13).
+    -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <uses-feature
         android:name="android.hardware.camera.any"
         android:required="true" />

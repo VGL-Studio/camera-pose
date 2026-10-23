@@ -19,7 +19,9 @@ import com.vglstudio.camera.pose.line.guide.feature.loading.navigation.LoadingDe
 import com.vglstudio.camera.pose.line.guide.feature.loading.navigation.loadingScreen
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.navigation.OnboardingDestination
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.navigation.onboardingScreen
+import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.PoseDetailDestination
 import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.PosesDestination
+import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.poseDetailScreen
 import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.posesScreen
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.SampleDestination
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.sampleScreen
@@ -118,7 +120,7 @@ internal fun AppNavHost(
                 }
             },
         )
-        // Back returns to the camera entry, which kept its pose (spec poses, KB-1). T-022 wires onOpenPose.
+        // Back returns to the camera entry, which kept its pose (spec poses, KB-1).
         posesScreen(
             onBack = {
                 // Only while the library is on top: a second tap must not close the camera too.
@@ -127,6 +129,17 @@ internal fun AppNavHost(
                 }
             },
             onOpenSettings = openSettings,
+            onOpenPose = { id -> navController.navigate(PoseDetailDestination(id)) { launchSingleTop = true } },
+        )
+        // Back returns to the library; "Chụp với tư thế này" replaces the camera with one that has the pose (KB-4).
+        poseDetailScreen(
+            onBack = {
+                // Only while the detail is on top: a second tap must not close the library too.
+                if (navController.currentDestination?.hasRoute<PoseDetailDestination>() == true) {
+                    navController.popBackStack()
+                }
+            },
+            onShootWithPose = { id -> navController.openCameraWithPose(id) },
         )
         // Back returns to the screen that opened settings: the camera or the library (spec settings, KB-1).
         settingsScreen(

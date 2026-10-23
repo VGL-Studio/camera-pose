@@ -5,10 +5,9 @@
 ## 1. Đang chờ người
 
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
-- Plan `draft` chờ duyệt: [T-033-wait-run-loi-ha-tang.md](features/quality-gate/plans/T-033-wait-run-loi-ha-tang.md)
-- Plan `draft` chờ duyệt: [T-034-trang-tien-do-tren-nhanh-status.md](features/quality-gate/plans/T-034-trang-tien-do-tren-nhanh-status.md)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
-- Bài học `proposed` chờ retro: L-048 (PR xung đột không có lần chạy CI nào, `wait-run.sh` chờ trọn 40 phút)
+- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-033-wait-run-loi-ha-tang.md](features/quality-gate/tickets/T-033-wait-run-loi-ha-tang.md)
+- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-034-trang-tien-do-tren-nhanh-status.md](features/quality-gate/tickets/T-034-trang-tien-do-tren-nhanh-status.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
 
@@ -101,15 +100,15 @@ Phản hồi: chưa có.
 
 ### quality-gate
 
-Spec: chưa có spec. Ticket: 3 `on-staging`, 2 `planned`.
+Spec: chưa có spec. Ticket: 3 `on-staging`, 2 `approved`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
 | [T-028](features/quality-gate/tickets/T-028-main-tu-hoi-phuc.md) | Nhánh chính tự hồi phục khi đỏ (ADR-1002) | `on-staging` | `done` (bản 1) | 15M | - |
 | [T-029](features/quality-gate/tickets/T-029-merge-if-green-tu-cap-nhat.md) | merge-if-green.sh tự cập nhật nhánh và chịu được job kẹt trạng thái | `on-staging` | `done` (bản 1) | 5.0M | - |
 | [T-030](features/quality-gate/tickets/T-030-kiem-tra-truoc-phien.md) | Kiểm tra môi trường trước phiên trên GitHub (bí mật staging, file R2, DNS) và phiên bản Java của check.sh | `on-staging` | `done` (bản 1) | 20M | - |
-| [T-033](features/quality-gate/tickets/T-033-wait-run-loi-ha-tang.md) | wait-run.sh nhận ra job GitHub không chạy (hạn mức Actions) hay PR xung đột, và phiên tự tiếp tục sau đó | `planned` | `draft` (bản 1) | 5.0M | - |
-| [T-034](features/quality-gate/tickets/T-034-trang-tien-do-tren-nhanh-status.md) | Trang tiến độ sinh trên nhánh status sau mỗi lần merge, PR không commit docs/STATUS.md | `planned` | `draft` (bản 1) | 5.0M | - |
+| [T-033](features/quality-gate/tickets/T-033-wait-run-loi-ha-tang.md) | wait-run.sh nhận ra job GitHub không chạy (hạn mức Actions) hay PR xung đột, và phiên tự tiếp tục sau đó | `approved` | `approved` (bản 1) | 5.0M | - |
+| [T-034](features/quality-gate/tickets/T-034-trang-tien-do-tren-nhanh-status.md) | Trang tiến độ sinh trên nhánh status sau mỗi lần merge, PR không commit docs/STATUS.md | `approved` | `approved` (bản 1) | 5.0M | - |
 
 Phản hồi: chưa có.
 
@@ -137,5 +136,5 @@ Phản hồi: chưa có.
 
 ## 5. Bài học và ADR
 
-- Bài học ([lessons.md](lessons.md)): 48 bài; 45 `applied`, 2 `accepted`, 1 `proposed`.
+- Bài học ([lessons.md](lessons.md)): 48 bài; 45 `applied`, 3 `accepted`.
 - ADR: 23; 21 `accepted`, 2 `proposed`.

@@ -460,7 +460,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-048: PR xung đột không có lần chạy CI nào, `wait-run.sh` chờ trọn 40 phút
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #56.
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #56.
 - **Chuyện gì:** GitHub không chạy workflow `pull_request` cho PR đang xung đột với nhánh chính. PR #56 xung đột ở `docs/STATUS.md` ngay khi mở (PR #55 vừa merge), không có lần chạy `pr-check` nào; `wait-run.sh --pr 56` chờ đủ 40 phút rồi báo "chưa thấy lần chạy nào". PR #51 cũng không có lần chạy vì cùng lý do; lúc đó tưởng là do hạn mức Actions (L-046) và đã đóng rồi mở lại PR. Một agent con của T-031 cũng gặp 40 phút chờ và tưởng là lỗi của `wait-run.sh`.
 - **Bằng chứng:** `pulls/56` có `mergeable_state: dirty`, `actions/runs?head_sha=347472b` trả 0 lần chạy; PR #51 trước khi gộp nhánh chính.
 - **Đề xuất sửa:** `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay với mã riêng; phiên gộp nhánh chính rồi đẩy. Gốc của phần lớn xung đột là `docs/STATUS.md` (L-047).

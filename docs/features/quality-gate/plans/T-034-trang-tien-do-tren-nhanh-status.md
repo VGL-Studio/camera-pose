@@ -1,16 +1,16 @@
 ---
 ticket: T-034
 title: Trang tiến độ sinh trên nhánh status sau mỗi lần merge, PR không commit docs/STATUS.md
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [ci, process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-034: TRANG TIẾN ĐỘ SINH TRÊN NHÁNH STATUS SAU MỖI LẦN MERGE
@@ -205,19 +205,17 @@ Test trong `scripts/tests/run.sh`, viết trước code.
    - (B) Giữ trang trong git; `merge-if-green.sh --update` gặp 422 mà xung đột chỉ ở `docs/STATUS.md` thì tự gộp, sinh lại trang, đẩy lên nhánh PR. Vẫn tốn một lần CI mỗi PR; thêm logic git vào cổng chất lượng.
    - (C) Workflow sinh trang rồi commit thẳng lên nhánh chính. Trái quy tắc chỉ merge qua `merge-if-green.sh`, cần ADR; mỗi lần merge thêm một commit trên nhánh chính.
    - Đề xuất của AI: (A).
-   - Trả lời:
+   - Trả lời: Chọn (A), đúng đề xuất của AI.
 2. **Có cần ADR không?** Không ADR nào quy định trang nằm trong git; quy tắc ở `docs/CLAUDE.md`, và nhánh chính không bị ghi. Đề xuất của AI: không viết ADR; ghi lý do vào bài học L-047 và đề xuất về dự án mẫu.
-   - Trả lời:
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Nhánh `status` chỉ có một commit trên nhánh chính, đẩy đè mỗi lần?** Đề xuất của AI: có. Lịch sử trạng thái đã nằm trong các tài liệu gốc; giữ lịch sử của trang chỉ làm nhánh dài thêm.
-   - Trả lời:
-
-## 9. Quyết định duyệt
+   - Trả lời: Đồng ý với đề xuất của AI.## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Tuấn trả lời mục 8 cùng AI ngày 2026-10-23 và ghi quyết định duyệt.
 
 ## 10. Nhật ký thực hiện
 

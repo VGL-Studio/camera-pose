@@ -1,7 +1,7 @@
 ---
 ticket: T-031
 title: Gọi thẳng CameraControl.setZoomRatio, bỏ reflection
-status: approved                # draft | approved | stopped | done
+status: done                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -185,3 +185,8 @@ Nơi khác đọc file plan sửa: `gradle/libs.versions.toml` được mọi mo
   - người merge bằng `scripts/merge-if-green.sh 52`;
   - kiểm tay zoom trên bản staging minify (mục 4);
   - chuyển ticket sang `on-staging` sau khi merge.
+
+### 2026-10-23, sau khi merge
+
+- PR #52 merge bằng `merge-if-green.sh` (commit 855b8e8 trên nhánh chính), sau khi gộp nhánh chính vào nhánh (xung đột `docs/STATUS.md`, L-047) và CI chạy lại xanh (lần chạy 39923867595).
+- Còn lại cho người: kiểm tay zoom trên bản staging minify (2x, 1x, 0.5x; logcat không có `Zoom could not be set`).

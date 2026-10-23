@@ -79,11 +79,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-007: Hàm CameraX trả `ListenableFuture` không gọi được vì Guava không có trên classpath biên dịch
 
-- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** app. **Nguồn:** RUN-20261022-01, T-013.
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** app. **Nguồn:** RUN-20261022-01, T-013.
 - **Chuyện gì:** `CameraControl.setZoomRatio` trả `com.google.common.util.concurrent.ListenableFuture`; Kotlin báo "Cannot access class 'ListenableFuture'". Plan cấm thêm thư viện (mục 7, điều 4), nên phiên gọi hàm qua reflection. Rà soát độc lập chỉ ra R8 có thể xóa hàm ở bản minify và làm app dừng khi vào camera; phiên tra hàm lười và thêm luật keep trong `consumer-rules.pro`, kiểm bằng `mapping.txt` của `stagingRelease`.
 - **Bằng chứng:** lỗi biên dịch `CameraXController.kt:114`; rà soát độc lập T-013 (điểm chặn 1); PR #26.
 - **Đề xuất sửa:** một plan rủi ro cao riêng thêm `androidx.concurrent:concurrent-futures-ktx` (hoặc `com.google.guava:listenablefuture`) vào `gradle/libs.versions.toml` cho `:feature:camera`, rồi bỏ reflection. Plan dùng CameraX về sau (T-015 chỉnh zoom, lấy nét) kiểm trước những hàm trả `ListenableFuture`.
-- **Áp dụng:** plan T-031 (`draft`, rủi ro cao, điểm chặn 2): thêm Guava vào classpath biên dịch, bỏ reflection ở `CameraXController`.
+- **Áp dụng:** plan T-031, PR #52: Guava `31.1-android` lên classpath biên dịch của `:feature:camera` (runtime không đổi, manifest gộp không thêm quyền), `CameraZoom.applyZoom` gọi thẳng `setZoomRatio`, bỏ reflection và luật keep.
 - **Kiểm chứng:**
 
 ### L-008: Phiên mở bằng `claude --cloud` không có `resume-run.yml` tiếp tục, và `token-usage.py` cần thư mục gốc của checkout chính
@@ -258,11 +258,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-027: Lỗi DNS của tên miền file tĩnh chỉ lộ ra trên máy thật
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** TS-20261022-02.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** TS-20261022-02.
 - **Chuyện gì:** vùng `io.vn` không qua bước kiểm DNSSEC ở Cloudflare và Google DNS, nên `camera-pose.vgl.io.vn` không phân giải được; máy thật không tải được catalog, trong khi phiên emulator trên GitHub vài giờ trước vẫn qua. Log không cho biết lý do vì Android bỏ stack trace của `UnknownHostException`.
 - **Bằng chứng:** TS-20261022-02, P-1; FB-20261022-02, FB-20261022-04.
 - **Đề xuất sửa:** `env-canary.yml` kiểm phân giải tên miền file tĩnh qua 1.1.1.1 và 8.8.8.8 (không chỉ DNS của runner); `:core:assets` ghi tên lớp lỗi trong câu log; `docs/ops/setup-new-app.md` khuyên chọn tên miền thuộc vùng có DNSSEC ổn định.
-- **Áp dụng:** app: PR #48 (`setup-new-app.md`: kiểm DNS công cộng, chọn vùng DNSSEC ổn định). Còn lại: plan T-032 (log ghi loại lỗi ở `:core:assets`), phần DNS đã làm ở plan T-030, PR #50 (`preflight.sh` kiểm qua 1.1.1.1 và 8.8.8.8 mỗi sáng).
+- **Áp dụng:** app: PR #48 (`setup-new-app.md`: kiểm DNS công cộng, chọn vùng DNSSEC ổn định). Plan T-030, PR #50: `preflight.sh` kiểm qua 1.1.1.1 và 8.8.8.8 mỗi sáng. Plan T-032, PR #51: `:core:assets` ghi loại lỗi và lý do qua `AppLogger` (`VGL.Assets`).
 - **Kiểm chứng:**
 
 ### L-028: Phiên kiểm `main-broken` trước khi `main-guard` của lần merge vừa rồi chạy xong
@@ -438,4 +438,22 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** PR #47, commit e00cd7d.
 - **Đề xuất sửa:** `plan-check.py` báo chú ý khi plan `approved` mà ticket còn `backlog`, `ready` hay `planned`; `docs/CLAUDE.md` nhắc người duyệt chuyển ticket cùng lúc.
 - **Áp dụng:** app: PR #48. dự án mẫu: đã có (quy tắc 10 của `plan-check.py`, `status.py --sync`, L-050 của dự án mẫu), không đề xuất.
+- **Kiểm chứng:**
+
+### L-046: Hết hạn mức GitHub Actions làm mọi job không chạy, trông như CI đỏ
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, T-029 đến T-032.
+- **Chuyện gì:** sau khi merge PR #49, main-guard đỏ; CI của PR #50 cũng đỏ. Job không chạy bước nào, chú thích của lần chạy ghi "The job was not started because recent account payments have failed or your spending limit needs to be increased". `wait-run.sh` chỉ báo `ĐỎ`, job `guard`, không nói lý do; phải đọc chú thích của check run mới biết. Phiên tự chạy gặp chuyện này sẽ thử sửa code hay chạy lại vô ích, rồi dừng. PR #51 thậm chí không có lần chạy nào, phải đóng rồi mở lại PR sau khi người nâng hạn mức.
+- **Bằng chứng:** main-guard 39916343646 lần 1, pr-check 39916715279 lần 1 và 2 (0 bước); chạy lại sau khi nâng hạn mức thì xanh.
+- **Đề xuất sửa:** `wait-run.sh` thấy job đỏ mà 0 bước thì đọc chú thích của check run và in `HẠ TẦNG: GitHub không cấp máy (<chú thích>)` với mã thoát riêng; `auto-run.md` ghi: gặp mã này thì không sửa code, ghi vào báo cáo, chờ người; `preflight.yml` không phát hiện được (chính nó cũng không chạy), nên `start-run.yml` không bắt đầu phiên khi lần chạy gần nhất của `preflight.yml` không xanh.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-047: `merge-if-green.sh --update` thất bại ở mọi PR vì `docs/STATUS.md`
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #52.
+- **Chuyện gì:** cả hai lần dùng `--update` đầu tiên, GitHub trả `422 merge conflict` chỉ vì `docs/STATUS.md`. Mỗi PR sửa trạng thái đều sinh lại trang, nên PR thứ hai trở đi luôn xung đột; `--update` (T-029) gần như không bao giờ dùng được, và mỗi PR tốn thêm một vòng gộp tay cùng một lần CI 15 phút. Cách (c) của L-016 (gộp tay theo hướng dẫn) giữ được an toàn nhưng không bớt vòng nào.
+- **Bằng chứng:** `merge-if-green.sh 51 --update` và `52 --update`, cùng thông báo `gh: merge conflict between base and head (HTTP 422)`; xung đột duy nhất là `docs/STATUS.md`.
+- **Đề xuất sửa:** cách (a) của L-016: PR thường không commit `docs/STATUS.md`; một workflow sinh lại trang trên nhánh chính sau mỗi lần merge, `status.py --check` chỉ chạy trên nhánh chính. Cần ADR, vì workflow đẩy commit lên nhánh chính ngoài `merge-if-green.sh`. Cách nhẹ hơn: `merge-if-green.sh --update` gặp 422 mà xung đột chỉ ở `docs/STATUS.md` thì tự gộp, sinh lại trang và đẩy lên nhánh của PR (không đụng nhánh chính), cần plan rủi ro cao.
+- **Áp dụng:**
 - **Kiểm chứng:**

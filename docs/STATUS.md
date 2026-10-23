@@ -7,10 +7,8 @@
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
-- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-031-camerax-listenablefuture.md](features/camera/tickets/T-031-camerax-listenablefuture.md)
-- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-032-log-ten-loi-tai-file.md](features/loading/tickets/T-032-log-ten-loi-tai-file.md)
-- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-029-merge-if-green-tu-cap-nhat.md](features/quality-gate/tickets/T-029-merge-if-green-tu-cap-nhat.md)
-- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-030-kiem-tra-truoc-phien.md](features/quality-gate/tickets/T-030-kiem-tra-truoc-phien.md)
+- Bài học `proposed` chờ retro: L-046 (Hết hạn mức GitHub Actions làm mọi job không chạy, trông như CI đỏ)
+- Bài học `proposed` chờ retro: L-047 (`merge-if-green.sh --update` thất bại ở mọi PR vì `docs/STATUS.md`)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
 
@@ -18,9 +16,9 @@
 
 | Yêu cầu | Ngày | Feature | Trạng thái | Ticket xong |
 | --- | --- | --- | --- | --- |
-| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | 4/10 |
-| Màn hình loading có thanh tiến trình ([2026-10-15-man-hinh-loading.md](features/loading/requests/2026-10-15-man-hinh-loading.md)) | 2026-10-15 | loading | `specified` đã có spec | 9/10 |
-| Màn loading cho camera pose ([2026-10-21-loading-cua-camera-pose.md](features/loading/requests/2026-10-21-loading-cua-camera-pose.md)) | 2026-10-21 | loading | `specified` đã có spec | 9/10 |
+| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | 5/10 |
+| Màn hình loading có thanh tiến trình ([2026-10-15-man-hinh-loading.md](features/loading/requests/2026-10-15-man-hinh-loading.md)) | 2026-10-15 | loading | `specified` đã có spec | 10/10 |
+| Màn loading cho camera pose ([2026-10-21-loading-cua-camera-pose.md](features/loading/requests/2026-10-21-loading-cua-camera-pose.md)) | 2026-10-21 | loading | `specified` đã có spec | 10/10 |
 | App luôn cần mạng, báo mất mạng khi đang dùng ([2026-10-21-hop-thoai-mat-mang.md](features/network/requests/2026-10-21-hop-thoai-mat-mang.md)) | 2026-10-21 | network | `specified` đã có spec | 1/1 |
 | Màn chào và xin quyền camera ([2026-10-21-man-chao-xin-quyen-camera.md](features/onboarding/requests/2026-10-21-man-chao-xin-quyen-camera.md)) | 2026-10-21 | onboarding | `specified` đã có spec | 1/1 |
 | Thư viện tư thế và chi tiết tư thế ([2026-10-21-thu-vien-tu-the.md](features/poses/requests/2026-10-21-thu-vien-tu-the.md)) | 2026-10-21 | poses | `specified` đã có spec | 2/5 |
@@ -30,7 +28,7 @@
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `ready`, 4 `on-staging`, 1 `approved`.
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `on-staging`, 5 `ready`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -43,13 +41,13 @@ Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `ready`, 4 `on-s
 | [T-019](features/camera/tickets/T-019-hoi-danh-gia.md) | Hỏi đánh giá app trong app | `ready` | chưa có | - | - |
 | [T-020](features/camera/tickets/T-020-camera-may-gap.md) | Camera và màn xem lại trên máy gập | `ready` | chưa có | - | - |
 | [T-026](features/camera/tickets/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md) | Không ghi camera_permission_result khi quyền camera đã bị từ chối vĩnh viễn | `on-staging` | `done` (bản 1) | 10.0M | RUN-20261023-01 |
-| [T-031](features/camera/tickets/T-031-camerax-listenablefuture.md) | Gọi thẳng CameraControl.setZoomRatio, bỏ reflection | `approved` | `approved` (bản 1) | 5.0M | - |
+| [T-031](features/camera/tickets/T-031-camerax-listenablefuture.md) | Gọi thẳng CameraControl.setZoomRatio, bỏ reflection | `on-staging` | `done` (bản 1) | 5.0M | - |
 
 Phản hồi: chưa có.
 
 ### loading
 
-Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 9 `on-staging`, 1 `approved`.
+Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 10 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -62,7 +60,7 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 9 `on-staging`, 1
 | [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `on-staging` | `done` (bản 3) | 40.0M | RUN-20261021-01, RUN-20261021-02, RUN-20261021-03 |
 | [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `on-staging` | `done` (bản 1) | 20.0M | RUN-20261021-04, RUN-20261022-01 |
 | [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `on-staging` | `done` (bản 1) | 20M | RUN-20261021-04, RUN-20261022-01 |
-| [T-032](features/loading/tickets/T-032-log-ten-loi-tai-file.md) | Log tải file thất bại ghi loại lỗi và lý do | `approved` | `approved` (bản 1) | 5.0M | - |
+| [T-032](features/loading/tickets/T-032-log-ten-loi-tai-file.md) | Log tải file thất bại ghi loại lỗi và lý do | `on-staging` | `done` (bản 1) | 5.0M | - |
 
 Phản hồi: 2 `fixed`, 2 `new`, 2 `wontfix`.
 - Đang mở: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) `new`, mức `gop-y`: Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được
@@ -104,13 +102,13 @@ Phản hồi: chưa có.
 
 ### quality-gate
 
-Spec: chưa có spec. Ticket: 2 `approved`, 1 `on-staging`.
+Spec: chưa có spec. Ticket: 3 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
 | [T-028](features/quality-gate/tickets/T-028-main-tu-hoi-phuc.md) | Nhánh chính tự hồi phục khi đỏ (ADR-1002) | `on-staging` | `done` (bản 1) | 15M | - |
-| [T-029](features/quality-gate/tickets/T-029-merge-if-green-tu-cap-nhat.md) | merge-if-green.sh tự cập nhật nhánh và chịu được job kẹt trạng thái | `approved` | `approved` (bản 1) | 5.0M | - |
-| [T-030](features/quality-gate/tickets/T-030-kiem-tra-truoc-phien.md) | Kiểm tra môi trường trước phiên trên GitHub (bí mật staging, file R2, DNS) và phiên bản Java của check.sh | `approved` | `approved` (bản 1) | 20M | - |
+| [T-029](features/quality-gate/tickets/T-029-merge-if-green-tu-cap-nhat.md) | merge-if-green.sh tự cập nhật nhánh và chịu được job kẹt trạng thái | `on-staging` | `done` (bản 1) | 5.0M | - |
+| [T-030](features/quality-gate/tickets/T-030-kiem-tra-truoc-phien.md) | Kiểm tra môi trường trước phiên trên GitHub (bí mật staging, file R2, DNS) và phiên bản Java của check.sh | `on-staging` | `done` (bản 1) | 20M | - |
 
 Phản hồi: chưa có.
 
@@ -138,5 +136,5 @@ Phản hồi: chưa có.
 
 ## 5. Bài học và ADR
 
-- Bài học ([lessons.md](lessons.md)): 45 bài; 43 `applied`, 2 `accepted`.
+- Bài học ([lessons.md](lessons.md)): 47 bài; 45 `applied`, 2 `proposed`.
 - ADR: 23; 21 `accepted`, 2 `proposed`.

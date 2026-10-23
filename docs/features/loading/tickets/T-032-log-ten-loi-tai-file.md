@@ -5,7 +5,7 @@ feature: loading
 spec:
 scenarios: []                # không đổi hành vi của app; sửa log để tìm nguyên nhân (L-027, FB-20261022-04)
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: S
 depends_on: []

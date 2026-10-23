@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">การตั้งค่า</string>
+    <string name="settings_back">กลับ</string>
+    <string name="settings_section_general">ทั่วไป</string>
+    <string name="settings_theme">ธีม</string>
+    <string name="settings_theme_system">ตามระบบ</string>
+    <string name="settings_theme_light">สว่าง</string>
+    <string name="settings_theme_dark">มืด</string>
+    <string name="settings_shutter_sound">เสียงชัตเตอร์</string>
+    <string name="settings_language">ภาษา</string>
+    <string name="settings_language_system">ตามระบบ</string>
+    <string name="settings_language_current">ไทย</string>
+    <string name="settings_section_privacy">ความเป็นส่วนตัว</string>
+    <string name="settings_privacy_options">ตัวเลือกความเป็นส่วนตัว</string>
+    <string name="settings_privacy_policy">นโยบายความเป็นส่วนตัว</string>
+    <string name="settings_section_about">เกี่ยวกับ</string>
+    <string name="settings_version">เวอร์ชัน</string>
+    <string name="settings_cancel">ยกเลิก</string>
+    <string name="settings_save_error">บันทึกตัวเลือกไม่สำเร็จ ลองอีกครั้ง</string>
+</resources>

@@ -110,6 +110,7 @@ dependencies {
     implementation(project(":feature:camera"))
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:poses"))
+    implementation(project(":feature:settings"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

@@ -13,8 +13,8 @@
 | CameraScreen_permission-denied_dark | 4.2% | `CameraScreen_permission-denied_dark_compare.png` |
 | CameraScreen_starting_dark | 2.8% | `CameraScreen_starting_dark_compare.png` |
 | CameraScreen_steps-hidden_dark | 7.4% | `CameraScreen_steps-hidden_dark_compare.png` |
-| ReviewScreen_default_dark | thiếu ảnh chuẩn screenshot | |
+| ReviewScreen_default_dark | 5.9% | `ReviewScreen_default_dark_compare.png` |
 | ReviewScreen_default_dark_unfolded | thiếu ảnh chuẩn screenshot | |
-| ReviewScreen_discard_dark | thiếu ảnh chuẩn screenshot | |
-| ReviewScreen_save-error_dark | thiếu ảnh chuẩn screenshot | |
-| ReviewScreen_saving_dark | thiếu ảnh chuẩn screenshot | |
+| ReviewScreen_discard_dark | 6.2% | `ReviewScreen_discard_dark_compare.png` |
+| ReviewScreen_save-error_dark | 8.1% | `ReviewScreen_save-error_dark_compare.png` |
+| ReviewScreen_saving_dark | 5.8% | `ReviewScreen_saving_dark_compare.png` |

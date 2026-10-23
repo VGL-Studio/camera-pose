@@ -10,7 +10,7 @@ risk: high
 size: S
 depends_on: [T-021, T-022]
 sprint:
-plan:
+plan: features/poses/plans/T-023-banner-thu-vien.md
 created: 2026-10-21
 ---
 

@@ -11,6 +11,7 @@ import kotlin.math.min
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
 
@@ -32,6 +33,11 @@ internal class DataStorePoseOverlaySettingsRepository @Inject constructor(
     override suspend fun setStepsHidden(hidden: Boolean) {
         dataStore.edit { it[STEPS_HIDDEN_KEY] = hidden }
     }
+
+    // Skeleton of step 3 (tests first): nothing is read or written yet.
+    override val overlay: Flow<OverlaySettings> = flowOf(OverlaySettings())
+
+    override suspend fun setOverlay(settings: OverlaySettings) = Unit
 
     private companion object {
         val STEPS_HIDDEN_KEY = booleanPreferencesKey("camera_steps_hidden")

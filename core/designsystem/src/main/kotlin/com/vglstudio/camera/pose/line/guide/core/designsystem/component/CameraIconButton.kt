@@ -41,6 +41,7 @@ fun CameraIconButton(
     modifier: Modifier = Modifier,
     active: Boolean = false,
     enabled: Boolean = true,
+    toggleable: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -73,8 +74,9 @@ fun CameraIconButton(
     modifier: Modifier = Modifier,
     active: Boolean = false,
     enabled: Boolean = true,
+    toggleable: Boolean = true,
 ) {
-    CameraIconButton(onClick, contentDescription, modifier, active, enabled) {
+    CameraIconButton(onClick, contentDescription, modifier, active, enabled, toggleable) {
         Icon(painter = icon, contentDescription = null, modifier = Modifier.size(IconSize))
     }
 }
@@ -88,8 +90,9 @@ fun CameraIconButton(
     modifier: Modifier = Modifier,
     active: Boolean = false,
     enabled: Boolean = true,
+    toggleable: Boolean = true,
 ) {
-    CameraIconButton(onClick, contentDescription, modifier, active, enabled) {
+    CameraIconButton(onClick, contentDescription, modifier, active, enabled, toggleable) {
         Text(text = text, style = MaterialTheme.typography.titleMedium, color = LocalContentColor.current)
     }
 }

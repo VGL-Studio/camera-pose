@@ -113,6 +113,31 @@ class PoseViewModel @Inject constructor(
         publish()
     }
 
+    // Skeleton of step 3 (tests first): the outline adjustment does nothing yet.
+    fun onOverlayTransform(panX: Float, panY: Float, zoom: Float) = Unit
+
+    fun onOverlayGestureEnd() = Unit
+
+    fun onOpacityChange(value: Float) = Unit
+
+    fun onOpacityChangeFinished() = Unit
+
+    fun onScaleChange(value: Float) = Unit
+
+    fun onScaleChangeFinished() = Unit
+
+    fun onTogglePanel() = Unit
+
+    fun onClosePanel() = Unit
+
+    fun onToggleMirror() = Unit
+
+    fun onToggleLock() = Unit
+
+    fun onToggleHidden() = Unit
+
+    fun onResetOverlay() = Unit
+
     fun onHideSteps() = setStepsHidden(true)
 
     fun onShowSteps() = setStepsHidden(false)

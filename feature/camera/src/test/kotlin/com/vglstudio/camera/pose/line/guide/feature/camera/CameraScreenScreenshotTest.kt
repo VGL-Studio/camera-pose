@@ -8,10 +8,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraUiState.Ready
+import com.vglstudio.camera.pose.line.guide.feature.camera.data.OverlaySettings
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.FlashMode
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.Lens
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.TimerSetting
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.CategoryChip
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.OverlayState
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseImage
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseThumbItem
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseUiState
@@ -26,8 +28,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Screenshot tests (Roborazzi). The tests in the standard frame named like a design image in
  * docs/features/camera/design/screens/ are compared by scripts/design-compare.sh (ADR-0020). Every test shows the
- * sample pose state of the design (chips, strip, outline and step card) with placeholder images; the overlay tool
- * column of T-015 is not drawn yet. ready_dark and the _small tests have no design image and are not compared.
+ * sample pose state of the design (chips, strip, outline, step card and the overlay tool column) with placeholder
+ * images. ready_dark and the _small tests have no design image and are not compared.
  * starting_dark is in CameraScreenStartingScreenshotTest below.
  */
 @RunWith(AndroidJUnit4::class)
@@ -75,6 +77,22 @@ class CameraScreenScreenshotTest {
         }
     }
 
+    // Design `adjust`: the adjust panel open, opacity 70%, size 100%, the outline visible.
+    @Test
+    fun adjust_dark() {
+        captureRoboImage("src/test/screenshots/CameraScreen_adjust_dark.png") {
+            Screen(DEFAULT, samplePoses(overlay = ADJUSTING))
+        }
+    }
+
+    // Design `locked`: the overlay locked, with the hint.
+    @Test
+    fun locked_dark() {
+        captureRoboImage("src/test/screenshots/CameraScreen_locked_dark.png") {
+            Screen(DEFAULT, samplePoses(overlay = LOCKED))
+        }
+    }
+
     // Short phone frame (L-028): the most text, and the most buttons.
     @Test
     @Config(qualifiers = SHORT_SCREEN)
@@ -88,6 +106,15 @@ class CameraScreenScreenshotTest {
     @Config(qualifiers = SHORT_SCREEN)
     fun countdown_small() {
         captureRoboImage("src/test/screenshots/CameraScreen_countdown_small.png") { Screen(COUNTDOWN) }
+    }
+
+    // The most content of the adjustment: the adjust panel that scrolls, the tool column in the margin of the frame.
+    @Test
+    @Config(qualifiers = SHORT_SCREEN)
+    fun adjust_small() {
+        captureRoboImage("src/test/screenshots/CameraScreen_adjust_small.png") {
+            Screen(DEFAULT, samplePoses(overlay = ADJUSTING))
+        }
     }
 
     // The most content: two-row step card, outline, chips and strip.
@@ -112,7 +139,11 @@ class CameraScreenScreenshotTest {
         const val STEP_TEXT = "Xoay vai 45° về phía máy, cằm hơi hạ."
 
         /** Eight cells with placeholder images, the second selected, step 2 of 4 (design `default`). */
-        fun samplePoses(selected: Boolean = true, stepsHidden: Boolean = false): PoseUiState.Ready {
+        fun samplePoses(
+            selected: Boolean = true,
+            stepsHidden: Boolean = false,
+            overlay: OverlayState = OverlayState(),
+        ): PoseUiState.Ready {
             val ids = (1..8).map { "p$it" }
             val thumb = PoseImage.Ready(TestPoseImages.thumbnail())
             val selectedThumb = PoseImage.Ready(TestPoseImages.thumbnail(Color.White))
@@ -133,8 +164,13 @@ class CameraScreenScreenshotTest {
                     null
                 },
                 stepsHidden = stepsHidden,
+                overlay = overlay,
             )
         }
+
+        val ADJUSTING = OverlayState(settings = OverlaySettings(opacity = 0.7f), panelOpen = true)
+
+        val LOCKED = OverlayState(settings = OverlaySettings(locked = true), lockHintVisible = true)
 
         // Design `default`: flash off, timer 3 s, grid on, zoom 0.5, 1x, 2.
         val DEFAULT = Ready(

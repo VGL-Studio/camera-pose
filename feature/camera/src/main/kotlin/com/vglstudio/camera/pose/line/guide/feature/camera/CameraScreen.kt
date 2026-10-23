@@ -247,6 +247,16 @@ internal object CameraTestTags {
     const val STEP_CARD = "camera_step_card"
     const val SHOW_STEPS = "camera_show_steps"
     const val NO_POSE_HINT = "camera_no_pose_hint"
+    const val OVERLAY_GESTURES = "camera_overlay_gestures"
+    const val OVERLAY_TOOLS = "camera_overlay_tools"
+    const val TOOL_ADJUST = "camera_tool_adjust"
+    const val TOOL_MIRROR = "camera_tool_mirror"
+    const val TOOL_LOCK = "camera_tool_lock"
+    const val TOOL_VISIBILITY = "camera_tool_visibility"
+    const val ADJUST_PANEL = "camera_adjust_panel"
+    const val OPACITY_SLIDER = "camera_opacity_slider"
+    const val SIZE_SLIDER = "camera_size_slider"
+    const val LOCK_HINT = "camera_lock_hint"
 
     /** Tag of the strip cell of a pose: `camera_pose_<id>`. */
     fun pose(id: String): String = "camera_pose_$id"

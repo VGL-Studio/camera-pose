@@ -31,8 +31,9 @@ private const val DISABLED_ALPHA = 0.38f
 
 /**
  * Round 48 dp camera control (sticker.md, section 4): white with a dark sticker border, yellow while [active]
- * (a tool that is on). Disabled: faded and not clickable. Screen readers hear [contentDescription] and whether it is
- * selected.
+ * (a tool that is on). Disabled: faded and not clickable. Screen readers hear [contentDescription] and, for a switch
+ * ([toggleable], the default), whether it is selected. A button that only acts (library, settings, flash, switch
+ * camera) passes `toggleable = false`, so it is not read as "not selected".
  */
 @Composable
 fun CameraIconButton(
@@ -57,7 +58,7 @@ fun CameraIconButton(
             .border(Stroke.sticker, appColors.cameraOnControl, CircleShape)
             .semantics {
                 if (contentDescription != null) this.contentDescription = contentDescription
-                selected = active
+                if (toggleable) selected = active
             }
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,

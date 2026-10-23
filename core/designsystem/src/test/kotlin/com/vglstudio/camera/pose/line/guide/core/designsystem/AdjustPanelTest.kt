@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -19,8 +20,10 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -28,6 +31,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -37,6 +41,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.component.AdjustSl
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.CameraIconButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -122,10 +127,17 @@ class AdjustPanelTest {
     @Test
     fun adjustSlider_touchHeight48() {
         setSlider()
-        composeRule.onNode(
-            SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo),
-            useUnmergedTree = true,
-        ).assertHeightIsAtLeast(48.dp)
+        composeRule.onNodeWithTag(
+            SLIDER,
+        ).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .assertHeightIsAtLeast(48.dp)
+
+        // A tap 18 dp above the middle of the track, 6 dp above the thumb, still moves it: the touch area is taller
+        // than the 28 dp track box.
+        composeRule.onNodeWithTag(SLIDER).performTouchInput { click(Offset(width * 0.25f, 20.dp.toPx())) }
+        composeRule.waitForIdle()
+        assertTrue("changes $changes", changes.isNotEmpty())
+        assertEquals(0.25f, changes.last(), 0.05f)
     }
 
     @Test
@@ -171,11 +183,12 @@ class AdjustPanelTest {
             }
         }
         composeRule.onNodeWithTag(ACTION_ON).assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(68.dp)
-        composeRule.onNodeWithText("Lật").assertIsSelected()
-        composeRule.onNodeWithText("Khóa").assertExists()
+        composeRule.onNodeWithContentDescription("Lật").assertIsSelected()
+        composeRule.onNodeWithContentDescription("Khóa").assertIsNotSelected()
+        composeRule.onNodeWithText("Khóa", useUnmergedTree = true).assertExists()
         assertEquals(ACTIVE, pixelAt(ACTION_ON, 10.dp, 24.dp))
         assertEquals(WHITE, pixelAt(ACTION_OFF, 10.dp, 24.dp))
-        composeRule.onNodeWithText("Lật").performClick()
+        composeRule.onNodeWithContentDescription("Lật").performClick()
         assertEquals(1, clicks)
     }
 
@@ -200,8 +213,8 @@ class AdjustPanelTest {
                 }
             }
         }
-        composeRule.onNodeWithText("Off").assertIsNotEnabled().performClick()
-        composeRule.onNodeWithText("On").performClick()
+        composeRule.onNodeWithContentDescription("Off").assertIsNotEnabled().performClick()
+        composeRule.onNodeWithContentDescription("On").performClick()
         assertEquals(0, disabledClicks)
         assertEquals(1, enabledClicks)
     }

@@ -17,11 +17,13 @@ import com.vglstudio.camera.pose.line.guide.core.poses.model.Pose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFile
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseLibrary
+import com.vglstudio.camera.pose.line.guide.feature.camera.data.OverlaySettings
 import com.vglstudio.camera.pose.line.guide.feature.camera.data.PoseOverlaySettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,6 +64,17 @@ class PoseViewModel @Inject constructor(
     private var stepsHidden = false
     private var scrollRequest: StripScroll? = null
     private var scrollKey = 0
+
+    // How the outline is adjusted (spec camera, KB-3). Only [outlineSettings] is kept; the position is not.
+    private var outlineSettings = OverlaySettings()
+    private var offsetX = 0f
+    private var offsetY = 0f
+    private var panelOpen = false
+    private var lockHintVisible = false
+    private var lockHintJob: Job? = null
+    private var gestureMoved = false
+    private var gestureScaled = false
+    private var gestureHintShown = false
 
     init {
         viewModelScope.launch { libraryRepository.library.collect(::onLibraryState) }
@@ -113,30 +126,160 @@ class PoseViewModel @Inject constructor(
         publish()
     }
 
-    // Skeleton of step 3 (tests first): the outline adjustment does nothing yet.
-    fun onOverlayTransform(panX: Float, panY: Float, zoom: Float) = Unit
+    /**
+     * A drag or pinch step on the frame: [panX] and [panY] are parts of the frame, [zoom] a factor. Nothing is logged
+     * or kept here, the gesture end does that. While locked it changes nothing and shows the lock hint.
+     */
+    fun onOverlayTransform(panX: Float, panY: Float, zoom: Float) {
+        if (!canAdjust() || outlineSettings.hidden) return
+        if (outlineSettings.locked) {
+            if (!gestureHintShown) {
+                gestureHintShown = true
+                showLockHint()
+            }
+            return
+        }
+        val moved = panX != 0f || panY != 0f
+        val scaled = zoom != 1f
+        if (!moved && !scaled) return
+        offsetX = clampOffset(offsetX + panX)
+        offsetY = clampOffset(offsetY + panY)
+        if (scaled) outlineSettings = outlineSettings.copy(scale = clampScale(outlineSettings.scale * zoom))
+        gestureMoved = gestureMoved || moved
+        gestureScaled = gestureScaled || scaled
+        publish()
+    }
 
-    fun onOverlayGestureEnd() = Unit
+    /** The last finger lifted: one `overlay_adjusted` for the gesture. A pinch is kept; a move is not. */
+    fun onOverlayGestureEnd() {
+        val scaled = gestureScaled
+        val moved = gestureMoved
+        gestureScaled = false
+        gestureMoved = false
+        gestureHintShown = false
+        if (!canAdjust()) return
+        if (scaled) {
+            logAdjusted("size")
+            saveOutlineSettings()
+        } else if (moved) {
+            logAdjusted("move")
+        }
+    }
 
-    fun onOpacityChange(value: Float) = Unit
+    fun onOpacityChange(value: Float) {
+        if (!canAdjust()) return
+        outlineSettings = outlineSettings.copy(opacity = clampOpacity(value))
+        publish()
+    }
 
-    fun onOpacityChangeFinished() = Unit
+    fun onOpacityChangeFinished() {
+        if (!canAdjust()) return
+        logAdjusted("opacity")
+        saveOutlineSettings()
+    }
 
-    fun onScaleChange(value: Float) = Unit
+    fun onScaleChange(value: Float) {
+        if (!canAdjust()) return
+        outlineSettings = outlineSettings.copy(scale = clampScale(value))
+        publish()
+    }
 
-    fun onScaleChangeFinished() = Unit
+    fun onScaleChangeFinished() {
+        if (!canAdjust()) return
+        logAdjusted("size")
+        saveOutlineSettings()
+    }
 
-    fun onTogglePanel() = Unit
+    /** The adjust panel does not open while locked: the button that opens it is dimmed. */
+    fun onTogglePanel() {
+        if (!canAdjust() || outlineSettings.locked) return
+        panelOpen = !panelOpen
+        publish()
+    }
 
-    fun onClosePanel() = Unit
+    fun onClosePanel() {
+        if (!panelOpen) return
+        panelOpen = false
+        publish()
+    }
 
-    fun onToggleMirror() = Unit
+    fun onToggleMirror() {
+        if (!canAdjust() || outlineSettings.locked) return
+        outlineSettings = outlineSettings.copy(mirrored = !outlineSettings.mirrored)
+        publish()
+        logAdjusted("flip")
+        saveOutlineSettings()
+    }
 
-    fun onToggleLock() = Unit
+    /** Locking closes the panel (its button is dimmed now) and shows the hint; unlocking hides the hint. */
+    fun onToggleLock() {
+        if (!canAdjust()) return
+        val locked = !outlineSettings.locked
+        outlineSettings = outlineSettings.copy(locked = locked)
+        if (locked) {
+            panelOpen = false
+            showLockHint()
+        } else {
+            hideLockHint()
+        }
+        publish()
+        logAdjusted("lock")
+        saveOutlineSettings()
+    }
 
-    fun onToggleHidden() = Unit
+    fun onToggleHidden() {
+        if (!canAdjust()) return
+        outlineSettings = outlineSettings.copy(hidden = !outlineSettings.hidden)
+        publish()
+        logAdjusted("hide")
+        saveOutlineSettings()
+    }
 
-    fun onResetOverlay() = Unit
+    /** Back to the middle, 100%, the default opacity and not mirrored. Lock and hide stay. */
+    fun onResetOverlay() {
+        if (!canAdjust() || outlineSettings.locked) return
+        offsetX = 0f
+        offsetY = 0f
+        outlineSettings = outlineSettings.copy(opacity = DEFAULT_OPACITY, scale = 1f, mirrored = false)
+        publish()
+        logAdjusted("reset")
+        saveOutlineSettings()
+    }
+
+    /** There is nothing to adjust without a pose (plan T-015, section 2). */
+    private fun canAdjust(): Boolean = library != null && selected != null
+
+    private fun logAdjusted(type: String) {
+        analytics.log(AnalyticsEvent(EVENT_OVERLAY_ADJUSTED, mapOf("type" to type)))
+        logger.info(LOG_TAG, "Overlay adjusted: $type")
+    }
+
+    private fun saveOutlineSettings() {
+        val settings = outlineSettings
+        viewModelScope.launch {
+            try {
+                overlaySettingsRepository.setOverlay(settings)
+            } catch (e: IOException) {
+                logger.warn(LOG_TAG, "Overlay settings could not be saved", e)
+            }
+        }
+    }
+
+    private fun showLockHint() {
+        lockHintJob?.cancel()
+        lockHintVisible = true
+        publish()
+        lockHintJob = viewModelScope.launch {
+            delay(LOCK_HINT_MILLIS)
+            lockHintVisible = false
+            publish()
+        }
+    }
+
+    private fun hideLockHint() {
+        lockHintJob?.cancel()
+        lockHintVisible = false
+    }
 
     fun onHideSteps() = setStepsHidden(true)
 
@@ -180,6 +323,7 @@ class PoseViewModel @Inject constructor(
 
     private suspend fun onLibraryReady(ready: PoseLibrary) {
         stepsHidden = overlaySettingsRepository.stepsHidden.first()
+        outlineSettings = overlaySettingsRepository.overlay.first()
         library = ready
         posesById = ready.posesFor(PoseFilter.All).associateBy { it.id }
         logger.info(LOG_TAG, "Pose library ready: ${posesById.size} poses, ${ready.categories.size} categories")
@@ -312,6 +456,13 @@ class PoseViewModel @Inject constructor(
             selected = selected?.let { SelectedPose(it.id, it.steps.resolve(), stepIndex, outline) },
             stepsHidden = stepsHidden,
             scrollRequest = scrollRequest,
+            overlay = OverlayState(
+                settings = outlineSettings,
+                offsetX = offsetX,
+                offsetY = offsetY,
+                panelOpen = panelOpen,
+                lockHintVisible = lockHintVisible,
+            ),
         )
     }
 
@@ -327,6 +478,8 @@ class PoseViewModel @Inject constructor(
         const val KEY_POSE_ID = "poseId"
         const val EVENT_POSE_SELECTED = "pose_selected"
         const val EVENT_CONTENT_LOAD_FAILED = "content_load_failed"
+        const val EVENT_OVERLAY_ADJUSTED = "overlay_adjusted"
+        const val LOCK_HINT_MILLIS = 2_000L
         const val THUMBNAIL_PX = 256
         const val OUTLINE_PX = 1080
     }

@@ -363,13 +363,17 @@ class CameraScreenOverlayTest {
         setScreen(OverlayState(settings = OverlaySettings(opacity = 0.7f), panelOpen = true))
         assertTrue(exists(CameraTestTags.ADJUST_PANEL))
         listOf("Chỉnh lớp phủ", "Độ mờ", "70%", "Cỡ", "100%").forEach { assertTrue("$it", textExists(it)) }
-        listOf("Lật", "Khóa", "Ẩn", "Đặt lại").forEach { composeRule.onNodeWithText(it).assertExists() }
+        // The four actions: the label is drawn under each button, and the button is named after it.
+        listOf("Lật", "Khóa", "Ẩn", "Đặt lại").forEach {
+            assertTrue(it, textExists(it))
+            composeRule.onNodeWithContentDescription(it).assertExists()
+        }
         assertTrue(!exists(CameraTestTags.ZOOM))
 
-        composeRule.onNodeWithText("Đặt lại").performClick()
-        composeRule.onNodeWithText("Lật").performClick()
-        composeRule.onNodeWithText("Khóa").performClick()
-        composeRule.onNodeWithText("Ẩn").performClick()
+        composeRule.onNodeWithContentDescription("Đặt lại").performClick()
+        composeRule.onNodeWithContentDescription("Lật").performClick()
+        composeRule.onNodeWithContentDescription("Khóa").performClick()
+        composeRule.onNodeWithContentDescription("Ẩn").performClick()
         composeRule.onNodeWithContentDescription("Đóng bảng chỉnh").performClick()
         assertEquals(listOf("reset", "mirror", "lock", "hidden", "closePanel"), calls)
     }
@@ -446,7 +450,7 @@ class CameraScreenOverlayTest {
         val shutter = composeRule.onNodeWithTag(CameraTestTags.SHUTTER).getUnclippedBoundsInRoot()
         assertTrue("shutter $shutter, root $root", shutter.bottom <= root.bottom)
 
-        composeRule.onNodeWithText("Đặt lại").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription("Đặt lại").performScrollTo().performClick()
         assertEquals(listOf("reset"), calls)
     }
 

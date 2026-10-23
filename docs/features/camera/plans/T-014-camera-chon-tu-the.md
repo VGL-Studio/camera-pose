@@ -1,7 +1,7 @@
 ---
 ticket: T-014
 title: Camera: chọn tư thế, nét viền, thẻ bước
-status: approved                # draft | approved | stopped | done
+status: done                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -448,3 +448,19 @@ Bản giả (`PoseFakes.kt`): `PoseFixtures.catalog()` có nhóm `women` ("Nữ"
 - **Lệch so với plan:** <chỗ nào và vì sao, hoặc "Không có">
 - **Việc còn lại:** <...>
 - **Cần người xem:** <điểm dev nên kiểm tra sáng nay>
+
+### RUN-20261023-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #41, commit f68dbf7, 00:55 UTC).
+- **Nhánh, PR:** `claude/T-014-camera-chon-tu-the`, PR #41. Commit: 169d4ce (test và khung), 9ade1d2 (code), 0bb6285 (ảnh chuẩn), 5f3a4da (`starting_dark` dừng đồng hồ), bdd0a61 (đối chiếu thiết kế), ea2a30c (khung chụp vòng chờ, theo rà soát).
+- **Đã làm:** đủ mục 3.1 và 3.2 (60 file, đều trong danh sách). Bước 2 đến 5 do một phiên AI viết code riêng làm; phiên chính kiểm danh sách file, chạy rà soát độc lập, sửa theo rà soát, chạy lại `check.sh`, mở PR. Điều kiện dừng 1, 3, 4 của mục 7 không xảy ra; điều 5: `Modifier.blur` vẽ được quầng trong Robolectric, giữ nhánh theo API.
+- **Test viết trước:** 70 test logic và giao diện mới (`:feature:camera` 54, `:core:designsystem` 14, `:core:poses` 2), cả 70 thất bại đúng lý do trên khung rỗng (thiếu node, trạng thái `Loading`, thư viện rỗng, bộ giải mã trả `null`, `pose_id` rỗng). `nothingStored_isShown` và `decode_notAnImage_returnsNull` qua ngay trên khung nên được viết chặt thêm (đọc lại sau khi ghi `true`; đối chứng PNG thật). Screenshot test qua ngay vì chưa có ảnh chuẩn.
+- **Rà soát độc lập:** 0 chặn, 3 nên sửa, 8 ghi chú. Đã sửa: `starting_dark` chụp ở khung 0 chỉ có một chấm của vòng chờ, nay tiến đồng hồ 500 ms cố định. Ghi ở đây: lệch `starting_dark` (dưới). Để người quyết: khi thẻ bước đang ẩn mà nét viền tải lỗi, màn hình chỉ có nút "Bước", không có chữ "Chưa tải được nét viền" và "Thử lại" (`PoseOverlay.kt`, `when` xét `stepsHidden` trước); plan và spec không nêu trường hợp này, KB-2 giữ thẻ ẩn, nên phiên không đổi. Ghi chú: spec mục 6 chưa có `reason = timeout` (câu 4); `pose_selected` không ghi `detail` (câu 3, T-022 ghi); `ActivePoseHolder` `@Singleton` giữ tư thế sau khi rời camera (T-017 cần biết); tải ảnh nhỏ không hủy được, hiếm khi ghi `content_load_failed` hai lần; thẻ bước hai hàng che gần nửa khung ở màn thấp (câu 10); hàng chip và dải cao hơn thiết kế khoảng 1 dp; trang catalog viết cứng chữ tiếng Anh (trang mẫu).
+- **Kết quả CI:** lần chạy 39880225058 (ea2a30c): `changes`, `build-and-test`, `ui-test` xanh vòng đầu. `scripts/check.sh` cục bộ qua: 486 test JVM, 0 lỗi, 40 ảnh screenshot.
+- **Lệch so với plan:**
+  - `starting_dark` (test có sẵn của T-013) chuyển sang lớp `CameraScreenStartingScreenshotTest` cùng file, `mainClock.autoAdvance = false`, chụp bằng `onRoot().captureRoboImage(...)` ở mốc 500 ms. Lý do: vòng chờ vô hạn làm lần chụp kéo dài khoảng 300 giây trong khi `ShadowTrace` của Robolectric giữ mọi đoạn trace; thêm hàng chip và dải tư thế thì JVM test hết bộ nhớ (`OutOfMemoryError` rơi vào `CameraScreenTest.grid_visibleOnlyWhenOn`). Tên ảnh, khung, trạng thái giữ nguyên; rà soát độc lập xác nhận không hạ tiêu chí, không đổi điều test kiểm tra. Đây đúng là cách L-029 đề xuất. Lần sửa đầu (tạo ảnh mẫu một lần bằng `remember`) sai nguyên nhân, đã bỏ.
+  - `PoseViewModelTest` thêm `@GraphicsMode(NATIVE)` (chế độ mặc định không tạo được `ImageBitmap` của bản giả).
+  - `StickerChip` không gọi `minimumInteractiveComponentSize()`: phần thấy được cao 36, vùng chạm 48 do Compose tự nới; cách của plan làm phần tử cao 48 và lệch hàng chip 52.
+  - Dải chỉ cuộn khi ô được chọn chưa nằm trọn trên màn hình; nút "Bước" dùng "Hiện thẻ bước" làm nhãn hành động; `SelectedBadge` và icon thử lại của `PoseThumb` có `testTag` công khai.
+- **Việc còn lại:** kiểm tra thủ công ở mục 4 (quầng dưới API 31, vuốt bằng tay, TalkBack, ảnh thật từ R2).
+- **Cần người xem:** 13 ảnh chuẩn mới hoặc ghi lại (nhất là `CameraScreen_starting_dark.png` cách chụp mới, `CameraScreen_default_small.png`); ảnh so sánh `docs/features/camera/design/review/`; quyết định trường hợp thẻ ẩn và nét viền lỗi; bổ sung `timeout` vào spec camera mục 6.

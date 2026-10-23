@@ -188,7 +188,13 @@ class CameraScreenStartingScreenshotTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent { Screen(CameraUiState.Starting) }
         composeRule.mainClock.advanceTimeByFrame()
+        // A fixed point of the spinner animation where its arc is clearly drawn, as in the design.
+        composeRule.mainClock.advanceTimeBy(SPINNER_ARC_VISIBLE_MS)
         composeRule.onRoot().captureRoboImage("src/test/screenshots/CameraScreen_starting_dark.png")
+    }
+
+    private companion object {
+        const val SPINNER_ARC_VISIBLE_MS = 500L
     }
 }
 

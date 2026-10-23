@@ -11,7 +11,7 @@
 | CameraScreen_no-person_dark | thiếu ảnh chuẩn screenshot | |
 | CameraScreen_no-pose_dark | 3.8% | `CameraScreen_no-pose_dark_compare.png` |
 | CameraScreen_permission-denied_dark | 4.2% | `CameraScreen_permission-denied_dark_compare.png` |
-| CameraScreen_starting_dark | 2.7% | `CameraScreen_starting_dark_compare.png` |
+| CameraScreen_starting_dark | 2.8% | `CameraScreen_starting_dark_compare.png` |
 | CameraScreen_steps-hidden_dark | 7.4% | `CameraScreen_steps-hidden_dark_compare.png` |
 | ReviewScreen_default_dark | thiếu ảnh chuẩn screenshot | |
 | ReviewScreen_default_dark_unfolded | thiếu ảnh chuẩn screenshot | |

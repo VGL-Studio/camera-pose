@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,6 +47,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.feature.camera.R
+import com.vglstudio.camera.pose.line.guide.feature.camera.layout.isUnfolded
 import com.vglstudio.camera.pose.line.guide.feature.camera.photo.STORAGE_PERMISSION
 import com.vglstudio.camera.pose.line.guide.feature.camera.photo.storagePermissionBlocked
 import com.vglstudio.camera.pose.line.guide.feature.camera.review.ReviewUiState.Ready
@@ -173,45 +175,31 @@ internal fun ReviewScreen(
         ) {
             ReviewTopBar(enabled = !saving, onCloseClick = onCloseClick)
             if (ready != null) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.md),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    ReviewPhoto(image = image, modifier = Modifier.weight(1f, fill = false))
-                    Spacer(modifier = Modifier.height(Spacing.lg))
-                    ReviewActions(
-                        enabled = !saving,
-                        onRetakeClick = onRetakeClick,
-                        onShareClick = onShareClick,
-                        onNextPoseClick = onNextPoseClick,
-                    )
-                    // Keeps the save error clear of the actions on short screens; on taller ones this is free space.
-                    Spacer(modifier = Modifier.height(Spacing.md))
+                BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    if (isUnfolded(maxWidth)) {
+                        ReviewUnfoldedContent(
+                            ready = ready,
+                            image = image,
+                            onSaveClick = onSaveClick,
+                            onRetrySave = onRetrySave,
+                            onOpenAppSettings = onOpenAppSettings,
+                            onRetakeClick = onRetakeClick,
+                            onShareClick = onShareClick,
+                            onNextPoseClick = onNextPoseClick,
+                        )
+                    } else {
+                        ReviewPhoneContent(
+                            ready = ready,
+                            image = image,
+                            onSaveClick = onSaveClick,
+                            onRetrySave = onRetrySave,
+                            onOpenAppSettings = onOpenAppSettings,
+                            onRetakeClick = onRetakeClick,
+                            onShareClick = onShareClick,
+                            onNextPoseClick = onNextPoseClick,
+                        )
+                    }
                 }
-                if (ready.save in ERROR_STATUSES) {
-                    SaveErrorMessage(
-                        save = ready.save,
-                        onRetrySave = onRetrySave,
-                        onOpenAppSettings = onOpenAppSettings,
-                        modifier = Modifier.padding(horizontal = Spacing.md),
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.md))
-                }
-                PrimaryButton(
-                    text = stringResource(if (saving) R.string.review_saving else R.string.review_save),
-                    onClick = onSaveClick,
-                    modifier = Modifier
-                        .padding(horizontal = Spacing.md)
-                        .fillMaxWidth()
-                        .testTag(ReviewTestTags.SAVE),
-                    enabled = ready.save != SaveStatus.SAVED,
-                    icon = painterResource(R.drawable.ic_review_download),
-                    loading = saving,
-                )
-                Spacer(modifier = Modifier.height(Spacing.md + Spacing.xs))
             }
         }
         if (dialogOpen) {
@@ -221,6 +209,62 @@ internal fun ReviewScreen(
                 onDismissDialog = onDismissDialog,
             )
         }
+    }
+}
+
+/** The phone layout of what is under the top bar: the photo, the actions, the save error and the main button. */
+@Composable
+internal fun ReviewPhoneContent(
+    ready: Ready,
+    image: ImageBitmap?,
+    onSaveClick: () -> Unit,
+    onRetrySave: () -> Unit,
+    onOpenAppSettings: () -> Unit,
+    onRetakeClick: () -> Unit,
+    onShareClick: () -> Unit,
+    onNextPoseClick: () -> Unit,
+) {
+    val saving = ready.save == SaveStatus.SAVING
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ReviewPhoto(image = image, modifier = Modifier.weight(1f, fill = false))
+            Spacer(modifier = Modifier.height(Spacing.lg))
+            ReviewActions(
+                enabled = !saving,
+                onRetakeClick = onRetakeClick,
+                onShareClick = onShareClick,
+                onNextPoseClick = onNextPoseClick,
+            )
+            // Keeps the save error clear of the actions on short screens; on taller ones this is free space.
+            Spacer(modifier = Modifier.height(Spacing.md))
+        }
+        if (ready.save in ERROR_STATUSES) {
+            SaveErrorMessage(
+                save = ready.save,
+                onRetrySave = onRetrySave,
+                onOpenAppSettings = onOpenAppSettings,
+                modifier = Modifier.padding(horizontal = Spacing.md),
+            )
+            Spacer(modifier = Modifier.height(Spacing.md))
+        }
+        PrimaryButton(
+            text = stringResource(if (saving) R.string.review_saving else R.string.review_save),
+            onClick = onSaveClick,
+            modifier = Modifier
+                .padding(horizontal = Spacing.md)
+                .fillMaxWidth()
+                .testTag(ReviewTestTags.SAVE),
+            enabled = ready.save != SaveStatus.SAVED,
+            icon = painterResource(R.drawable.ic_review_download),
+            loading = saving,
+        )
+        Spacer(modifier = Modifier.height(Spacing.md + Spacing.xs))
     }
 }
 
@@ -243,7 +287,7 @@ private const val CAPTURES_AUTHORITY_SUFFIX = ".captures"
 /** Long side of the photo on the review screen, in pixels (plan T-016). */
 private const val REVIEW_IMAGE_MAX_SIDE_PX = 1600
 
-private val ERROR_STATUSES = setOf(
+internal val ERROR_STATUSES = setOf(
     SaveStatus.FAILED_STORAGE_FULL,
     SaveStatus.FAILED,
     SaveStatus.PERMISSION_DENIED,

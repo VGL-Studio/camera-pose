@@ -34,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.CameraIconButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.GridOverlay
@@ -48,7 +49,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.model.TimerSetting
 
 // Sizes from design/context/.
 internal val POSE_AREA_HEIGHT = 132.dp
-private val TOP_BAR_HEIGHT = 48.dp
+internal val TOP_BAR_HEIGHT = 48.dp
 private val CAPTURE_ROW_HEIGHT = 76.dp
 private val SHUTTER_SIZE = 76.dp
 private val SHUTTER_RING = 4.dp
@@ -60,7 +61,10 @@ private val SPINNER_SIZE = 40.dp
 private const val COUNTDOWN_SCRIM_ALPHA = 0.35f
 private const val DISABLED_ALPHA = 0.38f
 
-/** Library on the left; on the right flash, timer, grid (camera ready only) and settings. */
+/**
+ * Library on the left; on the right flash, timer, grid (camera ready only) and settings. [topPadding] is the space
+ * above the bar: under the status bar on a phone, less on an unfolded one (plan T-020).
+ */
 @Composable
 internal fun CameraTopBar(
     ready: CameraUiState.Ready?,
@@ -69,12 +73,14 @@ internal fun CameraTopBar(
     onGridClick: () -> Unit,
     onOpenPoses: (() -> Unit)?,
     onOpenSettings: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    topPadding: Dp = Spacing.xl,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md)
-            .padding(top = Spacing.xl)
+            .padding(top = topPadding)
             .height(TOP_BAR_HEIGHT),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -215,15 +221,11 @@ private fun ReadyPreview(
         if (ready.gridVisible) GridOverlay(modifier = Modifier.testTag(CameraTestTags.GRID))
         // Above the grid, below the zoom and the countdown.
         poseOverlay()
-        if (zoomVisible && ready.zoomLevels.size > 1) {
-            ZoomControl(
-                levels = ready.zoomLevels.map { zoomLabel(it, selected = it == ready.zoom) },
-                selectedIndex = ready.zoomLevels.indexOf(ready.zoom),
-                onSelect = { onZoomSelect(ready.zoomLevels[it]) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = Spacing.md)
-                    .testTag(CameraTestTags.ZOOM),
+        if (zoomVisible) {
+            CameraZoom(
+                ready = ready,
+                onZoomSelect = onZoomSelect,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.md),
             )
         }
         val countdown = ready.countdown
@@ -237,6 +239,19 @@ private fun ReadyPreview(
                 CountdownBadge(seconds = countdown)
             }
         }
+    }
+}
+
+/** The zoom levels of the camera as a control; nothing when the camera has a single level. */
+@Composable
+internal fun CameraZoom(ready: CameraUiState.Ready, onZoomSelect: (Float) -> Unit, modifier: Modifier = Modifier) {
+    if (ready.zoomLevels.size > 1) {
+        ZoomControl(
+            levels = ready.zoomLevels.map { zoomLabel(it, selected = it == ready.zoom) },
+            selectedIndex = ready.zoomLevels.indexOf(ready.zoom),
+            onSelect = { onZoomSelect(ready.zoomLevels[it]) },
+            modifier = modifier.testTag(CameraTestTags.ZOOM),
+        )
     }
 }
 
@@ -288,21 +303,27 @@ internal fun CaptureRow(
             )
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            CameraIconButton(
-                icon = painterResource(R.drawable.ic_camera_flip),
-                onClick = onFlipClick,
-                contentDescription = stringResource(R.string.camera_cd_flip),
-                modifier = Modifier.testTag(CameraTestTags.FLIP),
-                enabled = ready != null,
-                toggleable = false,
-            )
+            FlipCameraButton(ready = ready, onFlipClick = onFlipClick)
         }
     }
 }
 
+/** Switches between the back and the front camera; faded and disabled until the camera is ready. */
+@Composable
+internal fun FlipCameraButton(ready: CameraUiState.Ready?, onFlipClick: () -> Unit) {
+    CameraIconButton(
+        icon = painterResource(R.drawable.ic_camera_flip),
+        onClick = onFlipClick,
+        contentDescription = stringResource(R.string.camera_cd_flip),
+        modifier = Modifier.testTag(CameraTestTags.FLIP),
+        enabled = ready != null,
+        toggleable = false,
+    )
+}
+
 /** The thumbnail is cropped to the slot; a photo that cannot be read leaves the slot empty but still tappable. */
 @Composable
-private fun LastPhotoSlot(image: ImageBitmap?, onClick: (() -> Unit)?) {
+internal fun LastPhotoSlot(image: ImageBitmap?, onClick: (() -> Unit)?) {
     val appColors = MaterialTheme.appColors
     val shape = RoundedCornerShape(Radius.thumb)
     val description = stringResource(R.string.camera_cd_last_photo)
@@ -328,7 +349,7 @@ private fun LastPhotoSlot(image: ImageBitmap?, onClick: (() -> Unit)?) {
 
 /** Ring 76 with a 62 disc; while counting down it shows a close icon and cancels instead. */
 @Composable
-private fun ShutterButton(
+internal fun ShutterButton(
     enabled: Boolean,
     countingDown: Boolean,
     onShutterClick: () -> Unit,

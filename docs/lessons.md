@@ -466,3 +466,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay với mã riêng; phiên gộp nhánh chính rồi đẩy. Gốc của phần lớn xung đột là `docs/STATUS.md` (L-047).
 - **Áp dụng:** plan T-033: `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay (mã 5); `auto-run.md` bước 8: gộp nhánh chính rồi chờ lại. Gốc chính của xung đột (`docs/STATUS.md`) đã bỏ ở plan T-034. Dự án mẫu: issue #106, PR #107.
 - **Kiểm chứng:**
+
+### L-049: `java-check.sh` đọc nhầm dòng "Picked up JAVA_TOOL_OPTIONS", `check.sh` từ chối trên cloud
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03, kiểm tra đầu phiên.
+- **Chuyện gì:** môi trường cloud đặt `JAVA_TOOL_OPTIONS` (proxy, truststore), nên `java -version` in dòng `Picked up JAVA_TOOL_OPTIONS: ...` trước dòng phiên bản. `scripts/java-check.sh` lấy dòng đầu (`head -n 1`), không đọc được phiên bản và dừng `scripts/check.sh`. Java thật là 21 (nằm trong khoảng 17 đến 24). Phiên không chạy task nào.
+- **Bằng chứng:** `start-check.log`: `LỖI: không đọc được phiên bản Java từ 'Picked up JAVA_TOOL_OPTIONS: ...'`; `java -version` in `openjdk version "21.0.12.1"` ở dòng thứ hai.
+- **Đề xuất sửa:** `scripts/java-check.sh` lấy dòng khớp `version "` thay vì dòng đầu (`grep -m1 ' version "'`), kèm test với đầu ra có dòng `Picked up`. Sửa file này là đổi cổng chất lượng: plan rủi ro cao, duyệt chéo. Phiên không tự sửa script và không bỏ `JAVA_TOOL_OPTIONS` (cấu hình tải nằm ở setup script).
+- **Áp dụng:**
+- **Kiểm chứng:**

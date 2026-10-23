@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Writes docs/STATUS.md, the progress page of the project, from the statuses already kept in the documents.
 
-Usage: scripts/status.py [--check]
+Usage: scripts/status.py [--check | --sync]
   (no option)  rewrite docs/STATUS.md
   --check      exit 1 when docs/STATUS.md is not what the documents say now (nothing is written)
+  --sync       first move each ticket's status after its plan's (L-019), then rewrite docs/STATUS.md:
+               plan approved -> ticket approved when the ticket is backlog, ready, planned or stopped
+               (a stopped task whose new plan version is approved goes back to approved, auto-run.md, section 3);
+               plan stopped -> ticket stopped unless the ticket is already stopped, cancelled or past the session.
+               The person who approves or stops the plan runs it; the script only follows that decision.
 
 Every status comes from the front matter of requests, specs, tickets, plans, feedback, ADRs and run lists, and from
 the "Trạng thái" lines of docs/lessons.md. Nobody edits STATUS.md by hand: change the document, then run the script.
@@ -250,12 +255,42 @@ def render():
     return "\n".join(out)
 
 
+def sync_target(ticket_status, plan_status):
+    """The status a ticket takes after its plan's, or None to leave it. scripts/plan-check.py (rule 10) mirrors it."""
+    if plan_status == "approved" and ticket_status in ("backlog", "ready", "planned", "stopped"):
+        return "approved"
+    if plan_status == "stopped" and ticket_status not in ("stopped", "cancelled", "on-staging", "accepted", "released"):
+        return "stopped"
+    return None
+
+
+def sync():
+    """Writes the new status into the front matter of every ticket that lags behind its plan."""
+    changed = 0
+    for feature in features():
+        for ticket in feature["tickets"]:
+            target = sync_target(ticket["status"], ticket["plan_status"])
+            if not target:
+                continue
+            text = ticket["path"].read_text()
+            head, sep, rest = text.partition("\n---\n")
+            # Only the front matter changes; a comment after the value stays.
+            head = re.sub(r"^(status:[ \t]*)[^\s#]*", lambda m: m.group(1) + target, head, count=1, flags=re.M)
+            ticket["path"].write_text(head + sep + rest)
+            print(f"{ticket['id']}: ticket '{ticket['status']}' -> '{target}' theo plan '{ticket['plan_status']}'.")
+            changed += 1
+    if not changed:
+        print("Trạng thái ticket đã khớp với plan.")
+
+
 def main(argv):
     twice = duplicate_lessons(lessons())
     if twice:
         print(f"docs/lessons.md: LỖI: số bài học dùng hai lần: {', '.join(twice)}. Đổi số bài học thêm sau "
               "(và mọi chỗ nhắc tới nó) thành số tiếp theo của sổ.", file=sys.stderr)
         return 1
+    if "--sync" in argv[1:]:
+        sync()
     page = render()
     if "--check" in argv[1:]:
         if OUTPUT.is_file() and OUTPUT.read_text() == page:

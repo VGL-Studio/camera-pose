@@ -74,6 +74,8 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
   - Thêm thư viện mới thì so danh sách `uses-permission` của manifest gộp trước và sau khi thêm (`./gradlew :app:processStagingDebugMainManifest`, file trong `app/build/intermediates/merged_manifest/`), ghi quyền nó kéo vào.
   - Phần chạy thử (mục 4.1) gọi đúng các API và lớp đó, để lỗi thiếu thư viện hay thiếu quyền lộ ra trước khi duyệt.
   - Quyền mới phải có trong spec (mục 6, Quyền của app). Spec chưa có thì đề xuất sửa spec và đặt câu hỏi ở mục 8; plan chờ spec được xác nhận lại rồi mới duyệt. Ghi `permission` hay `sdk` vào `blocking_points`.
+- Test của plan phải qua được các quy tắc của `scripts/check.sh` (bảng ở [auto-run.md](auto-run.md), bước 5), nhất là lệnh `captureRoboImage` ghi thẳng đường dẫn `"src/test/screenshots/<Tên>.png"` và mỗi ảnh chuẩn mới có trong mục 3.2. `scripts/plan-check.py` dò các mẫu này (L-013).
+- Điều kiện về file trên R2 (file phải có trước task, địa chỉ trả `200`) không ghi thành lệnh `curl` mà phiên tự chạy: proxy của môi trường `claude --cloud` chặn máy chủ R2 và trả 403. Kiểm bằng một workflow trên GitHub, hoặc ghi rõ "dev kiểm trước phiên" để người kiểm và ghi kết quả vào danh sách chạy (L-005).
 - Điểm kỹ thuật vẫn còn chưa chắc sau khi chạy thử: ghi phương án dự phòng ở mục 3.4 (điều kiện chuyển cụ thể, cách làm thay), đưa file của phương án đó vào mục 3.2 với ghi chú "(dự phòng)", để phiên chuyển sang thay vì dừng task (`risk-scoring.md`, mục 4). Phương án dự phòng không được hạ tiêu chí chấp nhận hay đổi test viết trước.
 - Chấm rủi ro theo [risk-scoring.md](risk-scoring.md), ghi lý do cho từng tiêu chí. Không hạ điểm để plan dễ được duyệt.
 - Ghi `token_estimate` theo cỡ của ticket, lấy số gợi ý từ `scripts/token-usage.py estimate`; task khác thường thì chỉnh và ghi lý do. Ước tính chỉ để lập kế hoạch, không chặn task ([ops/token-usage.md](ops/token-usage.md)).
@@ -84,7 +86,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Plan đổi `scripts/merge-if-green.sh` hay `.github/workflows/main-guard.yml`: liệt kê mọi kiểm tra hiện có mà trường hợp mới phải đi qua (nhãn, `main-broken`, phiên đang chạy, nhánh cập nhật, CI) và nói trường hợp mới qua hay bị chặn ở từng kiểm tra, mỗi kiểm tra một test (L-044).
 - Hàm phụ trợ nằm trong file test mà cũng phải đổi (ví dụ danh sách mà test so sánh): ghi rõ phần nào vào commit test của bước 3, phần nào vào commit code của bước 4, để test viết trước thất bại đúng lý do (L-025).
 - Viết xong thì chạy `scripts/plan-check.py <plan>`, sửa hết lỗi trước khi đưa người duyệt, dán kết quả vào mô tả PR. Phiên tự chạy chạy lại script này ngay trước task và bỏ qua plan có lỗi.
-- Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`. Người duyệt chuyển ticket sang `approved` cùng lúc với plan; `plan-check.py` báo chú ý khi plan `approved` mà ticket chưa (L-045).
+- Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`.
 
 ## Khi lập danh sách chạy
 
@@ -138,6 +140,7 @@ Phiên thử là log của một lần dùng thử bản staging trên máy th�
 `docs/STATUS.md` cho thấy tiến độ cả dự án: việc đang chờ người, yêu cầu và trạng thái, ticket của từng feature, phiên tự chạy, bài học và ADR. Trang do `scripts/status.py` sinh từ trạng thái trong các tài liệu, không sửa tay.
 
 - PR nào đổi trạng thái hay thêm, bớt yêu cầu, spec, ticket, plan, phản hồi, danh sách chạy, bài học hay ADR thì chạy `scripts/status.py` và commit `docs/STATUS.md` cùng PR. `scripts/status.py --check` cho biết trang đã khớp chưa.
+- Trạng thái ticket đi theo plan (L-019, L-045). Người duyệt hay dừng plan chạy `scripts/status.py --sync`: plan `approved` thì ticket đang `backlog`, `ready`, `planned` hay `stopped` chuyển sang `approved`; plan `stopped` thì ticket chuyển sang `stopped` (trừ ticket đã `cancelled` hay đã qua phiên). Script chỉ làm theo quyết định của người về plan, rồi sinh lại trang. Không chuyển ticket sang `approved` khi plan còn `draft`. `scripts/plan-check.py` báo chú ý khi hai trạng thái lệch nhau.
 - Phiên tự chạy sinh lại trang trong PR báo cáo (auto-run.md, mục 4).
 - Trang thiếu thông tin hay sai thì sửa tài liệu gốc hoặc script, không sửa trang.
 

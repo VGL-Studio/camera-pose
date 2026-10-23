@@ -96,6 +96,20 @@ Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho
 ### Bước 5. Kiểm tra cục bộ
 
 - Chạy `scripts/check.sh`. Script gồm quy tắc phụ thuộc module, ktlint, unit test, test giao diện trên JVM, screenshot test, Android Lint và build bản staging. CI dùng đúng script này, nên qua ở bước 5 thì thường cũng qua ở bước 8.
+- Những gì `scripts/check.sh` từ chối, để người viết plan và phiên thấy trước (L-013). Dòng có dấu * được `scripts/plan-check.py` dò trong plan (quy tắc 9): lỗi với plan `draft`, chú ý với plan `approved`.
+
+  | `check.sh` từ chối khi | Cách làm đúng |
+  | --- | --- |
+  | * Một lệnh `captureRoboImage` không ghi đường dẫn `"src/test/screenshots/<Tên>.png"` ngay sau dấu mở ngoặc, trên cùng dòng (không có đường dẫn, đường dẫn khác, tham số có tên, biến, xuống dòng) | Ghi thẳng chuỗi đường dẫn trong lệnh, dạng `captureRoboImage("src/test/screenshots/<Tên>.png")`. Không gói lệnh vào hàm phụ nhận đường dẫn |
+  | * Trên CI, thiếu ảnh chuẩn mà test chụp | Chạy `scripts/check.sh` trên máy để ghi ảnh mới, xem ảnh, commit cùng PR. Plan ghi ảnh mới ở mục 3.2 |
+  | * Ảnh chuẩn nằm ngoài `<module>/src/test/screenshots/` | Script chỉ tìm ảnh ở thư mục đó |
+  | Ảnh chuẩn đã có lệch với ảnh vẽ ra (`verifyRoborazzi`) | Chỉ ghi lại ảnh chuẩn khi plan cho phép |
+  | Module phụ thuộc sai quy tắc (`checkModuleDependencies`, ADR-0001) | Feature chỉ phụ thuộc core, core chỉ phụ thuộc core |
+  | Code sai định dạng (`ktlintCheck`) | Định dạng theo `.editorconfig` |
+  | Unit test hay test giao diện trên JVM thất bại (`testDebugUnitTest`, `testStagingDebugUnitTest`) | Sửa code, không sửa test |
+  | Android Lint báo lỗi (`:app:lintStagingDebug`) | Sửa code, không tắt quy tắc |
+  | Bản staging không build được (`:app:assembleStagingDebug`) | |
+  | Test của script thất bại (`scripts/tests/run.sh`); trên CI thiếu `python3` hay `jq` | |
 - So sánh danh sách file thay đổi thực tế với danh sách file trong plan. Có file ngoài danh sách thì dừng task.
 - Feature có thiết kế (`docs/features/<feature>/design/screens/`): chạy `scripts/design-compare.sh <feature>` sau `scripts/check.sh`. Kết quả trong `design/review/` để rà soát, không phải cổng chặn (ADR-0020). Ảnh thiết kế nào báo thiếu ảnh chuẩn screenshot là thiếu test, phải thêm theo plan.
 - Lỗi tải thư viện hay công cụ (mã 429, 5xx, hết thời gian chờ, mất kết nối) là lỗi hạ tầng, không phải lỗi của code, và không tính vào giới hạn 3 lần sửa. Phiên chạy qua đêm có thời gian, nên chờ lâu thay vì bỏ cuộc sớm: chạy lại sau 1, 2, 4, 8 rồi 15 phút (tổng khoảng 30 phút). Vẫn lỗi thì kết thúc phiên theo mục 4.

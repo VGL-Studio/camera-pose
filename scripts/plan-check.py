@@ -14,7 +14,7 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
   4. A plan that runs scripts/design-compare.sh writes a screenshot for every design image of its feature,
      except the images it declares as drawn by another ticket, on a line
      'Ảnh thiết kế của ticket khác (T-NNN): `Name`, ...'. Each declared image must exist and the line names a ticket.
-  5. An approved plan has its reviewers and date; its ticket not approved yet is a warning (L-019).
+  5. An approved plan has its reviewers and date.
   6. The plan has a token estimate (token_estimate, docs/ops/token-usage.md); a missing one is only a warning.
   7. A plan whose criterion E (novelty of the technique, risk-scoring.md) scores 2 or more has a trial-run
      section 4.1 that names scripts/check.sh (L-001, L-010). An error for a draft plan; only a warning for a plan
@@ -25,6 +25,12 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
      with 'permission' in blocking_points and a high risk level. A library (group:name) or catalog alias (libs.x)
      the version catalog does not have needs gradle/libs.versions.toml in the file list and 'sdk' in
      blocking_points. Errors for a draft plan, warnings for an approved one, like rule 7.
+  9. What scripts/check.sh refuses shows up in the plan, not during the session (L-013; table in docs/auto-run.md,
+     step 5): every captureRoboImage call the plan writes passes the literal path "src/test/screenshots/<Name>.png"
+     right after the parenthesis, on the same line; a reference image the plan's tests write is in the file list or
+     already in the repository (CI fails on a missing one); no image of the file list sits under src/test outside
+     src/test/screenshots/. Errors for a draft plan, warnings for an approved one, like rule 7.
+ 10. The ticket's status follows the plan's (L-019, L-045): a warning when they disagree, fixed by scripts/status.py --sync.
 PLAN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
 
@@ -69,6 +75,16 @@ PERMISSION = re.compile(r"android\.permission\.([A-Z_]+)|\b([A-Z][A-Z_]+[A-Z])\b
 COORDINATE = re.compile(r"`([a-z][\w.-]*\.[\w.-]+):([\w.-]+)(?::[\w.-]+)?`")
 ALIAS = re.compile(r"\blibs\.([a-zA-Z][\w.]*[a-zA-Z0-9])")
 CATALOG = "gradle/libs.versions.toml"
+# Rule 9: scripts/check.sh accepts only captureRoboImage("src/test/screenshots/<Name>.png") on one line.
+CAPTURE_CALL = re.compile(r"captureRoboImage\(([^)\n]{0,200})")
+CAPTURE_PATH = re.compile(r'^"src/test/screenshots/([^"]+)"')
+# A plan may write a placeholder instead of an argument or a name: "...", "<Tên>.png".
+ELLIPSIS = {"...", "…"}
+PLACEHOLDER = re.compile(r"\.\.\.|…|<[^>]*>")
+# Rule 10: ticket statuses that lag behind an approved plan, and ticket statuses a stopped plan leaves alone.
+# Keep in step with sync_target() of scripts/status.py.
+BEHIND_APPROVED_PLAN = {"backlog", "ready", "planned", "stopped"}
+AFTER_STOPPED_PLAN = {"stopped", "cancelled", "on-staging", "accepted", "released"}
 
 
 def front_matter(text):
@@ -149,6 +165,54 @@ def reader_files():
             yield relative.as_posix(), path.read_text()
         except (UnicodeDecodeError, OSError):
             continue
+
+
+def check_sh_problems(text, listed):
+    """Patterns of the plan that scripts/check.sh refuses (rule 9)."""
+    problems = []
+    names = set()
+    for argument in sorted({a.strip() for a in CAPTURE_CALL.findall(text)}):
+        if argument in ELLIPSIS:
+            continue
+        match = CAPTURE_PATH.match(argument)
+        name = match.group(1) if match else ""
+        if not match or not (name.endswith(".png") or PLACEHOLDER.search(name)):
+            problems.append(f"plan ghi captureRoboImage({argument}): scripts/check.sh từ chối lệnh captureRoboImage "
+                            "không ghi đường dẫn \"src/test/screenshots/<Tên>.png\" ngay sau dấu mở ngoặc, trên cùng "
+                            "dòng (docs/auto-run.md, bước 5).")
+        elif not PLACEHOLDER.search(name):
+            names.add(name)
+    for name in sorted(names):
+        in_list = any(path.endswith(f"/src/test/screenshots/{name}") for path in listed)
+        in_repo = any(SKIP_DIRS.isdisjoint(p.relative_to(ROOT).parts) and ".claude" not in p.parts
+                      for p in ROOT.glob(f"**/src/test/screenshots/{name}"))
+        if not in_list and not in_repo:
+            problems.append(f"test của plan chụp ảnh chuẩn {name}, nhưng mục 3.2 không có <module>/src/test/screenshots/"
+                            f"{name} và repo chưa có ảnh này. Trên CI, scripts/check.sh báo lỗi khi thiếu ảnh chuẩn "
+                            "(docs/auto-run.md, bước 5).")
+    for path in sorted(listed):
+        if path.endswith(".png") and re.search(r"(^|/)src/test[A-Za-z]*/", path) and "src/test/screenshots/" not in path:
+            problems.append(f"{path}: ảnh chuẩn screenshot phải nằm trong <module>/src/test/screenshots/; "
+                            "scripts/check.sh chỉ tìm ảnh ở đó.")
+    return problems
+
+
+def ticket_status_problems(fields):
+    """Rule 10: the ticket's status follows the plan's (scripts/status.py --sync)."""
+    ticket_id = fields.get("ticket", "")
+    tickets = sorted(ROOT.glob(f"docs/features/*/tickets/{ticket_id}-*.md")) if ticket_id else []
+    if not tickets:
+        return []
+    plan_status = fields.get("status", "")
+    ticket_status = front_matter(tickets[0].read_text()).get("status", "")
+    if plan_status == "approved" and ticket_status in BEHIND_APPROVED_PLAN:
+        return [f"plan approved nhưng ticket {ticket_id} còn '{ticket_status}'. Chạy scripts/status.py --sync."]
+    if plan_status == "stopped" and ticket_status not in AFTER_STOPPED_PLAN:
+        return [f"plan stopped nhưng ticket {ticket_id} còn '{ticket_status}'. Chạy scripts/status.py --sync."]
+    if plan_status == "draft" and ticket_status == "approved":
+        return [f"ticket {ticket_id} đã approved khi plan còn draft. Ticket chỉ chuyển approved khi plan được duyệt "
+                "(L-019)."]
+    return []
 
 
 def other_ticket_images(text):
@@ -302,12 +366,6 @@ def check(plan_path):
         decision = current_decision(text, fields.get("version", ""))
         if any(placeholder in decision for placeholder in DECISION_PLACEHOLDERS):
             errors.append("plan approved nhưng mục 9 (Quyết định duyệt) của phiên bản hiện tại còn chữ mẫu (L-023).")
-        ticket_id = fields.get("ticket", "")
-        for ticket in sorted((ROOT / "docs" / "features").glob(f"*/tickets/{ticket_id}-*.md")) if ticket_id else []:
-            ticket_status = front_matter(ticket.read_text()).get("status", "")
-            if ticket_status in ("backlog", "ready", "planned"):
-                warnings.append(f"plan approved nhưng ticket {ticket_id} đang '{ticket_status}', chưa approved; "
-                                "người duyệt chuyển ticket cùng lúc với plan (L-019).")
     if not re.fullmatch(r"[\d.]+\s*[kKmM]?", fields.get("token_estimate", "")):
         warnings.append("thiếu token_estimate hoặc sai dạng (ví dụ 20M); xem scripts/token-usage.py estimate. "
                         "Chỉ để lập kế hoạch, không chặn task.")
@@ -319,8 +377,9 @@ def check(plan_path):
                    "bằng scripts/check.sh (L-001, L-010).")
         (errors if status == "draft" else warnings).append(message)
     if status in ("draft", "approved"):
-        for message in permission_and_library_problems(text, fields, listed):
+        for message in permission_and_library_problems(text, fields, listed) + check_sh_problems(text, listed):
             (errors if status == "draft" else warnings).append(message)
+    warnings += ticket_status_problems(fields)
     if "## 4. Kiểm thử" not in text:
         warnings.append("không thấy mục 4. Kiểm thử.")
     return errors, warnings

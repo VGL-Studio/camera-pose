@@ -1,16 +1,16 @@
 ---
 ticket: T-020
 title: Camera và màn xem lại trên máy gập
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 8                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
 token_estimate: 30M          # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: []          # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-020: CAMERA VÀ MÀN XEM LẠI TRÊN MÁY GẬP
@@ -195,9 +195,9 @@ Không cần (E dưới 2). Ghi thêm để người duyệt biết: lần chạ
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-23, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
 
 ## 10. Nhật ký thực hiện
 

@@ -442,18 +442,18 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-046: Hết hạn mức GitHub Actions làm mọi job không chạy, trông như CI đỏ
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, T-029 đến T-032.
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, T-029 đến T-032.
 - **Chuyện gì:** sau khi merge PR #49, main-guard đỏ; CI của PR #50 cũng đỏ. Job không chạy bước nào, chú thích của lần chạy ghi "The job was not started because recent account payments have failed or your spending limit needs to be increased". `wait-run.sh` chỉ báo `ĐỎ`, job `guard`, không nói lý do; phải đọc chú thích của check run mới biết. Phiên tự chạy gặp chuyện này sẽ thử sửa code hay chạy lại vô ích, rồi dừng. PR #51 thậm chí không có lần chạy nào, phải đóng rồi mở lại PR sau khi người nâng hạn mức.
 - **Bằng chứng:** main-guard 39916343646 lần 1, pr-check 39916715279 lần 1 và 2 (0 bước); chạy lại sau khi nâng hạn mức thì xanh.
 - **Đề xuất sửa:** `wait-run.sh` thấy job đỏ mà 0 bước thì đọc chú thích của check run và in `HẠ TẦNG: GitHub không cấp máy (<chú thích>)` với mã thoát riêng; `auto-run.md` ghi: gặp mã này thì không sửa code, ghi vào báo cáo, chờ người; `preflight.yml` không phát hiện được (chính nó cũng không chạy), nên `start-run.yml` không bắt đầu phiên khi lần chạy gần nhất của `preflight.yml` không xanh.
-- **Áp dụng:**
+- **Áp dụng:** plan T-033 (`draft`, rủi ro cao): `wait-run.sh` báo `HẠ TẦNG` với mã 4; `auto-run.md` kết thúc phiên mà giữ `running` để `resume-run.yml` tiếp tục khi GitHub chạy lại, rồi chạy lại các lần chạy bị bỏ.
 - **Kiểm chứng:**
 
 ### L-047: `merge-if-green.sh --update` thất bại ở mọi PR vì `docs/STATUS.md`
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #52.
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #52.
 - **Chuyện gì:** cả hai lần dùng `--update` đầu tiên, GitHub trả `422 merge conflict` chỉ vì `docs/STATUS.md`. Mỗi PR sửa trạng thái đều sinh lại trang, nên PR thứ hai trở đi luôn xung đột; `--update` (T-029) gần như không bao giờ dùng được, và mỗi PR tốn thêm một vòng gộp tay cùng một lần CI 15 phút. Cách (c) của L-016 (gộp tay theo hướng dẫn) giữ được an toàn nhưng không bớt vòng nào.
 - **Bằng chứng:** `merge-if-green.sh 51 --update` và `52 --update`, cùng thông báo `gh: merge conflict between base and head (HTTP 422)`; xung đột duy nhất là `docs/STATUS.md`.
 - **Đề xuất sửa:** cách (a) của L-016: PR thường không commit `docs/STATUS.md`; một workflow sinh lại trang trên nhánh chính sau mỗi lần merge, `status.py --check` chỉ chạy trên nhánh chính. Cần ADR, vì workflow đẩy commit lên nhánh chính ngoài `merge-if-green.sh`. Cách nhẹ hơn: `merge-if-green.sh --update` gặp 422 mà xung đột chỉ ở `docs/STATUS.md` thì tự gộp, sinh lại trang và đẩy lên nhánh của PR (không đụng nhánh chính), cần plan rủi ro cao.
-- **Áp dụng:**
+- **Áp dụng:** plan T-034 (`draft`, rủi ro cao): `docs/STATUS.md` không còn trong git; workflow `status-page.yml` sinh trang sau mỗi lần merge và đẩy lên nhánh `status`.
 - **Kiểm chứng:**

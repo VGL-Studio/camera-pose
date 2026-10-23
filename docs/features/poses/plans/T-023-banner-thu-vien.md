@@ -69,7 +69,7 @@ ADR liên quan: ADR-0004 (mọi vị trí khai báo một chỗ trong `AdPlaceme
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt` | Thêm `POSES_BANNER`, `POSES_DETAIL_BANNER`, mỗi vị trí một dòng |
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdSlot.kt` | Tham số `separator`; `BannerView`, `bannerListener`; thu về 0 dp khi tải lỗi |
 | Tạo | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdSlotTest.kt` | Test Robolectric của `AdSlot`, `BannerView`, `bannerListener` (mục 4) |
-| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIdsTest.kt` | `configuredUnits_areParsedPerPlacementKey`: chuỗi cấu hình có mã cho mọi vị trí (mục 4) |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIdsTest.kt` | `configuredUnits_areParsedPerPlacementKey`: chuỗi cấu hình có mã cho mọi vị trí (mục 4). Nếu plan kia (T-018 hay T-023) đã merge trước thì test đã sinh chuỗi từ `entries`: giữ nguyên phần đó, chỉ thêm khẳng định của plan này. |
 | Sửa | `feature/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/PosesScreen.kt` | Tham số `bottomBanner`; `PosesRoute` truyền banner `poses_banner` |
 | Sửa | `feature/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/PosesComponents.kt` | `PosesBottomBanner`, `PosesAdSeparator` |
 | Sửa | `feature/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/detail/PoseDetailScreen.kt` | Tham số `bottomBanner`; `PoseDetailRoute` truyền banner `poses_detail_banner` (file do T-022 tạo) |

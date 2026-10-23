@@ -300,6 +300,31 @@ expect "figma-export: an unfolded frame of the right size has no size note" 0 \
 expect "figma-export: an unfolded frame of the phone size is flagged" 1 \
   "$(grep -c 'CHÚ Ý: khung không phải 673 x 841' "$fold_context/LoadingScreen_failed_dark_unfolded.md")"
 expect "figma-export: spacing matched" 1 "$(grep -c 'cách nhau 16 (md)' "$context/LoadingScreen_failed_light.md")"
+# Opacity of a paint and of a layer, and instances overriding their component's fills, are written (L-023).
+python3 -I - scripts/tests/fixtures/figma-nodes.json "$work/figma-opacity.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1]))
+frame = next(c for c in data["children"] if c["name"] == "LoadingScreen_failed_light")
+title = frame["children"][0]
+title["opacity"] = 0.38
+button = {"id": "1:7", "name": "Retry", "type": "INSTANCE", "componentId": "5:1",
+          "absoluteBoundingBox": {"x": 160, "y": 400, "width": 120, "height": 40},
+          "fills": [{"type": "SOLID", "opacity": 0.12, "color": {"r": 0.114, "g": 0.106, "b": 0.125, "a": 1}}],
+          "overrides": [{"id": "1:7", "overriddenFields": ["fills", "name"]}]}
+frame["children"].append(button)
+near = dict(frame, id="9:9", name="LoadingScreen_failed", children=[])
+data["children"].append(near)
+json.dump(data, open(sys.argv[2], "w"))
+PY
+FIGMA_EXPORT_FEATURES_DIR="$work/opacity" FIGMA_EXPORT_TOKENS=scripts/tests/fixtures/tokens.json \
+  python3 -I scripts/figma-export.py --offline "$work/figma-opacity.json" loading > /dev/null 2> "$work/figma-opacity.err"
+opacity_context="$work/opacity/loading/design/context/LoadingScreen_failed_light.md"
+expect "figma-export: layer opacity is written" 2 "$(grep -cE 'độ mờ của lớp (0.38|\| 0.38)' "$opacity_context")"
+expect "figma-export: paint opacity is named apart" 1 "$(grep -c 'nền #1D1B20 (độ mờ 0.12, lớp tô 0.12)' "$opacity_context")"
+expect "figma-export: an instance overriding its component's fills is flagged" 2 \
+  "$(grep -cE 'CHÚ Ý: ghi đè màu nền của component gốc|\| instance ghi đè component \| Retry \| màu nền \|' "$opacity_context")"
+expect "figma-export: a frame named almost like a screen is reported" 1 \
+  "$(grep -c 'bỏ qua frame "LoadingScreen_failed"' "$work/figma-opacity.err")"
 
 # release.sh must refuse a release folder that is incomplete or holds staging/test values, before touching git.
 release_dir="$work/release"
@@ -583,11 +608,48 @@ expect "token-usage: other branches are shared" 1 "$(grep -c '^| Chung (ngoài t
 token_usage report --since '2026-10-18 00:00 UTC' --run RUN-20261018-01 --csv docs/metrics/t.csv > /dev/null
 expect "token-usage: running again (started_at form) replaces the rows of the run" 3 "$(wc -l < "$tokens/docs/metrics/t.csv" | tr -d ' ')"
 expect "token-usage: the csv keeps the estimate and the total" 1 \
-  "$(grep -c '^RUN-20261018-01,2026-10-18,T-031,M,2000,2,20,200,2000,180,2400$' "$tokens/docs/metrics/t.csv")"
+  "$(grep -c '^RUN-20261018-01,2026-10-18,T-031,M,2000,2,20,200,2000,180,2400,$' "$tokens/docs/metrics/t.csv")"
 expect "token-usage: no transcripts is not a failure" 0 \
   "$(TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/none" python3 -I scripts/token-usage.py report > /dev/null; echo $?)"
 expect "token-usage: estimate falls back to the starting value" 1 \
-  "$(token_usage estimate --csv docs/metrics/t.csv | grep -c '^| M | 1 | 2k | 20.0M (tạm')"
+  "$(token_usage estimate --csv docs/metrics/t.csv | grep -c '^| M | 1 | 2k | 15.0M (tạm')"
+expect "token-usage: starting estimates are S 5M, M 15M, L 30M (L-021)" "5.0M 15.0M 30.0M" \
+  "$(token_usage estimate --csv docs/metrics/none.csv | sed -n 's/^| [SML] | 0 | - | \([0-9.]*M\) (tạm.*/\1/p' | xargs)"
+# The cloud session credit of a run goes on its shared row, once, and survives measuring the run again (L-020).
+expect "token-usage: credit needs a measured run" 1 "$(token_usage credit --run RUN-0 --usd 1 --csv docs/metrics/t.csv > /dev/null; echo $?)"
+expect "token-usage: credit must be a number" 2 "$(token_usage credit --run RUN-20261018-01 --usd abc --csv docs/metrics/t.csv > /dev/null; echo $?)"
+token_usage credit --run RUN-20261018-01 --usd 9.5 --csv docs/metrics/t.csv > /dev/null
+expect "token-usage: credit is written on the shared row only" "1 0" \
+  "$(grep -c '^RUN-20261018-01,2026-10-18,chung,.*,9.5$' "$tokens/docs/metrics/t.csv") $(grep -c '^RUN-20261018-01,2026-10-18,T-031,.*,9.5$' "$tokens/docs/metrics/t.csv")"
+token_usage report --since 2026-10-18T00:00:00Z --run RUN-20261018-01 --csv docs/metrics/t.csv > /dev/null
+expect "token-usage: measuring the run again keeps its credit" 1 "$(grep -c ',chung,.*,9.5$' "$tokens/docs/metrics/t.csv")"
+expect "token-usage: estimate shows the credit per million tokens" 1 \
+  "$(token_usage estimate --csv docs/metrics/t.csv | grep -c '^Credit đã dùng: 9.5 USD cho 4k token ở 1 phiên, khoảng 2638.89 USD mỗi 1M token.$')"
+printf 'run,date,task,size,estimate,requests,input,cache_write,cache_read,output,total\nRUN-1,2026-10-01,T-001,S,,1,1,1,1,1,4\n' \
+  > "$tokens/docs/metrics/old.csv"
+token_usage credit --run RUN-1 --usd 3 --csv docs/metrics/old.csv > /dev/null
+expect "token-usage: an old csv without the credit column is extended, rows kept" \
+  "run,date,task,size,estimate,requests,input,cache_write,cache_read,output,total,credit_usd|RUN-1,2026-10-01,T-001,S,,1,1,1,1,1,4,|RUN-1,2026-10-01,chung,,,0,0,0,0,0,0,3" \
+  "$(paste -sd '|' "$tokens/docs/metrics/old.csv")"
+# Transcripts are found by the repository's name and by its git worktrees, not only by its folder (L-008).
+{
+  usage_line w1 claude/T-031-loading 2026-10-18T02:00:00Z 90 /home/user/token-repo
+  usage_line w2 claude/T-031-loading 2026-10-18T02:00:00Z 90 /home/user/token-repo/app
+  usage_line w3 claude/T-031-loading 2026-10-18T02:00:00Z 90 /home/user/token-repo-other
+  usage_line w4 claude/T-031-loading 2026-10-18T02:00:00Z 90 /home/user/camera-pose
+} > "$work/by-name.jsonl"
+expect "token-usage: a checkout elsewhere with the repository's name is counted" 1 \
+  "$(token_usage report --transcripts "$work/by-name.jsonl" | grep -c '^| T-031 | M | 2k | 2k | 1.2x | 2 |')"
+expect "token-usage: TOKEN_USAGE_REPO sets the repository's name" 1 \
+  "$(TOKEN_USAGE_REPO=camera-pose token_usage report --transcripts "$work/by-name.jsonl" | grep -c '^| T-031 | M | 2k | 1k | 0.6x | 1 |')"
+wt_repo="$work/wt-main"
+mkdir -p "$wt_repo"
+git -C "$wt_repo" init -q
+git -C "$wt_repo" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
+git -C "$wt_repo" worktree add -q "$work/wt-report" 2> /dev/null
+usage_line k1 claude/RUN-1-report 2026-10-18T02:00:00Z 90 "$work/wt-report" > "$work/worktree.jsonl"
+expect "token-usage: a worktree of the repository is counted" 1 \
+  "$(TOKEN_USAGE_ROOT="$wt_repo" python3 -I scripts/token-usage.py report --transcripts "$work/worktree.jsonl" | grep -c '^| Chung (ngoài task) | - | - | 1k | - | 1 |')"
 
 # status.py builds the progress page from the statuses in the documents.
 st="$work/status-repo/docs"
@@ -687,7 +749,7 @@ chmod +x "$work/bin/adb"
 fixtures=scripts/tests/fixtures/device-session
 session() { # <logcat fixture> <command...>; prints the exit code
   local code=0
-  PATH="$work/bin:$PATH" DEVICE_SESSION_DIR="$work/sessions" DEVICE_SESSION_REPORTS="$work/reports" \
+  PATH="$work/bin:$PATH" DEVICE_SESSION_DIR="$work/sessions" DEVICE_SESSION_REPORTS="$work/reports" DEVICE_SESSION_RUNS="$work/runs" \
     APP_PACKAGE=com.example.app.staging \
     FAKE_ADB_LOGCAT="$1" scripts/device-session.sh "${@:2}" > "$work/session.out" 2>&1 || code=$?
   echo "$code"
@@ -719,9 +781,20 @@ cp "$fixtures/logcat-clean.txt" "$work/clean/logcat.txt"
 expect "device-session: a clean session is not blocking" 0 "$(session /dev/null summary "$work/clean" com.example.app.staging)"
 # The offline scenario turns every radio off and runs only when the device really has no network (L-031).
 export DEVICE_SESSION_SLEEP=0 FAKE_ADB_CALLS="$work/adb-calls.txt"
+# An emulator session named only in an auto-run report keeps its id (L-026 of camera-pose).
+mkdir -p "$work/runs"
+printf 'Kiểm thử trên máy ảo: phiên TS-%s-04, không có báo cáo riêng.\n' "$(date +%Y%m%d)" > "$work/runs/RUN-1.md"
+# Runtime permissions are granted after each data clear, so a prompt left open does not cover a cold start (L-009).
+export FAKE_ADB_RUNTIME_PERMISSIONS="android.permission.CAMERA android.permission.POST_NOTIFICATIONS"
 expect "device-session: scenarios run offline" 0 \
   "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null; session /dev/null scenarios --yes)"
 offline="$(find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1)"
+expect "device-session: an id named in an auto-run report is skipped" "TS-$(date +%Y%m%d)-05 no" \
+  "$(basename "$offline") $([[ -e "$work/sessions/TS-$(date +%Y%m%d)-04" ]] && echo yes || echo no)"
+expect "device-session: every runtime permission is granted after each data clear" "2 2 0" \
+  "$(grep -c '^shell pm grant com.example.app.staging android.permission.CAMERA$' "$FAKE_ADB_CALLS") $(grep -c 'pm grant .*POST_NOTIFICATIONS$' "$FAKE_ADB_CALLS") $(grep -c 'pm grant .*INTERNET' "$FAKE_ADB_CALLS")"
+expect "device-session: granted permissions are recorded" 2 \
+  "$(grep -c '^permissions granted=CAMERA,POST_NOTIFICATIONS$' "$offline/scenarios.txt")"
 expect "device-session: Wi-Fi and mobile data are turned off, then on" "4" \
   "$(grep -cE '^shell svc (wifi|data) (disable|enable)$' "$FAKE_ADB_CALLS")"
 expect "device-session: the offline launch is recorded" 1 "$(grep -c 'offline_first_launch network=off' "$offline/scenarios.txt")"
@@ -735,7 +808,19 @@ expect "device-session: the skipped offline launch is recorded" 1 \
 session /dev/null stop > /dev/null
 expect "device-session: summary shows the skipped offline scenario" 1 \
   "$(grep -c '^| Kịch bản mất mạng bị bỏ qua (không tắt được mạng) | 1 | xem |' "$offline/summary.md")"
-unset DEVICE_SESSION_SLEEP FAKE_ADB_CALLS
+: > "$FAKE_ADB_CALLS"
+expect "device-session: scenarios refuse an unknown option" 1 \
+  "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null; session /dev/null scenarios --yes --grant)"
+expect "device-session: --ask-permissions keeps the permission prompts" 0 "$(session /dev/null scenarios --yes --ask-permissions)"
+offline="$(find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1)"
+expect "device-session: no grant when asking, and it is recorded" "0 2" \
+  "$(grep -c 'pm grant' "$FAKE_ADB_CALLS") $(grep -c '^permissions ask$' "$offline/scenarios.txt")"
+session /dev/null stop > /dev/null
+expect "device-session: a refused grant is recorded" 2 \
+  "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null; FAKE_ADB_GRANT_FAILS=android.permission.CAMERA session /dev/null scenarios --yes > /dev/null
+     grep -c '^permissions granted=POST_NOTIFICATIONS failed=CAMERA$' "$(find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1)/scenarios.txt")"
+session /dev/null stop > /dev/null
+unset DEVICE_SESSION_SLEEP FAKE_ADB_CALLS FAKE_ADB_RUNTIME_PERMISSIONS
 
 # app-explore: the guard refuses taps that would open an ad or start a purchase (docs/ops/clone-study.md).
 ax_fixtures=scripts/tests/fixtures/app-explore

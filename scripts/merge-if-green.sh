@@ -2,12 +2,13 @@
 # Merges a PR into the main branch, only when it passes the whole quality gate (ADR-0010).
 # This is the ONLY allowed way to merge into main, for people and AI alike.
 #
-# Usage:       scripts/merge-if-green.sh <PR number> [--dry-run]
+# Usage:       scripts/merge-if-green.sh <PR number> [--dry-run | --update]
 #              --dry-run: check the conditions only, do not merge.
+#              --update:  a branch behind main is updated by GitHub (merge of main into it), then exit 2.
 # Exit codes:  0 merged
 #              1 refused (a condition is not met, see the message)
-#              2 checks still running, call again later
-#              3 branch is behind main: update it, wait for CI, then call again
+#              2 checks still running, or (--update) branch just updated: wait for CI, then call again
+#              3 branch is behind main (without --update): update it, wait for CI, then call again
 #
 # Uses only the GitHub REST API through `gh api`.
 # Changing this file changes the quality gate: high-risk plan, cross-review required.
@@ -27,10 +28,15 @@ wait_() { echo "CHƯA XONG: $*" >&2; exit 2; }
 # Strict argument check: any unknown argument (including a mistyped --dry-run) is refused,
 # so a real merge never happens when the caller only wanted a dry run.
 DRY_RUN="no"
+UPDATE="no"
 case "$#" in
   1) ;;
-  2) [[ "$2" == "--dry-run" ]] || die "tham số thứ hai không hợp lệ: '$2'. Chỉ chấp nhận --dry-run." ; DRY_RUN="yes" ;;
-  *) die "cách dùng: scripts/merge-if-green.sh <số PR> [--dry-run]" ;;
+  2) case "$2" in
+       --dry-run) DRY_RUN="yes" ;;
+       --update) UPDATE="yes" ;;
+       *) die "tham số thứ hai không hợp lệ: '$2'. Chỉ chấp nhận --dry-run hoặc --update." ;;
+     esac ;;
+  *) die "cách dùng: scripts/merge-if-green.sh <số PR> [--dry-run | --update]" ;;
 esac
 [[ "$1" =~ ^[0-9]+$ ]] || die "tham số đầu tiên phải là số PR, nhận được '$1'."
 PR="$1"
@@ -107,6 +113,13 @@ done
 # The PR branch must contain the latest commit of main.
 BEHIND_BY="$(gh api "repos/$REPO/compare/$BASE_BRANCH...$HEAD_SHA" --jq .behind_by)"
 if [[ "$BEHIND_BY" != "0" ]]; then
+  # --update (plan T-029, L-017): GitHub merges main into the branch, pinned to the checked head. A conflict makes
+  # GitHub refuse (422); nothing is merged by hand here. The new commit needs its own CI run, so exit 2.
+  if [[ "$UPDATE" == "yes" ]]; then
+    gh api "repos/$REPO/pulls/$PR/update-branch" -X PUT -f expected_head_sha="$HEAD_SHA" >/dev/null \
+      || die "GitHub không cập nhật được nhánh '$HEAD_REF' (xung đột với nhánh chính?). Cập nhật bằng tay: gộp '$BASE_BRANCH' vào nhánh rồi đẩy."
+    wait_ "đã cập nhật nhánh '$HEAD_REF' theo '$BASE_BRANCH'. Chờ CI của commit mới (scripts/wait-run.sh --pr $PR) rồi gọi lại."
+  fi
   echo "CẦN CẬP NHẬT: nhánh '$HEAD_REF' chậm $BEHIND_BY commit so với '$BASE_BRANCH'. Cập nhật nhánh, chờ CI chạy lại rồi gọi lại script." >&2
   exit 3
 fi
@@ -124,7 +137,17 @@ check_one() {
   [[ -n "$latest" ]] || wait_ "chưa thấy kiểm tra '$name' trên commit ${HEAD_SHA:0:7}."
   status="$(jq -r .status <<<"$latest")"
   conclusion="$(jq -r .conclusion <<<"$latest")"
-  [[ "$status" == "completed" ]] || wait_ "kiểm tra '$name' đang ở trạng thái $status."
+  if [[ "$status" != "completed" ]]; then
+    # A check run can stay queued or in_progress after its workflow run finished (L-017). Trust it only when the
+    # check suite holding it completed with success; any other suite state still means "wait".
+    suite="$(jq -r '.check_suite.id // empty' <<<"$latest")"
+    if [[ -n "$suite" ]] && gh api "repos/$REPO/check-suites/$suite" --jq '[.status, .conclusion] | join(" ")' 2>/dev/null \
+        | grep -qx 'completed success'; then
+      echo "CHÚ Ý: kiểm tra '$name' còn ghi '$status' nhưng lần chạy chứa nó đã xong và xanh; coi là xanh." >&2
+      return 0
+    fi
+    wait_ "kiểm tra '$name' đang ở trạng thái $status."
+  fi
   if [[ "$conclusion" == "success" ]]; then return 0; fi
   if [[ "$allow_skip" == "yes" && "$conclusion" == "skipped" ]]; then return 0; fi
   die "kiểm tra '$name' kết thúc với kết quả '$conclusion'."
@@ -132,6 +155,16 @@ check_one() {
 
 for c in "${REQUIRED_CHECKS[@]}"; do check_one "$c" no; done
 for c in "${SKIPPABLE_CHECKS[@]}"; do check_one "$c" yes; done
+
+# A last commit pushed less than 3 minutes ago: warn, do not refuse (plan T-029, L-018). A commit pushed after the
+# merge does not reach main, so a caller still pushing should wait. MERGE_IF_GREEN_NOW replaces the clock in tests.
+PUSHED_AT="$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq '.commit.committer.date // empty' 2>/dev/null || true)"
+if [[ -n "$PUSHED_AT" ]]; then
+  AGE="$(jq -rn --arg d "$PUSHED_AT" --argjson now "${MERGE_IF_GREEN_NOW:-$(date -u +%s)}" '$now - ($d | fromdateiso8601)' 2>/dev/null || true)"
+  if [[ "$AGE" =~ ^-?[0-9]+$ ]] && (( AGE < 180 )); then
+    echo "CHÚ Ý: commit cuối ${HEAD_SHA:0:7} của '$HEAD_REF' đẩy lúc $PUSHED_AT, chưa tới 3 phút. Còn commit sắp đẩy thì chờ, vì commit đẩy sau khi merge không vào nhánh chính (L-018)." >&2
+  fi
+fi
 
 if [[ "$DRY_RUN" == "yes" ]]; then
   echo "SẴN SÀNG: PR #$PR ($TITLE) tại commit ${HEAD_SHA:0:7} đủ điều kiện merge (chạy thử, chưa merge)."

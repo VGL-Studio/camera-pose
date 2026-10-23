@@ -68,7 +68,8 @@ expect "start of history: blame the oldest red" bbbbbb2 "$(find_breaking '{
   "ddddd04":{"parent":"bbbbbb2","states":["failure"]}}')"
 
 # merge-if-green.sh must reject any argument other than exactly "<PR> [--dry-run]" before doing anything.
-for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" ""; do
+for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" "" \
+  "12 --update extra" "12 --updat" "12 --update --dry-run"; do
   # shellcheck disable=SC2086
   if PATH="$work/bin:$PATH" scripts/merge-if-green.sh $args > /dev/null 2>&1; then
     expect "merge-if-green rejects '$args'" rejected accepted
@@ -102,6 +103,78 @@ expect "merge-if-green ignores finished runs" 3 "$(merge_during_run claude/templ
 expect "merge-if-green refuses a PR labelled needs-human" 1 \
   "$(merge_during_run claude/fix-T-002-x finished '[{"name": "needs-human"}]')"
 expect "merge-if-green accepts other labels" 3 "$(merge_during_run claude/template-x finished '[{"name": "docs"}]')"
+expect "merge-if-green without --update does not update the branch" 0 \
+  "$(cat "$work/merge.json.writes" 2>/dev/null | grep -c update-branch || true)"
+
+# merge-if-green.sh --update (plan T-029, L-017): a branch behind main is updated by GitHub, then exit 2 ("wait for CI").
+# Every check that comes before still refuses first (L-044).
+merge_update() { # <head ref> <run status> <main-broken issues JSON> [fail_writes JSON]; prints the exit code
+  rm -f "$work/update.json.writes"
+  cat > "$work/update.json" << JSON
+{"fail_writes": ${4:-[]},
+ "routes": {
+  "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "abc1234", "ref": "$1"}, "title": "t", "labels": []},
+  "issues?state=open&labels=main-broken&per_page=10": $3,
+  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
+  "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: $2\n---\n",
+  "compare/main...abc1234": {"behind_by": 2}
+}}
+JSON
+  local code=0
+  PATH="$work/bin:$PATH" FIXTURE="$work/update.json" scripts/merge-if-green.sh 12 --update > "$work/update.out" 2>&1 || code=$?
+  echo "$code"
+}
+update_writes() { cat "$work/update.json.writes" 2>/dev/null | grep -c '^PUT pulls/12/update-branch$' || true; }
+expect "merge-if-green --update updates a branch behind main" 2 "$(merge_update claude/template-x finished '[]')"
+expect "merge-if-green --update asks GitHub to update the branch" 1 "$(update_writes)"
+expect "merge-if-green --update says to wait for CI" 1 "$(grep -c '^CHƯA XONG: đã cập nhật nhánh' "$work/update.out")"
+expect "merge-if-green --update refuses when GitHub cannot update" 1 \
+  "$(merge_update claude/template-x finished '[]' '["PUT pulls/12/update-branch"]')"
+expect "merge-if-green --update says GitHub could not update" 1 "$(grep -c 'không cập nhật được nhánh' "$work/update.out")"
+expect "merge-if-green --update still refuses a person's PR while a run is running" 1 \
+  "$(merge_update claude/template-x running '[]')"
+expect "merge-if-green --update does not update a refused PR" 0 "$(update_writes)"
+expect "merge-if-green --update still refuses while main is broken" 1 \
+  "$(merge_update claude/template-x finished '[{"number": 7, "body": "Nhánh chính đỏ."}]')"
+expect "merge-if-green --update does not update while main is broken" 0 "$(update_writes)"
+
+# A check run still queued or in progress whose check suite completed with success counts as green (plan T-029, L-017).
+# A commit pushed less than 3 minutes ago gets a warning, not a refusal (L-018).
+merge_checks() { # <changes status> <suite answer> <commit date>; prints the exit code
+  local changes_conclusion=null
+  [[ "$1" == "completed" ]] && changes_conclusion='"success"'
+  cat > "$work/checks.json" << JSON
+{"routes": {
+  "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "abc1234", "ref": "claude/template-x"}, "title": "t", "labels": []},
+  "issues?state=open&labels=main-broken&per_page=10": [],
+  "branches?per_page=100": [{"name": "main"}],
+  "compare/main...abc1234": {"behind_by": 0},
+  "commits/abc1234/check-runs?per_page=100": {"check_runs": [
+    {"name": "changes", "status": "$1", "conclusion": $changes_conclusion, "started_at": "2026-10-23T08:00:00Z", "check_suite": {"id": 77}},
+    {"name": "build-and-test", "status": "completed", "conclusion": "success", "started_at": "2026-10-23T08:00:10Z", "check_suite": {"id": 77}},
+    {"name": "ui-test", "status": "completed", "conclusion": "skipped", "started_at": "2026-10-23T08:00:10Z", "check_suite": {"id": 77}}]},
+  "check-suites/77": $2,
+  "commits/abc1234": {"sha": "abc1234", "commit": {"committer": {"date": "$3"}}}
+}}
+JSON
+  local code=0
+  PATH="$work/bin:$PATH" FIXTURE="$work/checks.json" MERGE_IF_GREEN_NOW=1792742400 \
+    scripts/merge-if-green.sh 12 --dry-run > "$work/checks.out" 2>&1 || code=$?
+  echo "$code"
+}
+# MERGE_IF_GREEN_NOW=1792742400 is 2026-10-23T08:00:00Z.
+suite_ok='{"id": 77, "status": "completed", "conclusion": "success"}'
+expect "merge-if-green treats a stuck check as green when its suite succeeded" 0 \
+  "$(merge_checks in_progress "$suite_ok" 2026-10-23T07:50:00Z)"
+expect "merge-if-green says it trusted the suite" 1 "$(grep -c "^CHÚ Ý: kiểm tra 'changes'" "$work/checks.out")"
+expect "merge-if-green waits for a check whose suite is still running" 2 \
+  "$(merge_checks queued '{"id": 77, "status": "in_progress", "conclusion": null}' 2026-10-23T07:50:00Z)"
+expect "merge-if-green does not trust a failed suite" 2 \
+  "$(merge_checks in_progress '{"id": 77, "status": "completed", "conclusion": "failure"}' 2026-10-23T07:50:00Z)"
+expect "merge-if-green warns about a commit pushed a minute ago" 0 "$(merge_checks completed "$suite_ok" 2026-10-23T07:59:00Z)"
+expect "merge-if-green names the fresh commit" 1 "$(grep -c "^CHÚ Ý: commit cuối abc1234" "$work/checks.out")"
+expect "merge-if-green does not warn about an older commit" 0 "$(merge_checks completed "$suite_ok" 2026-10-23T07:50:00Z)"
+expect "merge-if-green has no warning for an older commit" 0 "$(grep -c "^CHÚ Ý" "$work/checks.out" || true)"
 
 # failure-kind.sh (ADR-1002, point 1): "tests" only when every failed Gradle task is a test task with failing tests.
 failure_kind() { printf '%b' "$1" > "$work/fk.log"; scripts/failure-kind.sh "$work/fk.log"; }
@@ -798,6 +871,124 @@ expect "env-canary: old setup script is red" "POST issues;" "$(canary "$work/fai
 expect "env-canary: green closes the open issue" "POST issues/7/comments;PATCH issues/7;" \
   "$(canary "$work/pass.sh" "$work/pass.sh" '[{"number": 7}]')"
 expect "env-canary: green with nothing open changes nothing" "" "$(canary "$work/pass.sh" "$work/pass.sh" '[]')"
+
+# preflight.sh checks the staging environment on GitHub before a session (plan T-030, L-002, L-011, L-012, L-027).
+# dig, curl and firebase are replaced by fakes reading answers from $pf; secret values carry markers that must never
+# appear in the output.
+pf="$work/preflight"
+mkdir -p "$pf/curl"
+cat > "$work/bin/fake-dig" << 'SH'
+#!/usr/bin/env bash
+# Answers from $PF/dig-<server>; records its arguments.
+echo "$*" >> "$PF/dig.args"
+for a in "$@"; do case "$a" in @*) server="${a#@}" ;; esac; done
+cat "$PF/dig-$server" 2>/dev/null || true
+SH
+cat > "$work/bin/fake-curl" << 'SH'
+#!/usr/bin/env bash
+# The status code for a URL is the first line of $PF/curl/<path with / as _>, consumed one per call; default 200.
+url="${*: -1}"; key="$(sed -E 's#^https?://[^/]+/##; s#/#_#g' <<< "$url")"; f="$PF/curl/$key"
+if [[ -s "$f" ]]; then code="$(head -n 1 "$f")"; [[ "$(wc -l < "$f")" -gt 1 ]] && sed -i.bak 1d "$f"; else code=200; fi
+printf '%s' "$code"
+SH
+cat > "$work/bin/fake-firebase" << 'SH'
+#!/usr/bin/env bash
+# Prints $PF/groups.json and exits with the code in $PF/firebase-exit (default 0).
+code="$(cat "$PF/firebase-exit" 2>/dev/null || echo 0)"
+[[ "$code" == 0 ]] && cat "$PF/groups.json"
+exit "$code"
+SH
+chmod +x "$work/bin/fake-dig" "$work/bin/fake-curl" "$work/bin/fake-firebase"
+staging_client='{"client_info": {"android_client_info": {"package_name": "com.vglstudio.camera.pose.line.guide.staging"}}, "api_key": [{"current_key": "MARKER-SECRET-1"}]}'
+other_client='{"client_info": {"android_client_info": {"package_name": "com.example.other"}}, "api_key": [{"current_key": "MARKER-SECRET-1"}]}'
+google_services() { # <project_id> <client JSON>
+  printf '{"project_info": {"project_id": "%s", "project_number": "987654321"}, "client": [%s]}' "$1" "$2"
+}
+preflight_reset() { # sets up a ready environment; a test then breaks one thing
+  rm -rf "$pf"; mkdir -p "$pf/curl"
+  google_services proj-test-1 "$staging_client" > "$pf/google-services.json"
+  echo '{"type": "service_account", "private_key": "MARKER-SECRET-1"}' > "$pf/credentials.json"
+  echo '{"status": "success", "result": [{"name": "projects/987654321/groups/team", "displayName": "Team"}, {"alias": "qa"}]}' > "$pf/groups.json"
+  printf '104.21.40.144\n172.67.153.9\n' > "$pf/dig-1.1.1.1"
+  printf '104.21.40.144\n' > "$pf/dig-8.8.8.8"
+  printf '# Required files\n\nposes/catalog/v1/catalog-587b5394.json\n' > "$pf/assets.txt"
+}
+preflight() { # prints the exit code; output in $pf/out, step summary in $pf/summary
+  local code=0
+  PF="$pf" GOOGLE_SERVICES_FILE="${PF_GOOGLE:-$pf/google-services.json}" \
+    DISTRIBUTION_CREDENTIALS_FILE="$pf/credentials.json" TESTER_GROUPS="${PF_GROUPS:-team}" \
+    REQUIRED_ASSETS="$pf/assets.txt" DIG_CMD="$work/bin/fake-dig" CURL_CMD="$work/bin/fake-curl" \
+    FIREBASE_CMD="$work/bin/fake-firebase" PREFLIGHT_RETRY_SECONDS=0 GITHUB_STEP_SUMMARY="$pf/summary" \
+    scripts/preflight.sh > "$pf/out" 2>&1 || code=$?
+  cat "$pf/out" >> "$work/preflight-all.out"; cat "$pf/summary" >> "$work/preflight-all.out" 2>/dev/null || true
+  echo "$code"
+}
+pf_lines() { grep -c "$1" "$pf/out" || true; }
+: > "$work/preflight-all.out"
+
+preflight_reset
+expect "preflight: a ready environment passes" 0 "$(preflight)"
+expect "preflight: a ready environment has one QUA line per check" 4 "$(pf_lines '^QUA: ')"
+expect "preflight: the domain is read from app/build.gradle.kts" 2 "$(grep -c 'camera-pose.vgl.io.vn' "$pf/dig.args" 2>/dev/null || true)"
+expect "preflight: existing tester groups pass" 0 "$(PF_GROUPS=team,qa preflight)"
+
+preflight_reset; google_services fake-staging-project "$staging_client" > "$pf/google-services.json"
+expect "preflight: a fake google-services is refused" 1 "$(preflight)"
+expect "preflight: says the google-services is the fake one" 1 "$(pf_lines '^LỖI: .*file cấu hình giả')"
+preflight_reset; google_services proj-test-1 "$other_client" > "$pf/google-services.json"
+expect "preflight: google-services without the staging app is refused" 1 "$(preflight)"
+expect "preflight: names the missing staging app" 1 "$(pf_lines '^LỖI: .*com.vglstudio.camera.pose.line.guide.staging')"
+preflight_reset
+expect "preflight: missing secret is refused" 1 "$(PF_GOOGLE="$pf/none.json" preflight)"
+expect "preflight: names the missing secret" 1 "$(pf_lines '^LỖI: thiếu bí mật STAGING_GOOGLE_SERVICES_JSON')"
+preflight_reset; echo 'not json MARKER-SECRET-1' > "$pf/google-services.json"
+expect "preflight: a secret that is not JSON is refused" 1 "$(preflight)"
+expect "preflight: says the secret is not JSON" 1 "$(pf_lines '^LỖI: .*không phải JSON')"
+
+preflight_reset; echo '{"result": [{"alias": "other"}]}' > "$pf/groups.json"
+expect "preflight: a missing tester group is refused" 1 "$(preflight)"
+expect "preflight: names the missing tester group" 1 "$(pf_lines '^LỖI: App Distribution chưa có nhóm team')"
+preflight_reset; echo 127 > "$pf/firebase-exit"
+expect "preflight: a groups command that cannot run only warns" 0 "$(preflight)"
+expect "preflight: warns it could not check the groups" 1 "$(pf_lines '^CHÚ Ý: không kiểm được nhóm người test')"
+
+preflight_reset; : > "$pf/dig-8.8.8.8"
+expect "preflight: a domain one public DNS cannot resolve is refused" 1 "$(preflight)"
+expect "preflight: names the DNS server and the domain" 1 "$(pf_lines '^LỖI: camera-pose.vgl.io.vn không phân giải được qua 8.8.8.8')"
+
+preflight_reset; printf 'poses/a.json\n#poses/commented.json\n\nposes/b.json\n' > "$pf/assets.txt"; echo 404 > "$pf/curl/poses_b.json"
+expect "preflight: a missing R2 file is refused" 1 "$(preflight)"
+expect "preflight: names the missing R2 file" 1 "$(pf_lines '^LỖI: poses/b.json trả 404')"
+expect "preflight: comments and blank lines of the list are skipped" 0 "$(pf_lines 'commented')"
+preflight_reset; printf '000\n200\n' > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
+expect "preflight: a connection that fails once is retried" 0 "$(preflight)"
+preflight_reset; printf '000\n000\n' > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
+expect "preflight: a connection that keeps failing is refused" 1 "$(preflight)"
+
+preflight_reset; google_services fake-staging-project "$staging_client" > "$pf/google-services.json"; echo 404 > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
+expect "preflight: reports every failing check" 2 "$(preflight > /dev/null; pf_lines '^LỖI: ')"
+expect "preflight: never prints secret values" 0 "$(grep -c 'MARKER-SECRET-1\|proj-test-1\|987654321' "$work/preflight-all.out" || true)"
+
+# java-check.sh stops check.sh before Gradle when Java cannot run the project's Gradle (L-022).
+fake_java() { # <version line>; writes a fake java printing it like `java -version`
+  printf '#!/bin/sh\necho '"'"'%s'"'"' >&2\necho "OpenJDK Runtime Environment" >&2\n' "$1" > "$work/bin/fake-java"
+  chmod +x "$work/bin/fake-java"
+}
+java_check() { local code=0; JAVA_CMD="${1:-$work/bin/fake-java}" scripts/java-check.sh > "$work/java.out" 2>&1 || code=$?; echo "$code"; }
+fake_java 'openjdk version "17.0.12" 2024-07-16'
+expect "java-check: Java 17 passes" 0 "$(java_check)"
+fake_java 'openjdk version "21.0.13" 2025-10-21 LTS'
+expect "java-check: Java 21 passes" 0 "$(java_check)"
+fake_java 'openjdk version "26" 2026-03-17'
+expect "java-check: Java 26 is refused with a JAVA_HOME hint" "1 1" "$(java_check) $(grep -c 'JAVA_HOME' "$work/java.out" | tr -d ' ' | sed 's/^[1-9][0-9]*$/1/')"
+fake_java 'java version "1.8.0_392"'
+expect "java-check: Java 1.8 is refused" 1 "$(java_check)"
+expect "java-check: names Java 8" 1 "$(grep -c '^LỖI: Java 8 ' "$work/java.out" || true)"
+expect "java-check: no java is refused" 1 "$(java_check "$work/bin/no-such-java")"
+java_line="$(grep -n 'scripts/java-check.sh' scripts/check.sh | head -n 1 | cut -d: -f1 || true)"
+gradle_line="$(grep -n '"${GRADLE\[@\]}"' scripts/check.sh | head -n 1 | cut -d: -f1 || true)"
+expect "check.sh calls java-check.sh before the first Gradle call" yes \
+  "$([[ -n "$java_line" && "$java_line" -lt "$gradle_line" ]] && echo yes || echo no)"
 
 # device-session.sh records a test session and counts crashes and ANRs; adb is replaced by scripts/tests/fake-adb.
 cp scripts/tests/fake-adb "$work/bin/adb"

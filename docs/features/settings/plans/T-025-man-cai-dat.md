@@ -1,7 +1,7 @@
 ---
 ticket: T-025
 title: Màn cài đặt
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -432,3 +432,25 @@ Plan chạm hộp thoại đồng ý: người phụ trách sản phẩm cần b
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261023-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #45, commit 0c420bb, 03:05 UTC).
+- **Nhánh, PR:** `claude/T-025-man-cai-dat`, PR #45. Commit: f9dc48f (test và khung), e649b21 (code), 07830e6 (9 ảnh chuẩn), 64ed778 (đối chiếu thiết kế).
+- **Đã làm:** đủ mục 3.1 và 3.2 (80 file, đều trong danh sách; `ic_chevron_right.xml` không tạo, xem dưới). Nối `onOpenSettings` cho cả camera và thư viện tư thế (`posesScreen` đã có tham số này từ T-021). Bước 2 đến 5 do một phiên AI viết code riêng làm; phiên chính kiểm danh sách file, chạy rà soát độc lập, mở PR. Điều kiện dừng mục 7: điều 1, 2 không xảy ra (`takePicture()`, hàm dựng ViewModel của test camera, tham số `onOpenSettings`, `privacyOptionsRequired`, `showPrivacyOptionsForm` còn nguyên); điều 4: lint chỉ cảnh báo (`InlinedApi`, `UnusedAttribute`); điều 5: `SettingsNavigationTest` xanh trên CI ngay lần đầu; điều 3, 6 chỉ kiểm được bằng tay (mục 4).
+- **Test viết trước:** 82 test JVM, 9 screenshot test (7 màn cài đặt, 2 trang catalog), `SettingsNavigationTest` (emulator, chỉ biên dịch cục bộ). 80 test thất bại đúng lý do trên khung rỗng (trạng thái luôn `Loading`, không có node hay lần ghi, chuỗi rỗng thay đường dẫn chính sách, cao 0 dp, `soundCalls` luôn `[true]`, `isDark` luôn `false`, `languageToApply` luôn `null`, `locales_config` chỉ có `en`). 9 test qua trên khung được thêm bước đối chứng trước commit test rồi thất bại đúng lý do. Qua ngay như mục 4: 2 test `SettingsStringsTest`, 9 screenshot test.
+- **Rà soát độc lập:** 0 chặn, 2 nên sửa (cả hai để người quyết, không sửa trong PR), các ghi chú.
+  - Núm công tắc bật ở bản tối: code dùng `onPrimary` (mục 3.1 của plan, `docs/design-system/sticker.md`); frame tối của thiết kế dùng #1E1E1E viền #FFFFFF dày 2, mà `context/` đánh dấu "ngoài hệ thống"; `Switch` của Material 3 không vẽ viền núm. Phiên không coi là mâu thuẫn phải dừng (điều kiện dừng 3): plan chủ ý quy về token và CLAUDE.md cấm viết cứng mã màu. Người chọn: sửa frame Figma, hay đổi token ở plan sau.
+  - Lint `AppBundleLocaleChanges`: bản AAB tách theo ngôn ngữ thì máy dưới Android 13 chọn ngôn ngữ khác ngôn ngữ máy có thể không có chữ (KB-4). Bản staging cài APK nên kiểm tra thủ công không thấy. Cần plan riêng (`bundle { language { enableSplit = false } }` trong `app/build.gradle.kts`, ngoài phạm vi plan này) trước bản production.
+  - Ghi chú: đọc DataStore lỗi IO thì âm chụp về mặc định bật; người đã chọn ngôn ngữ ở Android 12 rồi lên 13 thì lựa chọn cũ bị bỏ qua; chú thích "until T-025 wires it" ở `feature/poses/.../navigation/PosesNavigation.kt:13` đã lỗi thời (file ngoài danh sách); `LIGHT_SCRIM`, `DARK_SCRIM` cần đối chiếu lại khi nâng androidx.activity; các `TextButton` đúng vai trò màu.
+- **Kết quả CI:** lần chạy 39892202359 (64ed778): `changes`, `build-and-test`, `ui-test` (gồm `SettingsNavigationTest`) xanh vòng đầu. `scripts/check.sh` cục bộ qua: 741 test JVM, 0 lỗi, 65 ảnh screenshot.
+- **Lệch so với plan:**
+  - `ic_chevron_right.xml` không tạo: file đã có từ T-014 (kiểu Outlined, plan ghi Rounded); ghi đè sẽ đổi `StepCard` và ảnh chuẩn của camera, catalog. `scripts/plan-check.py` đã cảnh báo điểm này ở đầu task. 8 biểu tượng mới kiểu Rounded từ `google/material-design-icons@49d4db3`.
+  - `SettingsStringsTest.everyReleaseLanguage_isTranslated` miễn một cặp `es-419`/`settings_section_general`: bảng dịch của plan ghi "General" giống hệt tiếng Anh, mâu thuẫn với mô tả test "mỗi khóa khác chữ tiếng Anh". Phần miễn có từ commit test, hẹp nhất có thể.
+  - `small_languageDialog_allOptionsReachable` sửa sau bước 3 (một lần): bỏ `performScrollTo()` trên nút "Hủy" vì nút không nằm trong vùng cuộn; vẫn `assertIsDisplayed`, nên nút phải hiện mà không cần cuộn (chặt hơn).
+  - `SettingsNavigationTest` bấm Back qua `onBackPressedDispatcher.onBackPressed()` (không có Espresso trên classpath của `androidTest`).
+  - `settingsScreen(onBack)` chỉ `popBackStack()` khi màn cài đặt ở trên cùng (như T-016, T-021).
+  - `LIGHT_SCRIM`, `DARK_SCRIM` chép giá trị mặc định của androidx vào `MainActivity` (thư viện để `internal`).
+  - `ChoiceDialog` chỉ cho danh sách lựa chọn cuộn; test dùng icon giả `ColorPainter` để đo màu và tìm dòng theo vị trí dọc.
+- **Việc còn lại:** kiểm tra thủ công ở mục 4, nhất là điều kiện dừng 3 (ngôn ngữ dưới Android 13 trên API 30) và 6 (thời gian khởi động); plan riêng cho `AppBundleLocaleChanges` trước bản production.
+- **Cần người xem:** 9 ảnh chuẩn mới (nhất là `SettingsScreen_language-picker_small.png`); ảnh so sánh `docs/features/settings/design/review/` (hộp chọn: dải 24 dp không có lớp mờ trong screenshot, thẻ lệch khoảng 4 dp); quyết định màu núm công tắc ở bản tối; báo người phụ trách sản phẩm: lối vào hộp đồng ý quảng cáo trong cài đặt đã có trên staging.

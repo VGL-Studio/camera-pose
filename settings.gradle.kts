@@ -34,6 +34,7 @@ include(":core:assets")
 include(":core:logging")
 include(":core:network")
 include(":core:poses")
+include(":core:review")
 
 include(":feature:sample")
 include(":feature:loading")

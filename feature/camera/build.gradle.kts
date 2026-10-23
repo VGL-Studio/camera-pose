@@ -12,6 +12,8 @@ dependencies {
     implementation(project(":core:network"))
     // Pose catalog, images and history (plan T-009, question 7; T-014).
     implementation(project(":core:poses"))
+    // Asks for a store review after a saved photo (plan T-019).
+    implementation(project(":core:review"))
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)

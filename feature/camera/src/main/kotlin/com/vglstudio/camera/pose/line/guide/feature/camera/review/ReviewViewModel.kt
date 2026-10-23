@@ -51,6 +51,9 @@ class ReviewViewModel @Inject constructor(
     private val state = MutableStateFlow<ReviewUiState>(ReviewUiState.Loading)
     val uiState: StateFlow<ReviewUiState> = state.asStateFlow()
 
+    /** Photos saved since install, for the review request (plan T-019). */
+    val savedCount: StateFlow<Int> = MutableStateFlow(0)
+
     private val eventChannel = Channel<ReviewEvent>(Channel.BUFFERED)
     val events: Flow<ReviewEvent> = eventChannel.receiveAsFlow()
 

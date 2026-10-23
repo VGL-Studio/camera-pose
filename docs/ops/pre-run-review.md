@@ -43,7 +43,7 @@ Nội dung giao việc tối thiểu: "Rà soát danh sách chạy `<đường d
 - Tiêu chí về hình ảnh (màu, viền, vị trí) phải kiểm bằng hình ảnh hay số đo, không chỉ bằng cây ngữ nghĩa (L-004, L-010).
 - Khung test tái hiện được nơi phát hiện lỗi: cùng chiều rộng, chiều cao, chế độ đồ họa (`docs/CLAUDE.md`, mục Khi viết plan).
 - **Nguy cơ chập chờn:**
-  - screenshot của trạng thái có hiệu ứng chạy mãi (L-029);
+  - screenshot của trạng thái có hiệu ứng chạy mãi mà không dừng đồng hồ (L-029, `CLAUDE.md` bước 10);
   - đồng hồ thật, `Thread.sleep`, mạng thật;
   - thứ tự không cố định;
   - test trên emulator khẳng định màn hình thoáng qua (`CLAUDE.md`, bước 10).

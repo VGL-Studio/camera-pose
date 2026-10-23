@@ -163,7 +163,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** mỗi PR tài liệu sinh lại `docs/STATUS.md`; PR sau luôn xung đột với PR trước, phải gộp và sinh lại bằng tay.
 - **Bằng chứng:** PR #11, #14, #16 đều báo `DIRTY` chỉ vì `docs/STATUS.md`.
 - **Đề xuất sửa:** `.gitattributes` khai báo `docs/STATUS.md merge=ours` cùng một bước sinh lại trang trên nhánh chính sau khi merge; hoặc `status.py --check` chỉ chạy trên nhánh chính.
-- **Áp dụng:** plan T-030, mục 8 câu 4: giữ như hiện nay, thêm hướng dẫn. PR #50: `docs/CLAUDE.md`, mục Trang tiến độ: nhánh chậm hay xung đột ở `docs/STATUS.md` thì gộp nhánh chính, chạy lại `scripts/status.py`, commit trang vừa sinh.
+- **Áp dụng:** plan T-030, mục 8 câu 4: giữ như hiện nay, thêm hướng dẫn. PR #50: `docs/CLAUDE.md`, mục Trang tiến độ: nhánh chậm hay xung đột ở `docs/STATUS.md` thì gộp nhánh chính, chạy lại `scripts/status.py`, commit trang vừa sinh. Sau đó plan T-034 (cách (a), L-047): trang ra khỏi git, `status-page.yml` sinh trang trên nhánh `status`.
 - **Kiểm chứng:**
 
 ### L-017: `merge-if-green.sh` cần tự cập nhật nhánh và chịu được job kẹt
@@ -451,11 +451,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-047: `merge-if-green.sh --update` thất bại ở mọi PR vì `docs/STATUS.md`
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #52.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #52.
 - **Chuyện gì:** cả hai lần dùng `--update` đầu tiên, GitHub trả `422 merge conflict` chỉ vì `docs/STATUS.md`. Mỗi PR sửa trạng thái đều sinh lại trang, nên PR thứ hai trở đi luôn xung đột; `--update` (T-029) gần như không bao giờ dùng được, và mỗi PR tốn thêm một vòng gộp tay cùng một lần CI 15 phút. Cách (c) của L-016 (gộp tay theo hướng dẫn) giữ được an toàn nhưng không bớt vòng nào.
 - **Bằng chứng:** `merge-if-green.sh 51 --update` và `52 --update`, cùng thông báo `gh: merge conflict between base and head (HTTP 422)`; xung đột duy nhất là `docs/STATUS.md`.
 - **Đề xuất sửa:** cách (a) của L-016: PR thường không commit `docs/STATUS.md`; một workflow sinh lại trang trên nhánh chính sau mỗi lần merge, `status.py --check` chỉ chạy trên nhánh chính. Cần ADR, vì workflow đẩy commit lên nhánh chính ngoài `merge-if-green.sh`. Cách nhẹ hơn: `merge-if-green.sh --update` gặp 422 mà xung đột chỉ ở `docs/STATUS.md` thì tự gộp, sinh lại trang và đẩy lên nhánh của PR (không đụng nhánh chính), cần plan rủi ro cao.
-- **Áp dụng:** plan T-034 (`draft`, rủi ro cao): `docs/STATUS.md` không còn trong git; workflow `status-page.yml` sinh trang sau mỗi lần merge và đẩy lên nhánh `status`.
+- **Áp dụng:** plan T-034 (cách (a), không ADR vì nhánh chính không bị ghi): `docs/STATUS.md` không còn trong git (`.gitignore`); `status-page.yml` sinh trang sau mỗi lần đẩy lên nhánh chính có đổi `docs/` và đẩy đè lên nhánh `status`; `docs/CLAUDE.md` mục Trang tiến độ, `auto-run.md` PR báo cáo.
 - **Kiểm chứng:**
 
 ### L-048: PR xung đột không có lần chạy CI nào, `wait-run.sh` chờ trọn 40 phút

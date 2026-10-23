@@ -1,0 +1,37 @@
+# Builds the progress page (scripts/status.py) after every push to main that changes the documents, and pushes it
+# to the `status` branch: main plus one commit holding docs/STATUS.md, pushed over each time (plan T-034, L-047).
+# The page is not in git on main, so PRs never conflict on it. Never pushes to main (ADR-0010).
+# Pushing `status` starts no workflow: pr-check runs on pull requests into main, main-guard and this one on pushes to main.
+# Changing this file is a high-risk plan; cross-review required.
+name: status-page
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', 'scripts/status.py']
+  workflow_dispatch:
+
+# The page is rebuilt whole each time: a newer push makes an older run useless.
+concurrency:
+  group: status-page
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  page:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Sinh trang tiến độ và đẩy lên nhánh status
+        run: |
+          python3 scripts/status.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B status
+          git add -f docs/STATUS.md
+          git commit -q -m "Trang tiến độ tại ${GITHUB_SHA::7}"
+          git push -f origin status

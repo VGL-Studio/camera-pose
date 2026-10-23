@@ -220,3 +220,10 @@ Test trong `scripts/tests/run.sh`, viết trước code.
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, phiên có người theo dõi (Tuấn)
+
+- **Bước 3, test viết trước:** 6 test mới trong `scripts/tests/run.sh`. Trên code cũ cả 6 đỏ, đúng lý do: `docs/STATUS.md` còn trong git và không bị bỏ qua, chưa có `status-page.yml`, thông báo `--check` còn chữ "commit".
+- **Bước 4, code:** `.gitignore`, `git rm --cached docs/STATUS.md`, `.github/workflows/status-page.yml` theo mục 3.1, chú thích và thông báo `--check` của `scripts/status.py`, `docs/CLAUDE.md` mục Trang tiến độ, `docs/auto-run.md` PR báo cáo, `README.md`, `docs/README.md`, `docs/lessons.md` (L-016, L-047).
+- **Bước 5:** `scripts/tests/run.sh` qua 309 test. `scripts/check.sh` để CI của PR chạy, vì plan không đổi code của app.
+- **Còn lại sau khi merge** (mục 4, hai dòng kiểm tay; điều kiện dừng 2): lần chạy `status-page` của commit merge xanh, nhánh `status` có một commit trên nhánh chính, liên kết của trang mở được; hai PR tài liệu sau không xung đột vì trang.

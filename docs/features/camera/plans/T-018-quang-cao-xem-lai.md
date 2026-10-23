@@ -1,7 +1,7 @@
 ---
 ticket: T-018
 title: Quảng cáo toàn màn hình khi rời màn xem lại
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -234,3 +234,11 @@ Phiên bản 2:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, RUN-20261023-04: đã merge
+
+- **Kết quả:** đã merge, PR #72, commit `fc5adaa`. CI xanh ngay vòng đầu.
+- **Test viết trước:** 24 test mới (20 unit, 4 Robolectric); 23 thất bại đúng lý do trên khung rỗng (hằng số trả về, hàm trống). Không có test phải viết chặt lại; `AdUnitIdsTest.configuredUnits_areParsedPerPlacementKey` qua ngay theo plan.
+- **Lệch so với plan:** ở commit test đã nối sẵn `ReviewRoute` với `leaveReview`, `afterReviewAd`, `rememberShowInterstitial(REVIEW_INTERSTITIAL)` để `ReviewRouteTest` thất bại với `leaves == 0` như plan mô tả; khung rỗng thêm ba hàm khóa và `breakCapDefaults` của `AdsSettings`.
+- **Rà soát độc lập:** 0 chặn, 2 nên sửa (chưa sửa, vị trí mặc định tắt): (1) hủy composition (xoay màn hình, đổi chế độ gập) trong lúc chờ quảng cáo tối đa 3 giây thì `onFinished` không được gọi, màn xem lại đứng yên vì `ReviewViewModel` đã đặt `left = true` (`AdSlot.kt`, `ReviewScreen.kt`); đề xuất gọi `onFinished(false)` khi bị hủy, kèm một test. (2) `ReviewRouteTest` không chứng minh `ReviewRoute` truyền đúng `savedThisVisit` (thiếu `LocalAdsController` giả). 8 ghi chú, gồm: phần nối `AdsController` không có test (ngoại lệ plan đã khai); `breakCapOf` ép `Long` sang `Int`.
+- **Cần người kiểm tra:** kiểm thủ công mục 4 với quảng cáo thật sau khi bật khóa `ads_review_interstitial_enabled`: màn camera không chớp trước khi quảng cáo phủ lên; xoay màn hình khi quảng cáo đang chờ.

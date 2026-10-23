@@ -160,3 +160,11 @@ Không cần (E dưới 2): dùng lại `RecordingAppLogger` và mẫu phụ thu
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23: đã làm, PR #51 chờ merge
+
+- Làm trong phiên có người theo dõi, nhánh `claude/T-032-log-ten-loi-tai-file`, không thuộc danh sách chạy nào.
+- Bước 3 (commit cd963a8): thêm `:core:logging` vào `build.gradle.kts`, `DownloadFailureLog.kt` dạng khung rỗng và 5 test trong `DownloadFailureLogTest`. Cả 5 test thất bại đúng lý do: so chuỗi với `""`, đếm được 0 dấu `" <- "` thay vì 4, và logger không ghi gì.
+- Bước 4 (commit 73e7f9e): viết thân hai hàm; `AssetsModule` nhận `AppLogger` và bỏ `android.util.Log`. `:core:assets:testDebugUnitTest` qua cả 30 test, không sửa test cũ nào.
+- Bước 5, trên máy local: `checkModuleDependencies ktlintCheck :core:assets:testDebugUnitTest :app:testStagingDebugUnitTest :app:lintStagingDebug :app:assembleStagingDebug` cho `BUILD SUCCESSFUL`. Hilt cung cấp được `AppLogger` ở `:app`, nên không dùng phương án dự phòng 3.4. Bản `scripts/check.sh` đầy đủ chạy trong CI của PR.
+- Chưa làm: bước kiểm tay trên staging (`W VGL.Assets: Could not download ... (reason=NETWORK, error=UnknownHostException)`). Ticket giữ `approved` tới khi người merge bằng `scripts/merge-if-green.sh 51`.

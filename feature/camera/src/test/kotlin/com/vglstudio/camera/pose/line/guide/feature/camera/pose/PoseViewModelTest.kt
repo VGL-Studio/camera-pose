@@ -26,9 +26,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.GraphicsMode
 
-/** The pose part of the camera (spec camera, KB-1, KB-2; plan T-014). Robolectric because ImageBitmap needs Bitmap. */
+/**
+ * The pose part of the camera (spec camera, KB-1, KB-2; plan T-014). Robolectric because ImageBitmap needs Bitmap;
+ * native graphics, because the default mode cannot create the bitmaps of the fake decoder.
+ */
 @RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PoseViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

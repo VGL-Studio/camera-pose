@@ -39,8 +39,10 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PosePicker
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseUiState
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseViewModel
 
 /**
  * Stateful entry point used by navigation. Checks the camera permission each time the screen starts (also back from
@@ -53,8 +55,23 @@ internal fun CameraRoute(
     onOpenPoses: (() -> Unit)?,
     onOpenSettings: (() -> Unit)?,
     viewModel: CameraViewModel = hiltViewModel(),
+    poseViewModel: PoseViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val poseState by poseViewModel.uiState.collectAsStateWithLifecycle()
+    val poseActions = remember(poseViewModel) {
+        PoseActions(
+            onCategorySelect = poseViewModel::onCategorySelect,
+            onPoseSelect = poseViewModel::onPoseSelect,
+            onThumbShown = poseViewModel::onThumbShown,
+            onPreviousStep = poseViewModel::onPreviousStep,
+            onNextStep = poseViewModel::onNextStep,
+            onHideSteps = poseViewModel::onHideSteps,
+            onShowSteps = poseViewModel::onShowSteps,
+            onRetryOutline = poseViewModel::onRetryOutline,
+            onRetryLibrary = poseViewModel::onRetryLibrary,
+        )
+    }
     val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val currentOnPhotoCaptured by rememberUpdatedState(onPhotoCaptured)
@@ -104,14 +121,17 @@ internal fun CameraRoute(
             preview = { modifier ->
                 surfaceRequest?.let { CameraXViewfinder(surfaceRequest = it, modifier = modifier) }
             },
+            poseState = poseState,
+            poseActions = poseActions,
         )
     }
 }
 
 /**
- * Stateless screen: everything it shows comes from [uiState]. Tested on the JVM and by screenshots, without [preview],
- * so the frame shows the camera surface colour. Layout from design/context/ (411 x 891): top bar at 32, the 3:4
- * preview below it, the space of the chip row and pose strip (empty until T-014), and the capture row.
+ * Stateless screen: everything it shows comes from [uiState] and [poseState]. Tested on the JVM and by screenshots,
+ * without [preview], so the frame shows the camera surface colour. Layout from design/context/ (411 x 891): top bar at
+ * 32, the 3:4 preview below it (with the pose overlay when the camera is ready), the chip row and pose strip, and the
+ * capture row.
  */
 @Composable
 internal fun CameraScreen(
@@ -163,6 +183,7 @@ internal fun CameraScreen(
                     onRetry = onRetry,
                     onOpenAppSettings = onOpenAppSettings,
                     preview = preview,
+                    poseOverlay = { PoseOverlay(state = poseState, actions = poseActions) },
                 )
             }
         }

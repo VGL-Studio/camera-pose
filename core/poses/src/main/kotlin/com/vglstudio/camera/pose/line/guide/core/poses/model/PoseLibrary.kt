@@ -50,11 +50,10 @@ class PoseLibrary internal constructor(
 
     companion object {
         /** The library of [catalog] with [saved] and [recent] applied: the same ordering the repository uses. */
-        @Suppress("UNUSED_PARAMETER")
         fun from(
             catalog: PoseCatalog,
             saved: List<SavedPose> = emptyList(),
             recent: List<UsedPose> = emptyList(),
-        ): PoseLibrary = buildPoseLibrary(PoseCatalog("", emptyList(), emptyList()), emptyList(), emptyList())
+        ): PoseLibrary = buildPoseLibrary(catalog, saved, recent)
     }
 }

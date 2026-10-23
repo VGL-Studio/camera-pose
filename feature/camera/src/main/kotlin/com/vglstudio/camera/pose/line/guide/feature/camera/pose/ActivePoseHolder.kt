@@ -13,7 +13,7 @@ class ActivePoseHolder @Inject constructor() {
     private val pose = MutableStateFlow<Pose?>(null)
     val current: StateFlow<Pose?> = pose.asStateFlow()
 
-    @Suppress("UNUSED_PARAMETER")
     fun set(pose: Pose?) {
+        this.pose.value = pose
     }
 }

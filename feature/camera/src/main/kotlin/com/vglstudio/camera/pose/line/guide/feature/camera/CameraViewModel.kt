@@ -37,16 +37,17 @@ fun interface CaptureClock {
 }
 
 /**
- * The camera screen without poses (spec camera, KB-4 to KB-8): permission, opening, capture tools, capture and
- * countdown. The camera hardware is behind [CameraController]. Tools are read once from storage, then kept in memory
- * and saved on each change; a failed save is logged and the choice still works for this session.
+ * The camera screen without the pose part (spec camera, KB-4 to KB-8): permission, opening, capture tools, capture
+ * and countdown. The pose part is PoseViewModel; the pose in use is read from [ActivePoseHolder] at capture. The
+ * camera hardware is behind [CameraController]. Tools are read once from storage, then kept in memory and saved on
+ * each change; a failed save is logged and the choice still works for this session.
  */
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val controller: CameraController,
     private val repository: CameraSettingsRepository,
     private val holder: CapturedPhotoHolder,
-    @Suppress("unused") private val activePose: ActivePoseHolder,
+    private val activePose: ActivePoseHolder,
     private val countdownInterruptions: CountdownInterruptions,
     private val analytics: Analytics,
     private val logger: AppLogger,
@@ -220,13 +221,15 @@ class CameraViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val file = controller.takePicture()
-                holder.put(CapturedPhoto(file, lens, timer, clock.nowMillis()))
+                // Read when the photo is taken: a pose changed during the countdown is the outline in the photo.
+                val poseId = activePose.current.value?.id.orEmpty()
+                holder.put(CapturedPhoto(file, lens, timer, clock.nowMillis(), poseId))
                 analytics.log(
                     AnalyticsEvent(
                         EVENT_PHOTO_CAPTURED,
-                        // No pose and no match score yet: T-014 and T-017 fill these in.
+                        // No match score yet: T-017 fills it in.
                         mapOf(
-                            "pose_id" to "",
+                            "pose_id" to poseId,
                             "timer" to if (timer == TimerSetting.OFF) "off" else timer.seconds.toString(),
                             "matched" to "false",
                         ),

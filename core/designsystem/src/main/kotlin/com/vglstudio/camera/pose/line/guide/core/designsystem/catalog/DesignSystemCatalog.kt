@@ -17,10 +17,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -30,10 +39,15 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.R
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.CameraIconButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.GridOverlay
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseThumb
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SecondaryButton
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SelectedBadge
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StepCard
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StepCardArrows
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StickerChip
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ZoomControl
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
@@ -222,10 +236,110 @@ fun CameraComponentCatalog(modifier: Modifier = Modifier) {
     }
 }
 
-/** The pose components (sticker.md, section 4): chips, badge, thumbnails and step cards. */
+/**
+ * The pose components (sticker.md, section 4): chips, badge, thumbnails (normal, selected, loading, failed) and step
+ * cards (first step, middle step, with a text button). Thumbnails show a placeholder figure drawn here.
+ */
 @Composable
 fun PoseComponentCatalog(modifier: Modifier = Modifier) {
-    Box(modifier)
+    val figure = rememberPlaceholderFigure(MaterialTheme.colorScheme.onSurfaceVariant)
+    val selectedFigure = rememberPlaceholderFigure(MaterialTheme.colorScheme.onSurface)
+    CatalogPage(title = "Pose components", modifier = modifier) {
+        // Room above the chips and thumbnails for the badge that sticks out.
+        Row(
+            modifier = Modifier.padding(top = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            StickerChip(label = "All", selected = true, onClick = {})
+            StickerChip(label = "Women", selected = false, onClick = {})
+            StickerChip(label = "Couple", selected = false, onClick = {})
+        }
+        Row(
+            modifier = Modifier.padding(top = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SelectedBadge()
+            Text(text = "SelectedBadge 22", style = MaterialTheme.typography.labelLarge)
+        }
+        Row(
+            modifier = Modifier.padding(top = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            PoseThumb(image = figure, selected = false, onClick = {}, contentDescription = "Normal")
+            PoseThumb(image = selectedFigure, selected = true, onClick = {}, contentDescription = "Selected")
+            PoseThumb(image = null, selected = false, onClick = {}, contentDescription = "Loading")
+            PoseThumb(image = null, selected = false, onClick = {}, contentDescription = "Failed", failed = true)
+        }
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        StepCard(
+            text = "Stand with your weight on the back leg.",
+            badge = "1/4",
+            modifier = Modifier.fillMaxWidth(),
+            trailing = { CatalogArrows(previousEnabled = false) },
+        )
+        StepCard(
+            text = "Turn your shoulders 45 degrees to the camera, chin slightly down.",
+            badge = "2/4",
+            modifier = Modifier.fillMaxWidth(),
+            trailing = { CatalogArrows(previousEnabled = true) },
+        )
+        StepCard(
+            text = "Turn your shoulders 45 degrees to the camera.",
+            badge = "2/4",
+            modifier = Modifier.width(220.dp),
+            trailing = { CatalogArrows(previousEnabled = true) },
+        )
+        StepCard(
+            text = "The outline could not load",
+            modifier = Modifier.fillMaxWidth(),
+            trailing = { TextButton(onClick = {}) { Text("Retry") } },
+        )
+    }
+}
+
+@Composable
+private fun CatalogArrows(previousEnabled: Boolean) {
+    StepCardArrows(
+        onPrevious = {},
+        onNext = {},
+        previousEnabled = previousEnabled,
+        nextEnabled = true,
+        previousDescription = "Previous step",
+        nextDescription = "Next step",
+    )
+}
+
+/** A figure drawn with lines, standing in for a pose thumbnail from R2. */
+@Composable
+private fun rememberPlaceholderFigure(color: Color): ImageBitmap = remember(color) {
+    val size = 192
+    val image = ImageBitmap(size, size)
+    val canvas = Canvas(image)
+    val paint = Paint().apply {
+        this.color = color
+        style = PaintingStyle.Stroke
+        strokeWidth = 4.5f
+        strokeCap = StrokeCap.Round
+        isAntiAlias = true
+    }
+    canvas.drawCircle(Offset(96f, 44f), 10f, paint)
+    val body = Path().apply {
+        moveTo(66f, 110f)
+        lineTo(72f, 62f)
+        lineTo(120f, 62f)
+        lineTo(126f, 110f)
+        moveTo(80f, 62f)
+        lineTo(82f, 108f)
+        lineTo(110f, 108f)
+        lineTo(112f, 62f)
+        moveTo(86f, 108f)
+        lineTo(82f, 166f)
+        moveTo(106f, 108f)
+        lineTo(112f, 166f)
+    }
+    canvas.drawPath(body, paint)
+    image
 }
 
 @Composable

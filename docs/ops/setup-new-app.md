@@ -51,7 +51,7 @@ App đọc file tĩnh từ một địa chỉ https công khai (ADR-0006, ADR-00
 3. Tải file lên theo đường dẫn có phiên bản, ví dụ `test/v1/hello.txt`. Không bao giờ ghi đè một file đã đưa lên; nội dung đổi thì dùng đường dẫn mới.
 4. Địa chỉ gốc (kết thúc bằng `/`) chính là tham số `--staging-assets-url` của script tạo app, nằm trong `app/build.gradle.kts`.
 
-Kiểm tra: `curl -I https://<địa chỉ gốc>/test/v1/hello.txt` trả `200`.
+Kiểm tra: `curl -I https://<địa chỉ gốc>/test/v1/hello.txt` trả `200`. Kiểm thêm tên miền phân giải được qua cả DNS công cộng: `dig @1.1.1.1 <tên miền>` và `dig @8.8.8.8 <tên miền>` đều trả địa chỉ, không trả `SERVFAIL`. Vùng tên miền mà DNSSEC không qua được bước kiểm của các DNS này thì máy người dùng không tải được file, dù máy chạy CI vẫn tải được; chọn tên miền thuộc vùng có DNSSEC ổn định (L-027).
 
 Khóa truy cập R2 không đưa vào repo hay GitHub. Bucket production làm tương tự khi phát hành (phần 8).
 

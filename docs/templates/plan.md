@@ -97,6 +97,8 @@ Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ c�
 | Chữ đúng bảng chữ của thiết kế | Compose UI test | <...> |
 | <tiêu chí không tự động được> | Kiểm tra thủ công | <các bước dev làm khi kiểm tra bản staging> |
 
+Việc plan này giao cho ticket khác (ghi "để T-NNN làm") chỉ hợp lệ khi plan của ticket đó đã ghi nhận việc ấy; chưa có plan thì ghi vào mục 8 để người duyệt quyết (L-014).
+
 **Ngoại lệ viết test trước:** <phần thay đổi không thể viết test trước, ví dụ chỉ đổi chuỗi văn bản hoặc tài nguyên, kèm lý do. Ghi "Không có" nếu không có. Người duyệt phải đồng ý với ngoại lệ.>
 
 ### 4.1. Chạy thử

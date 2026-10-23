@@ -2,7 +2,7 @@
 ticket: T-017
 title: Nhận dạng dáng và điểm khớp
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 45M          # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
@@ -18,6 +18,8 @@ approved_at: 2026-10-23
 ## 1. Tóm tắt
 
 Thêm nhận dạng dáng người bằng ML Kit Pose Detection chạy trên máy (luồng `ImageAnalysis` thứ ba của CameraX), so dáng với 33 điểm khớp của tư thế (`Pose.keypoints`) theo góc của tám đoạn tay chân, ra điểm 0 đến 100 và lời nhắc theo khớp lệch nhiều nhất; đạt ngưỡng (80, đặt từ xa) thì báo "Đúng dáng rồi, bấm chụp!", nét viền và viền nút chụp đổi sang màu đạt. Không có người (độ tin cậy dưới ngưỡng) thì không hiện điểm, chỉ nhắc "Lùi lại để cả người vào khung". Sau cờ `feature_pose_matching_enabled` (mặc định tắt, bản staging bật). Phần chấm điểm là hàm thuần có unit test với dáng tổng hợp; phần ML Kit và CameraX là lớp mỏng kiểm trên máy thật. `MatchHint` là thành phần mới của `:core:designsystem`. Screenshot test cùng tên ba ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh camera`; số khung hình mỗi giây và dung lượng APK đo và ghi vào báo cáo phiên.
+
+Phiên bản 2 (2026-10-23): rà soát độc lập trước phiên RUN-20261023-03 tìm hai điểm nên sửa ở phiên bản 1. (1) `PoseFrameSource.frames` là `StateFlow`, mà `StateFlow` bỏ giá trị trùng liền nhau: khi không có người, ML Kit trả các khung rỗng giống hệt nhau, chỉ khung đầu được phát, nên "3 khung liên tiếp không có người" không bao giờ đủ và `NoPerson` không bao giờ tới. Nay là `SharedFlow` không gộp trùng, bản giả dùng cùng kiểu, test phát đúng một đối tượng ba lần. (2) Phép đổi toạ độ của `MlKitPoseAnalyzer` (xoay 90, 270 đổi rộng cao; lật `x` cho camera trước) nằm trong ngoại lệ viết test trước dù là phép tính thuần. Nay tách thành hàm thuần `toBodyPose(...)` trong `match/LandmarkMapping.kt` có unit test cho bốn góc xoay và camera trước; bỏ khỏi ngoại lệ. Phần còn lại giữ nguyên phiên bản 1 (đã duyệt, kể cả câu trả lời ở mục 8).
 
 `token_estimate` 45M thay cho số gợi ý 10.9M của `scripts/token-usage.py estimate` (trung vị cỡ L): các task cỡ L của camera tốn khoảng 40M (T-014 40.7M, T-016 39.7M, `docs/metrics/token-usage.csv`); task này thêm thư viện mới, một use case CameraX, hàm chấm điểm và nhiều test tổng hợp.
 
@@ -65,9 +67,12 @@ data class BodyLandmark(val x: Float, val y: Float, val inFrame: Float)
 /** Landmarks by MediaPipe index (0 nose to 32 right foot index); missing when ML Kit did not return it. */
 data class BodyPose(val landmarks: Map<Int, BodyLandmark>, val mirrored: Boolean)
 
-/** Frames analysed by ML Kit; null while the camera is closed or analysis is off. */
+/**
+ * Frames analysed by ML Kit, one emission per analysed frame; null when the camera closed. A SharedFlow, not a
+ * StateFlow: frames without a person are equal to each other and must not be merged (plan T-017, version 2).
+ */
 interface PoseFrameSource {
-    val frames: StateFlow<BodyPose?>
+    val frames: SharedFlow<BodyPose?>
     /** Runs detection only while active; otherwise each frame is closed at once. */
     fun setActive(active: Boolean)
 }
@@ -94,15 +99,18 @@ enum class MatchHintText { RAISE_LEFT_ARM, LOWER_LEFT_ARM, RAISE_RIGHT_ARM, LOWE
 **`match/PoseMatchViewModel.kt` (tạo, `@HiltViewModel`).** Nhận `PoseFrameSource`, `ActivePoseHolder`, `FeatureFlags`, `PoseMatchingSettings`, `PoseMatchHolder`, `AppLogger`. `uiState: StateFlow<MatchUiState>`.
 
 - `combine(featureFlags.enabled(POSE_MATCHING), activePose.current, activePose.outline, settings.scoreThreshold, settings.minInFramePercent)`: `active = cờ bật && pose?.keypoints != null && outline.visible`. `frameSource.setActive(active)`; không `active` thì `Off`. Log `info` "Pose matching on" hoặc "Pose matching off: <lý do>" (cờ, không có điểm khớp, nét viền ẩn) mỗi lần đổi.
-- Thu `frameSource.frames` khi `active`: `null` thì `Off` (camera đóng). Không có người (3 khung liên tiếp, tránh nhấp nháy) thì `NoPerson`. Có người: `score(...)`, làm mượt `smoothed = 0.5 * score + 0.5 * smoothed` (khung có người đầu tiên lấy thẳng); `smoothed >= threshold` thì `Matched`, đang `Matched` mà `smoothed < threshold - 5` thì ra; còn lại `Scoring(smoothed, hint)` với `hint` đổi khi `worst` mới giữ 3 khung liên tiếp. Đổi tư thế thì đặt lại phần làm mượt.
+- Thu `frameSource.frames` khi `active`: `null` thì `Off` (camera đóng). Không có người (3 khung liên tiếp, tránh nhấp nháy; đếm theo số lần phát, kể cả khi ba khung bằng nhau) thì `NoPerson`. Có người: `score(...)`, làm mượt `smoothed = 0.5 * score + 0.5 * smoothed` (khung có người đầu tiên lấy thẳng); `smoothed >= threshold` thì `Matched`, đang `Matched` mà `smoothed < threshold - 5` thì ra; còn lại `Scoring(smoothed, hint)` với `hint` đổi khi `worst` mới giữ 3 khung liên tiếp. Đổi tư thế thì đặt lại phần làm mượt.
 - `PoseMatchHolder.matched` (`@Singleton`, `StateFlow<Boolean>`) bằng `uiState is Matched`, để `CameraViewModel` đọc lúc chụp. Log `info` "Pose matched" khi vào trạng thái đạt (một lần mỗi lần vào), không log mỗi khung.
 
 **Bộ phân tích (`match/MlKitPoseAnalyzer.kt`, tạo, `@Singleton`, cài `PoseFrameSource` và `ImageAnalysis.Analyzer`).** Lớp mỏng trên ML Kit, kiểm trên máy (như `CameraXController`, plan T-013 mục 4):
 
 - `PoseDetection.getClient(PoseDetectorOptions.Builder().setDetectorMode(STREAM_MODE).build())` tạo lần đầu khi `setActive(true)`; `close()` khi camera đóng hẳn (`release`).
-- `analyze(image)`: không `active` thì `image.close()` ngay. Ngược lại `InputImage.fromMediaImage(image.image, rotationDegrees)`, `process`, khi xong: đưa mỗi `PoseLandmark` về 0 đến 1 theo cỡ ảnh đã xoay (đổi rộng cao khi xoay 90 hoặc 270), lật `x` khi camera trước, phát `BodyPose`; lỗi ML Kit: log `warn` "Pose detection failed" một lần mỗi 10 giây, phát `null`; luôn `image.close()`.
+- `analyze(image)`: không `active` thì `image.close()` ngay. Ngược lại `InputImage.fromMediaImage(image.image, rotationDegrees)`, `process`, khi xong: chép mỗi `PoseLandmark` thành `RawLandmark(type, x, y, inFrameLikelihood)` rồi gọi `toBodyPose(...)` (dưới), phát kết quả; lỗi ML Kit: log `warn` "Pose detection failed" một lần mỗi 10 giây, phát `null`; luôn `image.close()`.
 - Đếm khung đã xử lý; mỗi 5 giây log `debug` "Pose analysis: <n> fps" (để đo trên máy thật).
-- `lens` do `CameraXController` đặt khi mở camera; `reset()` khi đóng camera: `frames` về `null`.
+- `frames` là `MutableSharedFlow<BodyPose?>(replay = 0, extraBufferCapacity = 1, onBufferOverflow = DROP_OLDEST)`: không gộp trùng, không chặn luồng phân tích khi ViewModel chậm.
+- `lens` do `CameraXController` đặt khi mở camera; `reset()` khi đóng camera: phát `null`.
+
+**Đổi toạ độ (`match/LandmarkMapping.kt`, thuần).** `data class RawLandmark(val type: Int, val x: Float, val y: Float, val inFrame: Float)` (toạ độ điểm ảnh ML Kit trả, theo ảnh đã xoay thẳng); `fun toBodyPose(points: List<RawLandmark>, imageWidth: Int, imageHeight: Int, rotationDegrees: Int, mirrored: Boolean): BodyPose`: xoay 90 hoặc 270 thì cỡ ảnh thẳng là `imageHeight` x `imageWidth`, xoay 0 hoặc 180 thì giữ nguyên; `x / rộng`, `y / cao`, chặn trong 0 đến 1; `mirrored` thì `x = 1 - x`; điểm có `type` ngoài 0 đến 32 bị bỏ. `MlKitPoseAnalyzer` chỉ chép dữ liệu ML Kit vào `RawLandmark` và gọi hàm này.
 
 **`camera/CameraXController.kt` (sửa).** Constructor thêm `MlKitPoseAnalyzer`, `FeatureFlags`. Trong `open()`: `val analysis = featureFlags.enabled(FeatureFlag.POSE_MATCHING).first()`; bật thì tạo `ImageAnalysis` (`ResolutionSelector` tỷ lệ 4:3, `ResolutionStrategy(Size(640, 480), FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER)`, `STRATEGY_KEEP_ONLY_LATEST`, `setAnalyzer(executor một luồng, analyzer)`), gắn cùng `preview`, `capture`; tắt thì như cũ. `analyzer.lens = lens`. `bindToLifecycle` ba use case lỗi (máy không hỗ trợ tổ hợp) thì log `warn` "Pose analysis not supported on this camera", gắn lại chỉ hai use case như cũ (camera vẫn chụp được, nhận dạng `Off`). `close()` gọi `analyzer.reset()`; `release()` đóng bộ nhận dạng. `CameraController` (interface) không đổi.
 
@@ -142,6 +150,7 @@ enum class MatchHintText { RAISE_LEFT_ARM, LOWER_LEFT_ARM, RAISE_RIGHT_ARM, LOWE
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/PoseMatchViewModel.kt` | ViewModel theo mục 3.1 |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/PoseMatchHolder.kt` | `matched` lúc chụp |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/MlKitPoseAnalyzer.kt` | Lớp mỏng trên ML Kit |
+| Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/LandmarkMapping.kt` | `RawLandmark`, `toBodyPose` (phiên bản 2) |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/MatchHints.kt` | `MatchHintText` sang chuỗi; `MatchHintOverlay` vẽ `MatchHint` theo `MatchUiState` |
 | Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/di/MatchModule.kt` | Gắn `PoseFrameSource` vào `MlKitPoseAnalyzer` (file riêng, không chạm `CameraModule.kt`, `PoseModule.kt`) |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/camera/CameraXController.kt` | Use case `ImageAnalysis` khi cờ bật, đóng mở bộ phân tích |
@@ -155,7 +164,8 @@ enum class MatchHintText { RAISE_LEFT_ARM, LOWER_LEFT_ARM, RAISE_RIGHT_ARM, LOWE
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/PoseScorerTest.kt` | Unit test chấm điểm với dáng tổng hợp |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/TestBodyPoses.kt` | Dáng tổng hợp: đứng dang tay, tay trái hạ, chân dang, độ tin cậy thấp, chỉ có đồ vật |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/PoseMatchViewModelTest.kt` | Unit test ViewModel với nguồn khung giả |
-| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/MatchFakes.kt` | `FakePoseFrameSource`, `FakeFeatureFlags`, `FakePoseMatchingSettings` |
+| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/MatchFakes.kt` | `FakePoseFrameSource` (`MutableSharedFlow<BodyPose?>`, cùng kiểu với code thật, không phải `MutableStateFlow`), `FakeFeatureFlags`, `FakePoseMatchingSettings` |
+| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/match/LandmarkMappingTest.kt` | Unit test đổi toạ độ (phiên bản 2) |
 | Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenMatchTest.kt` | Test giao diện phần điểm khớp (file riêng) |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraViewModelTest.kt` | Hàm dựng truyền `PoseMatchHolder()`; hai test mới |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/pose/PoseViewModelTest.kt` | Một test mới cho `OutlineView` |
@@ -208,7 +218,7 @@ Không file nào khác. Đặc biệt không sửa: `gradle/libs.versions.toml` 
 
 ## 4. Kiểm thử
 
-Mọi test dưới đây vào commit test của bước 3, cùng khung rỗng để biên dịch được: `PoseScorer` có đủ hàm, `isPersonPresent` trả `false`, `score` trả `ScoreResult(0, null)`; `PoseMatchViewModel` có `uiState` luôn `Off`; `PoseMatchHolder.matched` luôn `false`; `MlKitPoseAnalyzer` có đủ hàm, không làm gì; `ActivePoseHolder.outline` luôn mặc định; `CameraViewModel` đã nhận `PoseMatchHolder` nhưng chưa ghi `matched`; `PoseMatchingSettings` trả mặc định; `MatchHint` vẽ `Box(modifier)` rỗng; `CameraScreen`, `CaptureRow` đã có tham số mới; chữ đủ. Phần sửa trong `CameraViewModelTest.kt` (hàm dựng, thêm `"matched" to "false"` vào map mong đợi của test cũ, hai test mới) và `CameraScreenScreenshotTest.kt` cùng vào commit test của bước 3 (L-025). Lý do thất bại ở cột cuối là điều AI dự kiến; bước 3 ghi lý do thật vào nhật ký.
+Mọi test dưới đây vào commit test của bước 3, cùng khung rỗng để biên dịch được: `PoseScorer` có đủ hàm, `isPersonPresent` trả `false`, `score` trả `ScoreResult(0, null)`; `PoseMatchViewModel` có `uiState` luôn `Off`; `PoseMatchHolder.matched` luôn `false`; `MlKitPoseAnalyzer` có đủ hàm, không làm gì; `toBodyPose` trả `BodyPose(emptyMap(), mirrored)`; `ActivePoseHolder.outline` luôn mặc định; `CameraViewModel` đã nhận `PoseMatchHolder` nhưng chưa ghi `matched`; `PoseMatchingSettings` trả mặc định; `MatchHint` vẽ `Box(modifier)` rỗng; `CameraScreen`, `CaptureRow` đã có tham số mới; chữ đủ. Phần sửa trong `CameraViewModelTest.kt` (hàm dựng, thêm `"matched" to "false"` vào map mong đợi của test cũ, hai test mới) và `CameraScreenScreenshotTest.kt` cùng vào commit test của bước 3 (L-025). Lý do thất bại ở cột cuối là điều AI dự kiến; bước 3 ghi lý do thật vào nhật ký.
 
 Dáng tổng hợp (`TestBodyPoses.kt`): toạ độ 0 đến 1 tự dựng cho 33 điểm theo thứ tự MediaPipe: `standingArmsOut` (đứng thẳng, hai tay dang ngang), `leftArmDown` (như trên, cánh tay trái chỉ xuống), `legsApart`, `lowConfidence` (đủ điểm nhưng `inFrame` 0.2), `upperBodyOnly` (chân thiếu), `empty`. Mẫu là cùng các dáng ở dạng `Keypoint` (`visibility` 0.9). Không cần ảnh, không cần ML Kit.
 
@@ -220,7 +230,8 @@ Dáng tổng hợp (`TestBodyPoses.kt`): toạ độ 0 đến 1 tự dựng cho 
 | KB-5, lời nhắc đúng bên | Unit test | `frontCamera_mirroredDetection_matchesAsInAMirror`: `leftArmDown` lật ngang với `mirrored = true` so với mẫu không lật: điểm như camera sau, lời nhắc vẫn `RAISE_LEFT_ARM` (tay trái thật của người dùng). `flippedOutline_swapsSides`: mẫu lật (T-015) và dáng nhận được không lật: so tay trái người dùng với tay bên trái màn hình của nét viền |
 | KB-5, nửa người | Unit test | `upperBodyOnly_scoresArmsOnly`: dáng nửa người đúng: điểm từ 95; lời nhắc không bao giờ là của chân |
 | KB-5, cờ, điểm khớp, ẩn | Unit test | `PoseMatchViewModelTest.flagOff_isOff_andSourceInactive`; `poseWithoutKeypoints_isOff`; `outlineHidden_isOff_andSourceInactive`; `allOn_activatesSource`. Đổi từng điều kiện khi đang chạy: `source.active` đổi theo, trạng thái về `Off`. Thất bại: khung rỗng không gọi `setActive(true)` |
-| KB-5, không có người trên màn hình | Unit test | `threeFramesWithoutPerson_isNoPerson`: một khung không người sau khung có người vẫn `Scoring`; ba khung liên tiếp: `NoPerson` |
+| KB-5, không có người trên màn hình | Unit test | `threeFramesWithoutPerson_isNoPerson`: sau khung có người, phát **đúng một đối tượng** `BodyPose` rỗng (`val empty = TestBodyPoses.empty`) ba lần qua `FakePoseFrameSource` (`MutableSharedFlow`, như code thật): sau lần một và hai vẫn `Scoring`; sau lần ba: `NoPerson`. Đối chứng: cùng đối tượng phát hai lần thì vẫn `Scoring`. `SharedFlow` không giữ giá trị cũ (`replay = 0`), nên test phát sau khi ViewModel đã bắt đầu thu (`runCurrent()` sau khi dựng). Thất bại: khung rỗng luôn `Off`. Bản giả dùng `MutableStateFlow` sẽ gộp ba lần phát thành một và che lỗi, nên không được dùng |
+| Đổi toạ độ ML Kit | Unit test | `LandmarkMappingTest.rotation0_normalisesByWidthAndHeight`: ảnh 640 x 480, điểm (320, 120): (0.5, 0.25). `rotation90_swapsWidthAndHeight` và `rotation270_swapsWidthAndHeight`: ảnh đệm 640 x 480, ảnh thẳng 480 x 640, điểm (120, 480): (0.25, 0.75). `rotation180_keepsSize`. `frontCamera_mirrorsX`: như xoay 270 với `mirrored = true`: x là 0.75, y giữ 0.75, `BodyPose.mirrored == true`. `outOfImage_isClamped` (x âm, y vượt cao). `unknownType_isDropped` (type 33). `inFrame_isKept`. Thất bại: khung rỗng trả `BodyPose` rỗng |
 | KB-5, chấm điểm và lời nhắc | Unit test | `personPresent_isScoring_withSmoothedScore`: khung đầu điểm 70 rồi 90: `Scoring(70)` rồi `Scoring(80)`; `hint_changesOnlyAfterThreeFrames` |
 | KB-5, đạt ngưỡng | Unit test | `reachingThreshold_isMatched_andHolderTrue`: điểm làm mượt từ 80: `Matched`, `matchHolder.matched.value`; `matched_leavesOnlyBelowThresholdMinus5` (78 vẫn `Matched`, 74 ra). `remoteThreshold_isUsed`: ngưỡng 60 thì 65 là `Matched` |
 | Camera đóng | Unit test | `framesNull_isOff`; `poseChange_resetsSmoothing` |
@@ -249,7 +260,7 @@ Dáng tổng hợp (`TestBodyPoses.kt`): toạ độ 0 đến 1 tự dựng cho 
 
 **Ngoại lệ viết test trước:**
 
-- `MlKitPoseAnalyzer` và phần `ImageAnalysis` của `CameraXController`: lớp mỏng trên phần cứng và thư viện gốc, không chạy được trên JVM (mục 4.1); kiểm bằng `AppLaunchTest` có sẵn trên emulator (camera vẫn tới `camera_screen` khi staging bật cờ) và kiểm tra thủ công. Như `CameraXController` của T-013.
+- `MlKitPoseAnalyzer` (chỉ phần gọi ML Kit và chép `PoseLandmark` sang `RawLandmark`; phép đổi toạ độ có test ở `LandmarkMappingTest`) và phần `ImageAnalysis` của `CameraXController`: lớp mỏng trên phần cứng và thư viện gốc, không chạy được trên JVM (mục 4.1); kiểm bằng `AppLaunchTest` có sẵn trên emulator (camera vẫn tới `camera_screen` khi staging bật cờ) và kiểm tra thủ công. Như `CameraXController` của T-013.
 - Biểu tượng `ic_person_search.xml`: tài nguyên.
 - `StagingFeatureFlagsModule`: cấu hình Hilt của bản staging.
 
@@ -315,9 +326,13 @@ Dáng tổng hợp (`TestBodyPoses.kt`): toạ độ 0 đến 1 tự dựng cho 
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-23); ghi chú: Tuấn chấp nhận mọi đề xuất ở mục 8, câu 1 chọn phương án C (spec sửa ở PR #64). Thay bằng phiên bản 2 trước khi chạy vì rà soát độc lập trước phiên RUN-20261023-03 tìm hai điểm nên sửa (mục 1).
+
+Phiên bản 2:
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-23, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: phương án C, bỏ tiêu chí dung lượng APK (spec đã sửa ở PR #64); phiên vẫn đo và ghi vào báo cáo.
+- **Ghi chú:** Ngày 2026-10-23, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Phiên bản 2 sửa hai điểm của rà soát độc lập trước RUN-20261023-03.
 
 ## 10. Nhật ký thực hiện
 

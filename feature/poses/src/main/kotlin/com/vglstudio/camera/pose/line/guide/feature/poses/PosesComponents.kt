@@ -130,12 +130,14 @@ internal fun PoseGridCell(
     when (val thumbnail = item.thumbnail) {
         is ThumbnailState.Ready -> {
             val painter = remember(thumbnail.image) { BitmapPainter(thumbnail.image) }
+            // Name and steps in the language of the screen, as the camera counts them (steps.resolve()).
+            val locale = screenLocale()
             PoseCard(
-                name = item.name.resolve(screenLocale()),
+                name = item.name.resolve(locale),
                 meta = stringResource(
                     R.string.poses_card_meta,
                     subjectLabel(item.subjectType),
-                    item.steps.values.values.firstOrNull()?.size ?: 0,
+                    item.steps.resolve(locale).size,
                 ),
                 image = painter,
                 imageBackground = categoryColor(item.categoryId),

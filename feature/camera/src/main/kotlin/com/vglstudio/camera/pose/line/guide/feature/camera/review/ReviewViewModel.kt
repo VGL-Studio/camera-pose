@@ -22,9 +22,11 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -52,7 +54,8 @@ class ReviewViewModel @Inject constructor(
     val uiState: StateFlow<ReviewUiState> = state.asStateFlow()
 
     /** Photos saved since install, for the review request (plan T-019). */
-    val savedCount: StateFlow<Int> = MutableStateFlow(0)
+    val savedCount: StateFlow<Int> =
+        repository.savedCount.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     private val eventChannel = Channel<ReviewEvent>(Channel.BUFFERED)
     val events: Flow<ReviewEvent> = eventChannel.receiveAsFlow()

@@ -21,6 +21,7 @@
 | `:core:assets` | Tải file tĩnh từ R2, giữ trên máy để dùng khi mất mạng (ADR-0006, ADR-0015) |
 | `:core:logging` | Ghi log hành vi của app vào logcat và Crashlytics để phân tích khi có lỗi (ADR-0019) |
 | `:core:poses` | Mô hình tư thế, tải catalog và ảnh tư thế từ R2 (chờ tối đa 15 giây), danh sách đã lưu và đã dùng gần đây, thứ tự hiển thị. Chỉ có ở app này: feature dùng bằng một dòng `implementation(project(":core:poses"))` trong `build.gradle.kts` của feature (T-009) |
+| `:core:review` | Hỏi đánh giá app qua Play In-App Review: luật "đã lưu ít nhất 3 ảnh, cách lần hỏi trước ít nhất 30 ngày, cờ `feature_in_app_review_enabled` bật", hai con số đọc từ `RemoteSettings`, thời điểm hỏi gần nhất lưu trong DataStore. Feature dùng `rememberRequestInAppReview()`; `MainActivity` cung cấp `LocalInAppReview` (T-019) |
 | `:feature:<ten>` | Mỗi feature một module |
 | `build-logic` | Convention plugin dùng chung cho mọi module |
 

@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.core.app.ActivityCompat
@@ -151,6 +152,8 @@ internal fun CameraScreen(
     preview: @Composable (Modifier) -> Unit = {},
     poseState: PoseUiState = PoseUiState.Loading,
     poseActions: PoseActions = PoseActions(),
+    lastPhoto: ImageBitmap? = null,
+    onLastPhotoClick: (() -> Unit)? = null,
 ) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready

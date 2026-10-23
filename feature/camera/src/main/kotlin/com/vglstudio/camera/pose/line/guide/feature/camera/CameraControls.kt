@@ -271,6 +271,7 @@ internal fun CaptureRow(
     onFlipClick: () -> Unit,
     lastPhoto: ImageBitmap? = null,
     onLastPhotoClick: (() -> Unit)? = null,
+    matched: Boolean = false,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(CAPTURE_ROW_HEIGHT),

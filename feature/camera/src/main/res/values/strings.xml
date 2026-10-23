@@ -58,4 +58,24 @@
     <string name="camera_cd_show_outline">Hiện tư thế</string>
     <string name="camera_cd_hide_outline">Ẩn tư thế</string>
     <string name="camera_cd_close_adjust">Đóng bảng chỉnh</string>
+    <!-- Pose matching (plan T-017). Text table of the design for the first three; the rest are proposed by the plan (question 4). -->
+    <string name="camera_match_matched">Đúng dáng rồi, bấm chụp!</string>
+    <string name="camera_match_no_person">Lùi lại để cả người vào khung</string>
+    <string name="camera_match_raise_left_arm">Nâng tay trái cao hơn</string>
+    <string name="camera_match_lower_left_arm">Hạ tay trái thấp hơn</string>
+    <string name="camera_match_raise_right_arm">Nâng tay phải cao hơn</string>
+    <string name="camera_match_lower_right_arm">Hạ tay phải thấp hơn</string>
+    <string name="camera_match_bend_left_elbow">Gập khuỷu tay trái thêm</string>
+    <string name="camera_match_straighten_left_arm">Duỗi thẳng tay trái</string>
+    <string name="camera_match_bend_right_elbow">Gập khuỷu tay phải thêm</string>
+    <string name="camera_match_straighten_right_arm">Duỗi thẳng tay phải</string>
+    <string name="camera_match_widen_left_leg">Đưa chân trái ra xa hơn</string>
+    <string name="camera_match_close_left_leg">Khép chân trái vào</string>
+    <string name="camera_match_widen_right_leg">Đưa chân phải ra xa hơn</string>
+    <string name="camera_match_close_right_leg">Khép chân phải vào</string>
+    <string name="camera_match_bend_left_knee">Gập gối trái thêm</string>
+    <string name="camera_match_straighten_left_leg">Duỗi thẳng chân trái</string>
+    <string name="camera_match_bend_right_knee">Gập gối phải thêm</string>
+    <string name="camera_match_straighten_right_leg">Duỗi thẳng chân phải</string>
+    <string name="camera_cd_match_score">%1$d điểm, %2$s</string>
 </resources>

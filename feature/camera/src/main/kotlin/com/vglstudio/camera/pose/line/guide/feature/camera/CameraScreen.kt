@@ -48,6 +48,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.feature.camera.lastphoto.LastPhotoViewModel
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchUiState
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.OverlayToolColumn
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
@@ -194,6 +195,7 @@ internal fun CameraScreen(
     poseActions: PoseActions = PoseActions(),
     lastPhoto: ImageBitmap? = null,
     onLastPhotoClick: (() -> Unit)? = null,
+    matchState: MatchUiState = MatchUiState.Off,
 ) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready
@@ -269,6 +271,7 @@ internal fun CameraScreen(
             onFlipClick = onFlipClick,
             lastPhoto = lastPhoto,
             onLastPhotoClick = onLastPhotoClick,
+            matched = matchState is MatchUiState.Matched,
         )
         Spacer(modifier = Modifier.height(Spacing.xl))
     }
@@ -304,6 +307,7 @@ internal object CameraTestTags {
     const val OPACITY_SLIDER = "camera_opacity_slider"
     const val SIZE_SLIDER = "camera_size_slider"
     const val LOCK_HINT = "camera_lock_hint"
+    const val MATCH_HINT = "camera_match_hint"
 
     /** Tag of the strip cell of a pose: `camera_pose_<id>`. */
     fun pose(id: String): String = "camera_pose_$id"

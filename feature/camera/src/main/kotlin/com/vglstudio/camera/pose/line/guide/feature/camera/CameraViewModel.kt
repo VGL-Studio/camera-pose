@@ -14,6 +14,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.camera.CaptureFailedE
 import com.vglstudio.camera.pose.line.guide.feature.camera.capture.CapturedPhoto
 import com.vglstudio.camera.pose.line.guide.feature.camera.capture.CapturedPhotoHolder
 import com.vglstudio.camera.pose.line.guide.feature.camera.data.CameraSettingsRepository
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.PoseMatchHolder
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.CameraSettings
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.TimerSetting
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.ActivePoseHolder
@@ -49,6 +50,7 @@ class CameraViewModel @Inject constructor(
     private val repository: CameraSettingsRepository,
     private val holder: CapturedPhotoHolder,
     private val activePose: ActivePoseHolder,
+    private val matchHolder: PoseMatchHolder,
     private val countdownInterruptions: CountdownInterruptions,
     private val userPreferences: UserPreferences,
     private val analytics: Analytics,

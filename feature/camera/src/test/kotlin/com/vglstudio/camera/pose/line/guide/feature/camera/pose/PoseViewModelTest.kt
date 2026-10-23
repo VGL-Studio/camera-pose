@@ -560,6 +560,23 @@ class PoseViewModelTest {
     }
 
     @Test
+    fun hiddenAndMirrored_areSharedWithMatching() {
+        val viewModel = readyViewModel()
+        // Shown and not flipped until the user changes it.
+        assertEquals(OutlineView(visible = true, mirrored = false), activePose.outline.value)
+        viewModel.onToggleHidden()
+        assertFalse(activePose.outline.value.visible)
+        assertFalse(activePose.outline.value.mirrored)
+        viewModel.onToggleHidden()
+        assertTrue(activePose.outline.value.visible)
+        viewModel.onToggleMirror()
+        assertTrue(activePose.outline.value.mirrored)
+        assertTrue(activePose.outline.value.visible)
+        viewModel.onToggleMirror()
+        assertFalse(activePose.outline.value.mirrored)
+    }
+
+    @Test
     fun lock_ignoresGestures_closesPanel_andShowsHintForTwoSeconds() = runTest {
         val viewModel = readyViewModel()
         viewModel.onScaleChange(1.2f)

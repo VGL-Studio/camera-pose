@@ -9,6 +9,8 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraUiState.Ready
 import com.vglstudio.camera.pose.line.guide.feature.camera.data.OverlaySettings
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchHintText
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchUiState
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.FlashMode
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.Lens
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.TimerSetting
@@ -29,7 +31,8 @@ import org.robolectric.annotation.GraphicsMode
  * Screenshot tests (Roborazzi). The tests in the standard frame named like a design image in
  * docs/features/camera/design/screens/ are compared by scripts/design-compare.sh (ADR-0020). Every test shows the
  * sample pose state of the design (chips, strip, outline, step card and the overlay tool column) with placeholder
- * images. ready_dark and the _small tests have no design image and are not compared.
+ * images; matching, matched and no-person show the matching of T-017 over the same screen. ready_dark and the
+ * _small tests have no design image and are not compared.
  * starting_dark is in CameraScreenStartingScreenshotTest below.
  */
 @RunWith(AndroidJUnit4::class)
@@ -93,6 +96,30 @@ class CameraScreenScreenshotTest {
         }
     }
 
+    // Design `matching`: a person in the frame, 68 points, the hint of the worst part (plan T-017).
+    @Test
+    fun matching_dark() {
+        captureRoboImage("src/test/screenshots/CameraScreen_matching_dark.png") {
+            Screen(DEFAULT, matchState = MatchUiState.Scoring(68, MatchHintText.RAISE_LEFT_ARM))
+        }
+    }
+
+    // Design `matched`: the score reached the threshold, the outline and the shutter ring are green.
+    @Test
+    fun matched_dark() {
+        captureRoboImage("src/test/screenshots/CameraScreen_matched_dark.png") {
+            Screen(DEFAULT, matchState = MatchUiState.Matched(92))
+        }
+    }
+
+    // Design `no-person`: nobody in the frame, no score.
+    @Test
+    fun noPerson_dark() {
+        captureRoboImage("src/test/screenshots/CameraScreen_no-person_dark.png") {
+            Screen(DEFAULT, matchState = MatchUiState.NoPerson)
+        }
+    }
+
     // Short phone frame (L-028): the most text, and the most buttons.
     @Test
     @Config(qualifiers = SHORT_SCREEN)
@@ -114,6 +141,15 @@ class CameraScreenScreenshotTest {
     fun adjust_small() {
         captureRoboImage("src/test/screenshots/CameraScreen_adjust_small.png") {
             Screen(DEFAULT, samplePoses(overlay = ADJUSTING))
+        }
+    }
+
+    // The most content of the matching: the two-row step card, and the longest hint over the zoom control.
+    @Test
+    @Config(qualifiers = SHORT_SCREEN)
+    fun matching_small() {
+        captureRoboImage("src/test/screenshots/CameraScreen_matching_small.png") {
+            Screen(DEFAULT, matchState = MatchUiState.Scoring(68, MatchHintText.WIDEN_RIGHT_LEG))
         }
     }
 
@@ -236,7 +272,11 @@ class CameraScreenStartingScreenshotTest {
 
 /** The camera screen with both top callbacks, so the top bar looks like the design. */
 @Composable
-private fun Screen(uiState: CameraUiState, poseState: PoseUiState = CameraScreenScreenshotTest.samplePoses()) {
+private fun Screen(
+    uiState: CameraUiState,
+    poseState: PoseUiState = CameraScreenScreenshotTest.samplePoses(),
+    matchState: MatchUiState = MatchUiState.Off,
+) {
     AppTheme(darkTheme = true) {
         CameraScreen(
             uiState = uiState,
@@ -252,6 +292,7 @@ private fun Screen(uiState: CameraUiState, poseState: PoseUiState = CameraScreen
             onOpenPoses = {},
             onOpenSettings = {},
             poseState = poseState,
+            matchState = matchState,
         )
     }
 }

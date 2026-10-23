@@ -1,7 +1,7 @@
 ---
 ticket: T-034
 title: Trang tiến độ sinh trên nhánh status sau mỗi lần merge, PR không commit docs/STATUS.md
-status: approved                # draft | approved | stopped | done
+status: done                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -227,3 +227,9 @@ Test trong `scripts/tests/run.sh`, viết trước code.
 - **Bước 4, code:** `.gitignore`, `git rm --cached docs/STATUS.md`, `.github/workflows/status-page.yml` theo mục 3.1, chú thích và thông báo `--check` của `scripts/status.py`, `docs/CLAUDE.md` mục Trang tiến độ, `docs/auto-run.md` PR báo cáo, `README.md`, `docs/README.md`, `docs/lessons.md` (L-016, L-047).
 - **Bước 5:** `scripts/tests/run.sh` qua 309 test. `scripts/check.sh` để CI của PR chạy, vì plan không đổi code của app.
 - **Còn lại sau khi merge** (mục 4, hai dòng kiểm tay; điều kiện dừng 2): lần chạy `status-page` của commit merge xanh, nhánh `status` có một commit trên nhánh chính, liên kết của trang mở được; hai PR tài liệu sau không xung đột vì trang.
+
+### 2026-10-23, sau khi merge
+
+- PR #57 merge bằng `merge-if-green.sh` (commit 09e55f7 trên nhánh chính).
+- `status-page` lần chạy 39936153612 xanh. Nhánh `status` là nhánh chính (09e55f7) cộng đúng một commit "Trang tiến độ tại 09e55f7" chứa `docs/STATUS.md`; GitHub hiện trang ở `blob/status/docs/STATUS.md`. Điều kiện dừng 2 không xảy ra.
+- Còn lại: hai PR tài liệu tiếp theo không xung đột vì trang (PR của T-033 là PR đầu tiên).

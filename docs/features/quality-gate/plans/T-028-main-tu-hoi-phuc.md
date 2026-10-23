@@ -1,7 +1,7 @@
 ---
 ticket: T-028
 title: Nhánh chính tự hồi phục khi đỏ (ADR-1002)
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -219,3 +219,9 @@ Test của script trong `scripts/tests/run.sh`, viết trước code. Test giả
   - Bước "Ghi test chập chờn" có `continue-on-error`, để lỗi của GitHub khi ghi issue không làm commit xanh bị coi là đỏ.
 - **Việc còn lại:** kiểm tra thủ công ở mục 4 sau khi merge (lần `main-guard` đỏ vì test tiếp theo; chạy lại trên commit bị đổ lỗi). Chưa thử `git fetch` của `refs/pull` trong phiên `claude --cloud`; nếu bị từ chối thì đường dự phòng theo tên nhánh chạy.
 - **Cần người xem:** mục 9 của plan còn trống, và ticket đang `ready`, chưa `approved` (L-019). Diff của `main-guard.yml`: thứ tự bước, điều kiện `if`, và việc lần chạy lại dùng lại `build.log` cho bước "Đánh dấu nhánh chính đang đỏ".
+
+### Sau khi merge, 2026-10-23
+
+- **Kết quả:** đã merge (PR #47, commit 1f26840 lúc 05:00 UTC)
+- **Kiểm tra thủ công (mục 4):** `main-guard` đầu tiên chạy bản mới trên 1f26840 xanh (lần chạy 39903330617): "Cổng chất lượng" qua; "Phân loại lỗi", "Chạy lại cổng chất lượng một lần", "Ghi test chập chờn", "Đánh dấu nhánh chính đang đỏ" đều bỏ qua đúng điều kiện; "Kết quả cổng chất lượng" và "Đóng issue main-broken" qua.
+- **Việc còn lại:** hai trường hợp (a), (b) của mục 4 chỉ kiểm được khi xảy ra thật: lần `main-guard` đỏ vì test, và lần chạy lại trên commit bị đổ lỗi. Phiên sau ghi vào báo cáo nếu gặp.

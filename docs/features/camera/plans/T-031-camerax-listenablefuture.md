@@ -1,16 +1,16 @@
 ---
 ticket: T-031
 title: Gọi thẳng CameraControl.setZoomRatio, bỏ reflection
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [sdk]       # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn             # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-031: GỌI THẲNG CAMERACONTROL.SETZOOMRATIO, BỎ REFLECTION
@@ -151,19 +151,19 @@ Nơi khác đọc file plan sửa: `gradle/libs.versions.toml` được mọi mo
 ## 8. Câu hỏi cho người duyệt
 
 1. **Thêm Guava thay vì giữ reflection.** Guava đã có trong APK; plan chỉ đưa nó lên classpath biên dịch, và CameraX cùng Firebase vẫn quyết phiên bản ở runtime. Đề xuất của AI: thêm, vì reflection kèm luật keep dễ vỡ ở bản minify, và các ticket camera sau (lấy nét, phơi sáng) cũng cần gọi hàm trả `ListenableFuture`.
-- Trả lời:
+- Trả lời: Đồng ý với đề xuất của AI.
 2. **`implementation` hay `compileOnly`.** `compileOnly` không bao giờ đổi runtime nhưng sẽ hỏng nếu Firebase thôi kéo Guava. Đề xuất của AI: `implementation`, giữ `compileOnly` làm phương án dự phòng ở mục 3.4.
-- Trả lời:
+- Trả lời: Đồng ý với đề xuất của AI.
 3. **Mức rủi ro.** Plan xếp Cao chỉ vì điểm chặn 2. Cần một dev khác duyệt chéo.
-- Trả lời:
+- Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

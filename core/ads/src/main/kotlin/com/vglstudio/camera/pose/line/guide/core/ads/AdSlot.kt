@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
@@ -11,9 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -28,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -39,7 +43,8 @@ val LocalAdsController = staticCompositionLocalOf<AdsController?> { null }
 
 /**
  * Shows the banner of [placement] in a screen. Features call this, never an ads SDK directly.
- * It takes no space until ads are allowed (consent given, SDK started, placement switched on remotely).
+ * It takes no space until ads are allowed (consent given, SDK started, placement switched on remotely), nor after the
+ * ad fails to load. [separator] (a line above the banner, for example) is drawn only while the banner takes room.
  */
 @Composable
 fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier, separator: (@Composable () -> Unit)? = null) {
@@ -90,18 +95,37 @@ private fun BannerAd(ads: AdsController, unitId: String, separator: (@Composable
             }
         }
 
-        // The height is reserved before the ad loads, so the screen does not jump when it appears.
         BannerView(adView = adView, heightDp = adSize.height, separator = separator, modifier = Modifier)
     }
 }
 
-// Skeleton (plan T-023, step 3): keeps the old drawing. The real one comes with the code commit.
+/**
+ * The banner and, above it, the optional [separator]. The height of the banner is reserved before the ad loads, so the
+ * screen does not jump when it appears. When the ad fails to load, the banner shrinks to 0 dp and the separator goes,
+ * so no empty strip stays; the view stays in the tree, so a later automatic refresh that succeeds brings both back.
+ */
 @Composable
 internal fun BannerView(adView: AdView, heightDp: Int, separator: (@Composable () -> Unit)?, modifier: Modifier) {
-    AndroidView(factory = { adView }, modifier = modifier.fillMaxWidth().height(heightDp.dp))
+    var failed by remember(adView) { mutableStateOf(false) }
+    DisposableEffect(adView) {
+        adView.adListener = bannerListener { failed = it }
+        onDispose {}
+    }
+    Column(modifier = modifier) {
+        if (!failed) separator?.invoke()
+        AndroidView(
+            factory = { adView },
+            modifier = Modifier.fillMaxWidth().height(if (failed) 0.dp else heightDp.dp),
+        )
+    }
 }
 
-internal fun bannerListener(onFailedChange: (Boolean) -> Unit): AdListener = object : AdListener() {}
+/** Reports whether the last load of the banner failed: true on [AdListener.onAdFailedToLoad], false on a load. */
+internal fun bannerListener(onFailedChange: (Boolean) -> Unit): AdListener = object : AdListener() {
+    override fun onAdFailedToLoad(error: LoadAdError) = onFailedChange(true)
+
+    override fun onAdLoaded() = onFailedChange(false)
+}
 
 /**
  * Returns an action that shows the full-screen ad of [placement] if the guardrails allow it (ADR-0004).

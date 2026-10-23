@@ -1,7 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,10 +35,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.AdSlot
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCard
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StickerChip
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Stroke
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
@@ -224,14 +227,23 @@ private fun PoseChip.key(): String = when (this) {
     is PoseChip.Category -> "category:$id"
 }
 
-// Skeleton (plan T-023, step 3): draws nothing yet.
+/**
+ * The bottom banner of a screen (design README, section 5): a 2 dp line, then the ad on a tinted ground. Both are drawn
+ * only while the ad takes room: with the flag off, no consent or a failed load, nothing is left of the strip.
+ */
 @Composable
-@Suppress("UNUSED_PARAMETER")
 internal fun PosesBottomBanner(placement: AdPlacement) {
-    Box {}
+    AdSlot(
+        placement = placement,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .testTag(PosesTestTags.BANNER_SLOT),
+        separator = { PosesAdSeparator() },
+    )
 }
 
 @Composable
 internal fun PosesAdSeparator() {
-    Box {}
+    HorizontalDivider(thickness = Stroke.sticker, color = MaterialTheme.colorScheme.outlineVariant)
 }

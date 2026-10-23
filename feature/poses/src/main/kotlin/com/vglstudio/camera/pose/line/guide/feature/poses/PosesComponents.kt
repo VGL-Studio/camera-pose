@@ -222,7 +222,7 @@ internal fun screenLocale(): Locale = LocalConfiguration.current.locales[0]
 internal val WideLayoutMinWidth: Dp = 600.dp
 
 /** True when the room given to the screen is wide enough for the wide layout (spec poses, KB-7). */
-internal fun BoxWithConstraintsScope.isWide(): Boolean = false
+internal fun BoxWithConstraintsScope.isWide(): Boolean = maxWidth >= WideLayoutMinWidth
 
 private fun PoseChip.filter(): PoseFilter = when (this) {
     PoseChip.All -> PoseFilter.All

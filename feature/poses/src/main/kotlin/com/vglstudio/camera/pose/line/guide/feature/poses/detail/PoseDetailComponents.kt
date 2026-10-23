@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -58,6 +59,11 @@ import java.util.Locale
 private val ImageHeight = 380.dp
 private val ProgressSize = 40.dp
 private val StepNumberSize = 28.dp
+
+// Unfolded design: the image is 440 dp high; image column and text column are 315 : 326.
+private val WideImageHeight = 440.dp
+private const val IMAGE_COLUMN_WEIGHT = 315f
+private const val TEXT_COLUMN_WEIGHT = 326f
 
 /**
  * Top bar of the detail: back, the name of the pose, and the save button once the pose is known (design README,
@@ -324,7 +330,27 @@ internal fun WideDetailLayout(
     onShoot: () -> Unit,
     bottomBanner: @Composable () -> Unit,
 ) {
-    PhoneDetailLayout(ready, locale, scrollState, onRetryImage, onShoot, bottomBanner)
+    Row(modifier = Modifier.fillMaxSize().padding(start = Spacing.md, top = Spacing.md)) {
+        // The columns are 315 and 326 wide in the design (the right one with the right margin), as 315 : 326.
+        Column(modifier = Modifier.weight(IMAGE_COLUMN_WEIGHT)) {
+            PoseDetailImage(ready.pose.categoryId, ready.image, onRetryImage, imageHeight = WideImageHeight)
+        }
+        Spacer(modifier = Modifier.width(Spacing.md))
+        Column(modifier = Modifier.weight(TEXT_COLUMN_WEIGHT)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scrollState)
+                    .padding(end = Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                PoseDetailInfo(ready.pose, locale)
+                Spacer(modifier = Modifier.height(Spacing.md))
+            }
+            PoseDetailBottomBar(onShoot = onShoot)
+            bottomBanner()
+        }
+    }
 }
 
 @Composable

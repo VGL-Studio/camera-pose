@@ -305,7 +305,8 @@ class PosesScreenTest {
         var width by mutableStateOf(411.dp)
         val gridState = LazyGridState()
         setScreen(
-            ready(selected = PoseFilter.Category("men"), cards = manyCards()),
+            // Thirty cards: enough lines in three columns to keep the scroll position without clamping.
+            ready(selected = PoseFilter.Category("men"), cards = manyCards(count = 30)),
             gridState = gridState,
             width = { width },
         )
@@ -591,7 +592,7 @@ class PosesScreenTest {
             item(testPose(id = "x01"), saved = false, thumbnail = ThumbnailState.Ready(IMAGE)).copy(steps = steps)
 
         /** Twelve cards p01 to p12, enough to scroll. */
-        fun manyCards(thumbnail: ThumbnailState = ThumbnailState.Ready(IMAGE)) = (1..12).map {
+        fun manyCards(thumbnail: ThumbnailState = ThumbnailState.Ready(IMAGE), count: Int = 12) = (1..count).map {
             item(testPose(id = "p%02d".format(it)), saved = false, thumbnail = thumbnail)
         }
 

@@ -113,12 +113,20 @@ fun rememberShowInterstitial(placement: AdPlacement): () -> Unit {
  */
 @Composable
 fun PrivacyOptionsButton(modifier: Modifier = Modifier) {
-    val ads = LocalAdsController.current ?: return
-    val activity = LocalActivity.current ?: return
-    val required by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
-    if (required) {
-        TextButton(onClick = { ads.showPrivacyOptionsForm(activity) }, modifier = modifier) {
+    PrivacyOptionsButton(modifier = modifier) { onClick ->
+        TextButton(onClick = onClick) {
             Text(text = stringResource(R.string.ads_privacy_options))
         }
     }
+}
+
+/**
+ * The same entry point drawn by the caller, for example as a settings row (plan T-025): [content] receives the action
+ * that shows the consent form again. Skeleton for the tests written first: always draws [content].
+ */
+@Composable
+fun PrivacyOptionsButton(modifier: Modifier = Modifier, content: @Composable (onClick: () -> Unit) -> Unit) {
+    val ads = LocalAdsController.current
+    val activity = LocalActivity.current
+    Box(modifier) { content { if (ads != null && activity != null) ads.showPrivacyOptionsForm(activity) } }
 }

@@ -3,6 +3,8 @@ package com.vglstudio.camera.pose.line.guide.feature.camera
 import androidx.camera.core.SurfaceRequest
 import com.vglstudio.camera.pose.line.guide.core.analytics.Analytics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
+import com.vglstudio.camera.pose.line.guide.core.data.ThemeMode
+import com.vglstudio.camera.pose.line.guide.core.data.UserPreferences
 import com.vglstudio.camera.pose.line.guide.feature.camera.camera.CameraCapabilities
 import com.vglstudio.camera.pose.line.guide.feature.camera.camera.CameraController
 import com.vglstudio.camera.pose.line.guide.feature.camera.camera.CameraOpenException
@@ -52,8 +54,12 @@ internal class FakeCameraController : CameraController {
         zoomCalls += ratio
     }
 
-    override suspend fun takePicture(): File {
+    /** The shutter sound choice of each capture, in order. */
+    val soundCalls = mutableListOf<Boolean>()
+
+    override suspend fun takePicture(playShutterSound: Boolean): File {
         captureCount++
+        soundCalls += playShutterSound
         pendingCapture?.await()
         captureError?.let { throw CaptureFailedException(it) }
         return File("capture_1.jpg")
@@ -100,4 +106,23 @@ internal class FakeCountdownInterruptions : CountdownInterruptions {
     val value = MutableStateFlow(false)
 
     override fun active(): Flow<Boolean> = value
+}
+
+/** The settings choices held in memory (plan T-025); the camera reads the shutter sound only. */
+internal class FakeUserPreferences : UserPreferences {
+    override val themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+    override val shutterSoundEnabled = MutableStateFlow(true)
+    override val appLanguage = MutableStateFlow("")
+
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        themeMode.value = mode
+    }
+
+    override suspend fun setShutterSoundEnabled(enabled: Boolean) {
+        shutterSoundEnabled.value = enabled
+    }
+
+    override suspend fun setAppLanguage(tag: String) {
+        appLanguage.value = tag
+    }
 }

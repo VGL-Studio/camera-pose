@@ -353,6 +353,12 @@ fun PoseCardCatalog(modifier: Modifier = Modifier) {
     }
 }
 
+/** Skeleton for the tests written first (plan T-025, section 4). */
+@Composable
+fun SettingsComponentCatalog(modifier: Modifier = Modifier) {
+    Box(modifier)
+}
+
 @Composable
 private fun CatalogArrows(previousEnabled: Boolean) {
     StepCardArrows(

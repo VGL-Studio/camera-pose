@@ -128,7 +128,7 @@ internal class CameraXController @Inject constructor(
             .onFailure { logger.warn(LOG_TAG, "Zoom could not be set", it) }
     }
 
-    override suspend fun takePicture(): File = withContext(Dispatchers.Main) {
+    override suspend fun takePicture(playShutterSound: Boolean): File = withContext(Dispatchers.Main) {
         val capture = imageCapture ?: throw CaptureFailedException(IllegalStateException("The camera is not open"))
         val file = fileStore.newFile(clock.nowMillis())
         val sound = shutterSound ?: MediaActionSound().also {

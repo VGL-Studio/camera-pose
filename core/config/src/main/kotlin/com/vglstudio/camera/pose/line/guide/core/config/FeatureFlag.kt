@@ -14,4 +14,5 @@ enum class FeatureFlag(val key: String, val defaultValue: Boolean = false) {
     CAMERA("feature_camera_enabled"),
     ONBOARDING("feature_onboarding_enabled"),
     POSES("feature_poses_enabled"),
+    SETTINGS("feature_settings_enabled"),
 }

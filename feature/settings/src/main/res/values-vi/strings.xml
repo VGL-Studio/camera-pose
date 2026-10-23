@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_back">Quay lại</string>
+    <string name="settings_section_general">Chung</string>
+    <string name="settings_theme">Giao diện</string>
+    <string name="settings_theme_system">Theo hệ thống</string>
+    <string name="settings_theme_light">Sáng</string>
+    <string name="settings_theme_dark">Tối</string>
+    <string name="settings_shutter_sound">Âm khi chụp</string>
+    <string name="settings_language">Ngôn ngữ</string>
+    <string name="settings_language_system">Theo hệ thống</string>
+    <string name="settings_language_current">Tiếng Việt</string>
+    <string name="settings_section_privacy">Quyền riêng tư</string>
+    <string name="settings_privacy_options">Tùy chọn quyền riêng tư</string>
+    <string name="settings_privacy_policy">Chính sách quyền riêng tư</string>
+    <string name="settings_section_about">Thông tin</string>
+    <string name="settings_version">Phiên bản</string>
+    <string name="settings_cancel">Hủy</string>
+    <string name="settings_save_error">Không lưu được lựa chọn. Hãy thử lại.</string>
+</resources>

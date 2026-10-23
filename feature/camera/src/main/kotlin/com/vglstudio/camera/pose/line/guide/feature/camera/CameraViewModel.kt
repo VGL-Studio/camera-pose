@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vglstudio.camera.pose.line.guide.core.analytics.Analytics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
+import com.vglstudio.camera.pose.line.guide.core.data.UserPreferences
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.feature.camera.camera.CameraController
 import com.vglstudio.camera.pose.line.guide.feature.camera.camera.CameraOpenException
@@ -49,6 +50,7 @@ class CameraViewModel @Inject constructor(
     private val holder: CapturedPhotoHolder,
     private val activePose: ActivePoseHolder,
     private val countdownInterruptions: CountdownInterruptions,
+    @Suppress("unused") private val userPreferences: UserPreferences,
     private val analytics: Analytics,
     private val logger: AppLogger,
     private val savedStateHandle: SavedStateHandle,
@@ -220,7 +222,7 @@ class CameraViewModel @Inject constructor(
         updateReady { it.copy(capturing = true) }
         viewModelScope.launch {
             try {
-                val file = controller.takePicture()
+                val file = controller.takePicture(playShutterSound = true)
                 // Read when the photo is taken: a pose changed during the countdown is the outline in the photo.
                 val poseId = activePose.current.value?.id.orEmpty()
                 holder.put(CapturedPhoto(file, lens, timer, clock.nowMillis(), poseId))

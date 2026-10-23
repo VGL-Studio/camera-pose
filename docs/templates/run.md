@@ -65,6 +65,8 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 - [ ] Ảnh so sánh với thiết kế: <feature, `docs/features/<feature>/design/review/`, nhận xét của rà soát độc lập>
 - [ ] Tiêu chí kiểm tra thủ công: <ticket, tiêu chí, các bước>
 - [ ] Điểm rà soát mức ghi chú: <ticket, nội dung>
+- [ ] Test chập chờn: <issue `flaky` đang mở, tên test>, hoặc "Không có" (ADR-1002)
+- [ ] Task bị revert: <ticket, issue `main-broken`, PR revert>, hoặc "Không có" (ADR-1002)
 
 ### Task bị dừng
 

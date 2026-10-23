@@ -157,12 +157,13 @@ git -C "$work/origin.git" update-ref refs/pull/12/head "$(git_t rev-parse good)"
 printf '#!/bin/sh\nexit 0\n' > "$work/bin/revert-yes"
 printf '#!/bin/sh\necho "cây file khác"\nexit 1\n' > "$work/bin/revert-no"
 chmod +x "$work/bin/revert-yes" "$work/bin/revert-no"
-merge_while_broken() { # <issues JSON> [IS_EXACT_REVERT]; prints the exit code
+merge_while_broken() { # <issues JSON> [IS_EXACT_REVERT] [run status]; prints the exit code
   cat > "$work/broken.json" << JSON
 {"routes": {
   "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "$(git_t rev-parse good)", "ref": "revert/${culprit::7}"}, "title": "Revert", "labels": []},
   "issues?state=open&labels=main-broken&per_page=10": $1,
-  "branches?per_page=100": [{"name": "main"}],
+  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
+  "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: ${3:-finished}\n---\n",
   "compare/main...$(git_t rev-parse good)": {"behind_by": 2}
 }}
 JSON
@@ -185,6 +186,10 @@ expect "merge-if-green refuses with two main-broken issues" 1 \
 expect "merge-if-green refuses an issue without culprit" 1 \
   "$(merge_while_broken '[{"number": 7, "body": "Nhánh chính đỏ."}]' "$work/bin/revert-yes")"
 expect "merge-if-green lets a PR through when main is not broken" 3 "$(merge_while_broken '[]' "$work/bin/revert-no")"
+expect "merge-if-green lets the exact revert through while a run is running" 3 \
+  "$(merge_while_broken "$one_issue" "$work/bin/revert-yes" running)"
+expect "merge-if-green still refuses a revert branch that is not checked while a run is running" 1 \
+  "$(merge_while_broken '[]' "$work/bin/revert-yes" running)"
 
 # wait-run.sh waits for one workflow run in a single command and says how it ended.
 wait_run() { # <fixture JSON> <args...>; prints "<exit code> <first word of the line>"

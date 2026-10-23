@@ -147,7 +147,19 @@ Nếu phiên rà soát và phiên viết code hiểu spec khác nhau, AI không 
 - Script báo nhánh chưa cập nhật theo nhánh chính thì cập nhật nhánh, đợi CI chạy lại rồi gọi lại script.
 - Script từ chối vì lý do khác thì không tìm cách vượt qua, mà dừng task và ghi lý do vào nhật ký.
 - Sau khi merge, chờ `main-guard` của commit merge: `scripts/wait-run.sh --workflow main-guard.yml --since <giờ merge>` ở chế độ nền, trong lúc làm bước 10 và bước 1, 2 của task sau. Commit merge chỉ đổi tài liệu thì `main-guard` không chạy (`paths-ignore`), không cần chờ.
-- Trước khi đẩy commit đầu tiên của task sau, phải có kết quả của lần chờ đó, rồi kiểm tra lại không có issue hay PR nào đang mở mang nhãn `main-broken`. Có thì kết thúc phiên. Kiểm tra ngay sau khi merge là quá sớm: `main-guard` mất khoảng 5 đến 12 phút, và issue chỉ được mở khi nó xong (L-028).
+- Trước khi đẩy commit đầu tiên của task sau, phải có kết quả của lần chờ đó, rồi kiểm tra lại không có issue hay PR nào đang mở mang nhãn `main-broken`. Kiểm tra ngay sau khi merge là quá sớm: `main-guard` mất khoảng 5 đến 12 phút (gấp đôi khi nó chạy lại test thất bại), và issue chỉ được mở khi nó xong (L-028).
+- Có issue `main-broken`: commit gây lỗi (dòng `<!-- culprit:<sha> -->` trong thân issue) là commit merge của một task chính phiên đã merge thì làm theo mục Khi nhánh chính đỏ vì task của phiên; commit khác thì kết thúc phiên (mục 4).
+- `main-guard` xanh sau khi chạy lại test thất bại thì có issue mang nhãn `flaky` (ADR-1002): phiên làm tiếp như bình thường, chép issue vào báo cáo.
+
+### Khi nhánh chính đỏ vì task của phiên
+
+Theo ADR-1002, mục 4. Phiên chỉ revert commit merge của chính phiên, không bao giờ revert commit của người hay của phiên khác, và không đóng, sửa hay bình luận vào issue `main-broken`.
+
+1. Đọc issue bằng REST (bước 7) và lấy commit gây lỗi. So với các commit merge mà phiên ghi ở dòng thời gian của báo cáo; không khớp thì kết thúc phiên.
+2. Mở PR từ nhánh `revert/<7 ký tự đầu>` mà `main-guard` đã đẩy: `gh api -X POST "repos/{owner}/{repo}/pulls" -f head=revert/<sha> -f base=main -f title="Revert T-NNN (main-broken #<số issue>)" -f body="..."`. Không sửa nhánh đó: `merge-if-green.sh` chỉ cho qua đúng một commit `git revert` trên nhánh chính mới nhất (`scripts/is-exact-revert.sh`). Không có nhánh `revert/` (issue ghi "Không tự revert được"), hoặc nhánh chính đã có commit mới sau commit gây lỗi khiến bản revert không còn nằm ngay trên nhánh chính: kết thúc phiên.
+3. Chờ CI bằng `scripts/wait-run.sh --pr <số>`, rồi merge bằng `scripts/merge-if-green.sh <số>`. Script từ chối thì kết thúc phiên, không tìm cách khác.
+4. Chờ `main-guard` của commit revert (`scripts/wait-run.sh --workflow main-guard.yml --since <giờ merge>`). Xanh thì issue tự đóng; kiểm lại không còn issue `main-broken` đang mở rồi mới làm task sau. Còn đỏ thì kết thúc phiên.
+5. Task bị revert: ticket chuyển `stopped`, nhật ký plan ghi "đã merge rồi revert" kèm issue và PR revert, chuẩn bị cho người như task dừng (mục Chuẩn bị cho người khi task dừng). Task phụ thuộc task đó bị bỏ qua.
 
 ### Bước 10. Ghi nhật ký
 
@@ -190,7 +202,7 @@ Phiên kết thúc khi gặp một trong các điều kiện sau:
 | Gần đến thời điểm muốn có bản staging, không đủ thời gian cho task tiếp theo | Không bắt đầu task mới |
 | Hết hạn mức sử dụng | Phiên dừng ngay, không làm được gì thêm. Phần đã đẩy lên còn nguyên (bước 3). `resume-run.yml` kích hoạt lại phiên khi hạn mức được làm mới (mục Tiếp tục phiên sau khi hết hạn mức) |
 | Lỗi hạ tầng còn sau lịch thử lại ở bước 5 | Như trên. Plan và ticket giữ `approved`; báo cáo ghi tên nhánh để lần sau tiếp tục trên nhánh đó |
-| Nhánh chính đỏ sau một lần merge (xuất hiện issue mang nhãn `main-broken`) | Dừng ngay, không làm thêm task nào |
+| Nhánh chính đỏ sau một lần merge (xuất hiện issue mang nhãn `main-broken`) | Dừng ngay, không làm thêm task nào. Trừ khi commit gây lỗi là commit merge của một task chính phiên: revert theo mục 3, Khi nhánh chính đỏ vì task của phiên, rồi làm tiếp các task không phụ thuộc task đó (ADR-1002) |
 
 ### Tiếp tục phiên sau khi hết hạn mức
 
@@ -242,6 +254,7 @@ Báo cáo phiên là thứ dev đọc đầu tiên khi bắt đầu làm việc 
 - Thời gian chạy và mức sử dụng của phiên, token của từng task so với ước tính trong plan (`docs/ops/token-usage.md`).
 - Số liệu của phiên (mẫu danh sách chạy, mục Số liệu).
 - Bài học của phiên, và kết quả kiểm chứng các bài học `applied` liên quan tới phiên này (mục 6).
+- Issue mang nhãn `flaky` đang mở (số, tên test) và task bị revert trong phiên, nếu có (ADR-1002).
 
 ## 6. Bài học và cải tiến quy trình
 

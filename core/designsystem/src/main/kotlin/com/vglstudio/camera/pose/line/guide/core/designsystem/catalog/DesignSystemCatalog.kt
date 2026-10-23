@@ -225,11 +225,13 @@ fun CameraComponentCatalog(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(text = "Camera components", style = MaterialTheme.typography.titleLarge, color = appColors.onCamera)
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             CameraIconButton(icon = refresh, onClick = {}, contentDescription = null)
             CameraIconButton(icon = refresh, onClick = {}, contentDescription = null, active = true)
             CameraIconButton(text = "3s", onClick = {}, contentDescription = null, active = true)
             CameraIconButton(icon = refresh, onClick = {}, contentDescription = null, enabled = false)
+            // Nobody in the frame: the icon in the circle instead of a score.
+            MatchHint(text = "Step back", icon = painterResource(R.drawable.ic_person_search))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ZoomControl(levels = listOf("0.5", "1x", "2"), selectedIndex = 1, onSelect = {})
@@ -271,9 +273,10 @@ fun CameraComponentCatalog(modifier: Modifier = Modifier) {
             }
         }
         // The pose matching hint: scoring, matched, and nobody in the frame (plan T-017).
-        MatchHint(text = "Raise your left arm", score = 68)
-        MatchHint(text = "Matched, take the photo!", score = 92, matched = true)
-        MatchHint(text = "Step back", icon = painterResource(R.drawable.ic_person_search))
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            MatchHint(text = "Raise arm", score = 68)
+            MatchHint(text = "Matched!", score = 92, matched = true)
+        }
     }
 }
 

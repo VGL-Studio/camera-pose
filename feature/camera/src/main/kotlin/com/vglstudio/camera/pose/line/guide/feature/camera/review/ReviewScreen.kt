@@ -46,6 +46,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryB
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
+import com.vglstudio.camera.pose.line.guide.core.review.rememberRequestInAppReview
 import com.vglstudio.camera.pose.line.guide.feature.camera.R
 import com.vglstudio.camera.pose.line.guide.feature.camera.layout.isUnfolded
 import com.vglstudio.camera.pose.line.guide.feature.camera.photo.STORAGE_PERMISSION
@@ -69,8 +70,14 @@ internal fun ReviewRoute(onLeave: () -> Unit, viewModel: ReviewViewModel = hiltV
     val activity = LocalActivity.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnLeave by rememberUpdatedState(onLeave)
+    val requestReview = rememberRequestInAppReview()
+    val savedCount by viewModel.savedCount.collectAsStateWithLifecycle()
+    // Read when the exit ends, not when the route was composed: the last save may have just been counted.
+    val currentSavedCount by rememberUpdatedState(savedCount)
+    val currentRequestReview by rememberUpdatedState(requestReview)
+    val askReview = { currentRequestReview(currentSavedCount) }
     val showAd = rememberShowInterstitial(AdPlacement.REVIEW_INTERSTITIAL) { shown ->
-        afterReviewAd(shown, currentOnLeave)
+        afterReviewAd(shown, currentOnLeave, askReview)
     }
     val shareTitle = stringResource(R.string.review_share_title)
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -88,7 +95,7 @@ internal fun ReviewRoute(onLeave: () -> Unit, viewModel: ReviewViewModel = hiltV
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.events.collect { event ->
                 when (event) {
-                    is ReviewEvent.Leave -> leaveReview(event.savedThisVisit, showAd, currentOnLeave)
+                    is ReviewEvent.Leave -> leaveReview(event.savedThisVisit, showAd, currentOnLeave, askReview)
                     is ReviewEvent.Share -> share(context, event.location, shareTitle, viewModel)
                     ReviewEvent.RequestStoragePermission -> permissionLauncher.launch(STORAGE_PERMISSION)
                     ReviewEvent.OpenAppSettings -> {

@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-10]
 owner: Nhật
-status: ready
+status: approved
 risk: high
 size: S
 depends_on: [T-016, T-018]
 sprint:
-plan:
+plan: features/camera/plans/T-019-hoi-danh-gia.md
 created: 2026-10-21
 ---
 

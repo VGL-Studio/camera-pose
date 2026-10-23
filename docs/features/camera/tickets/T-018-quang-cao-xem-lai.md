@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-9]
 owner: Nhật
-status: ready
+status: approved
 risk: high
 size: S
 depends_on: [T-016]
 sprint:
-plan:
+plan: features/camera/plans/T-018-quang-cao-xem-lai.md
 created: 2026-10-21
 ---
 

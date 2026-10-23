@@ -8,9 +8,9 @@ owner: Nhật
 status: ready
 risk: high
 size: L
-depends_on: [T-014]
+depends_on: [T-014, T-015]
 sprint:
-plan:
+plan: features/camera/plans/T-017-camera-diem-khop.md
 created: 2026-10-21
 ---
 

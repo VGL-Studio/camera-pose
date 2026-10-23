@@ -10,7 +10,7 @@ risk: high
 size: M
 depends_on: [T-014]
 sprint:
-plan:
+plan: features/camera/plans/T-015-camera-chinh-net-vien.md
 created: 2026-10-21
 ---
 

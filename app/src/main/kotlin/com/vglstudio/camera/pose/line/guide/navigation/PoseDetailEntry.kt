@@ -14,8 +14,12 @@ import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.PoseDetailD
 internal fun NavController.openCameraWithPose(poseId: String) {
     if (currentDestination?.hasRoute<PoseDetailDestination>() != true) return
     // The permission was asked already when the camera that is there asked it (spec camera, KB-7).
-    val camera = currentBackStack.value.lastOrNull { it.destination.hasRoute<CameraDestination>() }
-    val askPermission = camera?.toRoute<CameraDestination>()?.askPermission ?: true
+    val askPermission = try {
+        getBackStackEntry<CameraDestination>().toRoute<CameraDestination>().askPermission
+    } catch (_: IllegalArgumentException) {
+        // No camera entry on the back stack.
+        true
+    }
     navigate(CameraDestination(askPermission = askPermission, poseId = poseId)) {
         popUpTo<CameraDestination> { inclusive = true }
         launchSingleTop = true

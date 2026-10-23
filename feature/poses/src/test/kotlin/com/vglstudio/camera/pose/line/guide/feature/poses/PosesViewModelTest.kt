@@ -136,7 +136,8 @@ class PosesViewModelTest {
         assertEquals("couples", couple.categoryId)
         assertEquals(PosesFixtures.POSES.first { it.id == "c01" }.name, couple.name)
         assertEquals(SubjectType.COUPLE, couple.subjectType)
-        assertEquals(5, couple.stepCount)
+        assertEquals(PosesFixtures.POSES.first { it.id == "c01" }.steps, couple.steps)
+        assertEquals(5, couple.steps.values.getValue("en").size)
         assertFalse(couple.saved)
         assertEquals(ThumbnailState.Loading, couple.thumbnail)
         assertTrue(viewModel.card("w02").saved)
@@ -214,6 +215,23 @@ class PosesViewModelTest {
         assertEquals(listOf("w02" to false), library.writes)
         assertFalse(viewModel.card("w02").saved)
         assertEquals(listOf(savedEvent("w02", false)), analytics.events)
+    }
+
+    @Test
+    fun saveDoneBeforeLibraryHasIt_buttonKeepsNewState_untilLibraryAgrees() = runTest {
+        // Blocking test (review of T-021): the override bridges the time between the write and the new library value.
+        library.publishLater = true
+        val viewModel = readyViewModel()
+        viewModel.onToggleSave("w01")
+        advanceUntilIdle()
+        assertEquals(listOf("w01" to true), library.writes)
+        assertFalse("library has not published yet", "w01" in testContent().savedIds)
+        assertTrue(viewModel.card("w01").saved)
+        library.publishPending()
+        assertTrue(viewModel.card("w01").saved)
+        // The override is gone: a later library value is shown as it is.
+        library.ready(testContent(savedIds = listOf("w02")))
+        assertFalse(viewModel.card("w01").saved)
     }
 
     @Test

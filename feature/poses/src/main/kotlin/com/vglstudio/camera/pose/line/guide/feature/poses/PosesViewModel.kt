@@ -272,7 +272,7 @@ class PosesViewModel @Inject constructor(
                         categoryId = pose.categoryId,
                         name = pose.name,
                         subjectType = pose.subjectType,
-                        stepCount = pose.steps.values.values.firstOrNull()?.size ?: 0,
+                        steps = pose.steps,
                         saved = savedOverrides[id] ?: (id in content.savedIds),
                         thumbnail = thumbnails[id] ?: ThumbnailState.Loading,
                     )

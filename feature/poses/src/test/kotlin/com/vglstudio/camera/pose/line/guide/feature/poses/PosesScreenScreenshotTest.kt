@@ -15,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
+import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedText
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
@@ -146,7 +147,7 @@ class PosesScreenScreenshotTest {
                         categoryId = card.category,
                         name = text(if (longName && index == 0) LONG_NAME else card.name),
                         subjectType = card.type,
-                        stepCount = card.steps,
+                        steps = LocalizedList(mapOf("en" to (1..card.steps).map { "Step $it" })),
                         saved = index == 1,
                         thumbnail = if (index < ready) ThumbnailState.Ready(image) else ThumbnailState.Loading,
                     )

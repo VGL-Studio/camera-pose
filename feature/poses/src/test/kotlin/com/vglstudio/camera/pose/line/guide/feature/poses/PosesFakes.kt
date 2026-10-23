@@ -107,7 +107,8 @@ internal fun testContent(
 /**
  * The library as a state flow; [emitAgain] sends the current value a second time (a state flow drops equal values).
  * A write records the call, fails when [failWrites], waits for [writeGate] when set, then publishes the content with
- * the pose saved first or removed, as :core:poses would.
+ * the pose saved first or removed, as :core:poses would. With [publishLater] the new content waits in [pending] until
+ * [publishPending]: the write is done before the library has the new value.
  */
 internal class FakePosesLibrarySource : PosesLibrarySource {
     val state = MutableStateFlow<LibraryResult>(LibraryResult.Loading)
@@ -116,6 +117,8 @@ internal class FakePosesLibrarySource : PosesLibrarySource {
     val writes = mutableListOf<Pair<String, Boolean>>()
     var failWrites = false
     var writeGate: CompletableDeferred<Unit>? = null
+    var publishLater = false
+    var pending: LibraryContent? = null
 
     override val library: Flow<LibraryResult> = merge(state, repeats)
 
@@ -142,7 +145,13 @@ internal class FakePosesLibrarySource : PosesLibrarySource {
         val content = (state.value as? LibraryResult.Ready)?.content ?: return
         val savedIds = content.posesFor(PoseFilter.Saved).map { it.id }
         val newSaved = if (saved) listOf(poseId) + (savedIds - poseId) else savedIds - poseId
-        ready(testContent(savedIds = newSaved))
+        val next = testContent(savedIds = newSaved)
+        if (publishLater) pending = next else ready(next)
+    }
+
+    fun publishPending() {
+        ready(checkNotNull(pending))
+        pending = null
     }
 }
 

@@ -2,6 +2,7 @@ package com.vglstudio.camera.pose.line.guide.feature.poses
 
 import androidx.compose.ui.graphics.ImageBitmap
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
+import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedText
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
@@ -42,7 +43,8 @@ data class PoseCardItem(
     val categoryId: String,
     val name: LocalizedText,
     val subjectType: SubjectType,
-    val stepCount: Int,
+    /** Counted by the screen in its language, as the name (review of T-021). */
+    val steps: LocalizedList,
     val saved: Boolean,
     val thumbnail: ThumbnailState,
 )

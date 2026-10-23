@@ -26,6 +26,7 @@ import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
+import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Pose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
 import org.junit.Assert.assertEquals
@@ -163,6 +164,20 @@ class PosesScreenTest {
     }
 
     @Test
+    fun card_stepCountUsesScreenLanguage() {
+        // English first in the catalog: the Vietnamese screen counts the Vietnamese steps (review of T-021).
+        setScreen(ready(cards = listOf(twoLanguageCard(LocalizedList(mapOf("en" to steps(5), "vi" to steps(3)))))))
+        card("x01").assert(hasText("Một người · 3 bước"))
+    }
+
+    @Test
+    @Config(qualifiers = "en-w411dp-h891dp-xxhdpi")
+    fun card_stepCountUsesScreenLanguage_english() {
+        setScreen(ready(cards = listOf(twoLanguageCard(LocalizedList(mapOf("vi" to steps(3), "en" to steps(5)))))))
+        card("x01").assert(hasText("Một người · 5 bước"))
+    }
+
+    @Test
     fun back_callsOnBack() {
         setScreen(ready())
         composeRule.onNodeWithContentDescription("Quay lại").performClick()
@@ -221,6 +236,26 @@ class PosesScreenTest {
         composeRule.waitForIdle()
         assertEquals(listOf<PoseFilter>(PoseFilter.Category("men")), filters)
         assertEquals(0, gridState.firstVisibleItemIndex)
+    }
+
+    @Test
+    fun chipClick_scrollsToTop_alsoWhenFirstCardMovesDownInNewList() {
+        // "Nữ" scrolled down; its first card is in the middle of "Tất cả": the grid must still start at the top.
+        val women = manyCards()
+        val gridState = LazyGridState()
+        setScreen(ready(selected = PoseFilter.Category("women"), cards = women), gridState = gridState)
+        composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(6)
+        composeRule.runOnIdle { assertEquals(6, gridState.firstVisibleItemIndex) }
+        composeRule.onNodeWithText("Tất cả").performClick()
+        composeRule.waitForIdle()
+        val men = (1..6).map {
+            item(testPose(id = "m%02d".format(it), categoryId = "men"), false, ThumbnailState.Ready(IMAGE))
+        }
+        state = ready(selected = PoseFilter.All, cards = men + women)
+        composeRule.waitForIdle()
+        assertEquals(listOf<PoseFilter>(PoseFilter.All), filters)
+        assertEquals(0, gridState.firstVisibleItemIndex)
+        card("m01").assertExists()
     }
 
     @Test
@@ -374,7 +409,7 @@ class PosesScreenTest {
             categoryId = pose.categoryId,
             name = pose.name,
             subjectType = pose.subjectType,
-            stepCount = pose.steps.values.getValue("en").size,
+            steps = pose.steps,
             saved = saved,
             thumbnail = thumbnail,
         )
@@ -383,6 +418,12 @@ class PosesScreenTest {
         fun fixtureCards(thumbnails: Map<String, ThumbnailState> = emptyMap()) = PosesFixtures.POSES.map { pose ->
             item(pose, saved = pose.id == "w02", thumbnail = thumbnails[pose.id] ?: ThumbnailState.Ready(IMAGE))
         }
+
+        fun steps(count: Int) = (1..count).map { "Step $it" }
+
+        /** One card whose steps differ by language. */
+        fun twoLanguageCard(steps: LocalizedList) =
+            item(testPose(id = "x01"), saved = false, thumbnail = ThumbnailState.Ready(IMAGE)).copy(steps = steps)
 
         /** Twelve cards p01 to p12, enough to scroll. */
         fun manyCards(thumbnail: ThumbnailState = ThumbnailState.Ready(IMAGE)) = (1..12).map {

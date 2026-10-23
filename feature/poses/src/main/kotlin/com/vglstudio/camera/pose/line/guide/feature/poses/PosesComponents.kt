@@ -132,7 +132,11 @@ internal fun PoseGridCell(
             val painter = remember(thumbnail.image) { BitmapPainter(thumbnail.image) }
             PoseCard(
                 name = item.name.resolve(screenLocale()),
-                meta = stringResource(R.string.poses_card_meta, subjectLabel(item.subjectType), item.stepCount),
+                meta = stringResource(
+                    R.string.poses_card_meta,
+                    subjectLabel(item.subjectType),
+                    item.steps.values.values.firstOrNull()?.size ?: 0,
+                ),
                 image = painter,
                 imageBackground = categoryColor(item.categoryId),
                 saved = item.saved,

@@ -44,4 +44,9 @@ object StagingFeatureFlagsModule {
     @IntoSet
     @LocallyEnabledFlags
     fun poses(): FeatureFlag = FeatureFlag.POSES
+
+    @Provides
+    @IntoSet
+    @LocallyEnabledFlags
+    fun settings(): FeatureFlag = FeatureFlag.SETTINGS
 }

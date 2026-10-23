@@ -23,6 +23,8 @@ import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.PosesDestin
 import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.posesScreen
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.SampleDestination
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.sampleScreen
+import com.vglstudio.camera.pose.line.guide.feature.settings.navigation.SettingsDestination
+import com.vglstudio.camera.pose.line.guide.feature.settings.navigation.settingsScreen
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,6 +36,8 @@ import kotlinx.coroutines.launch
  * [onPastLoadingChanged] tells whether the current destination is past the loading screen (spec network, section 2),
  * also after the system recreates the activity and restores the back stack.
  * [posesEnabled] follows feature_poses_enabled: the library button of the camera shows only while it is on.
+ * [settingsEnabled] follows feature_settings_enabled: the settings buttons of the camera and the library show only
+ * while it is on.
  */
 @Composable
 internal fun AppNavHost(
@@ -42,8 +46,15 @@ internal fun AppNavHost(
     modifier: Modifier = Modifier,
     onPastLoadingChanged: (Boolean) -> Unit = {},
     posesEnabled: Boolean = false,
+    settingsEnabled: Boolean = false,
 ) {
     val navController = rememberNavController()
+    // Single top: a second tap on a gear does not stack a second settings screen (spec settings, KB-1).
+    val openSettings: (() -> Unit)? = if (settingsEnabled) {
+        { navController.navigate(SettingsDestination) { launchSingleTop = true } }
+    } else {
+        null
+    }
     val scope = rememberCoroutineScope()
     val entry by navController.currentBackStackEntryAsState()
     val pastLoading = entry?.destination?.let { !it.hasRoute<LoadingDestination>() } ?: false
@@ -88,12 +99,12 @@ internal fun AppNavHost(
             },
         )
         sampleScreen()
-        // T-025 wires the settings buttons of the camera and the library.
         cameraScreen(
             onPhotoCaptured = { navController.navigate(ReviewDestination()) { launchSingleTop = true } },
             onOpenPoses = posesOpener(posesEnabled) {
                 navController.navigate(PosesDestination) { launchSingleTop = true }
             },
+            onOpenSettings = openSettings,
             onOpenLastPhoto = { uri ->
                 navController.navigate(ReviewDestination(savedPhotoUri = uri)) { launchSingleTop = true }
             },
@@ -112,6 +123,16 @@ internal fun AppNavHost(
             onBack = {
                 // Only while the library is on top: a second tap must not close the camera too.
                 if (navController.currentDestination?.hasRoute<PosesDestination>() == true) {
+                    navController.popBackStack()
+                }
+            },
+            onOpenSettings = openSettings,
+        )
+        // Back returns to the screen that opened settings: the camera or the library (spec settings, KB-1).
+        settingsScreen(
+            onBack = {
+                // Only while settings is on top: a second tap must not close the screen below too.
+                if (navController.currentDestination?.hasRoute<SettingsDestination>() == true) {
                     navController.popBackStack()
                 }
             },

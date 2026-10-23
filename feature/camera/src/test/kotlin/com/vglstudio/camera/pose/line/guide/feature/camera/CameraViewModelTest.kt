@@ -43,6 +43,7 @@ class CameraViewModelTest {
     private val interruptions = FakeCountdownInterruptions()
     private val analytics = FakeAnalytics()
     private val logger = RecordingAppLogger()
+    private val userPreferences = FakeUserPreferences()
     private val events = mutableListOf<CameraEvent>()
 
     private fun TestScope.viewModel(savedState: SavedStateHandle = SavedStateHandle()): CameraViewModel {
@@ -52,6 +53,7 @@ class CameraViewModelTest {
             holder = holder,
             activePose = activePose,
             countdownInterruptions = interruptions,
+            userPreferences = userPreferences,
             analytics = analytics,
             logger = logger,
             savedStateHandle = savedState,
@@ -378,6 +380,35 @@ class CameraViewModelTest {
         assertEquals(1, controller.captureCount)
         assertEquals(listOf(capturedEvent("off")), analytics.events)
         assertEquals(CapturedPhoto(File("capture_1.jpg"), Lens.BACK, TimerSetting.OFF, 1_000L), holder.latest.value)
+        assertEquals(listOf<CameraEvent>(CameraEvent.PhotoCaptured), events)
+    }
+
+    // Spec settings, KB-3 (plan T-025)
+
+    @Test
+    fun shutter_soundOn_byDefault_playsSound() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals(listOf(true), controller.soundCalls)
+
+        // Control: the choice is followed, not read once; turned off later, the next photo is silent.
+        userPreferences.shutterSoundEnabled.value = false
+        runCurrent()
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals(listOf(true, false), controller.soundCalls)
+    }
+
+    @Test
+    fun shutter_soundOff_capturesWithoutSound() = runTest {
+        userPreferences.shutterSoundEnabled.value = false
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals(listOf(false), controller.soundCalls)
+        assertEquals(1, controller.captureCount)
+        assertEquals(listOf(capturedEvent("off")), analytics.events)
         assertEquals(listOf<CameraEvent>(CameraEvent.PhotoCaptured), events)
     }
 

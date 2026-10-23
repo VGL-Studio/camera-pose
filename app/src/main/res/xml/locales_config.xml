@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The release languages, listed on the app language page of the device from Android 13 (spec settings, KB-4).
+    Kept equal to AppLanguages.RELEASE of :core:data (LocalesConfigTest).
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="hi" />
+    <locale android:name="pt-BR" />
+    <locale android:name="es-419" />
+    <locale android:name="id" />
+    <locale android:name="th" />
+    <locale android:name="vi" />
+</locale-config>

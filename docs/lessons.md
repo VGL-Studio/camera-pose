@@ -34,11 +34,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-002: Bí mật Firebase staging là file giả, cuối phiên không phát được
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01.
 - **Chuyện gì:** `STAGING_GOOGLE_SERVICES_JSON` vẫn là file giả; `device-session.yml` và `staging.yml` lỗi ở bước cấu hình, sau khi cả phiên đã chạy.
 - **Bằng chứng:** `device-session` 39589532354 và 39589890609, `staging` 39589924059: `processStagingReleaseGoogleServices: No matching client found for package name '...guide.staging'`.
 - **Đề xuất sửa:** `docs/auto-run.md`, mục 2: kiểm tra đầu phiên có một điều kiện "bí mật Firebase staging có app staging", để lỗi lộ ra trước khi phiên bắt đầu.
-- **Áp dụng:** plan T-030 (`draft`, rủi ro cao): `scripts/preflight.sh`, workflow `preflight.yml`, `start-run.yml` kiểm bí mật Firebase staging trước phiên.
+- **Áp dụng:** plan T-030, PR #50: `scripts/preflight.sh` kiểm bí mật Firebase staging mỗi sáng (`preflight.yml`) và ngay trước khi `start-run.yml` kích hoạt routine; lỗi thì issue `setup-broken` chặn bắt đầu phiên.
 - **Kiểm chứng:**
 
 ### L-003: Quy tắc đếm `captureRoboImage(` của `check.sh` chặn ảnh tạm để đo điểm ảnh
@@ -114,20 +114,20 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-011: Tài nguyên R2 bắt buộc của app chưa có, PR có code đầu tiên đỏ ở emulator
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #6.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #6.
 - **Chuyện gì:** ba file `test/v1/*.txt` mà màn loading của dự án mẫu tải chưa được đưa lên R2 staging khi tạo app; mọi PR trước chỉ sửa tài liệu nên `ui-test` bị bỏ qua, lỗi chỉ lộ ra ở PR có code đầu tiên.
 - **Bằng chứng:** lần chạy 39566140163, logcat `HTTP 404 for https://camera-pose.vgl.io.vn/test/v1/...`, `AppLaunchTest` hết 30 giây chờ.
 - **Đề xuất sửa:** thêm `scripts/setup-check.sh`: `curl -I` mọi file R2 mà app bắt buộc có (danh sách trong một file cấu hình), chạy ở bước cuối của `docs/ops/setup-new-app.md`, trong `env-canary.yml` và ở kiểm tra đầu phiên. Kiểm bằng workflow trên GitHub, vì môi trường `claude --cloud` chặn máy chủ R2 (L-005).
-- **Áp dụng:** plan T-030 (`draft`, rủi ro cao): `scripts/required-assets.txt` kiểm bằng workflow trên GitHub.
+- **Áp dụng:** plan T-030, PR #50: mỗi file trong `scripts/required-assets.txt` phải trả `200`, kiểm bằng `preflight.yml` trên GitHub; plan thêm file R2 bắt buộc thì thêm dòng (`docs/CLAUDE.md`, Khi viết plan).
 - **Kiểm chứng:**
 
 ### L-012: Kiểm tra bí mật staging ở đầu phiên, không để tới cuối
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03 (nối tiếp L-002), RUN-20261022-01.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03 (nối tiếp L-002), RUN-20261022-01.
 - **Chuyện gì:** ba phiên liền chỉ biết bí mật `STAGING_GOOGLE_SERVICES_JSON` là file giả ở bước cuối (`device-session`, `staging`), sau khi đã tốn cả phiên.
 - **Bằng chứng:** báo cáo RUN-20261021-01, -02, -03, mục Cần người kiểm tra.
 - **Đề xuất sửa:** `start-run.yml` hoặc bước kiểm tra đầu phiên chạy một kiểm tra nhỏ, không in giá trị: bí mật có `project_id` khác project giả và có app `...staging`; sai thì không bắt đầu phiên, mở issue `env-broken`. Kiểm luôn nhóm người test trong `STAGING_TESTER_GROUPS` (mặc định `team`) đã có trong App Distribution: RUN-20261022-01 tải bản build lên được nhưng bước phát đỏ (`HTTP Error: 404`) vì chưa tạo nhóm.
-- **Áp dụng:** plan T-030 (`draft`, rủi ro cao): kiểm `project_id`, app `.staging`, nhóm người test trước phiên; issue `setup-broken`.
+- **Áp dụng:** plan T-030, PR #50: `preflight.sh` kiểm `project_id`, app `.staging` và nhóm người test trước phiên; issue `setup-broken`. Lệnh liệt kê nhóm người test chưa chạy thử với tài khoản thật (plan mục 3.4).
 - **Kiểm chứng:**
 
 ### L-013: Quy tắc của `check.sh` phải hiện ra lúc viết plan
@@ -159,11 +159,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-016: `docs/STATUS.md` xung đột ở mọi PR
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #11, #14, #16.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #11, #14, #16.
 - **Chuyện gì:** mỗi PR tài liệu sinh lại `docs/STATUS.md`; PR sau luôn xung đột với PR trước, phải gộp và sinh lại bằng tay.
 - **Bằng chứng:** PR #11, #14, #16 đều báo `DIRTY` chỉ vì `docs/STATUS.md`.
 - **Đề xuất sửa:** `.gitattributes` khai báo `docs/STATUS.md merge=ours` cùng một bước sinh lại trang trên nhánh chính sau khi merge; hoặc `status.py --check` chỉ chạy trên nhánh chính.
-- **Áp dụng:** plan T-030, mục 8 câu 4: chọn cách xử lý (đề xuất: giữ như hiện nay, thêm hướng dẫn).
+- **Áp dụng:** plan T-030, mục 8 câu 4: giữ như hiện nay, thêm hướng dẫn. PR #50: `docs/CLAUDE.md`, mục Trang tiến độ: nhánh chậm hay xung đột ở `docs/STATUS.md` thì gộp nhánh chính, chạy lại `scripts/status.py`, commit trang vừa sinh.
 - **Kiểm chứng:**
 
 ### L-017: `merge-if-green.sh` cần tự cập nhật nhánh và chịu được job kẹt
@@ -213,11 +213,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-022: Java của máy dev quá mới làm Gradle không chạy
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21.
 - **Chuyện gì:** máy chỉ có Java 26; Gradle 8.14.3 dừng ngay với lỗi chỉ ghi "26".
 - **Bằng chứng:** log `scripts/check.sh` lần đầu trên máy dev; chạy lại với JDK 21 của Android Studio thì qua.
 - **Đề xuất sửa:** `scripts/check.sh` kiểm phiên bản Java trước khi gọi Gradle và gợi ý `JAVA_HOME` trỏ tới JDK của Android Studio; thêm vào `docs/ops/setup-new-app.md`.
-- **Áp dụng:** plan T-030 (`draft`, rủi ro cao): `scripts/java-check.sh` gọi từ `check.sh` trước Gradle. Hướng dẫn ở `docs/ops/setup-new-app.md` đã có.
+- **Áp dụng:** plan T-030, PR #50: `scripts/java-check.sh` gọi từ `check.sh` trước Gradle, chấp nhận Java 17 tới 24, gợi ý `JAVA_HOME`. Hướng dẫn ở `docs/ops/setup-new-app.md`.
 - **Kiểm chứng:**
 
 ### L-023: Lỗi thiết kế lọt vào gói bàn giao
@@ -262,7 +262,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** vùng `io.vn` không qua bước kiểm DNSSEC ở Cloudflare và Google DNS, nên `camera-pose.vgl.io.vn` không phân giải được; máy thật không tải được catalog, trong khi phiên emulator trên GitHub vài giờ trước vẫn qua. Log không cho biết lý do vì Android bỏ stack trace của `UnknownHostException`.
 - **Bằng chứng:** TS-20261022-02, P-1; FB-20261022-02, FB-20261022-04.
 - **Đề xuất sửa:** `env-canary.yml` kiểm phân giải tên miền file tĩnh qua 1.1.1.1 và 8.8.8.8 (không chỉ DNS của runner); `:core:assets` ghi tên lớp lỗi trong câu log; `docs/ops/setup-new-app.md` khuyên chọn tên miền thuộc vùng có DNSSEC ổn định.
-- **Áp dụng:** app: PR #48 (`setup-new-app.md`: kiểm DNS công cộng, chọn vùng DNSSEC ổn định). Còn lại: plan T-032 (log ghi loại lỗi ở `:core:assets`), plan T-030 (kiểm DNS qua 1.1.1.1 và 8.8.8.8 mỗi sáng).
+- **Áp dụng:** app: PR #48 (`setup-new-app.md`: kiểm DNS công cộng, chọn vùng DNSSEC ổn định). Còn lại: plan T-032 (log ghi loại lỗi ở `:core:assets`), phần DNS đã làm ở plan T-030, PR #50 (`preflight.sh` kiểm qua 1.1.1.1 và 8.8.8.8 mỗi sáng).
 - **Kiểm chứng:**
 
 ### L-028: Phiên kiểm `main-broken` trước khi `main-guard` của lần merge vừa rồi chạy xong

@@ -249,3 +249,26 @@ Test của script trong `scripts/tests/run.sh`, viết trước code. Lệnh ngo
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, phiên có người theo dõi (Tuấn)
+
+- **Bước 3, test viết trước** (commit 01e6671): 32 test mới trong `scripts/tests/run.sh`, với `dig`, `curl`, `firebase`, `java` giả. Trên code cũ có 30 test đỏ, đúng lý do: không có `scripts/preflight.sh`, `scripts/java-check.sh` (mã 127), `check.sh` chưa gọi kiểm tra Java. Hai test xanh ngay, như mong đợi vì chúng kiểm điều không được xảy ra: "never prints secret values" và "comments and blank lines of the list are skipped". Chúng được kiểm lại sau bước 4.
+- **Bước 4, code** (commit 6d06e43): theo mục 3.1.
+  - `scripts/preflight.sh`, `scripts/java-check.sh`, `scripts/required-assets.txt` (chỉ catalog mặc định, câu hỏi 3);
+  - `.github/workflows/preflight.yml`, `.github/workflows/start-run.yml`;
+  - một dòng trong `scripts/check.sh`;
+  - các tài liệu ở mục 3.2.
+  - Câu hỏi 4 (L-016), cách (c): một câu ở `docs/CLAUDE.md`, mục Trang tiến độ.
+  - Nhóm người test đọc tên từ `alias` hoặc từ phần cuối của `name` (`projects/<số>/groups/<tên>`), vì chưa biết dạng `--json` thật của `firebase-tools` (mục 3.4).
+- **Chỉnh trong lúc viết test:** ba dòng của test dùng `grep` trên file có thể chưa có được thêm `|| true`. Thiếu nó, `set -e` của `run.sh` dừng cả bộ test ở test đỏ đầu tiên, thay vì báo đỏ. Điều test kiểm tra không đổi.
+- **Bước 5:**
+  - `scripts/tests/run.sh` qua 303 test, sau khi gộp nhánh chính có T-029 (PR #49).
+  - `scripts/java-check.sh` trên JDK 21.0.13 in "Java 21: dùng được".
+  - Không có `actionlint` trên máy. Hai workflow được đọc bằng YAML của Ruby: cú pháp đúng, đủ 5 bước. Cần người duyệt chéo đọc diff.
+  - `scripts/check.sh` đầy đủ để CI của PR chạy, vì một phiên khác đang dùng Gradle trên máy.
+- **Còn lại sau khi merge** (mục 4, ba dòng kiểm tay; điều kiện dừng 3):
+  - (a) chạy tay `preflight` với bí mật thật, phải xanh, đọc log không có giá trị bí mật;
+  - (b) chạy với `extra_asset` là một đường dẫn không có thật, thấy issue `setup-broken` được mở, rồi đóng ở lần chạy xanh sau;
+  - (c) lần `start-run` đầu tiên có bước "Kiểm tra môi trường staging" xanh trước "Kích hoạt routine".
+  - Lần chạy (a) đỏ ở điều kiện bí mật hay DNS trong khi `staging.yml` gần nhất xanh thì dừng: revert phần `start-run.yml` cho tới khi rõ nguyên nhân.
+  - Lệnh `appdistribution:groups:list` chạy thử ở lần (a); không được thì làm theo mục 3.4.

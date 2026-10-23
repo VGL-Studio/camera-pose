@@ -32,7 +32,8 @@ jobs:
   start:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # npx downloads firebase-tools on the first call of the preflight step.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -66,6 +67,37 @@ jobs:
           open_env="$(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=env-broken&per_page=10" --jq 'length')"
           if [ "${open_env}" != "0" ]; then
             echo "::error::Môi trường cloud đang lỗi (có issue env-broken đang mở). Sửa môi trường, chạy lại workflow env-canary, rồi bắt đầu phiên."
+            exit 1
+          fi
+
+          # Opened by the daily preflight check (plan T-030): staging secrets, tester groups, DNS or R2 files are wrong.
+          open_setup="$(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=setup-broken&per_page=10" --jq 'length')"
+          if [ "${open_setup}" != "0" ]; then
+            echo "::error::Môi trường staging chưa sẵn sàng (có issue setup-broken đang mở). Sửa theo issue, chạy lại workflow preflight, rồi bắt đầu phiên."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # The same checks as preflight.yml, now: the environment may have changed since the morning run. Read only:
+      # no issue is opened here (permissions stay issues: read). Red: the routine is not fired.
+      - name: Kiểm tra môi trường staging
+        env:
+          GOOGLE_SERVICES: ${{ secrets.STAGING_GOOGLE_SERVICES_JSON }}
+          DISTRIBUTION_CREDENTIALS: ${{ secrets.STAGING_APP_DISTRIBUTION_CREDENTIALS }}
+          TESTER_GROUPS: ${{ vars.STAGING_TESTER_GROUPS || 'team' }}
+          STAGING_APPLICATION_ID: com.vglstudio.camera.pose.line.guide.staging
+        run: |
+          umask 077
+          export GOOGLE_SERVICES_FILE="${RUNNER_TEMP}/google-services.json"
+          export DISTRIBUTION_CREDENTIALS_FILE="${RUNNER_TEMP}/distribution-credentials.json"
+          trap 'rm -f "${GOOGLE_SERVICES_FILE}" "${DISTRIBUTION_CREDENTIALS_FILE}"' EXIT
+          printf '%s' "${GOOGLE_SERVICES}" > "${GOOGLE_SERVICES_FILE}"
+          printf '%s' "${DISTRIBUTION_CREDENTIALS}" > "${DISTRIBUTION_CREDENTIALS_FILE}"
+          if ! scripts/preflight.sh; then
+            echo "::error::Môi trường staging chưa sẵn sàng (scripts/preflight.sh). Không bắt đầu phiên; xem docs/ops/staging-and-runs.md, mục 2.8."
             exit 1
           fi
 

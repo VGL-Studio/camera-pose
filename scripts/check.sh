@@ -24,6 +24,9 @@ cd "$(dirname "$0")/.."
 in_ci() { [ -n "${GITHUB_ACTIONS:-}" ]; }
 GRADLE=(./gradlew --no-daemon --console=plain)
 
+# Java that cannot run the project's Gradle fails here with a clear hint, before the script tests and Gradle (L-022).
+scripts/java-check.sh
+
 echo "== Script tests"
 if command -v python3 > /dev/null && command -v jq > /dev/null; then
   scripts/tests/run.sh

@@ -1,16 +1,16 @@
 ---
 ticket: T-028
 title: Nhánh chính tự hồi phục khi đỏ (ADR-1002)
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 15M          # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [ci, process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-028: NHÁNH CHÍNH TỰ HỒI PHỤC KHI ĐỎ (ADR-1002)
@@ -184,10 +184,13 @@ Test của script trong `scripts/tests/run.sh`, viết trước code. Test giả
 
 1. **Chạy lại cả `check.sh` hay chỉ task test hỏng?** Chạy lại cả `check.sh` đơn giản và giống CI nhất; đệm Gradle làm lần thứ hai nhanh hơn (khoảng 4 đến 7 phút).
    - Đề xuất của AI: chạy lại cả `check.sh`.
+   - Trả lời: Đồng ý với đề xuất của AI.
 2. **Issue `flaky` có chặn gì không?**
    - Đề xuất của AI: không chặn merge hay phiên. Retro xem và tạo ticket sửa test. Phiên chép issue vào báo cáo.
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Phiên có được tự revert không, hay chỉ người?**
    - Đề xuất của AI: phiên được revert, nhưng chỉ commit merge của chính phiên, và qua đúng kiểm tra nội dung của `is-exact-revert.sh`.
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 

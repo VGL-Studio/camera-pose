@@ -6,11 +6,9 @@
 
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
-- Plan `draft` chờ duyệt: [T-028-main-tu-hoi-phuc.md](features/quality-gate/plans/T-028-main-tu-hoi-phuc.md)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
-- ADR `proposed` chờ quyết định: [1002-main-tu-hoi-phuc.md](adr/1002-main-tu-hoi-phuc.md)
 
 ## 2. Yêu cầu
 
@@ -100,11 +98,11 @@ Phản hồi: chưa có.
 
 ### quality-gate
 
-Spec: chưa có spec. Ticket: 1 `planned`.
+Spec: chưa có spec. Ticket: 1 `ready`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-028](features/quality-gate/tickets/T-028-main-tu-hoi-phuc.md) | Nhánh chính tự hồi phục khi đỏ (ADR-1002) | `planned` | `draft` (bản 1) | 15M | - |
+| [T-028](features/quality-gate/tickets/T-028-main-tu-hoi-phuc.md) | Nhánh chính tự hồi phục khi đỏ (ADR-1002) | `ready` | `approved` (bản 1) | 15M | - |
 
 Phản hồi: chưa có.
 
@@ -133,4 +131,4 @@ Phản hồi: chưa có.
 ## 5. Bài học và ADR
 
 - Bài học ([lessons.md](lessons.md)): 0 bài; chưa có.
-- ADR: 23; 20 `accepted`, 3 `proposed`.
+- ADR: 23; 21 `accepted`, 2 `proposed`.

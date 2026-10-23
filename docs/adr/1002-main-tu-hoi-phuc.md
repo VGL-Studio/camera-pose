@@ -1,7 +1,7 @@
 ---
 id: ADR-1002
 title: Nhánh chính tự hồi phục khi đỏ: chạy lại test hỏng một lần, tự đóng issue khi chạy lại xanh, merge bản revert được kiểm bằng nội dung
-status: proposed
+status: accepted
 origin: app
 date: 2026-10-22
 deciders: [Nhật, Tuấn]

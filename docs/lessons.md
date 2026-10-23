@@ -38,43 +38,43 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `STAGING_GOOGLE_SERVICES_JSON` vẫn là file giả; `device-session.yml` và `staging.yml` lỗi ở bước cấu hình, sau khi cả phiên đã chạy.
 - **Bằng chứng:** `device-session` 39589532354 và 39589890609, `staging` 39589924059: `processStagingReleaseGoogleServices: No matching client found for package name '...guide.staging'`.
 - **Đề xuất sửa:** `docs/auto-run.md`, mục 2: kiểm tra đầu phiên có một điều kiện "bí mật Firebase staging có app staging", để lỗi lộ ra trước khi phiên bắt đầu.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** plan T-030 (`draft`, rủi ro cao): `scripts/preflight.sh`, workflow `preflight.yml`, `start-run.yml` kiểm bí mật Firebase staging trước phiên.
 - **Kiểm chứng:**
 
 ### L-003: Quy tắc đếm `captureRoboImage(` của `check.sh` chặn ảnh tạm để đo điểm ảnh
 
-- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-02, T-007.
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-02, T-007.
 - **Chuyện gì:** plan T-007 phiên bản 2 đo màu điểm ảnh từ ảnh `captureRoboImage` ghi vào `build/`; code và test qua, nhưng `scripts/check.sh` đòi mọi lần gọi `captureRoboImage(` ghi `"src/test/screenshots/<Tên>.png"`, nên cổng chất lượng không qua và task dừng ở bước 5.
 - **Bằng chứng:** `scripts/check.sh` dòng 45 đến 55; log `::error:::core:designsystem: mọi captureRoboImage phải ghi rõ đường dẫn`; nhật ký plan T-007.
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: kỹ thuật chụp hay đo mới phải được chạy thử cùng `scripts/check.sh`, không chỉ chạy test; tìm script đọc file test (`grep -n captureRoboImage scripts/`) như L-020. Hoặc đổi `check.sh` cho phép ảnh tạm ghi vào `build/` (qua dự án mẫu).
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#77.
+- **Áp dụng:** app: PR #39 (chạy thử bằng `check.sh`, L-001, L-010), PR #48 (`plan-check.py` quy tắc 9 dò điều `check.sh` từ chối).
 - **Kiểm chứng:**
 
 ### L-004: Thuộc tính trợ năng của Compose không lan từ node cha xuống node con
 
-- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-03, T-011.
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-03, T-011.
 - **Chuyện gì:** plan T-011 ẩn màn hình phía sau hộp thoại khỏi TalkBack bằng `Modifier.semantics { hideFromAccessibility() }` trên khung bọc nội dung. Thuộc tính chỉ nằm trên node của khung; nút bên trong vẫn hiện với trình đọc màn hình. Test viết trước (nút phải mang `HideFromAccessibility`) bắt được, task dừng ở bước 4.
 - **Bằng chứng:** `NetworkDialogHostTest.shown_blocksContentClicks_andHidesItFromAccessibility` trên nhánh `claude/T-011-core-network-hop-thoai` (commit 555eb12); bytecode Compose UI 1.9.1: `SemanticsOwnerKt.isHidden` chỉ đọc cấu hình của chính node, `AndroidComposeViewAccessibilityDelegateCompat` gọi `setVisibleToUser(!isHidden)` cho từng node; nhật ký plan T-011.
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: thay đổi về trợ năng (ẩn, gộp, thứ tự đọc) phải được chạy thử bằng test tạm trước khi duyệt, đo trên cây `AccessibilityNodeInfo` hay node đích, không suy ra từ node cha (mở rộng L-001).
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#72.
+- **Áp dụng:** app: PR #48 (`docs/CLAUDE.md`, Khi viết plan: thay đổi trợ năng phải chạy thử, đo trên node đích).
 - **Kiểm chứng:**
 
 ### L-005: Môi trường `claude --cloud` chặn máy chủ R2 staging, plan không kiểm được file bằng `curl`
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01, T-010.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01, T-010.
 - **Chuyện gì:** plan T-010 (mục 4, dòng cuối; mục 7, điều 3) yêu cầu `curl` 9 địa chỉ trên `https://camera-pose.vgl.io.vn/` trước bước 3. Proxy của môi trường cloud trả 403 cho máy chủ này (chính sách mạng), nên `curl` ra mã `000`. Phiên dựa vào ghi chú của danh sách chạy (dev đã kiểm, `200`) và `AppLaunchTest` trên CI (đã qua).
 - **Bằng chứng:** `curl: (56) CONNECT tunnel failed, response 403` lúc 02:08 UTC; rà soát độc lập T-010 cũng không ra mạng được; CI lần chạy 39710999529 `ui-test` xanh.
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: điều kiện về file trên R2 kiểm bằng một workflow trên GitHub (ví dụ thêm bước vào `device-session.yml` hay một workflow chỉ đọc) hoặc ghi rõ "dev kiểm trước phiên", không bằng `curl` từ phiên; hoặc thêm máy chủ R2 staging vào danh sách mạng cho phép của môi trường cloud (`docs/ops/` hướng dẫn dựng môi trường).
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`docs/CLAUDE.md`: điều kiện file R2 không kiểm bằng `curl` từ phiên; từ dự án mẫu PR #84).
 - **Kiểm chứng:**
 
 ### L-006: `captureToImage()` hết giờ trên Robolectric; đo điểm ảnh bằng cách vẽ view gốc ra Bitmap
 
-- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01, T-008 (lần thứ hai, sau T-007).
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01, T-008 (lần thứ hai, sau T-007).
 - **Chuyện gì:** plan T-008 ghi test màu nền dùng `onNodeWithTag(...).captureToImage()`. Trên Robolectric (`GraphicsMode.NATIVE`) lệnh này ném `ComposeTimeoutException` sau 2 giây, như T-007 đã gặp. Phiên đổi sang cách của `ComponentsTest` (vẽ `decorView` ra `Bitmap`), điều test kiểm tra không đổi.
 - **Bằng chứng:** `background_isBackgroundRole_light`: `ComposeTimeoutException: Condition still not satisfied after 2000 ms` ở bước 3; nhật ký plan T-008, mục Lệch so với plan.
 - **Đề xuất sửa:** `CLAUDE.md`, mục Viết một feature mới, bước 10: test đo màu điểm ảnh trên JVM vẽ view gốc ra `Bitmap` (hàm `pixelAt` của `ComponentsTest`), không dùng `captureToImage()`. Có thể đưa `pixelAt` vào một tiện ích test dùng chung.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#77.
+- **Áp dụng:** app: PR #48 (`CLAUDE.md` bước 10: cách đo màu điểm ảnh bằng `decorView`; từ dự án mẫu PR #83).
 - **Kiểm chứng:**
 
 ### L-007: Hàm CameraX trả `ListenableFuture` không gọi được vì Guava không có trên classpath biên dịch
@@ -83,7 +83,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `CameraControl.setZoomRatio` trả `com.google.common.util.concurrent.ListenableFuture`; Kotlin báo "Cannot access class 'ListenableFuture'". Plan cấm thêm thư viện (mục 7, điều 4), nên phiên gọi hàm qua reflection. Rà soát độc lập chỉ ra R8 có thể xóa hàm ở bản minify và làm app dừng khi vào camera; phiên tra hàm lười và thêm luật keep trong `consumer-rules.pro`, kiểm bằng `mapping.txt` của `stagingRelease`.
 - **Bằng chứng:** lỗi biên dịch `CameraXController.kt:114`; rà soát độc lập T-013 (điểm chặn 1); PR #26.
 - **Đề xuất sửa:** một plan rủi ro cao riêng thêm `androidx.concurrent:concurrent-futures-ktx` (hoặc `com.google.guava:listenablefuture`) vào `gradle/libs.versions.toml` cho `:feature:camera`, rồi bỏ reflection. Plan dùng CameraX về sau (T-015 chỉnh zoom, lấy nét) kiểm trước những hàm trả `ListenableFuture`.
-- **Áp dụng:**
+- **Áp dụng:** plan T-031 (`draft`, rủi ro cao, điểm chặn 2): thêm Guava vào classpath biên dịch, bỏ reflection ở `CameraXController`.
 - **Kiểm chứng:**
 
 ### L-008: Phiên mở bằng `claude --cloud` không có `resume-run.yml` tiếp tục, và `token-usage.py` cần thư mục gốc của checkout chính
@@ -97,11 +97,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-009: Hộp hỏi quyền camera còn mở làm hỏng lần đo khởi động nguội của `device-session`
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** app. **Nguồn:** RUN-20261022-01, T-013.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** app. **Nguồn:** RUN-20261022-01, T-013.
 - **Chuyện gì:** từ T-013, màn chính ở staging là camera và app hỏi quyền camera. Kịch bản chuẩn của `device-session` dừng app bằng force-stop giữa các lần mở nguội; hộp hỏi quyền của lần 2 (`GrantPermissionsActivity`) vẫn ở trong task, nên lần mở thứ 3 đưa hộp đó lên thay vì mở `MainActivity`: `cold_start run=3 total_ms=0`, không có log nào của app. Cùng nguyên nhân làm `AppLaunchTest` đỏ ở vòng 2 của CI T-013.
 - **Bằng chứng:** `scenarios.txt` và logcat của TS-20261022-01 (`onActivityRestartAttempt: ... GrantPermissionsActivity` lúc 04:58:46), lần chạy 39724404079.
 - **Đề xuất sửa:** `scripts/device-session.sh` (kịch bản chuẩn) cấp quyền camera trước các lần mở nguội (`pm grant <gói> android.permission.CAMERA`) hoặc thêm một kịch bản riêng cho luồng hỏi quyền; ghi vào `docs/ops/test-sessions.md`.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`device-session.sh` cấp quyền runtime sau mỗi lần xóa dữ liệu, `--ask-permissions`; từ dự án mẫu PR #85).
 - **Kiểm chứng:**
 ### L-010: Chạy thử kỹ thuật mới bằng đúng lệnh của phiên, ghi vào mục riêng của plan
 
@@ -118,7 +118,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** ba file `test/v1/*.txt` mà màn loading của dự án mẫu tải chưa được đưa lên R2 staging khi tạo app; mọi PR trước chỉ sửa tài liệu nên `ui-test` bị bỏ qua, lỗi chỉ lộ ra ở PR có code đầu tiên.
 - **Bằng chứng:** lần chạy 39566140163, logcat `HTTP 404 for https://camera-pose.vgl.io.vn/test/v1/...`, `AppLaunchTest` hết 30 giây chờ.
 - **Đề xuất sửa:** thêm `scripts/setup-check.sh`: `curl -I` mọi file R2 mà app bắt buộc có (danh sách trong một file cấu hình), chạy ở bước cuối của `docs/ops/setup-new-app.md`, trong `env-canary.yml` và ở kiểm tra đầu phiên. Kiểm bằng workflow trên GitHub, vì môi trường `claude --cloud` chặn máy chủ R2 (L-005).
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** plan T-030 (`draft`, rủi ro cao): `scripts/required-assets.txt` kiểm bằng workflow trên GitHub.
 - **Kiểm chứng:**
 
 ### L-012: Kiểm tra bí mật staging ở đầu phiên, không để tới cuối
@@ -127,25 +127,25 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** ba phiên liền chỉ biết bí mật `STAGING_GOOGLE_SERVICES_JSON` là file giả ở bước cuối (`device-session`, `staging`), sau khi đã tốn cả phiên.
 - **Bằng chứng:** báo cáo RUN-20261021-01, -02, -03, mục Cần người kiểm tra.
 - **Đề xuất sửa:** `start-run.yml` hoặc bước kiểm tra đầu phiên chạy một kiểm tra nhỏ, không in giá trị: bí mật có `project_id` khác project giả và có app `...staging`; sai thì không bắt đầu phiên, mở issue `env-broken`. Kiểm luôn nhóm người test trong `STAGING_TESTER_GROUPS` (mặc định `team`) đã có trong App Distribution: RUN-20261022-01 tải bản build lên được nhưng bước phát đỏ (`HTTP Error: 404`) vì chưa tạo nhóm.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** plan T-030 (`draft`, rủi ro cao): kiểm `project_id`, app `.staging`, nhóm người test trước phiên; issue `setup-broken`.
 - **Kiểm chứng:**
 
 ### L-013: Quy tắc của `check.sh` phải hiện ra lúc viết plan
 
-- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-02, T-007 (nối tiếp L-003).
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-02, T-007 (nối tiếp L-003).
 - **Chuyện gì:** quy tắc "mọi `captureRoboImage` ghi vào `src/test/screenshots/`" chỉ nằm trong `check.sh` và một câu của `CLAUDE.md`; người viết plan và phiên chính đều bỏ sót.
 - **Bằng chứng:** `check.sh` dòng 45 đến 55; nhật ký plan T-007 phiên bản 2.
 - **Đề xuất sửa:** `plan-check.py` dò trong plan các mẫu mà `check.sh` từ chối (ví dụ `captureRoboImage(` với đường dẫn ngoài `src/test/screenshots/`); `docs/auto-run.md` có bảng các quy tắc của `check.sh`.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`plan-check.py` quy tắc 9, bảng điều `check.sh` từ chối ở `auto-run.md` bước 5; từ dự án mẫu PR #84).
 - **Kiểm chứng:**
 
 ### L-014: Plan đẩy việc cho nhau, hoặc cùng sửa một file mà không phụ thuộc nhau
 
-- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, plan T-009, T-010, T-011, T-013.
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, plan T-009, T-010, T-011, T-013.
 - **Chuyện gì:** plan T-009 (câu hỏi 1) giao việc thêm lý do lỗi tải cho T-011, plan T-011 (câu hỏi 5) giao lại cho T-009; plan T-010 và T-013 cùng sửa `AppNavHost.kt`, `MainActivity.kt`, `app/build.gradle.kts`, `AppLaunchTest.kt` mà ticket không phụ thuộc nhau. Chỉ bắt được khi phiên chính đối chiếu bằng tay.
 - **Bằng chứng:** lịch sử PR #7 và #11; ticket T-011, T-013 thêm phụ thuộc sau đối chiếu.
 - **Đề xuất sửa:** `plan-check.py` cảnh báo khi hai plan `approved` cùng sửa một file mà không có quan hệ `depends_on`; mẫu plan thêm câu "việc giao cho ticket khác phải được plan của ticket đó ghi nhận".
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #39 (`run-check.py` cảnh báo hai plan cùng sửa một file), PR #48 (mẫu plan: việc giao ticket khác phải được plan đó ghi nhận).
 - **Kiểm chứng:**
 
 ### L-015: Danh sách chạy chỉ một chuỗi phụ thuộc thì một task dừng làm cả phiên trống
@@ -163,7 +163,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** mỗi PR tài liệu sinh lại `docs/STATUS.md`; PR sau luôn xung đột với PR trước, phải gộp và sinh lại bằng tay.
 - **Bằng chứng:** PR #11, #14, #16 đều báo `DIRTY` chỉ vì `docs/STATUS.md`.
 - **Đề xuất sửa:** `.gitattributes` khai báo `docs/STATUS.md merge=ours` cùng một bước sinh lại trang trên nhánh chính sau khi merge; hoặc `status.py --check` chỉ chạy trên nhánh chính.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** plan T-030, mục 8 câu 4: chọn cách xử lý (đề xuất: giữ như hiện nay, thêm hướng dẫn).
 - **Kiểm chứng:**
 
 ### L-017: `merge-if-green.sh` cần tự cập nhật nhánh và chịu được job kẹt
@@ -172,7 +172,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** script từ chối mọi PR có nhánh cũ hơn nhánh chính, người phải cập nhật nhánh, chờ CI, gọi lại; một lần GitHub ghi job `changes` là `in_progress` dù lần chạy đã `completed success`.
 - **Bằng chứng:** lần chạy 39613776353 (PR #11); PR #6 bị từ chối vì chậm 2 commit.
 - **Đề xuất sửa:** thêm `merge-if-green.sh --update`: cập nhật nhánh, chờ CI của commit mới, rồi merge; coi lần chạy `completed success` là xanh khi trạng thái job còn lệch.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** plan T-029 (`draft`, rủi ro cao): `merge-if-green.sh --update`, xét check suite khi job kẹt.
 - **Kiểm chứng:**
 
 ### L-018: PR bị merge trước khi nhận commit cuối
@@ -181,34 +181,34 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** commit duyệt plan được đẩy lên nhánh của PR #7 sau khi người đã merge PR đó; plan và ticket trên nhánh chính vẫn `draft`, phải mở PR #8 để đưa lại.
 - **Bằng chứng:** lịch sử nhánh `claude/plans-foundation` (commit 4a11c4b).
 - **Đề xuất sửa:** `merge-if-green.sh` in mã commit sẽ merge và cảnh báo nếu nhánh có commit trong vài phút gần đây; quy ước: thay đổi sau khi PR đã gửi người duyệt thì làm trên nhánh mới.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`auto-run.md` bước 9: đối chiếu mã commit, thay đổi sau khi gửi duyệt làm trên nhánh mới). Phần script: plan T-029 (cảnh báo commit mới đẩy).
 - **Kiểm chứng:**
 
 ### L-019: Trạng thái ticket và plan đổi tay, hay lệch nhau
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22.
 - **Chuyện gì:** ticket được chuyển `approved` khi plan còn `draft`; plan được duyệt mà ticket còn `planned`; plan thiếu `approved_at` (plan-check bắt được).
 - **Bằng chứng:** lịch sử ticket T-008, T-010, T-013 và plan T-007 phiên bản 2.
 - **Đề xuất sửa:** `scripts/status.py --sync`: plan `approved` hay `stopped` thì ticket chuyển theo; `plan-check.py` cảnh báo khi hai trạng thái lệch nhau.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`status.py --sync`, `plan-check.py` quy tắc 10; từ dự án mẫu PR #84).
 - **Kiểm chứng:**
 
 ### L-020: Routine không dùng cloud session credits; mở phiên bằng `claude --cloud` thì dùng được
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22; RUN-20261021-03.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22; RUN-20261021-03.
 - **Chuyện gì:** khuyến mãi cloud session credits (Max $250, hết hạn 2026-11-04 23:59 PT) không áp dụng cho "Projects and Routines". Ba phiên chạy qua routine tính vào hạn mức tuần (đã tới 98%); phiên mở bằng `claude --cloud` trừ vào credit.
 - **Bằng chứng:** https://support.claude.com/en/articles/17152539-cloud-sessions-bonus-credit-promotion; số dư $248, $247 sau phiên thử, $237 sau RUN-20261021-03 (khoảng 24M token, khoảng $10).
 - **Đề xuất sửa:** `docs/ops/staging-and-runs.md` ghi cách mở phiên bằng `claude --cloud` khi còn credit: prompt, các kiểm tra phải tự làm (thay `start-run.yml`); cách tiếp tục phiên khi bị ngắt nằm ở L-008. RUN-20261022-01 chạy bằng cách này, 4 trên 4 task merge. `docs/metrics/token-usage.csv` thêm cột tiền credit đã dùng.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`staging-and-runs.md` mục 2.7, `token-usage.py credit`; từ dự án mẫu PR #85).
 - **Kiểm chứng:**
 
 ### L-021: Số ước tính token tạm quá cao
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03, RUN-20261022-01.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03, RUN-20261022-01.
 - **Chuyện gì:** số tạm 40M cho task cỡ L; thực tế mỗi task 2M đến 15M (T-013 cỡ L khoảng 24M lúc gần xong), cả phiên 4M đến 97M.
 - **Bằng chứng:** `docs/metrics/token-usage.csv`.
 - **Đề xuất sửa:** đổi số tạm của `scripts/token-usage.py estimate` (ví dụ S 5M, M 15M, L 30M) cho tới khi đủ 5 task mỗi cỡ.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`token-usage.py` ước tính khởi đầu S 5M, M 15M, L 30M; từ dự án mẫu PR #85).
 - **Kiểm chứng:**
 
 ### L-022: Java của máy dev quá mới làm Gradle không chạy
@@ -217,43 +217,43 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** máy chỉ có Java 26; Gradle 8.14.3 dừng ngay với lỗi chỉ ghi "26".
 - **Bằng chứng:** log `scripts/check.sh` lần đầu trên máy dev; chạy lại với JDK 21 của Android Studio thì qua.
 - **Đề xuất sửa:** `scripts/check.sh` kiểm phiên bản Java trước khi gọi Gradle và gợi ý `JAVA_HOME` trỏ tới JDK của Android Studio; thêm vào `docs/ops/setup-new-app.md`.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** plan T-030 (`draft`, rủi ro cao): `scripts/java-check.sh` gọi từ `check.sh` trước Gradle. Hướng dẫn ở `docs/ops/setup-new-app.md` đã có.
 - **Kiểm chứng:**
 
 ### L-023: Lỗi thiết kế lọt vào gói bàn giao
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-21, 2026-10-22.
 - **Chuyện gì:** độ mờ của lớp tô mất khi gắn biến trên Figma (56 chỗ, lộ ra khi agent viết plan T-013 so README với ảnh); tên frame màn hình gập trong bản đề xuất khác ADR-0020.
 - **Bằng chứng:** PR #11 (xuất lại 18 ảnh camera); PR #3, sửa mục 7 của bản đề xuất.
 - **Đề xuất sửa:** `scripts/figma-export.py` ghi cả độ mờ của lớp tô vào `context/`; script so danh sách frame trong bản đề xuất với frame trên Figma; bước quét chỉ đọc (design-workflow.md, mục 8.4) kiểm instance có giá trị tô khác component gốc.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`figma-export.py` ghi độ mờ, đánh dấu instance ghi đè; `design-workflow.md`; từ dự án mẫu PR #85).
 - **Kiểm chứng:**
 
 ### L-024: Cải tiến đã làm ở app, cần đưa về dự án mẫu
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** PR #10, #12, #16, #19.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** PR #10, #12, #16, #19.
 - **Chuyện gì:** bốn thay đổi có ích cho mọi app đã merge ở app: `plan-check.py` cho plan khai báo ảnh thiết kế do ticket khác vẽ (PR #16); `.gitignore` chặn `*.b64` và khóa tài khoản dịch vụ (PR #10); `RemoteSettings.string()` (T-009, PR #12); đo màu điểm ảnh bằng cách vẽ `decorView` ra `Bitmap` thay `captureToImage` (T-007, PR #19; L-006).
 - **Bằng chứng:** các PR đã nêu.
 - **Đề xuất sửa:** mở issue `from-app` ở dự án mẫu cho từng thay đổi; ghi cách đo điểm ảnh vào `CLAUDE.md`, mục test giao diện.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#72, VGL-Studio/app-project-template#73, VGL-Studio/app-project-template#74, VGL-Studio/app-project-template#75, VGL-Studio/app-project-template#76, VGL-Studio/app-project-template#77.
+- **Áp dụng:** app: PR #48 (`CLAUDE.md` bước 10: cách đo màu điểm ảnh). Ba cải tiến còn lại đã có ở app; dự án mẫu: PR #83, issue #72, #73, #74.
 - **Kiểm chứng:**
 
 ### L-025: Tài liệu của app còn chỗ cũ sau khi quyết định đổi
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** app. **Nguồn:** phiên có người theo dõi 2026-10-22.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** app. **Nguồn:** phiên có người theo dõi 2026-10-22.
 - **Chuyện gì:** `docs/runs/RUN-20261021-04.md` (`draft`, do RUN-20261021-03 lập) trùng với `RUN-20261022-01`; bản đề xuất mục 11 còn khuôn đường dẫn ảnh `<poseId>/<sha8>/` mà `AssetPath` từ chối (plan T-009 đã đổi sang mã băm trong tên file).
 - **Bằng chứng:** `docs/runs/`; plan T-009, câu hỏi 2.
 - **Đề xuất sửa:** ghi chú "không dùng, thay bằng RUN-20261022-01" trong `RUN-20261021-04`; sửa mục 11 của bản đề xuất theo plan T-009.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48 (`RUN-20261021-04` ghi "Không dùng"; ghi chú đường dẫn ảnh ở bản đề xuất mục 11).
 - **Kiểm chứng:**
 
 ### L-026: Mã phiên thử trên máy thật trùng mã phiên emulator của phiên tự chạy
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** TS-20261022-02.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** TS-20261022-02.
 - **Chuyện gì:** `scripts/device-session.sh` cấp mã `TS-20261022-01` cho phiên trên máy thật, trùng phiên emulator của RUN-20261022-01. Script chỉ tránh mã có thư mục trên máy hoặc có báo cáo trong `docs/test-sessions/`; phiên emulator chỉ được ghi trong báo cáo phiên tự chạy.
 - **Bằng chứng:** `scripts/device-session.sh` hàm `next_session_dir`; báo cáo RUN-20261022-01, mục Kiểm thử trên máy ảo; báo cáo phải đổi sang `TS-20261022-02`.
 - **Đề xuất sửa:** `next_session_dir` tìm thêm mã trong `docs/runs/*.md`; hoặc phiên emulator dùng tiền tố riêng.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`device-session.sh` tránh mã đã có trong `docs/runs/*.md`; từ dự án mẫu PR #85).
 - **Kiểm chứng:**
 
 ### L-027: Lỗi DNS của tên miền file tĩnh chỉ lộ ra trên máy thật
@@ -262,7 +262,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** vùng `io.vn` không qua bước kiểm DNSSEC ở Cloudflare và Google DNS, nên `camera-pose.vgl.io.vn` không phân giải được; máy thật không tải được catalog, trong khi phiên emulator trên GitHub vài giờ trước vẫn qua. Log không cho biết lý do vì Android bỏ stack trace của `UnknownHostException`.
 - **Bằng chứng:** TS-20261022-02, P-1; FB-20261022-02, FB-20261022-04.
 - **Đề xuất sửa:** `env-canary.yml` kiểm phân giải tên miền file tĩnh qua 1.1.1.1 và 8.8.8.8 (không chỉ DNS của runner); `:core:assets` ghi tên lớp lỗi trong câu log; `docs/ops/setup-new-app.md` khuyên chọn tên miền thuộc vùng có DNSSEC ổn định.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#73, VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #48 (`setup-new-app.md`: kiểm DNS công cộng, chọn vùng DNSSEC ổn định). Còn lại: plan T-032 (log ghi loại lỗi ở `:core:assets`), plan T-030 (kiểm DNS qua 1.1.1.1 và 8.8.8.8 mỗi sáng).
 - **Kiểm chứng:**
 
 ### L-028: Phiên kiểm `main-broken` trước khi `main-guard` của lần merge vừa rồi chạy xong

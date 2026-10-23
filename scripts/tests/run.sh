@@ -124,7 +124,7 @@ JSON
   PATH="$work/bin:$PATH" FIXTURE="$work/update.json" scripts/merge-if-green.sh 12 --update > "$work/update.out" 2>&1 || code=$?
   echo "$code"
 }
-update_writes() { grep -c '^PUT pulls/12/update-branch$' "$work/update.json.writes" 2>/dev/null || true; }
+update_writes() { cat "$work/update.json.writes" 2>/dev/null | grep -c '^PUT pulls/12/update-branch$' || true; }
 expect "merge-if-green --update updates a branch behind main" 2 "$(merge_update claude/template-x finished '[]')"
 expect "merge-if-green --update asks GitHub to update the branch" 1 "$(update_writes)"
 expect "merge-if-green --update says to wait for CI" 1 "$(grep -c '^CHƯA XONG: đã cập nhật nhánh' "$work/update.out")"

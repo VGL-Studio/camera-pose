@@ -189,3 +189,12 @@ Test trong `scripts/tests/run.sh`, viết trước code, dùng `scripts/tests/fa
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, phiên có người theo dõi (Tuấn)
+
+- **Bước 3, test viết trước** (commit c2ded0b): 21 test mới trong `scripts/tests/run.sh` và khóa `fail_writes` của `scripts/tests/fake-gh`. Trên code cũ có 10 test đỏ, đúng lý do: `--update` bị từ chối là tham số lạ, không có `update-branch`, không có dòng `CHÚ Ý`, job kẹt làm script chờ. Ba test tham số mới (`12 --update extra`, `12 --updat`, `12 --update --dry-run`) và test suite đỏ đã xanh trên code cũ, như mong đợi: chúng giữ hành vi từ chối.
+- **Bước 4, code:** `scripts/merge-if-green.sh` theo mục 3.1; `docs/auto-run.md` bước 9. Hai chỗ chỉnh khi chạy test:
+  - `fake-gh` đọc đường dẫn API ở tham số đầu tiên sau `api`. Lệnh `update-branch` vì vậy viết đường dẫn trước `-X PUT`, như `scripts/env-canary.sh`. Lệnh merge và xóa nhánh có sẵn vẫn để `-X` trước; không test nào chạy tới đó.
+  - Hàm `update_writes` của test in `0` khi chưa có file `writes`, thay vì in rỗng. Đây là lỗi của hàm phụ trợ, không đổi điều test kiểm tra.
+- **Bước 5:** `scripts/tests/run.sh` qua 271 test. `scripts/check.sh` để CI của PR chạy, vì plan không đổi code của app (mục 4.1).
+- **Còn lại:** kiểm tay `--update` trên GitHub thật ở lần đầu dùng (mục 4, dòng cuối). Sau khi merge, ghi kết quả vào đây.

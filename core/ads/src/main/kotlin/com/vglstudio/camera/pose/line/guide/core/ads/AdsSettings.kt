@@ -8,15 +8,19 @@ internal object AdsSettings {
     fun placementEnabledKey(placement: AdPlacement) = "ads_${placement.key}_enabled"
 
     /** First break of the session that may show an ad. */
-    fun placementFirstBreakKey(placement: AdPlacement) = ""
+    fun placementFirstBreakKey(placement: AdPlacement) = "ads_${placement.key}_first_break"
 
     /** Minimum number of breaks between two ads of the placement. */
-    fun placementBreaksBetweenKey(placement: AdPlacement) = ""
+    fun placementBreaksBetweenKey(placement: AdPlacement) = "ads_${placement.key}_breaks_between"
 
     /** Minimum seconds between two ads of the placement. */
-    fun placementMinIntervalKey(placement: AdPlacement) = ""
+    fun placementMinIntervalKey(placement: AdPlacement) = "ads_${placement.key}_min_interval_seconds"
 
-    fun breakCapDefaults(placement: AdPlacement): BreakCap = BreakCap.NONE
+    /** Business decisions of the spec: a placement without limits of its own has none besides the shared guard. */
+    fun breakCapDefaults(placement: AdPlacement): BreakCap = when (placement) {
+        AdPlacement.REVIEW_INTERSTITIAL -> BreakCap(firstBreak = 2, breaksBetween = 3, minIntervalSeconds = 120)
+        else -> BreakCap.NONE
+    }
 
     /** Off by default: a placement shows ads only once the product owner switches it on remotely. */
     const val PLACEMENT_ENABLED_DEFAULT = false

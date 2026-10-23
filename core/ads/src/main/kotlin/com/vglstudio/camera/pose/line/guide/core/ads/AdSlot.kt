@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -26,6 +27,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -97,19 +99,32 @@ private fun BannerAd(ads: AdsController, unitId: String, modifier: Modifier) {
  * Call the action at a natural break only. It does nothing in tests and previews.
  */
 @Composable
-fun rememberShowInterstitial(placement: AdPlacement): () -> Unit {
+fun rememberShowInterstitial(placement: AdPlacement): () -> Unit = rememberShowInterstitial(placement) {}
+
+/**
+ * Like [rememberShowInterstitial] with only the placement, and calls [onFinished] once per call of the action, on the
+ * main thread, when the request ends: with true when the ad was shown, false when it was skipped. A screen that goes
+ * on after the ad (leaving a screen) continues there. It reports false at once in tests and previews.
+ */
+@Composable
+fun rememberShowInterstitial(placement: AdPlacement, onFinished: (shown: Boolean) -> Unit): () -> Unit {
     require(placement.format == AdFormat.INTERSTITIAL) { "${placement.key} is not a full-screen placement" }
     val ads = LocalAdsController.current
     val activity = LocalActivity.current
     val scope = rememberCoroutineScope()
+    val currentOnFinished by rememberUpdatedState(onFinished)
     return remember(ads, activity, placement) {
-        { if (ads != null && activity != null) scope.launch { ads.showInterstitial(activity, placement) } }
+        {
+            if (ads == null || activity == null) {
+                currentOnFinished(false)
+            } else {
+                scope.launch(Dispatchers.Main.immediate) {
+                    currentOnFinished(ads.showInterstitial(activity, placement))
+                }
+            }
+        }
     }
 }
-
-/** Stub: behavior comes with the code. */
-@Composable
-fun rememberShowInterstitial(placement: AdPlacement, onFinished: (shown: Boolean) -> Unit): () -> Unit = {}
 
 /**
  * Entry point to change consent, required by Google where the consent form applies.

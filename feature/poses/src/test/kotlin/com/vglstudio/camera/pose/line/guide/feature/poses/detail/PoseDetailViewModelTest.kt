@@ -121,6 +121,7 @@ class PoseDetailViewModelTest {
     fun libraryFailed_isMissing() {
         library.fail(LoadFailureReason.OTHER)
         assertEquals(PoseDetailUiState.Missing, viewModel().uiState.value)
+        assertTrue(logger.entries.any { it.level == LogLevel.WARN && it.message == "Pose detail: library failed" })
     }
 
     // KB-4: content

@@ -141,6 +141,7 @@ class PoseDetailViewModel @Inject constructor(
             is LibraryResult.Failed -> {
                 content = null
                 pose = null
+                logger.warn(LOG_TAG, "Pose detail: library failed")
             }
             is LibraryResult.Ready -> {
                 content = result.content

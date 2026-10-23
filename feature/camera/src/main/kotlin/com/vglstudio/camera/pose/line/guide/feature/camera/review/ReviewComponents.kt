@@ -119,6 +119,7 @@ internal fun ReviewActions(
     onRetakeClick: () -> Unit,
     onShareClick: () -> Unit,
     onNextPoseClick: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") vertical: Boolean = false,
 ) {
     Row(
         modifier = Modifier

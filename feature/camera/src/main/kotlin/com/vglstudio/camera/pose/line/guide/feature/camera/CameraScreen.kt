@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +50,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.feature.camera.lastphoto.LastPhotoViewModel
+import com.vglstudio.camera.pose.line.guide.feature.camera.layout.isUnfolded
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.OverlayToolColumn
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
@@ -195,10 +198,85 @@ internal fun CameraScreen(
     lastPhoto: ImageBitmap? = null,
     onLastPhotoClick: (() -> Unit)? = null,
 ) {
+    // The scroll positions live above the choice of layout, so they survive a change of layout (plan T-020).
+    val chipsState = rememberLazyListState()
+    val stripState = rememberLazyListState()
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        if (isUnfolded(maxWidth)) {
+            CameraUnfoldedLayout(
+                uiState = uiState,
+                onFlashClick = onFlashClick,
+                onTimerClick = onTimerClick,
+                onGridClick = onGridClick,
+                onFlipClick = onFlipClick,
+                onZoomSelect = onZoomSelect,
+                onShutterClick = onShutterClick,
+                onCancelCountdown = onCancelCountdown,
+                onRetry = onRetry,
+                onOpenAppSettings = onOpenAppSettings,
+                onOpenPoses = onOpenPoses,
+                onOpenSettings = onOpenSettings,
+                preview = preview,
+                poseState = poseState,
+                poseActions = poseActions,
+                lastPhoto = lastPhoto,
+                onLastPhotoClick = onLastPhotoClick,
+                chipsState = chipsState,
+                stripState = stripState,
+            )
+        } else {
+            CameraPhoneLayout(
+                uiState = uiState,
+                onFlashClick = onFlashClick,
+                onTimerClick = onTimerClick,
+                onGridClick = onGridClick,
+                onFlipClick = onFlipClick,
+                onZoomSelect = onZoomSelect,
+                onShutterClick = onShutterClick,
+                onCancelCountdown = onCancelCountdown,
+                onRetry = onRetry,
+                onOpenAppSettings = onOpenAppSettings,
+                onOpenPoses = onOpenPoses,
+                onOpenSettings = onOpenSettings,
+                preview = preview,
+                poseState = poseState,
+                poseActions = poseActions,
+                lastPhoto = lastPhoto,
+                onLastPhotoClick = onLastPhotoClick,
+                chipsState = chipsState,
+                stripState = stripState,
+            )
+        }
+    }
+}
+
+/** The phone layout: the whole of the screen before T-020, unchanged. */
+@Composable
+internal fun CameraPhoneLayout(
+    uiState: CameraUiState,
+    onFlashClick: () -> Unit,
+    onTimerClick: () -> Unit,
+    onGridClick: () -> Unit,
+    onFlipClick: () -> Unit,
+    onZoomSelect: (Float) -> Unit,
+    onShutterClick: () -> Unit,
+    onCancelCountdown: () -> Unit,
+    onRetry: () -> Unit,
+    onOpenAppSettings: () -> Unit,
+    onOpenPoses: (() -> Unit)?,
+    onOpenSettings: (() -> Unit)?,
+    preview: @Composable (Modifier) -> Unit,
+    poseState: PoseUiState,
+    poseActions: PoseActions,
+    lastPhoto: ImageBitmap?,
+    onLastPhotoClick: (() -> Unit)?,
+    chipsState: LazyListState,
+    stripState: LazyListState,
+) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(appColors.cameraBackground)
             .testTag(CameraTestTags.SCREEN),
@@ -260,7 +338,7 @@ internal fun CameraScreen(
             }
         }
         // Chip row and pose strip: 16 + 36 + 16 + 64.
-        PosePicker(state = poseState, actions = poseActions)
+        PosePicker(state = poseState, actions = poseActions, chipsState = chipsState, stripState = stripState)
         Spacer(modifier = Modifier.height(Spacing.sm + Spacing.xs))
         CaptureRow(
             ready = ready,
@@ -309,10 +387,10 @@ internal object CameraTestTags {
     fun pose(id: String): String = "camera_pose_$id"
 }
 
-private const val PREVIEW_ASPECT_RATIO = 3f / 4f
+internal const val PREVIEW_ASPECT_RATIO = 3f / 4f
 
 // Where the step card ends in the frame before it is measured: one row, 16 + 68 (design context).
-private val DEFAULT_STEP_BOTTOM = 84.dp
+internal val DEFAULT_STEP_BOTTOM = 84.dp
 
 // The lock hint is 16 above the zoom control, which is 16 from the bottom of the frame and 48 high.
 private val LOCK_HINT_ABOVE_ZOOM = Spacing.md + 48.dp + Spacing.md

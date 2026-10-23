@@ -65,7 +65,14 @@ class PoseActions(
  * catalog loads the area is empty; when it failed, a message and "Thử lại" (plan T-014, question 8).
  */
 @Composable
-internal fun PosePicker(state: PoseUiState, actions: PoseActions, modifier: Modifier = Modifier) {
+internal fun PosePicker(
+    state: PoseUiState,
+    actions: PoseActions,
+    modifier: Modifier = Modifier,
+    // Hoisted by the screen so the scroll positions outlive a change of layout (plan T-020).
+    @Suppress("UNUSED_PARAMETER") chipsState: LazyListState = rememberLazyListState(),
+    @Suppress("UNUSED_PARAMETER") stripState: LazyListState = rememberLazyListState(),
+) {
     Box(modifier = modifier.fillMaxWidth().height(POSE_AREA_HEIGHT), contentAlignment = Alignment.Center) {
         when (state) {
             PoseUiState.Loading -> Unit

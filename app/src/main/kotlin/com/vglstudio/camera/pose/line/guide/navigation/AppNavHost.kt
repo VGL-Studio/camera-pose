@@ -12,7 +12,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.vglstudio.camera.pose.line.guide.feature.camera.navigation.CameraDestination
+import com.vglstudio.camera.pose.line.guide.feature.camera.navigation.ReviewDestination
 import com.vglstudio.camera.pose.line.guide.feature.camera.navigation.cameraScreen
+import com.vglstudio.camera.pose.line.guide.feature.camera.navigation.reviewScreen
 import com.vglstudio.camera.pose.line.guide.feature.loading.navigation.LoadingDestination
 import com.vglstudio.camera.pose.line.guide.feature.loading.navigation.loadingScreen
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.navigation.OnboardingDestination
@@ -86,11 +88,23 @@ internal fun AppNavHost(
             },
         )
         sampleScreen()
-        // T-016 opens the review screen; T-025 wires the settings buttons of the camera and the library.
+        // T-025 wires the settings buttons of the camera and the library.
         cameraScreen(
-            onPhotoCaptured = {},
+            onPhotoCaptured = { navController.navigate(ReviewDestination()) { launchSingleTop = true } },
             onOpenPoses = posesOpener(posesEnabled) {
                 navController.navigate(PosesDestination) { launchSingleTop = true }
+            },
+            onOpenLastPhoto = { uri ->
+                navController.navigate(ReviewDestination(savedPhotoUri = uri)) { launchSingleTop = true }
+            },
+        )
+        // The review screen sits above the camera, which keeps its pose and tools (spec camera, KB-6).
+        reviewScreen(
+            onLeave = {
+                // Only while the review screen is on top: never pop the camera too.
+                if (navController.currentDestination?.hasRoute<ReviewDestination>() == true) {
+                    navController.popBackStack()
+                }
             },
         )
         // Back returns to the camera entry, which kept its pose (spec poses, KB-1). T-022 wires onOpenPose.

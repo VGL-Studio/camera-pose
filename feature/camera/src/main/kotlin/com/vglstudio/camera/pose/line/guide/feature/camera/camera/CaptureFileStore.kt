@@ -12,4 +12,9 @@ class CaptureFileStore(private val dir: File) {
         dir.listFiles()?.forEach { it.delete() }
         return File(dir, "capture_$nowMillis.jpg")
     }
+
+    /** Deletes [file] when it is in the capture folder; any other file is left alone. */
+    fun delete(file: File) {
+        if (file.parentFile?.canonicalFile == dir.canonicalFile) file.delete()
+    }
 }

@@ -1,5 +1,6 @@
 package com.vglstudio.camera.pose.line.guide.feature.camera
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -246,19 +250,26 @@ private fun CountdownBadge(seconds: Int) {
     }
 }
 
-/** Last photo on the left (empty until T-016), shutter in the middle, switch camera on the right. */
+/**
+ * Last photo on the left (the latest saved photo, T-016), shutter in the middle, switch camera on the right. Without
+ * [onLastPhotoClick] the slot is empty and cannot be tapped.
+ */
 @Composable
 internal fun CaptureRow(
     ready: CameraUiState.Ready?,
     onShutterClick: () -> Unit,
     onCancelCountdown: () -> Unit,
     onFlipClick: () -> Unit,
+    lastPhoto: ImageBitmap? = null,
+    onLastPhotoClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(CAPTURE_ROW_HEIGHT),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { LastPhotoSlot() }
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            LastPhotoSlot(image = lastPhoto, onClick = onLastPhotoClick)
+        }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
             ShutterButton(
                 enabled = ready != null && !ready.capturing,
@@ -279,8 +290,9 @@ internal fun CaptureRow(
     }
 }
 
+/** The thumbnail is cropped to the slot; a photo that cannot be read leaves the slot empty but still tappable. */
 @Composable
-private fun LastPhotoSlot() {
+private fun LastPhotoSlot(image: ImageBitmap?, onClick: (() -> Unit)?) {
     val appColors = MaterialTheme.appColors
     val shape = RoundedCornerShape(Radius.thumb)
     val description = stringResource(R.string.camera_cd_last_photo)
@@ -290,8 +302,18 @@ private fun LastPhotoSlot() {
             .background(appColors.cameraSurface, shape)
             .border(Stroke.sticker, appColors.onCamera, shape)
             .semantics { contentDescription = description }
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .testTag(CameraTestTags.LAST_PHOTO),
-    )
+    ) {
+        if (image != null) {
+            Image(
+                bitmap = image,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize().clip(shape),
+            )
+        }
+    }
 }
 
 /** Ring 76 with a 62 disc; while counting down it shows a close icon and cancels instead. */

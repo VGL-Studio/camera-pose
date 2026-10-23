@@ -262,7 +262,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** vùng `io.vn` không qua bước kiểm DNSSEC ở Cloudflare và Google DNS, nên `camera-pose.vgl.io.vn` không phân giải được; máy thật không tải được catalog, trong khi phiên emulator trên GitHub vài giờ trước vẫn qua. Log không cho biết lý do vì Android bỏ stack trace của `UnknownHostException`.
 - **Bằng chứng:** TS-20261022-02, P-1; FB-20261022-02, FB-20261022-04.
 - **Đề xuất sửa:** `env-canary.yml` kiểm phân giải tên miền file tĩnh qua 1.1.1.1 và 8.8.8.8 (không chỉ DNS của runner); `:core:assets` ghi tên lớp lỗi trong câu log; `docs/ops/setup-new-app.md` khuyên chọn tên miền thuộc vùng có DNSSEC ổn định.
-- **Áp dụng:** app: PR #48 (`setup-new-app.md`: kiểm DNS công cộng, chọn vùng DNSSEC ổn định). Plan T-030, PR #50: `preflight.sh` kiểm qua 1.1.1.1 và 8.8.8.8 mỗi sáng. Plan T-032, PR #51: `:core:assets` ghi loại lỗi và lý do qua `AppLogger` (`VGL.Assets`).
+- **Áp dụng:** app: PR #48 (`setup-new-app.md`: kiểm DNS công cộng, chọn vùng DNSSEC ổn định). Plan T-030, PR #50: `preflight.sh` kiểm qua 1.1.1.1 và 8.8.8.8 mỗi sáng. Plan T-032, PR #51: `:core:assets` ghi loại lỗi và lý do qua `AppLogger` (`VGL.Assets`). Dự án mẫu: phần log qua `AppLogger` là issue #105, PR #108.
 - **Kiểm chứng:**
 
 ### L-028: Phiên kiểm `main-broken` trước khi `main-guard` của lần merge vừa rồi chạy xong
@@ -446,7 +446,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** sau khi merge PR #49, main-guard đỏ; CI của PR #50 cũng đỏ. Job không chạy bước nào, chú thích của lần chạy ghi "The job was not started because recent account payments have failed or your spending limit needs to be increased". `wait-run.sh` chỉ báo `ĐỎ`, job `guard`, không nói lý do; phải đọc chú thích của check run mới biết. Phiên tự chạy gặp chuyện này sẽ thử sửa code hay chạy lại vô ích, rồi dừng. PR #51 thậm chí không có lần chạy nào, phải đóng rồi mở lại PR sau khi người nâng hạn mức.
 - **Bằng chứng:** main-guard 39916343646 lần 1, pr-check 39916715279 lần 1 và 2 (0 bước); chạy lại sau khi nâng hạn mức thì xanh.
 - **Đề xuất sửa:** `wait-run.sh` thấy job đỏ mà 0 bước thì đọc chú thích của check run và in `HẠ TẦNG: GitHub không cấp máy (<chú thích>)` với mã thoát riêng; `auto-run.md` ghi: gặp mã này thì không sửa code, ghi vào báo cáo, chờ người; `preflight.yml` không phát hiện được (chính nó cũng không chạy), nên `start-run.yml` không bắt đầu phiên khi lần chạy gần nhất của `preflight.yml` không xanh.
-- **Áp dụng:** plan T-033: `wait-run.sh` báo `HẠ TẦNG` (mã 4) khi mọi job đỏ đều không chạy bước nào, kèm chú thích của GitHub; `auto-run.md`: kết thúc phiên mà giữ `running`, phiên tiếp tục chạy lại các lần chạy bị bỏ (`rerun-failed-jobs`).
+- **Áp dụng:** plan T-033: `wait-run.sh` báo `HẠ TẦNG` (mã 4) khi mọi job đỏ đều không chạy bước nào, kèm chú thích của GitHub; `auto-run.md`: kết thúc phiên mà giữ `running`, phiên tiếp tục chạy lại các lần chạy bị bỏ (`rerun-failed-jobs`). Dự án mẫu: issue #106, PR #107.
 - **Kiểm chứng:**
 
 ### L-047: `merge-if-green.sh --update` thất bại ở mọi PR vì `docs/STATUS.md`
@@ -455,7 +455,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** cả hai lần dùng `--update` đầu tiên, GitHub trả `422 merge conflict` chỉ vì `docs/STATUS.md`. Mỗi PR sửa trạng thái đều sinh lại trang, nên PR thứ hai trở đi luôn xung đột; `--update` (T-029) gần như không bao giờ dùng được, và mỗi PR tốn thêm một vòng gộp tay cùng một lần CI 15 phút. Cách (c) của L-016 (gộp tay theo hướng dẫn) giữ được an toàn nhưng không bớt vòng nào.
 - **Bằng chứng:** `merge-if-green.sh 51 --update` và `52 --update`, cùng thông báo `gh: merge conflict between base and head (HTTP 422)`; xung đột duy nhất là `docs/STATUS.md`.
 - **Đề xuất sửa:** cách (a) của L-016: PR thường không commit `docs/STATUS.md`; một workflow sinh lại trang trên nhánh chính sau mỗi lần merge, `status.py --check` chỉ chạy trên nhánh chính. Cần ADR, vì workflow đẩy commit lên nhánh chính ngoài `merge-if-green.sh`. Cách nhẹ hơn: `merge-if-green.sh --update` gặp 422 mà xung đột chỉ ở `docs/STATUS.md` thì tự gộp, sinh lại trang và đẩy lên nhánh của PR (không đụng nhánh chính), cần plan rủi ro cao.
-- **Áp dụng:** plan T-034 (cách (a), không ADR vì nhánh chính không bị ghi): `docs/STATUS.md` không còn trong git (`.gitignore`); `status-page.yml` sinh trang sau mỗi lần đẩy lên nhánh chính có đổi `docs/` và đẩy đè lên nhánh `status`; `docs/CLAUDE.md` mục Trang tiến độ, `auto-run.md` PR báo cáo.
+- **Áp dụng:** plan T-034 (cách (a), không ADR vì nhánh chính không bị ghi): `docs/STATUS.md` không còn trong git (`.gitignore`); `status-page.yml` sinh trang sau mỗi lần đẩy lên nhánh chính có đổi `docs/` và đẩy đè lên nhánh `status`; `docs/CLAUDE.md` mục Trang tiến độ, `auto-run.md` PR báo cáo. Dự án mẫu: issue #104, PR #109 (thay cách hiện có của dự án mẫu, anh Nhật quyết định).
 - **Kiểm chứng:**
 
 ### L-048: PR xung đột không có lần chạy CI nào, `wait-run.sh` chờ trọn 40 phút
@@ -464,5 +464,5 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** GitHub không chạy workflow `pull_request` cho PR đang xung đột với nhánh chính. PR #56 xung đột ở `docs/STATUS.md` ngay khi mở (PR #55 vừa merge), không có lần chạy `pr-check` nào; `wait-run.sh --pr 56` chờ đủ 40 phút rồi báo "chưa thấy lần chạy nào". PR #51 cũng không có lần chạy vì cùng lý do; lúc đó tưởng là do hạn mức Actions (L-046) và đã đóng rồi mở lại PR. Một agent con của T-031 cũng gặp 40 phút chờ và tưởng là lỗi của `wait-run.sh`.
 - **Bằng chứng:** `pulls/56` có `mergeable_state: dirty`, `actions/runs?head_sha=347472b` trả 0 lần chạy; PR #51 trước khi gộp nhánh chính.
 - **Đề xuất sửa:** `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay với mã riêng; phiên gộp nhánh chính rồi đẩy. Gốc của phần lớn xung đột là `docs/STATUS.md` (L-047).
-- **Áp dụng:** plan T-033: `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay (mã 5); `auto-run.md` bước 8: gộp nhánh chính rồi chờ lại. Gốc chính của xung đột (`docs/STATUS.md`) đã bỏ ở plan T-034.
+- **Áp dụng:** plan T-033: `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay (mã 5); `auto-run.md` bước 8: gộp nhánh chính rồi chờ lại. Gốc chính của xung đột (`docs/STATUS.md`) đã bỏ ở plan T-034. Dự án mẫu: issue #106, PR #107.
 - **Kiểm chứng:**

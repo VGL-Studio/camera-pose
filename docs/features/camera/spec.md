@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-21
+confirmed: 2026-10-23
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -115,7 +115,6 @@ Tiêu chí chấp nhận:
 - [ ] Khi một người thật đứng đúng tư thế thì điểm đạt ít nhất 80 (kiểm tra thủ công trên máy thật, ghi trong báo cáo phiên thử).
 - [ ] Khi đo trên một máy tầm thấp (câu hỏi 5) thì camera vẫn chạy ít nhất 15 khung hình mỗi giây khi bật nhận dạng.
 - [ ] Khi tư thế không có dữ liệu điểm khớp, hoặc nét viền đang ẩn, thì app không chạy nhận dạng và không hiện điểm.
-- [ ] Khi thêm phần nhận dạng thì dung lượng APK tăng không quá 10 MB.
 
 Trường hợp đặc biệt:
 
@@ -175,7 +174,7 @@ Tiêu chí chấp nhận:
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi người dùng đã lưu ít nhất 3 ảnh (tính từ khi cài) và rời màn xem lại thì app gọi hộp đánh giá của Google Play, nếu lần gọi trước đã cách ít nhất 30 ngày.
+- [ ] Khi người dùng đã lưu ít nhất 3 ảnh (tính từ khi cài) và rời màn xem lại sau khi đã lưu ảnh ở lần xem lại đó thì app gọi hộp đánh giá của Google Play, nếu lần gọi trước đã cách ít nhất 30 ngày.
 - [ ] Khi quảng cáo toàn màn hình vừa hiện ở cùng lần rời màn xem lại thì app không gọi hộp đánh giá lần đó.
 - [ ] Khi cờ `feature_in_app_review_enabled` tắt thì app không gọi hộp đánh giá.
 
@@ -202,7 +201,7 @@ Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
-| `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên; cách lần trước ít nhất 120 giây; tối đa 1 lần mỗi 3 ảnh lưu. Các con số đặt trong `RemoteSettings` để chỉnh từ xa | `ads_review_interstitial_enabled` |
+| `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình); cách lần trước ít nhất 120 giây; tối đa 1 lần mỗi 3 ảnh lưu. Các con số đặt trong `RemoteSettings` để chỉnh từ xa | `ads_review_interstitial_enabled` |
 
 Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài học 3).
 
@@ -216,7 +215,8 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | Tư thế đã dùng gần đây, kèm thời điểm dùng | Xếp dải tư thế và thư viện (đã lưu, gần đây, còn lại) | Đến khi người dùng xóa dữ liệu app |
 | Độ mờ, cỡ, lật, khóa, ẩn của nét viền; thẻ bước ẩn hay hiện | Giữ lựa chọn giữa các lần dùng | Đến khi người dùng xóa dữ liệu app |
 | Hẹn giờ, lưới, flash, camera trước sau | Giữ lựa chọn giữa các lần dùng | Đến khi người dùng xóa dữ liệu app |
-| Số ảnh đã lưu, ngày gọi hộp đánh giá gần nhất, mốc quảng cáo của phiên | Điều kiện hỏi đánh giá và giới hạn quảng cáo | Đến khi người dùng xóa dữ liệu app |
+| Số ảnh đã lưu, ngày gọi hộp đánh giá gần nhất | Điều kiện hỏi đánh giá | Đến khi người dùng xóa dữ liệu app |
+| Mốc quảng cáo của phiên (số ảnh đã lưu trong phiên, lần hiện quảng cáo gần nhất) | Giới hạn quảng cáo | Trong bộ nhớ, hết khi app đóng; không lưu xuống máy |
 | Ảnh đã lưu | Ảnh của người dùng, trong thư viện máy | Đến khi người dùng tự xóa; gỡ app không xóa |
 
 Ảnh chỉ lưu trên máy, không tải lên đâu (câu 9.3). Phân tích dáng chạy hoàn toàn trên máy.
@@ -288,6 +288,16 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 11. **Có ghi sự kiện cho kết quả hỏi quyền lưu không?** Spec không có sự kiện này. Đề xuất của AI: không ghi; tỷ lệ máy Android 9 trở xuống từ chối quyền lưu xem gián tiếp qua `photo_saved` trên `photo_captured` theo phiên bản Android. Nếu cần đo trực tiếp thì thêm sự kiện mới vào mục 6 trước (điểm chặn 4).
    - Trả lời: Đồng ý với đề xuất của AI.
 
+12. **Dung lượng APK khi thêm nhận dạng dáng** (plan T-017, câu 1). Tiêu chí "dung lượng APK tăng không quá 10 MB" không đạt được: đo với `pose-detection` 18.0.0-beta5 trên một máy `arm64-v8a`, bản tải về tăng khoảng 12 MB, bản cài tăng khoảng 28.5 MB (thư viện gốc 21.6 MB, hai mô hình 5.8 MB).
+   - Đề xuất của AI: nâng tiêu chí thành "tải về tăng không quá 15 MB trên một kiến trúc".
+   - Trả lời: Bỏ tiêu chí dung lượng (phương án C); ghi số đo ở đây. Phiên vẫn đo dung lượng APK và ghi vào báo cáo phiên.
+13. **"Phiên" trong giới hạn quảng cáo `review_interstitial`** (plan T-018, câu 1). Mục 5 ghi "của phiên", bảng dữ liệu mục 6 ghi mốc giữ tới khi xóa dữ liệu app.
+   - Đề xuất của AI: phiên là một lần chạy của app; mốc nằm trong bộ nhớ, không lưu xuống máy.
+   - Trả lời: Đồng ý với đề xuất của AI (phương án A).
+14. **Rời màn xem lại mà lần đó không lưu ảnh có hỏi đánh giá không?** (plan T-019, câu 1).
+   - Đề xuất của AI: chỉ hỏi khi lần xem lại đó đã lưu ảnh.
+   - Trả lời: Đồng ý với đề xuất của AI.
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -295,5 +305,6 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế ở dải (đã lưu, gần đây, còn lại), ẩn hiện thẻ bước, chế độ flash, ngưỡng điểm 80, hỏi "Bỏ ảnh này?" khi rời màn xem lại mà chưa lưu, khóa chiều dọc, dữ liệu tư thế đã dùng gần đây; thêm trạng thái thiết kế `steps-hidden`, `discard` |
 | 2026-10-21 | AI | Lập gói bàn giao thiết kế: trạng thái `offline` chuyển sang gói `network` vì hộp thoại do vỏ app hiện, không thuộc `CameraScreen` |
-| 2026-10-22 | AI | Ghi quyết định của Nhật sau RUN-20261022-01: nút đổi camera mờ đi khi camera chưa sẵn sàng (đang mở, chưa có quyền, lỗi), thiết kế sửa theo; không ghi `camera_permission_result` khi quyền đã bị từ chối vĩnh viễn và hộp hỏi không hiện (KB-7, mục 6). Chờ xác nhận lại |
-| 2026-10-22 | AI | Ghi quyết định của Nhật ở plan T-016 (câu 1, phương án A): Android 9 trở xuống hỏi quyền lưu tệp vào bộ nhớ máy ở lần lưu đầu; thêm tiêu chí từ chối, từ chối và không hỏi lại, quyền của app (mục 2, KB-6, mục 4, mục 6); câu hỏi 10 (chữ thông báo, việc của dev trên Play Console) và 11 (sự kiện). Chờ xác nhận lại |
+| 2026-10-22 | AI | Ghi quyết định của Nhật sau RUN-20261022-01: nút đổi camera mờ đi khi camera chưa sẵn sàng (đang mở, chưa có quyền, lỗi), thiết kế sửa theo; không ghi `camera_permission_result` khi quyền đã bị từ chối vĩnh viễn và hộp hỏi không hiện (KB-7, mục 6). Tuấn xác nhận lại ngày 2026-10-23 |
+| 2026-10-22 | AI | Ghi quyết định của Nhật ở plan T-016 (câu 1, phương án A): Android 9 trở xuống hỏi quyền lưu tệp vào bộ nhớ máy ở lần lưu đầu; thêm tiêu chí từ chối, từ chối và không hỏi lại, quyền của app (mục 2, KB-6, mục 4, mục 6); câu hỏi 10 (chữ thông báo, việc của dev trên Play Console) và 11 (sự kiện). Tuấn xác nhận lại ngày 2026-10-23 |
+| 2026-10-23 | AI | Ghi quyết định của Tuấn ở plan T-017, T-018, T-019: bỏ tiêu chí dung lượng APK (KB-5, câu 12); phiên của giới hạn quảng cáo là một lần chạy của app, mốc quảng cáo không lưu xuống máy (mục 5, mục 6, câu 13); chỉ hỏi đánh giá khi lần xem lại đó đã lưu ảnh (KB-10, câu 14). Tuấn xác nhận lại ngày 2026-10-23 |

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the capture folder of the cache (CaptureFileStore) is shared, for the review screen (plan T-016). -->
+<paths>
+    <cache-path
+        name="captures"
+        path="captures/" />
+</paths>

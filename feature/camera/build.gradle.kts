@@ -16,4 +16,6 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.compose)
+    // CameraX returns Guava ListenableFuture; Guava is on the runtime classpath only, through Firebase (plan T-031, L-007).
+    implementation(libs.guava)
 }

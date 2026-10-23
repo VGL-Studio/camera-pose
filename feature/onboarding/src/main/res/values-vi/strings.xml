@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_title">Chụp dáng đẹp, không cần đoán</string>
+    <string name="onboarding_body">Chọn một tư thế, đứng vào nét viền rồi bấm chụp. Ảnh lưu vào thư viện máy, không kèm nét viền.</string>
+    <string name="onboarding_point_poses">Hơn 200 tư thế: một người, cặp đôi, nhóm bạn</string>
+    <string name="onboarding_point_adjust">Chỉnh độ mờ, cỡ và vị trí nét viền</string>
+    <string name="onboarding_point_saved">Lưu tư thế yêu thích để chụp lại sau</string>
+    <string name="onboarding_enable_camera">Bật camera</string>
+    <string name="onboarding_note">App cần quyền camera để hiện khung xem trước. Ảnh chỉ lưu trên máy của bạn.</string>
+</resources>

@@ -23,7 +23,7 @@ Làm ba điểm của ADR-1002 cho cổng chất lượng của app:
 - lần chạy xanh trên chính commit bị đổ lỗi cũng đóng `main-broken`;
 - `merge-if-green.sh` merge được bản revert đúng khi `main-broken` đang mở, kiểm bằng nội dung.
 
-Sau ticket này, một test chập chờn hay một lần merge hỏng của chính phiên không làm phiên dừng cả đêm (L-032, L-033, L-034).
+Sau ticket này, một test chập chờn hay một lần merge hỏng của chính phiên không làm phiên dừng cả đêm (L-036, L-037, L-038).
 
 ## Phạm vi
 

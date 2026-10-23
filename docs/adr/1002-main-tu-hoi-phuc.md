@@ -15,11 +15,11 @@ ADR này chỉ thay mục 2 của ADR-0010 cho app Camera Pose, ở ba điểm n
 
 ## Bối cảnh
 
-Phiên RUN-20261023-01 kết thúc khi mới xong 2 trên 7 task. Lý do là một screenshot test chập chờn (`CameraScreenScreenshotTest > starting_dark`) đỏ một lần trên `main-guard`, trong khi cùng code đó xanh ở PR, ở cục bộ và khi chạy lại (L-033, L-029). Theo ADR-0010:
+Phiên RUN-20261023-01 kết thúc khi mới xong 2 trên 7 task. Lý do là một screenshot test chập chờn (`CameraScreenScreenshotTest > starting_dark`) đỏ một lần trên `main-guard`, trong khi cùng code đó xanh ở PR, ở cục bộ và khi chạy lại (L-037, L-029). Nguyên nhân của test này đã được xác nhận (vòng chờ chạy mãi, Robolectric vẽ tới khi máy test hết bộ nhớ) và đã sửa ở RUN-20261023-02 (T-014, T-016 chụp với đồng hồ dừng); quyết định dưới đây vẫn cần, vì test chập chờn vì lý do khác vẫn có thể xuất hiện. Theo ADR-0010:
 
 - Một lần đỏ mở issue `main-broken`, phiên dừng hẳn. Không ai sửa được cho tới sáng.
-- Dev chạy lại `main-guard` trên đúng commit bị đổ lỗi, và lần chạy lại xanh. Dù vậy issue vẫn không tự đóng, vì quy tắc đóng chỉ nhận commit nằm *sau* commit bị đổ lỗi (L-032).
-- Khi lỗi là thật và do chính phiên merge, phiên vẫn không được merge bản revert mà `main-guard` đã dựng sẵn. ADR-0010 có lý do đúng: tên nhánh `revert/` không phải bằng chứng tin cậy. Hệ quả là mọi task còn lại phải chờ người (L-034).
+- Dev chạy lại `main-guard` trên đúng commit bị đổ lỗi, và lần chạy lại xanh. Dù vậy issue vẫn không tự đóng, vì quy tắc đóng chỉ nhận commit nằm *sau* commit bị đổ lỗi (L-036).
+- Khi lỗi là thật và do chính phiên merge, phiên vẫn không được merge bản revert mà `main-guard` đã dựng sẵn. ADR-0010 có lý do đúng: tên nhánh `revert/` không phải bằng chứng tin cậy. Hệ quả là mọi task còn lại phải chờ người (L-038).
 
 ## Quyết định
 

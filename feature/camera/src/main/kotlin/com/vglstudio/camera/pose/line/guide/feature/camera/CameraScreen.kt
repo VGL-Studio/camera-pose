@@ -23,21 +23,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
+import com.vglstudio.camera.pose.line.guide.feature.camera.lastphoto.LastPhotoViewModel
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PosePicker
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseUiState
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseViewModel
 
 /**
  * Stateful entry point used by navigation. Checks the camera permission each time the screen starts (also back from
@@ -49,12 +60,35 @@ internal fun CameraRoute(
     onPhotoCaptured: () -> Unit,
     onOpenPoses: (() -> Unit)?,
     onOpenSettings: (() -> Unit)?,
+    onOpenLastPhoto: (String) -> Unit,
     viewModel: CameraViewModel = hiltViewModel(),
+    poseViewModel: PoseViewModel = hiltViewModel(),
+    lastPhotoViewModel: LastPhotoViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val poseState by poseViewModel.uiState.collectAsStateWithLifecycle()
+    val poseActions = remember(poseViewModel) {
+        PoseActions(
+            onCategorySelect = poseViewModel::onCategorySelect,
+            onPoseSelect = poseViewModel::onPoseSelect,
+            onThumbShown = poseViewModel::onThumbShown,
+            onPreviousStep = poseViewModel::onPreviousStep,
+            onNextStep = poseViewModel::onNextStep,
+            onHideSteps = poseViewModel::onHideSteps,
+            onShowSteps = poseViewModel::onShowSteps,
+            onRetryOutline = poseViewModel::onRetryOutline,
+            onRetryLibrary = poseViewModel::onRetryLibrary,
+        )
+    }
     val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val currentOnPhotoCaptured by rememberUpdatedState(onPhotoCaptured)
+    val currentOnOpenLastPhoto by rememberUpdatedState(onOpenLastPhoto)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val lastPhotoUri by lastPhotoViewModel.lastPhoto.collectAsStateWithLifecycle()
+    val lastPhoto by produceState<ImageBitmap?>(null, lastPhotoUri) {
+        value = lastPhotoUri?.let { lastPhotoViewModel.decoder.decode(it, LAST_PHOTO_MAX_SIDE_PX) }
+    }
     val activity = LocalActivity.current
     // Read before the request; with the value read after it, tells whether the system dialog was shown (T-026).
     // No activity (previews only): count the dialog as shown.
@@ -68,16 +102,22 @@ internal fun CameraRoute(
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
         viewModel.onScreenStarted(granted)
+        // Back from the review screen: the slot shows the photo just saved, and "Tư thế tiếp" selects the next pose.
+        lastPhotoViewModel.onScreenStarted()
+        if (lastPhotoViewModel.consumeNextPoseRequest()) poseViewModel.onNextPose()
         onStopOrDispose { viewModel.onScreenStopped() }
     }
-    LaunchedEffect(viewModel) {
-        viewModel.events.collect { event ->
-            when (event) {
-                CameraEvent.RequestPermission -> {
-                    rationaleBefore = activity?.shouldShowRationale() ?: false
-                    permissionLauncher.launch(Manifest.permission.CAMERA)
+    // Only while started: a photo taken just as the app went to the background opens the review screen on return.
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.events.collect { event ->
+                when (event) {
+                    CameraEvent.RequestPermission -> {
+                        rationaleBefore = activity?.shouldShowRationale() ?: false
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                    CameraEvent.PhotoCaptured -> currentOnPhotoCaptured()
                 }
-                CameraEvent.PhotoCaptured -> currentOnPhotoCaptured()
             }
         }
     }
@@ -101,14 +141,20 @@ internal fun CameraRoute(
             preview = { modifier ->
                 surfaceRequest?.let { CameraXViewfinder(surfaceRequest = it, modifier = modifier) }
             },
+            poseState = poseState,
+            poseActions = poseActions,
+            lastPhoto = lastPhoto,
+            onLastPhotoClick = lastPhotoUri?.let { uri -> { currentOnOpenLastPhoto(uri) } },
         )
     }
 }
 
 /**
- * Stateless screen: everything it shows comes from [uiState]. Tested on the JVM and by screenshots, without [preview],
- * so the frame shows the camera surface colour. Layout from design/context/ (411 x 891): top bar at 32, the 3:4
- * preview below it, the space of the chip row and pose strip (empty until T-014), and the capture row.
+ * Stateless screen: everything it shows comes from [uiState] and [poseState]. [lastPhoto] is the thumbnail of the
+ * latest saved photo; the slot can be tapped only with [onLastPhotoClick] (T-016). Tested on the JVM and by
+ * screenshots, without [preview], so the frame shows the camera surface colour. Layout from design/context/
+ * (411 x 891): top bar at 32, the 3:4 preview below it (with the pose overlay when the camera is ready), the chip row
+ * and pose strip, and the capture row.
  */
 @Composable
 internal fun CameraScreen(
@@ -126,6 +172,10 @@ internal fun CameraScreen(
     onOpenSettings: (() -> Unit)?,
     modifier: Modifier = Modifier,
     preview: @Composable (Modifier) -> Unit = {},
+    poseState: PoseUiState = PoseUiState.Loading,
+    poseActions: PoseActions = PoseActions(),
+    lastPhoto: ImageBitmap? = null,
+    onLastPhotoClick: (() -> Unit)? = null,
 ) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready
@@ -158,17 +208,20 @@ internal fun CameraScreen(
                     onRetry = onRetry,
                     onOpenAppSettings = onOpenAppSettings,
                     preview = preview,
+                    poseOverlay = { PoseOverlay(state = poseState, actions = poseActions) },
                 )
             }
         }
-        // Chip row and pose strip (T-014): 16 + 36 + 16 + 64.
-        Spacer(modifier = Modifier.height(POSE_AREA_HEIGHT))
+        // Chip row and pose strip: 16 + 36 + 16 + 64.
+        PosePicker(state = poseState, actions = poseActions)
         Spacer(modifier = Modifier.height(Spacing.sm + Spacing.xs))
         CaptureRow(
             ready = ready,
             onShutterClick = onShutterClick,
             onCancelCountdown = onCancelCountdown,
             onFlipClick = onFlipClick,
+            lastPhoto = lastPhoto,
+            onLastPhotoClick = onLastPhotoClick,
         )
         Spacer(modifier = Modifier.height(Spacing.xl))
     }
@@ -188,9 +241,21 @@ internal object CameraTestTags {
     const val SHUTTER = "camera_shutter"
     const val LAST_PHOTO = "camera_last_photo"
     const val FLIP = "camera_flip"
+    const val CHIPS = "camera_chips"
+    const val STRIP = "camera_strip"
+    const val OUTLINE = "camera_outline"
+    const val STEP_CARD = "camera_step_card"
+    const val SHOW_STEPS = "camera_show_steps"
+    const val NO_POSE_HINT = "camera_no_pose_hint"
+
+    /** Tag of the strip cell of a pose: `camera_pose_<id>`. */
+    fun pose(id: String): String = "camera_pose_$id"
 }
 
 private const val PREVIEW_ASPECT_RATIO = 3f / 4f
+
+/** Long side of the last photo thumbnail, in pixels (plan T-016). */
+private const val LAST_PHOTO_MAX_SIDE_PX = 192
 
 private fun Activity.shouldShowRationale(): Boolean =
     ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)

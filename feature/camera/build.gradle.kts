@@ -10,6 +10,8 @@ dependencies {
     implementation(project(":core:data"))
     // The countdown stops while the network dialog shows (plan T-013, option A).
     implementation(project(":core:network"))
+    // Pose catalog, images and history (plan T-009, question 7; T-014).
+    implementation(project(":core:poses"))
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)

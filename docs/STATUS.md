@@ -8,7 +8,6 @@
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
 - Plan `draft` chờ duyệt: [T-028-main-tu-hoi-phuc.md](features/quality-gate/plans/T-028-main-tu-hoi-phuc.md)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
-- Danh sách chạy đã duyệt, chờ kích hoạt: [RUN-20261023-02.md](runs/RUN-20261023-02.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
 - ADR `proposed` chờ quyết định: [1002-main-tu-hoi-phuc.md](adr/1002-main-tu-hoi-phuc.md)
@@ -17,26 +16,26 @@
 
 | Yêu cầu | Ngày | Feature | Trạng thái | Ticket xong |
 | --- | --- | --- | --- | --- |
-| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | 2/9 |
+| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | 4/9 |
 | Màn hình loading có thanh tiến trình ([2026-10-15-man-hinh-loading.md](features/loading/requests/2026-10-15-man-hinh-loading.md)) | 2026-10-15 | loading | `specified` đã có spec | 9/9 |
 | Màn loading cho camera pose ([2026-10-21-loading-cua-camera-pose.md](features/loading/requests/2026-10-21-loading-cua-camera-pose.md)) | 2026-10-21 | loading | `specified` đã có spec | 9/9 |
 | App luôn cần mạng, báo mất mạng khi đang dùng ([2026-10-21-hop-thoai-mat-mang.md](features/network/requests/2026-10-21-hop-thoai-mat-mang.md)) | 2026-10-21 | network | `specified` đã có spec | 1/1 |
-| Màn chào và xin quyền camera ([2026-10-21-man-chao-xin-quyen-camera.md](features/onboarding/requests/2026-10-21-man-chao-xin-quyen-camera.md)) | 2026-10-21 | onboarding | `specified` đã có spec | 0/1 |
-| Thư viện tư thế và chi tiết tư thế ([2026-10-21-thu-vien-tu-the.md](features/poses/requests/2026-10-21-thu-vien-tu-the.md)) | 2026-10-21 | poses | `specified` đã có spec | 1/5 |
-| Cài đặt ([2026-10-21-cai-dat.md](features/settings/requests/2026-10-21-cai-dat.md)) | 2026-10-21 | settings | `specified` đã có spec | 0/1 |
+| Màn chào và xin quyền camera ([2026-10-21-man-chao-xin-quyen-camera.md](features/onboarding/requests/2026-10-21-man-chao-xin-quyen-camera.md)) | 2026-10-21 | onboarding | `specified` đã có spec | 1/1 |
+| Thư viện tư thế và chi tiết tư thế ([2026-10-21-thu-vien-tu-the.md](features/poses/requests/2026-10-21-thu-vien-tu-the.md)) | 2026-10-21 | poses | `specified` đã có spec | 2/5 |
+| Cài đặt ([2026-10-21-cai-dat.md](features/settings/requests/2026-10-21-cai-dat.md)) | 2026-10-21 | settings | `specified` đã có spec | 1/1 |
 
 ## 3. Feature
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `ready`, 2 `approved`, 2 `on-staging`.
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `ready`, 4 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
 | [T-013](features/camera/tickets/T-013-camera-co-ban.md) | Camera: khung xem trước, quyền, công cụ chụp, chụp ảnh | `on-staging` | `done` (bản 1) | 40.0M | RUN-20261021-04, RUN-20261022-01 |
-| [T-014](features/camera/tickets/T-014-camera-chon-tu-the.md) | Camera: chọn tư thế, nét viền, thẻ bước | `approved` | `approved` (bản 1) | 30M | RUN-20261023-01, RUN-20261023-02 |
+| [T-014](features/camera/tickets/T-014-camera-chon-tu-the.md) | Camera: chọn tư thế, nét viền, thẻ bước | `on-staging` | `done` (bản 1) | 30M | RUN-20261023-01, RUN-20261023-02 |
 | [T-015](features/camera/tickets/T-015-camera-chinh-net-vien.md) | Camera: chỉnh nét viền | `ready` | chưa có | - | - |
-| [T-016](features/camera/tickets/T-016-man-xem-lai.md) | Màn xem lại, lưu, chia sẻ, tư thế tiếp | `approved` | `approved` (bản 2) | 28M | RUN-20261023-01, RUN-20261023-02 |
+| [T-016](features/camera/tickets/T-016-man-xem-lai.md) | Màn xem lại, lưu, chia sẻ, tư thế tiếp | `on-staging` | `done` (bản 2) | 28M | RUN-20261023-01, RUN-20261023-02 |
 | [T-017](features/camera/tickets/T-017-camera-diem-khop.md) | Nhận dạng dáng và điểm khớp | `ready` | chưa có | - | - |
 | [T-018](features/camera/tickets/T-018-quang-cao-xem-lai.md) | Quảng cáo toàn màn hình khi rời màn xem lại | `ready` | chưa có | - | - |
 | [T-019](features/camera/tickets/T-019-hoi-danh-gia.md) | Hỏi đánh giá app trong app | `ready` | chưa có | - | - |
@@ -77,22 +76,22 @@ Phản hồi: chưa có.
 
 ### onboarding
 
-Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `approved`.
+Spec: [spec.md](features/onboarding/spec.md) `confirmed`. Ticket: 1 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `approved` | `approved` (bản 2) | 20.0M | RUN-20261023-01, RUN-20261023-02 |
+| [T-012](features/onboarding/tickets/T-012-man-chao.md) | Màn chào và xin quyền camera | `on-staging` | `done` (bản 2) | 20.0M | RUN-20261023-01, RUN-20261023-02 |
 
 Phản hồi: chưa có.
 
 ### poses
 
-Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 3 `ready`, 1 `approved`, 1 `on-staging`.
+Spec: [spec.md](features/poses/spec.md) `confirmed`. Ticket: 3 `ready`, 2 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
 | [T-009](features/poses/tickets/T-009-core-poses.md) | Module dữ liệu tư thế dùng chung `:core:poses` | `on-staging` | `done` (bản 1) | 40M | RUN-20261021-01 |
-| [T-021](features/poses/tickets/T-021-thu-vien-tu-the.md) | Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi | `approved` | `approved` (bản 1) | 45M | RUN-20261023-01, RUN-20261023-02 |
+| [T-021](features/poses/tickets/T-021-thu-vien-tu-the.md) | Thư viện tư thế: lưới, nhóm, đã lưu, tải và lỗi | `on-staging` | `done` (bản 1) | 45M | RUN-20261023-01, RUN-20261023-02 |
 | [T-022](features/poses/tickets/T-022-chi-tiet-tu-the.md) | Chi tiết tư thế và "Chụp với tư thế này" | `ready` | chưa có | - | - |
 | [T-023](features/poses/tickets/T-023-banner-thu-vien.md) | Banner ở thư viện và chi tiết tư thế | `ready` | chưa có | - | - |
 | [T-024](features/poses/tickets/T-024-thu-vien-may-gap.md) | Thư viện và chi tiết tư thế trên máy gập | `ready` | chưa có | - | - |
@@ -111,11 +110,11 @@ Phản hồi: chưa có.
 
 ### settings
 
-Spec: [spec.md](features/settings/spec.md) `confirmed`. Ticket: 1 `approved`.
+Spec: [spec.md](features/settings/spec.md) `confirmed`. Ticket: 1 `on-staging`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
-| [T-025](features/settings/tickets/T-025-man-cai-dat.md) | Màn cài đặt | `approved` | `approved` (bản 1) | 20.0M | RUN-20261023-01, RUN-20261023-02 |
+| [T-025](features/settings/tickets/T-025-man-cai-dat.md) | Màn cài đặt | `on-staging` | `done` (bản 1) | 20.0M | RUN-20261023-01, RUN-20261023-02 |
 
 Phản hồi: chưa có.
 
@@ -123,7 +122,7 @@ Phản hồi: chưa có.
 
 | Phiên | Trạng thái | Bắt đầu | Ticket | Bản staging |
 | --- | --- | --- | --- | --- |
-| [RUN-20261023-02](runs/RUN-20261023-02.md) | `approved` |  | T-012, T-014, T-021, T-016, T-025 | - |
+| [RUN-20261023-02](runs/RUN-20261023-02.md) | `finished` | 2026-10-22T23:14Z | T-012, T-014, T-021, T-016, T-025 | 0.1.0-staging.4 (4), đã phát tới nhóm qua App Distribution |
 | [RUN-20261023-01](runs/RUN-20261023-01.md) | `finished` | 2026-10-22T15:45Z | T-006, T-026, T-012, T-014, T-021, T-016, T-025 | - |
 | [RUN-20261022-01](runs/RUN-20261022-01.md) | `finished` | 2026-10-22T01:29Z | T-011, T-010, T-008, T-013 | 0.1.0-staging.3 (3), đã tải lên App Distribution, chưa phát tới nhóm (nhóm `team` chưa có) |
 | [RUN-20261021-04](runs/RUN-20261021-04.md) | `draft` |  | T-008, T-011, T-010, T-013 | - |

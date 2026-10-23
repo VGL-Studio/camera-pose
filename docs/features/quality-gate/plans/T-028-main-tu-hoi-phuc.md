@@ -26,7 +26,7 @@ Plan này chạy trong phiên có người theo dõi, không đưa vào danh sá
 
 ## 2. Hiểu yêu cầu
 
-Không có spec nghiệp vụ. Yêu cầu là ADR-1002 (`docs/adr/1002-main-tu-hoi-phuc.md`), cùng bài học L-032, L-033, L-034.
+Không có spec nghiệp vụ. Yêu cầu là ADR-1002 (`docs/adr/1002-main-tu-hoi-phuc.md`), cùng bài học L-036, L-037, L-038.
 
 | Điểm của ADR-1002 | Tiêu chí | Cách hiểu của AI |
 | --- | --- | --- |
@@ -85,7 +85,7 @@ Chỉ dùng `git`, không gọi GitHub, nên test được bằng repo `git` d�
 - `docs/CLAUDE.md` mục Trong phiên tự chạy: một dòng dẫn tới ADR-1002.
 - `docs/templates/run.md`: mục Cần người kiểm tra có dòng cho issue `flaky`.
 
-Sau khi merge: chuyển L-032, L-033, L-034 sang `applied` kèm số PR. Sinh lại `docs/foundation.md` và `docs/STATUS.md`.
+Sau khi merge: chuyển L-036, L-037, L-038 sang `applied` kèm số PR. Sinh lại `docs/foundation.md` và `docs/STATUS.md`.
 
 ### 3.2. Danh sách file
 
@@ -101,7 +101,7 @@ Sau khi merge: chuyển L-032, L-033, L-034 sang `applied` kèm số PR. Sinh l�
 | Sửa | `docs/templates/run.md` | Dòng issue `flaky` ở mục Cần người kiểm tra |
 | Sửa | `docs/adr/1002-main-tu-hoi-phuc.md` | Chỉ khi người duyệt sửa ADR; trạng thái do người chuyển |
 | Ghi lại | `docs/foundation.md` | `scripts/foundation.py` |
-| Sửa | `docs/lessons.md` | Dòng Áp dụng của L-032, L-033, L-034 |
+| Sửa | `docs/lessons.md` | Dòng Áp dụng của L-036, L-037, L-038 |
 | Ghi lại | `docs/STATUS.md` | `scripts/status.py` |
 
 `scripts/check.sh` không đổi: `main-guard` gọi nó hai lần, không sửa nội dung kiểm tra. `scripts/find-breaking-commit.sh` không đổi. Commit được coi là xanh sau lần chạy lại vẫn có kết quả job `guard` là `success`, nên `find-breaking-commit.sh` đọc đúng. `.github/workflows/pr-check.yml` không đổi.

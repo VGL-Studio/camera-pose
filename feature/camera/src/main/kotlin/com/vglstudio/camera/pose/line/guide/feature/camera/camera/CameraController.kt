@@ -18,8 +18,8 @@ interface CameraController {
 
     fun setZoom(ratio: Float)
 
-    /** Throws [CaptureFailedException]. */
-    suspend fun takePicture(): File
+    /** Plays the shutter sound only when [playShutterSound] (spec settings, KB-3). Throws [CaptureFailedException]. */
+    suspend fun takePicture(playShutterSound: Boolean): File
 
     fun close()
 

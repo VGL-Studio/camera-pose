@@ -5,7 +5,6 @@
 ## 1. Đang chờ người
 
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
-- Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
 - Bài học `proposed` chờ retro: L-046 (Hết hạn mức GitHub Actions làm mọi job không chạy, trông như CI đỏ)
 - Bài học `proposed` chờ retro: L-047 (`merge-if-green.sh --update` thất bại ở mọi PR vì `docs/STATUS.md`)
@@ -62,9 +61,8 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 10 `on-staging`.
 | [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `on-staging` | `done` (bản 1) | 20M | RUN-20261021-04, RUN-20261022-01 |
 | [T-032](features/loading/tickets/T-032-log-ten-loi-tai-file.md) | Log tải file thất bại ghi loại lỗi và lý do | `on-staging` | `done` (bản 1) | 5.0M | - |
 
-Phản hồi: 2 `fixed`, 2 `new`, 2 `wontfix`.
+Phản hồi: 3 `fixed`, 2 `wontfix`, 1 `new`.
 - Đang mở: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) `new`, mức `gop-y`: Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được
-- Đang mở: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) `new`, mức `gop-y`: Log tải file thất bại không cho biết lý do cụ thể
 
 ### network
 

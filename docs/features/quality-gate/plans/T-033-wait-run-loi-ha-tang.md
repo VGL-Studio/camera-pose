@@ -1,6 +1,6 @@
 ---
 ticket: T-033
-title: wait-run.sh nhận ra job GitHub không chạy (hạn mức Actions) và phiên tự tiếp tục sau đó
+title: wait-run.sh nhận ra job GitHub không chạy (hạn mức Actions) hay PR xung đột, và phiên tự tiếp tục sau đó
 status: draft                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
@@ -13,7 +13,7 @@ cross_reviewer:              # bắt buộc khi risk_level là high
 approved_at:
 ---
 
-# PLAN T-033: WAIT-RUN.SH NHẬN RA JOB GITHUB KHÔNG CHẠY VÀ PHIÊN TỰ TIẾP TỤC SAU ĐÓ
+# PLAN T-033: WAIT-RUN.SH NHẬN RA JOB GITHUB KHÔNG CHẠY HAY PR XUNG ĐỘT, VÀ PHIÊN TỰ TIẾP TỤC SAU ĐÓ
 
 ## 1. Tóm tắt
 
@@ -28,15 +28,15 @@ Plan chạy trong phiên có người theo dõi, không đưa vào danh sách ch
 
 ## 2. Hiểu yêu cầu
 
-Không có spec nghiệp vụ. Yêu cầu là bài học L-046 (`docs/lessons.md`, `accepted`).
+Không có spec nghiệp vụ. Yêu cầu là bài học L-046 (`docs/lessons.md`, `accepted`) và L-048 (`proposed`, phát hiện khi viết plan này; phần của L-048 chờ người duyệt bài học cùng lúc duyệt plan).
 
 | Yêu cầu | Tiêu chí | Cách hiểu của AI |
 | --- | --- | --- |
 | Nhận ra job không chạy | Khi lần chạy kết thúc `failure` và mọi job `failure` có 0 bước thì `wait-run.sh` in một dòng bắt đầu bằng `HẠ TẦNG:` và thoát mã 4 | Job GitHub không cấp máy có `steps: []`, `runner_name` rỗng (mục 4.1). Job đã chạy dù chỉ một bước thì có `steps` khác rỗng. Có job đỏ đã chạy bước nào đó thì vẫn là `ĐỎ`, mã 1: đó là lỗi có thể do code |
 | Nói rõ lý do | Dòng `HẠ TẦNG` chép chú thích mức `failure` của check run (ví dụ "The job was not started because recent account payments have failed or your spending limit needs to be increased") | Chú thích đọc ở `check-runs/<id của job>/annotations`; id của job là id của check run (mục 4.1). Không có chú thích thì ghi "GitHub không ghi lý do" |
-| Hết giờ mà chưa có lần chạy | Dòng `CHƯA XONG ... chưa thấy lần chạy nào` nhắc thêm khả năng GitHub không tạo lần chạy vì hạn mức | PR #51 không có lần chạy nào trong lúc hết hạn mức. Mã thoát vẫn 2, vì không phân biệt được với lần chạy chưa kịp tạo |
+| PR xung đột (L-048) | Khi `--pr` chưa thấy lần chạy nào và PR có `mergeable_state` `dirty` thì `wait-run.sh` in `XUNG ĐỘT: ...` và thoát mã 5 ngay, không chờ tới hết giờ | GitHub không chạy workflow `pull_request` cho PR đang xung đột với nhánh chính. PR #51 và PR #56 không có lần chạy nào vì xung đột ở `docs/STATUS.md`; với PR #56 `wait-run.sh` chờ trọn 40 phút (mục 4.1). `mergeable_state` còn `unknown` khi GitHub chưa tính xong: chờ tiếp như cũ |
 | Phiên không làm hỏng việc | Khi gặp mã 4, phiên không sửa code, không chạy lại ngay, không revert, không dừng task; kết thúc phiên, giữ `running` | Theo mẫu "Hết hạn mức sử dụng" của mục 4: phần đã đẩy còn nguyên, `resume-run.yml` lo việc chờ. Chính `resume-run.yml` cũng chỉ chạy được khi GitHub cấp máy trở lại, nên lần kích hoạt lại đầu tiên đến sau khi người sửa hạn mức |
-| Phiên tiếp tục đúng | Phiên tiếp tục chạy lại lần chạy `pr-check` hay `main-guard` đã báo `HẠ TẦNG`, chờ kết quả, rồi mới đi tiếp | `POST actions/runs/<id>/rerun-failed-jobs` qua REST (`gh pr` bị chặn ở cloud). PR không có lần chạy nào: đẩy một commit rỗng lên nhánh task để GitHub tạo lần chạy mới |
+| Phiên tiếp tục đúng | Phiên tiếp tục chạy lại lần chạy `pr-check` hay `main-guard` đã báo `HẠ TẦNG`, chờ kết quả, rồi mới đi tiếp | `POST actions/runs/<id>/rerun-failed-jobs` qua REST (`gh pr` bị chặn ở cloud) |
 
 Thiết kế tham chiếu: không có thiết kế riêng.
 
@@ -59,15 +59,16 @@ unstarted="$(jq -r '[.jobs[]? | select(.conclusion == "failure")] as $f
 - Ngược lại: dòng `ĐỎ` như cũ, mã 1.
 - Job thiếu khóa `steps` (các fixture hiện có) không được coi là chưa chạy: `.steps? == []` sai khi khóa không có.
 
-**Dòng hết giờ không có lần chạy:** thêm "Lần chạy không xuất hiện sau nhiều lần gọi: có thể GitHub không tạo lần chạy vì hạn mức Actions (L-046)." Mã thoát vẫn 2.
+**PR xung đột (L-048):** với `--pr`, mỗi lần chưa thấy lần chạy nào thì đọc `pulls/<số>` lấy `mergeable_state` (cùng lần gọi đã lấy `head.sha` ở đầu script, gọi lại trong vòng chờ). `dirty`: in `XUNG ĐỘT: PR #<số> xung đột với nhánh chính, GitHub không chạy pr-check cho PR này. Gộp nhánh chính vào nhánh (git merge origin/main), sửa xung đột, đẩy, rồi gọi lại (L-048).`, mã thoát 5. Giá trị khác (`unknown`, `behind`, `blocked`, `clean`...) thì chờ như cũ. Dòng hết giờ không có lần chạy giữ nguyên, mã 2.
 
 **Chú thích đầu script:** thêm mã 4 vào bảng mã thoát.
 
 **`docs/auto-run.md`:**
 - Mục Chờ workflow (bước 8): thêm mã 4 vào câu liệt kê mã, và một gạch đầu dòng: mã 4 thì làm theo mục 4, dòng "GitHub không chạy job". Không đọc log (không có), không chạy lại, không sửa code; không tính vào 3 lần sửa của cùng một lỗi.
+- Mục Chờ workflow: mã 5 (PR xung đột) thì gộp nhánh chính vào nhánh, sửa xung đột trong phạm vi file của plan, đẩy, rồi chờ lại; không tính vào 3 lần sửa của cùng một lỗi (L-048).
 - Bước 9, đoạn chờ `main-guard` sau khi merge: `wait-run.sh` trả mã 4 thì nhánh chính chưa được kiểm, không phải đỏ: không revert (ADR-1002 chỉ áp dụng khi có issue `main-broken`), làm theo mục 4.
 - Mục 4, bảng kết thúc phiên, dòng mới "GitHub không chạy job (`wait-run.sh` mã 4)": dừng sau khi đẩy hết những gì đang có (task đang làm, nhánh báo cáo với dòng thời gian ghi giờ và lần chạy bị bỏ); giữ danh sách chạy `running`, plan và ticket giữ trạng thái; không bắt đầu task mới. `resume-run.yml` kích hoạt lại khi GitHub chạy lại được.
-- Mục 4, Tiếp tục phiên, bước 4 (task đang làm dở) và bước mới trước bước 3: với mỗi lần chạy mà dòng thời gian ghi là bị bỏ (`pr-check` của task đang làm, `main-guard` của commit merge của phiên), chạy lại một lần bằng `gh api -X POST "repos/{owner}/{repo}/actions/runs/<id>/rerun-failed-jobs"` rồi chờ bằng `wait-run.sh`. PR không có lần chạy nào cho commit cuối: đẩy một commit rỗng (`git commit --allow-empty -m "Chạy lại CI sau khi GitHub chạy lại được (L-046)"`) lên nhánh task. Lại mã 4 thì kết thúc phiên như trên. `main-guard` của commit merge của phiên phải xanh, và không có `main-broken`, trước khi làm task tiếp theo.
+- Mục 4, Tiếp tục phiên, bước 4 (task đang làm dở) và bước mới trước bước 3: với mỗi lần chạy mà dòng thời gian ghi là bị bỏ (`pr-check` của task đang làm, `main-guard` của commit merge của phiên), chạy lại một lần bằng `gh api -X POST "repos/{owner}/{repo}/actions/runs/<id>/rerun-failed-jobs"` rồi chờ bằng `wait-run.sh`. Lại mã 4 thì kết thúc phiên như trên. `main-guard` của commit merge của phiên phải xanh, và không có `main-broken`, trước khi làm task tiếp theo.
 
 Các kiểm tra hiện có mà trường hợp mới đi qua (L-044; plan không đổi `merge-if-green.sh` hay `main-guard.yml`, bảng ghi để người duyệt thấy không có đường vòng):
 
@@ -112,7 +113,7 @@ Các file sau nhắc tới file mà plan sửa nhưng không bị ảnh hưởng
 
 - **Điểm chưa chắc:** `POST actions/runs/<id>/rerun-failed-jobs` từ môi trường `claude --cloud` (proxy GitHub chặn GraphQL; đây là REST nên dự kiến qua, chưa thử vì nó chạy lại một lần chạy thật).
 - **Điều kiện chuyển:** lần đầu phiên tiếp tục gọi lệnh này thì nhận 403 từ proxy.
-- **Cách làm thay:** đẩy một commit rỗng lên nhánh task (cách đã dùng cho PR không có lần chạy). Với `main-guard` của commit merge, không có cách đẩy lên nhánh chính: phiên kết thúc, báo cáo ghi lần chạy cần người chạy lại. Test ở mục 4 không đổi.
+- **Cách làm thay:** với `pr-check`, đẩy một commit rỗng lên nhánh task (`git commit --allow-empty`) để GitHub tạo lần chạy mới. Với `main-guard` của commit merge, không có cách đẩy lên nhánh chính: phiên kết thúc, báo cáo ghi lần chạy cần người chạy lại. Test ở mục 4 không đổi.
 
 ## 4. Kiểm thử
 
@@ -126,7 +127,9 @@ Test trong `scripts/tests/run.sh`, viết trước code, dùng hàm `wait_run` v
 | Job đã chạy bước nào vẫn là đỏ | Test script | `wait-run: a failed job that ran steps stays red`: `steps: [{"name": "Set up job"}]`; `1 ĐỎ` |
 | Lẫn lộn vẫn là đỏ | Test script | `wait-run: one unstarted and one failed job that ran stays red`; `1 ĐỎ` |
 | Theo workflow trên nhánh chính | Test script | `wait-run: an unstarted main-guard run is an infrastructure failure`: `--workflow main-guard.yml --since ...`; `4 HẠ` |
-| Hết giờ không có lần chạy | Test script | `wait-run: no run at all mentions the Actions limit`: fixture không có lần chạy, `--timeout 1`; mã 2 và dòng có `hạn mức Actions` |
+| PR xung đột | Test script | `wait-run: a conflicting PR without runs stops at once`: route `pulls/7` có `mergeable_state` `dirty`, không có lần chạy; kết quả `5 XUNG`, với `WAIT_RUN_TIMEOUT_SECONDS` lớn để test không qua nhờ hết giờ |
+| Chưa tính xong vẫn chờ | Test script | `wait-run: an unknown mergeable state keeps waiting`: `mergeable_state` `unknown`, không có lần chạy, `--timeout 1`; `2 CHƯA` |
+| Có lần chạy thì không xét xung đột | Test script | `wait-run: a run that exists is waited for even if the PR became dirty`: `dirty` nhưng có lần chạy xanh; `0 XANH` |
 | Đối chứng (L-035) | Test script | Test `HẠ TẦNG` đầu tiên và test "đã chạy bước nào" dùng cùng fixture, chỉ khác `steps`: test đầu đỏ trên code cũ vì ra `1 ĐỎ`, test sau xanh trên cả code cũ và mới |
 | Không đổi hành vi cũ | Test script | Mọi test `wait-run` hiện có (job không có khóa `steps`) qua mà không sửa |
 | Phiên dùng mã 4 | Kiểm tra thủ công | Người duyệt chéo đọc diff `docs/auto-run.md`. Lần hết hạn mức tới (nếu có), báo cáo phiên ghi dòng `HẠ TẦNG` và lần tiếp tục |
@@ -140,6 +143,7 @@ Test trong `scripts/tests/run.sh`, viết trước code, dùng hàm `wait_run` v
   - `gh api .../check-runs/120290639115/annotations` (id của job ở trên): chú thích `failure` "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings", cùng một chú thích `notice` về nhãn `ubuntu-latest`.
   - `gh api .../actions/runs/39916343646/jobs` (không chỉ lần thử): trả lần thử mới nhất (lần 2, xanh, 15 bước). Trong lúc hết hạn mức thì lần thử mới nhất chính là lần bị bỏ, nên đường dẫn script đang dùng cho đúng dữ liệu.
   - `gh api .../actions/runs/39916715279/attempts/1/jobs` (`pr-check` của PR #50): `changes` `failure` 0 bước; `build-and-test`, `ui-test` `skipped` 0 bước. Job `skipped` không bị tính vì chỉ xét job `failure`.
+  - PR #56 (commit 347472b): `actions/runs?head_sha=347472b...` trả 0 lần chạy; `pulls/56` có `mergeable_state` `dirty`. `wait-run.sh --pr 56` chờ đủ 40 phút rồi trả mã 2.
 - **Chưa thử:** `rerun-failed-jobs` từ môi trường cloud (mục 3.4). Trên máy dev, `gh run rerun 39916343646` đã chạy lại được lần chạy bị bỏ (cùng API).
 - **Lệnh:** `scripts/tests/run.sh` sau khi viết test.
 - **Kết quả:** dữ liệu cần cho cả hai điều kiện (0 bước, chú thích) đọc được bằng REST, đúng dạng mà mục 3.1 dùng.
@@ -174,7 +178,7 @@ Test trong `scripts/tests/run.sh`, viết trước code, dùng hàm `wait_run` v
 - Trả lời:
 2. **Chỉ báo `HẠ TẦNG` khi mọi job đỏ đều chưa chạy bước nào?** Đề xuất của AI: có. Lẫn một job đã chạy mà đỏ thì có thể là lỗi của code; báo `ĐỎ` để phiên đọc log như thường.
 - Trả lời:
-3. **PR không có lần chạy nào: đẩy commit rỗng?** Đề xuất của AI: có, trên nhánh task của phiên. Cách khác là đóng rồi mở lại PR qua REST (cách đã dùng với PR #51 ngày 2026-10-23), nhưng đóng PR dễ bị hiểu nhầm là bỏ task.
+3. **PR xung đột: mã thoát riêng (5) hay dùng chung mã 1?** Đề xuất của AI: mã riêng. Mã 1 nghĩa là CI đỏ, phiên sẽ đọc log và sửa code (bước 8); với PR xung đột, việc đúng là gộp nhánh chính (bước 9), không tính vào 3 lần sửa lỗi.
 - Trả lời:
 
 ## 9. Quyết định duyệt

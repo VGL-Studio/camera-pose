@@ -457,3 +457,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** cách (a) của L-016: PR thường không commit `docs/STATUS.md`; một workflow sinh lại trang trên nhánh chính sau mỗi lần merge, `status.py --check` chỉ chạy trên nhánh chính. Cần ADR, vì workflow đẩy commit lên nhánh chính ngoài `merge-if-green.sh`. Cách nhẹ hơn: `merge-if-green.sh --update` gặp 422 mà xung đột chỉ ở `docs/STATUS.md` thì tự gộp, sinh lại trang và đẩy lên nhánh của PR (không đụng nhánh chính), cần plan rủi ro cao.
 - **Áp dụng:** plan T-034 (`draft`, rủi ro cao): `docs/STATUS.md` không còn trong git; workflow `status-page.yml` sinh trang sau mỗi lần merge và đẩy lên nhánh `status`.
 - **Kiểm chứng:**
+
+### L-048: PR xung đột không có lần chạy CI nào, `wait-run.sh` chờ trọn 40 phút
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #56.
+- **Chuyện gì:** GitHub không chạy workflow `pull_request` cho PR đang xung đột với nhánh chính. PR #56 xung đột ở `docs/STATUS.md` ngay khi mở (PR #55 vừa merge), không có lần chạy `pr-check` nào; `wait-run.sh --pr 56` chờ đủ 40 phút rồi báo "chưa thấy lần chạy nào". PR #51 cũng không có lần chạy vì cùng lý do; lúc đó tưởng là do hạn mức Actions (L-046) và đã đóng rồi mở lại PR. Một agent con của T-031 cũng gặp 40 phút chờ và tưởng là lỗi của `wait-run.sh`.
+- **Bằng chứng:** `pulls/56` có `mergeable_state: dirty`, `actions/runs?head_sha=347472b` trả 0 lần chạy; PR #51 trước khi gộp nhánh chính.
+- **Đề xuất sửa:** `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay với mã riêng; phiên gộp nhánh chính rồi đẩy. Gốc của phần lớn xung đột là `docs/STATUS.md` (L-047).
+- **Áp dụng:** plan T-033 (`draft`, rủi ro cao), cùng plan với L-046.
+- **Kiểm chứng:**

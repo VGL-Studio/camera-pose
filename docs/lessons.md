@@ -442,11 +442,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-046: Hết hạn mức GitHub Actions làm mọi job không chạy, trông như CI đỏ
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, T-029 đến T-032.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, T-029 đến T-032.
 - **Chuyện gì:** sau khi merge PR #49, main-guard đỏ; CI của PR #50 cũng đỏ. Job không chạy bước nào, chú thích của lần chạy ghi "The job was not started because recent account payments have failed or your spending limit needs to be increased". `wait-run.sh` chỉ báo `ĐỎ`, job `guard`, không nói lý do; phải đọc chú thích của check run mới biết. Phiên tự chạy gặp chuyện này sẽ thử sửa code hay chạy lại vô ích, rồi dừng. PR #51 thậm chí không có lần chạy nào, phải đóng rồi mở lại PR sau khi người nâng hạn mức.
 - **Bằng chứng:** main-guard 39916343646 lần 1, pr-check 39916715279 lần 1 và 2 (0 bước); chạy lại sau khi nâng hạn mức thì xanh.
 - **Đề xuất sửa:** `wait-run.sh` thấy job đỏ mà 0 bước thì đọc chú thích của check run và in `HẠ TẦNG: GitHub không cấp máy (<chú thích>)` với mã thoát riêng; `auto-run.md` ghi: gặp mã này thì không sửa code, ghi vào báo cáo, chờ người; `preflight.yml` không phát hiện được (chính nó cũng không chạy), nên `start-run.yml` không bắt đầu phiên khi lần chạy gần nhất của `preflight.yml` không xanh.
-- **Áp dụng:** plan T-033 (`draft`, rủi ro cao): `wait-run.sh` báo `HẠ TẦNG` với mã 4; `auto-run.md` kết thúc phiên mà giữ `running` để `resume-run.yml` tiếp tục khi GitHub chạy lại, rồi chạy lại các lần chạy bị bỏ.
+- **Áp dụng:** plan T-033: `wait-run.sh` báo `HẠ TẦNG` (mã 4) khi mọi job đỏ đều không chạy bước nào, kèm chú thích của GitHub; `auto-run.md`: kết thúc phiên mà giữ `running`, phiên tiếp tục chạy lại các lần chạy bị bỏ (`rerun-failed-jobs`).
 - **Kiểm chứng:**
 
 ### L-047: `merge-if-green.sh --update` thất bại ở mọi PR vì `docs/STATUS.md`
@@ -460,9 +460,9 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-048: PR xung đột không có lần chạy CI nào, `wait-run.sh` chờ trọn 40 phút
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #56.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #51, #56.
 - **Chuyện gì:** GitHub không chạy workflow `pull_request` cho PR đang xung đột với nhánh chính. PR #56 xung đột ở `docs/STATUS.md` ngay khi mở (PR #55 vừa merge), không có lần chạy `pr-check` nào; `wait-run.sh --pr 56` chờ đủ 40 phút rồi báo "chưa thấy lần chạy nào". PR #51 cũng không có lần chạy vì cùng lý do; lúc đó tưởng là do hạn mức Actions (L-046) và đã đóng rồi mở lại PR. Một agent con của T-031 cũng gặp 40 phút chờ và tưởng là lỗi của `wait-run.sh`.
 - **Bằng chứng:** `pulls/56` có `mergeable_state: dirty`, `actions/runs?head_sha=347472b` trả 0 lần chạy; PR #51 trước khi gộp nhánh chính.
 - **Đề xuất sửa:** `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay với mã riêng; phiên gộp nhánh chính rồi đẩy. Gốc của phần lớn xung đột là `docs/STATUS.md` (L-047).
-- **Áp dụng:** plan T-033 (`draft`, rủi ro cao), cùng plan với L-046.
+- **Áp dụng:** plan T-033: `wait-run.sh --pr` chưa thấy lần chạy mà PR `dirty` thì báo `XUNG ĐỘT` ngay (mã 5); `auto-run.md` bước 8: gộp nhánh chính rồi chờ lại. Gốc chính của xung đột (`docs/STATUS.md`) đã bỏ ở plan T-034.
 - **Kiểm chứng:**

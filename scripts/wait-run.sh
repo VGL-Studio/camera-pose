@@ -12,6 +12,8 @@
 #             1 the run finished red, or was cancelled (the failed jobs are named)
 #             2 still not finished when the time ran out: call again
 #             3 wrong arguments or the PR cannot be read
+#             4 GitHub never started the failed jobs (no runner: spending limit, billing): not a code failure (L-046)
+#             5 (--pr) no run, and the PR conflicts with main: GitHub runs no pull_request workflow for it (L-048)
 # Prints one line at the end. Uses only the REST API through `gh api` (gh pr is blocked in the cloud environment).
 # WAIT_RUN_POLL_SECONDS (default 30) and WAIT_RUN_TIMEOUT_SECONDS override the waits (tests).
 # Messages are in Vietnamese for the team; comments are in English.
@@ -69,6 +71,13 @@ while :; do
   if [ -n "$run" ] && [ "$(jq -r .status <<< "$run")" = "completed" ]; then
     break
   fi
+  # No run yet for a PR that conflicts with main: none will come until the conflict is solved (L-048).
+  # "unknown" means GitHub has not computed it yet: keep waiting.
+  if [ -z "$run" ] && [ -n "$pr" ] &&
+    [ "$(gh api "repos/$repo/pulls/$pr" --jq '.mergeable_state // empty' 2> /dev/null || true)" = "dirty" ]; then
+    echo "XUNG ĐỘT: PR #$pr xung đột với nhánh chính, GitHub không chạy pr-check cho PR này. Gộp nhánh chính vào nhánh (git merge origin/main), sửa xung đột, đẩy, rồi gọi lại (L-048)."
+    exit 5
+  fi
   if [ "$(date +%s)" -ge "$deadline" ]; then
     if [ -n "$run" ]; then
       echo "CHƯA XONG sau $timeout_minutes phút: $what, lần chạy $(jq -r .id <<< "$run") ($(jq -r .status <<< "$run")). Gọi lại script để chờ tiếp."
@@ -87,8 +96,21 @@ if [ "$conclusion" = "success" ]; then
   echo "XANH: $what, lần chạy $id. $url"
   exit 0
 fi
-failed="$(gh api "repos/$repo/actions/runs/$id/jobs?per_page=50" \
-  --jq '[.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out") | .name] | join(", ")' \
-  2> /dev/null || true)"
+jobs="$(gh api "repos/$repo/actions/runs/$id/jobs?per_page=50" 2> /dev/null || true)"
+[ -n "$jobs" ] || jobs='{}'
+failed="$(jq -r '[.jobs[]? | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out") | .name] | join(", ")' \
+  <<< "$jobs" 2> /dev/null || true)"
+# A job GitHub never started (no runner: spending limit, billing) has no steps. Only when every failed job is such a
+# job is the run "infrastructure": one failed job that ran may be the code (L-046). A job without the "steps" key
+# (unknown) does not count as unstarted.
+unstarted="$(jq -r '[.jobs[]? | select(.conclusion == "failure")] as $f
+  | if ($f | length) > 0 and ($f | all(.steps? == [])) then ($f | map(.id | tostring) | join(" ")) else "" end' \
+  <<< "$jobs" 2> /dev/null || true)"
+if [ -n "$unstarted" ]; then
+  reason="$(gh api "repos/$repo/check-runs/${unstarted%% *}/annotations" \
+    --jq '[.[] | select(.annotation_level == "failure") | .message] | first // empty' 2> /dev/null || true)"
+  echo "HẠ TẦNG: GitHub không chạy job ${failed:-không rõ} của $what, lần chạy $id: ${reason:-GitHub không ghi lý do}. Không phải lỗi của code: không sửa code, không revert; người kiểm hạn mức GitHub Actions (Billing & plans), phiên làm theo docs/auto-run.md, mục 4 (L-046). $url"
+  exit 4
+fi
 echo "ĐỎ ($conclusion): $what, lần chạy $id; job: ${failed:-không rõ}. $url"
 exit 1

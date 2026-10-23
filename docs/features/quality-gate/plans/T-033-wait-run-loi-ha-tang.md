@@ -190,3 +190,11 @@ Test trong `scripts/tests/run.sh`, viết trước code, dùng hàm `wait_run` v
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, phiên có người theo dõi (Tuấn)
+
+- **Bước 3, test viết trước:** 10 test mới trong `scripts/tests/run.sh`. Trên code cũ 6 test đỏ, đúng lý do (`1 ĐỎ` thay vì `4 HẠ`, không có dòng chú thích, `2 CHƯA` sau 30 giây thay vì `5 XUNG`). Các test đối chứng (job đã chạy bước nào, lẫn lộn, `unknown` vẫn chờ, có lần chạy dù PR `dirty`) xanh trên cả code cũ và mới.
+- **Bước 4, code:** `scripts/wait-run.sh` theo mục 3.1, cộng phần `XUNG ĐỘT` (L-048); `docs/auto-run.md` mục Chờ workflow, bước 9, bảng kết thúc phiên, Tiếp tục phiên (bước mới 3, các bước sau đánh số lại; không nơi nào trỏ tới số bước cũ).
+- **Bước 5:** `scripts/tests/run.sh` qua 319 test. `scripts/check.sh` để CI của PR chạy.
+- **Sự cố khi làm:** một lệnh chờ chạy nền đang chạy `scripts/wait-run.sh` của cây làm việc trong lúc file được sửa; bash đọc script dần nên báo lỗi cú pháp và PR #57 không được merge tự động. Merge lại bằng tay ngay sau đó. Chạy lệnh chờ từ một bản chép của script khi đang sửa chính script đó.
+- **Còn lại:** kiểm tay ở lần GitHub không chạy job tới (nếu có): báo cáo phiên ghi dòng `HẠ TẦNG` và lần tiếp tục.

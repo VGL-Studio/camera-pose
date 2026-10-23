@@ -48,7 +48,7 @@ Thêm hai quy tắc:
 Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không tự xoay xở, khi gặp một trong các tình huống sau:
 
 1. Cần sửa file không nằm trong danh sách file của plan.
-2. Cần thêm thư viện, quyền truy cập hoặc bất kỳ điểm chặn nào ở mục 1 mà plan chưa nêu.
+2. Cần thêm thư viện, quyền truy cập hoặc bất kỳ điểm chặn nào ở mục 1 mà plan chưa nêu. Để ít gặp điều kiện này, quyền và thư viện được quyết lúc lập plan (`docs/CLAUDE.md`, mục Khi viết plan; mục 3.3 của mẫu plan; `scripts/plan-check.py`, quy tắc 8).
 3. Phát hiện spec, thiết kế hoặc ADR mâu thuẫn với plan hoặc với nhau.
 4. Test vẫn thất bại sau 3 lần sửa liên tiếp cho cùng một lỗi.
 5. Muốn làm cho test qua bằng cách sửa hoặc xóa test của người khác, hạ tiêu chí kiểm tra, hoặc bỏ qua quy tắc lint.
@@ -56,6 +56,8 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 7. Bất kỳ thao tác nào chạm tới cấu hình production: mã quảng cáo thật, project Firebase production, bucket R2 production, khóa ký ứng dụng.
 8. Cần thay đổi điều mà test viết trước đang kiểm tra để code qua được.
 9. Phiên rà soát độc lập và phiên viết code hiểu spec khác nhau.
+
+**Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2, giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
 
 Khi dừng, AI làm ba việc:
 
@@ -73,3 +75,5 @@ Khi bắt đầu làm việc lại, nhóm trả lời câu hỏi "vì sao plan c
 | 2026-10-14 | Phiên bản đầu tiên | Thiết lập quy trình |
 | 2026-10-15 | Mục 4: bài học chung ghi vào sổ bài học, retro quyết định sửa gì | Có vòng cải tiến khép kín sau mỗi phiên |
 | 2026-10-17 | Mục 3: ngoại lệ duyệt chéo khi nhóm chỉ có một dev | Retro RUN-20261016-02: nhóm hiện có một dev, plan rủi ro cao không có người duyệt chéo khác |
+| 2026-10-22 | Mục 4, điều kiện 2: quyền và thư viện quyết lúc lập plan | Tránh dừng task vì quyền hay thư viện chỉ lộ ra trong phiên (L-007, plan T-016 phiên bản 1; L-041) |
+| 2026-10-22 | Mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng | Ba lần dừng của T-007, T-011 đều vì kỹ thuật của plan không chạy, trong khi cách thay đã rõ từ lúc viết plan (L-039) |

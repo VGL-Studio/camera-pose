@@ -29,7 +29,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** plan T-007 dựa vào `captureToImage` trong Robolectric `NATIVE` để đo màu điểm ảnh; kỹ thuật này hết thời gian chờ, task dừng ở bước 3.
 - **Bằng chứng:** `ComposeTimeoutException` tại `WindowCapture.forceRedraw`; nhật ký plan T-007.
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: kỹ thuật hay thư viện lần đầu dùng trong dự án phải được chạy thử bằng một test tạm không commit trước khi duyệt, kết quả ghi vào mục 4 (mở rộng L-029).
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#77.
+- **Áp dụng:** app: PR #39 (mẫu plan mục 4.1, `plan-check.py` quy tắc 7). dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-041). Trước đó: đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#77.
 - **Kiểm chứng:**
 
 ### L-002: Bí mật Firebase staging là file giả, cuối phiên không phát được
@@ -92,7 +92,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** (1) Phiên này mở bằng `claude --cloud`, không qua routine. `resume-run.yml` kích hoạt lại routine khi phiên dừng vì hết hạn mức, nên không nối lại được phiên này; tiến trình của phiên còn bị khởi động lại một lần lúc 04:10 UTC giữa lúc chạy `check.sh` (lệnh bị dừng, mã 137), phiên tự chạy lại. (2) Nhánh báo cáo dùng một worktree riêng (`../report`) để không đổi nhánh dưới bản build của task; `scripts/token-usage.py` chạy trong worktree đó không thấy transcript (lọc theo thư mục gốc), phải đặt `TOKEN_USAGE_ROOT` về checkout chính.
 - **Bằng chứng:** "Không đo được: không có transcript nào của repo này" khi chạy trong `../report`; chạy lại với `TOKEN_USAGE_ROOT=/home/user/camera-pose` ra bảng đầy đủ.
 - **Đề xuất sửa:** `docs/auto-run.md`, mục 1 và mục 4: ghi cách tiếp tục khi phiên mở bằng `claude --cloud` (người mở lại phiên với cùng danh sách chạy, phiên đọc nhánh báo cáo như phiên tiếp tục); khuyến nghị worktree riêng cho nhánh báo cáo và ghi cách chạy `token-usage.py` từ đó. `scripts/token-usage.py` có thể tìm transcript theo tên repo thay vì đường dẫn tuyệt đối.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #39 (`auto-run.md` mục 1, ưu tiên routine). dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-043). Trước đó: đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
 - **Kiểm chứng:**
 
 ### L-009: Hộp hỏi quyền camera còn mở làm hỏng lần đo khởi động nguội của `device-session`
@@ -109,7 +109,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** ba lần dừng cùng một gốc (L-001, L-003, L-004), và lần thứ tư ở T-008 (L-006): kỹ thuật lần đầu dùng chưa được chạy thử, hoặc chạy thử bằng lệnh khác lệnh mà phiên dùng. Plan T-007 phiên bản 2 được kiểm chứng bằng `./gradlew :core:designsystem:testDebugUnitTest`, nhưng phiên dừng ở `scripts/check.sh`.
 - **Bằng chứng:** nhật ký plan T-007 (phiên bản 1, 2), T-011 (phiên bản 1); phiên bản 3 của T-007 và 2 của T-011 được chạy thử bằng `scripts/check.sh` trên nhánh của task trước khi duyệt và không dừng nữa (T-007 merge ở PR #19, T-011 ở PR #23).
 - **Đề xuất sửa:** `docs/templates/plan.md` thêm mục "Chạy thử" (test tạm, lệnh đã chạy, kết quả) bắt buộc khi tiêu chí E từ 2 trở lên; lệnh phải là `scripts/check.sh` trên nhánh có code liên quan. `scripts/plan-check.py` báo lỗi khi E từ 2 trở lên mà thiếu mục này. Ghi rõ: Robolectric không mô phỏng việc cửa sổ chồng nhau, phần trợ năng và chạm qua cửa sổ phải có bước kiểm tra thủ công; chạy thử đo cả hình ảnh thật, không chỉ cây ngữ nghĩa (báo cáo RUN-20261022-01, Kiểm chứng bài học cũ).
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#77, VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #39 (mẫu plan mục 4.1, `plan-check.py` quy tắc 7). dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-041). Trước đó: đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#77, VGL-Studio/app-project-template#78.
 - **Kiểm chứng:**
 
 ### L-011: Tài nguyên R2 bắt buộc của app chưa có, PR có code đầu tiên đỏ ở emulator
@@ -154,7 +154,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** danh sách chỉ có T-007 và T-011 (phụ thuộc T-007); T-007 dừng, phiên không merge được gì mà vẫn tốn phần cố định.
 - **Bằng chứng:** báo cáo RUN-20261021-02.
 - **Đề xuất sửa:** khi lập danh sách chạy, nếu chỉ có một chuỗi thì viết thêm plan độc lập trước khi chạy; một lệnh kiểm danh sách chạy cảnh báo trường hợp này.
-- **Áp dụng:** đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
+- **Áp dụng:** app: PR #39 (`run-check.py` cảnh báo một chuỗi phụ thuộc). dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-044). Trước đó: đề xuất về dự án mẫu (`docs/ops/from-app.md`): issue VGL-Studio/app-project-template#78.
 - **Kiểm chứng:**
 
 ### L-016: `docs/STATUS.md` xung đột ở mọi PR
@@ -271,7 +271,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** T-026 merge lúc 16:50 UTC; phiên kiểm `main-broken` ngay sau đó (0 issue) rồi bắt đầu T-012. `main-guard` của commit merge e9bf4bb chạy xong lúc 16:58 và mở issue #35. Phiên chỉ thấy issue khi kiểm lại lúc 17:35, sau khi T-012 đã làm xong bước 7 (khoảng 45 phút và 22M token cho một task không merge được).
 - **Bằng chứng:** `main-guard` lần chạy 39817360705 (16:50 tới 16:58); issue #35 tạo 16:58:17; RUN-20261023-01, Dòng thời gian.
 - **Đề xuất sửa:** `docs/auto-run.md` bước 9: sau khi merge, chờ `main-guard` của commit merge bằng `scripts/wait-run.sh --workflow main-guard.yml --since <giờ merge>` ở chế độ nền, trong lúc làm bước 10 và bước 1, 2 của task sau; kiểm lại `main-broken` trước khi đẩy commit đầu tiên của task sau. Hoặc `merge-if-green.sh` in nhắc lệnh này.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #39 (`auto-run.md` bước 9, chờ `main-guard`). dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-042).
 - **Kiểm chứng:**
 
 ### L-029: Screenshot test của trạng thái có vòng chờ đỏ trên `main-guard` dù xanh ở PR và cục bộ
@@ -280,8 +280,8 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `CameraScreenScreenshotTest > starting_dark` (trạng thái `Starting`, có vòng chờ chạy mãi) thất bại trên `main-guard` ở e9bf4bb với `AssertionFailedWithCauseError` tại dòng `captureRoboImage`. Cùng code xanh ở CI của PR #34 (lần chạy 39815764346), ở `build-and-test` của PR #36 (dựng trên e9bf4bb, lần chạy 39821691045) và ở 3 lần `scripts/check.sh` cục bộ. T-026 không đổi giao diện camera. Nhiều khả năng là test chập chờn vì hiệu ứng vô hạn; chưa xác nhận.
 - **Bằng chứng:** log `main-guard` lần chạy 39817360705, dòng "CameraScreenScreenshotTest > starting_dark FAILED"; nhánh `revert/e9bf4bb`.
 - **Đề xuất sửa:** screenshot test của trạng thái có hiệu ứng vô hạn dừng đồng hồ của Compose (`mainClock.autoAdvance = false`) hoặc dùng bản tĩnh của vòng chờ; `main-guard` chạy lại một lần test thất bại trước khi mở `main-broken` nếu lỗi là hết giờ chờ của Compose.
-- **Áp dụng:**
-- **Kiểm chứng:**
+- **Áp dụng:** app: RUN-20261023-02, T-014 (`CameraScreenStartingScreenshotTest`) và T-016 (`ReviewScreenScreenshotTest.saving_dark`) chụp vòng chờ với đồng hồ Compose dừng; PR #39 (`CLAUDE.md`, bước 10: quy tắc chung); plan T-028, PR #40 (chạy lại test hỏng trên `main-guard`). dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-047).
+- **Kiểm chứng:** RUN-20261023-02: nguyên nhân xác nhận bằng chạy thử ngày 2026-10-22 (vòng chờ giữ màn hình không rảnh, Robolectric vẽ tới khi máy test hết bộ nhớ, ảnh đổi theo cỡ bộ nhớ). Sau khi dừng đồng hồ, `starting_dark` chạy dưới 1 giây; `main-guard` xanh cả 5 lần merge của phiên (lần chạy 39872832021 tới 39893107034).
 
 ### L-030: Điều hướng sau một hàm `suspend` đọc DataStore chạy ngoài luồng chính dưới Compose test
 
@@ -335,4 +335,71 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** nhật ký plan T-014, T-021, T-016, T-025 (RUN-20261023-02), mục Test viết trước.
 - **Đề xuất sửa:** `docs/auto-run.md` bước 3: nêu "thêm bước đối chứng" làm cách mặc định khi một test không phải test chặn qua ngay; mẫu plan nhắc người viết plan rằng test kiểm giá trị mặc định thường qua trên khung và nên có sẵn bước đối chứng.
 - **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-036: Chạy lại `main-guard` trên đúng commit bị đổ lỗi, xanh, nhưng issue `main-broken` không tự đóng
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** issue #35, sau RUN-20261023-01.
+- **Chuyện gì:** dev chạy lại `main-guard` (lần chạy 39817360705, lần 2) trên e9bf4bb, commit bị đổ lỗi; lần chạy xanh. Bước đóng issue chỉ đóng khi `compare/<commit bị đổ lỗi>...<commit xanh>` trả `ahead`; cùng một commit thì trả `identical`, nên issue #35 vẫn mở và dev phải tự đóng trước khi phiên sau chạy được.
+- **Bằng chứng:** `.github/workflows/main-guard.yml`, bước "Đóng issue main-broken khi nhánh chính xanh trở lại"; lần chạy 39817360705, lần 1 đỏ 16:58, lần 2 xanh 22:53; issue #35 vẫn mở sau đó.
+- **Đề xuất sửa:** `main-guard.yml` đóng issue khi `status` là `ahead` hoặc `identical`. ADR-0010, mục 2, câu cuối thêm "hoặc chính commit đó được chạy lại và xanh".
+- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-046).
+- **Kiểm chứng:**
+
+### L-037: Một test chập chờn trên `main-guard` kết thúc cả phiên
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, issue #35.
+- **Chuyện gì:** `CameraScreenScreenshotTest > starting_dark` thất bại một lần trên `main-guard` (L-029), xanh ở PR, ở cục bộ và khi chạy lại. Một lần đỏ đó mở `main-broken`, phiên kết thúc khi mới xong 2 trên 7 task; 4 task chưa bắt đầu và T-012 dở dang phải chờ người tới sáng.
+- **Bằng chứng:** báo cáo RUN-20261023-01, mục Tóm tắt; lần chạy 39817360705.
+- **Đề xuất sửa:** `main-guard.yml`: khi bước kiểm tra đỏ chỉ vì test thất bại, chạy lại riêng các test đó một lần trên cùng commit trước khi gọi `find-breaking-commit.sh`. Lần chạy lại xanh thì không mở `main-broken`, mà mở hoặc bình luận vào issue `flaky` ghi tên test, để sửa test trong một ticket thường. Lần chạy lại vẫn đỏ thì làm như hiện nay. ADR-0010, mục 2: thêm quy tắc này. Phiên tự chạy đọc issue `flaky` vào mục Cần người kiểm tra.
+- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-047).
+- **Kiểm chứng:**
+
+### L-038: Phiên không tự đưa nhánh chính về trạng thái xanh được, kể cả bằng một bản revert đúng
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-01, issue #35.
+- **Chuyện gì:** khi `main-broken` mở, `merge-if-green.sh` từ chối mọi PR, kể cả PR từ nhánh `revert/<commit>` mà `main-guard` đã dựng sẵn; chỉ người đóng issue mới mở lại được. Lý do của ADR-0010 là đúng: tên nhánh không phải bằng chứng. Hệ quả là một lần merge hỏng thật vào ban đêm làm mọi task còn lại chờ tới sáng.
+- **Bằng chứng:** ADR-0010, mục 2; `scripts/merge-if-green.sh`, đoạn kiểm tra `main-broken`.
+- **Đề xuất sửa:** cho `merge-if-green.sh` một ngoại lệ kiểm chứng bằng nội dung thay vì tên: khi `main-broken` mở, chỉ merge PR có đúng một commit, mà cây file của commit đó trùng khớp với kết quả `git revert <commit bị đổ lỗi>` do chính script dựng trên nhánh chính mới nhất, và CI của PR xanh. Phiên tự chạy được merge bản revert của commit do chính phiên merge, chuyển task đó sang `stopped`, rồi làm tiếp các task không phụ thuộc nó. Issue vẫn chỉ tự đóng bởi `main-guard`, AI vẫn không đóng hay sửa issue. Cần ADR thay một phần ADR-0010, plan rủi ro cao có duyệt chéo.
+- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-048).
+- **Kiểm chứng:**
+
+### L-039: Plan ghi sẵn phương án dự phòng đã duyệt, để phiên chuyển sang thay vì dừng task
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261021-01, -02, -03 (T-007 hai lần, T-011), RUN-20261023-01.
+- **Chuyện gì:** cả ba lần dừng vì plan đều cùng một dạng: kỹ thuật của plan không chạy (`captureToImage` hết giờ, quy tắc `captureRoboImage(` của `check.sh`, thuộc tính trợ năng không lan xuống node con), và cách thay đã rõ ngay khi gặp lỗi. Phiên phải dừng vì cách thay chưa được duyệt; mỗi lần mất một phiên và một vòng duyệt.
+- **Bằng chứng:** nhật ký plan T-007 (phiên bản 1, 2), T-011 (phiên bản 1); L-001, L-003, L-004, L-006.
+- **Đề xuất sửa:** mẫu plan thêm mục 3.4 Phương án dự phòng (điều kiện chuyển, cách làm thay, file ghi "(dự phòng)" trong mục 3.2) và mục 4.1 Chạy thử; `risk-scoring.md` mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng, chỉ một lần, không vượt các điều kiện dừng khác; `docs/CLAUDE.md` mục Khi viết plan; `plan-check.py` báo lỗi khi plan `draft` có tiêu chí E từ 2 mà thiếu chạy thử bằng `scripts/check.sh`.
+- **Áp dụng:** app: PR #39. dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-040).
+- **Kiểm chứng:**
+
+### L-040: Mâu thuẫn và test yếu chỉ được tìm thấy khi phiên đã chạy, hoặc nhờ người tình cờ thấy
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** chuẩn bị RUN-20261023-01, RUN-20261023-02.
+- **Chuyện gì:** khi chuẩn bị RUN-20261023-01, các lỗi sau chỉ lộ ra nhờ rà soát bằng tay, không có bước nào bắt buộc tìm:
+  - plan T-016 phiên bản 1 cần quyền lưu tệp mà spec camera không có;
+  - câu trả lời câu 5 của plan T-012 trái với quy tắc ghi `camera_permission_result` của T-026;
+  - plan T-016 đặt dải tư thế trong `CameraViewModel`, trong khi T-014 tạo `PoseViewModel`.
+  
+  Trong phiên còn hai lỗi khác: T-012 để `AppNavHost` trong ngoại lệ viết test trước, nên lỗi luồng chỉ lộ ra ở `ui-test` (L-030); test `starting_dark` chụp một hiệu ứng chạy mãi (L-029). `run-check.py`, chạy thử trên RUN-20261023-02, còn thấy: spec camera và spec onboarding vẫn có dòng lịch sử "Chờ xác nhận lại"; năm plan có ngoại lệ viết test trước ở vỏ app; nhiều cặp plan cùng sửa `AppNavHost.kt` mà không phụ thuộc nhau.
+- **Bằng chứng:** plan T-016 phiên bản 1 và 2, plan T-012 phiên bản 2 (mục 9), lần chạy 39821691045 (`ui-test` của PR #36), issue #35; kết quả `scripts/run-check.py docs/runs/RUN-20261023-02.md`.
+- **Đề xuất sửa:** thêm `scripts/run-check.py`, kiểm cả danh sách chạy: spec đã chốt và trả lời hết, phụ thuộc đúng thứ tự, kịch bản có test, plan cùng sửa một file, ngoại lệ ở vỏ app. Thêm `docs/ops/pre-run-review.md`: một lần rà soát độc lập với ngữ cảnh mới, tìm mâu thuẫn, test chưa đủ tốt và điều kiện để phiên chạy được, kết quả ghi vào mục Kiểm tra trước khi duyệt của danh sách chạy. Dev chỉ duyệt danh sách khi không còn điểm chặn. Phiên chạy lại `run-check.py` ở đầu phiên.
+- **Áp dụng:** app: PR #39. dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-044).
+- **Kiểm chứng:**
+
+### L-041: Quyền và thư viện cần thêm chỉ lộ ra khi viết code, phiên phải dừng hoặc đi vòng
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261022-01 (T-013), chuẩn bị RUN-20261023-01 (T-016).
+- **Chuyện gì:**
+  - **T-013:** plan không biết `CameraControl.setZoomRatio` trả `ListenableFuture` mà Guava không có trên classpath biên dịch. Thêm thư viện là điều kiện dừng, nên phiên gọi hàm qua reflection, kèm rủi ro R8 xóa hàm ở bản minify (L-007).
+  - **T-016 phiên bản 1:** plan cần `WRITE_EXTERNAL_STORAGE` cho Android 9 trở xuống, trong khi spec không có quyền này. Lỗi chỉ được thấy khi người rà soát bằng tay trước khi duyệt; nếu không, phiên sẽ dừng task ở điều kiện 2.
+  - Chưa có bước nào bắt plan tra quyền theo từng phiên bản Android, thư viện trên classpath biên dịch, hay quyền mà thư viện kéo vào manifest gộp.
+- **Bằng chứng:** L-007; plan T-016 phiên bản 1 và 2 (mục 1, mục 8 câu 1); spec `camera`, dòng lịch sử ngày 2026-10-22.
+- **Đề xuất sửa:**
+  - Mẫu plan mục 3.3 có hai dòng bắt buộc: Quyền truy cập (thêm, kèm phần spec cho phép; không thêm) và Thư viện và SDK.
+  - `docs/CLAUDE.md` mục Khi viết plan: cách tra quyền theo phiên bản, thư viện trên classpath biên dịch, và quyền trong manifest gộp.
+  - Mẫu spec mục 6 có Quyền của app và dịch vụ bên ngoài, để người phụ trách sản phẩm quyết từ lúc viết spec.
+  - `plan-check.py` quy tắc 8: plan `draft` nhắc quyền mà manifest chưa có nhưng không quyết, thêm quyền mà không ghi spec hay thiếu `permission` và mức cao, hoặc dùng thư viện chưa có trong catalog mà không sửa `gradle/libs.versions.toml`, đều là lỗi.
+  - `pre-run-review.md`: thiếu một trong các điểm trên là mức chặn.
+- **Áp dụng:** app: PR #39. dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-045).
 - **Kiểm chứng:**

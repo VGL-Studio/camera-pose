@@ -307,8 +307,8 @@ echo '{}' > "$repo/docs/data/values.json"
 echo 'open("docs/data/values.json")' > "$repo/scripts/reader.py"
 touch "$repo/feature/demo/A.kt" "$repo/core/x/B.kt" "$repo/docs/features/demo/design/screens/DemoScreen_main_light.png"
 write_plan() { # <file> <risk> <status> <rows> [extra text]
-  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: %s\nreviewer: A\ncross_reviewer:\napproved_at: 2026-10-17\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%b\n\n%s\n\n## 4. Kiểm thử\n' \
-    "$(basename "$1" | cut -d- -f1-2)" "$3" "$2" "$4" "${5:-}" > "$1"
+  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: %s\nreviewer: A\ncross_reviewer:\napproved_at: 2026-10-17\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%b\n\n### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện\n\n- **Quyền truy cập:** %s\n- **Thư viện và SDK:** Không thêm.\n\n%s\n\n## 4. Kiểm thử\n' \
+    "$(basename "$1" | cut -d- -f1-2)" "$3" "$2" "$4" "${PERMISSIONS:-Không thêm.}" "${5:-}" > "$1"
 }
 plan_check() { if PLAN_CHECK_ROOT="$repo" python3 -I scripts/plan-check.py "$1" > "$work/plan-check.out" 2>&1; then echo pass; else echo stop; fi; }
 # One row of the file list of a plan; the backticks are Markdown, not command substitution.
@@ -370,6 +370,84 @@ printf -- '---\nticket: T-915\nstatus: draft\nrisk_level: low\ntoken_estimate: 2
   "$(row Sửa feature/demo/A.kt)" > "$plans/T-915-a.md"
 plan_check "$plans/T-915-a.md" > /dev/null
 expect "plan-check: a token estimate removes the warning" 0 "$(grep -c 'token_estimate' "$work/plan-check.out")"
+# A new technique (criterion E from 2) needs a trial run with scripts/check.sh before review (L-001, L-010).
+novel='| E. Độ mới của kỹ thuật | 2 | x |'
+write_plan "$plans/T-919-a.md" medium draft "$(row Sửa feature/demo/A.kt)" "$novel"
+expect "plan-check: a draft plan with a new technique and no trial run stops" stop "$(plan_check "$plans/T-919-a.md")"
+expect "plan-check: names the missing trial run" 1 "$(grep -c 'mục 4.1. Chạy thử' "$work/plan-check.out")"
+write_plan "$plans/T-920-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  "$novel"$'\n\n### 4.1. Chạy thử\n\n- **Lệnh:** `scripts/check.sh`\n'
+expect "plan-check: a draft plan with its trial run passes" pass "$(plan_check "$plans/T-920-a.md")"
+write_plan "$plans/T-921-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$novel"$'\n\n'"$decision_v1"
+expect "plan-check: an approved plan without a trial run only warns" pass "$(plan_check "$plans/T-921-a.md")"
+# Permissions and libraries are decided while planning, not found during the session (rule 8).
+printf '<manifest>\n<uses-permission android:name="android.permission.CAMERA" />\n</manifest>\n' > "$repo/feature/demo/AndroidManifest.xml"
+mkdir -p "$repo/app/src/main" "$repo/gradle"
+printf '<manifest>\n<uses-permission android:name="android.permission.CAMERA" />\n</manifest>\n' > "$repo/app/src/main/AndroidManifest.xml"
+printf '[libraries]\nandroidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.0" }\n' > "$repo/gradle/libs.versions.toml"
+printf -- '---\nticket: T-922\nstatus: draft\nrisk_level: medium\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| Sửa | `feature/demo/A.kt` | x |\n\n## 4. Kiểm thử\n' > "$plans/T-922-a.md"
+expect "plan-check: a draft plan without the permission and library lines stops" stop "$(plan_check "$plans/T-922-a.md")"
+write_plan "$plans/T-923-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Gọi API cần `WRITE_EXTERNAL_STORAGE`.'
+expect "plan-check: a new permission the plan does not decide stops" stop "$(plan_check "$plans/T-923-a.md")"
+PERMISSIONS='`WRITE_EXTERNAL_STORAGE` (maxSdkVersion 28, spec KB-6).' write_plan "$plans/T-924-a.md" medium draft \
+  "$(row Sửa feature/demo/A.kt)" 'Gọi API cần `WRITE_EXTERNAL_STORAGE`.'
+expect "plan-check: an added permission needs a high-risk plan with the permission blocking point" stop "$(plan_check "$plans/T-924-a.md")"
+PERMISSIONS='Không thêm: `READ_MEDIA_IMAGES`.' write_plan "$plans/T-925-a.md" medium draft \
+  "$(row Sửa feature/demo/A.kt)" 'Không cần `READ_MEDIA_IMAGES`; `CAMERA` đã có.'
+expect "plan-check: a permission the plan decides not to add passes" pass "$(plan_check "$plans/T-925-a.md")"
+write_plan "$plans/T-926-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Dùng `com.squareup.okhttp3:okhttp:4.12.0`.'
+expect "plan-check: a library missing from the catalog stops" stop "$(plan_check "$plans/T-926-a.md")"
+expect "plan-check: names the missing library" 1 "$(grep -c 'com.squareup.okhttp3:okhttp' "$work/plan-check.out")"
+write_plan "$plans/T-927-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Dùng `androidx.core:core-ktx` (`libs.androidx.core.ktx`).'
+expect "plan-check: a library already in the catalog passes" pass "$(plan_check "$plans/T-927-a.md")"
+rm "$repo/feature/demo/AndroidManifest.xml" "$repo/app/src/main/AndroidManifest.xml" "$repo/gradle/libs.versions.toml"
+
+# run-check.py checks a whole run list: specs confirmed and answered, dependencies in order, scenarios tested.
+rr="$work/run-repo"
+mkdir -p "$rr/docs/features/demo/tickets" "$rr/docs/features/demo/plans" "$rr/docs/runs" "$rr/feature/demo"
+touch "$rr/feature/demo/A.kt" "$rr/feature/demo/B.kt"
+write_spec() { # <status> <answer>
+  printf -- '---\nstatus: %s\n---\n\n## 3. Kịch bản\n\n### KB-1. Một\n\n- [ ] Khi a thì b.\n\n## 9. Câu hỏi còn mở\n\n1. **Câu?**\n   - Trả lời: %s\n\n## 10. Lịch sử\n\n| 2026-10-01 | AI | Tạo |\n' \
+    "$1" "$2" > "$rr/docs/features/demo/spec.md"
+}
+write_ticket() { # <id> <depends>
+  printf -- '---\nid: %s\nstatus: approved\nspec: features/demo/spec.md\nscenarios: [KB-1]\ndepends_on: [%s]\n---\n' \
+    "$1" "$2" > "$rr/docs/features/demo/tickets/$1-x.md"
+}
+write_run_plan() { # <id> <file> <test row>
+  printf -- '---\nticket: %s\nstatus: approved\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| Sửa | `%s` | x |\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
+    "$1" "$2" "$3" > "$rr/docs/features/demo/plans/$1-x.md"
+}
+write_run() { # <rows>
+  printf -- '---\nstatus: draft\n---\n\n## 1. Danh sách chạy\n\n| Thứ tự | Ticket | Feature | Plan | Rủi ro | Phụ thuộc | Ghi chú |\n| --- | --- | --- | --- | --- | --- | --- |\n%b\n\n## 2. Kiểm tra\n' \
+    "$1" > "$rr/docs/runs/RUN-1.md"
+}
+run_row() { printf '| %s | %s | demo | `features/demo/plans/%s-x.md` (1) | | | |\\n' "$1" "$2" "$2"; }
+run_check() { if RUN_CHECK_ROOT="$rr" PLAN_CHECK_ROOT="$rr" python3 -I scripts/run-check.py "$rr/docs/runs/RUN-1.md" > "$work/run-check.out" 2>&1; then echo pass; else echo stop; fi; }
+write_spec confirmed 'Đồng ý.'
+write_ticket T-001 ''
+write_ticket T-002 ''
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
+write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+expect "run-check: a ready list passes" pass "$(run_check)"
+expect "run-check: a ready list has no warning" 0 "$(grep -c 'CHÚ Ý' "$work/run-check.out")"
+write_spec changed 'Đồng ý.'
+expect "run-check: a spec waiting for confirmation stops" stop "$(run_check)"
+write_spec confirmed ''
+expect "run-check: an unanswered spec question stops" stop "$(run_check)"
+expect "run-check: names the open question" 1 "$(grep -c "câu hỏi còn mở chưa có trả lời: 'Câu?'" "$work/run-check.out")"
+write_spec confirmed 'Đồng ý.'
+write_ticket T-001 'T-002'
+expect "run-check: a dependency later in the list stops" stop "$(run_check)"
+write_run "$(run_row 1 T-002)$(run_row 2 T-001)"
+expect "run-check: a dependency earlier in the list passes" pass "$(run_check)"
+expect "run-check: a single dependency chain warns" 1 "$(grep -c 'một chuỗi phụ thuộc' "$work/run-check.out")"
+write_ticket T-001 ''
+write_run_plan T-002 feature/demo/A.kt '| Khác | Unit | `bTest` |'
+expect "run-check: a scenario without a test row stops" stop "$(run_check)"
+write_run_plan T-002 feature/demo/A.kt '| KB-1 | Unit | `bTest` |'
+expect "run-check: two independent plans changing one file warn" 1 "$(run_check > /dev/null; grep -c 'L-014' "$work/run-check.out")"
 
 # token-usage.py counts tokens per task from transcripts, one usage per request, never failing the session.
 tokens="$work/token-repo"

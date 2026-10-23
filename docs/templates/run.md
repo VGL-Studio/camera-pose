@@ -23,6 +23,17 @@ staging_build:               # phiên bản bản staging được phát cuối 
 
 **Lý do của thứ tự chạy:** <vì sao task này chạy trước task kia: phụ thuộc, ảnh hưởng chéo, rủi ro.>
 
+### Kiểm tra trước khi duyệt
+
+<!-- AI điền sau khi lập danh sách, theo docs/ops/pre-run-review.md. Dev chỉ duyệt khi script qua và không còn điểm chặn chưa xử lý. Plan hay spec đổi sau đó thì kiểm tra lại. -->
+
+- **`scripts/run-check.py`:** <qua, hoặc các lỗi đã sửa>; chú ý: <từng dòng và kết luận>
+- **Rà soát độc lập:** <ngày, số điểm chặn, nên sửa, ghi chú>
+
+| Mức | Ticket | Vấn đề | Xử lý |
+| --- | --- | --- | --- |
+| Chặn | T-NNN | <...> | <plan phiên bản mới, spec chờ xác nhận lại, hay bỏ task> |
+
 ## 2. Kiểm tra đầu phiên
 
 <!-- AI điền khi bắt đầu phiên. -->

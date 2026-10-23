@@ -88,6 +88,8 @@ Tiêu chí chấp nhận:
 | --- | --- | --- | --- |
 | <ten_su_kien> | <thời điểm> | <tham số> | <câu hỏi kinh doanh> |
 
+**Quyền của app và dịch vụ bên ngoài:** <quyền mà feature cần hỏi người dùng (ví dụ camera, lưu ảnh), khi nào hỏi, trên phiên bản Android nào, khi bị từ chối thì sao; dịch vụ hay SDK bên ngoài mới mà feature cần. Hoặc "Không có". Đây là quyết định của người phụ trách sản phẩm, vì nó đổi khai báo trên Play Console (quyền, An toàn dữ liệu).>
+
 ## 7. File tĩnh trên R2
 
 | Nhóm file | Dung lượng ước tính | Khi nào tải | Khi không tải được |

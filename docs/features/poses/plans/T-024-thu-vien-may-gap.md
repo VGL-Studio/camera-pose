@@ -1,7 +1,7 @@
 ---
 ticket: T-024
 title: Thư viện và chi tiết tư thế trên máy gập
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 7                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
@@ -187,3 +187,11 @@ Không cần (E dưới 2).
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, RUN-20261023-04: đã merge
+
+- **Kết quả:** đã merge, PR #75, commit `bd94e59`. CI xanh ngay vòng đầu. Làm theo nhánh chính của plan (T-023 đã merge), không dùng phương án dự phòng.
+- **Test viết trước:** 9 test giao diện mới (4 `PosesScreenTest`, 5 `PoseDetailScreenTest`) thất bại đúng lý do trên khung rỗng (còn 2 cột; ảnh rộng 641 thay vì 315); 4 screenshot test `_unfolded` thất bại vì chưa có ảnh chuẩn. Viết chặt lại có đối chứng: 0 (hai test có sẵn bước đối chứng ở 411 dp).
+- **Lệch so với plan:** (1) tên thành phần giữ `PoseDetailImage`, `PoseDetailMeta`, `PoseDetailSteps`, `PoseDetailMistakes`, `PoseDetailBottomBar` của T-022, thêm `PoseDetailInfo` và tham số `imageHeight` thay cho `DetailImage`, `DetailInfo`, `DetailBottomBar`; (2) `widthChange_keepsScrollAndSelectedChip` sửa ở bước 4: 30 thẻ thay vì 12 vì `LazyGrid` kẹp vị trí cuộn (điều kiểm không đổi); (3) `wideLoading_hasThreeColumns` đếm khung xương đang hiện thay vì đúng 6.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa trong phạm vi plan, 10 ghi chú: thẻ 3 cột cao hơn thiết kế (337 so với 284 dp, plan mục 8 câu 4 đã duyệt); thanh nút chi tiết lệch khoảng 6 px; cột ảnh 440 dp cố định.
+- **Cần người kiểm tra:** gập mở thật trên máy gập hoặc emulator gập (activity dựng lại thật chưa được test trên máy); 4 ảnh chuẩn `_unfolded`; ảnh so sánh thiết kế (thư viện 23,5%, chi tiết 3,7%).

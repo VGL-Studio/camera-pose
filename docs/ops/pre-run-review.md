@@ -18,6 +18,7 @@ Phiên tự chạy dừng hay merge sai thường vì những lỗi đã nằm s
 | Ngoại lệ viết test trước gồm vỏ app (`AppNavHost`, `MainActivity`), nơi lỗi chỉ lộ ra ở `ui-test` (L-030) | Chú ý |
 | Hai plan cùng sửa một file mà không phụ thuộc nhau (L-014) | Chú ý |
 | Danh sách chỉ có một chuỗi phụ thuộc (L-015) | Chú ý |
+| Hai plan cùng ghi Tạo một file, kể cả khi phụ thuộc nhau (L-033) | Chú ý |
 
 Lỗi phải sửa trước khi đưa danh sách cho dev. Mỗi dòng chú ý được xem ở lớp thứ hai và ghi kết luận.
 
@@ -40,7 +41,8 @@ Nội dung giao việc tối thiểu: "Rà soát danh sách chạy `<đường d
 - Mỗi tiêu chí chấp nhận có test sẽ **thất bại nếu hành vi sai**, không chỉ kiểm điều code đang làm. Đọc từng tên test và điều nó khẳng định: nếu bỏ phần code chính đi thì test này có đỏ không?
 - Test kiểm kết quả mà người dùng thấy hay dữ liệu được ghi lại, không chỉ kiểm rằng một hàm được gọi.
 - Có test cho nhánh lỗi, giá trị biên, trạng thái rỗng, lần thử lại, khi spec nêu các trường hợp đó.
-- Tiêu chí về hình ảnh (màu, viền, vị trí) phải kiểm bằng hình ảnh hay số đo, không chỉ bằng cây ngữ nghĩa (L-004, L-010).
+- Tiêu chí về hình ảnh (màu, viền, vị trí) phải kiểm bằng hình ảnh hay số đo, không chỉ bằng cây ngữ nghĩa (L-004, L-010). Nút chữ trên nền khác màu có test đo màu chữ (L-032).
+- Test kiểm giá trị mặc định có bước đối chứng, để không qua ngay trên khung rỗng (L-035).
 - Khung test tái hiện được nơi phát hiện lỗi: cùng chiều rộng, chiều cao, chế độ đồ họa (`docs/CLAUDE.md`, mục Khi viết plan).
 - **Nguy cơ chập chờn:**
   - screenshot của trạng thái có hiệu ứng chạy mãi mà không dừng đồng hồ (L-029, `CLAUDE.md` bước 10);

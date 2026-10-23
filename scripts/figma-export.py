@@ -10,7 +10,10 @@ LoadingScreen_failed_light; a state may have hyphens, like permission-denied) un
   docs/features/<feature>/design/screens/<frame>.png   PNG at 3x, checked to be 1233 x 2673 (frame 411 x 891)
 Frames for an unfolded foldable phone end with _unfolded (CameraScreen_default_dark_unfolded): frame 673 x 841,
 PNG 2019 x 2523.
-  docs/features/<feature>/design/context/<frame>.md    sizes, spacing, colors, text, matched to tokens.json
+  docs/features/<feature>/design/context/<frame>.md    sizes, spacing, colors, text, opacity, matched to tokens.json
+Opacity is written for both a paint (fill or stroke) and a whole layer, and an instance whose fills or opacity
+override its main component is flagged (L-023 of camera-pose). Frames whose name looks like a screen but breaks
+the rule are listed, so a renamed frame is not silently left out.
 
 Works on every Figma plan (the REST API is not limited like the MCP server). The token needs only the
 file_content:read scope; it is read from the environment and never printed. Run it in a supervised session
@@ -85,12 +88,16 @@ def png_size(path):
     return struct.unpack(">II", data[16:24])
 
 
-def find_frames(node, found):
-    if node.get("type") in ("FRAME", "COMPONENT", "INSTANCE") and FRAME_NAME.match(node.get("name", "")):
-        found.append(node)
-        return found
+def find_frames(node, found, near=None):
+    """Frames named like a screenshot; frames named almost like one (containing "Screen_") go into near."""
+    if node.get("type") in ("FRAME", "COMPONENT", "INSTANCE"):
+        if FRAME_NAME.match(node.get("name", "")):
+            found.append(node)
+            return found
+        if near is not None and "Screen_" in node.get("name", ""):
+            near.append(node.get("name", ""))
     for child in node.get("children", []):
-        find_frames(child, found)
+        find_frames(child, found, near)
     return found
 
 
@@ -126,10 +133,28 @@ class Tokens:
 
 
 def hex_color(paint):
+    """#RRGGBB, then the opacity when below 1: the color's alpha times the paint's own opacity. The paint opacity
+    is named apart, because binding a variable to a fill in Figma can drop it (L-023 of camera-pose)."""
     c = paint["color"]
-    alpha = c.get("a", 1) * paint.get("opacity", 1)
+    paint_opacity = paint.get("opacity", 1)
+    alpha = c.get("a", 1) * paint_opacity
     value = "#%02X%02X%02X" % tuple(round(c[k] * 255) for k in ("r", "g", "b"))
-    return value if alpha >= 0.999 else f"{value} (độ mờ {alpha:.2f})"
+    if alpha >= 0.999:
+        return value
+    if paint_opacity < 0.999:
+        return f"{value} (độ mờ {alpha:.2f}, lớp tô {paint_opacity:.2f})"
+    return f"{value} (độ mờ {alpha:.2f})"
+
+
+OVERRIDE_FIELDS = {"fills": "màu nền", "strokes": "viền", "opacity": "độ mờ"}
+
+
+def overridden(node):
+    """Fill, stroke and opacity fields an instance overrides on its main component (REST field "overrides")."""
+    fields = set()
+    for override in node.get("overrides") or []:
+        fields.update(f for f in override.get("overriddenFields") or [] if f in OVERRIDE_FIELDS)
+    return [OVERRIDE_FIELDS[f] for f in sorted(fields)]
 
 
 def solid_paints(paints):
@@ -164,6 +189,9 @@ def describe(node, frame_box, tokens, theme, depth, lines, used):
         for paint in solid_paints(node.get("strokes")):
             value = hex_color(paint)
             parts.append(f"viền {value} ({tokens.color(value[:7], theme)}), dày {node.get('strokeWeight', 1)}")
+        if node.get("type") == "INSTANCE" and overridden(node):
+            used.add(("instance ghi đè component", node.get("name", ""), ", ".join(overridden(node))))
+            parts.append("CHÚ Ý: ghi đè " + ", ".join(overridden(node)) + " của component gốc")
         if node.get("cornerRadius"):
             parts.append(f"bo góc {round(node['cornerRadius'])}")
         if node.get("layoutMode") in ("VERTICAL", "HORIZONTAL"):
@@ -178,6 +206,10 @@ def describe(node, frame_box, tokens, theme, depth, lines, used):
                 + "/".join(tokens.space(v) for v in padding)
                 + f", căn {node.get('primaryAxisAlignItems', 'MIN')}/{node.get('counterAxisAlignItems', 'MIN')}"
             )
+    opacity = node.get("opacity", 1)
+    if opacity < 0.999:
+        used.add(("độ mờ của lớp", f"{opacity:.2f}", "-"))
+        parts.append(f"độ mờ của lớp {opacity:.2f}")
     lines.append("  " * depth + "- " + ", ".join(parts))
     for child in node.get("children", []):
         if child.get("visible", True):
@@ -237,7 +269,11 @@ def main(argv):
             fail(f"không có node {node_id} trong file.")
         document = entry["document"]
 
-    frames = find_frames(document, [])
+    near = []
+    frames = find_frames(document, [], near)
+    for name in near:
+        print(f"CHÚ Ý: bỏ qua frame \"{name}\": tên không đúng dạng <Ten>Screen_<trạng thái>_<light|dark>.",
+              file=sys.stderr)
     if not frames:
         fail("không có frame nào đặt tên dạng <Ten>Screen_<trạng thái>_<light|dark> dưới node này.")
     (design_dir / "context").mkdir(parents=True, exist_ok=True)

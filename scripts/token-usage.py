@@ -4,12 +4,20 @@
 Usage:
   scripts/token-usage.py report [--since ISO] [--until ISO] [--run RUN-ID] [--csv FILE] [--transcripts FILE ...]
   scripts/token-usage.py estimate [--csv FILE]
+  scripts/token-usage.py credit --run RUN-ID --usd AMOUNT [--csv FILE]
 
 report: reads every transcript (subagents included) of this repository, keeps one usage per API request,
   attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...),
   and prints a Markdown table with the plan's estimate next to the actual count. With --run and --csv it also
   writes the rows of that run into the CSV, replacing rows of the same run so it can run again.
-estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan.
+estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan, and the cloud
+  session credit spent per million tokens over the runs that recorded it.
+credit: records the cloud session credit (US dollars) a run opened with `claude --cloud` spent, read by a person
+  from the balance before and after the run. It goes on the shared row of the run, once per run.
+
+A transcript belongs to this repository when its working directory is the repository, any of its git worktrees
+(the report branch is often checked out in one, L-008 of camera-pose), or a folder named like the repository
+(the origin remote's name, else the folder name; TOKEN_USAGE_REPO overrides it).
 
 Tokens are counted as they are, never converted to a price. The script never fails a session: it exits 0 and
 says what it could not measure. TOKEN_USAGE_PROJECTS_DIR overrides ~/.claude/projects and TOKEN_USAGE_ROOT
@@ -22,6 +30,7 @@ import json
 import os
 import re
 import statistics
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,12 +38,14 @@ from pathlib import Path
 ROOT = Path(os.environ.get("TOKEN_USAGE_ROOT", Path(__file__).resolve().parent.parent))
 PROJECTS_DIR = Path(os.environ.get("TOKEN_USAGE_PROJECTS_DIR", Path.home() / ".claude" / "projects"))
 DEFAULT_CSV = "docs/metrics/token-usage.csv"
+# credit_usd came later; older CSV files without it are read and rewritten with an empty value.
 FIELDS = ["run", "date", "task", "size", "estimate", "requests", "input", "cache_write", "cache_read", "output",
-          "total"]
+          "total", "credit_usd"]
 COUNTS = ["input", "cache_write", "cache_read", "output"]
 SHARED = "chung"
 # Starting estimates per ticket size, used until the CSV has enough tasks of that size (docs/ops/token-usage.md).
-DEFAULT_ESTIMATES = {"S": 10_000_000, "M": 20_000_000, "L": 40_000_000}
+# Lowered from 10M/20M/40M after the first runs of camera-pose: medians S 5M, M 15M, L 11M (L-021).
+DEFAULT_ESTIMATES = {"S": 5_000_000, "M": 15_000_000, "L": 30_000_000}
 MIN_SAMPLES = 5
 SIZE_ORDER = {"S": 0, "M": 1, "L": 2}
 TASK_BRANCH = re.compile(r"^claude/(?:fix-)?(T-\d+)(?:-|$)")
@@ -97,17 +108,51 @@ def transcripts():
     return sorted(PROJECTS_DIR.rglob("*.jsonl"))
 
 
-def in_repo(cwd):
-    if not cwd:
-        return False
+def git(*args):
+    try:
+        result = subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def repo_roots():
+    """The repository folder and every worktree of it, as git lists them."""
     roots = {ROOT.as_posix(), ROOT.resolve().as_posix()}
-    paths = {cwd, os.path.realpath(cwd)}
-    return any(path == root or path.startswith(root + "/") for root in roots for path in paths)
+    for line in git("worktree", "list", "--porcelain").splitlines():
+        if line.startswith("worktree "):
+            path = line[len("worktree "):]
+            roots |= {path, os.path.realpath(path)}
+    return roots
+
+
+def repo_name():
+    if os.environ.get("TOKEN_USAGE_REPO"):
+        return os.environ["TOKEN_USAGE_REPO"]
+    url = git("remote", "get-url", "origin")
+    name = re.sub(r"\.git$", "", url.rstrip("/").rsplit("/", 1)[-1].rsplit(":", 1)[-1]) if url else ""
+    return name or ROOT.resolve().name
+
+
+def repo_matcher():
+    roots, name = repo_roots(), repo_name()
+
+    def in_repo(cwd):
+        if not cwd:
+            return False
+        paths = {cwd, os.path.realpath(cwd)}
+        if any(path == root or path.startswith(root + "/") for root in roots for path in paths):
+            return True
+        # Another checkout of the same repository, such as the main checkout seen from a worktree.
+        return any(name in Path(path).parts for path in paths)
+
+    return in_repo
 
 
 def requests(files, since, until):
     """One usage per API request: the last line of a request carries its final counts."""
     found = {}
+    in_repo = repo_matcher()
     for path in files:
         try:
             lines = path.open(encoding="utf-8", errors="replace")
@@ -183,17 +228,25 @@ def read_csv(path):
         return list(csv.DictReader(handle))
 
 
+def save_csv(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=FIELDS, lineterminator="\n", restval="", extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def write_csv(path, run, rows, date):
-    kept = [r for r in read_csv(path) if r.get("run") != run]
+    old = read_csv(path)
+    # A credit recorded before the run was measured again is kept.
+    credit = next((r.get("credit_usd") for r in old if r.get("run") == run and r.get("credit_usd")), "")
+    kept = [r for r in old if r.get("run") != run]
     for row in rows:
         kept.append({"run": run, "date": date, "task": row["task"], "size": row["size"] or "",
                      "estimate": row["estimate"] or "", "requests": row["requests"],
-                     **{name: row[name] for name in COUNTS}, "total": row["total"]})
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=FIELDS, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(kept)
+                     **{name: row[name] for name in COUNTS}, "total": row["total"],
+                     "credit_usd": credit if row["task"] == SHARED else ""})
+    save_csv(path, kept)
 
 
 def report(args):
@@ -214,10 +267,41 @@ def report(args):
     return 0
 
 
+def credit(args):
+    try:
+        usd = float(args.usd)
+    except ValueError:
+        usd = -1
+    if usd < 0:
+        print(f"LỖI: --usd phải là số đô la không âm, ví dụ 10 hoặc 9.5; nhận được: {args.usd}")
+        return 2
+    path = ROOT / args.csv
+    rows = read_csv(path)
+    if not any(r.get("run") == args.run for r in rows):
+        print(f"LỖI: {args.csv} chưa có dòng nào của {args.run}. Chạy report --run {args.run} --csv trước.")
+        return 1
+    shared = [r for r in rows if r.get("run") == args.run and r.get("task") == SHARED]
+    if not shared:
+        rows.append({"run": args.run, "date": next(r["date"] for r in rows if r.get("run") == args.run),
+                     "task": SHARED, "requests": 0, **{name: 0 for name in COUNTS}, "total": 0})
+        shared = rows[-1:]
+    shared[0]["credit_usd"] = f"{usd:g}"
+    save_csv(path, rows)
+    print(f"Đã ghi {usd:g} USD credit cho {args.run} vào {args.csv}.")
+    return 0
+
+
 def estimate(args):
     by_size = {}
+    run_totals, run_credits = {}, {}
     for row in read_csv(ROOT / args.csv):
         total = parse_amount(row.get("total", ""))
+        run_totals[row.get("run")] = run_totals.get(row.get("run"), 0) + (total or 0)
+        if row.get("credit_usd"):
+            try:
+                run_credits[row.get("run")] = float(row["credit_usd"])
+            except ValueError:
+                pass
         if row.get("task") != SHARED and row.get("size") and total:
             by_size.setdefault(row["size"], []).append(total)
     print("| Cỡ | Số task đã đo | Trung vị thực tế | Ghi vào token_estimate |")
@@ -230,6 +314,11 @@ def estimate(args):
         else:
             suggestion = f"{short(DEFAULT_ESTIMATES.get(size))} (tạm, chưa đủ {MIN_SAMPLES} task)"
         print(f"| {size} | {len(totals)} | {short(median)} | {suggestion} |")
+    tokens = sum(run_totals[run] for run in run_credits)
+    if tokens:
+        usd = sum(run_credits.values())
+        print(f"\nCredit đã dùng: {usd:g} USD cho {short(tokens)} token ở {len(run_credits)} phiên, "
+              f"khoảng {usd / tokens * 1_000_000:.2f} USD mỗi 1M token.")
     return 0
 
 
@@ -244,8 +333,12 @@ def main(argv):
     report_parser.add_argument("--transcripts", nargs="+")
     estimate_parser = commands.add_parser("estimate")
     estimate_parser.add_argument("--csv", default=DEFAULT_CSV)
+    credit_parser = commands.add_parser("credit")
+    credit_parser.add_argument("--run", required=True)
+    credit_parser.add_argument("--usd", required=True)
+    credit_parser.add_argument("--csv", default=DEFAULT_CSV)
     args = parser.parse_args(argv[1:])
-    return report(args) if args.command == "report" else estimate(args)
+    return {"report": report, "estimate": estimate, "credit": credit}[args.command](args)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là ADR-1002 (docs/adr/1002-main-tu-hoi-phuc.md)
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: M
 depends_on: []

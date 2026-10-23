@@ -3,6 +3,8 @@
 # FAKE_ADB_NO_DEVICE or FAKE_ADB_NO_APP is set. `logcat -v ...` prints $FAKE_ADB_LOGCAT, then waits to be killed
 # like the real streaming logcat. `dumpsys connectivity` reports the default network $FAKE_ADB_NETWORK (default
 # "none", i.e. offline). `exec-out cat` prints $FAKE_ADB_UI (a UI dump), `find /sdcard` prints $FAKE_ADB_FILES. Every call is appended to $FAKE_ADB_CALLS when set.
+# `dumpsys package` lists $FAKE_ADB_RUNTIME_PERMISSIONS (space-separated) as runtime permissions; `pm grant` fails
+# for the permissions in $FAKE_ADB_GRANT_FAILS.
 [[ -n "${FAKE_ADB_CALLS:-}" ]] && echo "$*" >> "${FAKE_ADB_CALLS}"
 case "$1" in
   get-state) [[ -n "${FAKE_ADB_NO_DEVICE:-}" ]] && exit 1; echo device ;;
@@ -16,7 +18,13 @@ case "$1" in
       "pm path"*) [[ -n "${FAKE_ADB_NO_APP:-}" ]] && exit 1; echo "package:/data/app/base.apk" ;;
       "getprop ro.build.version.sdk") echo 34 ;;
       getprop*) echo Fake ;;
-      "dumpsys package"*) echo "    versionName=0.1.0-staging.4" ;;
+      "dumpsys package"*)
+        echo "    versionName=0.1.0-staging.4"
+        printf '    install permissions:\r\n      android.permission.INTERNET: granted=true\r\n'
+        printf '    User 0: ceDataInode=1 installed=true\r\n      runtime permissions:\r\n'
+        for p in ${FAKE_ADB_RUNTIME_PERMISSIONS:-}; do printf '        %s: granted=false, flags=[ ]\r\n' "$p"; done
+        printf '      enabledComponents:\r\n' ;;
+      "pm grant"*) [[ " ${FAKE_ADB_GRANT_FAILS:-} " == *" ${*: -1} "* ]] && exit 255; exit 0 ;;
       "dumpsys gfxinfo"*) printf 'Total frames rendered: 400\nJanky frames: 3 (0.75%%)\n' ;;
       "dumpsys meminfo"*) echo "        TOTAL PSS:    51234" ;;
       "find /sdcard"*) cat "${FAKE_ADB_FILES:-/dev/null}" ;;

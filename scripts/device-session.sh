@@ -6,8 +6,11 @@
 # Usage:
 #   scripts/device-session.sh start [<name>]   start recording on the connected device
 #   scripts/device-session.sh reset           clear the app's data, as if just installed, and mark it in the log
-#   scripts/device-session.sh scenarios --yes  run the standard scenarios: cold starts, first launch offline,
+#   scripts/device-session.sh scenarios --yes [--ask-permissions]
+#                                              run the standard scenarios: cold starts, first launch offline,
 #                                              random taps (monkey). Clears the app's data and toggles airplane mode.
+#                                              Grants the app's runtime permissions after each data clear, unless
+#                                              --ask-permissions keeps the permission prompts (to test that flow).
 #   scripts/device-session.sh stop             stop recording, collect device data, write summary.md
 #   scripts/device-session.sh summary <dir>    (re)write summary.md of a session folder; no device needed
 # Exit codes: 0 done (summary: no blocking signal), 1 error or blocking signal (crash, ANR), 2 usage.
@@ -17,6 +20,8 @@
 #   APP_PACKAGE          package to test; default: STAGING_APPLICATION_ID of .github/workflows/staging.yml
 #   DEVICE_SESSION_DIR   where session folders go; default: test-sessions (ignored by git)
 #   DEVICE_SESSION_REPORTS  reports already written; their ids are not reused; default: docs/test-sessions
+#   DEVICE_SESSION_RUNS  auto-run reports; session ids they mention (emulator sessions) are not reused;
+#                        default: docs/runs
 #   MONKEY_EVENTS        random events in `scenarios`; default 1500
 #   DEVICE_SESSION_SLEEP seconds for every wait in `scenarios`; tests set 0 (default: the wait of each step)
 # Messages are in Vietnamese for the team; comments are in English.
@@ -25,13 +30,14 @@ cd "$(dirname "$0")/.."
 
 SESSIONS_DIR="${DEVICE_SESSION_DIR:-test-sessions}"
 REPORTS_DIR="${DEVICE_SESSION_REPORTS:-docs/test-sessions}"
+RUNS_DIR="${DEVICE_SESSION_RUNS:-docs/runs}"
 STATE_FILE="${SESSIONS_DIR}/.current"
 MONKEY_EVENTS="${MONKEY_EVENTS:-1500}"
 MONKEY_SEED=20261017
 MARKER_TAG="VGL.Session"
 
 fail() { echo "LỖI: $*" >&2; exit 1; }
-usage() { sed -n '5,11p' "$0" | sed 's/^# //' >&2; exit 2; }
+usage() { sed -n '6,15p' "$0" | sed 's/^# //' >&2; exit 2; }
 
 app_package() {
   if [[ -n "${APP_PACKAGE:-}" ]]; then echo "${APP_PACKAGE}"; return; fi
@@ -77,17 +83,41 @@ network_on() {
 # Writes a line into the device log, so the analysis can split the log by step.
 mark() { adb shell log -t "${MARKER_TAG}" "'$*'" > /dev/null 2>&1 || true; }
 
-# Next free id of the day. An id is taken by a session folder on this machine or by a report in the repo
-# (sessions recorded elsewhere, such as the emulator in CI, have reports but no folder here).
+# Next free id of the day. An id is taken by a session folder on this machine, by a report in the repo
+# (sessions recorded elsewhere, such as the emulator in CI, have reports but no folder here), or by an auto-run
+# report that mentions it (an emulator session of a run may have no report of its own; L-026 of camera-pose).
 next_session_dir() {
-  local day number=1 id
+  local day number=1 id taken
   day="$(date +%Y%m%d)"
+  taken="$(cat "${RUNS_DIR}"/*.md 2>/dev/null | grep -oE "TS-${day}-[0-9]{2}" || true)"
   while true; do
     id="TS-${day}-$(printf '%02d' "${number}")"
-    [[ -e "${SESSIONS_DIR}/${id}" || -e "${REPORTS_DIR}/${id}.md" ]] || break
+    [[ -e "${SESSIONS_DIR}/${id}" || -e "${REPORTS_DIR}/${id}.md" ]] || grep -qx "${id}" <<<"${taken}" || break
     number=$((number + 1))
   done
   echo "${SESSIONS_DIR}/${id}"
+}
+
+# Runtime permissions the app requests, as `dumpsys package` lists them under "runtime permissions:".
+runtime_permissions() {
+  adb shell dumpsys package "$1" 2>/dev/null | tr -d '\r' | awk '
+    /^ *runtime permissions:/ { inside = 1; next }
+    inside && /: granted=/ { sub(/^ */, ""); sub(/:.*/, ""); print; next }
+    inside { inside = 0 }' | sort -u
+}
+
+# Grants every runtime permission of the app, so a permission prompt left open does not cover the next cold
+# start (L-009 of camera-pose). Prints "granted=<names>" for scenarios.txt; a refused grant is listed as failed.
+grant_permissions() {
+  local pkg="$1" permission granted="" failed=""
+  for permission in $(runtime_permissions "${pkg}"); do
+    if adb shell pm grant "${pkg}" "${permission}" > /dev/null 2>&1; then
+      granted="${granted:+${granted},}${permission##*.}"
+    else
+      failed="${failed:+${failed},}${permission##*.}"
+    fi
+  done
+  echo "granted=${granted:-none}${failed:+ failed=${failed}}"
 }
 
 cmd_start() {
@@ -145,6 +175,12 @@ cmd_reset() {
 
 cmd_scenarios() {
   [[ "${1:-}" == "--yes" ]] || fail "kịch bản sẽ xóa dữ liệu của app và bật, tắt chế độ máy bay. Chạy lại với --yes nếu đồng ý."
+  local ask_permissions=0
+  case "${2:-}" in
+    "") ;;
+    --ask-permissions) ask_permissions=1 ;;
+    *) fail "không hiểu tùy chọn ${2}. Chỉ có --ask-permissions." ;;
+  esac
   need_device
   [[ -f "${STATE_FILE}" ]] || fail "chưa có phiên đang ghi. Chạy scripts/device-session.sh start trước."
   local dir pkg activity i out
@@ -153,9 +189,21 @@ cmd_scenarios() {
   activity="$(adb shell cmd package resolve-activity --brief -c android.intent.category.LAUNCHER "${pkg}" | tail -n 1 | tr -d '\r')"
   [[ "${activity}" == */* ]] || fail "không tìm thấy màn hình khởi động của ${pkg}."
   : > "${dir}/scenarios.txt"
+  # Clearing the data also revokes runtime permissions, so they are granted again after every clear.
+  clear_data() {
+    adb shell pm clear "${pkg}" > /dev/null
+    if [[ "${ask_permissions}" -eq 1 ]]; then
+      mark "permissions=ask"
+      echo "permissions ask" >> "${dir}/scenarios.txt"
+    else
+      out="$(grant_permissions "${pkg}")"
+      mark "permissions=${out}"
+      echo "permissions ${out}" >> "${dir}/scenarios.txt"
+    fi
+  }
 
   # 1. Cold starts on a clean install state (the first one also shows the consent dialog).
-  adb shell pm clear "${pkg}" > /dev/null
+  clear_data
   for i in 1 2 3; do
     mark "scenario=cold_start run=${i}"
     adb shell am force-stop "${pkg}"
@@ -167,7 +215,7 @@ cmd_scenarios() {
 
   # 2. First launch without network: the spec expects an error and a retry button (loading, KB-2).
   mark "scenario=offline_first_launch"
-  adb shell pm clear "${pkg}" > /dev/null
+  clear_data
   if network_off; then
     mark "network=off"
     adb shell am start -W -n "${activity}" > /dev/null

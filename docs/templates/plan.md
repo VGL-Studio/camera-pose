@@ -82,6 +82,8 @@ Test được viết TRƯỚC code và phải thất bại đúng lý do trướ
 Mỗi dòng dưới đây phải đủ cụ thể để viết được test ngay từ plan.
 Plan sửa lỗi: ghi số đo thật trên code hiện tại (chạy test tạm, không commit) và lý do thất bại đã thấy, không đoán.
 Khung test tái hiện được lỗi gốc: cùng chiều rộng, chiều cao như nơi phát hiện (L-029).
+Test kiểm giá trị mặc định thường qua trên khung rỗng: ghi sẵn bước đối chứng (ghi rồi đọc lại, dữ liệu đúng cạnh dữ liệu sai) (L-035).
+Nút chữ trên nền khác màu: có test đo màu chữ của nút trên ảnh vẽ ra, không chỉ dựa vào ảnh chuẩn (L-032).
 Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ có giới hạn, không khẳng định màn hình thoáng qua (CLAUDE.md, bước 10).
 -->
 
@@ -94,6 +96,8 @@ Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ c�
 | Đúng thiết kế (khi có `design/screens/`) | Screenshot test cùng tên với từng ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh <feature>`, rà soát độc lập theo mục 7 của mẫu thiết kế. Ticket chỉ làm một phần feature thì ghi một dòng `Ảnh thiết kế của ticket khác (T-NNN): \`<Tên>\`, ...` cho các ảnh ticket khác vẽ; `scripts/plan-check.py` bỏ qua các ảnh đó | `<Ten>Screen_<trạng thái>_<light\|dark>.png` |
 | Chữ đúng bảng chữ của thiết kế | Compose UI test | <...> |
 | <tiêu chí không tự động được> | Kiểm tra thủ công | <các bước dev làm khi kiểm tra bản staging> |
+
+Việc plan này giao cho ticket khác (ghi "để T-NNN làm") chỉ hợp lệ khi plan của ticket đó đã ghi nhận việc ấy; chưa có plan thì ghi vào mục 8 để người duyệt quyết (L-014).
 
 **Ngoại lệ viết test trước:** <phần thay đổi không thể viết test trước, ví dụ chỉ đổi chuỗi văn bản hoặc tài nguyên, kèm lý do. Ghi "Không có" nếu không có. Người duyệt phải đồng ý với ngoại lệ.>
 

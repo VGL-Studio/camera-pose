@@ -147,6 +147,46 @@ Không cần thiết lập thêm: workflow dùng hai bí mật `ROUTINE_FIRE_URL
 - Mỗi lần kích hoạt lại tính vào giới hạn 30 lần mỗi giờ của routine; một lần mỗi giờ là đủ xa giới hạn.
 - Dừng hẳn một phiên đang chờ: sửa trạng thái danh sách chạy trên nhánh báo cáo sang `finished`, hoặc **Actions > resume-run > Disable workflow**.
 
+### 2.7. Mở phiên bằng `claude --cloud` khi còn cloud session credits
+
+Routine không dùng được cloud session credits: phiên của routine luôn tính vào hạn mức của tài khoản. Phiên mở bằng `claude --cloud` từ terminal thì trừ vào credit trước (L-020 của camera-pose, [bài hỗ trợ của Anthropic](https://support.claude.com/en/articles/17152539-cloud-sessions-bonus-credit-promotion)). Khi tài khoản còn credit, nhất là khi hạn mức tuần sắp hết, mở phiên tự chạy theo cách này. Còn lại thì dùng `start-run.yml` (mục 2.3): chỉ phiên của routine được `resume-run.yml` tự tiếp tục (`docs/auto-run.md`, mục 1, L-008).
+
+**Trước khi mở.** Không có `start-run.yml` nên người tự làm các kiểm tra của workflow đó:
+
+1. Danh sách chạy `approved` đã merge vào nhánh chính.
+2. Không có issue đang mở mang nhãn `main-broken` hay `env-broken`: `gh issue list --label main-broken --state open`, rồi cùng lệnh với `env-broken`.
+3. Không có phiên tự chạy nào khác đang chạy (không có danh sách chạy `running` trên một nhánh báo cáo).
+4. Ghi số dư credit lúc này (trang cài đặt tài khoản trên claude.ai) để tính tiền phiên đã dùng.
+
+**Mở phiên.** Ở thư mục repo trên máy, chạy `claude --cloud`, chọn môi trường cloud của mục 2.1 và model Opus 5.5, rồi dán prompt:
+
+```text
+Bạn đang chạy một phiên tự chạy của repo này, mở bằng claude --cloud, không qua routine hay start-run.yml. Đọc CLAUDE.md, docs/CLAUDE.md và docs/auto-run.md, rồi làm đúng quy trình trong docs/auto-run.md.
+
+Danh sách chạy: docs/runs/RUN-YYYYMMDD-NN.md. Danh sách không có trạng thái approved thì không làm task nào, kết thúc phiên và báo lý do.
+
+Nhánh: không làm việc trên nhánh mặc định của phiên này. Tạo nhánh báo cáo và nhánh riêng cho từng task đúng như docs/auto-run.md. Làm nhánh báo cáo trong một worktree riêng (git worktree add ../report claude/RUN-YYYYMMDD-NN-report), để không đổi nhánh dưới bản build của task.
+
+Ghi vào mục Kiểm tra đầu phiên: phiên mở bằng claude --cloud để dùng cloud session credits.
+```
+
+Worktree riêng cho nhánh báo cáo: thư mục chính luôn ở nhánh của task đang làm, nên ghi nhật ký và báo cáo trong `../report` không đổi file dưới một bản build hay `check.sh` đang chạy (L-008 của camera-pose). `scripts/token-usage.py` chạy trong worktree đó vẫn thấy transcript của phiên: script nhận mọi worktree của repo và mọi thư mục mang tên repo, không cần đặt `TOKEN_USAGE_ROOT` (`docs/ops/token-usage.md`, mục 1).
+
+**Khi phiên bị ngắt.** Không có `resume-run.yml` cho kiểu phiên này: hết hạn mức, hết credit hay mất kết nối thì phiên dừng hẳn. Phần đã đẩy lên còn nguyên (`docs/auto-run.md`, mục 3, bước 3). Người tiếp tục như sau:
+
+1. Xem nhánh báo cáo `claude/RUN-YYYYMMDD-NN-report` trên GitHub: danh sách chạy còn `running` và dòng thời gian cho biết phiên dừng ở task nào. Giờ commit cuối trên các nhánh của phiên là giờ dừng.
+2. Kiểm lại như phần Trước khi mở (bước 2, 3).
+3. Mở một phiên `claude --cloud` mới với cùng prompt và cùng danh sách chạy, thêm một dòng: "Đây là phiên tiếp tục: nhánh báo cáo đã có, danh sách chạy đang running. Làm theo docs/auto-run.md, mục 4, Tiếp tục phiên sau khi hết hạn mức." Phiên mới đọc nhánh báo cáo và đi tiếp như phiên do `resume-run.yml` kích hoạt lại.
+4. Phiên dừng giữa một lệnh dài (tiến trình bị khởi động lại, lệnh trả mã 137) mà vẫn còn chạy thì không cần làm gì: phiên tự chạy lại lệnh đó.
+
+**Sau phiên.** Ghi tiền credit phiên đã dùng (số dư trước trừ số dư sau) vào cột `credit_usd` của `docs/metrics/token-usage.csv`:
+
+```sh
+scripts/token-usage.py credit --run RUN-YYYYMMDD-NN --usd 10
+```
+
+Lệnh chỉ sửa dòng Chung của phiên; commit file CSV trong PR báo cáo nếu PR còn mở, hoặc trong một PR tài liệu sau đó. `scripts/token-usage.py estimate` in thêm số USD trung bình cho mỗi 1M token, để ước tính một danh sách chạy tốn bao nhiêu credit.
+
 ## 3. Việc còn phải kiểm chứng
 
 - `resume-run.yml` kích hoạt lại được một phiên hết hạn mức, và phiên đó tiếp tục đúng task đang làm dở: chờ lần hết hạn mức thật đầu tiên. Phiên kích hoạt lại khi hạn mức chưa được làm mới có làm tốn gì không (chỉ là một phiên dừng ngay) cũng cần xem lần đó.

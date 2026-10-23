@@ -72,11 +72,20 @@ Mỗi task đi qua 10 bước theo thứ tự. Điều kiện dừng ở mục 4
 
 - Viết toàn bộ test được nêu trong mục Kiểm thử của plan, trước khi viết bất kỳ dòng code nào của chức năng.
 - Chạy test và xác nhận test **thất bại đúng lý do**: vì chức năng chưa có, không phải vì test viết sai cú pháp hay lỗi môi trường. Với màn hình hay lớp chưa tồn tại, AI tạo khung rỗng (hàm trả về giá trị mặc định) để test biên dịch được và thất bại ở phần kiểm tra.
-- Test nào qua ngay khi chưa có code là test không kiểm tra gì, phải viết lại.
+- Test nào qua ngay khi chưa có code là test không kiểm tra gì, phải viết lại, trừ test chặn mà plan nêu là qua ngay. Cách mặc định: thêm một bước đối chứng trước khi khẳng định (ghi rồi đọc lại, đặt dữ liệu đúng cạnh dữ liệu sai), rồi chạy lại để thấy test thất bại đúng lý do. Ghi số test được viết chặt như vậy vào nhật ký (L-035).
 - Commit test riêng, trước commit code, để lịch sử cho thấy test có trước.
 - Đẩy nhánh của task lên ngay sau mỗi commit, ở bước này và bước 4, không đợi tới bước 7. Hết hạn mức thì phiên dừng ngay, không kịp làm gì thêm; phần chưa đẩy lên là phần mất. Commit trên nhánh cũng là dấu hiệu phiên còn sống cho `resume-run.yml`.
 - Chỉ được bỏ qua bước này với phần thay đổi nằm trong mục ngoại lệ đã được người duyệt đồng ý trong plan.
 - Screenshot test cho màn hình mới: mỗi lệnh `captureRoboImage` ghi rõ đường dẫn ảnh, dạng `"src/test/screenshots/<Ten>.png"`. Chạy cục bộ, `scripts/check.sh` tự ghi ảnh chuẩn cho những ảnh còn thiếu và giữ nguyên ảnh đã có. Commit ảnh chuẩn cùng PR (CI báo lỗi cho từng ảnh thiếu) và đánh dấu trong báo cáo để người xem. Ảnh chuẩn của màn hình cũ chỉ được cập nhật khi plan nêu rõ.
+
+### Giao bước 3 đến 5 cho phiên con
+
+Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho một phiên AI con, để giữ ngữ cảnh của phiên chính cho các task sau (L-031).
+
+- Phiên con làm trong worktree riêng của nhánh task: `git worktree add ../task-T-NNN claude/T-NNN-<tu-khoa>`. Thư mục chính giữ sạch, để phiên chính làm việc khác song song: chạy `check.sh` nền, chờ `main-guard`, chuẩn bị task sau, viết báo cáo. Bộ nhớ đệm Gradle ở `~/.gradle` dùng chung nên không tải lại (L-034).
+- Nội dung giao việc tối thiểu: đường dẫn plan và worktree; danh sách file của mục 3.2 là ranh giới; thứ tự commit (test trước, rồi code); đẩy nhánh sau mỗi commit; điều kiện dừng (`risk-scoring.md` mục 4 và mục 7 của plan); báo cáo theo các dòng của nhật ký plan (Test viết trước, Lệch so với plan).
+- Phiên con xong: phiên chính kiểm `git diff --name-only origin/main...` khớp mục 3.2, đọc báo cáo, rồi giao rà soát độc lập (bước 6) cho một phiên khác. Xóa worktree sau khi merge (`git worktree remove`).
+- Không sửa file trong thư mục đang chạy `check.sh` nền: lần chạy đó kiểm một trạng thái lẫn lộn và phải chạy lại.
 
 ### Bước 4. Viết code
 
@@ -87,6 +96,20 @@ Mỗi task đi qua 10 bước theo thứ tự. Điều kiện dừng ở mục 4
 ### Bước 5. Kiểm tra cục bộ
 
 - Chạy `scripts/check.sh`. Script gồm quy tắc phụ thuộc module, ktlint, unit test, test giao diện trên JVM, screenshot test, Android Lint và build bản staging. CI dùng đúng script này, nên qua ở bước 5 thì thường cũng qua ở bước 8.
+- Những gì `scripts/check.sh` từ chối, để người viết plan và phiên thấy trước (L-013). Dòng có dấu * được `scripts/plan-check.py` dò trong plan (quy tắc 9): lỗi với plan `draft`, chú ý với plan `approved`.
+
+  | `check.sh` từ chối khi | Cách làm đúng |
+  | --- | --- |
+  | * Một lệnh `captureRoboImage` không ghi đường dẫn `"src/test/screenshots/<Tên>.png"` ngay sau dấu mở ngoặc, trên cùng dòng (không có đường dẫn, đường dẫn khác, tham số có tên, biến, xuống dòng) | Ghi thẳng chuỗi đường dẫn trong lệnh, dạng `captureRoboImage("src/test/screenshots/<Tên>.png")`. Không gói lệnh vào hàm phụ nhận đường dẫn |
+  | * Trên CI, thiếu ảnh chuẩn mà test chụp | Chạy `scripts/check.sh` trên máy để ghi ảnh mới, xem ảnh, commit cùng PR. Plan ghi ảnh mới ở mục 3.2 |
+  | * Ảnh chuẩn nằm ngoài `<module>/src/test/screenshots/` | Script chỉ tìm ảnh ở thư mục đó |
+  | Ảnh chuẩn đã có lệch với ảnh vẽ ra (`verifyRoborazzi`) | Chỉ ghi lại ảnh chuẩn khi plan cho phép |
+  | Module phụ thuộc sai quy tắc (`checkModuleDependencies`, ADR-0001) | Feature chỉ phụ thuộc core, core chỉ phụ thuộc core |
+  | Code sai định dạng (`ktlintCheck`) | Định dạng theo `.editorconfig` |
+  | Unit test hay test giao diện trên JVM thất bại (`testDebugUnitTest`, `testStagingDebugUnitTest`) | Sửa code, không sửa test |
+  | Android Lint báo lỗi (`:app:lintStagingDebug`) | Sửa code, không tắt quy tắc |
+  | Bản staging không build được (`:app:assembleStagingDebug`) | |
+  | Test của script thất bại (`scripts/tests/run.sh`); trên CI thiếu `python3` hay `jq` | |
 - So sánh danh sách file thay đổi thực tế với danh sách file trong plan. Có file ngoài danh sách thì dừng task.
 - Feature có thiết kế (`docs/features/<feature>/design/screens/`): chạy `scripts/design-compare.sh <feature>` sau `scripts/check.sh`. Kết quả trong `design/review/` để rà soát, không phải cổng chặn (ADR-0020). Ảnh thiết kế nào báo thiếu ảnh chuẩn screenshot là thiếu test, phải thêm theo plan.
 - Lỗi tải thư viện hay công cụ (mã 429, 5xx, hết thời gian chờ, mất kết nối) là lỗi hạ tầng, không phải lỗi của code, và không tính vào giới hạn 3 lần sửa. Phiên chạy qua đêm có thời gian, nên chờ lâu thay vì bỏ cuộc sớm: chạy lại sau 1, 2, 4, 8 rồi 15 phút (tổng khoảng 30 phút). Vẫn lỗi thì kết thúc phiên theo mục 4.
@@ -146,6 +169,7 @@ Nếu phiên rà soát và phiên viết code hiểu spec khác nhau, AI không 
 - Chỉ merge bằng `scripts/merge-if-green.sh <số PR>`. Script tự kiểm tra mọi điều kiện của cổng chất lượng và từ chối merge nếu thiếu điều kiện nào (ADR-0010). AI không merge bằng bất kỳ cách nào khác.
 - Script báo nhánh chưa cập nhật theo nhánh chính thì cập nhật nhánh, đợi CI chạy lại rồi gọi lại script.
 - Script từ chối vì lý do khác thì không tìm cách vượt qua, mà dừng task và ghi lý do vào nhật ký.
+- Script in mã commit mà nó kiểm và merge; đối chiếu với commit cuối đã đẩy. PR đã gửi người duyệt thì thay đổi mới làm trên một nhánh và PR mới, không đẩy thêm vào nhánh đang chờ merge (L-018).
 - Sau khi merge, chờ `main-guard` của commit merge: `scripts/wait-run.sh --workflow main-guard.yml --since <giờ merge>` ở chế độ nền, trong lúc làm bước 10 và bước 1, 2 của task sau. Commit merge chỉ đổi tài liệu thì `main-guard` không chạy (`paths-ignore`), không cần chờ.
 - Trước khi đẩy commit đầu tiên của task sau, phải có kết quả của lần chờ đó, rồi kiểm tra lại không có issue hay PR nào đang mở mang nhãn `main-broken`. Kiểm tra ngay sau khi merge là quá sớm: `main-guard` mất khoảng 5 đến 12 phút (gấp đôi khi nó chạy lại test thất bại), và issue chỉ được mở khi nó xong (L-028).
 - Có issue `main-broken`: commit gây lỗi (dòng `<!-- culprit:<sha> -->` trong thân issue) là commit merge của một task chính phiên đã merge thì làm theo mục Khi nhánh chính đỏ vì task của phiên; commit khác thì kết thúc phiên (mục 4).
@@ -269,6 +293,8 @@ Mỗi phiên là một lần học. Bài học được ghi trong phiên, quyế
 - Một cách làm hiệu quả đáng ghi thành hướng dẫn cho lần sau.
 
 Mỗi bài học ghi: chuyện gì đã xảy ra, bằng chứng (log, PR, thời gian), đề xuất sửa tài liệu nào và sửa gì, loại và phạm vi theo [lessons.md](lessons.md). PR báo cáo thêm các bài học này vào sổ với trạng thái `proposed`.
+
+**Số bài học:** bài học thêm ngoài phiên (phiên có người theo dõi, PR cải tiến) có thể trùng số với bài học mà phiên thêm cùng lúc. Trước khi merge PR thêm bài học, gộp nhánh chính mới nhất và đổi số bài học của PR (cùng mọi chỗ nhắc tới nó) thành số tiếp theo của sổ. `scripts/status.py` báo lỗi khi một số dùng hai lần (L-042).
 
 **Phiên kiểm chứng bài học cũ:** đọc các bài học `applied` trong sổ; bài học nào liên quan tới việc phiên vừa làm thì ghi vào báo cáo cải tiến đó có hiệu quả hay không, kèm bằng chứng, và cập nhật dòng **Kiểm chứng** trong sổ.
 

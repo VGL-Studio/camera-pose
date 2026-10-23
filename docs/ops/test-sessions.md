@@ -32,7 +32,7 @@ scripts/device-session.sh stop
 - `start` xóa log cũ của máy, bắt đầu ghi toàn bộ logcat (mọi bộ đệm, kể cả crash và log hệ thống), tạo thư mục `test-sessions/TS-YYYYMMDD-NN/` với `session.md` (máy, Android, phiên bản app) và `notes.md` để ghi chú.
 - Trong lúc thử, ghi vào `notes.md`: định thử gì, đã làm gì lúc mấy giờ, thấy lạ lúc mấy giờ. Giờ giúp AI tìm đúng đoạn log. Không ghi dữ liệu cá nhân. `stop` nhắc nếu file còn trống.
 - Muốn thử lần mở đầu như vừa cài: `scripts/device-session.sh reset` (sau `start`). Lệnh xóa dữ liệu của app và ghi dấu `action=clear_data` vào log, để AI biết từ đâu là lần mở đầu. Đừng xóa dữ liệu bằng tay trong Cài đặt: log không ghi lại việc đó.
-- Mã phiên `TS-YYYYMMDD-NN` không trùng thư mục nào trên máy và báo cáo nào trong `docs/test-sessions/` (kể cả phiên emulator của CI).
+- Mã phiên `TS-YYYYMMDD-NN` không trùng thư mục nào trên máy, báo cáo nào trong `docs/test-sessions/`, và mã nào được nhắc trong báo cáo phiên tự chạy `docs/runs/*.md` (phiên emulator của CI có khi chỉ được ghi trong báo cáo phiên, không có báo cáo riêng; L-026 của camera-pose). Kéo nhánh chính mới nhất trước khi `start` để script thấy các báo cáo này.
 - `stop` dừng ghi, lấy thêm số liệu khung hình (`gfxinfo`), bộ nhớ (`meminfo`), crash và ANR của hệ thống, rồi viết `summary.md` đếm crash, ANR, lỗi của app. Lệnh trả mã 1 khi có crash hay ANR.
 
 Muốn chạy kịch bản chuẩn trên chính máy này (khởi động nguội ba lần, mở lần đầu khi mất mạng, bấm ngẫu nhiên vài phút), giữa `start` và `stop`:
@@ -42,6 +42,10 @@ scripts/device-session.sh scenarios --yes
 ```
 
 Lệnh này **xóa dữ liệu của app** và bật, tắt chế độ máy bay; chỉ chạy trên máy thử.
+
+**Quyền của app trong kịch bản chuẩn.** Xóa dữ liệu cũng thu hồi các quyền runtime (camera, micro, thông báo...). App hỏi quyền ở màn đầu thì hộp hỏi quyền còn mở sau một lần mở nguội sẽ che lần mở sau: lần đo trả `total_ms=0` và log không có dòng nào của app (L-009 của camera-pose). Vì vậy, sau mỗi lần xóa dữ liệu, kịch bản cấp sẵn mọi quyền runtime mà app khai báo (đọc mục `runtime permissions:` của `adb shell dumpsys package <gói>`, rồi `adb shell pm grant <gói> <quyền>` cho từng quyền) và ghi vào `scenarios.txt` một dòng `permissions granted=CAMERA,...`. Quyền nào máy từ chối cấp thì ghi ở `failed=...`; khi đó các lần mở nguội có thể vẫn bị hộp hỏi quyền che.
+
+Muốn thử chính luồng hỏi quyền (người dùng đồng ý, từ chối, từ chối hẳn) thì chạy `scripts/device-session.sh scenarios --yes --ask-permissions`: kịch bản không cấp quyền, `scenarios.txt` ghi `permissions ask`. Khi đó số đo khởi động nguội sau lần đầu không dùng được. Thử tay luồng này thì dùng `reset` (lệnh này không cấp quyền), rồi ghi lựa chọn của mình vào `notes.md`.
 
 Thư mục `test-sessions/` không vào git: log thô lớn và có thể chứa thông tin của máy. Giữ trên máy dev cho tới khi phân tích xong.
 
@@ -64,7 +68,7 @@ Người xem báo cáo trước khi commit, nhất là các trích đoạn log.
 
 ## 4. Kịch bản trên emulator trước khi phát staging
 
-Cuối mỗi phiên tự chạy có task được merge, trước `staging.yml`, phiên khởi động `device-session.yml` (`docs/auto-run.md`, mục 4). Workflow build đúng bản staging sẽ phát, cài lên emulator API 34, chạy `start`, `scenarios --yes`, `stop`, và lưu thư mục phiên thành artifact `device-session` trong 7 ngày.
+Cuối mỗi phiên tự chạy có task được merge, trước `staging.yml`, phiên khởi động `device-session.yml` (`docs/auto-run.md`, mục 4). Workflow build đúng bản staging sẽ phát, cài lên emulator API 34, chạy `start`, `scenarios --yes` (cấp sẵn quyền runtime, mục 2), `stop`, và lưu thư mục phiên thành artifact `device-session` trong 7 ngày.
 
 - **Có crash hoặc ANR:** workflow đỏ, phiên không phát bản staging, ghi phát hiện vào báo cáo phiên và soạn sẵn phản hồi mức chặn.
 - **Không có:** phiên phát staging, ghi tóm tắt và các phát hiện khác (lỗi đã bắt, lệch kịch bản) vào báo cáo phiên.

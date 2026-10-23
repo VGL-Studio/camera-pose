@@ -76,7 +76,7 @@ Tên ảnh là `<Ten>Screen_<trạng thái>_<light|dark>.png`, trùng tên ảnh
 scripts/figma-export.py "<link section>" <feature>
 ```
 
-Script gọi REST API của Figma, ghi `screens/<frame>.png` ở mức 3x (kiểm tra đúng 1233 x 2673, hay 2019 x 2523 với frame `_unfolded`) và `context/<frame>.md` (bố cục, khoảng cách, màu, chữ, đối chiếu với `tokens.json`). Frame có tên khác quy tắc bị bỏ qua, nên các bản nháp để cùng section không sao. REST API không bị giới hạn như Figma MCP, nên dùng được cả với gói Starter.
+Script gọi REST API của Figma, ghi `screens/<frame>.png` ở mức 3x (kiểm tra đúng 1233 x 2673, hay 2019 x 2523 với frame `_unfolded`) và `context/<frame>.md` (bố cục, khoảng cách, màu, chữ, độ mờ, đối chiếu với `tokens.json`). Độ mờ được ghi cả của lớp tô (ví dụ `nền #1D1B20 (độ mờ 0.12, lớp tô 0.12)`) và của cả phần tử (`độ mờ của lớp 0.38`, như nút ở trạng thái tắt), để không phải ghi tay trong README (L-023 của camera-pose). Instance ghi đè màu nền, viền hay độ mờ của component gốc có dòng "CHÚ Ý: ghi đè ... của component gốc". Frame có tên khác quy tắc bị bỏ qua, nên các bản nháp để cùng section không sao; frame có tên gần đúng (chứa `Screen_` nhưng sai dạng) được in ra kèm "CHÚ Ý: bỏ qua frame", để frame bị đổi tên không lặng lẽ mất khỏi gói. REST API không bị giới hạn như Figma MCP, nên dùng được cả với gói Starter.
 
 Token: Figma > **Settings > Security > Personal access tokens > Generate new token**, chỉ chọn quyền **File content: Read-only**, hạn ngắn nhất đủ dùng. Lưu vào biến môi trường của máy, không lưu vào repo hay routine:
 
@@ -155,7 +155,8 @@ AI đọc file qua MCP (chỉ đọc) và báo:
 - Màu, cỡ chữ, khoảng cách viết cứng thay vì dùng biến.
 - Frame bị đổi tên hay đổi khung khác 411 x 891 (673 x 841 với frame `_unfolded`), làm `figma-export.py` và screenshot test không khớp.
 - Phông chữ, kiểu chữ nằm ngoài hệ thống.
-- Màn hình hay trạng thái trong bản đề xuất còn thiếu.
+- Màn hình hay trạng thái trong bản đề xuất còn thiếu, hoặc tên khác. So từng dòng: lập danh sách tên frame (màn hình, trạng thái, sáng tối, `_unfolded`) mà bản đề xuất và ADR-0020 yêu cầu, lập danh sách tên frame đang có trên Figma, rồi báo frame thiếu, frame thừa và frame tên lệch (ví dụ màn gập đặt tên khác ADR-0020; L-023 của camera-pose).
+- Instance có giá trị tô khác component gốc: màu nền, viền hay độ mờ bị ghi đè trên instance, hoặc độ mờ của lớp tô mất khi gắn biến (đã gặp 56 chỗ ở camera-pose). Với mỗi instance, so `fills`, `strokes`, `opacity` (và `opacity` của từng lớp tô) với component gốc; khác nhau thì báo tên instance, frame chứa nó và hai giá trị. `figma-export.py` cũng đánh dấu instance ghi đè trong `context/`, nhưng chỉ cho frame được xuất.
 
 Giá trị mới dev muốn giữ thì AI đưa vào biến hay component, rồi áp lại cho các màn hình. Khi quét sạch và dev hài lòng, người phụ trách sản phẩm duyệt (mục 3) và đi tiếp mục 4 như mọi app.
 

@@ -379,6 +379,7 @@ Người làm: người phụ trách nội dung (dev chỉ định, mục 12). �
 
 - Catalog: `poses/catalog/v<n>/catalog-<sha8>.json`, có `datasetVersion`, `minAppSchema`, danh sách nhóm và tư thế. App biết đường dẫn catalog mới qua một tham số trong `RemoteSettings`; nội dung đổi thì đường dẫn đổi.
 - Ảnh: `poses/img/<poseId>/<sha8>/preview_540.webp`, `preview_1200.webp`, `outline.webp` (WebP không mất dữ liệu, có kênh trong suốt).
+  - Ghi chú 2026-10-23 (L-025): khuôn trên bị `AssetPath` từ chối (ADR-0015, thư mục mã băm không được coi là phiên bản). Đường dẫn thật theo plan T-009: `poses/img/<poseId>/preview_540-<sha8>.webp`, `preview_1200-<sha8>.webp`, `outline-<sha8>.webp`, mỗi file mã băm của chính nó.
 - Mỗi tư thế: `id`, `category`, `subjectType` (một người, cặp đôi, nhóm), `gender`, `framing`, `tags`, `difficulty`, `name` và `steps` theo ngôn ngữ, `mistakes`, `preview`, `outline`, `keypoints` (33 điểm, tùy chọn). Khuôn gộp từ PoseMate, PoseCamera, SimplePose (APK, Gợi ý kỹ thuật 2).
 - Không đóng gói tư thế trong APK. Bộ khởi đầu (60 tư thế: catalog, ảnh nhỏ, nét viền) tải từ R2 ở lần mở đầu tiên, trong màn loading, và giữ trên máy (ADR-0015); các lần mở sau chỉ tải phần mới. Tải qua `RemoteAssets.load(AssetPath(...))`, gọi từ ViewModel; kết quả `Unavailable` đưa vào `UiState` với nút thử lại; nếu do mất mạng thì hiện hộp thoại lỗi mạng.
 - File mượn chỉ ở R2 staging, dưới `borrowed/poses/...`.

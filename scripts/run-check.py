@@ -13,6 +13,7 @@ documents behind it, the mistakes that stopped or slowed earlier sessions:
   4. Every scenario of the ticket appears in section 4 of the plan; a scenario with fewer test rows
      than acceptance criteria in the spec is a warning.
   5. Two plans of the list that change the same file without depending on each other (L-014): a warning.
+     Two plans that both create one file, dependent or not (L-033): a warning; one creates it, the other reuses it.
   6. A list that is a single dependency chain (L-015), and exceptions to test-first: warnings for people.
 RUN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
@@ -122,7 +123,7 @@ def check(run_path):
     if not rows:
         return ["mục 1 không có dòng nào đúng mẫu (Thứ tự | Ticket | Feature | Plan | ...)."], []
     in_list = [ticket for ticket, _ in rows]
-    depends, files_of = {}, {}
+    depends, files_of, created_by = {}, {}, {}
 
     for position, (ticket, plan_ref) in enumerate(rows):
         plan = DOCS / plan_ref
@@ -137,6 +138,9 @@ def check(run_path):
         for message in plan_errors:
             errors.append(f"{ticket}: plan-check: {message}")
         files_of[ticket] = {path for op, path in PLAN_CHECK.file_list(plan_text) if not path.endswith("/")}
+        for op, path in PLAN_CHECK.file_list(plan_text):
+            if op == "create" and not path.endswith("/"):
+                created_by.setdefault(path, []).append(ticket)
 
         ticket_path = ticket_file(ticket)
         if ticket_path is None:
@@ -188,6 +192,10 @@ def check(run_path):
             if shared and not related:
                 warnings.append(f"{first} và {second} cùng sửa {', '.join(shared[:3])}"
                                 f"{' ...' if len(shared) > 3 else ''} mà không phụ thuộc nhau (L-014).")
+    for path, tickets in sorted(created_by.items()):
+        if len(tickets) > 1:
+            warnings.append(f"{' và '.join(tickets)} cùng ghi Tạo {path}: chỉ một plan tạo file này, plan sau ghi Sửa "
+                            "hoặc dùng lại, và hai plan phải thống nhất nội dung trước khi duyệt (L-033).")
     independent = [t for t in in_list if not set(depends.get(t, [])) & set(in_list)]
     if len(in_list) > 1 and len(independent) == 1:
         warnings.append("danh sách chỉ có một chuỗi phụ thuộc: một task dừng thì các task sau bị bỏ qua (L-015).")

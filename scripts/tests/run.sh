@@ -300,6 +300,31 @@ expect "figma-export: an unfolded frame of the right size has no size note" 0 \
 expect "figma-export: an unfolded frame of the phone size is flagged" 1 \
   "$(grep -c 'CHÚ Ý: khung không phải 673 x 841' "$fold_context/LoadingScreen_failed_dark_unfolded.md")"
 expect "figma-export: spacing matched" 1 "$(grep -c 'cách nhau 16 (md)' "$context/LoadingScreen_failed_light.md")"
+# Opacity of a paint and of a layer, and instances overriding their component's fills, are written (L-023).
+python3 -I - scripts/tests/fixtures/figma-nodes.json "$work/figma-opacity.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1]))
+frame = next(c for c in data["children"] if c["name"] == "LoadingScreen_failed_light")
+title = frame["children"][0]
+title["opacity"] = 0.38
+button = {"id": "1:7", "name": "Retry", "type": "INSTANCE", "componentId": "5:1",
+          "absoluteBoundingBox": {"x": 160, "y": 400, "width": 120, "height": 40},
+          "fills": [{"type": "SOLID", "opacity": 0.12, "color": {"r": 0.114, "g": 0.106, "b": 0.125, "a": 1}}],
+          "overrides": [{"id": "1:7", "overriddenFields": ["fills", "name"]}]}
+frame["children"].append(button)
+near = dict(frame, id="9:9", name="LoadingScreen_failed", children=[])
+data["children"].append(near)
+json.dump(data, open(sys.argv[2], "w"))
+PY
+FIGMA_EXPORT_FEATURES_DIR="$work/opacity" FIGMA_EXPORT_TOKENS=scripts/tests/fixtures/tokens.json \
+  python3 -I scripts/figma-export.py --offline "$work/figma-opacity.json" loading > /dev/null 2> "$work/figma-opacity.err"
+opacity_context="$work/opacity/loading/design/context/LoadingScreen_failed_light.md"
+expect "figma-export: layer opacity is written" 2 "$(grep -cE 'độ mờ của lớp (0.38|\| 0.38)' "$opacity_context")"
+expect "figma-export: paint opacity is named apart" 1 "$(grep -c 'nền #1D1B20 (độ mờ 0.12, lớp tô 0.12)' "$opacity_context")"
+expect "figma-export: an instance overriding its component's fills is flagged" 2 \
+  "$(grep -cE 'CHÚ Ý: ghi đè màu nền của component gốc|\| instance ghi đè component \| Retry \| màu nền \|' "$opacity_context")"
+expect "figma-export: a frame named almost like a screen is reported" 1 \
+  "$(grep -c 'bỏ qua frame "LoadingScreen_failed"' "$work/figma-opacity.err")"
 
 # release.sh must refuse a release folder that is incomplete or holds staging/test values, before touching git.
 release_dir="$work/release"
@@ -489,6 +514,47 @@ expect "plan-check: names the missing library" 1 "$(grep -c 'com.squareup.okhttp
 write_plan "$plans/T-927-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Dùng `androidx.core:core-ktx` (`libs.androidx.core.ktx`).'
 expect "plan-check: a library already in the catalog passes" pass "$(plan_check "$plans/T-927-a.md")"
 rm "$repo/feature/demo/AndroidManifest.xml" "$repo/app/src/main/AndroidManifest.xml" "$repo/gradle/libs.versions.toml"
+# What scripts/check.sh refuses shows up in the plan (rule 9, L-013). The Kotlin quotes are plan text.
+# shellcheck disable=SC2016
+shot='Test gọi `captureRoboImage("src/test/screenshots/DemoNew.png")`.'
+# shellcheck disable=SC2016
+refused='Test gọi `captureRoboImage("DemoNew.png")`.'
+write_plan "$plans/T-928-a.md" medium draft "$(row Sửa feature/demo/A.kt)" "$refused"
+expect "plan-check: captureRoboImage outside src/test/screenshots stops" stop "$(plan_check "$plans/T-928-a.md")"
+expect "plan-check: names the refused captureRoboImage" 1 "$(grep -c 'captureRoboImage("DemoNew.png")' "$work/plan-check.out")"
+write_plan "$plans/T-929-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  $'```kotlin\ncaptureRoboImage(\n    "src/test/screenshots/DemoNew.png",\n)\n```'
+expect "plan-check: captureRoboImage with the path on the next line stops" stop "$(plan_check "$plans/T-929-a.md")"
+write_plan "$plans/T-930-a.md" medium draft "$(row Sửa feature/demo/A.kt)" "$shot"
+expect "plan-check: a new reference image missing from the file list stops" stop "$(plan_check "$plans/T-930-a.md")"
+expect "plan-check: names the missing reference image" 1 "$(grep -c 'ảnh chuẩn DemoNew.png' "$work/plan-check.out")"
+write_plan "$plans/T-931-a.md" medium draft \
+  "$(row Sửa feature/demo/A.kt)"$'\n'"$(row Tạo feature/demo/src/test/screenshots/DemoNew.png)" "$shot"
+expect "plan-check: a new reference image in the file list passes" pass "$(plan_check "$plans/T-931-a.md")"
+touch "$repo/feature/demo/src/test/screenshots/DemoOld.png"
+# shellcheck disable=SC2016
+write_plan "$plans/T-932-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  'Gọi `captureRoboImage("src/test/screenshots/DemoOld.png")` và `captureRoboImage("src/test/screenshots/<Tên>.png")`.'
+expect "plan-check: an existing reference image and a placeholder pass" pass "$(plan_check "$plans/T-932-a.md")"
+write_plan "$plans/T-933-a.md" medium draft "$(row Tạo feature/demo/src/test/DemoNew.png)"
+expect "plan-check: a reference image outside src/test/screenshots stops" stop "$(plan_check "$plans/T-933-a.md")"
+write_plan "$plans/T-934-a.md" medium approved "$(row Sửa feature/demo/A.kt)" \
+  "$refused"$'\n\n'"$decision_v1"
+expect "plan-check: an approved plan refused by check.sh only warns" pass "$(plan_check "$plans/T-934-a.md")"
+expect "plan-check: warns about the refused captureRoboImage" 1 "$(grep -c 'CHÚ Ý: plan ghi captureRoboImage' "$work/plan-check.out")"
+# The ticket's status follows the plan's (rule 10, L-019).
+printf -- '---\nid: T-935\nstatus: planned\n---\n' > "$repo/docs/features/demo/tickets/T-935-a.md"
+write_plan "$plans/T-935-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$decision_v1"
+expect "plan-check: a ticket behind its approved plan only warns" pass "$(plan_check "$plans/T-935-a.md")"
+expect "plan-check: points to status.py --sync" 1 "$(grep -c "ticket T-935 còn 'planned'. Chạy scripts/status.py --sync" "$work/plan-check.out")"
+printf -- '---\nid: T-936\nstatus: approved\n---\n' > "$repo/docs/features/demo/tickets/T-936-a.md"
+write_plan "$plans/T-936-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+plan_check "$plans/T-936-a.md" > /dev/null
+expect "plan-check: warns about a ticket approved before its plan" 1 "$(grep -c 'ticket T-936 đã approved khi plan còn draft' "$work/plan-check.out")"
+printf -- '---\nid: T-937\nstatus: approved\n---\n' > "$repo/docs/features/demo/tickets/T-937-a.md"
+write_plan "$plans/T-937-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$decision_v1"
+plan_check "$plans/T-937-a.md" > /dev/null
+expect "plan-check: a ticket in step with its plan gets no warning" 0 "$(grep -c 'ticket T-937' "$work/plan-check.out")"
 
 # run-check.py checks a whole run list: specs confirmed and answered, dependencies in order, scenarios tested.
 rr="$work/run-repo"
@@ -502,9 +568,9 @@ write_ticket() { # <id> <depends>
   printf -- '---\nid: %s\nstatus: approved\nspec: features/demo/spec.md\nscenarios: [KB-1]\ndepends_on: [%s]\n---\n' \
     "$1" "$2" > "$rr/docs/features/demo/tickets/$1-x.md"
 }
-write_run_plan() { # <id> <file> <test row>
-  printf -- '---\nticket: %s\nstatus: approved\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| Sửa | `%s` | x |\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
-    "$1" "$2" "$3" > "$rr/docs/features/demo/plans/$1-x.md"
+write_run_plan() { # <id> <file> <test row> [operation]
+  printf -- '---\nticket: %s\nstatus: approved\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| %s | `%s` | x |\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
+    "$1" "${4:-Sửa}" "$2" "$3" > "$rr/docs/features/demo/plans/$1-x.md"
 }
 write_run() { # <rows>
   printf -- '---\nstatus: draft\n---\n\n## 1. Danh sách chạy\n\n| Thứ tự | Ticket | Feature | Plan | Rủi ro | Phụ thuộc | Ghi chú |\n| --- | --- | --- | --- | --- | --- | --- |\n%b\n\n## 2. Kiểm tra\n' \
@@ -536,6 +602,16 @@ write_run_plan T-002 feature/demo/A.kt '| Khác | Unit | `bTest` |'
 expect "run-check: a scenario without a test row stops" stop "$(run_check)"
 write_run_plan T-002 feature/demo/A.kt '| KB-1 | Unit | `bTest` |'
 expect "run-check: two independent plans changing one file warn" 1 "$(run_check > /dev/null; grep -c 'L-014' "$work/run-check.out")"
+# Two plans that both create one file, even dependent ones: only one may create it, the other reuses it (L-033).
+write_ticket T-002 'T-001'
+write_run_plan T-001 feature/demo/New.kt '| KB-1 | Unit | `aTest` |' Tạo
+write_run_plan T-002 feature/demo/New.kt '| KB-1 | Unit | `bTest` |' Tạo
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+expect "run-check: two plans creating one file warn" 1 "$(run_check > /dev/null; grep -c 'cùng ghi Tạo feature/demo/New.kt' "$work/run-check.out")"
+write_run_plan T-002 feature/demo/New.kt '| KB-1 | Unit | `bTest` |' Sửa
+expect "run-check: a later plan that changes the created file does not warn" 0 \
+  "$(run_check > /dev/null; grep -c 'cùng ghi Tạo' "$work/run-check.out")"
+write_ticket T-002 ''
 
 # token-usage.py counts tokens per task from transcripts, one usage per request, never failing the session.
 tokens="$work/token-repo"
@@ -563,11 +639,48 @@ expect "token-usage: other branches are shared" 1 "$(grep -c '^| Chung (ngoài t
 token_usage report --since '2026-10-18 00:00 UTC' --run RUN-20261018-01 --csv docs/metrics/t.csv > /dev/null
 expect "token-usage: running again (started_at form) replaces the rows of the run" 3 "$(wc -l < "$tokens/docs/metrics/t.csv" | tr -d ' ')"
 expect "token-usage: the csv keeps the estimate and the total" 1 \
-  "$(grep -c '^RUN-20261018-01,2026-10-18,T-031,M,2000,2,20,200,2000,180,2400$' "$tokens/docs/metrics/t.csv")"
+  "$(grep -c '^RUN-20261018-01,2026-10-18,T-031,M,2000,2,20,200,2000,180,2400,$' "$tokens/docs/metrics/t.csv")"
 expect "token-usage: no transcripts is not a failure" 0 \
   "$(TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/none" python3 -I scripts/token-usage.py report > /dev/null; echo $?)"
 expect "token-usage: estimate falls back to the starting value" 1 \
-  "$(token_usage estimate --csv docs/metrics/t.csv | grep -c '^| M | 1 | 2k | 20.0M (tạm')"
+  "$(token_usage estimate --csv docs/metrics/t.csv | grep -c '^| M | 1 | 2k | 15.0M (tạm')"
+expect "token-usage: starting estimates are S 5M, M 15M, L 30M (L-021)" "5.0M 15.0M 30.0M" \
+  "$(token_usage estimate --csv docs/metrics/none.csv | sed -n 's/^| [SML] | 0 | - | \([0-9.]*M\) (tạm.*/\1/p' | xargs)"
+# The cloud session credit of a run goes on its shared row, once, and survives measuring the run again (L-020).
+expect "token-usage: credit needs a measured run" 1 "$(token_usage credit --run RUN-0 --usd 1 --csv docs/metrics/t.csv > /dev/null; echo $?)"
+expect "token-usage: credit must be a number" 2 "$(token_usage credit --run RUN-20261018-01 --usd abc --csv docs/metrics/t.csv > /dev/null; echo $?)"
+token_usage credit --run RUN-20261018-01 --usd 9.5 --csv docs/metrics/t.csv > /dev/null
+expect "token-usage: credit is written on the shared row only" "1 0" \
+  "$(grep -c '^RUN-20261018-01,2026-10-18,chung,.*,9.5$' "$tokens/docs/metrics/t.csv") $(grep -c '^RUN-20261018-01,2026-10-18,T-031,.*,9.5$' "$tokens/docs/metrics/t.csv")"
+token_usage report --since 2026-10-18T00:00:00Z --run RUN-20261018-01 --csv docs/metrics/t.csv > /dev/null
+expect "token-usage: measuring the run again keeps its credit" 1 "$(grep -c ',chung,.*,9.5$' "$tokens/docs/metrics/t.csv")"
+expect "token-usage: estimate shows the credit per million tokens" 1 \
+  "$(token_usage estimate --csv docs/metrics/t.csv | grep -c '^Credit đã dùng: 9.5 USD cho 4k token ở 1 phiên, khoảng 2638.89 USD mỗi 1M token.$')"
+printf 'run,date,task,size,estimate,requests,input,cache_write,cache_read,output,total\nRUN-1,2026-10-01,T-001,S,,1,1,1,1,1,4\n' \
+  > "$tokens/docs/metrics/old.csv"
+token_usage credit --run RUN-1 --usd 3 --csv docs/metrics/old.csv > /dev/null
+expect "token-usage: an old csv without the credit column is extended, rows kept" \
+  "run,date,task,size,estimate,requests,input,cache_write,cache_read,output,total,credit_usd|RUN-1,2026-10-01,T-001,S,,1,1,1,1,1,4,|RUN-1,2026-10-01,chung,,,0,0,0,0,0,0,3" \
+  "$(paste -sd '|' "$tokens/docs/metrics/old.csv")"
+# Transcripts are found by the repository's name and by its git worktrees, not only by its folder (L-008).
+{
+  usage_line w1 claude/T-031-loading 2026-10-18T02:00:00Z 90 /home/user/token-repo
+  usage_line w2 claude/T-031-loading 2026-10-18T02:00:00Z 90 /home/user/token-repo/app
+  usage_line w3 claude/T-031-loading 2026-10-18T02:00:00Z 90 /home/user/token-repo-other
+  usage_line w4 claude/T-031-loading 2026-10-18T02:00:00Z 90 /home/user/camera-pose
+} > "$work/by-name.jsonl"
+expect "token-usage: a checkout elsewhere with the repository's name is counted" 1 \
+  "$(token_usage report --transcripts "$work/by-name.jsonl" | grep -c '^| T-031 | M | 2k | 2k | 1.2x | 2 |')"
+expect "token-usage: TOKEN_USAGE_REPO sets the repository's name" 1 \
+  "$(TOKEN_USAGE_REPO=camera-pose token_usage report --transcripts "$work/by-name.jsonl" | grep -c '^| T-031 | M | 2k | 1k | 0.6x | 1 |')"
+wt_repo="$work/wt-main"
+mkdir -p "$wt_repo"
+git -C "$wt_repo" init -q
+git -C "$wt_repo" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m init
+git -C "$wt_repo" worktree add -q "$work/wt-report" 2> /dev/null
+usage_line k1 claude/RUN-1-report 2026-10-18T02:00:00Z 90 "$work/wt-report" > "$work/worktree.jsonl"
+expect "token-usage: a worktree of the repository is counted" 1 \
+  "$(TOKEN_USAGE_ROOT="$wt_repo" python3 -I scripts/token-usage.py report --transcripts "$work/worktree.jsonl" | grep -c '^| Chung (ngoài task) | - | - | 1k | - | 1 |')"
 
 # status.py builds the progress page from the statuses in the documents.
 st="$work/status-repo/docs"
@@ -596,6 +709,42 @@ expect "status: request shows tickets done" 1 "$(grep -c '| demo | .specified. �
 expect "status: ticket row has plan, estimate and runs" 1 \
   "$(grep -c '^| \[T-001\](features/demo/tickets/T-001-mot.md) | Một | .on-staging. | .done. (bản 2) | - | RUN-20261004-01 |$' "$page")"
 expect "status: check passes on a fresh page" 0 "$(status_page --check > /dev/null; echo $?)"
+# status.py --sync moves each ticket's status after its plan's (L-019).
+sy="$work/sync-repo/docs/features/demo"
+mkdir -p "$sy/tickets" "$sy/plans"
+sync_case() { # <id> <ticket status> <plan status>
+  printf -- '---\ntitle: X\nstatus: %s   # backlog | ready | planned\n---\n\n# %s\n' "$2" "$1" > "$sy/tickets/$1-x.md"
+  printf -- '---\nstatus: %s\nversion: 1\n---\n' "$3" > "$sy/plans/$1-x.md"
+}
+ticket_status() { sed -n 's/^status: \([a-z-]*\).*/\1/p' "$sy/tickets/$1-x.md"; }
+sync_case T-001 planned approved
+sync_case T-002 stopped approved
+sync_case T-003 approved stopped
+sync_case T-004 on-staging stopped
+sync_case T-005 approved draft
+sync_case T-006 approved approved
+STATUS_ROOT="$work/sync-repo" python3 -I scripts/status.py --sync > "$work/sync.out"
+expect "status --sync: approved plan moves a planned ticket to approved" approved "$(ticket_status T-001)"
+expect "status --sync: approved new plan version moves a stopped ticket back to approved" approved "$(ticket_status T-002)"
+expect "status --sync: stopped plan stops the ticket" stopped "$(ticket_status T-003)"
+expect "status --sync: a ticket already on staging stays" on-staging "$(ticket_status T-004)"
+expect "status --sync: a draft plan leaves the ticket for people" approved "$(ticket_status T-005)"
+expect "status --sync: keeps the comment after the status" 6 "$(grep -c '   # backlog | ready | planned$' "$sy"/tickets/*.md | awk -F: '{s += $2} END {print s}')"
+expect "status --sync: names each change" 3 "$(grep -c ' -> ' "$work/sync.out")"
+expect "status --sync: writes the page" 0 "$(STATUS_ROOT="$work/sync-repo" python3 -I scripts/status.py --check > /dev/null; echo $?)"
+STATUS_ROOT="$work/sync-repo" python3 -I scripts/status.py --sync > "$work/sync.out"
+expect "status --sync: a second run changes nothing" 0 "$(grep -c ' -> ' "$work/sync.out")"
+# The lessons of an app may use "L-NNN:" and a status line with more fields; both forms are counted.
+# A lesson number used twice (two branches adding lessons at once) stops the script (L-042).
+cp "$st/lessons.md" "$work/lessons.bak"
+printf -- '# SỔ\n\n### L-001. Một bài\n\n- **Trạng thái:** proposed\n\n### L-002: Bài của app\n\n- **Trạng thái:** accepted. **Loại:** quy trình.\n' > "$st/lessons.md"
+status_page > /dev/null
+expect "status: lessons written as L-NNN: are counted" 1 "$(grep -c 'lessons.md)): 2 bài; 1 .accepted., 1 .proposed.' "$page")"
+printf -- '\n### L-002: Bài trùng số\n\n- **Trạng thái:** proposed\n' >> "$st/lessons.md"
+expect "status: a lesson number used twice stops" 1 "$(status_page > "$work/status.out" 2>&1; echo $?)"
+expect "status: names the duplicate lesson number" 1 "$(grep -c 'L-002' "$work/status.out")"
+cp "$work/lessons.bak" "$st/lessons.md"
+status_page > /dev/null
 
 # foundation.py builds docs/foundation.md from the rule section of the ADRs.
 fd="$work/foundation-repo/docs/adr"
@@ -656,7 +805,7 @@ chmod +x "$work/bin/adb"
 fixtures=scripts/tests/fixtures/device-session
 session() { # <logcat fixture> <command...>; prints the exit code
   local code=0
-  PATH="$work/bin:$PATH" DEVICE_SESSION_DIR="$work/sessions" DEVICE_SESSION_REPORTS="$work/reports" \
+  PATH="$work/bin:$PATH" DEVICE_SESSION_DIR="$work/sessions" DEVICE_SESSION_REPORTS="$work/reports" DEVICE_SESSION_RUNS="$work/runs" \
     APP_PACKAGE=com.example.app.staging \
     FAKE_ADB_LOGCAT="$1" scripts/device-session.sh "${@:2}" > "$work/session.out" 2>&1 || code=$?
   echo "$code"
@@ -688,9 +837,20 @@ cp "$fixtures/logcat-clean.txt" "$work/clean/logcat.txt"
 expect "device-session: a clean session is not blocking" 0 "$(session /dev/null summary "$work/clean" com.example.app.staging)"
 # The offline scenario turns every radio off and runs only when the device really has no network (L-031).
 export DEVICE_SESSION_SLEEP=0 FAKE_ADB_CALLS="$work/adb-calls.txt"
+# An emulator session named only in an auto-run report keeps its id (L-026 of camera-pose).
+mkdir -p "$work/runs"
+printf 'Kiểm thử trên máy ảo: phiên TS-%s-04, không có báo cáo riêng.\n' "$(date +%Y%m%d)" > "$work/runs/RUN-1.md"
+# Runtime permissions are granted after each data clear, so a prompt left open does not cover a cold start (L-009).
+export FAKE_ADB_RUNTIME_PERMISSIONS="android.permission.CAMERA android.permission.POST_NOTIFICATIONS"
 expect "device-session: scenarios run offline" 0 \
   "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null; session /dev/null scenarios --yes)"
 offline="$(find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1)"
+expect "device-session: an id named in an auto-run report is skipped" "TS-$(date +%Y%m%d)-05 no" \
+  "$(basename "$offline") $([[ -e "$work/sessions/TS-$(date +%Y%m%d)-04" ]] && echo yes || echo no)"
+expect "device-session: every runtime permission is granted after each data clear" "2 2 0" \
+  "$(grep -c '^shell pm grant com.example.app.staging android.permission.CAMERA$' "$FAKE_ADB_CALLS") $(grep -c 'pm grant .*POST_NOTIFICATIONS$' "$FAKE_ADB_CALLS") $(grep -c 'pm grant .*INTERNET' "$FAKE_ADB_CALLS")"
+expect "device-session: granted permissions are recorded" 2 \
+  "$(grep -c '^permissions granted=CAMERA,POST_NOTIFICATIONS$' "$offline/scenarios.txt")"
 expect "device-session: Wi-Fi and mobile data are turned off, then on" "4" \
   "$(grep -cE '^shell svc (wifi|data) (disable|enable)$' "$FAKE_ADB_CALLS")"
 expect "device-session: the offline launch is recorded" 1 "$(grep -c 'offline_first_launch network=off' "$offline/scenarios.txt")"
@@ -704,7 +864,19 @@ expect "device-session: the skipped offline launch is recorded" 1 \
 session /dev/null stop > /dev/null
 expect "device-session: summary shows the skipped offline scenario" 1 \
   "$(grep -c '^| Kịch bản mất mạng bị bỏ qua (không tắt được mạng) | 1 | xem |' "$offline/summary.md")"
-unset DEVICE_SESSION_SLEEP FAKE_ADB_CALLS
+: > "$FAKE_ADB_CALLS"
+expect "device-session: scenarios refuse an unknown option" 1 \
+  "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null; session /dev/null scenarios --yes --grant)"
+expect "device-session: --ask-permissions keeps the permission prompts" 0 "$(session /dev/null scenarios --yes --ask-permissions)"
+offline="$(find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1)"
+expect "device-session: no grant when asking, and it is recorded" "0 2" \
+  "$(grep -c 'pm grant' "$FAKE_ADB_CALLS") $(grep -c '^permissions ask$' "$offline/scenarios.txt")"
+session /dev/null stop > /dev/null
+expect "device-session: a refused grant is recorded" 2 \
+  "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null; FAKE_ADB_GRANT_FAILS=android.permission.CAMERA session /dev/null scenarios --yes > /dev/null
+     grep -c '^permissions granted=POST_NOTIFICATIONS failed=CAMERA$' "$(find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1)/scenarios.txt")"
+session /dev/null stop > /dev/null
+unset DEVICE_SESSION_SLEEP FAKE_ADB_CALLS FAKE_ADB_RUNTIME_PERMISSIONS
 
 # app-explore: the guard refuses taps that would open an ad or start a purchase (docs/ops/clone-study.md).
 ax_fixtures=scripts/tests/fixtures/app-explore

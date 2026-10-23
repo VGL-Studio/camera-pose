@@ -1,7 +1,7 @@
 ---
 ticket: T-035
 title: java-check.sh đọc đúng phiên bản Java khi môi trường đặt JAVA_TOOL_OPTIONS
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -129,3 +129,7 @@ Không có.
 - Bước 3: ba test mới trong `scripts/tests/run.sh` thất bại đúng lý do trên code cũ (thoát 1, "không đọc được phiên bản Java từ 'Picked up ...'"); commit test riêng.
 - Bước 4: `scripts/java-check.sh` lấy dòng đầu tiên có ` version "`, không có thì dòng đầu như cũ. Toàn bộ test của script qua ("All script tests passed"). Trên máy dev, `JAVA_TOOL_OPTIONS="-Dhttps.proxyHost=x" scripts/java-check.sh` in "Java 21: dùng được với Gradle 8.14.3."
 - `scripts/check.sh` đầy đủ chạy trên CI của PR (`pr-check.yml`).
+
+### 2026-10-23, sau khi merge
+
+- PR #69 merge qua `scripts/merge-if-green.sh` (commit 6127a97, nhánh chính a0d561d); `pr-check.yml` xanh (lần chạy 39991729362). Ticket chuyển sang `on-staging`, L-049 sang `applied`.

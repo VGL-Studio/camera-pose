@@ -139,11 +139,10 @@ Phiên thử là log của một lần dùng thử bản staging trên máy th�
 
 ## Trang tiến độ
 
-`docs/STATUS.md` cho thấy tiến độ cả dự án: việc đang chờ người, yêu cầu và trạng thái, ticket của từng feature, phiên tự chạy, bài học và ADR. Trang do `scripts/status.py` sinh từ trạng thái trong các tài liệu, không sửa tay.
+`docs/STATUS.md` cho thấy tiến độ cả dự án: việc đang chờ người, yêu cầu và trạng thái, ticket của từng feature, phiên tự chạy, bài học và ADR. Trang do `scripts/status.py` sinh từ trạng thái trong các tài liệu, không sửa tay. Bản đọc được nằm trên nhánh `status`: https://github.com/VGL-Studio/camera-pose/blob/status/docs/STATUS.md.
 
-- PR nào đổi trạng thái hay thêm, bớt yêu cầu, spec, ticket, plan, phản hồi, danh sách chạy, bài học hay ADR thì chạy `scripts/status.py` và commit `docs/STATUS.md` cùng PR. `scripts/status.py --check` cho biết trang đã khớp chưa. `merge-if-green.sh` báo nhánh chậm, hay GitHub báo xung đột ở `docs/STATUS.md`, thì gộp nhánh chính vào nhánh (`git merge origin/main`), chọn bản nào của trang cũng được, chạy lại `scripts/status.py` rồi commit trang vừa sinh (L-016).
-- Trạng thái ticket đi theo plan (L-019, L-045). Người duyệt hay dừng plan chạy `scripts/status.py --sync`: plan `approved` thì ticket đang `backlog`, `ready`, `planned` hay `stopped` chuyển sang `approved`; plan `stopped` thì ticket chuyển sang `stopped` (trừ ticket đã `cancelled` hay đã qua phiên). Script chỉ làm theo quyết định của người về plan, rồi sinh lại trang. Không chuyển ticket sang `approved` khi plan còn `draft`. `scripts/plan-check.py` báo chú ý khi hai trạng thái lệch nhau.
-- Phiên tự chạy sinh lại trang trong PR báo cáo (auto-run.md, mục 4).
+- Trang không có trong git của nhánh chính (`.gitignore`), nên PR không bao giờ xung đột vì nó (L-016, L-047). Sau mỗi lần đẩy lên nhánh chính có đổi `docs/`, workflow `status-page.yml` sinh trang và đẩy lên nhánh `status` (nhánh chính cộng một commit, đẩy đè mỗi lần). PR không commit `docs/STATUS.md`. Muốn xem trước trên máy thì chạy `scripts/status.py`; git bỏ qua file vừa sinh. Plan cũ còn ghi "Ghi lại `docs/STATUS.md`" ở mục 3.2 thì bỏ qua dòng đó.
+- Trạng thái ticket đi theo plan (L-019, L-045). Người duyệt hay dừng plan chạy `scripts/status.py --sync`: plan `approved` thì ticket đang `backlog`, `ready`, `planned` hay `stopped` chuyển sang `approved`; plan `stopped` thì ticket chuyển sang `stopped` (trừ ticket đã `cancelled` hay đã qua phiên). Script chỉ làm theo quyết định của người về plan, rồi sinh lại trang; commit các ticket nó đổi, không commit trang. Không chuyển ticket sang `approved` khi plan còn `draft`. `scripts/plan-check.py` báo chú ý khi hai trạng thái lệch nhau.
 - Trang thiếu thông tin hay sai thì sửa tài liệu gốc hoặc script, không sửa trang.
 
 ## Những điều không được làm

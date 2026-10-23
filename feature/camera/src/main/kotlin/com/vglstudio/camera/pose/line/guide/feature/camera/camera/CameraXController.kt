@@ -5,7 +5,6 @@ import android.media.MediaActionSound
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.core.Camera
-import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -26,7 +25,6 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.model.Lens
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ViewModelScoped
 import java.io.File
-import java.lang.reflect.Method
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
@@ -120,12 +118,7 @@ internal class CameraXController @Inject constructor(
 
     override fun setZoom(ratio: Float) {
         val control = camera?.cameraControl ?: return
-        // setZoomRatio returns a Guava ListenableFuture, which is on the runtime classpath of CameraX but not on the
-        // compile classpath, and the plan adds no library (plan T-013, section 7, condition 4). The result is not
-        // needed, so the call goes through reflection; consumer-rules.pro keeps the method in minified builds. If the
-        // lookup still fails, only zoom stops working.
-        runCatching { setZoomRatio.invoke(control, ratio) }
-            .onFailure { logger.warn(LOG_TAG, "Zoom could not be set", it) }
+        applyZoom(control, ratio, logger)
     }
 
     override suspend fun takePicture(playShutterSound: Boolean): File = withContext(Dispatchers.Main) {
@@ -188,8 +181,5 @@ internal class CameraXController @Inject constructor(
 
     private companion object {
         const val LOG_TAG = "Camera"
-        val setZoomRatio: Method by lazy {
-            CameraControl::class.java.getMethod("setZoomRatio", Float::class.javaPrimitiveType)
-        }
     }
 }

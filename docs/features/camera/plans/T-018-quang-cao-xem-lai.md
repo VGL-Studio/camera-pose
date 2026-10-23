@@ -1,16 +1,16 @@
 ---
 ticket: T-018
 title: Quảng cáo toàn màn hình khi rời màn xem lại
-status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
-token_estimate: 10M          # số gợi ý cỡ S là 5.0M (tạm, mới đo 2 task); chỉnh lên, lý do ở mục 5
+token_estimate: 11M          # số gợi ý cỡ S là 5.0M (tạm, mới đo 2 task); chỉnh lên, lý do ở mục 5
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Nhật               # người duyệt
-cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at: 2026-10-23
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 ---
 
 # PLAN T-018: QUẢNG CÁO TOÀN MÀN HÌNH KHI RỜI MÀN XEM LẠI
@@ -18,6 +18,8 @@ approved_at: 2026-10-23
 ## 1. Tóm tắt
 
 Thêm vị trí `review_interstitial` vào `:core:ads` và gọi nó khi người dùng rời màn xem lại sau khi đã lưu ảnh. Ba giới hạn của spec (không trước ảnh lưu thứ 2 của phiên, cách lần trước ít nhất 120 giây, tối đa 1 lần mỗi 3 ảnh lưu) nằm trong một lớp thuần Kotlin của `:core:ads`, đọc số từ `RemoteSettings`. `AdsController` thêm hai điều kiện: hộp thoại mất mạng đang mở thì không hiện quảng cáo, chưa có quảng cáo tải sẵn thì không bắt người dùng chờ. Feature chỉ gọi một dạng mới của `rememberShowInterstitial` có hàm báo kết quả, rồi mới về camera. Kiểm chứng bằng unit test của lớp giới hạn và của thứ tự rời màn, test Robolectric cho `rememberShowInterstitial` và `ReviewRoute`, và kiểm tra thủ công trên máy có Remote Config thật.
+
+Phiên bản 2 (2026-10-23): rà soát độc lập trước RUN-20261023-03 thấy thứ tự mới của `showInterstitial` (đếm điểm dừng trước mọi kiểm tra, kiểm hộp thoại mất mạng hai lần, không chờ khi chưa có quảng cáo, ghi `breaks.onShown` sau khi hiện) nằm trong phần ngoại lệ viết test trước: quên một bước là mất giới hạn "1 lần mỗi 3 ảnh" mà bản staging không thấy được. Thay đổi so với phiên bản 1: thứ tự các bước chuyển thành hàm `suspend` thuần `runInterstitial` trong file mới `InterstitialFlow.kt`, nhận các bước qua lambda (`InterstitialSteps`); `AdsController` chỉ đưa lambda nối với SDK, `RemoteSettings`, `NetworkStatus` và vòng chờ của `FullScreenAdGuard`; file test mới `InterstitialFlowTest.kt` với 9 test, mỗi bước một test có đối chứng (L-035); ngoại lệ viết test trước thu lại còn các lambda nối; `token_estimate` 10M lên 11M. Phần còn lại giữ nguyên phiên bản 1, kể cả câu trả lời ở mục 8.
 
 ## 2. Hiểu yêu cầu
 
@@ -55,15 +57,18 @@ ADR liên quan: ADR-0001 (`:core:ads` phụ thuộc `:core:network`, core chỉ 
   - `fun interstitialAllowed(canRequestAds: Boolean, placementEnabled: Boolean, networkDialogShown: Boolean): Boolean`: hàm thuần, đúng khi cả ba điều kiện cho phép.
 - `AdsController`:
   - Nhận thêm `NetworkStatus` (đã bind trong `NetworkBindingsModule` của `:core:network`, singleton). `core/ads/build.gradle.kts` thêm `implementation(project(":core:network"))`; `:core:network` không phụ thuộc `:core:ads`, không có vòng phụ thuộc.
-  - `showInterstitial(activity, placement)` theo thứ tự mới:
-    1. `val breakNumber = breaks.onBreak(placement)`: mỗi lần gọi là một điểm dừng, đếm cả khi sau đó không hiện.
-    2. `interstitialAllowed(canRequestAds.value, isEnabled(placement).first(), networkStatus.dialogShown.value)` sai thì trả `false`.
-    3. Đọc `BreakCap` của vị trí từ `RemoteSettings` (ba khóa trên, mặc định `breakCapDefaults`); `breaks.allows(...)` sai thì trả `false`.
-    4. Chưa có quảng cáo tải sẵn của vị trí thì gọi tải sẵn và trả `false` ngay. Trước đây bước này nằm sau vòng chờ người dùng ngừng chạm; đưa lên trước để người dùng không phải chờ tới 3 giây cho một quảng cáo không có.
-    5. Vòng chờ của `FullScreenAdGuard` giữ nguyên (45 giây chung, ngừng chạm 1 giây, chờ tối đa 3 giây).
-    6. Hộp thoại mất mạng vừa mở trong lúc chờ (`dialogShown.value`) thì trả `false`.
-    7. Hiện quảng cáo, `guard.onShown(now)`, `breaks.onShown(placement, breakNumber, now)`, trả `true`.
-  - Lý do trả `false` ghi bằng `Log.i(TAG, "Interstitial <key> skipped: <reason>")`, như các dòng log có sẵn của lớp (lớp này dùng `android.util.Log` từ dự án mẫu; không đổi cách ghi log của `:core:ads` trong task này).
+  - Tạo `InterstitialFlow.kt`, thuần Kotlin, không Android, nơi duy nhất giữ thứ tự các bước (phiên bản 2):
+    - `internal class InterstitialSteps(canRequestAds: () -> Boolean, placementEnabled: suspend () -> Boolean, networkDialogShown: () -> Boolean, breakCap: suspend () -> BreakCap, hasLoadedAd: () -> Boolean, preload: () -> Unit, waitUntilQuiet: suspend () -> Boolean, show: () -> Unit, nowMillis: () -> Long, log: (String) -> Unit)`.
+    - `internal suspend fun runInterstitial(placement: AdPlacement, breaks: InterstitialBreaks, steps: InterstitialSteps): Boolean`, theo thứ tự:
+      1. `val breakNumber = breaks.onBreak(placement)`: mỗi lần gọi là một điểm dừng, đếm cả khi sau đó không hiện.
+      2. `interstitialAllowed(steps.canRequestAds(), steps.placementEnabled(), steps.networkDialogShown())` sai thì log `skipped: not_allowed`, trả `false`.
+      3. `breaks.allows(placement, breakNumber, steps.nowMillis(), steps.breakCap())` sai thì log `skipped: cap`, trả `false`.
+      4. `steps.hasLoadedAd()` sai thì `steps.preload()`, log `skipped: not_loaded`, trả `false` ngay, không chờ. Trước đây bước này nằm sau vòng chờ người dùng ngừng chạm; đưa lên trước để người dùng không phải chờ tới 3 giây cho một quảng cáo không có.
+      5. `steps.waitUntilQuiet()` sai (rào chắn chung 45 giây, hay chờ quá 3 giây) thì log `skipped: guard`, trả `false`.
+      6. `steps.networkDialogShown()` đúng (hộp thoại mất mạng vừa mở trong lúc chờ) thì log `skipped: network_dialog`, trả `false`.
+      7. `steps.show()`, rồi `breaks.onShown(placement, breakNumber, steps.nowMillis())`, trả `true`.
+  - `AdsController.showInterstitial(activity, placement)` giữ chữ ký, chỉ dựng `InterstitialSteps` rồi gọi `runInterstitial`. Các lambda: `canRequestAds.value`; `isEnabled(placement).first()`; `networkStatus.dialogShown.value`; đọc ba khóa của `BreakCap` từ `RemoteSettings` (mặc định `breakCapDefaults`); `placement in loadedInterstitials`; `preloadInterstitial(placement)`; vòng chờ có sẵn của `FullScreenAdGuard` chuyển thành hàm riêng trả `true` khi được hiện, giữ nguyên 45 giây chung, ngừng chạm 1 giây, chờ tối đa 3 giây; `show` lấy quảng cáo ra khỏi `loadedInterstitials`, gắn `fullScreenContentCallback` như cũ, `guard.onShown(now)`, `ad.show(activity)` (mọi bước chạy trên luồng chính, nên quảng cáo không mất khỏi bảng giữa bước 4 và bước 7); `SystemClock.elapsedRealtime()`; `Log.i(TAG, "Interstitial <key> <dòng log>")`.
+  - Lý do trả `false` ghi bằng `Log.i(TAG, "Interstitial <key> skipped: <reason>")` qua lambda `log`, như các dòng log có sẵn của lớp (lớp này dùng `android.util.Log` từ dự án mẫu; không đổi cách ghi log của `:core:ads` trong task này).
 - `AdSlot.kt`: thêm một dạng của `rememberShowInterstitial`:
   - `fun rememberShowInterstitial(placement: AdPlacement, onFinished: (shown: Boolean) -> Unit): () -> Unit`.
   - Hành động trả về chạy `showInterstitial` rồi gọi `onFinished(kết quả)` trên luồng chính (coroutine của `rememberCoroutineScope` trên `Dispatchers.Main.immediate`), đúng một lần mỗi lần gọi.
@@ -91,10 +96,12 @@ Mẫu có sẵn: `FullScreenAdGuard` và `FullScreenAdGuardTest` (luật quảng
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt` | Thêm `REVIEW_INTERSTITIAL("review_interstitial", AdFormat.INTERSTITIAL),` một dòng; không đụng dòng khác (T-023 thêm hai vị trí banner vào cùng file) |
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdsSettings.kt` | Ba hàm khóa theo vị trí, `breakCapDefaults` |
 | Tạo | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/InterstitialBreaks.kt` | `BreakCap`, `InterstitialBreaks`, `interstitialAllowed` |
-| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdsController.kt` | Nhận `NetworkStatus`; thứ tự mới của `showInterstitial` (mục 3.1) |
+| Tạo | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/InterstitialFlow.kt` | `InterstitialSteps`, `runInterstitial` (phiên bản 2) |
+| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdsController.kt` | Nhận `NetworkStatus`; `showInterstitial` dựng `InterstitialSteps` và gọi `runInterstitial`; vòng chờ của `FullScreenAdGuard` thành hàm riêng (mục 3.1) |
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdSlot.kt` | Dạng `rememberShowInterstitial(placement, onFinished)`; dạng cũ gọi dạng mới |
 | Sửa | `core/ads/build.gradle.kts` | `implementation(project(":core:network"))` |
 | Tạo | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/InterstitialBreaksTest.kt` | Test giới hạn theo điểm dừng và thời gian, và `interstitialAllowed` (mục 4) |
+| Tạo | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/InterstitialFlowTest.kt` | Thứ tự các bước của `runInterstitial` với bản giả của mọi lambda (mục 4, phiên bản 2) |
 | Tạo | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/ShowInterstitialTest.kt` | Robolectric: không có controller thì `onFinished(false)` đúng một lần |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdsSettingsTest.kt` | Thêm test mặc định của vị trí mới; test có sẵn giữ nguyên |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIdsTest.kt` | `configuredUnits_areParsedPerPlacementKey` dựng chuỗi cấu hình có mã cho mọi `AdPlacement.entries` (thêm một mục `other_key` và giữ khoảng trắng để vẫn kiểm cách đọc), thay cho chuỗi chỉ có `sample_bottom_banner`. Lý do: thêm vị trí thì `missing` không còn rỗng; cách viết mới không phải sửa lại khi T-023 thêm vị trí. Điều test kiểm (đọc đúng theo khóa, không thiếu vị trí nào) giữ nguyên Nếu plan kia (T-018 hay T-023) đã merge trước thì test đã sinh chuỗi từ `entries`: giữ nguyên phần đó, chỉ thêm khẳng định của plan này. |
@@ -131,7 +138,7 @@ Nơi đọc các file bị sửa (L-020):
 
 ## 4. Kiểm thử
 
-Test viết trước code. Bước 3 (commit test): mọi test dưới đây, cùng chữ ký trống của `BreakCap`, `InterstitialBreaks`, `interstitialAllowed`, `leaveReview`, `afterReviewAd`, dạng mới của `rememberShowInterstitial` và `AdPlacement.REVIEW_INTERSTITIAL` để test biên dịch được (thân hàm `TODO()` hay trả giá trị sai), để test thất bại vì chưa có hành vi, không phải vì lỗi biên dịch. Bước 4 (commit code): phần còn lại.
+Test viết trước code. Bước 3 (commit test): mọi test dưới đây, cùng chữ ký trống của `BreakCap`, `InterstitialBreaks`, `interstitialAllowed`, `InterstitialSteps`, `runInterstitial` (trả `false`, không gọi lambda nào), `leaveReview`, `afterReviewAd`, dạng mới của `rememberShowInterstitial` và `AdPlacement.REVIEW_INTERSTITIAL` để test biên dịch được (thân hàm `TODO()` hay trả giá trị sai), để test thất bại vì chưa có hành vi, không phải vì lỗi biên dịch. Bước 4 (commit code): phần còn lại.
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
@@ -149,12 +156,22 @@ Test viết trước code. Bước 3 (commit test): mọi test dưới đây, c�
 | Vị trí mới hợp lệ cho Remote Config và có mã thử | Unit test có sẵn | `AdUnitIdsTest.everyPlacementKey_isUniqueAndUsableInRemoteConfig`, `googleTestUnits_existForEveryPlacement` chạy trên `AdPlacement.entries`, tự gồm vị trí mới; `configuredUnits_areParsedPerPlacementKey` sửa như mục 3.2 |
 | Dạng mới của `rememberShowInterstitial` trong test và preview | Compose UI test (Robolectric) | `ShowInterstitialTest.withoutAdsController_reportsNotShownOnce`: `setContent { action = rememberShowInterstitial(REVIEW_INTERSTITIAL) { results += it } }`, gọi `action()` trên luồng UI, `waitForIdle`; `results == listOf(false)`. Đối chứng: trước bước 4, dạng mới trống không gọi `onFinished`, `results` rỗng |
 | Dạng mới chỉ nhận vị trí toàn màn hình | Unit test | `ShowInterstitialTest.bannerPlacement_isRejected`: gọi với `SAMPLE_BOTTOM_BANNER` ném `IllegalArgumentException`, như dạng cũ |
+| Thứ tự các bước (phiên bản 2), chung cho chín dòng dưới | Unit test | `InterstitialFlowTest` dùng `FakeSteps`: một biến cho từng lambda (`consent`, `enabled`, `dialogShown: ArrayDeque<Boolean>` trả lần lượt cho mỗi lần gọi, `cap`, `loaded`, `quiet`, đồng hồ `now`), ghi tên lambda đã gọi theo thứ tự vào `calls`, đếm `shows`, `preloads`, giữ các dòng `log`. Mỗi test đặt trường hợp được hiện cạnh trường hợp bị chặn (L-035): khung rỗng của bước 3 trả `false` và không gọi gì, nên nửa "được hiện" của mỗi test thất bại đúng lý do |
+| Đủ điều kiện thì hiện, đúng thứ tự | Unit test | `InterstitialFlowTest.allPass_showsInOrder`: cap (2, 3, 120), đủ điều kiện; điểm dừng 1 trả `false`; điểm dừng 2 trả `true`, `shows == 1`; `calls` của lần 2 đúng thứ tự `canRequestAds, placementEnabled, networkDialogShown, breakCap, hasLoadedAd, waitUntilQuiet, networkDialogShown, show` |
+| Đếm điểm dừng cả khi bị chặn ở bước 2 | Unit test | `InterstitialFlowTest.blockedBreak_stillCounts`: lần 1 `consent = false` trả `false`, `breakCap` không được gọi; lần 2 `consent = true` trả `true` (là điểm dừng 2, nên lần 1 đã được đếm). Đối chứng trong cùng test: `InterstitialBreaks` mới, chỉ gọi một lần với `consent = true` thì trả `false` (điểm dừng 1) |
+| Cờ tắt, chưa đồng ý, hộp thoại mất mạng mở trước khi chờ | Unit test | `InterstitialFlowTest.notAllowed_skipsBeforeWaiting`: cap `NONE`, ba lượt, mỗi lượt sai một điều kiện, đều trả `false`, `waitUntilQuiet` và `show` không được gọi; lượt thứ tư đủ điều kiện trả `true` |
+| Giới hạn của vị trí chặn trước khi xem quảng cáo tải sẵn | Unit test | `InterstitialFlowTest.capBlocks_beforeLoadCheck`: hiện ở điểm dừng 2; điểm dừng 3 trả `false` và `hasLoadedAd` không được gọi ở lần đó; điểm dừng 5, `now` tăng 120 giây, trả `true` |
+| Chưa có quảng cáo tải sẵn thì không chờ | Unit test | `InterstitialFlowTest.notLoaded_preloadsWithoutWaiting`: cap `NONE`, `loaded = false`; trả `false`, `preloads == 1`, `waitUntilQuiet` không được gọi; đặt `loaded = true`, lần sau trả `true` |
+| Rào chắn chung không cho hiện | Unit test | `InterstitialFlowTest.guardRefuses_doesNotShow`: cap `NONE`, `quiet = false`; trả `false`, `shows == 0`; lần sau `quiet = true` trả `true` |
+| Hộp thoại mất mạng mở trong lúc chờ | Unit test | `InterstitialFlowTest.networkDialogDuringWait_doesNotShow`: cap `NONE`, `dialogShown = [false, true]`; trả `false`, `shows == 0`; lần sau `[false, false]` trả `true` |
+| Ghi lần hiện, để giữ giới hạn "1 lần mỗi 3 ảnh" | Unit test | `InterstitialFlowTest.shownBreak_isRecorded`: cap (2, 3, 120); hiện ở điểm dừng 2; điểm dừng 3, 4 trả `false`; điểm dừng 5 (sau 120 giây) trả `true`. Đối chứng: cùng dãy nhưng điểm dừng 2 bị rào chắn chặn (`quiet = false`), thì điểm dừng 3 trả `true`. Test thất bại nếu `runInterstitial` quên `breaks.onShown`, hay gọi nó khi chưa hiện |
+| Lý do bỏ qua được ghi log | Unit test | `InterstitialFlowTest.skips_areLogged`: mỗi đường trả `false` ghi đúng một dòng `skipped: <lý do>` (`not_allowed`, `cap`, `not_loaded`, `guard`, `network_dialog`); đường hiện không ghi dòng `skipped` nào |
 | KB-9, tiêu chí 4: không có quảng cáo ở camera và màn xem lại | Kiểm tra code và screenshot test có sẵn | Không thêm `AdSlot`; 7 ảnh chuẩn camera và 5 ảnh chuẩn màn xem lại không đổi (`scripts/check.sh` so ảnh) |
 | Quảng cáo thật hiện đúng lúc, đúng giới hạn | Kiểm tra thủ công | Cần một bản build nhận được Remote Config (project Firebase staging thật, hoặc bản nội bộ khi dev có): 1) bật `ads_review_interstitial_enabled`; 2) chụp, lưu, bấm "Chụp lại": không có quảng cáo (ảnh lưu thứ 1); 3) chụp, lưu, "Tư thế tiếp": quảng cáo thử của Google hiện, đóng thì thấy camera với tư thế kế tiếp; 4) lưu thêm 2 ảnh: không có quảng cáo; ảnh thứ 5 sau ít nhất 120 giây kể từ quảng cáo trước: có quảng cáo; 5) chụp, bấm "Chụp lại", "Bỏ ảnh": không có quảng cáo; 6) tắt mạng tới khi hộp thoại mất mạng hiện: không có quảng cáo phủ lên hộp thoại; 7) logcat có `Interstitial review_interstitial skipped: <lý do>` ở các lần không hiện |
 
 Màn hình thấp, đúng thiết kế, chữ đúng bảng chữ: không áp dụng, task không đổi giao diện (không có ảnh thiết kế hay ảnh chuẩn mới; ảnh có sẵn không đổi).
 
-**Ngoại lệ viết test trước:** phần nối trong `AdsController.showInterstitial` (đọc `RemoteSettings`, `NetworkStatus`, thứ tự các bước, gọi SDK) không có unit test: lớp gọi thẳng SDK quảng cáo và `SystemClock`, dự án chưa có test nào dựng nó (như `PrivacyOptionsButtonTest` đã ghi). Mọi quyết định của nó nằm trong `interstitialAllowed`, `InterstitialBreaks` và `FullScreenAdGuard`, đều có test; phần nối được kiểm bằng kiểm tra thủ công ở dòng cuối bảng trên. Người duyệt cần đồng ý ngoại lệ này.
+**Ngoại lệ viết test trước:** chỉ còn các lambda mà `AdsController` đưa cho `runInterstitial` (đọc `StateFlow`, `RemoteSettings`, bảng quảng cáo tải sẵn, gọi `ad.show(activity)`, vòng chờ có sẵn của `FullScreenAdGuard`): lớp gọi thẳng SDK quảng cáo và `SystemClock`, dự án chưa có test nào dựng nó (như `PrivacyOptionsButtonTest` đã ghi). Thứ tự các bước và mọi quyết định nằm trong `runInterstitial`, `interstitialAllowed`, `InterstitialBreaks` và `FullScreenAdGuard`, đều có test (phiên bản 2); mỗi lambda chỉ đọc hay gọi một thứ, được kiểm bằng kiểm tra thủ công ở dòng cuối bảng trên. Người duyệt cần đồng ý ngoại lệ này.
 
 ### 4.1. Chạy thử
 
@@ -173,7 +190,7 @@ Không cần (E dưới 2). Quảng cáo toàn màn hình, rào chắn thuần K
 | E. Độ mới của kỹ thuật | 1 | Biến thể của rào chắn và quảng cáo toàn màn hình đã có |
 | **Tổng** | 10 | **Mức: Cao** (đồng thời chạm điểm chặn) |
 
-`token_estimate`: số gợi ý cỡ S là 5.0M, mới đo 2 task. Plan sửa hai module, có 4 file test và một test Robolectric dựng `ReviewRoute`, nên ghi 10M.
+`token_estimate`: số gợi ý cỡ S là 5.0M, mới đo 2 task. Plan sửa hai module, có 5 file test và một test Robolectric dựng `ReviewRoute`, nên ghi 11M (phiên bản 1 ghi 10M; phiên bản 2 thêm `InterstitialFlow.kt` và 9 test).
 
 ## 6. Ảnh hưởng chéo
 
@@ -206,9 +223,13 @@ Không cần (E dưới 2). Quảng cáo toàn màn hình, rào chắn thuần K
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-23, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: phương án A (phiên là một lần chạy của app; spec đã sửa ở PR #64).
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-23). Ghi chú: Tuấn trả lời câu hỏi cùng AI, chấp nhận mọi đề xuất của AI ở mục 8; câu 1 chọn phương án A (spec đã sửa ở PR #64). Thay bằng phiên bản 2 trước khi chạy vì rà soát độc lập trước RUN-20261023-03.
+
+Phiên bản 2:
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
 
 ## 10. Nhật ký thực hiện
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Outlined "chevron_right" (Apache 2.0, google/material-design-icons@49d4db3, symbols/android/chevron_right/materialsymbolsoutlined/chevron_right_24px.xml, see third_party/material-symbols/LICENSE.txt). Color comes from the tint. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M504,480L320,296L376,240L616,480L376,720L320,664L504,480Z" />
+</vector>

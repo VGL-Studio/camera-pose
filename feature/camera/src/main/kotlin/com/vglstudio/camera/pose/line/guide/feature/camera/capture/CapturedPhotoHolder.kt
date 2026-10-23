@@ -9,8 +9,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** The photo just taken: a JPEG file in the app cache, not a bitmap in memory. */
-data class CapturedPhoto(val file: File, val lens: Lens, val timer: TimerSetting, val capturedAtMillis: Long)
+/** The photo just taken: a JPEG file in the app cache, not a bitmap in memory. [poseId] is empty without a pose. */
+data class CapturedPhoto(
+    val file: File,
+    val lens: Lens,
+    val timer: TimerSetting,
+    val capturedAtMillis: Long,
+    val poseId: String = "",
+)
 
 /**
  * Hands the photo just taken to the review screen (T-016). Lives as long as the process. [clear] only drops the

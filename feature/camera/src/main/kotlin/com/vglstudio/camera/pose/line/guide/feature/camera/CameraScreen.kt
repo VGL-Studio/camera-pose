@@ -38,6 +38,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PosePicker
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseUiState
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseViewModel
 
 /**
  * Stateful entry point used by navigation. Checks the camera permission each time the screen starts (also back from
@@ -50,8 +55,23 @@ internal fun CameraRoute(
     onOpenPoses: (() -> Unit)?,
     onOpenSettings: (() -> Unit)?,
     viewModel: CameraViewModel = hiltViewModel(),
+    poseViewModel: PoseViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val poseState by poseViewModel.uiState.collectAsStateWithLifecycle()
+    val poseActions = remember(poseViewModel) {
+        PoseActions(
+            onCategorySelect = poseViewModel::onCategorySelect,
+            onPoseSelect = poseViewModel::onPoseSelect,
+            onThumbShown = poseViewModel::onThumbShown,
+            onPreviousStep = poseViewModel::onPreviousStep,
+            onNextStep = poseViewModel::onNextStep,
+            onHideSteps = poseViewModel::onHideSteps,
+            onShowSteps = poseViewModel::onShowSteps,
+            onRetryOutline = poseViewModel::onRetryOutline,
+            onRetryLibrary = poseViewModel::onRetryLibrary,
+        )
+    }
     val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val currentOnPhotoCaptured by rememberUpdatedState(onPhotoCaptured)
@@ -101,14 +121,17 @@ internal fun CameraRoute(
             preview = { modifier ->
                 surfaceRequest?.let { CameraXViewfinder(surfaceRequest = it, modifier = modifier) }
             },
+            poseState = poseState,
+            poseActions = poseActions,
         )
     }
 }
 
 /**
- * Stateless screen: everything it shows comes from [uiState]. Tested on the JVM and by screenshots, without [preview],
- * so the frame shows the camera surface colour. Layout from design/context/ (411 x 891): top bar at 32, the 3:4
- * preview below it, the space of the chip row and pose strip (empty until T-014), and the capture row.
+ * Stateless screen: everything it shows comes from [uiState] and [poseState]. Tested on the JVM and by screenshots,
+ * without [preview], so the frame shows the camera surface colour. Layout from design/context/ (411 x 891): top bar at
+ * 32, the 3:4 preview below it (with the pose overlay when the camera is ready), the chip row and pose strip, and the
+ * capture row.
  */
 @Composable
 internal fun CameraScreen(
@@ -126,6 +149,8 @@ internal fun CameraScreen(
     onOpenSettings: (() -> Unit)?,
     modifier: Modifier = Modifier,
     preview: @Composable (Modifier) -> Unit = {},
+    poseState: PoseUiState = PoseUiState.Loading,
+    poseActions: PoseActions = PoseActions(),
 ) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready
@@ -158,11 +183,12 @@ internal fun CameraScreen(
                     onRetry = onRetry,
                     onOpenAppSettings = onOpenAppSettings,
                     preview = preview,
+                    poseOverlay = { PoseOverlay(state = poseState, actions = poseActions) },
                 )
             }
         }
-        // Chip row and pose strip (T-014): 16 + 36 + 16 + 64.
-        Spacer(modifier = Modifier.height(POSE_AREA_HEIGHT))
+        // Chip row and pose strip: 16 + 36 + 16 + 64.
+        PosePicker(state = poseState, actions = poseActions)
         Spacer(modifier = Modifier.height(Spacing.sm + Spacing.xs))
         CaptureRow(
             ready = ready,
@@ -188,6 +214,15 @@ internal object CameraTestTags {
     const val SHUTTER = "camera_shutter"
     const val LAST_PHOTO = "camera_last_photo"
     const val FLIP = "camera_flip"
+    const val CHIPS = "camera_chips"
+    const val STRIP = "camera_strip"
+    const val OUTLINE = "camera_outline"
+    const val STEP_CARD = "camera_step_card"
+    const val SHOW_STEPS = "camera_show_steps"
+    const val NO_POSE_HINT = "camera_no_pose_hint"
+
+    /** Tag of the strip cell of a pose: `camera_pose_<id>`. */
+    fun pose(id: String): String = "camera_pose_$id"
 }
 
 private const val PREVIEW_ASPECT_RATIO = 3f / 4f

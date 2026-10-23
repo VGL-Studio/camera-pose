@@ -7,5 +7,4 @@ import androidx.compose.ui.unit.dp
 internal val UNFOLDED_MIN_WIDTH = 600.dp
 
 /** True when a screen of [width] is wide enough for the unfolded layout. */
-@Suppress("UNUSED_PARAMETER")
-internal fun isUnfolded(width: Dp): Boolean = false
+internal fun isUnfolded(width: Dp): Boolean = width >= UNFOLDED_MIN_WIDTH

@@ -1,16 +1,16 @@
 ---
 ticket: T-029
 title: merge-if-green.sh tự cập nhật nhánh và chịu được job kẹt trạng thái
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [ci, process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-029: MERGE-IF-GREEN.SH TỰ CẬP NHẬT NHÁNH VÀ CHỊU ĐƯỢC JOB KẸT TRẠNG THÁI
@@ -172,16 +172,19 @@ Test trong `scripts/tests/run.sh`, viết trước code, dùng `scripts/tests/fa
 ## 8. Câu hỏi cho người duyệt
 
 1. **`--update` có tự merge luôn sau khi CI xanh không?** Đề xuất của AI: không. Lệnh của phiên chỉ chạy được khoảng 10 phút, CI mất 8 đến 13 phút; script trả mã 2 và người gọi chờ bằng `wait-run.sh` như hiện nay.
+- Trả lời: Đồng ý với đề xuất của AI.
 2. **Commit mới đẩy: cảnh báo hay chặn?** Đề xuất của AI: chỉ cảnh báo. Commit đẩy sau khi merge mới là vấn đề của L-018, và script không thấy được commit chưa đẩy; chặn 3 phút chỉ làm chậm mọi lần merge của phiên.
+- Trả lời: Đồng ý với đề xuất của AI.
 3. **Phiên có được dùng `--update` không?** Đề xuất của AI: có, ở bước 9; nhánh của phiên đã được tạo từ nhánh chính mới nhất, nên `--update` chỉ dùng khi nhánh chính đi trước trong lúc task chạy (thường do bản revert của ADR-1002 hay PR báo cáo).
+- Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 

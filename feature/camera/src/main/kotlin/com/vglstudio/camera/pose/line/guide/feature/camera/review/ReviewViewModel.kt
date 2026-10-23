@@ -18,6 +18,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
 import java.io.IOException
 import javax.inject.Inject
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The review screen (spec camera, KB-6): the photo just taken (a cache file handed over by [CapturedPhotoHolder]) or,
@@ -236,7 +238,8 @@ class ReviewViewModel @Inject constructor(
             analytics.log(AnalyticsEvent(EVENT_PHOTO_SAVED, mapOf("pose_id" to poseId)))
             logger.info(LOG_TAG, "Photo saved")
             try {
-                repository.recordSaved(uri)
+                // Leaving right after the save clears this view model: the slot and the count must still be stored.
+                withContext(NonCancellable) { repository.recordSaved(uri) }
             } catch (e: IOException) {
                 // The photo is in the gallery; only the slot and the count miss it.
                 logger.warn(LOG_TAG, "Saved photo not recorded", e)

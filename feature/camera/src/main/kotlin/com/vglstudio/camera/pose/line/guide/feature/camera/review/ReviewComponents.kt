@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -202,7 +203,11 @@ internal fun SaveErrorMessage(
         contentColor = colors.inverseOnSurface,
         actionContentColor = colors.inversePrimary,
         action = {
-            TextButton(onClick = if (blocked) onOpenAppSettings else onRetrySave) {
+            // TextButton sets its own content color; inversePrimary as in Material's Snackbar(SnackbarData).
+            TextButton(
+                onClick = if (blocked) onOpenAppSettings else onRetrySave,
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.inversePrimary),
+            ) {
                 Text(
                     text = stringResource(if (blocked) R.string.camera_permission_action else R.string.review_retry),
                     style = MaterialTheme.typography.labelLarge,

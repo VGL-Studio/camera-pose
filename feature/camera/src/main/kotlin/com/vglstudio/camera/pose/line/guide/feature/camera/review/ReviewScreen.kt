@@ -183,6 +183,8 @@ internal fun ReviewScreen(
                         onShareClick = onShareClick,
                         onNextPoseClick = onNextPoseClick,
                     )
+                    // Keeps the save error clear of the actions on short screens; on taller ones this is free space.
+                    Spacer(modifier = Modifier.height(Spacing.md))
                 }
                 if (ready.save in ERROR_STATUSES) {
                     SaveErrorMessage(

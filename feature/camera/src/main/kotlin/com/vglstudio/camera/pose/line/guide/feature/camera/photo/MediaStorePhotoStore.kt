@@ -44,6 +44,12 @@ class MediaStorePhotoStore @Inject constructor(@ApplicationContext private val c
         } catch (e: SecurityException) {
             // Normally impossible: the review screen asks for the permission before saving on Android 9 and lower.
             throw IOException("No permission to save", e)
+        } catch (e: IllegalStateException) {
+            // MediaStore throws these from insert or update (for example a volume that is not mounted); the review
+            // screen handles IOException only.
+            throw IOException("MediaStore write failed", e)
+        } catch (e: IllegalArgumentException) {
+            throw IOException("MediaStore write failed", e)
         }
     }
 

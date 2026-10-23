@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.CameraIconButton
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ChoiceDialog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.GridOverlay
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCard
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
@@ -46,7 +47,10 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseThum
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SecondaryButton
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SectionHeader
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SelectedBadge
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SettingsRow
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SettingsRowTrailing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StepCard
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StepCardArrows
@@ -353,10 +357,38 @@ fun PoseCardCatalog(modifier: Modifier = Modifier) {
     }
 }
 
-/** Skeleton for the tests written first (plan T-025, section 4). */
+/**
+ * The settings components (plan T-025; design settings, section 3): a section header, the four kinds of SettingsRow
+ * (the switch on and off) and a ChoiceDialog with three options, drawn in a 400 dp frame. Icons are stand-ins.
+ */
 @Composable
 fun SettingsComponentCatalog(modifier: Modifier = Modifier) {
-    Box(modifier)
+    val icon = painterResource(R.drawable.ic_check)
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column {
+            Text(
+                text = "Settings components",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(Spacing.md),
+            )
+            SectionHeader(title = "SectionHeader")
+            SettingsRow(icon, "Value", SettingsRowTrailing.Chevron {}, value = "System default")
+            SettingsRow(icon, "Switch on", SettingsRowTrailing.Switch(checked = true) {})
+            SettingsRow(icon, "Switch off", SettingsRowTrailing.Switch(checked = false) {})
+            SettingsRow(icon, "Link", SettingsRowTrailing.Link {})
+            SettingsRow(icon, "Info", SettingsRowTrailing.None, value = "1.0.0")
+            Box(modifier = Modifier.fillMaxWidth().height(400.dp)) {
+                ChoiceDialog(
+                    title = "ChoiceDialog",
+                    options = listOf("System default", "Light", "Dark"),
+                    selectedIndex = 0,
+                    onSelect = {},
+                    dismissLabel = "Cancel",
+                    onDismiss = {},
+                )
+            }
+        }
+    }
 }
 
 @Composable

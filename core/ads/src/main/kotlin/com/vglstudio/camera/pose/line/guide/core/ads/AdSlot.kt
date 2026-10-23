@@ -122,11 +122,13 @@ fun PrivacyOptionsButton(modifier: Modifier = Modifier) {
 
 /**
  * The same entry point drawn by the caller, for example as a settings row (plan T-025): [content] receives the action
- * that shows the consent form again. Skeleton for the tests written first: always draws [content].
+ * that shows the consent form again. As the button, it decides alone whether to show: nothing is drawn where consent
+ * options are not required, nor without an ads controller (tests, previews).
  */
 @Composable
 fun PrivacyOptionsButton(modifier: Modifier = Modifier, content: @Composable (onClick: () -> Unit) -> Unit) {
-    val ads = LocalAdsController.current
-    val activity = LocalActivity.current
-    Box(modifier) { content { if (ads != null && activity != null) ads.showPrivacyOptionsForm(activity) } }
+    val ads = LocalAdsController.current ?: return
+    val activity = LocalActivity.current ?: return
+    val required by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
+    if (required) Box(modifier) { content { ads.showPrivacyOptionsForm(activity) } }
 }

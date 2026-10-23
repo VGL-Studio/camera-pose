@@ -274,9 +274,8 @@ class SettingsScreenTest {
     fun small_languageDialog_allOptionsReachable() {
         setScreen(ready(dialog = SettingsDialog.LANGUAGE))
         radio("Tiếng Việt").performScrollTo().assertIsDisplayed()
-        composeRule.onNode(hasText("Hủy") and hasAnyAncestorTag(ChoiceDialogTestTags.CARD))
-            .performScrollTo()
-            .assertIsDisplayed()
+        // Only the options scroll; the button stays in view under them.
+        composeRule.onNode(hasText("Hủy") and hasAnyAncestorTag(ChoiceDialogTestTags.CARD)).assertIsDisplayed()
         val screen = composeRule.onNodeWithTag(SettingsTestTags.SCREEN).getUnclippedBoundsInRoot()
         val card = composeRule.onNodeWithTag(ChoiceDialogTestTags.CARD).getUnclippedBoundsInRoot()
         assertTrue("card $card in screen $screen", card.top >= screen.top && card.bottom <= screen.bottom)

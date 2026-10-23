@@ -1,16 +1,16 @@
 ---
 ticket: T-023
 title: Banner ở thư viện và chi tiết tư thế
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 25M          # cỡ S, số gợi ý 5.0M (tạm, 2 task); nâng lên vì sửa :core:ads và 6 ảnh chuẩn, mục 8 câu 6
 blocking_points: [ads, core] # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-023: BANNER Ở THƯ VIỆN VÀ CHI TIẾT TƯ THẾ
@@ -204,9 +204,9 @@ Bảng điểm dưới đây chỉ để tham khảo:
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-23, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
 
 ## 10. Nhật ký thực hiện
 

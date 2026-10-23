@@ -1,16 +1,16 @@
 ---
 ticket: T-022
 title: Chi tiết tư thế và "Chụp với tư thế này"
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 35M          # cỡ M, số gợi ý 15.4M; nâng lên vì là màn hình mới với 8 ảnh chuẩn như T-025 (thật 37.7M), mục 8 câu 8
 blocking_points: [analytics] # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-022: CHI TIẾT TƯ THẾ VÀ "CHỤP VỚI TƯ THẾ NÀY"
@@ -271,9 +271,9 @@ Bảng điểm dưới đây chỉ để tham khảo:
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-23, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
 
 ## 10. Nhật ký thực hiện
 

@@ -52,9 +52,15 @@ def chapter(text, number):
 def run_rows(text):
     """(ticket, plan path relative to docs/) of the table in section 1 of the run list, in order."""
     rows = []
+    in_table = False
     for line in chapter(text, 1).splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 4 or not re.fullmatch(r"T-\d+", cells[1]):
+        if not line.lstrip().startswith("|"):
+            if rows:
+                break  # only the run table lists tasks; the pre-run review table below also names tickets
+            continue
+        in_table = in_table or cells[0] == "Thứ tự"
+        if not in_table or len(cells) < 4 or not re.fullmatch(r"T-\d+", cells[1]):
             continue
         path = re.search(r"`([^`]+\.md)`", cells[3])
         rows.append((cells[1], path.group(1) if path else ""))

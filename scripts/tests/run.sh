@@ -702,6 +702,10 @@ write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 expect "run-check: a ready list passes" pass "$(run_check)"
 expect "run-check: a ready list has no warning" 0 "$(grep -c 'CHÚ Ý' "$work/run-check.out")"
+# The pre-run review table also sits in section 1 and names tickets; only the run table lists tasks.
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)\n\n### Kiểm tra trước khi duyệt\n\n| Mức | Ticket | Vấn đề | Xử lý |\n| --- | --- | --- | --- |\n| Chặn | T-002 | x | y |"
+expect "run-check: a review table naming a ticket is not a task" pass "$(run_check)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 write_spec changed 'Đồng ý.'
 expect "run-check: a spec waiting for confirmation stops" stop "$(run_check)"
 write_spec confirmed ''

@@ -10,7 +10,7 @@ risk: high
 size: S
 depends_on: [T-016, T-018]
 sprint:
-plan:
+plan: features/camera/plans/T-019-hoi-danh-gia.md
 created: 2026-10-21
 ---
 

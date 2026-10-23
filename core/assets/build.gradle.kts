@@ -8,5 +8,6 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:logging"))
     implementation(project(":core:network"))
 }

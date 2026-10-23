@@ -1,11 +1,12 @@
 package com.vglstudio.camera.pose.line.guide.core.assets.di
 
 import android.content.Context
-import android.util.Log
 import com.vglstudio.camera.pose.line.guide.core.assets.AssetsConfig
 import com.vglstudio.camera.pose.line.guide.core.assets.DefaultRemoteAssets
 import com.vglstudio.camera.pose.line.guide.core.assets.HttpAssetDownloader
 import com.vglstudio.camera.pose.line.guide.core.assets.RemoteAssets
+import com.vglstudio.camera.pose.line.guide.core.assets.downloadFailureLogger
+import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.core.network.NetworkFailureReporter
 import dagger.Module
 import dagger.Provides
@@ -26,6 +27,7 @@ internal object AssetsModule {
         @ApplicationContext context: Context,
         config: AssetsConfig,
         networkFailures: NetworkFailureReporter,
+        logger: AppLogger,
     ): RemoteAssets = DefaultRemoteAssets(
         config = config,
         // Not the cache dir: the system may clear that, and files must stay available offline.
@@ -33,7 +35,7 @@ internal object AssetsModule {
         cacheDir = File(context.noBackupFilesDir, "r2-assets"),
         downloader = HttpAssetDownloader(),
         ioDispatcher = Dispatchers.IO,
-        onDownloadFailed = { path, error -> Log.w("Assets", "Could not download ${path.value}", error) },
+        onDownloadFailed = downloadFailureLogger(logger),
         networkFailures = networkFailures,
     )
 }

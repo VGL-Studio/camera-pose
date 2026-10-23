@@ -17,6 +17,8 @@ import com.vglstudio.camera.pose.line.guide.feature.loading.navigation.LoadingDe
 import com.vglstudio.camera.pose.line.guide.feature.loading.navigation.loadingScreen
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.navigation.OnboardingDestination
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.navigation.onboardingScreen
+import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.PosesDestination
+import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.posesScreen
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.SampleDestination
 import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.sampleScreen
 import kotlinx.coroutines.CoroutineStart
@@ -29,6 +31,7 @@ import kotlinx.coroutines.launch
  * [markOnboardingDone] stores that the user tapped "Turn on camera" on onboarding (spec onboarding, KB-3).
  * [onPastLoadingChanged] tells whether the current destination is past the loading screen (spec network, section 2),
  * also after the system recreates the activity and restores the back stack.
+ * [posesEnabled] follows feature_poses_enabled: the library button of the camera shows only while it is on.
  */
 @Composable
 internal fun AppNavHost(
@@ -36,6 +39,7 @@ internal fun AppNavHost(
     markOnboardingDone: suspend () -> Unit,
     modifier: Modifier = Modifier,
     onPastLoadingChanged: (Boolean) -> Unit = {},
+    posesEnabled: Boolean = false,
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
@@ -82,8 +86,22 @@ internal fun AppNavHost(
             },
         )
         sampleScreen()
-        // T-016 opens the review screen; T-021 and T-025 wire the library and settings buttons.
-        cameraScreen(onPhotoCaptured = {})
+        // T-016 opens the review screen; T-025 wires the settings buttons of the camera and the library.
+        cameraScreen(
+            onPhotoCaptured = {},
+            onOpenPoses = posesOpener(posesEnabled) {
+                navController.navigate(PosesDestination) { launchSingleTop = true }
+            },
+        )
+        // Back returns to the camera entry, which kept its pose (spec poses, KB-1). T-022 wires onOpenPose.
+        posesScreen(
+            onBack = {
+                // Only while the library is on top: a second tap must not close the camera too.
+                if (navController.currentDestination?.hasRoute<PosesDestination>() == true) {
+                    navController.popBackStack()
+                }
+            },
+        )
     }
 }
 

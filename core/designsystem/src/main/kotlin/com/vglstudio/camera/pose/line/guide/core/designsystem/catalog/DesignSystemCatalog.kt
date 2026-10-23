@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -39,6 +40,8 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.R
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.CameraIconButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.GridOverlay
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCard
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseThumb
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
@@ -295,6 +298,58 @@ fun PoseComponentCatalog(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
             trailing = { TextButton(onClick = {}) { Text("Retry") } },
         )
+    }
+}
+
+/**
+ * The pose cards of the library (sticker.md, section 4; plan T-021): unsaved, saved, a long name on two lines, and the
+ * skeleton shown while the image loads. Cards are 182 dp wide, as in the two-column grid of the design.
+ */
+@Composable
+fun PoseCardCatalog(modifier: Modifier = Modifier) {
+    val figure = BitmapPainter(rememberPlaceholderFigure(MaterialTheme.appColors.onCategory))
+    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Text(text = "Pose cards", style = MaterialTheme.typography.titleLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                PoseCard(
+                    name = "Lean on the rail",
+                    meta = "Single · 4 steps",
+                    image = figure,
+                    imageBackground = MaterialTheme.appColors.categoryWomen,
+                    saved = false,
+                    saveLabel = "Save pose",
+                    onSaveClick = {},
+                    modifier = Modifier.weight(1f),
+                )
+                PoseCard(
+                    name = "Look over the shoulder",
+                    meta = "Single · 3 steps",
+                    image = figure,
+                    imageBackground = MaterialTheme.appColors.categoryMen,
+                    saved = true,
+                    saveLabel = "Unsave pose",
+                    onSaveClick = {},
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                PoseCard(
+                    name = "Walk hand in hand along the beach at sunset",
+                    meta = "Couple · 5 steps",
+                    image = figure,
+                    imageBackground = MaterialTheme.appColors.categoryCouple,
+                    saved = false,
+                    saveLabel = "Save pose",
+                    onSaveClick = {},
+                    modifier = Modifier.weight(1f),
+                )
+                PoseCardSkeleton(modifier = Modifier.weight(1f))
+            }
+        }
     }
 }
 

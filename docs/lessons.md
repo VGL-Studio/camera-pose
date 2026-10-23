@@ -289,7 +289,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** T-012 cho `chooseMainScreen()` đọc DataStore. `AppLaunchTest` trên emulator báo `IllegalStateException: Method setCurrentState must be called on the main thread` ở `navController.navigate` trong `scope.launch` của `AppNavHost`: coroutine được tiếp tục trên `LimitedDispatcher$Worker`. `AppNavHost` nằm trong ngoại lệ viết test trước của plan (không có test JVM), nên lỗi chỉ lộ ra ở `ui-test`, vòng CI dài nhất.
 - **Bằng chứng:** lần chạy 39821691045, job `ui-test`, bước "Chi tiết test trên emulator".
 - **Đề xuất sửa:** `CLAUDE.md` mục Viết một feature mới: điều hướng chạy trên `Dispatchers.Main.immediate` khi đứng sau một lời gọi `suspend`; plan đổi hàm `suspend` mà `AppNavHost` gọi phải có test JVM (Robolectric) dựng `AppNavHost` với bản giả đổi luồng, thay vì ngoại lệ.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-051).
 - **Kiểm chứng:**
 
 ### L-031: Giao bước 3 đến 5 của task lớn cho một phiên AI viết code riêng
@@ -298,7 +298,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** với T-012 (47 file), phiên chính giao bước 3 đến 5 cho một phiên con có đủ quy tắc (danh sách file, thứ tự commit, đẩy sau mỗi commit, điều kiện dừng, báo cáo theo mẫu nhật ký). Phiên con xong trong 22 phút, `check.sh` qua, không file nào ngoài plan; phiên chính chỉ kiểm danh sách file, giao rà soát độc lập cho một phiên khác và giữ ngữ cảnh gọn cho các task sau. Cũng trong phiên: phiên chính lỡ sửa file khi `check.sh` đang chạy nền trong cùng thư mục (T-026) và phải chạy lại.
 - **Bằng chứng:** commit dabc2a3 tới 15f10b2 (16:58 tới 17:12); token T-012 21,9M so với ước tính 20M.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 3: cho phép và mô tả cách giao bước 3 đến 5 cho phiên con (nội dung giao việc tối thiểu); nhắc không sửa file trong thư mục đang chạy `check.sh` nền, chỉ chạy rà soát độc lập song song.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-052).
 - **Kiểm chứng:**
 
 ### L-032: Nút chữ trong thành phần có nền khác màu tự đặt màu chữ, đè màu thiết kế
@@ -307,7 +307,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** thông báo lưu lỗi của màn xem lại dùng `Snackbar` có nút `TextButton` "Thử lại". `TextButton` tự đặt màu chữ bằng `ButtonDefaults.textButtonColors()` (`primary`), đè `actionContentColor` mà `Snackbar` truyền xuống, nên chữ ra #6E9BFF thay vì `inversePrimary` #2F6BFF của thiết kế, độ tương phản giảm từ khoảng 3,9:1 xuống 2,4:1. Ảnh chuẩn ghi lại màu sai; không test nào đo màu chữ của nút; chỉ phiên rà soát độc lập thấy khi đo điểm ảnh.
 - **Bằng chứng:** RUN-20261023-02, rà soát độc lập T-016 (điểm chặn); commit e2030bd; test `saveError_retryUsesInversePrimary`.
 - **Đề xuất sửa:** mẫu plan và `CLAUDE.md` mục test giao diện: thành phần có nút chữ đặt trên nền khác màu (`inverseSurface`, thẻ màu, hộp thoại) phải có test đo màu chữ của nút bằng cách vẽ view gốc ra `Bitmap`; khi dựng, truyền `colors` cho `TextButton` thay vì dựa vào màu mà thành phần cha truyền xuống.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-053).
 - **Kiểm chứng:**
 
 ### L-033: Các plan viết song song cùng ghi "Tạo" cho một file mà task chạy trước trong phiên tạo ra
@@ -316,7 +316,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** plan T-014 và T-025 cùng ghi "Tạo" `core/designsystem/src/main/res/drawable/ic_chevron_right.xml`, một bản kiểu Outlined, một bản kiểu Rounded. T-014 chạy trước và tạo file; `scripts/plan-check.py` chỉ cảnh báo lúc bắt đầu T-025. Phiên con dùng lại bản có sẵn để không đổi giao diện camera, và ghi lệch plan. Tương tự, chú thích "until T-025 wires it" do T-021 viết ở `PosesNavigation.kt` trở nên lỗi thời mà file đó không thuộc plan T-025.
 - **Bằng chứng:** kết quả `plan-check.py` lúc 02:26 UTC; nhật ký plan T-025, mục Lệch so với plan.
 - **Đề xuất sửa:** `docs/CLAUDE.md` mục Khi lập danh sách chạy: chạy `plan-check.py` cho các plan theo thứ tự chạy dự kiến và tìm file "Tạo" trùng giữa các plan; mỗi file dùng chung chỉ một plan tạo, plan sau ghi "dùng lại" và ghi rõ kiểu. Plan để lại chú thích "task sau nối" thì liệt kê file đó cho task sau.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-054).
 - **Kiểm chứng:**
 
 ### L-034: Phiên con viết code trong thư mục chính làm phiên chính không làm gì song song được
@@ -325,7 +325,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** bốn phiên con (T-014, T-021, T-016, T-025) làm việc ngay trong thư mục chính của repo. Trong lúc chờ, hook dừng phiên của môi trường cloud ba lần báo "có thay đổi chưa commit" (đó là phần làm dở của phiên con, phiên chính không được commit chen vào). Phiên chính cũng không thể chạy `check.sh`, chuẩn bị nhánh task sau hay sửa file song song trong thư mục đó (L-031).
 - **Bằng chứng:** phản hồi của hook trong phiên, lúc phiên con T-014, T-021, T-025 đang làm.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 3 (cùng chỗ với L-031): phiên chính tạo worktree riêng cho nhánh task (`git worktree add ../task-T-NNN claude/T-NNN-...`) và giao việc cho phiên con trong worktree đó; thư mục chính giữ sạch cho việc của phiên chính. Bộ nhớ đệm Gradle ở `~/.gradle` dùng chung nên không tốn thêm thời gian tải.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-052).
 - **Kiểm chứng:**
 
 ### L-035: Thêm một bước đối chứng để test viết trước không qua ngay trên khung rỗng
@@ -334,7 +334,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** ở cả bốn task lớn, một số test viết theo mục 4 của plan qua ngay trên khung rỗng, vì khung trả đúng giá trị mặc định mà test mong đợi (ví dụ "chưa lưu gì thì trả mặc định", "tệp hỏng thì trả `null`"). Phiên con tự viết chặt lại trước commit test bằng một bước đối chứng: ghi rồi đọc lại, hoặc đặt dữ liệu đúng cạnh dữ liệu sai. Sau đó các test này thất bại đúng lý do. Số test được viết chặt như vậy: T-014 2, T-016 8, T-025 9; ở T-021, 2 test được viết chặt ngay từ đầu.
 - **Bằng chứng:** nhật ký plan T-014, T-021, T-016, T-025 (RUN-20261023-02), mục Test viết trước.
 - **Đề xuất sửa:** `docs/auto-run.md` bước 3: nêu "thêm bước đối chứng" làm cách mặc định khi một test không phải test chặn qua ngay; mẫu plan nhắc người viết plan rằng test kiểm giá trị mặc định thường qua trên khung và nên có sẵn bước đối chứng.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-055).
 - **Kiểm chứng:**
 
 ### L-036: Chạy lại `main-guard` trên đúng commit bị đổ lỗi, xanh, nhưng issue `main-broken` không tự đóng
@@ -410,7 +410,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** PR #39 (mở trong lúc RUN-20261023-02 chạy) thêm bài học L-032 tới L-037; phiên thêm L-032 tới L-035 trong PR báo cáo. Sau khi phiên merge, PR #39 xung đột ở `docs/lessons.md` và phải đổi số 6 bài học cùng mọi chỗ nhắc tới chúng, ở PR #39, PR #40, dự án mẫu (PR #80, issue #79). Không công cụ nào báo trùng số nếu hai bài học nằm ở hai chỗ khác nhau trong sổ và git gộp được mà không xung đột.
 - **Bằng chứng:** commit 02ebd3b (PR #39), 0348331 (PR #40); bình luận ở VGL-Studio/app-project-template#79.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 6: trước khi merge PR thêm bài học, gộp nhánh chính và đổi số cho liền sau sổ. `scripts/status.py` báo lỗi khi một số bài học dùng hai lần.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-056).
 - **Kiểm chứng:**
 
 ### L-043: Trang tiến độ đếm 0 bài học vì sổ của app viết khác mẫu
@@ -419,7 +419,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `docs/STATUS.md` ghi "Bài học: 0 bài; chưa có" trong khi sổ có 41 bài. `scripts/status.py` chỉ nhận tiêu đề dạng `### L-001.` và dòng trạng thái chỉ có trạng thái; sổ của app viết `### L-001:` và `- **Trạng thái:** proposed. **Loại:** ...`. Vì vậy trang không cho thấy bài học nào chờ retro, và cả 41 bài vẫn `proposed`, chưa bài nào được nhận ở retro.
 - **Bằng chứng:** `docs/STATUS.md` mục 5 trước commit của bài học này; `grep -c '^### L-[0-9]*:' docs/lessons.md` ra 41.
 - **Đề xuất sửa:** `scripts/status.py` nhận cả hai dạng tiêu đề và đọc chữ trạng thái đầu tiên; có test cho dạng của app.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-057).
 - **Kiểm chứng:**
 
 ### L-044: Plan đổi cổng chất lượng bỏ sót một kiểm tra mà trường hợp mới phải đi qua
@@ -428,7 +428,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** plan T-028 cho `merge-if-green.sh` nhận bản revert đúng khi `main-broken` mở, "rồi đi tiếp tới các kiểm tra còn lại". Kiểm tra "phiên đang chạy" ngay sau đó từ chối mọi nhánh ngoài `claude/T-*` và nhánh báo cáo, nên trong phiên, bản revert vẫn bị từ chối và điểm 4 của ADR-1002 không làm được. Plan đã qua duyệt và duyệt chéo; lỗi chỉ thấy khi viết code.
 - **Bằng chứng:** nhật ký plan T-028, mục Lệch so với plan; test `merge-if-green lets the exact revert through while a run is running` (đỏ trước khi sửa); PR #47.
 - **Đề xuất sửa:** `docs/CLAUDE.md` mục Khi viết plan: plan đổi `merge-if-green.sh` hay `main-guard.yml` liệt kê mọi kiểm tra hiện có và nói trường hợp mới qua hay bị chặn ở từng kiểm tra, mỗi kiểm tra một test.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-058).
 - **Kiểm chứng:**
 
 ### L-045: Plan đã duyệt nhưng ticket vẫn `ready`, mục 9 còn chữ mẫu
@@ -437,5 +437,5 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** người duyệt chuyển plan T-028 sang `approved` và trả lời câu hỏi, nhưng ticket để `ready` và mục 9 còn chữ mẫu. `plan-check.py` chỉ báo mục 9; trạng thái ticket chỉ được `run-check.py` kiểm, mà task chạy trong phiên có người theo dõi không qua danh sách chạy. Phải thêm một lượt sửa trước khi merge.
 - **Bằng chứng:** PR #47, commit e00cd7d.
 - **Đề xuất sửa:** `plan-check.py` báo chú ý khi plan `approved` mà ticket còn `backlog`, `ready` hay `planned`; `docs/CLAUDE.md` nhắc người duyệt chuyển ticket cùng lúc.
-- **Áp dụng:**
+- **Áp dụng:** app: PR #48. dự án mẫu: đã có (quy tắc 10 của `plan-check.py`, `status.py --sync`, L-050 của dự án mẫu), không đề xuất.
 - **Kiểm chứng:**

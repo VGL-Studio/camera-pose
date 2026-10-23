@@ -168,20 +168,20 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-017: `merge-if-green.sh` cần tự cập nhật nhánh và chịu được job kẹt
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #6, #11, #14.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** PR #6, #11, #14.
 - **Chuyện gì:** script từ chối mọi PR có nhánh cũ hơn nhánh chính, người phải cập nhật nhánh, chờ CI, gọi lại; một lần GitHub ghi job `changes` là `in_progress` dù lần chạy đã `completed success`.
 - **Bằng chứng:** lần chạy 39613776353 (PR #11); PR #6 bị từ chối vì chậm 2 commit.
 - **Đề xuất sửa:** thêm `merge-if-green.sh --update`: cập nhật nhánh, chờ CI của commit mới, rồi merge; coi lần chạy `completed success` là xanh khi trạng thái job còn lệch.
-- **Áp dụng:** plan T-029 (`draft`, rủi ro cao): `merge-if-green.sh --update`, xét check suite khi job kẹt.
+- **Áp dụng:** plan T-029: `merge-if-green.sh --update` cho GitHub cập nhật nhánh rồi trả mã 2; job kẹt được xét theo check suite; `auto-run.md` bước 9. Lệnh chờ CI vẫn tách riêng (`wait-run.sh`), vì một lệnh của phiên không chạy đủ lâu để chờ CI.
 - **Kiểm chứng:**
 
 ### L-018: PR bị merge trước khi nhận commit cuối
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** PR #7, #8.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** PR #7, #8.
 - **Chuyện gì:** commit duyệt plan được đẩy lên nhánh của PR #7 sau khi người đã merge PR đó; plan và ticket trên nhánh chính vẫn `draft`, phải mở PR #8 để đưa lại.
 - **Bằng chứng:** lịch sử nhánh `claude/plans-foundation` (commit 4a11c4b).
 - **Đề xuất sửa:** `merge-if-green.sh` in mã commit sẽ merge và cảnh báo nếu nhánh có commit trong vài phút gần đây; quy ước: thay đổi sau khi PR đã gửi người duyệt thì làm trên nhánh mới.
-- **Áp dụng:** app: PR #48 (`auto-run.md` bước 9: đối chiếu mã commit, thay đổi sau khi gửi duyệt làm trên nhánh mới). Phần script: plan T-029 (cảnh báo commit mới đẩy).
+- **Áp dụng:** app: PR #48 (`auto-run.md` bước 9: đối chiếu mã commit, thay đổi sau khi gửi duyệt làm trên nhánh mới). Phần script: plan T-029, `merge-if-green.sh` cảnh báo khi commit cuối đẩy chưa tới 3 phút.
 - **Kiểm chứng:**
 
 ### L-019: Trạng thái ticket và plan đổi tay, hay lệch nhau

@@ -167,7 +167,8 @@ Nếu phiên rà soát và phiên viết code hiểu spec khác nhau, AI không 
 ### Bước 9. Merge
 
 - Chỉ merge bằng `scripts/merge-if-green.sh <số PR>`. Script tự kiểm tra mọi điều kiện của cổng chất lượng và từ chối merge nếu thiếu điều kiện nào (ADR-0010). AI không merge bằng bất kỳ cách nào khác.
-- Script báo nhánh chưa cập nhật theo nhánh chính thì cập nhật nhánh, đợi CI chạy lại rồi gọi lại script.
+- Script báo nhánh chưa cập nhật theo nhánh chính (mã 3) thì gọi `scripts/merge-if-green.sh <số> --update`: GitHub gộp nhánh chính vào nhánh của PR, script trả mã 2. Chờ CI của commit mới bằng `scripts/wait-run.sh --pr <số>` rồi gọi lại script không kèm `--update`. GitHub từ chối cập nhật (xung đột, mã 1) thì gộp nhánh chính bằng `git merge origin/main`, sửa xung đột trong phạm vi file của plan, đẩy, rồi chờ CI như trên (plan T-029).
+- Script in `CHÚ Ý: kiểm tra '...' còn ghi ...` thì job đó kẹt trạng thái nhưng lần chạy chứa nó đã xanh; script coi là xanh, không cần làm gì. Script in `CHÚ Ý: commit cuối ...` thì kiểm lại không còn commit nào chưa đẩy trước khi merge (L-018).
 - Script từ chối vì lý do khác thì không tìm cách vượt qua, mà dừng task và ghi lý do vào nhật ký.
 - Script in mã commit mà nó kiểm và merge; đối chiếu với commit cuối đã đẩy. PR đã gửi người duyệt thì thay đổi mới làm trên một nhánh và PR mới, không đẩy thêm vào nhánh đang chờ merge (L-018).
 - Sau khi merge, chờ `main-guard` của commit merge: `scripts/wait-run.sh --workflow main-guard.yml --since <giờ merge>` ở chế độ nền, trong lúc làm bước 10 và bước 1, 2 của task sau. Commit merge chỉ đổi tài liệu thì `main-guard` không chạy (`paths-ignore`), không cần chờ.

@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -79,6 +80,9 @@ fun AdjustPanel(
             .clip(shape)
             .background(appColors.cameraControl, shape)
             .border(Stroke.sticker, appColors.cameraOnControl, shape)
+            // A touch on the sheet is not for what lies under it (for example a drag area): being a pointer input
+            // node makes the sheet take the hit. Its controls still get their touches first.
+            .pointerInput(Unit) {}
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {

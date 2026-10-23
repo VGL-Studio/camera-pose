@@ -22,6 +22,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.data.PoseOverlaySetti
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
+import kotlin.math.abs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +76,7 @@ class PoseViewModel @Inject constructor(
     private var gestureMoved = false
     private var gestureScaled = false
     private var gestureHintShown = false
+    private var gestureZoom = 1f
 
     init {
         viewModelScope.launch { libraryRepository.library.collect(::onLibraryState) }
@@ -140,13 +142,19 @@ class PoseViewModel @Inject constructor(
             return
         }
         val moved = panX != 0f || panY != 0f
-        val scaled = zoom != 1f
-        if (!moved && !scaled) return
+        if (!moved && zoom == 1f) return
         offsetX = clampOffset(offsetX + panX)
         offsetY = clampOffset(offsetY + panY)
-        if (scaled) outlineSettings = outlineSettings.copy(scale = clampScale(outlineSettings.scale * zoom))
+        // Two fingers that only drag still jitter a little in distance: the size changes (and is logged) only once
+        // the gesture has pinched by more than ZOOM_SLOP in all.
+        gestureZoom *= zoom
+        if (gestureScaled) {
+            outlineSettings = outlineSettings.copy(scale = clampScale(outlineSettings.scale * zoom))
+        } else if (abs(gestureZoom - 1f) > ZOOM_SLOP) {
+            gestureScaled = true
+            outlineSettings = outlineSettings.copy(scale = clampScale(outlineSettings.scale * gestureZoom))
+        }
         gestureMoved = gestureMoved || moved
-        gestureScaled = gestureScaled || scaled
         publish()
     }
 
@@ -157,6 +165,7 @@ class PoseViewModel @Inject constructor(
         gestureScaled = false
         gestureMoved = false
         gestureHintShown = false
+        gestureZoom = 1f
         if (!canAdjust()) return
         if (scaled) {
             logAdjusted("size")
@@ -480,6 +489,7 @@ class PoseViewModel @Inject constructor(
         const val EVENT_CONTENT_LOAD_FAILED = "content_load_failed"
         const val EVENT_OVERLAY_ADJUSTED = "overlay_adjusted"
         const val LOCK_HINT_MILLIS = 2_000L
+        const val ZOOM_SLOP = 0.03f
         const val THUMBNAIL_PX = 256
         const val OUTLINE_PX = 1080
     }

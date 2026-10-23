@@ -4,6 +4,7 @@
 
 ## 1. Đang chờ người
 
+- Plan `draft` chờ duyệt: [T-027-test-vong-cho-on-dinh.md](features/camera/plans/T-027-test-vong-cho-on-dinh.md)
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
@@ -15,7 +16,7 @@
 
 | Yêu cầu | Ngày | Feature | Trạng thái | Ticket xong |
 | --- | --- | --- | --- | --- |
-| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | 2/9 |
+| Camera chụp theo tư thế và màn xem lại ([2026-10-21-camera-theo-tu-the.md](features/camera/requests/2026-10-21-camera-theo-tu-the.md)) | 2026-10-21 | camera | `specified` đã có spec | 2/10 |
 | Màn hình loading có thanh tiến trình ([2026-10-15-man-hinh-loading.md](features/loading/requests/2026-10-15-man-hinh-loading.md)) | 2026-10-15 | loading | `specified` đã có spec | 9/9 |
 | Màn loading cho camera pose ([2026-10-21-loading-cua-camera-pose.md](features/loading/requests/2026-10-21-loading-cua-camera-pose.md)) | 2026-10-21 | loading | `specified` đã có spec | 9/9 |
 | App luôn cần mạng, báo mất mạng khi đang dùng ([2026-10-21-hop-thoai-mat-mang.md](features/network/requests/2026-10-21-hop-thoai-mat-mang.md)) | 2026-10-21 | network | `specified` đã có spec | 1/1 |
@@ -27,7 +28,7 @@
 
 ### camera
 
-Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `ready`, 2 `approved`, 2 `on-staging`.
+Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `ready`, 2 `approved`, 2 `on-staging`, 1 `planned`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -40,6 +41,7 @@ Spec: [spec.md](features/camera/spec.md) `confirmed`. Ticket: 5 `ready`, 2 `appr
 | [T-019](features/camera/tickets/T-019-hoi-danh-gia.md) | Hỏi đánh giá app trong app | `ready` | chưa có | - | - |
 | [T-020](features/camera/tickets/T-020-camera-may-gap.md) | Camera và màn xem lại trên máy gập | `ready` | chưa có | - | - |
 | [T-026](features/camera/tickets/T-026-khong-ghi-quyen-tu-choi-vinh-vien.md) | Không ghi camera_permission_result khi quyền camera đã bị từ chối vĩnh viễn | `on-staging` | `done` (bản 1) | 10.0M | RUN-20261023-01 |
+| [T-027](features/camera/tickets/T-027-test-vong-cho-on-dinh.md) | Screenshot test của trạng thái có vòng chờ chụp ở đồng hồ dừng, không còn chập chờn | `planned` | `draft` (bản 1) | 10.0M | - |
 
 Phản hồi: chưa có.
 

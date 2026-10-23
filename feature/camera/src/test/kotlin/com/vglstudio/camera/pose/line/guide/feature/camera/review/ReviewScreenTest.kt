@@ -1,6 +1,12 @@
 package com.vglstudio.camera.pose.line.guide.feature.camera.review
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -9,6 +15,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -21,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButtonTestTags
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
+import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.feature.camera.review.ReviewUiState.Ready
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
@@ -43,10 +51,12 @@ class ReviewScreenTest {
     val composeRule = createComposeRule()
 
     private val calls = mutableListOf<String>()
+    private var inversePrimary = Color.Unspecified
 
     private fun setScreen(uiState: ReviewUiState) {
         composeRule.setContent {
             AppTheme(darkTheme = true) {
+                inversePrimary = MaterialTheme.colorScheme.inversePrimary
                 ReviewScreen(
                     uiState = uiState,
                     image = null,
@@ -145,6 +155,38 @@ class ReviewScreenTest {
         composeRule.onNodeWithTag(ReviewTestTags.SAVE).assertIsEnabled()
     }
 
+    // The action of the message is drawn in inversePrimary (README, "Xem lại: lưu lỗi"), not the TextButton default.
+
+    @Test
+    fun saveError_retryUsesInversePrimary() {
+        setScreen(Ready(PATH, SaveStatus.FAILED_STORAGE_FULL))
+        assertDrawnIn(inSaveError("Thử lại"), inversePrimary)
+    }
+
+    @Test
+    fun permissionBlocked_settingsUsesInversePrimary() {
+        setScreen(Ready(PATH, SaveStatus.PERMISSION_BLOCKED))
+        assertDrawnIn(inSaveError("Mở cài đặt"), inversePrimary)
+    }
+
+    /** Draws the root view to a Bitmap (L-006) and looks for [color] among the pixels of the node's text. */
+    private fun assertDrawnIn(matcher: SemanticsMatcher, color: Color) {
+        composeRule.waitForIdle()
+        val root = (composeRule as AndroidComposeTestRule<*, *>).activity.window.decorView
+        val bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(bitmap))
+        val bounds = composeRule.onNode(matcher).fetchSemanticsNode().boundsInWindow
+        val pixels = buildSet {
+            for (x in bounds.left.toInt() until bounds.right.toInt()) {
+                for (y in bounds.top.toInt() until bounds.bottom.toInt()) add(bitmap.getPixel(x, y))
+            }
+        }
+        assertTrue(
+            "expected ${Integer.toHexString(color.toArgb())} in the text",
+            pixels.contains(color.toArgb()),
+        )
+    }
+
     @Test
     fun discard_showsDialog_andCallsBack() {
         setScreen(Ready(PATH, SaveStatus.NOT_SAVED, pendingExit = ExitAction.RETAKE))
@@ -196,7 +238,10 @@ class ReviewScreenTest {
         assertTrue("save bottom ${save.bottom} within ${root.bottom}", save.bottom <= root.bottom)
         assertTrue("save height ${save.bottom - save.top}", save.bottom - save.top >= 56.dp)
         assertTrue("error ${error.bottom} above save ${save.top}", error.bottom <= save.top)
-        assertTrue("error ${error.top} below actions ${actions.bottom}", error.top >= actions.bottom)
+        assertTrue(
+            "error ${error.top} at least ${Spacing.sm} below actions ${actions.bottom}",
+            error.top >= actions.bottom + Spacing.sm,
+        )
         assertTrue("photo ${photo.bottom} above actions ${actions.top}", photo.bottom <= actions.top)
         val density = composeRule.density.density
         val widthPx = (photo.right - photo.left).value * density

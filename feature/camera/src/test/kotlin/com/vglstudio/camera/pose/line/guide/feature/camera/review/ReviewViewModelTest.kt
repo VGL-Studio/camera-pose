@@ -3,6 +3,9 @@ package com.vglstudio.camera.pose.line.guide.feature.camera.review
 import android.system.ErrnoException
 import android.system.OsConstants
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
 import com.vglstudio.camera.pose.line.guide.core.logging.LogLevel
@@ -166,6 +169,32 @@ class ReviewViewModelTest {
         val saved = logger.entries.single { it.message.contains("Photo saved") }
         assertFalse(saved.message.contains("content://"))
         assertFalse(saved.message.contains("capture_1"))
+    }
+
+    @Test
+    fun save_leaveDuringRecord_recordStillCompletes() = runTest {
+        repository.pendingWrite = CompletableDeferred()
+        val store = ViewModelStore()
+        val created = viewModel()
+        val viewModel = ViewModelProvider(
+            store,
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = created as T
+            },
+        )[ReviewViewModel::class.java]
+        viewModel.onSaveClick()
+        runCurrent()
+
+        // "Chụp lại" right after the save: the screen leaves and its view model is cleared during the write.
+        viewModel.onRetakeClick()
+        runCurrent()
+        assertEquals(listOf<ReviewEvent>(Leave(true)), events)
+        store.clear()
+        repository.pendingWrite!!.complete(Unit)
+        runCurrent()
+
+        assertEquals(listOf("content://media/external/images/media/7"), repository.recorded)
     }
 
     @Test

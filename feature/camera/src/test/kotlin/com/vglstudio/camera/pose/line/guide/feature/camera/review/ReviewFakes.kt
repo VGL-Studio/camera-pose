@@ -38,10 +38,14 @@ internal class FakeSavedPhotosRepository : SavedPhotosRepository {
     val recorded = mutableListOf<String>()
     var failWrites = false
 
+    /** When set, recordSaved waits for it, so a test can leave the screen during the write. */
+    var pendingWrite: CompletableDeferred<Unit>? = null
+
     override val lastSavedPhoto: Flow<String?> = last
     override val savedCount: Flow<Int> = count
 
     override suspend fun recordSaved(uri: String) {
+        pendingWrite?.await()
         if (failWrites) throw IOException("disk full")
         recorded += uri
         last.value = uri

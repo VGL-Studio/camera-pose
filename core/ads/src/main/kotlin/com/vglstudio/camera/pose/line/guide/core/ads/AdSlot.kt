@@ -107,6 +107,10 @@ fun rememberShowInterstitial(placement: AdPlacement): () -> Unit {
     }
 }
 
+/** Stub: behavior comes with the code. */
+@Composable
+fun rememberShowInterstitial(placement: AdPlacement, onFinished: (shown: Boolean) -> Unit): () -> Unit = {}
+
 /**
  * Entry point to change consent, required by Google where the consent form applies.
  * Place it in the app's settings or main screen. It renders nothing where it is not required.

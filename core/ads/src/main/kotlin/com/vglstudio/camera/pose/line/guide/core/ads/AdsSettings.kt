@@ -7,6 +7,17 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 internal object AdsSettings {
     fun placementEnabledKey(placement: AdPlacement) = "ads_${placement.key}_enabled"
 
+    /** First break of the session that may show an ad. */
+    fun placementFirstBreakKey(placement: AdPlacement) = ""
+
+    /** Minimum number of breaks between two ads of the placement. */
+    fun placementBreaksBetweenKey(placement: AdPlacement) = ""
+
+    /** Minimum seconds between two ads of the placement. */
+    fun placementMinIntervalKey(placement: AdPlacement) = ""
+
+    fun breakCapDefaults(placement: AdPlacement): BreakCap = BreakCap.NONE
+
     /** Off by default: a placement shows ads only once the product owner switches it on remotely. */
     const val PLACEMENT_ENABLED_DEFAULT = false
 

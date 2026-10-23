@@ -39,6 +39,8 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberShowInterstitial
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
@@ -65,6 +67,9 @@ internal fun ReviewRoute(onLeave: () -> Unit, viewModel: ReviewViewModel = hiltV
     val activity = LocalActivity.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnLeave by rememberUpdatedState(onLeave)
+    val showAd = rememberShowInterstitial(AdPlacement.REVIEW_INTERSTITIAL) { shown ->
+        afterReviewAd(shown, currentOnLeave)
+    }
     val shareTitle = stringResource(R.string.review_share_title)
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         // No activity (previews only): count asking again as possible.
@@ -81,7 +86,7 @@ internal fun ReviewRoute(onLeave: () -> Unit, viewModel: ReviewViewModel = hiltV
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.events.collect { event ->
                 when (event) {
-                    is ReviewEvent.Leave -> currentOnLeave()
+                    is ReviewEvent.Leave -> leaveReview(event.savedThisVisit, showAd, currentOnLeave)
                     is ReviewEvent.Share -> share(context, event.location, shareTitle, viewModel)
                     ReviewEvent.RequestStoragePermission -> permissionLauncher.launch(STORAGE_PERMISSION)
                     ReviewEvent.OpenAppSettings -> {

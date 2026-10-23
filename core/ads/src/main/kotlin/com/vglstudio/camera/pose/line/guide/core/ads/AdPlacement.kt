@@ -18,4 +18,5 @@ enum class AdFormat {
  */
 enum class AdPlacement(val key: String, val format: AdFormat) {
     SAMPLE_BOTTOM_BANNER("sample_bottom_banner", AdFormat.BANNER),
+    REVIEW_INTERSTITIAL("review_interstitial", AdFormat.INTERSTITIAL),
 }

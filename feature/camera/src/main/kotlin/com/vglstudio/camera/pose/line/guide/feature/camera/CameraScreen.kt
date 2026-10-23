@@ -12,12 +12,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,11 +48,13 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.feature.camera.lastphoto.LastPhotoViewModel
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.OverlayToolColumn
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PosePicker
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseUiState
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseViewModel
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.toolColumnPlacement
 
 /**
  * Stateful entry point used by navigation. Checks the camera permission each time the screen starts (also back from
@@ -78,6 +84,18 @@ internal fun CameraRoute(
             onShowSteps = poseViewModel::onShowSteps,
             onRetryOutline = poseViewModel::onRetryOutline,
             onRetryLibrary = poseViewModel::onRetryLibrary,
+            onOverlayTransform = poseViewModel::onOverlayTransform,
+            onOverlayGestureEnd = poseViewModel::onOverlayGestureEnd,
+            onOpacityChange = poseViewModel::onOpacityChange,
+            onOpacityChangeFinished = poseViewModel::onOpacityChangeFinished,
+            onScaleChange = poseViewModel::onScaleChange,
+            onScaleChangeFinished = poseViewModel::onScaleChangeFinished,
+            onTogglePanel = poseViewModel::onTogglePanel,
+            onClosePanel = poseViewModel::onClosePanel,
+            onToggleMirror = poseViewModel::onToggleMirror,
+            onToggleLock = poseViewModel::onToggleLock,
+            onToggleHidden = poseViewModel::onToggleHidden,
+            onResetOverlay = poseViewModel::onResetOverlay,
         )
     }
     val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
@@ -194,7 +212,16 @@ internal fun CameraScreen(
             onOpenSettings = onOpenSettings,
         )
         Spacer(modifier = Modifier.height(Spacing.sm + Spacing.xs))
-        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        // The frame is 3:4 and as high as the room allows; the tools go in it or, on a short screen, in the free
+        // margin beside it (plan T-015). Only a ready camera with a pose has tools.
+        val overlay = (poseState as? PoseUiState.Ready)?.takeIf { it.selected != null }?.overlay
+        val tools = if (ready != null) overlay else null
+        var stepBottom by remember { mutableStateOf(DEFAULT_STEP_BOTTOM) }
+        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            val frameWidth = minOf(maxWidth, maxHeight * PREVIEW_ASPECT_RATIO)
+            val frameHeight = frameWidth / PREVIEW_ASPECT_RATIO
+            val placement = toolColumnPlacement(maxWidth.value, frameWidth.value, frameHeight.value, stepBottom.value)
+            val frameLeft = (maxWidth - frameWidth) / 2
             Box(
                 modifier = Modifier
                     .aspectRatio(PREVIEW_ASPECT_RATIO, matchHeightConstraintsFirst = true)
@@ -208,7 +235,27 @@ internal fun CameraScreen(
                     onRetry = onRetry,
                     onOpenAppSettings = onOpenAppSettings,
                     preview = preview,
-                    poseOverlay = { PoseOverlay(state = poseState, actions = poseActions) },
+                    poseOverlay = {
+                        PoseOverlay(
+                            state = poseState,
+                            actions = poseActions,
+                            hintBottomPadding = LOCK_HINT_ABOVE_ZOOM,
+                            toolsOffset = if (tools != null && !placement.outsideFrame) {
+                                DpOffset(placement.x.dp - frameLeft, placement.y.dp)
+                            } else {
+                                null
+                            },
+                            onStepBottomChange = { stepBottom = it },
+                        )
+                    },
+                    zoomVisible = overlay?.panelOpen != true,
+                )
+            }
+            if (tools != null && placement.outsideFrame) {
+                OverlayToolColumn(
+                    overlay = tools,
+                    actions = poseActions,
+                    modifier = Modifier.align(Alignment.TopStart).offset(x = placement.x.dp, y = placement.y.dp),
                 )
             }
         }
@@ -247,12 +294,28 @@ internal object CameraTestTags {
     const val STEP_CARD = "camera_step_card"
     const val SHOW_STEPS = "camera_show_steps"
     const val NO_POSE_HINT = "camera_no_pose_hint"
+    const val OVERLAY_GESTURES = "camera_overlay_gestures"
+    const val OVERLAY_TOOLS = "camera_overlay_tools"
+    const val TOOL_ADJUST = "camera_tool_adjust"
+    const val TOOL_MIRROR = "camera_tool_mirror"
+    const val TOOL_LOCK = "camera_tool_lock"
+    const val TOOL_VISIBILITY = "camera_tool_visibility"
+    const val ADJUST_PANEL = "camera_adjust_panel"
+    const val OPACITY_SLIDER = "camera_opacity_slider"
+    const val SIZE_SLIDER = "camera_size_slider"
+    const val LOCK_HINT = "camera_lock_hint"
 
     /** Tag of the strip cell of a pose: `camera_pose_<id>`. */
     fun pose(id: String): String = "camera_pose_$id"
 }
 
 private const val PREVIEW_ASPECT_RATIO = 3f / 4f
+
+// Where the step card ends in the frame before it is measured: one row, 16 + 68 (design context).
+private val DEFAULT_STEP_BOTTOM = 84.dp
+
+// The lock hint is 16 above the zoom control, which is 16 from the bottom of the frame and 48 high.
+private val LOCK_HINT_ABOVE_ZOOM = Spacing.md + 48.dp + Spacing.md
 
 /** Long side of the last photo thumbnail, in pixels (plan T-016). */
 private const val LAST_PHOTO_MAX_SIDE_PX = 192

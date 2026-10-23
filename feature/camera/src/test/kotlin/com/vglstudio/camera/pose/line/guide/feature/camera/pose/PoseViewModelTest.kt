@@ -15,11 +15,14 @@ import com.vglstudio.camera.pose.line.guide.core.poses.model.SavedPose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.UsedPose
 import com.vglstudio.camera.pose.line.guide.feature.camera.FakeAnalytics
 import com.vglstudio.camera.pose.line.guide.feature.camera.MainDispatcherRule
+import com.vglstudio.camera.pose.line.guide.feature.camera.data.OverlaySettings
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.FakePoseCatalogRepository.Companion.fileOf
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -434,5 +437,323 @@ class PoseViewModelTest {
 
         viewModel.onNextPose()
         assertEquals("w01", viewModel.selected().id)
+    }
+
+    // KB-3: outline adjustment (plan T-015)
+
+    private fun overlayEvent(type: String) = AnalyticsEvent("overlay_adjusted", mapOf("type" to type))
+
+    private fun PoseViewModel.adjust() = ready().overlay
+
+    @Test
+    fun drag_movesOutline_andLogsMoveOnceAtEnd() {
+        val viewModel = readyViewModel()
+        repeat(3) { viewModel.onOverlayTransform(0.1f, -0.05f, 1f) }
+        assertEquals(0.3f, viewModel.adjust().offsetX, 1e-4f)
+        assertEquals(-0.15f, viewModel.adjust().offsetY, 1e-4f)
+        assertTrue(analytics.events.isEmpty())
+
+        viewModel.onOverlayGestureEnd()
+        assertEquals(listOf(overlayEvent("move")), analytics.events)
+        // The position is not kept (plan T-015, question 6).
+        assertTrue(overlay.overlaySaves.isEmpty())
+
+        // The flags are reset: a gesture end without a transform logs nothing.
+        viewModel.onOverlayGestureEnd()
+        assertEquals(1, analytics.events.size)
+    }
+
+    @Test
+    fun pinch_scalesWithinBounds_andLogsSizeOnce() {
+        val viewModel = readyViewModel()
+        viewModel.onOverlayTransform(0f, 0f, 1.5f)
+        assertEquals(1.5f, viewModel.adjust().settings.scale, 1e-4f)
+        viewModel.onOverlayTransform(0f, 0f, 1.5f)
+        assertEquals(1.6f, viewModel.adjust().settings.scale, 1e-4f)
+        assertTrue(analytics.events.isEmpty())
+        viewModel.onOverlayGestureEnd()
+        assertEquals(listOf(overlayEvent("size")), analytics.events)
+        assertEquals(1.6f, overlay.overlaySaves.last().scale, 1e-4f)
+
+        // A drag with a pinch in the same gesture logs one size event, no move.
+        viewModel.onOverlayTransform(0.1f, 0f, 0.1f)
+        assertEquals(0.4f, viewModel.adjust().settings.scale, 1e-4f)
+        assertEquals(0.1f, viewModel.adjust().offsetX, 1e-4f)
+        viewModel.onOverlayGestureEnd()
+        assertEquals(listOf(overlayEvent("size"), overlayEvent("size")), analytics.events)
+        assertEquals(2, overlay.overlaySaves.size)
+        assertEquals(0.4f, overlay.overlaySaves.last().scale, 1e-4f)
+    }
+
+    @Test
+    fun drag_isClampedSoTheCentreStaysInFrame() {
+        val viewModel = readyViewModel()
+        viewModel.onOverlayTransform(2f, -2f, 1f)
+        assertEquals(0.5f, viewModel.adjust().offsetX, 1e-4f)
+        assertEquals(-0.5f, viewModel.adjust().offsetY, 1e-4f)
+        viewModel.onOverlayTransform(-0.25f, 0.25f, 1f)
+        assertEquals(0.25f, viewModel.adjust().offsetX, 1e-4f)
+        assertEquals(-0.25f, viewModel.adjust().offsetY, 1e-4f)
+    }
+
+    @Test
+    fun togglePanel_opensAndCloses() {
+        val viewModel = readyViewModel()
+        assertFalse(viewModel.adjust().panelOpen)
+        viewModel.onTogglePanel()
+        assertTrue(viewModel.adjust().panelOpen)
+        viewModel.onTogglePanel()
+        assertFalse(viewModel.adjust().panelOpen)
+        viewModel.onTogglePanel()
+        viewModel.onClosePanel()
+        assertFalse(viewModel.adjust().panelOpen)
+        assertTrue(analytics.events.isEmpty())
+        assertTrue(overlay.overlaySaves.isEmpty())
+    }
+
+    @Test
+    fun opacitySlider_logsOnceWhenReleased_andSaves() {
+        val viewModel = readyViewModel()
+        viewModel.onOpacityChange(0.5f)
+        viewModel.onOpacityChange(0.3f)
+        assertEquals(0.3f, viewModel.adjust().settings.opacity, 1e-4f)
+        assertTrue(analytics.events.isEmpty())
+        assertTrue(overlay.overlaySaves.isEmpty())
+
+        viewModel.onOpacityChangeFinished()
+        assertEquals(listOf(overlayEvent("opacity")), analytics.events)
+        assertEquals(0.3f, overlay.overlaySaves.last().opacity, 1e-4f)
+
+        viewModel.onOpacityChange(0.05f)
+        assertEquals(0.2f, viewModel.adjust().settings.opacity, 1e-4f)
+        viewModel.onOpacityChange(3f)
+        assertEquals(1f, viewModel.adjust().settings.opacity, 1e-4f)
+    }
+
+    @Test
+    fun sizeSlider_logsSize_andSaves() {
+        val viewModel = readyViewModel()
+        viewModel.onScaleChange(1.2f)
+        assertEquals(1.2f, viewModel.adjust().settings.scale, 1e-4f)
+        assertTrue(analytics.events.isEmpty())
+        assertTrue(overlay.overlaySaves.isEmpty())
+
+        viewModel.onScaleChangeFinished()
+        assertEquals(listOf(overlayEvent("size")), analytics.events)
+        assertEquals(1.2f, overlay.overlaySaves.last().scale, 1e-4f)
+
+        viewModel.onScaleChange(0.1f)
+        assertEquals(0.4f, viewModel.adjust().settings.scale, 1e-4f)
+        viewModel.onScaleChange(3f)
+        assertEquals(1.6f, viewModel.adjust().settings.scale, 1e-4f)
+    }
+
+    @Test
+    fun mirror_toggles_logsFlip_andSaves() {
+        val viewModel = readyViewModel()
+        viewModel.onToggleMirror()
+        assertTrue(viewModel.adjust().settings.mirrored)
+        viewModel.onToggleMirror()
+        assertFalse(viewModel.adjust().settings.mirrored)
+        assertEquals(listOf(overlayEvent("flip"), overlayEvent("flip")), analytics.events)
+        assertEquals(listOf(true, false), overlay.overlaySaves.map { it.mirrored })
+    }
+
+    @Test
+    fun lock_ignoresGestures_closesPanel_andShowsHintForTwoSeconds() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onScaleChange(1.2f)
+        viewModel.onTogglePanel()
+        assertTrue(viewModel.adjust().panelOpen)
+
+        viewModel.onToggleLock()
+        assertTrue(viewModel.adjust().settings.locked)
+        assertFalse(viewModel.adjust().panelOpen)
+        assertTrue(viewModel.adjust().lockHintVisible)
+        assertEquals(listOf(overlayEvent("lock")), analytics.events)
+        assertTrue(overlay.overlaySaves.last().locked)
+
+        advanceTimeBy(1_900)
+        assertTrue(viewModel.adjust().lockHintVisible)
+        advanceTimeBy(200)
+        assertFalse(viewModel.adjust().lockHintVisible)
+
+        // A drag or pinch while locked changes nothing and shows the hint again.
+        viewModel.onOverlayTransform(0.1f, 0f, 1.3f)
+        assertEquals(0f, viewModel.adjust().offsetX, 1e-4f)
+        assertEquals(1.2f, viewModel.adjust().settings.scale, 1e-4f)
+        assertTrue(viewModel.adjust().lockHintVisible)
+        viewModel.onOverlayGestureEnd()
+        advanceTimeBy(2_001)
+        assertFalse(viewModel.adjust().lockHintVisible)
+
+        viewModel.onTogglePanel()
+        assertFalse(viewModel.adjust().panelOpen)
+        viewModel.onToggleMirror()
+        assertFalse(viewModel.adjust().settings.mirrored)
+        viewModel.onResetOverlay()
+        assertEquals(1.2f, viewModel.adjust().settings.scale, 1e-4f)
+        assertEquals(listOf(overlayEvent("lock")), analytics.events)
+    }
+
+    @Test
+    fun unlock_allowsGestures_andHidesHint() {
+        val viewModel = readyViewModel()
+        viewModel.onToggleLock()
+        assertTrue(viewModel.adjust().lockHintVisible)
+
+        viewModel.onToggleLock()
+        assertFalse(viewModel.adjust().settings.locked)
+        assertFalse(viewModel.adjust().lockHintVisible)
+        assertEquals(listOf(overlayEvent("lock"), overlayEvent("lock")), analytics.events)
+
+        viewModel.onOverlayTransform(0.1f, 0f, 1f)
+        assertEquals(0.1f, viewModel.adjust().offsetX, 1e-4f)
+        viewModel.onToggleMirror()
+        assertTrue(viewModel.adjust().settings.mirrored)
+    }
+
+    @Test
+    fun hide_toggles_logsHide_andIgnoresGestures() {
+        val viewModel = readyViewModel()
+        viewModel.onToggleHidden()
+        assertTrue(viewModel.adjust().settings.hidden)
+        assertEquals(listOf(overlayEvent("hide")), analytics.events)
+        assertTrue(overlay.overlaySaves.last().hidden)
+
+        viewModel.onOverlayTransform(0.1f, 0f, 1f)
+        assertEquals(0f, viewModel.adjust().offsetX, 1e-4f)
+
+        viewModel.onToggleHidden()
+        assertFalse(viewModel.adjust().settings.hidden)
+        assertEquals(listOf(overlayEvent("hide"), overlayEvent("hide")), analytics.events)
+        viewModel.onOverlayTransform(0.1f, 0f, 1f)
+        assertEquals(0.1f, viewModel.adjust().offsetX, 1e-4f)
+    }
+
+    @Test
+    fun reset_centresOutline_withDefaultSizeOpacityAndNoMirror_keepsLockAndHide() {
+        val viewModel = readyViewModel()
+        viewModel.onOverlayTransform(0.2f, 0.1f, 1.3f)
+        viewModel.onOpacityChange(0.4f)
+        viewModel.onToggleMirror()
+        viewModel.onToggleHidden()
+        assertEquals(0.2f, viewModel.adjust().offsetX, 1e-4f)
+        assertEquals(0.4f, viewModel.adjust().settings.opacity, 1e-4f)
+        assertTrue(viewModel.adjust().settings.mirrored)
+
+        viewModel.onResetOverlay()
+        val adjust = viewModel.adjust()
+        assertEquals(0f, adjust.offsetX, 1e-4f)
+        assertEquals(0f, adjust.offsetY, 1e-4f)
+        assertEquals(1f, adjust.settings.scale, 1e-4f)
+        assertEquals(DEFAULT_OPACITY, adjust.settings.opacity, 1e-4f)
+        assertFalse(adjust.settings.mirrored)
+        assertTrue(adjust.settings.hidden)
+        assertEquals(overlayEvent("reset"), analytics.events.last())
+        assertEquals(
+            OverlaySettings(opacity = DEFAULT_OPACITY, scale = 1f, mirrored = false, locked = false, hidden = true),
+            overlay.overlaySaves.last(),
+        )
+    }
+
+    @Test
+    fun adjustment_isKeptWhenPoseChanges() {
+        val viewModel = readyViewModel()
+        viewModel.onOverlayTransform(0.3f, -0.1f, 1.4f)
+        viewModel.onOpacityChange(0.5f)
+        viewModel.onToggleMirror()
+        viewModel.onToggleLock()
+        val before = viewModel.adjust()
+        assertEquals(0.3f, before.offsetX, 1e-4f)
+        assertEquals(0.5f, before.settings.opacity, 1e-4f)
+        assertTrue(before.settings.mirrored)
+        assertTrue(before.settings.locked)
+
+        // The lock does not stop the choice of another pose.
+        viewModel.onPoseSelect("m01")
+        assertEquals("m01", viewModel.selected().id)
+        assertEquals(before, viewModel.adjust())
+
+        viewModel.onNextPose()
+        assertEquals("w02", viewModel.selected().id)
+        assertEquals(before, viewModel.adjust())
+    }
+
+    @Test
+    fun storedOverlay_isUsedOnOpen() {
+        val stored = OverlaySettings(opacity = 0.5f, scale = 1.3f, mirrored = true, locked = true, hidden = false)
+        overlay.storedOverlay.value = stored
+        val viewModel = readyViewModel()
+        assertEquals(stored, viewModel.adjust().settings)
+        assertEquals(0f, viewModel.adjust().offsetX, 1e-4f)
+        assertEquals(0f, viewModel.adjust().offsetY, 1e-4f)
+        assertFalse(viewModel.adjust().panelOpen)
+        assertFalse(viewModel.adjust().lockHintVisible)
+    }
+
+    @Test
+    fun saveOverlayFails_keepsChoice_andLogsWarning() {
+        overlay.failWrites = true
+        val viewModel = readyViewModel()
+        viewModel.onToggleMirror()
+        assertTrue(viewModel.adjust().settings.mirrored)
+        assertTrue(
+            logger.entries.any {
+                it.level == LogLevel.WARN &&
+                    it.message.contains("Overlay settings could not be saved") &&
+                    it.error is IOException
+            },
+        )
+    }
+
+    @Test
+    fun noPose_ignoresOverlayActions() {
+        library.ready(PoseFixtures.library(catalog = PoseFixtures.catalog(poses = emptyList())))
+        val viewModel = viewModel()
+        assertNull(viewModel.ready().selected)
+        viewModel.onOverlayTransform(0.1f, 0.1f, 1.3f)
+        viewModel.onOverlayGestureEnd()
+        viewModel.onToggleMirror()
+        viewModel.onToggleLock()
+        viewModel.onToggleHidden()
+        viewModel.onTogglePanel()
+        viewModel.onResetOverlay()
+        assertEquals(OverlayState(), viewModel.adjust())
+        assertTrue(analytics.events.isEmpty())
+        assertTrue(overlay.overlaySaves.isEmpty())
+
+        // Control: the same action with a pose selected does change the state.
+        library.ready(PoseFixtures.library())
+        val withPose = viewModel()
+        withPose.onToggleMirror()
+        assertTrue(withPose.adjust().settings.mirrored)
+    }
+
+    @Test
+    fun twoFingerJitter_isNotAPinch() {
+        val viewModel = readyViewModel()
+        repeat(5) { viewModel.onOverlayTransform(0.02f, 0f, 1.004f) }
+        viewModel.onOverlayGestureEnd()
+        assertEquals(1f, viewModel.adjust().settings.scale, 1e-4f)
+        assertEquals(0.1f, viewModel.adjust().offsetX, 1e-4f)
+        assertEquals(listOf(overlayEvent("move")), analytics.events)
+        assertTrue(overlay.overlaySaves.isEmpty())
+
+        // Control: a real pinch in the same kind of gesture is a size change.
+        repeat(5) { viewModel.onOverlayTransform(0.02f, 0f, 1.04f) }
+        viewModel.onOverlayGestureEnd()
+        assertEquals(overlayEvent("size"), analytics.events.last())
+        assertTrue(viewModel.adjust().settings.scale > 1.15f)
+    }
+
+    @Test
+    fun libraryReadyAgain_keepsTheAdjustment() {
+        val viewModel = readyViewModel()
+        viewModel.onToggleMirror()
+        viewModel.onOverlayTransform(0.2f, 0f, 1f)
+        library.ready(PoseFixtures.library(saved = listOf(SavedPose("w03", 1))))
+        assertTrue(viewModel.adjust().settings.mirrored)
+        assertEquals(0.2f, viewModel.adjust().offsetX, 1e-4f)
     }
 }

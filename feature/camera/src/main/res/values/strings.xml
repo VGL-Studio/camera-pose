@@ -40,4 +40,22 @@
     <string name="camera_cd_hide_steps">Ẩn thẻ bước</string>
     <string name="camera_cd_show_steps">Hiện thẻ bước</string>
     <string name="camera_cd_thumb_failed">%1$s, chưa tải được ảnh, chạm để thử lại</string>
+    <!-- Outline adjustment (plan T-015). Text table of the design. -->
+    <string name="camera_adjust_title">Chỉnh lớp phủ</string>
+    <string name="camera_adjust_opacity">Độ mờ</string>
+    <string name="camera_adjust_size">Cỡ</string>
+    <string name="camera_adjust_percent">%1$d%%</string>
+    <string name="camera_adjust_flip">Lật</string>
+    <string name="camera_adjust_lock">Khóa</string>
+    <string name="camera_adjust_hide">Ẩn</string>
+    <string name="camera_adjust_reset">Đặt lại</string>
+    <string name="camera_locked_hint">Đã khóa lớp phủ</string>
+    <!-- Proposed by the plan (question 8). -->
+    <string name="camera_cd_adjust">Chỉnh lớp phủ</string>
+    <string name="camera_cd_mirror">Lật nét viền</string>
+    <string name="camera_cd_lock">Khóa lớp phủ</string>
+    <string name="camera_cd_unlock">Mở khóa lớp phủ</string>
+    <string name="camera_cd_show_outline">Hiện tư thế</string>
+    <string name="camera_cd_hide_outline">Ẩn tư thế</string>
+    <string name="camera_cd_close_adjust">Đóng bảng chỉnh</string>
 </resources>

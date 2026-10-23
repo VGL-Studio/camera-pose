@@ -45,6 +45,19 @@ class PoseActions(
     val onShowSteps: () -> Unit = {},
     val onRetryOutline: () -> Unit = {},
     val onRetryLibrary: () -> Unit = {},
+    // Outline adjustment (T-015). Pan is a part of the frame, zoom a factor.
+    val onOverlayTransform: (panX: Float, panY: Float, zoom: Float) -> Unit = { _, _, _ -> },
+    val onOverlayGestureEnd: () -> Unit = {},
+    val onOpacityChange: (Float) -> Unit = {},
+    val onOpacityChangeFinished: () -> Unit = {},
+    val onScaleChange: (Float) -> Unit = {},
+    val onScaleChangeFinished: () -> Unit = {},
+    val onTogglePanel: () -> Unit = {},
+    val onClosePanel: () -> Unit = {},
+    val onToggleMirror: () -> Unit = {},
+    val onToggleLock: () -> Unit = {},
+    val onToggleHidden: () -> Unit = {},
+    val onResetOverlay: () -> Unit = {},
 )
 
 /**

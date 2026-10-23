@@ -84,6 +84,7 @@ internal fun CameraTopBar(
                 onClick = onOpenPoses,
                 contentDescription = stringResource(R.string.camera_cd_poses),
                 modifier = Modifier.testTag(CameraTestTags.POSES),
+                toggleable = false,
             )
         }
         Spacer(modifier = Modifier.weight(1f))
@@ -95,6 +96,7 @@ internal fun CameraTopBar(
                     contentDescription = stringResource(flashDescription(ready.flash)),
                     modifier = Modifier.testTag(CameraTestTags.FLASH),
                     enabled = ready.flashAvailable,
+                    toggleable = false,
                 )
                 TimerButton(timer = ready.timer, onClick = onTimerClick)
                 CameraIconButton(
@@ -111,6 +113,7 @@ internal fun CameraTopBar(
                     onClick = onOpenSettings,
                     contentDescription = stringResource(R.string.camera_cd_settings),
                     modifier = Modifier.testTag(CameraTestTags.SETTINGS),
+                    toggleable = false,
                 )
             }
         }
@@ -146,7 +149,10 @@ private fun TimerButton(timer: TimerSetting, onClick: () -> Unit) {
     }
 }
 
-/** What the 3:4 frame shows in each state. [poseOverlay] (outline, step card) is drawn only when the camera is ready. */
+/**
+ * What the 3:4 frame shows in each state. [poseOverlay] (outline, step card, tools) is drawn only when the camera is
+ * ready. [zoomVisible] is false while the adjust panel covers the foot of the frame.
+ */
 @Composable
 internal fun PreviewContent(
     uiState: CameraUiState,
@@ -155,6 +161,7 @@ internal fun PreviewContent(
     onOpenAppSettings: () -> Unit,
     preview: @Composable (Modifier) -> Unit,
     poseOverlay: @Composable BoxScope.() -> Unit = {},
+    zoomVisible: Boolean = true,
 ) {
     when (uiState) {
         CameraUiState.Starting -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -190,6 +197,7 @@ internal fun PreviewContent(
             onZoomSelect = onZoomSelect,
             preview = preview,
             poseOverlay = poseOverlay,
+            zoomVisible = zoomVisible,
         )
     }
 }
@@ -200,13 +208,14 @@ private fun ReadyPreview(
     onZoomSelect: (Float) -> Unit,
     preview: @Composable (Modifier) -> Unit,
     poseOverlay: @Composable BoxScope.() -> Unit = {},
+    zoomVisible: Boolean = true,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         preview(Modifier.fillMaxSize())
         if (ready.gridVisible) GridOverlay(modifier = Modifier.testTag(CameraTestTags.GRID))
         // Above the grid, below the zoom and the countdown.
         poseOverlay()
-        if (ready.zoomLevels.size > 1) {
+        if (zoomVisible && ready.zoomLevels.size > 1) {
             ZoomControl(
                 levels = ready.zoomLevels.map { zoomLabel(it, selected = it == ready.zoom) },
                 selectedIndex = ready.zoomLevels.indexOf(ready.zoom),
@@ -285,6 +294,7 @@ internal fun CaptureRow(
                 contentDescription = stringResource(R.string.camera_cd_flip),
                 modifier = Modifier.testTag(CameraTestTags.FLIP),
                 enabled = ready != null,
+                toggleable = false,
             )
         }
     }

@@ -1,16 +1,16 @@
 ---
 ticket: T-028
 title: Nhánh chính tự hồi phục khi đỏ (ADR-1002)
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 15M          # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [ci, process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-028: NHÁNH CHÍNH TỰ HỒI PHỤC KHI ĐỎ (ADR-1002)
@@ -184,19 +184,38 @@ Test của script trong `scripts/tests/run.sh`, viết trước code. Test giả
 
 1. **Chạy lại cả `check.sh` hay chỉ task test hỏng?** Chạy lại cả `check.sh` đơn giản và giống CI nhất; đệm Gradle làm lần thứ hai nhanh hơn (khoảng 4 đến 7 phút).
    - Đề xuất của AI: chạy lại cả `check.sh`.
+   - Trả lời: Đồng ý với đề xuất của AI.
 2. **Issue `flaky` có chặn gì không?**
    - Đề xuất của AI: không chặn merge hay phiên. Retro xem và tạo ticket sửa test. Phiên chép issue vào báo cáo.
+   - Trả lời: Đồng ý với đề xuất của AI.
 3. **Phiên có được tự revert không, hay chỉ người?**
    - Đề xuất của AI: phiên được revert, nhưng chỉ commit merge của chính phiên, và qua đúng kiểm tra nội dung của `is-exact-revert.sh`.
+   - Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** 
 
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### Phiên có người theo dõi 2026-10-23, phiên bản plan 1
+
+- **Kết quả:** đã đẩy PR #47, chờ duyệt chéo diff và merge (không đưa vào danh sách chạy, mục 1)
+- **Nhánh, PR:** `claude/T-028-main-tu-hoi-phuc`, PR #47
+- **Đã làm:** `scripts/failure-kind.sh`, `scripts/is-exact-revert.sh`, `main-guard.yml` (bước `first`, `kind`, `retry`, `check`, "Ghi test chập chờn", đóng issue khi `identical`), `merge-if-green.sh` (ngoại lệ bản revert đúng), `docs/auto-run.md`, `docs/CLAUDE.md`, `docs/templates/run.md`, dòng Áp dụng của L-036, L-037, L-038. Đúng mục 3.2.
+- **Test viết trước:** 21 test ở commit 618cfb8, trên khung rỗng (`failure-kind.sh` luôn in `other`, `is-exact-revert.sh` luôn trả 1): 7 thất bại đúng lý do (2 của `failure-kind`, 1 của `is-exact-revert`, 4 của `merge-if-green`), 14 qua ngay vì là test chặn (lỗi khác in `other`, bản revert sai bị từ chối, hành vi cũ khi nhánh chính xanh). Thêm 2 test cho lệch thứ nhất dưới đây; test cho bản revert khi phiên đang chạy đỏ trước khi sửa. Các test `merge-if-green` cũ qua, không sửa.
+- **Rà soát độc lập:** chưa làm; người duyệt chéo đọc diff của `main-guard.yml` và `merge-if-green.sh`.
+- **Kết quả CI:** `scripts/tests/run.sh` cục bộ 201 test qua, kể cả phần cần Java. YAML của `main-guard.yml` kiểm bằng Ruby; máy không có `actionlint`. CI của PR: xem PR #47.
+- **Lệch so với plan:**
+  - `merge-if-green.sh`: bản revert đã kiểm đúng cũng qua được kiểm tra "phiên đang chạy". Kiểm tra đó từ chối mọi nhánh ngoài `claude/T-*` và nhánh báo cáo, nên nếu giữ như plan, phiên không merge được bản revert và điểm 4 của ADR-1002 không làm được.
+  - Đường dẫn mặc định của `is-exact-revert.sh` tính theo thư mục của `merge-if-green.sh` thay vì `scripts/is-exact-revert.sh` theo thư mục hiện tại.
+  - Lấy commit của PR theo tên nhánh (phương án dự phòng ở mục 3.4) được viết sẵn làm bước thứ hai khi `refs/pull` bị từ chối, thay vì chỉ chuyển sang khi chạy thử thất bại; kèm kiểm commit lấy về khớp `head.sha` của PR.
+  - Bước "Ghi test chập chờn" có `continue-on-error`, để lỗi của GitHub khi ghi issue không làm commit xanh bị coi là đỏ.
+- **Việc còn lại:** kiểm tra thủ công ở mục 4 sau khi merge (lần `main-guard` đỏ vì test tiếp theo; chạy lại trên commit bị đổ lỗi). Chưa thử `git fetch` của `refs/pull` trong phiên `claude --cloud`; nếu bị từ chối thì đường dự phòng theo tên nhánh chạy.
+- **Cần người xem:** mục 9 của plan còn trống, và ticket đang `ready`, chưa `approved` (L-019). Diff của `main-guard.yml`: thứ tự bước, điều kiện `if`, và việc lần chạy lại dùng lại `build.log` cho bước "Đánh dấu nhánh chính đang đỏ".

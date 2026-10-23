@@ -60,16 +60,36 @@ if jq -e '[(.labels // [])[].name] | index("needs-human")' <<<"$PR_JSON" > /dev/
 fi
 [[ "$BASE" == "$BASE_BRANCH" ]] || die "PR #$PR nhắm vào '$BASE', không phải '$BASE_BRANCH'."
 
-# While main is broken (an open issue labelled main-broken, created by main-guard.yml), nothing is merged,
-# with no exceptions. To merge a fix or a revert, a person closes the issue first (ADR-0010).
-BROKEN="$(gh api "repos/$REPO/issues?state=open&labels=main-broken&per_page=10" --jq '[.[].number] | join(",")')"
+# While main is broken (an open issue labelled main-broken, created by main-guard.yml), nothing is merged
+# (ADR-0010), with one exception (ADR-1002, point 3): a PR that is exactly the revert of the blamed commit.
+# The content is checked, not the branch name: one commit right on top of the latest main whose file tree is
+# what `git revert <culprit>` gives there (scripts/is-exact-revert.sh). Every other condition below still applies.
+# IS_EXACT_REVERT replaces that script in the tests only.
+BROKEN_JSON="$(gh api "repos/$REPO/issues?state=open&labels=main-broken&per_page=10" --jq '[.[] | {number, body}]')"
+BROKEN="$(jq -r '[.[].number] | join(",")' <<<"$BROKEN_JSON")"
+EXACT_REVERT="no"
 if [[ -n "$BROKEN" ]]; then
-  die "nhánh chính đang đỏ (mục mang nhãn main-broken: #$BROKEN). Người phụ trách xử lý và đóng mục đó rồi mới merge tiếp."
+  REFUSE_BROKEN="nhánh chính đang đỏ (mục mang nhãn main-broken: #$BROKEN). Người phụ trách xử lý và đóng mục đó rồi mới merge tiếp."
+  [[ "$(jq length <<<"$BROKEN_JSON")" == "1" ]] || die "$REFUSE_BROKEN"
+  CULPRIT="$(jq -r '.[0].body // "" | capture("<!-- culprit:(?<s>[0-9a-f]+) -->").s // ""' <<<"$BROKEN_JSON")"
+  [[ -n "$CULPRIT" ]] || die "$REFUSE_BROKEN Mục #$BROKEN không ghi commit gây lỗi."
+  # The PR head by its pull ref; if the proxy of a cloud session refuses that ref, by its branch name (plan T-028, 3.4).
+  git fetch -q origin "+refs/pull/$PR/head:refs/merge-if-green/pr" "+refs/heads/$BASE_BRANCH:refs/merge-if-green/main" 2>/dev/null \
+    || git fetch -q origin "+refs/heads/$HEAD_REF:refs/merge-if-green/pr" "+refs/heads/$BASE_BRANCH:refs/merge-if-green/main" 2>/dev/null \
+    || die "$REFUSE_BROKEN Không lấy được commit của PR #$PR để kiểm có phải bản revert không."
+  [[ "$(git rev-parse refs/merge-if-green/pr)" == "$HEAD_SHA" ]] \
+    || die "$REFUSE_BROKEN Commit lấy về của PR #$PR khác ${HEAD_SHA:0:7}; gọi lại sau."
+  if ! REVERT_CHECK="$("${IS_EXACT_REVERT:-$(dirname "$0")/is-exact-revert.sh}" "$CULPRIT" "$HEAD_SHA" refs/merge-if-green/main)"; then
+    die "$REFUSE_BROKEN $REVERT_CHECK"
+  fi
+  echo "BẢN REVERT ĐÚNG: PR #$PR là bản revert của ${CULPRIT:0:7}; vẫn kiểm mọi điều kiện còn lại." >&2
+  EXACT_REVERT="yes"
 fi
 
 # While an auto-run session runs, main must not move: only that session's own PRs (its task branches and its
-# report branch) are merged (docs/auto-run.md, section 1). A session is running when its report branch holds its
-# run file with status "running". Stale report branches of finished sessions do not block anything.
+# report branch) are merged (docs/auto-run.md, section 1), plus the exact revert checked above, which the session
+# merges to bring main back (ADR-1002, point 4). A session is running when its report branch holds its run file
+# with status "running". Stale report branches of finished sessions do not block anything.
 RUN_BRANCHES="$(gh api "repos/$REPO/branches?per_page=100" --paginate \
   --jq '.[].name | select(test("^claude/RUN-[0-9]{8}-[0-9]{2}-report$"))')"
 for RUN_BRANCH in $RUN_BRANCHES; do
@@ -79,7 +99,7 @@ for RUN_BRANCH in $RUN_BRANCHES; do
     -H "Accept: application/vnd.github.raw" 2>/dev/null || true; } \
     | sed -n '/^---$/,/^---$/s/^status:[[:space:]]*\([a-z]*\).*/\1/p' | head -n 1)"
   [[ "$RUN_STATUS" == "running" ]] || continue
-  if [[ "$HEAD_REF" != "$RUN_BRANCH" && "$HEAD_REF" != claude/T-[0-9]* ]]; then
+  if [[ "$HEAD_REF" != "$RUN_BRANCH" && "$HEAD_REF" != claude/T-[0-9]* && "$EXACT_REVERT" != "yes" ]]; then
     die "phiên $RUN_ID đang chạy. Trong lúc phiên chạy chỉ merge PR của chính phiên đó (docs/auto-run.md, mục 1). Chờ phiên kết thúc rồi gọi lại."
   fi
 done

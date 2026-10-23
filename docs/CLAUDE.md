@@ -99,7 +99,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Chỉ thực hiện plan có trạng thái `approved` có trong danh sách chạy đã duyệt.
 - Tuân thủ điều kiện dừng ở mục 4 của [risk-scoring.md](risk-scoring.md).
 - Đặt tên nhánh theo dạng `claude/T-NNN-<tu-khoa>`.
-- Chỉ merge bằng `scripts/merge-if-green.sh`. Không dùng nút merge, `gh pr merge` hay gọi thẳng API để merge. Không đóng hay sửa issue mang nhãn `main-broken`; việc đó thuộc về người.
+- Chỉ merge bằng `scripts/merge-if-green.sh`. Không dùng nút merge, `gh pr merge` hay gọi thẳng API để merge. Không đóng hay sửa issue mang nhãn `main-broken`; việc đó thuộc về người. Nhánh chính đỏ vì commit merge của chính phiên thì revert theo `auto-run.md`, mục 3, Khi nhánh chính đỏ vì task của phiên (ADR-1002).
 - Sau mỗi task, ghi nhật ký vào cuối plan và cập nhật trạng thái ticket: `on-staging` khi đã merge, `stopped` khi dừng.
 - Cuối phiên, viết báo cáo vào file phiên chạy.
 

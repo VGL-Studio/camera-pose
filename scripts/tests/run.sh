@@ -103,6 +103,94 @@ expect "merge-if-green refuses a PR labelled needs-human" 1 \
   "$(merge_during_run claude/fix-T-002-x finished '[{"name": "needs-human"}]')"
 expect "merge-if-green accepts other labels" 3 "$(merge_during_run claude/template-x finished '[{"name": "docs"}]')"
 
+# failure-kind.sh (ADR-1002, point 1): "tests" only when every failed Gradle task is a test task with failing tests.
+failure_kind() { printf '%b' "$1" > "$work/fk.log"; scripts/failure-kind.sh "$work/fk.log"; }
+gradle_failure() { printf '* What went wrong:\\nExecution failed for task '"'"'%s'"'"'.\\n> %s\\n' "$1" "$2"; }
+expect "failure-kind: only failing unit tests -> tests" tests \
+  "$(failure_kind "$(gradle_failure :feature:camera:testDebugUnitTest 'There were failing tests. See the report at: x')")"
+expect "failure-kind: failing staging unit tests and verifyRoborazzi -> tests" tests \
+  "$(failure_kind "FAILURE: Build completed with 2 failures.\\n$(gradle_failure :app:testStagingDebugUnitTest 'There were failing tests.')$(gradle_failure :feature:camera:verifyRoborazziDebug 'There were failing tests.')")"
+expect "failure-kind: compile error -> other" other \
+  "$(failure_kind "$(gradle_failure :app:compileStagingDebugKotlin 'Compilation error. See log for more details')")"
+expect "failure-kind: lint -> other" other \
+  "$(failure_kind "$(gradle_failure :app:lintStagingDebug 'Lint found errors in the project; aborting build.')")"
+expect "failure-kind: test and lint both failed -> other" other \
+  "$(failure_kind "$(gradle_failure :feature:camera:testDebugUnitTest 'There were failing tests.')$(gradle_failure :app:lintStagingDebug 'Lint found errors.')")"
+expect "failure-kind: a test task that failed for another reason -> other" other \
+  "$(failure_kind "$(gradle_failure :feature:camera:testDebugUnitTest 'Could not start Gradle Test Executor 1.')")"
+expect "failure-kind: no Gradle failure line -> other" other \
+  "$(failure_kind "FAIL - merge-if-green rejects '12 -n'\\n1 script test(s) failed\\n")"
+expect "failure-kind: missing log -> other" other "$(scripts/failure-kind.sh "$work/no-such.log")"
+
+# is-exact-revert.sh (ADR-1002, point 3), on a throwaway repo: A, B (the culprit), C (main).
+root="$PWD"
+rev="$work/rev"
+git_t() { GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t git -C "$rev" "$@"; }
+git init -q -b main "$rev"
+echo a > "$rev/a"; git_t add a; git_t commit -q -m A
+echo b > "$rev/b"; echo a2 > "$rev/a"; git_t add a b; git_t commit -q -m B
+culprit="$(git_t rev-parse HEAD)"
+echo c > "$rev/c"; git_t add c; git_t commit -q -m C
+git_t switch -q -c good main; git_t revert --no-edit "$culprit" > /dev/null
+git_t switch -q -c extra main; git_t revert --no-edit "$culprit" > /dev/null
+echo x > "$rev/x"; git_t add x; git_t commit -q --amend --no-edit
+git_t switch -q -c two main; echo y > "$rev/y"; git_t add y; git_t commit -q -m Y; git_t revert --no-edit "$culprit" > /dev/null
+git_t switch -q -c old "$culprit"; git_t revert --no-edit "$culprit" > /dev/null
+git_t switch -q -c other main; git_t revert --no-edit main > /dev/null
+git_t switch -q main
+is_revert() { # <branch>; prints the exit code
+  local code=0
+  (cd "$rev" && "$root/scripts/is-exact-revert.sh" "$culprit" "$(git_t rev-parse "$1")" main) > /dev/null 2>&1 || code=$?
+  echo "$code"
+}
+expect "is-exact-revert: git revert of the culprit on main passes" 0 "$(is_revert good)"
+expect "is-exact-revert: a revert with an extra change fails" 1 "$(is_revert extra)"
+expect "is-exact-revert: two commits fail" 1 "$(is_revert two)"
+expect "is-exact-revert: a revert on an older main fails" 1 "$(is_revert old)"
+expect "is-exact-revert: the revert of another commit fails" 1 "$(is_revert other)"
+expect "is-exact-revert: leaves no worktree behind" 1 "$(git_t worktree list | wc -l | tr -d ' ')"
+
+# merge-if-green.sh lets an exact revert through while main is broken (ADR-1002, point 3), and nothing else.
+# The PR head is fetched from a local bare copy standing in for GitHub (url.<path>.insteadOf).
+git clone -q --bare "$rev" "$work/origin.git"
+git -C "$work/origin.git" update-ref refs/pull/12/head "$(git_t rev-parse good)"
+printf '#!/bin/sh\nexit 0\n' > "$work/bin/revert-yes"
+printf '#!/bin/sh\necho "cây file khác"\nexit 1\n' > "$work/bin/revert-no"
+chmod +x "$work/bin/revert-yes" "$work/bin/revert-no"
+merge_while_broken() { # <issues JSON> [IS_EXACT_REVERT] [run status]; prints the exit code
+  cat > "$work/broken.json" << JSON
+{"routes": {
+  "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "$(git_t rev-parse good)", "ref": "revert/${culprit::7}"}, "title": "Revert", "labels": []},
+  "issues?state=open&labels=main-broken&per_page=10": $1,
+  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
+  "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: ${3:-finished}\n---\n",
+  "compare/main...$(git_t rev-parse good)": {"behind_by": 2}
+}}
+JSON
+  local code=0
+  (cd "$rev" && PATH="$work/bin:$PATH" FIXTURE="$work/broken.json" IS_EXACT_REVERT="${2:-}" \
+    GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_1="url.$work/origin.git.insteadOf" GIT_CONFIG_VALUE_1=https://github.com/o/r.git \
+    "$root/scripts/merge-if-green.sh" 12 --dry-run) > "$work/broken.out" 2>&1 || code=$?
+  echo "$code"
+}
+one_issue='[{"number": 7, "body": "<!-- culprit:'"$culprit"' -->\nNhánh chính không qua cổng chất lượng."}]'
+# Exit 3 ("branch is behind main", from the fixture) means the main-broken check let the PR through.
+expect "merge-if-green lets an exact revert through while main is broken" 3 \
+  "$(merge_while_broken "$one_issue" "$work/bin/revert-yes")"
+expect "merge-if-green says why it let the revert through" 1 "$(grep -c '^BẢN REVERT ĐÚNG: PR #12' "$work/broken.out")"
+expect "merge-if-green checks the real revert with is-exact-revert.sh" 3 "$(merge_while_broken "$one_issue")"
+expect "merge-if-green refuses a PR that is not the revert" 1 "$(merge_while_broken "$one_issue" "$work/bin/revert-no")"
+expect "merge-if-green gives the reason of is-exact-revert.sh" 1 "$(grep -c 'cây file khác' "$work/broken.out")"
+expect "merge-if-green refuses with two main-broken issues" 1 \
+  "$(merge_while_broken '[{"number": 7, "body": "<!-- culprit:'"$culprit"' -->"}, {"number": 8, "body": "<!-- culprit:'"$culprit"' -->"}]' "$work/bin/revert-yes")"
+expect "merge-if-green refuses an issue without culprit" 1 \
+  "$(merge_while_broken '[{"number": 7, "body": "Nhánh chính đỏ."}]' "$work/bin/revert-yes")"
+expect "merge-if-green lets a PR through when main is not broken" 3 "$(merge_while_broken '[]' "$work/bin/revert-no")"
+expect "merge-if-green lets the exact revert through while a run is running" 3 \
+  "$(merge_while_broken "$one_issue" "$work/bin/revert-yes" running)"
+expect "merge-if-green still refuses a revert branch that is not checked while a run is running" 1 \
+  "$(merge_while_broken '[]' "$work/bin/revert-yes" running)"
+
 # wait-run.sh waits for one workflow run in a single command and says how it ended.
 wait_run() { # <fixture JSON> <args...>; prints "<exit code> <first word of the line>"
   echo "$1" > "$work/wait.json"; shift

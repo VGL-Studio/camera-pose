@@ -123,6 +123,14 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - ở app này, màn loading chờ tối đa 15 giây cho cấu hình, catalog và từng file của bộ khởi đầu
 - các quy tắc khác của ADR-0018 vẫn áp dụng
 
+### [ADR-1002](adr/1002-main-tu-hoi-phuc.md): Nhánh chính tự hồi phục khi đỏ: chạy lại test hỏng một lần, tự đóng issue khi chạy lại xanh, merge bản revert được kiểm bằng nội dung
+
+- ở app này, `main-guard` chạy lại `check.sh` một lần khi chỉ có test thất bại và ghi issue `flaky` nếu lần chạy lại xanh
+- khi `main-broken` mở, chỉ merge PR mà `scripts/is-exact-revert.sh` xác nhận là bản revert đúng của commit bị đổ lỗi
+- phiên chỉ revert commit merge của chính phiên
+- AI vẫn không đóng, sửa hay bình luận để gỡ issue `main-broken`
+- các quy tắc khác của ADR-0010 vẫn áp dụng
+
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 
 ### [ADR-0020](adr/0020-design-handoff-and-conformance.md): Thiết kế trên Claude Design hoặc Figma, bàn giao bằng ảnh khung chuẩn trong repo, đối chiếu bằng ảnh so sánh
@@ -140,11 +148,3 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không vượt bộ chặn
 - không tự chuyển trạng thái bản đề xuất hay thiết kế
 - ghi mọi tài sản mượn vào `docs/borrowed-assets.md` trong cùng PR với file mượn
-
-### [ADR-1002](adr/1002-main-tu-hoi-phuc.md): Nhánh chính tự hồi phục khi đỏ: chạy lại test hỏng một lần, tự đóng issue khi chạy lại xanh, merge bản revert được kiểm bằng nội dung
-
-- ở app này, `main-guard` chạy lại `check.sh` một lần khi chỉ có test thất bại và ghi issue `flaky` nếu lần chạy lại xanh
-- khi `main-broken` mở, chỉ merge PR mà `scripts/is-exact-revert.sh` xác nhận là bản revert đúng của commit bị đổ lỗi
-- phiên chỉ revert commit merge của chính phiên
-- AI vẫn không đóng, sửa hay bình luận để gỡ issue `main-broken`
-- các quy tắc khác của ADR-0010 vẫn áp dụng

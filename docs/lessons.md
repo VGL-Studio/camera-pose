@@ -343,7 +343,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** dev chạy lại `main-guard` (lần chạy 39817360705, lần 2) trên e9bf4bb, commit bị đổ lỗi; lần chạy xanh. Bước đóng issue chỉ đóng khi `compare/<commit bị đổ lỗi>...<commit xanh>` trả `ahead`; cùng một commit thì trả `identical`, nên issue #35 vẫn mở và dev phải tự đóng trước khi phiên sau chạy được.
 - **Bằng chứng:** `.github/workflows/main-guard.yml`, bước "Đóng issue main-broken khi nhánh chính xanh trở lại"; lần chạy 39817360705, lần 1 đỏ 16:58, lần 2 xanh 22:53; issue #35 vẫn mở sau đó.
 - **Đề xuất sửa:** `main-guard.yml` đóng issue khi `status` là `ahead` hoặc `identical`. ADR-0010, mục 2, câu cuối thêm "hoặc chính commit đó được chạy lại và xanh".
-- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-046).
+- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002); làm ở PR #47. đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-046).
 - **Kiểm chứng:**
 
 ### L-037: Một test chập chờn trên `main-guard` kết thúc cả phiên
@@ -352,7 +352,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `CameraScreenScreenshotTest > starting_dark` thất bại một lần trên `main-guard` (L-029), xanh ở PR, ở cục bộ và khi chạy lại. Một lần đỏ đó mở `main-broken`, phiên kết thúc khi mới xong 2 trên 7 task; 4 task chưa bắt đầu và T-012 dở dang phải chờ người tới sáng.
 - **Bằng chứng:** báo cáo RUN-20261023-01, mục Tóm tắt; lần chạy 39817360705.
 - **Đề xuất sửa:** `main-guard.yml`: khi bước kiểm tra đỏ chỉ vì test thất bại, chạy lại riêng các test đó một lần trên cùng commit trước khi gọi `find-breaking-commit.sh`. Lần chạy lại xanh thì không mở `main-broken`, mà mở hoặc bình luận vào issue `flaky` ghi tên test, để sửa test trong một ticket thường. Lần chạy lại vẫn đỏ thì làm như hiện nay. ADR-0010, mục 2: thêm quy tắc này. Phiên tự chạy đọc issue `flaky` vào mục Cần người kiểm tra.
-- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-047).
+- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002); làm ở PR #47. đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-047).
 - **Kiểm chứng:**
 
 ### L-038: Phiên không tự đưa nhánh chính về trạng thái xanh được, kể cả bằng một bản revert đúng
@@ -361,7 +361,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** khi `main-broken` mở, `merge-if-green.sh` từ chối mọi PR, kể cả PR từ nhánh `revert/<commit>` mà `main-guard` đã dựng sẵn; chỉ người đóng issue mới mở lại được. Lý do của ADR-0010 là đúng: tên nhánh không phải bằng chứng. Hệ quả là một lần merge hỏng thật vào ban đêm làm mọi task còn lại chờ tới sáng.
 - **Bằng chứng:** ADR-0010, mục 2; `scripts/merge-if-green.sh`, đoạn kiểm tra `main-broken`.
 - **Đề xuất sửa:** cho `merge-if-green.sh` một ngoại lệ kiểm chứng bằng nội dung thay vì tên: khi `main-broken` mở, chỉ merge PR có đúng một commit, mà cây file của commit đó trùng khớp với kết quả `git revert <commit bị đổ lỗi>` do chính script dựng trên nhánh chính mới nhất, và CI của PR xanh. Phiên tự chạy được merge bản revert của commit do chính phiên merge, chuyển task đó sang `stopped`, rồi làm tiếp các task không phụ thuộc nó. Issue vẫn chỉ tự đóng bởi `main-guard`, AI vẫn không đóng hay sửa issue. Cần ADR thay một phần ADR-0010, plan rủi ro cao có duyệt chéo.
-- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002). đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-048).
+- **Áp dụng:** app: plan T-028, PR #40 (ADR-1002); làm ở PR #47. đề xuất về dự án mẫu: VGL-Studio/app-project-template#79, PR VGL-Studio/app-project-template#80 (L-048).
 - **Kiểm chứng:**
 
 ### L-039: Plan ghi sẵn phương án dự phòng đã duyệt, để phiên chuyển sang thay vì dừng task

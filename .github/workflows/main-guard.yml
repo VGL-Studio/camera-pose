@@ -1,10 +1,12 @@
-# Guards the main branch (ADR-0010): re-runs the JVM quality gate for every commit pushed to main.
+# Guards the main branch (ADR-0010, ADR-1002): re-runs the JVM quality gate for every commit pushed to main.
 # - Every commit gets its own run (no concurrency group), so no commit is skipped.
+# - Only test tasks failed (scripts/failure-kind.sh): run the gate once more on the same commit. Green the
+#   second time: the commit counts as green and a `flaky` issue records the test (ADR-1002, point 1).
 # - Red run: scripts/find-breaking-commit.sh finds the commit that actually broke main. If no
 #   main-broken issue is open, open one blaming that commit and push a revert/<sha> branch for it;
 #   otherwise only add a comment. Infrastructure failures (checkout, Java, network) are not "red".
-# - Green run: close open main-broken issues, but only when this commit already contains the
-#   blamed commit (an older commit finishing late must not close a newer breakage).
+# - Green run: close open main-broken issues when this commit contains the blamed commit, or is that very
+#   commit run again (an older commit finishing late must not close a newer breakage; ADR-1002, point 2).
 # Changing this file is a high-risk plan; cross-review required.
 name: main-guard
 
@@ -42,8 +44,65 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Cổng chất lượng (scripts/check.sh)
-        id: check
+        id: first
+        continue-on-error: true
         run: scripts/check.sh 2>&1 | tee build.log
+
+      - name: Phân loại lỗi
+        id: kind
+        if: steps.first.outcome == 'failure'
+        run: echo "kind=$(scripts/failure-kind.sh build.log)" >> "$GITHUB_OUTPUT"
+
+      - name: Chạy lại cổng chất lượng một lần (chỉ test thất bại)
+        id: retry
+        if: steps.kind.outputs.kind == 'tests'
+        continue-on-error: true
+        run: |
+          cp build.log first.log
+          scripts/check.sh 2>&1 | tee build.log
+
+      - name: Kết quả cổng chất lượng
+        id: check
+        run: |
+          if [ "${{ steps.first.outcome }}" = "success" ]; then
+            exit 0
+          fi
+          if [ "${{ steps.retry.outcome }}" = "success" ]; then
+            echo "Lần chạy đầu chỉ có test thất bại, lần chạy lại xanh: test chập chờn, ghi vào issue flaky."
+            echo "flaky=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          exit 1
+
+      - name: Ghi test chập chờn
+        if: steps.check.outputs.flaky == 'true'
+        # Recording is a note for people: a GitHub hiccup here must not make a green commit look red.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create flaky --color FBCA04 --description "Test thất bại rồi qua khi chạy lại trên cùng commit" --force
+          tests="$(grep -E ' FAILED$' first.log | sed -E 's/ FAILED$//' | sort -u || true)"
+          first_test="$(head -n 1 <<< "${tests}")"
+          {
+            echo "Test thất bại ở lần chạy đầu của main-guard trên commit ${GITHUB_SHA}, rồi qua khi chạy lại trên cùng commit (ADR-1002)."
+            echo "Lần chạy: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo "Test thất bại:"
+            echo '```'
+            echo "${tests:-Không đọc được tên test từ log.}"
+            echo '```'
+            echo "40 dòng cuối của lần chạy đầu:"
+            echo '```'
+            tail -n 40 first.log
+            echo '```'
+          } > flaky.md
+          open_issue="$(gh issue list --label flaky --state open --json number --jq '.[0].number // empty')"
+          if [ -n "${open_issue}" ]; then
+            gh issue comment "${open_issue}" --body-file flaky.md
+          else
+            gh issue create --title "flaky: ${first_test:-test chập chờn trên main-guard}" --label flaky --body-file flaky.md
+          fi
 
       - name: Đánh dấu nhánh chính đang đỏ
         # Only when the quality gate itself failed, not when an earlier infrastructure step failed.
@@ -76,9 +135,9 @@ jobs:
             echo "Nhánh chính không qua cổng chất lượng. Commit gây lỗi: ${culprit}."
             echo "Lần kiểm tra phát hiện: ${GITHUB_SHA}."
             echo
-            echo "Khi issue này còn mở, phiên tự chạy dừng và \`scripts/merge-if-green.sh\` từ chối mọi PR."
-            echo "Người phụ trách quyết định revert hay sửa tiếp, đóng issue này rồi merge bản revert hoặc bản sửa."
-            echo "Issue tự đóng khi một lần chạy main-guard trên commit chứa bản sửa báo xanh."
+            echo "Khi issue này còn mở, \`scripts/merge-if-green.sh\` chỉ cho qua PR đúng là bản revert của commit gây lỗi (ADR-1002)."
+            echo "Phiên tự chạy chỉ revert commit merge của chính phiên; commit khác thì người phụ trách quyết định revert hay sửa tiếp (bản sửa: đóng issue này rồi mới merge)."
+            echo "Issue tự đóng khi một lần chạy main-guard xanh trên commit chứa bản sửa, hoặc chạy lại xanh trên chính commit này."
             echo
             echo '```'
             echo "${log_tail}"
@@ -108,9 +167,10 @@ jobs:
             if [ -z "${culprit}" ]; then
               continue
             fi
-            # Close only if this green commit contains the blamed commit, i.e. the fix landed after it.
+            # Close only if this green commit contains the blamed commit (the fix landed after it), or is that
+            # very commit run again (ADR-1002, point 2). behind or diverged: an older or unrelated commit.
             status="$(gh api "repos/${{ github.repository }}/compare/${culprit}...${GITHUB_SHA}" --jq .status)"
-            if [ "${status}" = "ahead" ]; then
+            if [ "${status}" = "ahead" ] || [ "${status}" = "identical" ]; then
               gh issue close "${number}" --comment "Nhánh chính xanh trở lại tại commit ${GITHUB_SHA}."
             fi
           done

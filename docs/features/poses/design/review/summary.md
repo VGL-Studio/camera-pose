@@ -1,7 +1,7 @@
 | Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |
 | --- | --- | --- |
-| PoseDetailScreen_ad_dark | thiếu ảnh chuẩn screenshot | |
-| PoseDetailScreen_ad_light | thiếu ảnh chuẩn screenshot | |
+| PoseDetailScreen_ad_dark | 16.6% | `PoseDetailScreen_ad_dark_compare.png` |
+| PoseDetailScreen_ad_light | 13.9% | `PoseDetailScreen_ad_light_compare.png` |
 | PoseDetailScreen_default_dark | 18.1% | `PoseDetailScreen_default_dark_compare.png` |
 | PoseDetailScreen_default_dark_unfolded | thiếu ảnh chuẩn screenshot | |
 | PoseDetailScreen_default_light | 14.5% | `PoseDetailScreen_default_light_compare.png` |
@@ -10,8 +10,8 @@
 | PoseDetailScreen_error_light | 13.0% | `PoseDetailScreen_error_light_compare.png` |
 | PoseDetailScreen_loading_dark | 12.3% | `PoseDetailScreen_loading_dark_compare.png` |
 | PoseDetailScreen_loading_light | 8.7% | `PoseDetailScreen_loading_light_compare.png` |
-| PosesScreen_ad_dark | thiếu ảnh chuẩn screenshot | |
-| PosesScreen_ad_light | thiếu ảnh chuẩn screenshot | |
+| PosesScreen_ad_dark | 22.3% | `PosesScreen_ad_dark_compare.png` |
+| PosesScreen_ad_light | 22.4% | `PosesScreen_ad_light_compare.png` |
 | PosesScreen_default_dark | 22.1% | `PosesScreen_default_dark_compare.png` |
 | PosesScreen_default_dark_unfolded | thiếu ảnh chuẩn screenshot | |
 | PosesScreen_default_light | 22.1% | `PosesScreen_default_light_compare.png` |

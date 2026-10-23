@@ -1,16 +1,16 @@
 ---
 ticket: T-032
 title: Log tải file thất bại ghi loại lỗi và lý do
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [core]      # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật                   # người duyệt
+cross_reviewer: Tuấn              # bắt buộc khi risk_level là high
+approved_at: 2026-10-23
 ---
 
 # PLAN T-032: LOG TẢI FILE THẤT BẠI GHI LOẠI LỖI VÀ LÝ DO
@@ -143,19 +143,19 @@ Không cần (E dưới 2): dùng lại `RecordingAppLogger` và mẫu phụ thu
 ## 8. Câu hỏi cho người duyệt
 
 1. **Chuyển sang `AppLogger`.** Plan đổi tag logcat từ `Assets` sang `VGL.Assets`, và thêm breadcrumb vào Crashlytics (chỉ gửi kèm báo cáo lỗi). Đề xuất của AI: đồng ý, đúng ADR-0019 và cách lọc log `grep ' VGL\.'` trong `CLAUDE.md`. Không muốn thì dùng phương án ở mục 3.4.
-- Trả lời:
+- Trả lời: Đồng ý với đề xuất của AI.
 2. **Trạng thái của FB-20261022-04.** Phản hồi đang `new`. Đề xuất của AI: chủ feature chuyển sang `planned`, liên kết ticket T-032; plan không tự đổi trạng thái phản hồi.
-- Trả lời:
+- Trả lời: Đồng ý với đề xuất của AI.
 3. **Mức rủi ro.** Plan xếp Cao chỉ vì điểm chặn 7. Cần một dev khác duyệt chéo.
-- Trả lời:
+- Trả lời: Đồng ý với đề xuất của AI.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:**
 
 ## 10. Nhật ký thực hiện
 

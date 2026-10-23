@@ -5,12 +5,12 @@
 ## 1. Đang chờ người
 
 - Plan `draft` chờ duyệt: [T-031-camerax-listenablefuture.md](features/camera/plans/T-031-camerax-listenablefuture.md)
-- Plan `draft` chờ duyệt: [T-032-log-ten-loi-tai-file.md](features/loading/plans/T-032-log-ten-loi-tai-file.md)
 - Phản hồi chờ phân loại: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) (Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được)
 - Phản hồi chờ phân loại: [FB-20261022-04-log-ly-do-tai-file.md](features/loading/feedback/FB-20261022-04-log-ly-do-tai-file.md) (Log tải file thất bại không cho biết lý do cụ thể)
 - Plan `draft` chờ duyệt: [T-029-merge-if-green-tu-cap-nhat.md](features/quality-gate/plans/T-029-merge-if-green-tu-cap-nhat.md)
 - Plan `draft` chờ duyệt: [T-030-kiem-tra-truoc-phien.md](features/quality-gate/plans/T-030-kiem-tra-truoc-phien.md)
 - Danh sách chạy `draft` chờ duyệt: [RUN-20261021-04.md](runs/RUN-20261021-04.md)
+- Ticket đã duyệt, chưa vào danh sách chạy nào: [T-032-log-ten-loi-tai-file.md](features/loading/tickets/T-032-log-ten-loi-tai-file.md)
 - ADR `proposed` chờ quyết định: [0020-design-handoff-and-conformance.md](adr/0020-design-handoff-and-conformance.md)
 - ADR `proposed` chờ quyết định: [0021-clone-reference-apps.md](adr/0021-clone-reference-apps.md)
 
@@ -49,7 +49,7 @@ Phản hồi: chưa có.
 
 ### loading
 
-Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 9 `on-staging`, 1 `planned`.
+Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 9 `on-staging`, 1 `approved`.
 
 | Ticket | Tên | Trạng thái | Plan | Ước tính token | Phiên chạy |
 | --- | --- | --- | --- | --- | --- |
@@ -62,7 +62,7 @@ Spec: [spec.md](features/loading/spec.md) `confirmed`. Ticket: 9 `on-staging`, 1
 | [T-007](features/loading/tickets/T-007-he-thong-thiet-ke-sticker.md) | Hệ thống thiết kế theo hướng Sticker | `on-staging` | `done` (bản 3) | 40.0M | RUN-20261021-01, RUN-20261021-02, RUN-20261021-03 |
 | [T-008](features/loading/tickets/T-008-loading-giao-dien-sticker.md) | Màn loading theo thiết kế Sticker và chữ của app | `on-staging` | `done` (bản 1) | 20.0M | RUN-20261021-04, RUN-20261022-01 |
 | [T-010](features/loading/tickets/T-010-loading-tai-catalog-bo-khoi-dau.md) | Màn loading tải catalog và bộ tư thế khởi đầu | `on-staging` | `done` (bản 1) | 20M | RUN-20261021-04, RUN-20261022-01 |
-| [T-032](features/loading/tickets/T-032-log-ten-loi-tai-file.md) | Log tải file thất bại ghi loại lỗi và lý do | `planned` | `draft` (bản 1) | 5.0M | - |
+| [T-032](features/loading/tickets/T-032-log-ten-loi-tai-file.md) | Log tải file thất bại ghi loại lỗi và lý do | `approved` | `approved` (bản 1) | 5.0M | - |
 
 Phản hồi: 2 `fixed`, 2 `new`, 2 `wontfix`.
 - Đang mở: [FB-20261022-03-loi-bao-kiem-tra-mang.md](features/loading/feedback/FB-20261022-03-loi-bao-kiem-tra-mang.md) `new`, mức `gop-y`: Màn loading bảo kiểm tra mạng khi máy có mạng nhưng máy chủ không tới được

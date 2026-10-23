@@ -475,3 +475,39 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/java-check.sh` lấy dòng khớp `version "` thay vì dòng đầu (`grep -m1 ' version "'`), kèm test với đầu ra có dòng `Picked up`. Sửa file này là đổi cổng chất lượng: plan rủi ro cao, duyệt chéo. Phiên không tự sửa script và không bỏ `JAVA_TOOL_OPTIONS` (cấu hình tải nằm ở setup script).
 - **Áp dụng:** T-035, PR #69 (`scripts/java-check.sh` đọc dòng có phiên bản; test với dòng `Picked up`).
 - **Kiểm chứng:**
+
+### L-050: `AppLaunchTest` đỏ vì tải file R2 hết giờ chờ trên runner; quy tắc "chạy lại một lần" biến nó thành lỗi thật
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-022, PR #71.
+- **Chuyện gì:** `ui-test` đỏ hai lần liên tiếp (lần chạy 39997301164, lần 1 và lần chạy lại) ở `AppLaunchTest.appStarts_passesOnboarding_andReachesCamera`, không liên quan code của task. Tải file R2 (ảnh viền, ảnh nhỏ của bộ khởi đầu) hết giờ chờ 15 giây trên runner; màn tải dừng ở lỗi và chờ người bấm "Thử lại"; test chờ 60 giây rồi hết giờ. Chỉ một commit mới (một sửa nhỏ hợp lệ theo rà soát) cho lần chạy xanh (40000627087).
+- **Bằng chứng:** log `VGL.Loading: Task STARTER_SET failed`, `VGL.Assets: Could not download ... SocketTimeoutException`; lần 2 cùng dấu hiệu.
+- **Đề xuất sửa:** `AppLaunchTest` bấm "Thử lại" khi màn tải lỗi, hoặc chờ lâu hơn; `auto-run.md` bước 8 ghi cách xử lý khi `ui-test` đỏ vì tải R2 hết giờ chờ (không tính vào 3 lần sửa, không tự đẩy commit rỗng).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-051: nhánh task chỉ nằm trên máy cloud khi lệnh đẩy bị từ chối
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017.
+- **Chuyện gì:** phiên con của T-017 làm xong bước 3 đến 5 (4 commit, `check.sh` qua) nhưng `git push` bị bộ phân loại tự động từ chối ("dangerous", không giải thích); sáu lệnh đẩy tương tự của các phiên con khác trước và sau đó qua. Phiên chính không đẩy thay. Công việc chỉ nằm trên máy cloud tạm thời.
+- **Bằng chứng:** `git branch -r` không có `claude/T-017-camera-diem-khop`; báo của phiên con.
+- **Đề xuất sửa:** `auto-run.md` bước 3: đẩy nhánh task rỗng ngay lúc tạo (như phiên chính đã làm với T-022), để từ chối nếu có xảy ra sớm, trước khi tốn công viết code.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-052: rà soát độc lập và phiên viết code kết luận khác nhau về một điểm chặn
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-015.
+- **Chuyện gì:** rà soát độc lập nêu điểm chặn (vùng chạm thanh trượt dưới 48 dp) bằng đọc code; phiên viết code viết test chạm thật ở cả hai phía và không tái hiện được. Phiên chính tin test chạm thật và ghi cho người kiểm tay. Quy trình không có chỗ ghi "đã kiểm, không tái hiện".
+- **Bằng chứng:** nhật ký plan T-015; `AdjustPanelTest.adjustSlider_touchHeight48`.
+- **Đề xuất sửa:** mẫu rà soát độc lập (`auto-run.md` bước 6) cho phép điểm chặn có trạng thái "không tái hiện" kèm bằng chứng và mục kiểm thủ công trong báo cáo.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-053: thư viện mới qua `check.sh` và CI nhưng bản release (R8) hỏng
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-019.
+- **Chuyện gì:** T-019 thêm `play-review-ktx`. `check.sh`, `pr-check` và `main-guard` không build bản release, nên `:app:minifyStagingReleaseWithR8` hỏng (`Missing class com.google.android.gms.common.annotation.NoNullnessRewrite`) chỉ lộ ở `device-session` cuối phiên, sau khi PR đã merge. Mục 4.1 của plan T-019 ghi đã thử R8 qua. Bản staging không phát được cho tới khi sửa.
+- **Bằng chứng:** `device-session` lần chạy 40031369521; PR nháp #78 (thêm `-dontwarn`, `:app:assembleStagingRelease` qua trên cloud).
+- **Đề xuất sửa:** thêm `:app:assembleStagingRelease` (hoặc `minifyStagingReleaseWithR8`) vào cổng chất lượng khi PR thêm module hay thư viện; mục 4.1 của plan yêu cầu ghi đúng lệnh release đã chạy.
+- **Áp dụng:**
+- **Kiểm chứng:**

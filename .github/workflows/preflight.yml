@@ -1,0 +1,100 @@
+# Checks every morning that the staging environment is ready for an auto-run session (plan T-030):
+# Firebase staging secret, App Distribution tester groups, public DNS of the static files domain, required R2 files.
+# All logic is in scripts/preflight.sh, which never prints secret values (ADR-0009).
+# - Red: open an issue labelled setup-broken (or comment on the open one); start-run.yml refuses to start a session
+#   while it is open. Its own label, not env-broken: scripts/env-canary.sh closes every env-broken issue when the
+#   cloud environment is green, which would close this one by mistake.
+# - Green: close the open setup-broken issues.
+# Changing this file is a high-risk plan; cross-review required.
+name: preflight
+
+on:
+  schedule:
+    # 07:45 Vietnam time, before env-canary (01:00 UTC).
+    - cron: '45 0 * * *'
+  workflow_dispatch:
+    inputs:
+      extra_asset:
+        description: Đường dẫn R2 thêm vào danh sách cho lần chạy này (chỉ để kiểm đường đỏ), mặc định rỗng
+        required: false
+        default: ''
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  STAGING_APPLICATION_ID: com.vglstudio.camera.pose.line.guide.staging
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Kiểm tra môi trường trước phiên
+        id: preflight
+        continue-on-error: true
+        env:
+          GOOGLE_SERVICES: ${{ secrets.STAGING_GOOGLE_SERVICES_JSON }}
+          DISTRIBUTION_CREDENTIALS: ${{ secrets.STAGING_APP_DISTRIBUTION_CREDENTIALS }}
+          TESTER_GROUPS: ${{ vars.STAGING_TESTER_GROUPS || 'team' }}
+          EXTRA_ASSET: ${{ inputs.extra_asset }}
+        run: |
+          umask 077
+          export GOOGLE_SERVICES_FILE="${RUNNER_TEMP}/google-services.json"
+          export DISTRIBUTION_CREDENTIALS_FILE="${RUNNER_TEMP}/distribution-credentials.json"
+          trap 'rm -f "${GOOGLE_SERVICES_FILE}" "${DISTRIBUTION_CREDENTIALS_FILE}"' EXIT
+          printf '%s' "${GOOGLE_SERVICES}" > "${GOOGLE_SERVICES_FILE}"
+          printf '%s' "${DISTRIBUTION_CREDENTIALS}" > "${DISTRIBUTION_CREDENTIALS_FILE}"
+          if [ -n "${EXTRA_ASSET}" ]; then
+            export REQUIRED_ASSETS="${RUNNER_TEMP}/required-assets.txt"
+            { cat scripts/required-assets.txt; echo "${EXTRA_ASSET}"; } > "${REQUIRED_ASSETS}"
+          fi
+          scripts/preflight.sh | tee preflight.out
+
+      - name: Ghi kết quả
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.preflight.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          open_issues="$(gh issue list --label setup-broken --state open --json number --jq '.[].number')"
+          if [ "${OUTCOME}" = "success" ]; then
+            for number in ${open_issues}; do
+              gh issue close "${number}" --comment "Môi trường staging sẵn sàng trở lại: ${RUN_URL}"
+            done
+            exit 0
+          fi
+          gh label create setup-broken --color D93F0B --description "Môi trường staging chưa sẵn sàng cho phiên tự chạy" --force
+          {
+            echo "Kiểm tra môi trường trước phiên (\`scripts/preflight.sh\`) không qua. Lần chạy: ${RUN_URL}"
+            echo
+            echo '```'
+            # Only the result lines of the script; it never prints secret values.
+            grep -E '^(QUA|LỖI|CHÚ Ý|Tổng):' preflight.out 2>/dev/null || echo "Không có kết quả của script."
+            echo '```'
+            echo
+            echo "\`start-run.yml\` từ chối bắt đầu phiên khi issue này mở. Sửa theo các dòng LỖI, rồi chạy lại workflow preflight (Run workflow); lần chạy xanh tự đóng issue (docs/ops/staging-and-runs.md, mục 2.8)."
+          } > body.md
+          first="$(head -n 1 <<< "${open_issues}")"
+          if [ -n "${first}" ]; then
+            gh issue comment "${first}" --body-file body.md
+          else
+            gh issue create --title "setup-broken: môi trường chưa sẵn sàng cho phiên tự chạy" --label setup-broken --body-file body.md
+          fi
+
+      - name: Kết quả
+        if: steps.preflight.outcome == 'failure'
+        run: |
+          echo "::error::Môi trường staging chưa sẵn sàng; xem issue setup-broken."
+          exit 1

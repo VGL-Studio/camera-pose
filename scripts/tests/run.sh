@@ -1031,8 +1031,10 @@ expect "preflight: reports every failing check" 2 "$(preflight > /dev/null; pf_l
 expect "preflight: never prints secret values" 0 "$(grep -c 'MARKER-SECRET-1\|proj-test-1\|987654321' "$work/preflight-all.out" || true)"
 
 # java-check.sh stops check.sh before Gradle when Java cannot run the project's Gradle (L-022).
-fake_java() { # <version line>; writes a fake java printing it like `java -version`
-  printf '#!/bin/sh\necho '"'"'%s'"'"' >&2\necho "OpenJDK Runtime Environment" >&2\n' "$1" > "$work/bin/fake-java"
+fake_java() { # <version line> [lines printed before it]; writes a fake java printing them like `java -version`
+  { printf '#!/bin/sh\n'
+    [ -n "${2:-}" ] && printf '%s\n' "$2" | while IFS= read -r line; do printf 'echo '"'"'%s'"'"' >&2\n' "$line"; done
+    printf 'echo '"'"'%s'"'"' >&2\necho "OpenJDK Runtime Environment" >&2\n' "$1"; } > "$work/bin/fake-java"
   chmod +x "$work/bin/fake-java"
 }
 java_check() { local code=0; JAVA_CMD="${1:-$work/bin/fake-java}" scripts/java-check.sh > "$work/java.out" 2>&1 || code=$?; echo "$code"; }
@@ -1046,6 +1048,13 @@ fake_java 'java version "1.8.0_392"'
 expect "java-check: Java 1.8 is refused" 1 "$(java_check)"
 expect "java-check: names Java 8" 1 "$(grep -c '^LỖI: Java 8 ' "$work/java.out" || true)"
 expect "java-check: no java is refused" 1 "$(java_check "$work/bin/no-such-java")"
+# The JVM prints "Picked up JAVA_TOOL_OPTIONS: ..." before the version when the variable is set, as in the cloud (L-049).
+fake_java 'openjdk version "21.0.12.1" 2026-07-21' 'Picked up JAVA_TOOL_OPTIONS: -Dhttps.proxyHost=proxy'
+expect "java-check: Java 21 after a Picked up JAVA_TOOL_OPTIONS line passes" "0 1" "$(java_check) $(grep -c '^Java 21: dùng được' "$work/java.out" || true)"
+fake_java 'openjdk version "17.0.12" 2024-07-16' "$(printf 'Picked up JAVA_TOOL_OPTIONS: -Da=1\nPicked up _JAVA_OPTIONS: -Db=2')"
+expect "java-check: Java 17 after two Picked up lines passes" 0 "$(java_check)"
+fake_java 'openjdk version "26" 2026-03-17' 'Picked up JAVA_TOOL_OPTIONS: -Da=1'
+expect "java-check: Java 26 after a Picked up line is refused" "1 1" "$(java_check) $(grep -c '^LỖI: Java 26 ' "$work/java.out" || true)"
 java_line="$(grep -n 'scripts/java-check.sh' scripts/check.sh | head -n 1 | cut -d: -f1 || true)"
 gradle_line="$(grep -n '"${GRADLE\[@\]}"' scripts/check.sh | head -n 1 | cut -d: -f1 || true)"
 expect "check.sh calls java-check.sh before the first Gradle call" yes \

@@ -24,9 +24,11 @@ refuse() {
   exit 1
 }
 
-if ! version_line="$("$java_cmd" -version 2>&1 | head -n 1)" || [[ -z "$version_line" ]]; then
+if ! output="$("$java_cmd" -version 2>&1)" || [[ -z "$output" ]]; then
   refuse "không chạy được java ($java_cmd). Gradle $GRADLE_VERSION của dự án cần Java $MIN_JAVA tới $MAX_JAVA."
 fi
+# The JVM prints "Picked up JAVA_TOOL_OPTIONS: ..." before the version when such a variable is set (L-049).
+version_line="$(grep -m1 ' version "' <<< "$output" || head -n 1 <<< "$output")"
 version="$(sed -nE 's/.*version "([0-9][0-9._]*)".*/\1/p' <<< "$version_line")"
 major="${version%%.*}"
 # Java 8 and older print "1.8.0_392".

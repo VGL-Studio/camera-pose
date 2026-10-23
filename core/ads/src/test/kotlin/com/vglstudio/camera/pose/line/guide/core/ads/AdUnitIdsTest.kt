@@ -9,8 +9,10 @@ import org.junit.Test
 class AdUnitIdsTest {
     @Test
     fun configuredUnits_areParsedPerPlacementKey() {
-        val ids = ConfiguredAdUnitIds(" sample_bottom_banner = unit/1 ; other_key=unit/2;")
-        assertEquals("unit/1", ids.of(AdPlacement.SAMPLE_BOTTOM_BANNER))
+        val config = AdPlacement.entries.joinToString(separator = " ; ") { " ${it.key} = unit/${it.key} " } +
+            "; other_key=unit/2;"
+        val ids = ConfiguredAdUnitIds(config)
+        AdPlacement.entries.forEach { assertEquals("unit/${it.key}", ids.of(it)) }
         assertTrue(ids.missing.isEmpty())
     }
 

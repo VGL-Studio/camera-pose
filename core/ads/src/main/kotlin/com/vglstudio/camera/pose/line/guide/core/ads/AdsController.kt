@@ -18,6 +18,7 @@ import com.google.android.ump.ConsentInformation.PrivacyOptionsRequirementStatus
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteSettings
+import com.vglstudio.camera.pose.line.guide.core.network.NetworkStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -49,6 +50,7 @@ class AdsController @Inject internal constructor(
     private val unitIds: AdUnitIds,
     private val consentDebug: ConsentDebugOptions,
     private val settings: RemoteSettings,
+    private val networkStatus: NetworkStatus,
 ) {
     private val consentInformation by lazy { UserMessagingPlatform.getConsentInformation(context) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -56,6 +58,7 @@ class AdsController @Inject internal constructor(
 
     // Touched on the main thread only.
     private val guard = FullScreenAdGuard()
+    private val breaks = InterstitialBreaks()
     private val loadedInterstitials = mutableMapOf<AdPlacement, InterstitialAd>()
 
     private val _canRequestAds = MutableStateFlow(false)
@@ -113,38 +116,71 @@ class AdsController @Inject internal constructor(
     suspend fun showInterstitial(activity: Activity, placement: AdPlacement): Boolean =
         withContext(Dispatchers.Main.immediate) {
             require(placement.format == AdFormat.INTERSTITIAL) { "${placement.key} is not a full-screen placement" }
-            if (!canRequestAds.value || !isEnabled(placement).first()) return@withContext false
-            val minIntervalMillis = settings.long(
-                AdsSettings.INTERSTITIAL_MIN_INTERVAL_SECONDS,
-                AdsSettings.INTERSTITIAL_MIN_INTERVAL_SECONDS_DEFAULT,
-            ).first() * 1_000
-            val deadline = SystemClock.elapsedRealtime() + FullScreenAdGuard.MAX_WAIT_MILLIS
-            while (true) {
-                val now = SystemClock.elapsedRealtime()
-                when (val decision = guard.decide(now, minIntervalMillis)) {
-                    FullScreenAdGuard.Decision.TooSoon -> return@withContext false
-                    is FullScreenAdGuard.Decision.Wait ->
-                        if (now + decision.millis > deadline) return@withContext false else delay(decision.millis)
-                    FullScreenAdGuard.Decision.Show -> break
-                }
-            }
-            val ad = loadedInterstitials.remove(placement)
-            if (ad == null) {
-                preloadInterstitial(placement)
-                return@withContext false
-            }
-            ad.fullScreenContentCallback = object : FullScreenContentCallback() {
-                override fun onAdDismissedFullScreenContent() = preloadInterstitial(placement)
-
-                override fun onAdFailedToShowFullScreenContent(error: AdError) {
-                    Log.w(TAG, "Interstitial ${placement.key} failed to show: ${error.message}")
-                    preloadInterstitial(placement)
-                }
-            }
-            guard.onShown(SystemClock.elapsedRealtime())
-            ad.show(activity)
-            true
+            runInterstitial(placement, breaks, interstitialSteps(activity, placement))
         }
+
+    private fun interstitialSteps(activity: Activity, placement: AdPlacement) = InterstitialSteps(
+        canRequestAds = { canRequestAds.value },
+        placementEnabled = { isEnabled(placement).first() },
+        networkDialogShown = { networkStatus.dialogShown.value },
+        breakCap = { breakCapOf(placement) },
+        hasLoadedAd = { placement in loadedInterstitials },
+        preload = { preloadInterstitial(placement) },
+        waitUntilQuiet = { guardAllowsShowing() },
+        show = { showLoaded(activity, placement) },
+        nowMillis = { SystemClock.elapsedRealtime() },
+        log = { Log.i(TAG, "Interstitial ${placement.key} $it") },
+    )
+
+    private suspend fun breakCapOf(placement: AdPlacement): BreakCap {
+        val defaults = AdsSettings.breakCapDefaults(placement)
+        return BreakCap(
+            firstBreak = settings.long(
+                AdsSettings.placementFirstBreakKey(placement),
+                defaults.firstBreak.toLong(),
+            ).first().toInt(),
+            breaksBetween = settings.long(
+                AdsSettings.placementBreaksBetweenKey(placement),
+                defaults.breaksBetween.toLong(),
+            ).first().toInt(),
+            minIntervalSeconds = settings.long(
+                AdsSettings.placementMinIntervalKey(placement),
+                defaults.minIntervalSeconds,
+            ).first(),
+        )
+    }
+
+    /** True when the shared guard lets a full-screen ad show, after waiting at most [FullScreenAdGuard.MAX_WAIT_MILLIS]. */
+    private suspend fun guardAllowsShowing(): Boolean {
+        val minIntervalMillis = settings.long(
+            AdsSettings.INTERSTITIAL_MIN_INTERVAL_SECONDS,
+            AdsSettings.INTERSTITIAL_MIN_INTERVAL_SECONDS_DEFAULT,
+        ).first() * 1_000
+        val deadline = SystemClock.elapsedRealtime() + FullScreenAdGuard.MAX_WAIT_MILLIS
+        while (true) {
+            val now = SystemClock.elapsedRealtime()
+            when (val decision = guard.decide(now, minIntervalMillis)) {
+                FullScreenAdGuard.Decision.TooSoon -> return false
+                is FullScreenAdGuard.Decision.Wait ->
+                    if (now + decision.millis > deadline) return false else delay(decision.millis)
+                FullScreenAdGuard.Decision.Show -> return true
+            }
+        }
+    }
+
+    private fun showLoaded(activity: Activity, placement: AdPlacement) {
+        val ad = loadedInterstitials.remove(placement) ?: return
+        ad.fullScreenContentCallback = object : FullScreenContentCallback() {
+            override fun onAdDismissedFullScreenContent() = preloadInterstitial(placement)
+
+            override fun onAdFailedToShowFullScreenContent(error: AdError) {
+                Log.w(TAG, "Interstitial ${placement.key} failed to show: ${error.message}")
+                preloadInterstitial(placement)
+            }
+        }
+        guard.onShown(SystemClock.elapsedRealtime())
+        ad.show(activity)
+    }
 
     internal fun isEnabled(placement: AdPlacement): Flow<Boolean> =
         settings.boolean(AdsSettings.placementEnabledKey(placement), AdsSettings.PLACEMENT_ENABLED_DEFAULT)

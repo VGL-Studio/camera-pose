@@ -21,4 +21,14 @@ class AdsSettingsTest {
     fun interstitialMinIntervalIs45SecondsByDefault() {
         assertEquals(45L, AdsSettings.INTERSTITIAL_MIN_INTERVAL_SECONDS_DEFAULT)
     }
+
+    @Test
+    fun reviewInterstitialCapDefaults() {
+        assertEquals(BreakCap(2, 3, 120), AdsSettings.breakCapDefaults(AdPlacement.REVIEW_INTERSTITIAL))
+        assertEquals(BreakCap.NONE, AdsSettings.breakCapDefaults(AdPlacement.SAMPLE_BOTTOM_BANNER))
+        val placement = AdPlacement.REVIEW_INTERSTITIAL
+        assertEquals("ads_review_interstitial_first_break", AdsSettings.placementFirstBreakKey(placement))
+        assertEquals("ads_review_interstitial_breaks_between", AdsSettings.placementBreaksBetweenKey(placement))
+        assertEquals("ads_review_interstitial_min_interval_seconds", AdsSettings.placementMinIntervalKey(placement))
+    }
 }

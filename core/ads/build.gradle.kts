@@ -10,6 +10,8 @@ android {
 
 dependencies {
     implementation(project(":core:config"))
+    // The network dialog on screen blocks full-screen ads (plan T-018).
+    implementation(project(":core:network"))
 
     implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)

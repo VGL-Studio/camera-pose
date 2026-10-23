@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.feature.poses
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -34,6 +35,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.AdSlot
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCard
@@ -214,6 +217,12 @@ internal fun subjectLabel(type: SubjectType): String = stringResource(
 /** The language of the screen, read here so names follow a language change (plan T-021, KB-1). */
 @Composable
 internal fun screenLocale(): Locale = LocalConfiguration.current.locales[0]
+
+/** Width from which the screens use the wide layout (an unfolded foldable): the Material "compact" window limit. */
+internal val WideLayoutMinWidth: Dp = 600.dp
+
+/** True when the room given to the screen is wide enough for the wide layout (spec poses, KB-7). */
+internal fun BoxWithConstraintsScope.isWide(): Boolean = maxWidth >= WideLayoutMinWidth
 
 private fun PoseChip.filter(): PoseFilter = when (this) {
     PoseChip.All -> PoseFilter.All

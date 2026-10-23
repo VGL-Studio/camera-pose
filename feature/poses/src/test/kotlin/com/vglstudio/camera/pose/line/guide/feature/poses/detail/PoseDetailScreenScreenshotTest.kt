@@ -133,7 +133,25 @@ class PoseDetailScreenScreenshotTest {
         }
     }
 
+    // Design `unfolded` (KB-7): the image on the left, the text on the right, the button bar in the right column.
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun default_light_unfolded() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_default_light_unfolded.png") {
+            Screen(readyState(), dark = false)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun default_dark_unfolded() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_default_dark_unfolded.png") {
+            Screen(readyState(), dark = true)
+        }
+    }
+
     private companion object {
+        const val UNFOLDED = "w673dp-h841dp-xxhdpi"
         const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
 
         // A fixed point of the spinner animation where its arc is clearly drawn, as in the design.

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -34,8 +35,8 @@ private val IconSize = 22.dp
 /**
  * The pose matching hint on the camera (sticker.md, section 4): a pill at least 56 high with a 40 dp circle that holds
  * the [score] (or [icon] when there is no score) and a short [text] that wraps when the room is short. [matched] turns
- * the pill green. One merged node, a polite live region, so a screen reader says the new text when it changes; the
- * caller adds a content description when the score and the text should be read as one sentence.
+ * the pill green. One merged node, a polite live region, so a screen reader says the new text when it changes. The score
+ * is left out of it: it changes almost every frame and would be read again and again (plan T-017, section 8, question 7).
  */
 @Composable
 fun MatchHint(
@@ -73,6 +74,7 @@ fun MatchHint(
                     text = score.toString(),
                     style = MaterialTheme.typography.labelLarge,
                     color = appColors.cameraOnControl,
+                    modifier = Modifier.clearAndSetSemantics {},
                 )
             } else if (icon != null) {
                 Icon(

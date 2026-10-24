@@ -6,8 +6,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.MatchHint
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraTestTags
@@ -35,8 +33,8 @@ internal fun MatchHintText.stringRes(): Int = when (this) {
 
 /**
  * The matching hint of the camera for [state] (design README, section 3, "Điểm khớp"): the score and the hint of the
- * worst part, the message of a match, or only the call to step back. Nothing for [MatchUiState.Off]. A score and its
- * text are read as one sentence.
+ * worst part, the message of a match, or only the call to step back. Nothing for [MatchUiState.Off]. A screen reader
+ * gets only the text (see [MatchHint]).
  */
 @Composable
 internal fun MatchHintOverlay(state: MatchUiState, modifier: Modifier = Modifier) {
@@ -48,24 +46,16 @@ internal fun MatchHintOverlay(state: MatchUiState, modifier: Modifier = Modifier
             modifier = tagged,
             icon = painterResource(DesignR.drawable.ic_person_search),
         )
-        is MatchUiState.Scoring -> {
-            val text = stringResource(state.hint.stringRes())
-            val description = stringResource(R.string.camera_cd_match_score, state.score, text)
-            MatchHint(
-                text = text,
-                modifier = tagged.semantics { contentDescription = description },
-                score = state.score,
-            )
-        }
-        is MatchUiState.Matched -> {
-            val text = stringResource(R.string.camera_match_matched)
-            val description = stringResource(R.string.camera_cd_match_score, state.score, text)
-            MatchHint(
-                text = text,
-                modifier = tagged.semantics { contentDescription = description },
-                score = state.score,
-                matched = true,
-            )
-        }
+        is MatchUiState.Scoring -> MatchHint(
+            text = stringResource(state.hint.stringRes()),
+            modifier = tagged,
+            score = state.score,
+        )
+        is MatchUiState.Matched -> MatchHint(
+            text = stringResource(R.string.camera_match_matched),
+            modifier = tagged,
+            score = state.score,
+            matched = true,
+        )
     }
 }

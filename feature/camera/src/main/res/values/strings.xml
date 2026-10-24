@@ -77,5 +77,4 @@
     <string name="camera_match_straighten_left_leg">Duỗi thẳng chân trái</string>
     <string name="camera_match_bend_right_knee">Gập gối phải thêm</string>
     <string name="camera_match_straighten_right_leg">Duỗi thẳng chân phải</string>
-    <string name="camera_cd_match_score">%1$d điểm, %2$s</string>
 </resources>

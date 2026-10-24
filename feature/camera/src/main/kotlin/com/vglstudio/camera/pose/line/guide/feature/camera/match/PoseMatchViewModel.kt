@@ -85,16 +85,17 @@ class PoseMatchViewModel @Inject constructor(
             return
         }
         if (!isPersonPresent(frame, pose.framing, minInFrame)) {
-            framesWithoutPerson++
-            if (framesWithoutPerson >= NO_PERSON_FRAMES) {
-                resetScoring()
-                setState(MatchUiState.NoPerson)
-            }
+            onFrameWithoutPerson()
+            return
+        }
+        val result = score(template, outline.mirrored, frame, minInFrame)
+        // A score without a hint of its own keeps the hint shown. No part of the body to compare at all (a close pose
+        // with the elbows out of the frame) is a call to step back.
+        val worst = result.worst ?: shownHint?.takeIf { result.score > 0 } ?: run {
+            onFrameWithoutPerson()
             return
         }
         framesWithoutPerson = 0
-        val result = score(template, outline.mirrored, frame, minInFrame)
-        val worst = result.worst ?: return
         val smoothedNow = smoothed?.let { SMOOTHING * result.score + (1 - SMOOTHING) * it } ?: result.score.toDouble()
         smoothed = smoothedNow
         val shownScore = smoothedNow.roundToInt()
@@ -102,6 +103,14 @@ class PoseMatchViewModel @Inject constructor(
         val matched = state.value is MatchUiState.Matched
         val reached = if (matched) shownScore >= threshold - EXIT_MARGIN else shownScore >= threshold
         setState(if (reached) MatchUiState.Matched(shownScore) else MatchUiState.Scoring(shownScore, hint))
+    }
+
+    private fun onFrameWithoutPerson() {
+        framesWithoutPerson++
+        if (framesWithoutPerson >= NO_PERSON_FRAMES) {
+            resetScoring()
+            setState(MatchUiState.NoPerson)
+        }
     }
 
     /** The hint changes only when another part has been the worst for three frames in a row. */

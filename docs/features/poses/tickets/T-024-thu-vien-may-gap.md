@@ -5,7 +5,7 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: [KB-7]
 owner: Nhật
-status: approved
+status: on-staging
 risk: medium
 size: S
 depends_on: [T-021, T-022]

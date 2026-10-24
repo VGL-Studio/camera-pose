@@ -475,3 +475,66 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/java-check.sh` lấy dòng khớp `version "` thay vì dòng đầu (`grep -m1 ' version "'`), kèm test với đầu ra có dòng `Picked up`. Sửa file này là đổi cổng chất lượng: plan rủi ro cao, duyệt chéo. Phiên không tự sửa script và không bỏ `JAVA_TOOL_OPTIONS` (cấu hình tải nằm ở setup script).
 - **Áp dụng:** T-035, PR #69 (`scripts/java-check.sh` đọc dòng có phiên bản; test với dòng `Picked up`).
 - **Kiểm chứng:**
+
+### L-050: `AppLaunchTest` đỏ vì tải file R2 hết giờ chờ trên runner; quy tắc "chạy lại một lần" biến nó thành lỗi thật
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-022, PR #71.
+- **Chuyện gì:** `ui-test` đỏ hai lần liên tiếp (lần chạy 39997301164, lần 1 và lần chạy lại) ở `AppLaunchTest.appStarts_passesOnboarding_andReachesCamera`, không liên quan code của task. Tải file R2 (ảnh viền, ảnh nhỏ của bộ khởi đầu) hết giờ chờ 15 giây trên runner; màn tải dừng ở lỗi và chờ người bấm "Thử lại"; test chờ 60 giây rồi hết giờ. Chỉ một commit mới (một sửa nhỏ hợp lệ theo rà soát) cho lần chạy xanh (40000627087).
+- **Bằng chứng:** log `VGL.Loading: Task STARTER_SET failed`, `VGL.Assets: Could not download ... SocketTimeoutException`; lần 2 cùng dấu hiệu.
+- **Đề xuất sửa:** `AppLaunchTest` bấm "Thử lại" khi màn tải lỗi, hoặc chờ lâu hơn; `auto-run.md` bước 8 ghi cách xử lý khi `ui-test` đỏ vì tải R2 hết giờ chờ (không tính vào 3 lần sửa, không tự đẩy commit rỗng).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-051: nhánh task chỉ nằm trên máy cloud khi lệnh đẩy bị từ chối
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017.
+- **Chuyện gì:** phiên con của T-017 làm xong bước 3 đến 5 (4 commit, `check.sh` qua) nhưng `git push` bị bộ phân loại tự động từ chối ("dangerous", không giải thích); sáu lệnh đẩy tương tự của các phiên con khác trước và sau đó qua. Phiên chính không đẩy thay. Công việc chỉ nằm trên máy cloud tạm thời.
+- **Bằng chứng:** `git branch -r` không có `claude/T-017-camera-diem-khop`; báo của phiên con.
+- **Đề xuất sửa:** `auto-run.md` bước 3: đẩy nhánh task rỗng ngay lúc tạo (như phiên chính đã làm với T-022), để từ chối nếu có xảy ra sớm, trước khi tốn công viết code.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-052: rà soát độc lập và phiên viết code kết luận khác nhau về một điểm chặn
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-015.
+- **Chuyện gì:** rà soát độc lập nêu điểm chặn (vùng chạm thanh trượt dưới 48 dp) bằng đọc code; phiên viết code viết test chạm thật ở cả hai phía và không tái hiện được. Phiên chính tin test chạm thật và ghi cho người kiểm tay. Quy trình không có chỗ ghi "đã kiểm, không tái hiện".
+- **Bằng chứng:** nhật ký plan T-015; `AdjustPanelTest.adjustSlider_touchHeight48`.
+- **Đề xuất sửa:** mẫu rà soát độc lập (`auto-run.md` bước 6) cho phép điểm chặn có trạng thái "không tái hiện" kèm bằng chứng và mục kiểm thủ công trong báo cáo.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-053: thư viện mới qua `check.sh` và CI nhưng bản release (R8) hỏng
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-019.
+- **Chuyện gì:** T-019 thêm `play-review-ktx`. `check.sh`, `pr-check` và `main-guard` không build bản release, nên `:app:minifyStagingReleaseWithR8` hỏng (`Missing class com.google.android.gms.common.annotation.NoNullnessRewrite`) chỉ lộ ở `device-session` cuối phiên, sau khi PR đã merge. Mục 4.1 của plan T-019 ghi đã thử R8 qua. Bản staging không phát được cho tới khi sửa.
+- **Bằng chứng:** `device-session` lần chạy 40031369521; PR nháp #78 (thêm `-dontwarn`, `:app:assembleStagingRelease` qua trên cloud).
+- **Đề xuất sửa:** thêm `:app:assembleStagingRelease` (hoặc `minifyStagingReleaseWithR8`) vào cổng chất lượng khi PR thêm module hay thư viện; mục 4.1 của plan yêu cầu ghi đúng lệnh release đã chạy.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-054: GitHub merge xong nhưng trả lỗi, PR vẫn mở và không có sự kiện đẩy
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #67.
+- **Chuyện gì:** `merge-if-green.sh 67` nhận lỗi `unexpected end of JSON input` từ API merge và in `TỪ CHỐI: GitHub từ chối merge`, nhưng commit c49a682 đã nằm trên nhánh chính. PR vẫn `OPEN`, không workflow `push` nào chạy (`main-guard`, `status-page`). Gọi lại script sẽ tạo commit trùng; người phải merge tay trên web (commit rỗng c83777a) để PR đóng, và các workflow `push` chạy trễ. Phiên tự chạy gặp chuyện này sẽ tưởng merge bị từ chối và dừng task, hoặc thử lại.
+- **Bằng chứng:** đầu ra của `merge-if-green.sh 67`; `git log origin/main` có c49a682 khi PR #67 còn `OPEN`; không có lần chạy `main-guard` cho c49a682.
+- **Đề xuất sửa:** `merge-if-green.sh` gặp lỗi từ API merge thì kiểm tra nhánh chính đã chứa commit đầu của PR chưa (`git merge-base --is-ancestor`, hoặc commit trên nhánh chính có số PR); có rồi thì in `ĐÃ MERGE (GitHub báo lỗi)` với mã riêng, ghi rằng workflow `push` có thể không chạy, và chạy `main-guard` bằng `workflow_dispatch`. `auto-run.md` bước 8 ghi cách xử lý mã này. Sửa script này cần plan rủi ro cao, duyệt chéo (L-044).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-055: `start-run.yml` không kiểm `main-guard` xanh trên commit đầu nhánh chính
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, RUN-20261023-03.
+- **Chuyện gì:** sau sự cố của L-054, commit đầu nhánh chính (c83777a, có code `scripts/run-check.py` của c49a682) chưa có lần chạy `main-guard` nào. `start-run.yml` vẫn khởi động phiên: nó chỉ xem issue `main-broken`, `setup-broken` và chạy `scripts/preflight.sh`, không xem `main-guard` đã chạy và xanh trên chính commit đó chưa. Phiên dựa vào kiểm tra đầu phiên của chính nó (`check.sh` nền), tốn khoảng 15 phút cloud trước khi biết nhánh chính có xanh không.
+- **Bằng chứng:** lúc kích hoạt RUN-20261023-03 chưa có lần chạy `main-guard` cho c49a682 hay c83777a; `start-run.yml` xanh; các bước kiểm tra của `.github/workflows/start-run.yml`.
+- **Đề xuất sửa:** `start-run.yml` thêm bước: commit đầu nhánh chính có đổi file ngoài `docs/` mà chưa có lần chạy `main-guard` xanh cho chính commit đó thì từ chối, in hướng dẫn chạy `main-guard` bằng `workflow_dispatch` rồi kích hoạt lại. Sửa `.github/` cần plan rủi ro cao, duyệt chéo.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-056: kiểm tra trước phiên không chạy `java-check.sh` trong môi trường cloud
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03 (L-049).
+- **Chuyện gì:** `preflight.yml` và `start-run.yml` chạy trên runner GitHub, không có `JAVA_TOOL_OPTIONS` của môi trường cloud, nên lỗi của L-049 không lộ ở đó. Lỗi chỉ lộ khi phiên cloud đã khởi động và chạy `check.sh`, nên cả phiên kết thúc mà không task nào chạy. Mọi khác biệt giữa runner và môi trường cloud (biến môi trường, proxy, phiên bản công cụ) đều có thể làm hỏng phiên theo cách này.
+- **Bằng chứng:** RUN-20261023-03: `start-run` xanh, phiên dừng ở `java-check.sh`; RUN-20261023-04 qua sau khi sửa T-035.
+- **Đề xuất sửa:** `scripts/cloud-env-check.sh` gọi `scripts/java-check.sh` (và các kiểm tra rẻ khác mà `check.sh` chạy trước khi build), để lỗi môi trường lộ trong vài giây đầu phiên và báo rõ `env-broken`, thay vì sau `check.sh`; test của script dùng `fake_java` có dòng `Picked up`.
+- **Áp dụng:**
+- **Kiểm chứng:**

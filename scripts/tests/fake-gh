@@ -51,14 +51,18 @@ m = re.match(r"repos/[^/]+/[^/]+/commits/([0-9a-f]+)/check-runs", path)
 calls_file = os.environ["FIXTURE"] + ".calls"
 calls = json.load(open(calls_file)) if os.path.exists(calls_file) else {}
 if m:
-    sha = m.group(1); c = fx[sha]
+    sha = m.group(1); c = fx.get(sha)
+    if c is None:
+        sys.stderr.write("HTTP 404: Not Found\n"); sys.exit(1)
     n = calls.get(sha, 0); calls[sha] = n + 1; json.dump(calls, open(calls_file, "w"))
     states = c.get("states", [])
     st = states[min(n, len(states)-1)] if states else None
     runs = [] if st is None else [{"started_at":"2026-01-01T00:00:00Z","status": "in_progress" if st=="pending" else "completed","conclusion": None if st=="pending" else st}]
     data = {"check_runs": runs}
 else:
-    sha = re.match(r"repos/[^/]+/[^/]+/commits/([0-9a-f]+)$", path).group(1); c = fx[sha]
+    sha = re.match(r"repos/[^/]+/[^/]+/commits/([0-9a-f]+)$", path).group(1); c = fx.get(sha)
+    if c is None:
+        sys.stderr.write("HTTP 404: Not Found\n"); sys.exit(1)
     # "parents" (a list) gives a merge commit; otherwise "parent" is the only parent.
     parents = c["parents"] if "parents" in c else ([c["parent"]] if c.get("parent") else [])
     data = {"parents": [{"sha": p} for p in parents], "files": [{"filename": f} for f in c.get("files", ["app/x.kt"])]}

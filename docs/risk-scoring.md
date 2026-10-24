@@ -59,11 +59,11 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 
 **Không phải dừng: nối chỗ gọi mà task khác cùng danh sách đổi (ADR-1003).** AI được sửa một file không có trong danh sách file của plan khi đủ mọi điều kiện sau; vượt bất kỳ điều kiện nào thì dừng theo điều kiện 1:
 
-- File đó được tạo hay đổi, sau khi plan được duyệt, bởi một task khác của cùng danh sách chạy đã merge trong phiên này hay phiên trước.
+- File đó được tạo hay đổi, sau khi plan được duyệt, bởi một task khác của cùng danh sách chạy đã merge trong phiên này hay phiên trước. Task đang làm được chuyển sang từ một danh sách chạy trước thì task đã merge của danh sách đó cũng tính là cùng danh sách; nhật ký ghi mã danh sách chạy của task đã đổi chỗ gọi.
 - Phần sửa chỉ nối chỗ gọi: truyền tham số mới, gọi hàm mới, đổi tên theo thay đổi của chính plan, ở các file gọi thứ mà plan đổi; không thêm hành vi nào chưa ghi trong plan đang chạy hay plan đã tạo file đó.
 - File không thuộc điểm chặn ở mục 1: không thuộc `.github/`, `scripts/`, `build-logic/`, `gradle/`, file `*.gradle.kts`; không phải `AndroidManifest.xml`, `consumer-rules.pro`, `proguard-rules.pro`; không phải file của `:core:ads`, `:core:analytics`, ảnh chuẩn của module khác.
 - Có test viết trước cho phần nối, thất bại đúng lý do, commit trước code như bước 3 của `auto-run.md`.
-- Phần sửa nhỏ: tổng cộng không quá 3 file thêm và 40 dòng code (không tính test) cho mỗi task. Mô tả PR ghi số file và số dòng code của phần nối; rà soát độc lập kiểm số này.
+- Phần sửa nhỏ: tổng cộng không quá 3 file thêm và 40 dòng code cho mỗi task. Đếm bằng `git diff --numstat origin/main...HEAD -- <các file ngoài mục 3.2>`, cộng dòng thêm và dòng xóa, không tính file test (`src/test/`, `src/androidTest/`, `scripts/tests/`). Mô tả PR ghi lệnh đó và kết quả; rà soát độc lập kiểm số này.
 
 Phần nối được ghi vào nhật ký của plan (file, lý do, task đã đổi chỗ gọi, test) và mô tả PR (mục "Ngoài mục 3.2"); rà soát độc lập xét riêng phần này, không đúng là nối chỗ gọi thì báo mức chặn (`auto-run.md`, bước 6).
 
@@ -88,3 +88,4 @@ Khi bắt đầu làm việc lại, nhóm trả lời câu hỏi "vì sao plan c
 | 2026-10-22 | Mục 4, điều kiện 2: quyền và thư viện quyết lúc lập plan | Tránh dừng task vì quyền hay thư viện chỉ lộ ra trong phiên (L-007, plan T-016 phiên bản 1; L-041) |
 | 2026-10-22 | Mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng | Ba lần dừng của T-007, T-011 đều vì kỹ thuật của plan không chạy, trong khi cách thay đã rõ từ lúc viết plan (L-039) |
 | 2026-10-24 | Mục 4, điều kiện 1: nối chỗ gọi mà task khác cùng danh sách đổi không phải dừng, trong giới hạn của ADR-1003 | T-017 phải sửa `CameraUnfolded.kt` mà T-020 tạo, ngoài mục 3.2 (L-058, PR #81) |
+| 2026-10-24 | Mục 4, nối chỗ gọi: cách đếm 3 file và 40 dòng (`git diff --numstat`, không tính test); "cùng danh sách" tính cả task đã merge ở danh sách trước khi task được chuyển sang | Phần bổ sung chữ của ADR-1003, Nhật và Tuấn nhận ở rà soát trước RUN-20261024-01 |

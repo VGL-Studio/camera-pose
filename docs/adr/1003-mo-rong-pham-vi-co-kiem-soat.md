@@ -93,3 +93,17 @@ PR soạn ADR này không sửa hai file đó.
   - Mỗi lần sửa theo rà soát tốn thêm thời gian bước 5 và một lần rà soát.
   - Quy tắc của dự án mẫu (`risk-scoring.md`) khác ở app này cho tới khi dự án mẫu nhận đề xuất (`docs/ops/from-app.md`).
 - **Việc AI phải tuân thủ:** chỉ áp dụng khi `docs/risk-scoring.md` (mục 4) và `docs/auto-run.md` (bước 6) đã dẫn tới ADR này (T-043); ở app này, phiên được sửa file ngoài mục 3.2 chỉ để nối chỗ gọi mà task khác của cùng danh sách đã tạo hay đổi sau khi plan được duyệt; phần nối có test viết trước, tối đa 3 file và 40 dòng code mỗi task, không chạm file của điểm chặn ở mục 1 của `risk-scoring.md`; ở bước 6, phiên phải sửa điểm nên sửa nằm trong file được phép, có test viết trước thất bại đúng lý do, không đổi điều test của plan kiểm; điểm nên sửa mâu thuẫn với plan, spec hay test của plan thì ghi vào báo cáo kèm phương án, không tự sửa; mỗi phần ngoài mục 3.2 và mỗi lần sửa theo rà soát được ghi vào nhật ký plan và mô tả PR, và được rà soát độc lập xét riêng; mọi điều kiện dừng khác của `risk-scoring.md` vẫn áp dụng.
+
+## Bổ sung ngày 2026-10-24: làm rõ chữ
+
+Nhật và Tuấn nhận 4 đề xuất làm rõ chữ từ rà soát trước RUN-20261024-01. Các đề xuất chỉ làm rõ cách hiểu, không đổi quyết định. Phần này thêm sau khi ADR đã `accepted`; các mục ở trên giữ nguyên.
+
+1. **Cách đếm 3 file và 40 dòng (quyết định 1).**
+   - Đếm bằng `git diff --numstat origin/main...HEAD -- <các file ngoài mục 3.2>`, cộng cả dòng thêm và dòng xóa.
+   - Không tính file test (`src/test/`, `src/androidTest/`, `scripts/tests/`).
+   - Mô tả PR ghi đúng lệnh này và kết quả của nó.
+2. **"Cùng danh sách chạy" (quyết định 1)** gồm cả task đã merge ở danh sách chạy trước, khi task đang làm được chuyển sang từ danh sách đó. Ví dụ: task dừng ở RUN-A, được đưa vào RUN-B, và một task của RUN-A đã đổi chỗ gọi. Nhật ký plan ghi mã danh sách chạy của task đã đổi chỗ gọi.
+3. **Giới hạn 3 lần sửa (quyết định 2)** tính riêng cho từng điểm nên sửa, như "3 lần sửa cho cùng một lỗi". Không cộng dồn giữa các điểm của một task. Một điểm hết 3 lần sửa thì hoàn tác phần sửa của điểm đó, ghi vào báo cáo, rồi làm tiếp các điểm còn lại.
+4. **Danh sách file không được nối (quyết định 1)** giữ nguyên như ở trên.
+
+`docs/risk-scoring.md` (mục 4) và `docs/auto-run.md` (bước 6) được cập nhật theo các điểm 1 đến 3.

@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-054 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: approved
+status: planned
 risk: high
 size: S
 depends_on: [T-029, T-039, T-041]
@@ -18,14 +18,14 @@ created: 2026-10-24
 
 ## Mô tả
 
-API merge của GitHub trả lỗi nhưng commit đã vào nhánh chính; script báo "TỪ CHỐI", PR vẫn mở, không có workflow `push` (L-054, PR #67). Sau ticket này, gặp lỗi từ API merge, `merge-if-green.sh` kiểm nhánh chính đã chứa commit đầu của PR chưa; có rồi thì in `ĐÃ MERGE (GitHub báo lỗi)` với mã riêng và chạy `main-guard` bằng `workflow_dispatch`.
+API merge của GitHub trả lỗi nhưng commit đã vào nhánh chính; script báo "TỪ CHỐI", PR vẫn mở, không có workflow `push` (L-054, PR #67). Sau ticket này, gặp lỗi từ API merge, `merge-if-green.sh` kiểm nhánh chính đã chứa commit đầu của PR chưa; có rồi thì in `ĐÃ MERGE (GitHub báo lỗi)`, thoát 0 (câu 1 của plan, đã duyệt) và chạy `main-guard` bằng `workflow_dispatch`.
 
 ## Phạm vi
 
 - `scripts/merge-if-green.sh`: nhánh xử lý lỗi của lệnh merge.
 - Test với `gh` giả trong `scripts/tests/run.sh`, đi qua mọi kiểm tra hiện có (L-044).
 - `docs/ops/failure-playbook.md` (T-039): dòng PB-04 theo mã thoát mới.
-- `docs/auto-run.md` bước 9: mã mới.
+- `docs/auto-run.md` bước 9: thông báo mới.
 
 **Không bao gồm:**
 

@@ -56,6 +56,11 @@ class PoseMatchViewModelTest {
 
     private fun sendScore(score: Int) = send(TestBodyPoses.withScore(score))
 
+    /** Only the nose and the shoulders: no arm or leg to compare. */
+    private val headAndShouldersOnly = TestBodyPoses.standingArmsOut.without(
+        (0..32) - setOf(0, TestBodyPoses.L_SHOULDER, TestBodyPoses.R_SHOULDER),
+    )
+
     private fun sendNoPerson(frame: BodyPose = TestBodyPoses.empty) {
         assertTrue("nobody collects the frames", source.hasCollector)
         source.send(frame)
@@ -367,6 +372,33 @@ class PoseMatchViewModelTest {
         val viewModel = viewModel()
         send(TestBodyPoses.upperBodyOnly)
         assertTrue(viewModel.uiState.value is Matched)
+    }
+
+    // A person in the frame, but no part of the body to compare (review of PR #81): asked to step back.
+
+    @Test
+    fun closePose_noPartToCompare_isNoPerson() {
+        activePose.set(poseWithKeypoints(framing = Framing.CLOSE))
+        val viewModel = viewModel()
+        // The nose and the shoulders are in the frame (a person for a close pose), the elbows are not.
+        repeat(3) { send(headAndShouldersOnly) }
+        assertEquals(NoPerson, viewModel.uiState.value)
+        // The control: the arms come into the frame and the pose is scored.
+        sendScore(70)
+        assertEquals(70, (viewModel.uiState.value as Scoring).score)
+    }
+
+    @Test
+    fun scoring_thenNoPartToCompare_becomesNoPerson() {
+        activePose.set(poseWithKeypoints(framing = Framing.CLOSE))
+        val viewModel = viewModel()
+        sendScore(70)
+        assertTrue(viewModel.uiState.value is Scoring)
+        // Two frames are not enough, as for a frame without a person.
+        repeat(2) { send(headAndShouldersOnly) }
+        assertTrue(viewModel.uiState.value is Scoring)
+        send(headAndShouldersOnly)
+        assertEquals(NoPerson, viewModel.uiState.value)
     }
 
     // Log

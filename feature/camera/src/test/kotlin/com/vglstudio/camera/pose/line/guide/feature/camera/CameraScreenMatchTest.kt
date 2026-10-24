@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -138,10 +137,10 @@ class CameraScreenMatchTest {
     @Test
     fun scoring_showsScoreAndHint() {
         setScreen(MatchUiState.Scoring(68, MatchHintText.RAISE_LEFT_ARM))
-        assertTrue(textExists("68"))
-        assertTrue(textExists("Nâng tay trái cao hơn"))
-        composeRule.onNodeWithTag(CameraTestTags.MATCH_HINT)
-            .assertContentDescriptionEquals("68 điểm, Nâng tay trái cao hơn")
+        // A screen reader gets only the hint, not the score that changes almost every frame (plan T-017, question 7).
+        val node = composeRule.onNodeWithTag(CameraTestTags.MATCH_HINT).fetchSemanticsNode()
+        assertEquals(listOf("Nâng tay trái cao hơn"), node.config.getOrNull(SemanticsProperties.Text)?.map { it.text })
+        assertEquals(null, node.config.getOrNull(SemanticsProperties.ContentDescription))
         // The outline and the shutter keep their colour.
         assertColor(WHITE, outlineColor(), "outline")
         assertColor(WHITE, ringColor(), "shutter ring")
@@ -179,8 +178,8 @@ class CameraScreenMatchTest {
     @Test
     fun matched_showsMessage_greenOutline_andShutterRing() {
         setScreen(MatchUiState.Matched(92))
-        assertTrue(textExists("92"))
         assertTrue(textExists("Đúng dáng rồi, bấm chụp!"))
+        assertTrue("texts ${hintTexts()}", hintTexts().none { text -> text.any { it.isDigit() } })
         assertColor(SUCCESS, outlineColor(), "outline")
         assertColor(SUCCESS, ringColor(), "shutter ring")
 

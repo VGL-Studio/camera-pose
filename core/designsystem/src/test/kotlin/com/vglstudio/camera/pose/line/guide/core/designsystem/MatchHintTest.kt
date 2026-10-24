@@ -2,6 +2,9 @@ package com.vglstudio.camera.pose.line.guide.core.designsystem
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -130,13 +133,42 @@ class MatchHintTest {
     }
 
     @Test
-    fun semantics_readsScoreAndText() {
+    fun semantics_readsOnlyTheText() {
         setHint(score = 68)
-        val texts = texts()
-        assertTrue("texts $texts", texts.contains("68") && texts.contains(TEXT))
-        // One node for the whole pill: the text and the score are not separate stops for a screen reader.
+        // One node for the whole pill, and the live region holds only the text: the score changes almost every frame,
+        // so a screen reader would read it again and again (plan T-017, section 8, question 7).
+        assertEquals(listOf(TEXT), texts())
         val node = composeRule.onNodeWithTag(HINT).fetchSemanticsNode()
-        assertTrue(node.config.getOrNull(SemanticsProperties.Text).orEmpty().size >= 2)
+        assertEquals(null, node.config.getOrNull(SemanticsProperties.ContentDescription))
+    }
+
+    @Test
+    fun scoreChange_keepsTheReadContent() {
+        var score by mutableStateOf(68)
+        var text by mutableStateOf(TEXT)
+        composeRule.setContent {
+            AppTheme(darkTheme = true) {
+                MatchHint(text = text, modifier = Modifier.testTag(HINT), score = score)
+            }
+        }
+        val before = readContent()
+        score = 71
+        composeRule.waitForIdle()
+        assertEquals(before, readContent())
+        // The control: a new text is new content, which the live region reads.
+        text = "Hạ tay phải xuống"
+        composeRule.waitForIdle()
+        assertTrue("before $before, now ${readContent()}", before != readContent())
+    }
+
+    /** Everything a screen reader gets from the merged node. */
+    private fun readContent(): String {
+        val config = composeRule.onNodeWithTag(HINT).fetchSemanticsNode().config
+        return listOf(
+            config.getOrNull(SemanticsProperties.Text)?.map { it.text },
+            config.getOrNull(SemanticsProperties.ContentDescription),
+            config.getOrNull(SemanticsProperties.StateDescription),
+        ).toString()
     }
 
     @Test

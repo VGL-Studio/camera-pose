@@ -1,16 +1,16 @@
 ---
 ticket: T-038
 title: pr-check build bản release khi đổi thư viện hay module
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # cỡ S, số gợi ý của scripts/token-usage.py estimate
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-24
 ---
 
 # PLAN T-038: PR-CHECK BUILD BẢN RELEASE KHI ĐỔI THƯ VIỆN HAY MODULE
@@ -173,9 +173,9 @@ Bí mật: không cần. Bản giả `app/src/staging/google-services.json` đ�
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Duyệt có sửa / Yêu cầu làm lại / Hoãn
-- **Người duyệt:** ..., **duyệt chéo:** ...
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
 
 ## 10. Nhật ký thực hiện
 

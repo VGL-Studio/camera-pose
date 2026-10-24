@@ -581,7 +581,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** sau RUN-20261023-02, phải một phiên có người theo dõi để viết 8 plan, trả lời câu hỏi, rà soát độc lập, soạn phiên bản 2, rồi mới lập được RUN-20261023-03. Thời gian từ lúc phiên xong tới lúc phiên kế tiếp chạy chủ yếu là chờ plan.
 - **Bằng chứng:** RUN-20261023-02 kết thúc 03:35 UTC; RUN-20261023-03 bắt đầu 16:53 UTC.
 - **Đề xuất sửa:** cuối mỗi phiên (sau báo cáo, khi còn hạn mức), phiên soạn plan `draft` cho các ticket `ready` kế tiếp, chạy thử mục 4.1, chạy `plan-check.py`, và gom mọi câu hỏi cần người vào một mục của báo cáo. Người chỉ trả lời và duyệt.
-- **Áp dụng:** ticket T-045, plan phiên bản 2, làm trong RUN-20261024-02 (`scripts/plan-queue.py`, `auto-run.md` mục 4 bước 5). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
+- **Áp dụng:** ticket T-045, plan phiên bản 2, PR #120, làm trong RUN-20261024-02 (`scripts/plan-queue.py`, `auto-run.md` mục 4 bước 5). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
 - **Kiểm chứng:**
 
 ### L-062: mục "kiểm thủ công" dồn lại sau mỗi phiên, phần lớn chạy được trên emulator
@@ -590,7 +590,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** báo cáo RUN-20261023-04 có 7 nhóm kiểm thủ công. Nhiều mục không cần máy thật: xoay màn hình khi quảng cáo đang chờ, banner lỗi rồi làm mới, luồng "chi tiết tư thế, Chụp với tư thế này", gập mở (emulator gập). Chúng chờ người, nên lỗi như của L-059 chỉ lộ khi có người thử.
 - **Bằng chứng:** báo cáo RUN-20261023-04; `device-session.yml` chỉ chạy một kịch bản chung.
 - **Đề xuất sửa:** plan ghi mỗi tiêu chí kiểm thủ công là "máy thật" hay "emulator"; phần emulator thành kịch bản của `device-session.yml` (`scenarios.txt`), phiên chạy cuối phiên và đọc `summary.md`; chỉ phần máy thật (FPS, camera thật, Play) còn cho người.
-- **Áp dụng:** ticket T-046 (chưa có plan). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
+- **Áp dụng:** ticket T-046, plan phiên bản 2, PR #121, làm trong RUN-20261024-02 (`scripts/device-scenario.py`, kịch bản `deviceScenarios`, quy tắc 11 của `plan-check.py`). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
 - **Kiểm chứng:**
 
 ### L-063: không có vòng nối từ số liệu của bản staging về thứ tự tính năng
@@ -608,7 +608,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** việc cần cho bản production nằm rải rác trong báo cáo các phiên: mã quảng cáo thật còn thiếu, kiểm thủ công chưa làm, lỗi đang mở, ảnh chuẩn chưa xem. Không ai thấy một danh sách, và `scripts/release.sh` chỉ báo thiếu khi đã chạy.
 - **Bằng chứng:** báo cáo RUN-20261023-04, mục Đề xuất về dự án mẫu.
 - **Đề xuất sửa:** `scripts/status.py` sinh thêm mục "Sẵn sàng phát hành" trên trang tiến độ, từ các nguồn đã có (vị trí quảng cáo trong `AdPlacement` so với mã đã cấu hình ở staging, mục kiểm thủ công chưa đánh dấu trong báo cáo, issue mở, ticket chưa `on-staging`). AI không đọc cấu hình production.
-- **Áp dụng:** ticket T-047 (chưa có plan). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
+- **Áp dụng:** ticket T-047, plan phiên bản 2, PR #122, làm trong RUN-20261024-02 (`scripts/status.py`, mục 6 của trang tiến độ). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
 - **Kiểm chứng:**
 
 ### L-065: file mới nhắc tới file chung làm mọi plan đã duyệt lỗi `plan-check`, phiên sẽ bỏ qua cả danh sách
@@ -626,7 +626,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** đẩy commit mới lên nhánh của PR thì GitHub hủy lần chạy `pr-check` của commit trước (`cancelled`) rồi mới tạo lần chạy mới. `wait-run.sh --pr` đọc commit đầu của PR một lần lúc bắt đầu; gọi trong lúc lần chạy của commit trước bị hủy thì thấy `cancelled` và báo `ĐỎ (cancelled)`, mã 1. Theo số đo của PR #100, lần chạy của commit mới (`eba5f98`) được tạo trước (05:31:35Z), lần chạy của commit cũ (`e35ae86`) bị hủy sau đó (05:32:16Z). Ba lần trong một buổi; phiên tự chạy gặp mã 1 sẽ đọc log, không thấy lỗi, và có thể tính nhầm vào 3 lần sửa hay chạy lại vô ích.
 - **Bằng chứng:** PR #100, lần chạy 40066418977 `cancelled` (commit `e35ae86`) khi commit mới đã đẩy; lần chạy kế 40066593456 xanh. PR #98: cùng dấu hiệu.
 - **Đề xuất sửa:** `wait-run.sh --pr` chỉ nhận lần chạy có `head_sha` bằng commit đầu hiện tại của PR (đọc `pulls/<số>` mỗi vòng), và coi `cancelled` của commit cũ là "chưa có lần chạy" thay vì đỏ; test với `gh` giả. Trong lúc chờ sửa: `auto-run.md` bước 8, kết quả `cancelled` thì gọi lại `wait-run.sh`, không tính là lỗi.
-- **Áp dụng:** ticket T-044, plan phiên bản 2, làm trong RUN-20261024-02 (`--pr` đọc lại commit đầu mỗi vòng, `--sha`). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
+- **Áp dụng:** ticket T-044, plan phiên bản 2, PR #119, làm trong RUN-20261024-02 (`--pr` đọc lại commit đầu mỗi vòng, `--sha`). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-067: vòng chờ bằng `pgrep -f` khớp chính lệnh đang chạy nó, và `pkill -f` giết cả shell của phiên
@@ -662,5 +662,14 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** bộ lọc `code` của `pr-check.yml` chỉ gồm `scripts/check.sh`, `scripts/test-summary.sh`, `scripts/tests/**`, `scripts/find-breaking-commit.sh` trong `scripts/`. Một PR chỉ sửa `scripts/merge-if-green.sh`, `wait-run.sh`, `run-check.py`, `plan-check.py`, `device-session.sh` hay script khác mà không đụng `scripts/tests/` thì `build-and-test` bị bỏ qua, nên `scripts/tests/run.sh` (gọi từ `check.sh`) không chạy và PR vẫn xanh. Các PR trước qua được chỉ vì luôn thêm test vào `run.sh`.
 - **Bằng chứng:** `.github/workflows/pr-check.yml`, khối `filters`; các PR #99, #103 đến #107 đều sửa kèm `scripts/tests/run.sh`.
 - **Đề xuất sửa:** thêm `'scripts/**'` vào bộ lọc `code` (hay ít nhất `scripts/*.sh`, `scripts/*.py`). Sửa `.github/` cần plan rủi ro cao, duyệt chéo. Trong lúc chờ: plan sửa script ghi `scripts/tests/run.sh` ở mục 3.2 (đã là thói quen, nhưng chưa thành quy tắc).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-071: plan dùng `$TMPDIR` cho bản chép script nhưng môi trường cloud không đặt biến đó
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261024-02 (T-044).
+- **Chuyện gì:** mục 6 của plan T-044 viết `git show origin/main:scripts/wait-run.sh > "$TMPDIR/wait-run.sh"`. Trong phiên cloud `TMPDIR` rỗng, nên lệnh ghi thẳng vào `/wait-run.sh` ở gốc ổ đĩa. Cùng lúc, lệnh chờ bằng `sleep` đứng đầu bị công cụ chặn, phải viết lại thành vòng `for ... sleep` nằm trong lệnh.
+- **Bằng chứng:** RUN-20261024-02, giờ 15:12 UTC: `echo "TMPDIR=[$TMPDIR]"` in `TMPDIR=[]`; file `/t044-tests.txt` nằm ở gốc.
+- **Đề xuất sửa:** plan và `auto-run.md` ghi `${TMPDIR:-/tmp}` (hoặc thư mục scratchpad của phiên) thay cho `$TMPDIR`; ghi rõ vòng chờ phải là `for i in ...; do ...; sleep N; done` hoặc chạy nền, không bắt đầu lệnh bằng `sleep`.
 - **Áp dụng:**
 - **Kiểm chứng:**

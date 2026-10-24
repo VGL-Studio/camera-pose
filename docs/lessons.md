@@ -511,3 +511,30 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** thêm `:app:assembleStagingRelease` (hoặc `minifyStagingReleaseWithR8`) vào cổng chất lượng khi PR thêm module hay thư viện; mục 4.1 của plan yêu cầu ghi đúng lệnh release đã chạy.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-054: GitHub merge xong nhưng trả lỗi, PR vẫn mở và không có sự kiện đẩy
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #67.
+- **Chuyện gì:** `merge-if-green.sh 67` nhận lỗi `unexpected end of JSON input` từ API merge và in `TỪ CHỐI: GitHub từ chối merge`, nhưng commit c49a682 đã nằm trên nhánh chính. PR vẫn `OPEN`, không workflow `push` nào chạy (`main-guard`, `status-page`). Gọi lại script sẽ tạo commit trùng; người phải merge tay trên web (commit rỗng c83777a) để PR đóng, và các workflow `push` chạy trễ. Phiên tự chạy gặp chuyện này sẽ tưởng merge bị từ chối và dừng task, hoặc thử lại.
+- **Bằng chứng:** đầu ra của `merge-if-green.sh 67`; `git log origin/main` có c49a682 khi PR #67 còn `OPEN`; không có lần chạy `main-guard` cho c49a682.
+- **Đề xuất sửa:** `merge-if-green.sh` gặp lỗi từ API merge thì kiểm tra nhánh chính đã chứa commit đầu của PR chưa (`git merge-base --is-ancestor`, hoặc commit trên nhánh chính có số PR); có rồi thì in `ĐÃ MERGE (GitHub báo lỗi)` với mã riêng, ghi rằng workflow `push` có thể không chạy, và chạy `main-guard` bằng `workflow_dispatch`. `auto-run.md` bước 8 ghi cách xử lý mã này. Sửa script này cần plan rủi ro cao, duyệt chéo (L-044).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-055: `start-run.yml` không kiểm `main-guard` xanh trên commit đầu nhánh chính
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, RUN-20261023-03.
+- **Chuyện gì:** sau sự cố của L-054, commit đầu nhánh chính (c83777a, có code `scripts/run-check.py` của c49a682) chưa có lần chạy `main-guard` nào. `start-run.yml` vẫn khởi động phiên: nó chỉ xem issue `main-broken`, `setup-broken` và chạy `scripts/preflight.sh`, không xem `main-guard` đã chạy và xanh trên chính commit đó chưa. Phiên dựa vào kiểm tra đầu phiên của chính nó (`check.sh` nền), tốn khoảng 15 phút cloud trước khi biết nhánh chính có xanh không.
+- **Bằng chứng:** lúc kích hoạt RUN-20261023-03 chưa có lần chạy `main-guard` cho c49a682 hay c83777a; `start-run.yml` xanh; các bước kiểm tra của `.github/workflows/start-run.yml`.
+- **Đề xuất sửa:** `start-run.yml` thêm bước: commit đầu nhánh chính có đổi file ngoài `docs/` mà chưa có lần chạy `main-guard` xanh cho chính commit đó thì từ chối, in hướng dẫn chạy `main-guard` bằng `workflow_dispatch` rồi kích hoạt lại. Sửa `.github/` cần plan rủi ro cao, duyệt chéo.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-056: kiểm tra trước phiên không chạy `java-check.sh` trong môi trường cloud
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03 (L-049).
+- **Chuyện gì:** `preflight.yml` và `start-run.yml` chạy trên runner GitHub, không có `JAVA_TOOL_OPTIONS` của môi trường cloud, nên lỗi của L-049 không lộ ở đó. Lỗi chỉ lộ khi phiên cloud đã khởi động và chạy `check.sh`, nên cả phiên kết thúc mà không task nào chạy. Mọi khác biệt giữa runner và môi trường cloud (biến môi trường, proxy, phiên bản công cụ) đều có thể làm hỏng phiên theo cách này.
+- **Bằng chứng:** RUN-20261023-03: `start-run` xanh, phiên dừng ở `java-check.sh`; RUN-20261023-04 qua sau khi sửa T-035.
+- **Đề xuất sửa:** `scripts/cloud-env-check.sh` gọi `scripts/java-check.sh` (và các kiểm tra rẻ khác mà `check.sh` chạy trước khi build), để lỗi môi trường lộ trong vài giây đầu phiên và báo rõ `env-broken`, thay vì sau `check.sh`; test của script dùng `fake_java` có dòng `Picked up`.
+- **Áp dụng:**
+- **Kiểm chứng:**

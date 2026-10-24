@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-057, L-050, L-054 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
+status: planned
 risk: high
 size: M
 depends_on: [T-033]
 sprint:
-plan:
+plan: features/quality-gate/plans/T-039-bang-tra-loi.md
 created: 2026-10-24
 ---
 

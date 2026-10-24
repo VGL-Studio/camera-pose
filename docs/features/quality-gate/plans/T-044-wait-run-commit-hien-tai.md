@@ -1,7 +1,7 @@
 ---
 ticket: T-044
 title: wait-run.sh --pr chỉ nhận lần chạy của commit đầu hiện tại
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -266,3 +266,15 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ng
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261024-02, phiên bản plan 2
+
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-044-wait-run-commit-hien-tai`, PR #119 (commit merge `872dcd3`)
+- **Đã làm:** `wait-run.sh --pr` đọc lại commit đầu và `mergeable_state` mỗi vòng (hàm `read_head`, giữ giá trị cũ khi đọc lỗi hay sha rỗng); gặp `cancelled` thì đọc lại tối đa `WAIT_RUN_CANCEL_RECHECKS` (3) vòng trước khi báo `ĐỎ (cancelled)`; thêm `--sha` (không báo xung đột trong lúc chờ commit đó, bỏ ràng buộc khi commit đầu đã đi qua). Sửa `docs/auto-run.md` (bước 8, luồng revert), `CLAUDE.md`, L-066.
+- **Test viết trước:** 13 test mới; 10 thất bại đúng lý do (chưa có `--sha`, còn báo `ĐỎ` cho commit cũ). 3 test đối chứng qua ngay trên code cũ như plan ghi (`cancelled` thật vẫn đỏ, không kèm `--sha` vẫn xanh, đọc commit rỗng). Test "unreadable head" kiểm bằng đột biến: bỏ dòng kiểm sha thì test đỏ (`2 CHƯA`).
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa (nhánh `gh` thoát lỗi trong `read_head` chưa có test riêng; `fake-gh` không có route lỗi và plan cấm sửa nó, nên ghi ở đây), 0 điểm khác cần xử lý.
+- **Kết quả CI:** `scripts/check.sh` cục bộ qua (1047 test, 93 ảnh); `pr-check` xanh (lần chạy 40107044449); chờ bằng bản chép của `origin/main` như mục 6, không gặp `cancelled`.
+- **Lệch so với plan:** Không có. Dòng Áp dụng của L-066 chưa ghi số PR dự án mẫu; ghi số PR #119 ở PR báo cáo.
+- **Việc còn lại:** Không có.
+- **Cần người xem:** Phiên sau dùng `--sha "$(git rev-parse HEAD)"` thật; xem dòng thời gian của báo cáo.

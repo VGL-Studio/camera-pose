@@ -5,7 +5,7 @@ status: draft                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
-token_estimate: 10.4M        # cỡ M, số gợi ý của scripts/token-usage.py estimate
+token_estimate: 13M          # cỡ M (10.4M, scripts/token-usage.py estimate) cộng hạn chót, bộ chọn và test thêm sau rà soát độc lập
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer:                    # người duyệt
@@ -19,18 +19,25 @@ approved_at:
 
 Hiện mỗi phiên tự chạy để lại nhiều mục kiểm thủ công. Phần lớn chạy được trên emulator, nhưng vẫn phải chờ người (L-062). Plan này làm bốn việc:
 
-1. Mỗi dòng kiểm thủ công ở mục 4 của plan ghi rõ chạy ở "máy thật" hay "emulator".
-2. Phần chạy được trên emulator được viết thành tệp kịch bản trong `docs/features/<feature>/device-scenarios/`.
-3. Lệnh `scripts/device-session.sh scenarios` chạy mọi tệp đó sau kịch bản chuẩn, qua một trình chạy mới `scripts/device-scenario.py`. Trình chạy đọc màn hình bằng `uiautomator dump`, chọn phần tử theo `testTag`, ghi kết quả và ảnh chụp vào thư mục phiên, và in một bảng vào `summary.md`.
-4. Phiên đọc bảng đó ở cuối phiên. Chỉ phần máy thật còn lại cho người.
+1. Mỗi dòng kiểm thủ công ở mục 4 của plan ghi nơi chạy: `(emulator: <tệp>)`, `(máy thật: <lý do>)` hay `(người: <lý do>)`.
+2. Phần chạy được trên emulator thành tệp kịch bản `feature/<feature>/src/deviceScenarios/*.txt`.
+3. `scripts/device-session.sh scenarios` chạy các tệp đó sau kịch bản chuẩn, qua trình chạy mới `scripts/device-scenario.py`:
+   - đọc màn hình bằng `uiautomator dump`, chọn phần tử theo `testTag`;
+   - có hạn chót tuyệt đối cho mọi lệnh `adb`;
+   - ghi kết quả, thời gian và ảnh vào thư mục phiên, và in một bảng vào `summary.md`.
+4. Phiên đọc bảng đó ở cuối phiên. Chỉ phần máy thật và phần cần người còn lại cho người.
 
-Không sửa `.github/`. `device-session.yml` vẫn gọi `scenarios --yes` như cũ. Muốn `uiautomator` thấy `testTag`, vỏ app bật `testTagsAsResourceId` ở gốc giao diện. Kỹ thuật này đã chạy thử trên JVM (mục 4.1).
+Một số điểm chính:
+- Không sửa `.github/`.
+- Vỏ app bật `testTagsAsResourceId` ở gốc giao diện và ở hộp thoại mạng.
+- Quy tắc 11 mới của `plan-check.py` chỉ ở mức chú ý, cho tới khi một `device-session` chạy cả 3 kịch bản đầu tiên đạt.
 
-Kiểm chứng gồm:
-- test của trình chạy với `adb` giả và các bản dump giao diện mẫu;
-- test cho quy tắc mới của `plan-check.py`;
-- test Robolectric cho thuộc tính gốc;
-- ba kịch bản đầu tiên cho các mục còn chờ của RUN-20261023-04, chạy thật ở `device-session` đầu tiên sau khi merge.
+Kiểm chứng:
+- test trình chạy với `adb` giả (kể cả `adb` treo);
+- test quy tắc 11;
+- test Robolectric cho thuộc tính;
+- `check` trên các tệp kịch bản của repo chạy ở mọi PR đổi `feature/**`;
+- 3 kịch bản đầu tiên chạy thật ở `device-session` đầu tiên sau khi merge.
 
 ## 2. Hiểu yêu cầu
 
@@ -38,86 +45,137 @@ Ticket không có spec nghiệp vụ; yêu cầu là bài học L-062 (`docs/les
 
 | Yêu cầu | Tiêu chí chấp nhận | Cách hiểu của AI |
 | --- | --- | --- |
-| Mẫu plan ghi nơi chạy | Mỗi dòng "Kiểm tra thủ công" ở mục 4 ghi `(máy thật: <lý do>)` hoặc `(emulator)`; dòng emulator nêu tệp kịch bản | Ghi ngay ở cột "Loại test" của bảng có sẵn, không thêm cột, để các plan cũ vẫn đọc được. Lý do của "máy thật" là một trong các nhóm cố định (mục 3.1) để người duyệt thấy vì sao không tự động được |
-| `plan-check.py` kiểm điều đó | Plan `draft` thiếu ghi chú nơi chạy, hay ghi `(emulator)` mà không nêu tệp kịch bản có trong mục 3.2 hoặc đã có trong repo: lỗi. Plan `approved`: chỉ chú ý | Như quy tắc 2, 7 (L-065): không làm hỏng plan đã duyệt |
-| Kịch bản chạy trong `device-session` | Mọi tệp `docs/features/*/device-scenarios/*.txt` được chạy sau kịch bản chuẩn, mỗi tệp từ trạng thái mới cài, có giới hạn thời gian; `summary.md` có bảng "Kịch bản theo plan" | Không đổi workflow: `scenarios --yes` gọi trình chạy. Kịch bản lỗi không làm job đỏ (chỉ crash, ANR làm đỏ như hiện nay); kết quả là mức "xem" (câu hỏi 1, mục 8) |
-| Phiên đọc kết quả | `auto-run.md` mục 4: đọc bảng, kịch bản lỗi thành phát hiện có ảnh và bước lỗi, soạn phản hồi `FB-...`; "Cần người kiểm tra" chỉ còn phần máy thật và kịch bản lỗi | Mẫu báo cáo `docs/templates/run.md` có dòng kết quả kịch bản; dòng kiểm thủ công ghi "máy thật" |
-| Kịch bản đầu tiên | Các mục còn chờ của RUN-20261023-04 chạy được trên emulator thành kịch bản | Làm được: T-022 bước 1 đến 6, T-024 bước 1 đến 4 và phần bố cục của T-020, bằng cách đổi kích thước màn hình (mục 3.1). Không làm được trên emulator của CI: T-018, T-023 (cần Remote Config bật vị trí quảng cáo; bản staging dùng file Firebase giả, L-002), phần camera thật của T-020 (emulator không có camera sau), gập thật có bản lề, T-015 chụm hai ngón |
+| Mẫu plan ghi nơi chạy | Mỗi dòng "Kiểm tra thủ công" ở mục 4 ghi một trong ba dạng: `(emulator: <đường dẫn tệp kịch bản>)`, `(máy thật: <lý do>)`, `(người: <lý do>)` | Ghi ngay ở cột "Loại test" của bảng có sẵn, không thêm cột "Chạy ở" như ticket viết, để plan cũ vẫn đọc được (lệch ticket, đã sửa phạm vi ticket, người xác nhận ở mục 8). "Người" dành cho việc không phải chạy app, như đọc tài liệu hay xem ảnh chuẩn |
+| `plan-check.py` nhắc điều đó | Thiếu ghi chú nơi chạy, dòng emulator mà tệp không có trong mục 3.2 hay repo, tệp sai cú pháp: in **chú ý** cho mọi plan, `draft` lẫn `approved` | Quyết định của Tuấn (2026-10-24): chú ý cho tới khi có một `device-session` chạy cả 3 kịch bản đạt. Đổi thành lỗi với plan `draft` là một dòng sửa riêng sau đó (mục 3.1, 6), không làm trong task này |
+| Kịch bản chạy trong `device-session` | Mọi tệp `feature/*/src/deviceScenarios/*.txt` và `app/src/deviceScenarios/*.txt` được chạy sau kịch bản chuẩn, mỗi tệp từ trạng thái mới cài, trong hạn chót; `summary.md` có bảng "Kịch bản theo plan" | Không đổi workflow: `scenarios --yes` gọi trình chạy |
+| Mức của kết quả | Kịch bản lỗi không chặn staging. Thiếu điều kiện môi trường (lệnh `need`) thì là `bỏ qua (môi trường)`, không soạn phản hồi. Crash hay ANR trong lúc chạy kịch bản vẫn chặn như hiện nay | Câu hỏi 1 ở mục 8, đã trả lời |
+| Phiên đọc kết quả | `auto-run.md` mục 4: mỗi dòng `lỗi` là một phát hiện có ảnh, dump và bước lỗi, kèm phản hồi `FB-...` `nen-sua`. Tiêu chí bố cục chỉ đánh dấu đạt sau khi phiên xem ảnh `shot`. "Cần người kiểm tra" chỉ còn phần máy thật, phần người, và kịch bản lỗi | Mẫu báo cáo `docs/templates/run.md` có dòng kết quả kịch bản |
+| Kịch bản đầu tiên | Các mục còn chờ của RUN-20261023-04 chạy được trên emulator thành kịch bản | T-022 bước 1 đến 7, T-024 bước 1 đến 4, phần bố cục của T-020. Gập dùng `wm size` / `wm density`. T-018, T-023 (quảng cáo theo Remote Config, bản staging dùng file Firebase giả, L-002) giữ "máy thật: Remote Config" dù ticket ban đầu có liệt kê: lệch ticket, phạm vi ticket đã sửa, báo cáo phiên nhắc lại |
 
 Thiết kế tham chiếu: Không có thiết kế riêng.
 
-ADR liên quan: ADR-0019 (log), ADR-0012 (cấu hình staging giả), ADR-0013 (hộp thoại đồng ý quảng cáo phủ lên app khi mới cài), ADR-1003 (nối chỗ gọi).
+ADR liên quan: ADR-0019 (log), ADR-0012 (cấu hình staging giả), ADR-0013 (hộp thoại đồng ý quảng cáo phủ lên app khi mới cài).
 
 ## 3. Giải pháp
 
 ### 3.1. Cách làm
 
-**Cách viết tệp kịch bản.** Mỗi dòng là một lệnh; dòng trống và dòng bắt đầu bằng `#` bị bỏ qua. Ba dòng đầu là phần đầu bắt buộc:
+**Tệp kịch bản.** Đặt ở `feature/<feature>/src/deviceScenarios/<T-NNN>-<tên>.txt`, hoặc `app/src/deviceScenarios/` cho luồng của vỏ app.
+- Không đặt trong `docs/`: `pr-check` (bộ lọc `code`) và `main-guard` (`paths-ignore: docs/**`) không chạy với PR chỉ đổi `docs/`, nên lỗi cú pháp hay `testTag` bị đổi tên sẽ không được kiểm. `feature/**` và `app/**` thì có.
+- Gradle không đọc thư mục `src/deviceScenarios/`.
 
-```text
-ticket: T-022
-criterion: Luồng thật trên máy, bước 1 đến 6 (plan T-022, mục 4)
-timeout: 240
-```
+Cú pháp của tệp:
+- Mỗi dòng là một lệnh; dòng trống và dòng bắt đầu bằng `#` bị bỏ qua.
+- Phần đầu bắt buộc, ba dòng:
 
-`timeout` là giới hạn của cả tệp, tính bằng giây, mặc định 180, tối đa 300.
+  ```text
+  ticket: T-022
+  criterion: Luồng thật trên máy, bước 1 đến 7 (plan T-022, mục 4)
+  timeout: 240
+  ```
 
-Bộ chọn phần tử:
-- `id=<testTag>`: `resource-id` của nút, khi gốc có `testTagsAsResourceId`;
-- `desc=<chuỗi>`: `content-desc`;
-- `text=<chuỗi>`: chữ hiển thị;
-- `str=<tên chuỗi>`: lấy giá trị trong `res/values/strings.xml` của mọi module, tức chữ mà emulator en-US hiện.
-- Thêm `index=<n>` để chọn phần tử thứ n khi nhiều phần tử khớp, đếm từ 1 theo thứ tự trong dump.
-- Thêm `in=<testTag>` để chỉ tìm trong cây con của một phần tử.
+  `criterion` có thể chứa `|`; khi in vào bảng của `summary.md`, ký tự này được đổi thành `/`. `timeout` tính bằng giây, mặc định 180, tối đa 300.
 
-Mười lệnh, đủ cho các mục đã gặp và không hơn:
+**Bộ chọn phần tử.** Một từ khóa chính:
+
+| Từ khóa | Khớp với |
+| --- | --- |
+| `id=<testTag>` | `resource-id` đúng bằng tag |
+| `idp=<tiền tố>` | `resource-id` bắt đầu bằng tiền tố, ví dụ `idp=poses_card_` cho `PosesTestTags.card(id)` |
+| `desc=<chuỗi>` | `content-desc` |
+| `text=<chuỗi>` | chữ hiển thị |
+| `str=<tên chuỗi>` | giá trị trong `res/values/strings.xml` của mọi module (chữ emulator en-US hiện), khớp cả `text` lẫn `content-desc` |
+
+Bộ lọc thêm, tùy chọn:
+- `in=<testTag>`: chỉ tìm trong cây con của phần tử có tag đó;
+- `index=<n>`: phần tử thứ n theo thứ tự trong dump, đếm từ 1;
+- `selected=true`: thuộc tính `selected` hoặc `checked` của nút là `true`;
+- `clickable=true`.
+
+Nhiều bộ chọn ngăn bằng ` | ` nghĩa là khớp một trong số đó.
+
+**Các lệnh:**
 
 | Lệnh | Việc |
 | --- | --- |
 | `fresh` | Xóa dữ liệu, cấp quyền runtime như kịch bản chuẩn (`grant_permissions`), mở app |
-| `consent decline` | Có hộp thoại đồng ý quảng cáo (nút có chữ `Do not consent` hay `Không đồng ý`) thì chạm, không có thì bỏ qua |
-| `wait <bộ chọn> [giây]` | Chờ tới khi phần tử có trên màn, mặc định 20 giây; nhiều bộ chọn ngăn bằng `\|` thì chờ một trong số đó |
+| `consent decline [giây]` | Chờ tới N giây (mặc định 20) cho tới khi thấy hoặc nút từ chối của hộp thoại đồng ý (`text=Do not consent \| text=Không đồng ý`), rồi chạm nút đó; hoặc `id=onboarding_screen \| id=camera_screen`, tức không có hộp thoại. Hết giờ mà không thấy gì: `FAIL` |
+| `wait <bộ chọn> [giây]` | Chờ tới khi khớp, mặc định 20 giây |
+| `need <bộ chọn> [giây]` | Như `wait`, nhưng hết giờ thì tệp kết thúc với kết quả `bỏ qua (môi trường)`, kèm bộ chọn. Dùng cho điều kiện mà emulator CI có thể không có (camera) |
 | `tap <bộ chọn>` / `tap_if <bộ chọn>` | Chạm vào tâm của `bounds`; `tap_if` bỏ qua khi không thấy |
 | `scroll <bộ chọn> [lần]` | Vuốt lên trong vùng của phần tử, mặc định 3 lần |
-| `expect <bộ chọn>` / `expect_no <bộ chọn>` | Kiểm có hay không có ngay lúc đó (sau một lần dump) |
-| `network off\|on` | Dùng lại `network_off`, `network_on` của `device-session.sh` (tắt cả Wi-Fi và dữ liệu, chờ không còn mạng mặc định, L-031) |
-| `device <thiết lập>` | `rotate landscape\|portrait` (`settings put system user_rotation`), `night on\|off` (`cmd uimode night`), `unfold` / `fold` (`wm size 1766x2208` và `wm density 420`, tức 673 × 841 dp như khung `_unfolded`; `fold` trả về kích thước gốc), `locale <thẻ>` (`cmd locale set-app-locales`, Android 13 trở lên) |
+| `expect <bộ chọn>` / `expect_no <bộ chọn>` | Kiểm có hay không có ngay lúc đó, sau một lần dump |
+| `count <bộ chọn> <n>` | Đúng n phần tử khớp, ví dụ số cột của lưới |
+| `network off\|on` | `network_off`, `network_on` của `device-session.sh` (tắt cả Wi-Fi và dữ liệu, chờ không còn mạng mặc định, L-031). `network off` không tắt được mạng thì kết quả `bỏ qua (môi trường)`, như kịch bản chuẩn |
+| `device rotate landscape\|portrait` | `settings put system accelerometer_rotation 0`, rồi `user_rotation 1\|0` |
+| `device night on\|off` | `cmd uimode night yes\|no` |
+| `device unfold` / `device fold` | `unfold` đặt `wm size 1766x2208` và `wm density 420` (673 × 841 dp, như khung `_unfolded`); `fold` trả về kích thước và mật độ gốc |
+| `device locale <thẻ>` | `cmd locale set-app-locales <gói> --locales <thẻ>`, ví dụ `en-US` (Android 13 trở lên) |
 | `back` | Phím Back |
 | `shot <tên>` | Chụp màn hình vào `<thư mục phiên>/scenarios/<tệp>/<tên>.png` |
 
-Lệnh lạ, hay bộ chọn sai cú pháp, là lỗi của tệp: tệp đó báo `LỖI TỆP` ở dòng đó và không chạy. `plan-check.py` cũng kiểm cú pháp này (quy tắc 11), nên lỗi lộ ra từ lúc viết plan.
+**`check <tệp>...`** (không cần máy) kiểm:
+- phần đầu, lệnh, tham số và bộ chọn đúng cú pháp;
+- mỗi `id=` hay `idp=` có trong một tệp `*.kt` dưới `app/`, `feature/`, `core/` (chuỗi trong ngoặc kép, hoặc tiền tố của nó);
+- mỗi `str=` có trong một `res/values/strings.xml`.
 
-**Trình chạy `scripts/device-scenario.py`.** Python thuần, không thư viện ngoài, giống `scripts/app-explore/tree.py`.
-- `check <tệp>...`: chỉ kiểm cú pháp, không cần máy. `plan-check.py` dùng chung hàm đọc này.
-- `run --session <thư mục> --package <gói>`: chạy mọi tệp kịch bản theo thứ tự tên.
-- Đọc màn hình:
-  - lệnh `adb shell uiautomator dump /sdcard/ds.xml`, rồi `adb exec-out cat /sdcard/ds.xml`, như `scripts/app-explore/ax.sh`;
-  - dump báo `could not get idle state` (khi có hiệu ứng chạy mãi) thì thử lại sau 1 giây, tới hết giờ của lệnh.
-- Mỗi bước ghi một dòng vào `<thư mục phiên>/scenarios.txt`: `plan <tệp> step=<n> <lệnh> ok|FAIL <lý do>`.
-- Bước đầu tiên lỗi thì:
-  - chụp màn hình `fail.png` và giữ bản dump `fail.xml` để AI đọc;
-  - ghi `VGL.Session` vào log (`mark`), để AI cắt đúng đoạn log;
-  - bỏ các bước còn lại của tệp, chuyển sang tệp sau.
-- Sau mỗi tệp, dù đạt hay lỗi, đưa máy về trạng thái gốc:
-  - xoay dọc, tắt chế độ tối;
-  - `wm size reset`, `wm density reset`;
-  - bật lại mạng, đặt lại ngôn ngữ của app.
-- Tổng thời gian mọi tệp giới hạn bởi `DEVICE_SCENARIOS_BUDGET`, mặc định 900 giây, để job (giới hạn 50 phút, hiện chạy khoảng 15 đến 25 phút) không hết giờ. Tệp chưa chạy khi hết ngân sách ghi `BỎ QUA (hết thời gian)`.
-- Thư mục chứa tệp: `DEVICE_SCENARIOS_GLOB`, mặc định `docs/features/*/device-scenarios/*.txt`, để test dùng thư mục riêng.
+Lỗi in dạng `<tệp> dòng <n>: <lý do>`, mã 1. `plan-check.py` dùng chung hàm đọc này.
+
+**Hạn chót của trình chạy** (`run --session <thư mục> --package <gói>`):
+- **Ngân sách cả lượt:** `DEVICE_SCENARIOS_BUDGET`, mặc định 600 giây, đo bằng đồng hồ đơn điệu từ lúc trình chạy bắt đầu.
+- **Hạn của mỗi tệp:** `min(timeout của tệp, ngân sách còn lại)`. Các lệnh chờ (`wait`, `need`, `consent`) không chờ quá hạn đó.
+- **Mỗi lệnh `adb`:** chạy bằng `subprocess.run(..., timeout=min(30, thời gian còn lại của tệp))`. Hết giờ thì bước đó là `FAIL adb_timeout`, phần còn lại của tệp bị bỏ, trình chạy sang tệp sau.
+- **Trả máy về gốc:** cũng là lệnh `adb` có giới hạn (mỗi lệnh 10 giây), chạy kể cả khi hết ngân sách.
+- **Hết ngân sách:** tệp chưa chạy ghi `bỏ qua (hết thời gian)`.
+- **`device-session.sh` gọi trình chạy** bằng `timeout $((DEVICE_SCENARIOS_BUDGET + 120))` khi máy có lệnh `timeout`.
+- **Trình chạy trả mã khác 0 hay bị giết:** ghi dòng `plan runner_error`, và `scenarios` vẫn kết thúc bình thường.
+
+Vì vậy phần kịch bản theo plan không làm job dài thêm quá khoảng 12 phút: hiện job chạy khoảng 15 đến 25 phút, giới hạn 50 phút.
+
+**Ghi kết quả.**
+- **Mở đầu mỗi tệp:** ghi dấu `VGL.Session scenario=plan file=<tệp>` vào log (`mark`), để AI cắt đúng đoạn log, và đếm crash, ANR theo từng tệp.
+- **Mỗi bước:** một dòng `plan <tệp> step=<n> <lệnh> ok|FAIL <lý do>` trong `<thư mục phiên>/scenarios.txt`.
+- **Cuối tệp:** một dòng `plan <tệp> result=<đạt|lỗi|bỏ qua (môi trường)|bỏ qua (hết thời gian)|lỗi tệp> seconds=<n>`. Thời gian từng tệp giúp chỉnh ngân sách sau.
+- **Bước đầu tiên lỗi:** chụp `fail.png`, giữ `fail.xml` (bản dump cuối), bỏ phần còn lại của tệp.
+- **Đầu lượt:** đọc kích thước và mật độ gốc (`wm size`, `wm density`).
+- **Sau mỗi tệp,** dù đạt hay không, đưa máy về gốc:
+  - `wm size reset`, `wm density reset`, hoặc đặt lại giá trị gốc nếu máy có `Override size`;
+  - `accelerometer_rotation 1` và `user_rotation 0`;
+  - `cmd uimode night no`;
+  - bật lại mạng;
+  - xóa ngôn ngữ riêng của app.
+- **Đọc dump:** `adb shell uiautomator dump /sdcard/ds.xml`, rồi `adb exec-out cat /sdcard/ds.xml`, như `scripts/app-explore/ax.sh`.
+  - Dump báo `ERROR: could not get idle state.` (màn có hiệu ứng chạy mãi) thì thử lại sau 1 giây, trong hạn của lệnh.
+  - Hết hạn thì lý do là `could not get idle state`.
+- **Thư mục kịch bản:** `DEVICE_SCENARIOS_GLOB`, mặc định `feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/*.txt`, để test dùng thư mục riêng.
 
 **`scripts/device-session.sh`.**
-- Thêm một bước 4 vào cuối `cmd_scenarios`, sau monkey: `python3 scripts/device-scenario.py run --session "${dir}" --package "${pkg}"`. Lỗi của trình chạy không dừng `scenarios`; nó được ghi một dòng `plan runner_error` vào `scenarios.txt`.
-- Hàm `network_off`, `network_on`, `grant_permissions` giữ nguyên. Trình chạy gọi lại chúng qua lệnh ẩn `scripts/device-session.sh _helper <tên hàm>`, để chỉ có một cách tắt mạng và cấp quyền.
-- Đưa lệnh `_helper` vào phần Usage.
-- `cmd_summary` thêm mục "## Kịch bản theo plan". Bảng gồm các cột Tệp, Ticket, Tiêu chí, Kết quả (`đạt`, `lỗi ở bước n: <lệnh>`, `bỏ qua`, `lỗi tệp`), Ảnh, đọc từ các dòng `plan ...` của `scenarios.txt`.
-- Mức của mọi dòng là "xem"; biến `blocking` không đổi.
+- **`cmd_scenarios`:** thêm bước 4 cuối hàm, sau monkey: gọi trình chạy (mục trên). Lệnh gọi lấy từ `DEVICE_SCENARIO_CMD`, mặc định `python3 scripts/device-scenario.py`, để test thay bằng lệnh hỏng.
+- **Lệnh mới `helper network-off|network-on|grant-permissions`:** trình chạy gọi lại các hàm có sẵn, để chỉ có một cách tắt mạng và cấp quyền.
+  - Lệnh được ghi trong phần Usage, khối chú thích đầu tệp (dòng 6 đến 15).
+  - `usage()` in đúng đoạn đó (`sed -n '6,15p'`); khối Usage dài thêm thì sửa số dòng trong `usage()` cho khớp.
+- **`cmd_summary`:** thêm mục "## Kịch bản theo plan", đọc các dòng `plan ... result=` của `scenarios.txt`.
+  - Bảng gồm Tệp, Ticket, Tiêu chí, Kết quả, Bước lỗi, Giây, Crash/ANR trong tệp.
+  - Cột Crash/ANR: số `FATAL EXCEPTION` / `ANR in` của gói, giữa hai dấu `scenario=plan file=` liên tiếp.
+  - Không có tệp kịch bản nào: dòng "Kịch bản theo plan: không có".
+  - Mức của dòng `lỗi` là "xem". Biến `blocking` không đổi: crash và ANR trong cả log (gồm cả lúc chạy kịch bản) vẫn chặn.
 
-**Vỏ app.** `MainActivity` đặt `Modifier.semantics { testTagsAsResourceId = true }` trên `Surface` gốc, qua một hàm `Modifier.exposeTestTagsForUiAutomator()` trong tệp mới `app/src/main/.../ui/UiAutomatorTags.kt`, để có test riêng.
-- `testTag` đã có ở mọi màn chính: `camera_screen`, `camera_poses`, `poses_screen`, `poses_grid`, `pose_detail_screen`, `pose_detail_bottom_bar`, `onboarding_screen`, `onboarding_enable_camera`. Kịch bản dùng `id=` thay vì chữ, nên không phụ thuộc ngôn ngữ của emulator.
-- Hộp thoại mạng là một cửa sổ khác, không nhận thuộc tính này. Kịch bản tìm nó bằng `str=` (câu hỏi 2, mục 8).
+**Vỏ app.**
+- **Tệp mới `app/src/main/.../ui/UiAutomatorTags.kt`:** hàm `Modifier.exposeTestTagsForUiAutomator()` đặt `semantics { testTagsAsResourceId = true }`.
+- **Gắn hàm ở hai chỗ:**
+  - `MainActivity`: `Surface` gốc;
+  - `NetworkDialogHost` của `:app` (`app/.../network/NetworkDialogHost.kt`): bọc `NetworkDialogScreen` trong `Dialog` bằng `Box(Modifier.exposeTestTagsForUiAutomator())`. `Dialog` là một cửa sổ khác, không nhận thuộc tính từ gốc. Không sửa `:core:designsystem`.
+- **Hộp thoại và popup khác** (mỗi cửa sổ riêng) mà kịch bản cần tìm theo `id=` phải gắn hàm này ở chỗ mở chúng. Ghi điều này vào chú thích của hàm và vào `docs/ops/test-sessions.md`.
+- **Tag kịch bản dùng, đã kiểm có trong code:**
+  - `onboarding_screen`, `onboarding_enable_camera`;
+  - `camera_screen`, `camera_poses` (`CameraControls.kt`, nút mở thư viện), `camera_grid_button`, `camera_grid` (chỉ có khi camera `Ready`), `camera_strip`;
+  - `poses_screen`, `poses_grid`, `poses_card_` (tiền tố của `PosesTestTags.card(id)`);
+  - `pose_detail_screen`, `pose_detail_image`, `pose_detail_bottom_bar`;
+  - `network_dialog`, `network_dialog_retry` (`NetworkDialogTestTags` của `:core:designsystem`).
+- **Chuỗi kịch bản dùng:** `poses_cd_save`, `poses_cd_unsave` (nút lưu trên thẻ và ở chi tiết), `poses_detail_shoot`, `poses_chip_saved`.
 
 **Mẫu và tài liệu.**
-- **`docs/templates/plan.md` mục 4:** dòng mẫu "Kiểm tra thủ công" thành hai dòng: `Kiểm tra thủ công (emulator)` nêu tệp kịch bản, và `Kiểm tra thủ công (máy thật: <lý do>)`. Chú thích liệt kê các nhóm lý do:
+- **`docs/templates/plan.md` mục 4:** dòng mẫu "Kiểm tra thủ công" thành ba dòng `Kiểm tra thủ công (emulator: <tệp>)`, `(máy thật: <lý do>)`, `(người: <lý do>)`. Chú thích liệt kê nhóm lý do "máy thật":
   - camera thật;
   - FPS, khung hình;
   - Play (cài từ Play, In-App Review);
@@ -127,173 +185,325 @@ Lệnh lạ, hay bộ chọn sai cú pháp, là lỗi của tệp: tệp đó b�
   - cử chỉ nhiều ngón;
   - TalkBack;
   - khác, kèm lời giải thích.
-- **`docs/CLAUDE.md`, mục Khi viết plan:** một gạch đầu dòng. Tiêu chí kiểm thủ công chạy được trên emulator thì viết kịch bản (cách viết ở `docs/ops/test-sessions.md`, mục 5) và đưa tệp vào mục 3.2. Tệp kịch bản là test của plan: viết ở bước 3 cùng test khác, nhưng chỉ chạy được ở `device-session` cuối phiên, nên không thể "thất bại trước"; ghi vào ngoại lệ viết test trước.
+- **`docs/CLAUDE.md`, mục Khi viết plan:** một gạch đầu dòng.
+  - Tiêu chí kiểm thủ công chạy được trên emulator thì viết kịch bản (`docs/ops/test-sessions.md`, mục 5), đưa tệp vào mục 3.2, chạy `scripts/device-scenario.py check <tệp>`.
+  - Tệp kịch bản là test chạy ở `device-session` cuối phiên, không "thất bại trước" được, nên ghi vào ngoại lệ viết test trước.
 - **`docs/ops/test-sessions.md`:**
-  - mục 4 thêm một đoạn về bước "kịch bản theo plan";
-  - thêm mục mới 5 "Kịch bản theo plan", với bảng lệnh ở trên, ví dụ, cách chạy trên máy dev (`scripts/device-session.sh start`, `scenarios --yes`, `stop`), giới hạn thời gian;
+  - mục 4 thêm một đoạn về bước kịch bản theo plan và mức của kết quả;
+  - mục mới 5 "Kịch bản theo plan": bảng bộ chọn, bảng lệnh, ví dụ, hạn chót, cách chạy trên máy dev (`start`, `scenarios --yes`, `stop`), điều cần biết về cửa sổ riêng;
   - mục "Quy tắc về dữ liệu" dời thành 6.
-- **`docs/auto-run.md` mục 4, Kết thúc phiên:** hai câu thêm vào ý "Phân tích thư mục phiên".
-  - Đọc bảng "Kịch bản theo plan" của `summary.md`.
-  - Mỗi dòng `lỗi` là một phát hiện: bước lỗi, `fail.png`, đoạn log quanh dấu `VGL.Session`. Soạn phản hồi `FB-...` mức `nen-sua`, ghi vào "Cần người kiểm tra".
-  - Dòng `lỗi tệp` hay `bỏ qua` ghi vào báo cáo như lỗi của tệp kịch bản.
-  - Kịch bản lỗi không chặn phát staging (câu hỏi 1, mục 8).
-  - Ý về "Những gì người cần tự kiểm tra" (dòng 308) đổi thành "tiêu chí kiểm tra thủ công máy thật".
+- **`docs/auto-run.md` mục 4, Kết thúc phiên:** ý "Phân tích thư mục phiên" thêm:
+  - Đọc bảng "Kịch bản theo plan".
+  - Dòng `lỗi`: một phát hiện (bước lỗi, `fail.png`, `fail.xml`, đoạn log sau dấu `scenario=plan file=`), soạn phản hồi `FB-...` mức `nen-sua`, ghi vào "Cần người kiểm tra".
+  - Dòng `bỏ qua (môi trường)`: ghi vào báo cáo, không soạn phản hồi; dòng kiểm thủ công đó vẫn chờ người.
+  - Dòng `lỗi tệp`, `bỏ qua (hết thời gian)`, `runner_error`: lỗi của kịch bản hay của trình chạy, ghi vào báo cáo.
+  - Tiêu chí bố cục (vị trí, số cột, giao diện tối) chỉ ghi là đạt sau khi phiên mở ảnh `shot` của bước đó và đối chiếu với tiêu chí, hoặc khi kịch bản có lệnh `count` hay `expect` kiểm đúng điều đó.
+  - Kịch bản lỗi không chặn phát staging.
+  - Ý "Những gì người cần tự kiểm tra" (dòng 308) đổi thành "tiêu chí kiểm tra thủ công máy thật và người".
 - **`docs/templates/run.md`:**
   - mục "Kiểm thử trên máy ảo" thêm dòng `- Kịch bản theo plan: <n đạt, n lỗi, n bỏ qua; tệp lỗi và bước>`;
-  - dòng "Tiêu chí kiểm tra thủ công" đổi thành "Tiêu chí kiểm tra thủ công (máy thật)", và thêm dòng "Kịch bản emulator lỗi".
+  - "Cần người kiểm tra": dòng "Tiêu chí kiểm tra thủ công" thành "Tiêu chí kiểm tra thủ công (máy thật, người)", thêm dòng "Kịch bản emulator lỗi hay bỏ qua".
+- **`docs/lessons.md`:** dòng Áp dụng của L-062 ghi T-046 và số PR, ở bước 10 của phiên.
 
-**Ba kịch bản đầu tiên** (mục còn chờ của RUN-20261023-04). Mỗi tệp bắt đầu bằng `fresh`, `consent decline`, `wait id=onboarding_screen|id=camera_screen 60` (tải catalog có thể tới 47 giây, như `AppLaunchTest`), `tap_if id=onboarding_enable_camera`, `wait id=camera_screen 15`.
+**Ba kịch bản đầu tiên** (mục còn chờ của RUN-20261023-04). Viết đầy đủ ở đây; phiên chép đúng nội dung này. `need id=camera_poses` dùng thay `wait`: emulator CI tắt camera sau (`-camera-back none`), và chưa chắc màn camera hiện nút thư viện khi không có camera.
 
-1. `docs/features/poses/device-scenarios/T-022-chi-tiet-sang-camera.txt` (plan T-022, mục 4, bước 1 đến 6; bước 7 tiếng Anh dùng `device locale en`):
-   - chạm `id=camera_poses`, chờ `id=poses_grid`;
-   - chạm thẻ đầu (`in=poses_grid index=1`), chờ `id=pose_detail_screen`, `shot detail`;
-   - `scroll id=pose_detail_screen 5`, `expect id=pose_detail_bottom_bar`;
-   - chạm `desc=` theo `str=poses_cd_save`, rồi `back`, chờ `id=poses_grid`, `expect` biểu tượng đã lưu ở thẻ đầu;
-   - mở lại chi tiết, chạm `str=poses_detail_shoot`, chờ `id=camera_screen`, `back` rồi `expect_no id=camera_screen` (thoát app);
-   - `network off`, mở thẻ thứ 3 (ảnh chưa tải), chờ hộp thoại mạng, `shot offline`, `network on`, chạm "Thử lại", chờ `id=pose_detail_image`;
-   - `device night on`, `shot dark`.
-2. `docs/features/poses/device-scenarios/T-024-thu-vien-mo-gap.txt` (plan T-024, mục 4, bước 1 đến 4, bằng đổi kích thước thay cho gập thật):
-   - vào thư viện, `device unfold`, chờ `id=poses_grid`, `shot unfolded`;
-   - chạm chip thứ 2, `scroll id=poses_grid 2`;
-   - `device fold`, `expect id=poses_grid`, `expect` chip thứ 2 đang chọn, `shot folded`;
-   - mở chi tiết khi mở gập, `expect id=pose_detail_bottom_bar`, `device fold`, `expect id=pose_detail_screen`;
-   - `device unfold`, chạm "Chụp với tư thế này", chờ `id=camera_screen`.
-3. `docs/features/camera/device-scenarios/T-020-camera-mo-gap.txt` (plan T-020, mục 4, phần bố cục; không có camera thật):
-   - ở camera, chạm ô tư thế thứ 2 của `id=camera_strip`, bật `id=camera_grid_button`;
-   - `device unfold`, `expect id=camera_screen`, `expect id=camera_grid`, `shot unfolded`;
-   - `device fold`, `expect id=camera_grid`, `expect id=camera_strip`.
+`feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt` (plan T-022, mục 4, bước 1 đến 7):
 
-   Phần "chụp, màn xem lại" không chạy: emulator CI tắt camera sau (`-camera-back none`), và camera trước chưa chắc có (mục 3.4).
+```text
+ticket: T-022
+criterion: Luồng thật trên máy, bước 1 đến 7 (plan T-022, mục 4)
+timeout: 240
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+wait id=camera_screen 15
+need id=camera_poses 15
+# (1) thư viện, chạm thẻ: chi tiết mở, ảnh lớn hiện
+tap id=camera_poses
+wait id=poses_grid 20
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+wait id=pose_detail_image 30
+shot detail
+# (2) cuộn hết nội dung, nút luôn thấy
+scroll id=pose_detail_screen 5
+expect id=pose_detail_bottom_bar
+# (3) lưu ở chi tiết, quay lại: thẻ đã lưu
+tap str=poses_cd_save in=pose_detail_screen
+wait str=poses_cd_unsave in=pose_detail_screen 5
+back
+wait id=poses_grid 10
+expect str=poses_cd_unsave in=poses_grid index=1
+# (4) "Chụp với tư thế này": camera mở; Back ở camera thoát app
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+tap str=poses_detail_shoot
+wait id=camera_screen 15
+shot camera-with-pose
+back
+expect_no id=camera_screen
+# (5) mất mạng, mở chi tiết chưa tải ảnh lớn: hộp thoại mạng; bật mạng, Thử lại: ảnh hiện
+fresh
+consent decline 30
+wait id=camera_screen | id=onboarding_screen 60
+tap_if id=onboarding_enable_camera
+need id=camera_poses 15
+tap id=camera_poses
+wait id=poses_grid 20
+network off
+tap idp=poses_card_ in=poses_grid index=3
+wait id=network_dialog 30
+shot offline
+network on
+tap id=network_dialog_retry
+wait id=pose_detail_image 30
+# (6) chế độ tối
+device night on
+wait id=pose_detail_screen 10
+shot dark
+# (7) tiếng Anh
+device locale en-US
+wait id=pose_detail_screen 15
+shot english
+```
 
-**Không làm trong plan này.** T-018 và T-023 (quảng cáo theo Remote Config), FPS, camera thật, Play In-App Review, TalkBack, gập thật có bản lề và tư thế bàn, chụm hai ngón (T-015). Chúng là "máy thật". Emulator gập thật cần đổi `device-session.yml` (thêm `profile`), là plan riêng (câu hỏi 3, mục 8).
+`feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt` (plan T-024, mục 4, bước 1 đến 4; mở gập giả lập bằng đổi kích thước):
+
+```text
+ticket: T-024
+criterion: Gập mở, bước 1 đến 4 (plan T-024, mục 4), bằng wm size thay cho gập thật
+timeout: 180
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+need id=camera_poses 15
+tap id=camera_poses
+wait id=poses_grid 20
+# lưu một thẻ để chip "Đã lưu" có nội dung
+tap str=poses_cd_save in=poses_grid index=1
+wait str=poses_cd_unsave in=poses_grid 5
+# (1) mở gập ở thư viện: 3 cột; chọn chip, gập lại: chip giữ
+device unfold
+wait id=poses_grid 10
+shot unfolded
+tap str=poses_chip_saved
+wait str=poses_chip_saved selected=true 5
+device fold
+wait id=poses_grid 10
+expect str=poses_chip_saved selected=true
+shot folded
+device unfold
+wait id=poses_grid 10
+expect str=poses_chip_saved selected=true
+# (2) chi tiết khi mở gập; gập lại: cùng tư thế
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+expect id=pose_detail_bottom_bar
+shot detail-unfolded
+device fold
+wait id=pose_detail_screen 10
+shot detail-folded
+# (3) "Chụp với tư thế này" khi mở gập
+device unfold
+wait id=pose_detail_screen 10
+tap str=poses_detail_shoot
+wait id=camera_screen 15
+# (4) chế độ tối
+device night on
+shot camera-unfolded-dark
+```
+
+`feature/camera/src/deviceScenarios/T-020-camera-mo-gap.txt` (plan T-020, mục 4, phần bố cục; không có camera thật):
+
+```text
+ticket: T-020
+criterion: Gập mở thật, phần bố cục camera (plan T-020, mục 4); không chụp
+timeout: 150
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+wait id=camera_screen 15
+need id=camera_grid_button 15
+tap clickable=true in=camera_strip index=2
+tap id=camera_grid_button
+wait id=camera_grid 5
+device unfold
+wait id=camera_screen 10
+expect id=camera_grid
+expect id=camera_strip
+shot unfolded
+device fold
+wait id=camera_screen 10
+expect id=camera_grid
+expect id=camera_strip
+shot folded
+```
+
+Phần "chụp, màn xem lại" của T-020 không chạy: không có camera thật. T-020 dùng `need id=camera_grid_button`, vì nút lưới chỉ có khi camera `Ready`.
+
+**Không làm trong plan này.**
+- Các mục giữ là "máy thật":
+  - T-018, T-023: "máy thật: Remote Config", mặc dù ticket ban đầu liệt kê; báo cáo phiên nhắc lại điều này;
+  - FPS, camera thật, chụp và màn xem lại;
+  - Play In-App Review, TalkBack;
+  - gập thật có bản lề, tư thế bàn, màn ngoài;
+  - chụm hai ngón (T-015).
+- Emulator gập thật cần đổi `device-session.yml` (`profile` của AVD), là ticket riêng.
+- Đổi quy tắc 11 thành lỗi với plan `draft`: một dòng sửa riêng, sau khi một `device-session` chạy cả 3 kịch bản đạt.
 
 ### 3.2. Danh sách file
 
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
-| Tạo | `scripts/device-scenario.py` | Đọc và kiểm cú pháp tệp kịch bản (`check`), chạy kịch bản qua `adb` (`run`), ghi `scenarios.txt`, ảnh, dump khi lỗi; ngân sách thời gian; trả máy về trạng thái gốc |
-| Sửa | `scripts/device-session.sh` | Bước 4 của `cmd_scenarios` gọi trình chạy; lệnh ẩn `_helper` cho `network_off`, `network_on`, `grant_permissions`; mục "Kịch bản theo plan" của `cmd_summary`; Usage |
-| Sửa | `scripts/tests/fake-adb` | `uiautomator dump` đọc lần lượt các tệp của `$FAKE_ADB_UI_SEQ` (đếm qua tệp), `exec-out cat` in tệp hiện tại; `input`, `wm`, `cmd uimode`, `settings`, `cmd locale` ghi vào `$FAKE_ADB_CALLS` |
-| Tạo | `scripts/tests/fixtures/device-scenario/onboarding.xml` | Dump mẫu: màn chào có `resource-id="onboarding_enable_camera"`, bounds thật |
+| Tạo | `scripts/device-scenario.py` | `check` (cú pháp, `id=` có trong `*.kt`, `str=` có trong `strings.xml`) và `run`: bộ chọn, lệnh, hạn chót, timeout mỗi lệnh `adb`, ghi `scenarios.txt` có thời gian, ảnh, `fail.xml`, dấu log mỗi tệp, trả máy về gốc |
+| Sửa | `scripts/device-session.sh` | `cmd_scenarios` bước 4 (gọi trình chạy qua `DEVICE_SCENARIO_CMD`, có `timeout`); lệnh `helper`; mục "Kịch bản theo plan" của `cmd_summary` (crash/ANR theo tệp, "không có"); khối Usage (dòng 6 đến 15) thêm `helper` và số dòng trong `usage()` cho khớp |
+| Sửa | `scripts/tests/fake-adb` | Giữ nguyên hành vi hiện có, kể cả `exec-out cat` in `$FAKE_ADB_UI` khi không đặt chuỗi (test của `scripts/app-explore/`). Thêm: `$FAKE_ADB_UI_SEQ` (các tệp dump cách nhau bằng dấu cách, mỗi lần `uiautomator dump` lấy tệp kế tiếp, đếm qua tệp `$FAKE_ADB_UI_SEQ.n`, hết thì giữ tệp cuối); tệp trong chuỗi có tên `*.idle-error` thì `uiautomator dump` in `ERROR: could not get idle state.` và `exec-out cat` không in gì; `$FAKE_ADB_HANG` (tên lệnh con, ví dụ `uiautomator`) thì lệnh đó `sleep 300`; `wm size` in `Physical size: 1080x2400`, `wm density` in `Physical density: 420`; `input`, `wm`, `cmd uimode`, `settings`, `cmd locale` ghi vào `$FAKE_ADB_CALLS` |
+| Tạo | `scripts/tests/fixtures/device-scenario/onboarding.xml` | Dump mẫu: `onboarding_screen`, nút `onboarding_enable_camera` `[96,1740][984,1872]` |
 | Tạo | `scripts/tests/fixtures/device-scenario/camera.xml` | Dump mẫu: `camera_screen`, `camera_poses` |
-| Tạo | `scripts/tests/fixtures/device-scenario/grid.xml` | Dump mẫu: `poses_grid` có 3 thẻ con (cho `in=`, `index=`) |
+| Tạo | `scripts/tests/fixtures/device-scenario/grid.xml` | Dump mẫu: `poses_grid` có 3 thẻ `poses_card_a`, `_b`, `_c`, một thẻ ngoài lưới, chip `Đã lưu` `selected="true"` |
 | Tạo | `scripts/tests/fixtures/device-scenario/consent.xml` | Dump mẫu: hộp thoại đồng ý có nút `Do not consent` |
-| Tạo | `scripts/tests/fixtures/device-scenario/not-idle.txt` | Đầu ra `ERROR: could not get idle state.` |
-| Tạo | `scripts/tests/fixtures/device-scenario/ok.txt` | Tệp kịch bản đạt trên chuỗi dump mẫu |
-| Tạo | `scripts/tests/fixtures/device-scenario/fail.txt` | Tệp kịch bản lỗi ở bước 3 |
-| Tạo | `scripts/tests/fixtures/device-scenario/bad.txt` | Tệp sai cú pháp (lệnh lạ ở dòng 5) |
-| Sửa | `scripts/tests/run.sh` | Khối `device-scenario` (sau khối `device-session`, trước dòng tổng kết); khối `plan-check` thêm test quy tắc 11 |
-| Sửa | `scripts/plan-check.py` | Quy tắc 11: dòng "Kiểm tra thủ công" ghi nơi chạy; tệp kịch bản có trong mục 3.2 hay repo và đúng cú pháp (gọi hàm đọc của `device-scenario.py`); lỗi với plan `draft`, chú ý với plan `approved`; docstring |
-| Tạo | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/ui/UiAutomatorTags.kt` | `Modifier.exposeTestTagsForUiAutomator()` đặt `testTagsAsResourceId = true` |
+| Tạo | `scripts/tests/fixtures/device-scenario/blank.xml` | Dump mẫu: chưa có gì của app (màn tải) |
+| Tạo | `scripts/tests/fixtures/device-scenario/busy.idle-error` | Đánh dấu cho `adb` giả in `could not get idle state` |
+| Tạo | `scripts/tests/fixtures/device-scenario/scenarios/ok.txt` | Tệp đạt trên chuỗi mẫu |
+| Tạo | `scripts/tests/fixtures/device-scenario/scenarios/fail.txt` | Tệp lỗi ở bước 3 |
+| Tạo | `scripts/tests/fixtures/device-scenario/scenarios/need.txt` | Tệp có `need` không khớp ở bước 2 |
+| Tạo | `scripts/tests/fixtures/device-scenario/bad.txt` | Lệnh lạ ở dòng 5 |
+| Tạo | `scripts/tests/fixtures/device-scenario/bad-id.txt` | `id=` không có trong code, `str=` không có trong `strings.xml` |
+| Sửa | `scripts/tests/run.sh` | Khối `device-scenario` (sau khối `device-session`, trước dòng tổng kết); khối `device-session` thêm test bước 4, `helper`, bảng; khối `plan-check` thêm test quy tắc 11 |
+| Sửa | `scripts/plan-check.py` | Quy tắc 11: dòng "Kiểm tra thủ công" ghi nơi chạy; tệp emulator có trong mục 3.2 hay repo, `check` qua. Chỉ chú ý, cho mọi plan; docstring ghi điều kiện để đổi thành lỗi |
+| Tạo | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/ui/UiAutomatorTags.kt` | `Modifier.exposeTestTagsForUiAutomator()`; chú thích về cửa sổ riêng |
 | Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt` | `Surface(modifier = Modifier.fillMaxSize().exposeTestTagsForUiAutomator())` |
-| Tạo | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/ui/UiAutomatorTagsTest.kt` | Robolectric: gốc có thuộc tính, cây không có modifier thì không có (đối chứng) |
-| Tạo | `docs/features/poses/device-scenarios/T-022-chi-tiet-sang-camera.txt` | Kịch bản 1 (mục 3.1) |
-| Tạo | `docs/features/poses/device-scenarios/T-024-thu-vien-mo-gap.txt` | Kịch bản 2 |
-| Tạo | `docs/features/camera/device-scenarios/T-020-camera-mo-gap.txt` | Kịch bản 3 |
-| Sửa | `docs/templates/plan.md` | Mục 4: hai dòng mẫu kiểm thủ công, chú thích nhóm lý do "máy thật" |
-| Sửa | `docs/CLAUDE.md` | Mục Khi viết plan: một gạch đầu dòng về kịch bản emulator |
-| Sửa | `docs/ops/test-sessions.md` | Mục 4 một đoạn; mục mới 5 "Kịch bản theo plan"; mục 6 (dời) |
-| Sửa | `docs/auto-run.md` | Mục 4, Kết thúc phiên, ý "Phân tích thư mục phiên" và ý "Những gì người cần tự kiểm tra" |
+| Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/network/NetworkDialogHost.kt` | Trong `Dialog`: `Box(Modifier.exposeTestTagsForUiAutomator()) { NetworkDialogScreen(...) }` |
+| Tạo | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/ui/UiAutomatorTagsTest.kt` | Robolectric: modifier đặt thuộc tính; đối chứng không có modifier |
+| Sửa | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/network/NetworkDialogHostTest.kt` | Thêm test: cửa sổ hộp thoại có `TestTagsAsResourceId` |
+| Tạo | `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt` | Kịch bản 1 (mục 3.1) |
+| Tạo | `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt` | Kịch bản 2 |
+| Tạo | `feature/camera/src/deviceScenarios/T-020-camera-mo-gap.txt` | Kịch bản 3 |
+| Sửa | `docs/templates/plan.md` | Mục 4: ba dòng mẫu kiểm thủ công, chú thích nhóm lý do |
+| Sửa | `docs/CLAUDE.md` | Mục Khi viết plan: một gạch đầu dòng |
+| Sửa | `docs/ops/test-sessions.md` | Mục 4 một đoạn; mục mới 5; mục 6 (dời) |
+| Sửa | `docs/auto-run.md` | Mục 4, Kết thúc phiên: ý "Phân tích thư mục phiên", ý "Những gì người cần tự kiểm tra" |
 | Sửa | `docs/templates/run.md` | Mục Kiểm thử trên máy ảo một dòng; mục Cần người kiểm tra hai dòng |
+| Sửa | `docs/lessons.md` | L-062: dòng Áp dụng (bước 10) |
 
-`.github/workflows/device-session.yml` gọi `scripts/device-session.sh` (`start ci`, `scenarios --yes`, `stop`) và đọc `test-sessions/*/summary.md`. Nó không đổi: cùng lệnh, cùng tên tệp, và thư mục `test-sessions/` mà artifact lưu đã gồm `scenarios/`. `scripts/app-explore/ax.sh` dùng cùng cách dump nhưng không bị sửa.
-
-Nơi khác đọc các file plan này sửa (L-020), và vì sao không bị ảnh hưởng:
-- **`docs/auto-run.md`, `docs/templates/run.md`:** các script và workflow sau chỉ nhắc hai tài liệu này trong chú thích hay thông báo, chỉ tới một mục mà plan không đổi tên:
+**Nơi khác đọc các file plan này sửa (L-020), và vì sao không bị ảnh hưởng:**
+- **`.github/workflows/device-session.yml`:** gọi `scripts/device-session.sh` (`start ci`, `scenarios --yes`, `stop`) và đọc `test-sessions/*/summary.md`. Workflow không đổi: cùng lệnh, cùng tên tệp. Thư mục `test-sessions/` mà artifact lưu đã gồm `scenarios/`.
+- **`scripts/app-explore/ax.sh`:** dùng cùng cách dump nhưng không bị sửa. Hành vi `FAKE_ADB_UI` của `adb` giả giữ nguyên cho test của nó.
+- **`docs/auto-run.md`, `docs/templates/run.md`:** các tệp sau chỉ nhắc hai tài liệu này trong chú thích hay thông báo, chỉ tới mục mà plan không đổi tên:
   - `.github/workflows/pr-check.yml`, `.github/workflows/resume-run.yml`, `.github/workflows/start-run.yml`;
   - `scripts/cloud-env-check.sh`, `scripts/cloud-setup.sh`, `scripts/failure-kind.sh`, `scripts/main-guard-status.sh`, `scripts/merge-if-green.sh`, `scripts/resume-check.py`, `scripts/save-branch.sh`.
 
-  `scripts/resume-check.py` đọc `status:` của danh sách chạy, không đọc các mục plan này sửa. Plan không đổi tên mục nào, chỉ thêm câu và dòng.
-- **`docs/CLAUDE.md`:** `scripts/required-assets.txt` nhắc nó trong chú thích về mục Khi viết plan. Mục đó vẫn còn, plan chỉ thêm một gạch đầu dòng.
-- **`scripts/tests/run.sh`:** `scripts/main-guard-status.sh` và `scripts/merge-if-green.sh` nhắc nó trong chú thích. Khối test của chúng không đổi; plan chỉ thêm khối mới.
-- **`scripts/plan-check.py`:** `scripts/run-check.py` nạp nó (quy tắc 1 của `run-check.py`), nên lỗi của quy tắc 11 cũng hiện khi kiểm danh sách chạy. Đó là ý muốn. Quy tắc 11 chỉ là chú ý với plan `approved`, nên không danh sách nào đã duyệt bị hỏng; test "approved plans of the repository have no rule 11 error" kiểm điều này.
+  `scripts/resume-check.py` đọc `status:` của danh sách chạy, không đọc các mục plan này sửa.
+- **`docs/CLAUDE.md`:** `scripts/required-assets.txt` nhắc nó trong chú thích về mục Khi viết plan. Mục đó vẫn còn.
+- **`scripts/tests/run.sh`:** `scripts/main-guard-status.sh`, `scripts/merge-if-green.sh` và `scripts/wait-run.sh` nhắc nó trong chú thích (`scripts/wait-run.sh` cũng nhắc `docs/auto-run.md`, `docs/templates/run.md` như các script ở trên). Khối test của chúng không đổi.
+- **`scripts/plan-check.py`:** `scripts/run-check.py` nạp nó, nên chú ý của quy tắc 11 cũng hiện khi kiểm danh sách chạy. Chú ý không làm danh sách nào hỏng. Test "run-check on the latest run list" kiểm rằng không có lỗi mới.
+- **`docs/lessons.md`:** `scripts/status.py` đọc trạng thái bài học. Dòng Áp dụng không đổi trạng thái.
 
 ### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
 
 - Cờ tính năng: Không có. Kịch bản dựa vào các cờ đã bật trong `StagingFeatureFlagsModule` (`POSES`, `SETTINGS`).
-- Quảng cáo: Không chạm. `consent decline` chỉ chạm nút của hộp thoại đồng ý có sẵn (ADR-0013) trên emulator.
+- Quảng cáo: Không chạm. `consent decline` chỉ chạm nút từ chối của hộp thoại đồng ý có sẵn (ADR-0013), trên emulator.
 - Sự kiện phân tích: Không chạm.
 - File R2: Không chạm (kịch bản tải catalog staging như `AppLaunchTest`).
 - **Quyền truy cập:** Không thêm. Kịch bản cấp quyền runtime đã khai báo bằng `pm grant` như kịch bản chuẩn.
-- **Thư viện và SDK:** Không thêm. `testTagsAsResourceId` thuộc `androidx.compose.ui` (`compose-ui` đã có trong `gradle/libs.versions.toml`, module `:app` đã phụ thuộc); trình chạy là Python chuẩn.
+- **Thư viện và SDK:** Không thêm. `testTagsAsResourceId` thuộc `androidx.compose.ui` (`compose-ui` đã có trong `gradle/libs.versions.toml`, `:app` đã phụ thuộc). Trình chạy là Python chuẩn.
 
 ### 3.4. Phương án dự phòng
 
-- **Điểm chưa chắc:** emulator của CI có thể không cho thấy `resource-id` của Compose trong `uiautomator dump`, hay dump luôn báo `could not get idle state` ở một màn (camera có preview chạy liên tục). Cũng chưa chắc emulator có camera trước, để camera hiện mà không báo lỗi.
-- **Điều kiện chuyển:** chỉ biết được ở lần `device-session` đầu tiên sau khi merge, không biết được trong phiên trước khi merge (mục 4.1). Vì vậy phương án dự phòng không do phiên chạy task này quyết. Phiên ghi kết quả lần chạy đầu vào báo cáo:
-  - kịch bản lỗi ở `wait id=...` dù `fail.png` cho thấy đúng màn;
-  - hoặc mọi dump của một màn đều là `could not get idle state`.
-- **Cách làm thay:** viết thành plan phiên bản 2 cho một task sửa sau.
-  - Bộ chọn dùng `str=` hay `desc=` thay cho `id=`, không cần `resource-id`.
-  - `wait` thêm dạng `log=<regex>`: chờ một dòng `VGL.*` trong logcat của phiên, nhờ log đổi trạng thái chính đã có theo ADR-0019.
+- **Điểm chưa chắc,** chỉ biết ở `device-session` đầu tiên sau khi merge (mục 4.1):
+  - `uiautomator dump` của emulator CI có cho thấy `resource-id` của Compose;
+  - phần tử chỉ có `testTag` (ví dụ `camera_grid`, lớp vẽ lưới) có xuất hiện trong dump;
+  - dump của màn camera có luôn báo `could not get idle state`;
+  - hộp thoại đồng ý có chữ `Do not consent`.
+- **Điều kiện chuyển:** báo cáo của lần chạy đầu cho thấy một trong các dấu hiệu sau:
+  - `wait id=...` lỗi trong khi `fail.png` cho thấy đúng màn;
+  - `fail.xml` không có `resource-id` nào của app;
+  - mọi dump của một màn đều là `could not get idle state`.
+
+  Phiên không dừng vì điều này (mục 7, điều 4).
+- **Cách làm thay:** plan phiên bản 2 cho một task sửa sau.
+  - Kịch bản dùng `str=` hay `desc=` thay cho `id=`.
+  - Thêm dạng chờ `log=<regex>`: chờ một dòng `VGL.*` trong logcat của phiên, nhờ log đổi trạng thái chính đã có theo ADR-0019.
 
   Tiêu chí và test của mục 4 giữ nguyên. Plan này không cài sẵn phần dự phòng.
 
 ## 4. Kiểm thử
 
-Test viết trước code: các khối mới trong `scripts/tests/run.sh` và `UiAutomatorTagsTest`. Khung rỗng của bước 3:
-- `scripts/device-scenario.py` chỉ có phần đọc tham số và luôn trả 0, không in gì;
-- `device-session.sh` chưa gọi nó;
+Test viết trước code: các khối mới trong `scripts/tests/run.sh`, `UiAutomatorTagsTest`, test mới của `NetworkDialogHostTest`. Khung rỗng của bước 3:
+- `scripts/device-scenario.py` chỉ đọc tham số, trả 0, không in gì;
+- `device-session.sh` chưa gọi nó và chưa có `helper`;
 - `exposeTestTagsForUiAutomator()` trả `this`.
 
-Chuỗi dump của `adb` giả được dựng bằng `FAKE_ADB_UI_SEQ` (danh sách tệp, mỗi lần `uiautomator dump` lấy tệp kế tiếp, hết thì giữ tệp cuối).
+Chuỗi dump của `adb` giả dựng bằng `FAKE_ADB_UI_SEQ` (mục 3.2).
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
-| Kịch bản đạt | Test script | `device-scenario: a passing file is reported as passed`: `ok.txt` trên chuỗi `consent.xml`, `onboarding.xml`, `camera.xml`; `scenarios.txt` có `plan ok.txt step=` cho mọi bước và `ok`; mã 0 |
-| Chạm đúng tâm | Test script | `device-scenario: tap uses the centre of the bounds`: `$FAKE_ADB_CALLS` có `shell input tap 540 1806` cho nút `[96,1740][984,1872]` của `onboarding.xml` |
-| Hộp thoại đồng ý | Test script | `device-scenario: consent decline taps Do not consent when shown`: có lệnh chạm vào nút; đối chứng: dump không có hộp thoại thì không có lệnh chạm nào trước `wait` |
-| `in=` và `index=` | Test script | `device-scenario: in= and index= pick the second card of the grid`: chạm tâm thẻ thứ 2 của `grid.xml`, không phải thẻ ngoài lưới |
-| `str=` | Test script | `device-scenario: str= reads the default strings`: `str=poses_detail_shoot` khớp nút có chữ "Chụp với tư thế này" trong một dump mẫu; tên chuỗi không có thì `LỖI TỆP` |
-| Kịch bản lỗi | Test script | `device-scenario: the first failing step stops the file`: `fail.txt`: dòng `step=3 ... FAIL`, không có dòng `step=4`, có `fail.png` và `fail.xml` trong `scenarios/fail.txt/`; mã 0 (lỗi kịch bản không phải lỗi của trình chạy) |
-| Đối chứng (L-035) | Test script | `device-scenario: a passing file leaves no fail.png`: sau `ok.txt`, thư mục của tệp không có `fail.png`. Trên khung rỗng test "kịch bản lỗi" thất bại vì không có dòng nào |
-| Chờ khi chưa rảnh | Test script | `device-scenario: not idle is retried until the timeout`: chuỗi `not-idle.txt`, `not-idle.txt`, `camera.xml`; `wait id=camera_screen 5` đạt; chuỗi chỉ `not-idle.txt` thì `FAIL` với lý do `could not get idle state` |
-| Trả máy về gốc | Test script | `device-scenario: the device is reset after a failing file`: sau `fail.txt`, `$FAKE_ADB_CALLS` có `wm size reset`, `wm density reset`, `cmd uimode night no`, `user_rotation 0` |
-| Ngân sách | Test script | `device-scenario: files beyond the budget are skipped`: `DEVICE_SCENARIOS_BUDGET=0`, hai tệp: cả hai `BỎ QUA (hết thời gian)` |
-| Cú pháp | Test script | `device-scenario: check reports an unknown command with its line`: `check bad.txt` mã 1, in tên tệp `bad.txt` kèm `dòng 5`; `run` với `bad.txt` ghi `LỖI TỆP` và không gửi lệnh `input` nào |
-| `device-session` gọi trình chạy | Test script | `device-session: scenarios runs the plan scenarios after monkey`: `DEVICE_SCENARIOS_GLOB` trỏ `ok.txt`; `scenarios.txt` có dòng `monkey` trước dòng `plan ok.txt` |
-| Bảng trong `summary.md` | Test script | `device-session: summary lists the plan scenarios`: có `## Kịch bản theo plan`, dòng `ok.txt` `đạt`, dòng `fail.txt` `lỗi ở bước 3`; `stop` vẫn mã 0 khi không crash (lỗi kịch bản không chặn) |
-| Trình chạy hỏng không dừng `scenarios` | Test script | `device-session: a runner error does not stop scenarios`: `DEVICE_SCENARIO_CMD` trỏ một lệnh trả 1; `scenarios` mã 0, `scenarios.txt` có `plan runner_error` |
-| `plan-check` quy tắc 11 | Test script | `plan-check: a manual row without where it runs is an error for a draft plan`; `... only a warning for an approved plan`; `... an emulator row needs a scenario file in the file list`; `... a scenario file with an unknown command is an error`; `... máy thật needs a reason`. Đối chứng: plan mẫu đúng không có lỗi quy tắc 11 |
-| Plan đã duyệt không hỏng | Test script | `plan-check: approved plans of the repository have no rule 11 error`: chạy trên mọi plan `approved`, `done` hiện có, không có dòng `LỖI` của quy tắc 11 |
-| Gốc giao diện có thuộc tính | Compose UI test (Robolectric) | `UiAutomatorTagsTest.exposeTestTags_setsTestTagsAsResourceId`: `onNode(expectValue(TestTagsAsResourceId, true)).assertExists()`; đối chứng `withoutModifier_hasNoTestTagsAsResourceId` (như mục 4.1) |
-| Ba kịch bản cú pháp đúng | Test script | `device-scenario: the scenarios of the repository pass check`: `check` trên mọi `docs/features/*/device-scenarios/*.txt`, mã 0 |
-| Ba kịch bản chạy thật | Kiểm tra thủ công (emulator) | Lần `device-session` đầu tiên sau khi merge: bảng "Kịch bản theo plan" có 3 dòng; phiên ghi kết quả từng dòng vào báo cáo; dòng lỗi thì đọc `fail.png` để biết lỗi của app hay của kịch bản (mục 3.4) |
-| Phiên làm theo tài liệu | Kiểm tra thủ công (máy thật: khác, đọc tài liệu) | Người duyệt chéo đọc diff `docs/auto-run.md`, `docs/templates/run.md`, `docs/ops/test-sessions.md` |
+| Kịch bản đạt | Test script | `device-scenario: a passing file is reported as passed`: `ok.txt` trên chuỗi `consent.xml onboarding.xml camera.xml`; `scenarios.txt` có `plan ok.txt step=` cho mọi bước, dòng `result=đạt seconds=`; mã 0 |
+| Chạm đúng tâm | Test script | `device-scenario: tap uses the centre of the bounds`: `$FAKE_ADB_CALLS` có `shell input tap 540 1806` cho nút `[96,1740][984,1872]` |
+| Đồng ý hiện ngay | Test script | `device-scenario: consent decline taps Do not consent when shown` |
+| Đồng ý hiện muộn | Test script | `device-scenario: consent decline waits for a late consent form`: chuỗi `blank.xml blank.xml consent.xml onboarding.xml`; có lệnh chạm nút từ chối. Đối chứng: chuỗi `blank.xml onboarding.xml` không có lệnh chạm nào; chuỗi chỉ `blank.xml` với `consent decline 2` thì `FAIL` |
+| Bộ chọn | Test script | `device-scenario: idp= in= index= pick the second card of the grid` (chạm tâm `poses_card_b`, không phải thẻ ngoài lưới); `... str= matches text and content-desc`; `... selected=true matches selected or checked` (chip `Đã lưu`; đối chứng chip chưa chọn không khớp); `... clickable=true skips plain nodes` |
+| `count` | Test script | `device-scenario: count checks the number of matches`: `count idp=poses_card_ in=poses_grid 3` đạt, `4` thì `FAIL` |
+| Kịch bản lỗi | Test script | `device-scenario: the first failing step stops the file`: `fail.txt`: dòng `step=3 ... FAIL`, không có `step=4`, có `fail.png` và `fail.xml`, `result=lỗi`; mã 0 |
+| Đối chứng (L-035) | Test script | `device-scenario: a passing file leaves no fail.png`. Trên khung rỗng, test "kịch bản lỗi" thất bại vì không có dòng nào |
+| `need` | Test script | `device-scenario: need ends the file as skipped (environment)`: `need.txt`: `result=bỏ qua (môi trường)`, không có `fail.png`, không có `step=3` |
+| Chờ khi chưa rảnh | Test script | `device-scenario: not idle is retried until the timeout`: chuỗi `busy.idle-error busy.idle-error camera.xml`, `wait id=camera_screen 5` đạt; chỉ `busy.idle-error` thì `FAIL could not get idle state` |
+| Hạn chót, `adb` treo | Test script | `device-scenario: a hanging adb fails the file within its deadline`: `FAKE_ADB_HANG=uiautomator`, timeout của lệnh hạ bằng `DEVICE_SCENARIO_ADB_TIMEOUT=1`, tệp `timeout: 3`: `FAIL adb_timeout`, tệp sau vẫn chạy, cả lượt xong dưới 15 giây, mã 0 |
+| Ngân sách | Test script | `device-scenario: files beyond the budget are skipped`: `DEVICE_SCENARIOS_BUDGET=0`, hai tệp: cả hai `bỏ qua (hết thời gian)`; vẫn có lệnh trả máy về gốc |
+| Trả máy về gốc | Test script | `device-scenario: the device is reset after a failing file` và `... after a passing file`: `$FAKE_ADB_CALLS` có `wm size reset`, `wm density reset`, `cmd uimode night no`, `accelerometer_rotation 1`, `user_rotation 0`, `set-app-locales` để xóa |
+| `network off` không được | Test script | `device-scenario: network off that keeps a network skips the file`: `FAKE_ADB_NETWORK=100`: `result=bỏ qua (môi trường)` |
+| Dấu log mỗi tệp | Test script | `device-scenario: marks the start of each file in the log`: `$FAKE_ADB_CALLS` có `log -t VGL.Session` với `scenario=plan file=ok.txt` |
+| Cú pháp | Test script | `device-scenario: check reports an unknown command with its line`: `check bad.txt` mã 1, in `bad.txt dòng 5`; `run` với `bad.txt` ghi `result=lỗi tệp`, không gửi lệnh `input` nào |
+| Tag và chuỗi có thật | Test script | `device-scenario: check reports an id or str that the code does not have`: `check bad-id.txt` mã 1, nêu cả hai |
+| Kịch bản của repo | Test script | `device-scenario: the scenarios of the repository pass check`: `check` trên mọi `feature/*/src/deviceScenarios/*.txt` và `app/src/deviceScenarios/*.txt`, mã 0. Chạy trong `check.sh` ở mọi PR đổi `feature/**`, `app/**` (bộ lọc `code` của `pr-check`) |
+| `device-session` gọi trình chạy | Test script | `device-session: scenarios runs the plan scenarios after monkey`: `DEVICE_SCENARIOS_GLOB` trỏ `ok.txt`; dòng `monkey` trước dòng `plan ok.txt` |
+| Lệnh `helper` | Test script | `device-session: helper network-off and grant-permissions reuse the scenario functions`: `helper network-off` mã 0 khi mạng tắt được, mã 1 khi `FAKE_ADB_NETWORK=100`; `helper grant-permissions` in `granted=CAMERA`; Usage có `helper` |
+| Bảng trong `summary.md` | Test script | `device-session: summary lists the plan scenarios`: có `## Kịch bản theo plan`, dòng `ok.txt` `đạt`, `fail.txt` `lỗi`, `need.txt` `bỏ qua (môi trường)`, cột giây; `stop` mã 0 khi không crash |
+| Tiêu chí có `\|` | Test script | `device-session: a criterion with a pipe keeps the table`: dòng của tệp có `criterion: a \| b` ra `a / b`, số cột không đổi |
+| Không có kịch bản | Test script | `device-session: summary says there are no plan scenarios`: `DEVICE_SCENARIOS_GLOB` trỏ thư mục rỗng: dòng "Kịch bản theo plan: không có" |
+| Crash trong lúc chạy kịch bản | Test script | `device-session: a crash during a plan scenario is blocking and named`: logcat mẫu có dấu `scenario=plan file=ok.txt` rồi `FATAL EXCEPTION` của gói: `stop` mã 1, bảng ghi crash ở dòng `ok.txt` |
+| Trình chạy hỏng | Test script | `device-session: a runner error does not stop scenarios`: `DEVICE_SCENARIO_CMD` trả 1: `scenarios` mã 0, có `plan runner_error` |
+| `plan-check` quy tắc 11 | Test script | `plan-check: a manual row without where it runs is a warning`, cho cả plan `draft` lẫn `approved` (dòng `CHÚ Ý`, mã 0); `... an emulator row needs a scenario file in the file list or the repository`; `... a scenario file that fails check is a warning`; `... máy thật and người need a reason`. Đối chứng: plan mẫu đúng không có dòng nào của quy tắc 11 |
+| Không làm hỏng danh sách chạy | Test script | `run-check: the latest run list has no new error from rule 11`: `scripts/run-check.py` trên tệp `docs/runs/RUN-*.md` mới nhất theo tên; không có dòng `LỖI` nào nhắc "kiểm tra thủ công" |
+| Thuộc tính gốc | Compose UI test (Robolectric) | `UiAutomatorTagsTest.exposeTestTags_setsTestTagsAsResourceId`, đối chứng `withoutModifier_hasNoTestTagsAsResourceId` |
+| Hộp thoại mạng | Compose UI test (Robolectric) | `NetworkDialogHostTest.shownDialog_exposesTestTagsAsResourceId`: trong cửa sổ hộp thoại có node mang `TestTagsAsResourceId == true` và tag `network_dialog_retry` |
+| Chỗ gắn hàm | Test script | `app: MainActivity and NetworkDialogHost call exposeTestTagsForUiAutomator`: `grep` thấy lời gọi trong hai tệp. Dòng của `MainActivity` không có test JVM (Hilt, Firebase), nên kiểm bằng cách này |
+| Ba kịch bản chạy thật | Kiểm tra thủ công (emulator: `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt`, `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`, `feature/camera/src/deviceScenarios/T-020-camera-mo-gap.txt`) | Lần `device-session` đầu tiên sau khi merge: bảng có 3 dòng. Phiên ghi kết quả từng dòng vào báo cáo, mở các ảnh `shot` và `fail.png` để biết lỗi của app hay của kịch bản (mục 3.4) |
+| Phiên làm theo tài liệu | Kiểm tra thủ công (người: đọc tài liệu) | Người duyệt chéo đọc diff `docs/auto-run.md`, `docs/templates/run.md`, `docs/templates/plan.md`, `docs/ops/test-sessions.md` |
 
 **Ngoại lệ viết test trước:**
-- `docs/templates/plan.md`, `docs/CLAUDE.md`, `docs/ops/test-sessions.md`, `docs/auto-run.md`, `docs/templates/run.md` là tài liệu.
-- Ba tệp kịch bản là test chạy trên emulator. Phiên chỉ kiểm được cú pháp của chúng (test "the scenarios of the repository pass check"); chạy thật ở `device-session` cuối phiên.
-- Dòng sửa `MainActivity.kt` dùng hàm đã có test. `MainActivity` dựng Hilt và Firebase nên không có test JVM; nó được kiểm qua build và `AppLaunchTest` trên CI.
+- `docs/templates/plan.md`, `docs/CLAUDE.md`, `docs/ops/test-sessions.md`, `docs/auto-run.md`, `docs/templates/run.md`, `docs/lessons.md` là tài liệu.
+- Ba tệp kịch bản là test chạy trên emulator. Phiên chỉ kiểm được bằng `check`; chạy thật ở `device-session` cuối phiên.
+- Dòng sửa `MainActivity.kt` chỉ có test `grep` (dòng "Chỗ gắn hàm").
 
 ### 4.1. Chạy thử
 
-- **Đã chạy thử:**
-  - Ngày 2026-10-24, trên nhánh chính `795028c`, máy dev (JDK 21).
-  - Test tạm `app/src/test/.../trial/ExposeTestTagsTrialTest.kt`, không commit, đã xóa. Hai test:
-    - `Box(Modifier.semantics { testTagsAsResourceId = true })` có `SemanticsPropertiesAndroid.TestTagsAsResourceId == true`;
-    - đối chứng: không có modifier thì không có node nào mang giá trị đó.
-- **Lệnh:** `./gradlew :app:testStagingDebugUnitTest --tests '*ExposeTestTagsTrialTest*'`, qua: `tests="2" failures="0"`. Đây là phần JVM; toàn bộ sẽ chạy bằng `scripts/check.sh` ở bước 5. API biên dịch được với phiên bản Compose hiện tại, cần `@OptIn(ExperimentalComposeUiApi::class)`.
-- **Kết quả, và điều chưa thử được:**
-  - Môi trường này không có emulator. `device-session.yml` chỉ chạy trên nhánh chính (`if: github.ref == 'refs/heads/main'`), nên không có PR thử nào chạy được nó trước khi merge.
-  - Vì vậy chưa thử được ba điều:
-    - `uiautomator dump` thấy `resource-id` của Compose;
-    - camera hiện trên emulator không có camera sau;
-    - hộp thoại đồng ý hiện chữ `Do not consent`.
-  - Ba điều này được kiểm ở `device-session` đầu tiên sau khi merge (dòng "Ba kịch bản chạy thật", mục 4) và có phương án sửa ở mục 3.4. Kịch bản lỗi không chặn staging, nên điều chưa chắc này không làm hỏng phiên.
-  - Phần đọc dump và chạm tâm `bounds` là phân tích XML, đã có mẫu trong `scripts/app-explore/guard.py`.
+Phạm vi chạy thử: chỉ API `testTagsAsResourceId` trên JVM. Phần emulator chưa thử được.
+
+- **Đã chạy thử:** ngày 2026-10-24, trên nhánh chính `795028c`, máy dev (JDK 21). Test tạm `app/src/test/.../trial/ExposeTestTagsTrialTest.kt`, không commit, đã xóa, gồm:
+  - `Box(Modifier.semantics { testTagsAsResourceId = true })` có `SemanticsPropertiesAndroid.TestTagsAsResourceId == true`;
+  - đối chứng: không có modifier thì không có node nào mang giá trị đó.
+- **Lệnh:** `./gradlew :app:testStagingDebugUnitTest --tests '*ExposeTestTagsTrialTest*'`, qua (`tests="2" failures="0"`). Toàn bộ chạy bằng `scripts/check.sh` ở bước 5. API biên dịch được với phiên bản Compose hiện tại, cần `@OptIn(ExperimentalComposeUiApi::class)`.
+- **Chưa thử được:** môi trường này không có emulator, và `device-session.yml` chỉ chạy trên nhánh chính (`if: github.ref == 'refs/heads/main'`), nên không PR thử nào chạy được nó trước khi merge. Các điểm ở mục 3.4 được kiểm ở `device-session` đầu tiên sau khi merge. Điều đó không làm hỏng phiên:
+  - kịch bản lỗi không chặn staging;
+  - mọi lệnh `adb` có hạn chót;
+  - quy tắc 11 chỉ là chú ý.
+- **Phần đọc dump và chạm tâm `bounds`:** là phân tích XML, đã có mẫu trong `scripts/app-explore/guard.py`.
 
 ## 5. Chấm rủi ro
 
-**Điểm chặn bị chạm:** điểm 7 (CI và quy trình phiên tự chạy): đổi `scripts/device-session.sh` mà `device-session.yml` chạy, `scripts/plan-check.py` mà phiên chạy trước mỗi task, và bước cuối phiên của `docs/auto-run.md`.
+**Điểm chặn bị chạm:** điểm 7 (CI và quy trình phiên tự chạy). Plan đổi `scripts/device-session.sh` mà `device-session.yml` chạy, `scripts/plan-check.py` mà phiên chạy trước mỗi task, và bước cuối phiên của `docs/auto-run.md`.
 
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
-| A. Phạm vi thay đổi | 2 | Một script mới, hai script sửa, một dòng vỏ app, ba kịch bản, năm tài liệu |
-| B. Độ rõ của yêu cầu | 1 | L-062 rõ; còn câu hỏi về mức của kịch bản lỗi và nơi chạy kịch bản gập (mục 8) |
-| C. Khả năng kiểm chứng tự động | 2 | Trình chạy, `plan-check` và thuộc tính gốc có test; phần trên emulator thật chỉ kiểm được sau khi merge |
-| D. Ảnh hưởng chéo | 2 | `auto-run.md`, `docs/templates/run.md`, `docs/templates/plan.md`, `plan-check.py` cùng được T-045, T-047 sửa; mọi plan sau dùng quy tắc 11 |
-| E. Độ mới của kỹ thuật | 2 | `uiautomator dump` có trong `scripts/app-explore/`, nhưng chạy kịch bản trên emulator CI và `testTagsAsResourceId` thì lần đầu; đã chạy thử phần JVM (mục 4.1) |
+| A. Phạm vi thay đổi | 2 | Một script mới, hai script sửa, hai chỗ của vỏ app, ba kịch bản, sáu tài liệu |
+| B. Độ rõ của yêu cầu | 1 | L-062 rõ; câu hỏi ở mục 8 đã được trả lời; còn hai điểm lệch ticket chờ người xác nhận |
+| C. Khả năng kiểm chứng tự động | 2 | Trình chạy (kể cả hạn chót), `plan-check` và thuộc tính có test; phần trên emulator thật chỉ kiểm được sau khi merge |
+| D. Ảnh hưởng chéo | 2 | `auto-run.md`, `docs/templates/run.md`, `docs/templates/plan.md`, `plan-check.py` cùng được T-045, T-047 sửa |
+| E. Độ mới của kỹ thuật | 2 | `uiautomator dump` có trong `scripts/app-explore/`; chạy kịch bản trên emulator CI và `testTagsAsResourceId` là lần đầu; đã chạy thử phần JVM |
 | **Tổng** | 9 | **Mức: Cao (điểm chặn 7)** |
 
 ## 6. Ảnh hưởng chéo
@@ -302,42 +512,46 @@ Chuỗi dump của `adb` giả được dựng bằng `FAKE_ADB_UI_SEQ` (danh s�
   - `scripts/device-session.sh` (máy dev và CI), `scripts/plan-check.py` (mọi plan);
   - `docs/auto-run.md` mục 4, `docs/templates/run.md`, `docs/templates/plan.md`;
   - `scripts/tests/run.sh`, `scripts/tests/fake-adb`;
-  - vỏ app `MainActivity.kt`.
+  - vỏ app `MainActivity.kt`, `NetworkDialogHost.kt`.
 - **Task khác có thể xung đột (viết song song):**
-  - **T-044** (`scripts/wait-run.sh --pr` chỉ nhận lần chạy của commit hiện tại): không sửa cùng file, trừ `scripts/tests/run.sh`. T-044 thêm vào khối `wait-run`, plan này thêm khối `device-scenario` sau khối `device-session`. Có thể có `docs/auto-run.md` bước 8, nhưng plan này chỉ sửa mục 4.
-  - **T-045** (hàng chờ plan cuối phiên): sửa `docs/auto-run.md` mục 4, Kết thúc phiên (thêm bước soạn plan sau báo cáo) và `docs/templates/run.md` (mục câu hỏi cần người).
-    - Plan này chỉ sửa ý "Phân tích thư mục phiên" của bước kiểm thử trên máy ảo, ý "Những gì người cần tự kiểm tra", mục "Kiểm thử trên máy ảo" và hai dòng của "Cần người kiểm tra" trong mẫu báo cáo. Khác đoạn, chỉ có thể xung đột dòng khi gộp.
-    - Nếu T-045 sửa mẫu plan hay `plan-check.py`, hai plan cùng sửa các file đó ở khác chỗ: plan này chỉ sửa mục 4 của mẫu và thêm quy tắc 11.
-  - **T-047** (sẵn sàng phát hành trong `scripts/status.py`): đọc mục kiểm thủ công chưa đánh dấu trong báo cáo các phiên. Plan này đổi tên dòng mẫu thành "Tiêu chí kiểm tra thủ công (máy thật)" và thêm dòng "Kịch bản emulator lỗi". T-047 nên đọc cả hai dòng mới, nhưng vẫn đọc được dòng cũ của các báo cáo trước.
+  - **T-044** (`wait-run.sh --pr`): chỉ chung `scripts/tests/run.sh`. T-044 thêm vào khối `wait-run`, plan này thêm khối `device-scenario` sau khối `device-session`.
+  - **T-045** (hàng chờ plan cuối phiên): sửa `docs/auto-run.md` mục 4, Kết thúc phiên, và `docs/templates/run.md`.
+    - Plan này chỉ sửa ý "Phân tích thư mục phiên", ý "Những gì người cần tự kiểm tra", mục "Kiểm thử trên máy ảo" và hai dòng của "Cần người kiểm tra". Khác đoạn.
+    - Nếu T-045 sửa mẫu plan hay `plan-check.py`: plan này chỉ sửa mục 4 của mẫu và thêm quy tắc 11.
+  - **T-047** (sẵn sàng phát hành, `scripts/status.py`): đọc mục kiểm thủ công chưa đánh dấu của báo cáo các phiên. Plan này đổi tên dòng mẫu thành "Tiêu chí kiểm tra thủ công (máy thật, người)" và thêm "Kịch bản emulator lỗi hay bỏ qua". T-047 nên đọc cả dòng cũ và dòng mới.
+- **Việc sau task này, không làm ở đây:** khi một `device-session` có cả 3 kịch bản `đạt`, một dòng sửa ở `scripts/plan-check.py` đổi quy tắc 11 thành lỗi với plan `draft` (vẫn chú ý với plan `approved`, như L-065), kèm test. Báo cáo phiên ghi điều này vào Đề xuất cho buổi họp tiếp theo.
 - **Đề xuất thứ tự chạy:** T-046 trước T-047. T-044 độc lập. Với T-045: trước hay sau đều được; ai chạy sau thì gộp `docs/auto-run.md` mục 4.
 
 ## 7. Điều kiện dừng riêng
 
-1. Cần sửa `.github/workflows/device-session.yml` (ví dụ: trình chạy cần thêm thời gian hay công cụ mà runner không có): dừng, viết plan riêng.
-2. `testTagsAsResourceId` làm đổi ảnh chuẩn screenshot hay làm hỏng một test có sẵn của `:app`: dừng. Theo mục 4.1 thì không nên xảy ra, vì đây chỉ là thuộc tính ngữ nghĩa.
-3. Viết quy tắc 11 xong mà có plan `approved` của danh sách chạy đang chờ bị báo lỗi, không phải chú ý: dừng. Quy tắc phải theo L-065.
+1. Cần sửa `.github/workflows/device-session.yml` hay `.github/workflows/pr-check.yml`: dừng, viết plan riêng.
+2. `testTagsAsResourceId` làm đổi ảnh chuẩn screenshot hay làm hỏng một test có sẵn của `:app`: dừng.
+3. Quy tắc 11 làm một plan `approved` hay một danh sách chạy có lỗi (không phải chú ý): dừng.
+4. Không phải điều kiện dừng: ở `device-session` cuối chính phiên này, hay lần đầu sau khi merge, trình chạy hỏng (`runner_error`, mọi tệp `lỗi` vì dấu hiệu ở mục 3.4). Phiên chỉ ghi vào báo cáo, phát staging như bình thường (crash và ANR vẫn chặn), và đề xuất làm mục 3.4.
 
 ## 8. Câu hỏi cho người duyệt
 
-1. **Kịch bản emulator lỗi thì có chặn phát staging không?**
-   Đề xuất của AI: không. Kịch bản lỗi chỉ thành phát hiện mức "xem", có phản hồi `FB-...` `nen-sua` và nằm trong "Cần người kiểm tra". Lý do:
-   - Lần chạy đầu còn điều chưa chắc (mục 3.4).
-   - Một kịch bản sai có thể chặn mọi bản staging.
-   - Hiện chỉ crash và ANR chặn.
+Đã trả lời (Tuấn, 2026-10-24, theo đề xuất của rà soát độc lập):
 
-   Sau vài phiên ổn định, có thể đổi thành chặn bằng một plan khác.
-2. **Bật `testTagsAsResourceId` cho cả bản production?**
-   Đề xuất của AI: có, đặt ở `MainActivity` cho mọi biến thể. Thuộc tính chỉ đưa tên `testTag` (tên kỹ thuật bằng tiếng Anh, không có dữ liệu người dùng) vào cây trợ năng, không đổi giao diện hay hành vi. Tách riêng cho staging thì cần một cơ chế theo biến thể cho một dòng.
+1. **Kịch bản emulator lỗi có chặn phát staging không?** Không.
+   - Kịch bản lỗi thành phát hiện mức "xem", có phản hồi `FB-...` `nen-sua`.
+   - Thêm kết quả `bỏ qua (môi trường)` qua lệnh `need`; kết quả này không soạn phản hồi.
+   - Crash hay ANR trong lúc chạy kịch bản vẫn chặn.
+2. **Bật `testTagsAsResourceId` cho mọi biến thể?** Có.
+   - Gắn ở `Surface` gốc của `MainActivity` và trong `Dialog` của `NetworkDialogHost` ở `:app`, không sửa `:core:designsystem`.
+   - Hộp thoại và popup khác mà kịch bản cần tìm theo `id=` phải gắn modifier ở chỗ mở chúng.
+3. **Gập thật trên emulator?** Dùng `wm size` và `wm density`. Emulator gập thật để ticket riêng sau, vì phải sửa `device-session.yml`.
+4. **Quảng cáo trên emulator (T-018, T-023)?** Giữ "máy thật: Remote Config". Báo cáo phiên nhắc rằng ticket ban đầu có hai mục này.
+5. **Ngân sách thời gian?** Mặc định 600 giây, hạn chót cứng (mục 3.1). Thời gian từng tệp được ghi vào `scenarios.txt` (dòng `result=... seconds=`), để chỉnh ngân sách sau.
+6. **Một task hay tách?** Giữ một task. Vì vậy quy tắc 11 chỉ là chú ý cho tới khi một `device-session` chạy cả 3 kịch bản đạt (mục 2, 6).
 
-   Hộp thoại mạng là cửa sổ riêng, không nhận thuộc tính. Kịch bản tìm nó bằng `str=` thay vì sửa `:core:designsystem` (điểm chặn 7).
-3. **Gập thật trên emulator?**
-   Đề xuất của AI: plan này dùng `wm size`, `wm density` để kiểm bố cục rộng và việc giữ trạng thái khi đổi kích thước (T-024 bước 1 đến 4, phần bố cục của T-020). Gập thật, có bản lề, tư thế bàn và màn ngoài thì vẫn là "máy thật: gập có bản lề".
+Còn chờ người xác nhận:
 
-   Nếu muốn emulator gập, cần một ticket riêng sửa `device-session.yml` (thêm `profile` cho AVD gập, khoảng 10 phút CI nữa). Ticket đó rủi ro cao, cần duyệt chéo.
-4. **Quảng cáo trên emulator (T-018, T-023)?**
-   Đề xuất của AI: giữ là "máy thật: Remote Config" cho tới khi có cách bật vị trí quảng cáo riêng ở staging. T-018 đã đề xuất cách đó thành ticket riêng (plan T-018, câu hỏi 2). Plan này không thêm kịch bản quảng cáo.
-5. **Ngân sách thời gian 900 giây (15 phút) cho mọi kịch bản của một phiên?**
-   Đề xuất của AI: được. Job hiện chạy khoảng 15 đến 25 phút với giới hạn 50 phút, còn khoảng 25 phút. Mỗi kịch bản giới hạn 180 giây (tối đa 300), nên đủ cho 5 đến 8 kịch bản. Khi số kịch bản vượt ngân sách, tệp bị bỏ qua được ghi rõ, và cần xem lại thứ tự hay tách workflow.
+7. **Lệch với ticket.** Hai điểm, phạm vi ticket đã sửa cho khớp:
+   - Không thêm cột "Chạy ở", mà ghi nơi chạy trong cột "Loại test".
+   - T-018, T-023 không có kịch bản.
+
+   Đề xuất của AI: chấp nhận cả hai.
 
 ## 9. Quyết định duyệt
 

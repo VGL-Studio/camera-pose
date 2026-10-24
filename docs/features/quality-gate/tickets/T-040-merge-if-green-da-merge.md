@@ -8,7 +8,7 @@ owner: Tuấn
 status: planned
 risk: high
 size: S
-depends_on: [T-029]
+depends_on: [T-029, T-039, T-041]
 sprint:
 plan: features/quality-gate/plans/T-040-merge-if-green-da-merge.md
 created: 2026-10-24
@@ -24,6 +24,7 @@ API merge của GitHub trả lỗi nhưng commit đã vào nhánh chính; script
 
 - `scripts/merge-if-green.sh`: nhánh xử lý lỗi của lệnh merge.
 - Test với `gh` giả trong `scripts/tests/run.sh`, đi qua mọi kiểm tra hiện có (L-044).
+- `docs/ops/failure-playbook.md` (T-039): dòng PB-04 theo mã thoát mới.
 - `docs/auto-run.md` bước 9: mã mới.
 
 **Không bao gồm:**

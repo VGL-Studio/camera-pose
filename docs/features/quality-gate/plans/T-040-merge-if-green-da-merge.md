@@ -17,7 +17,7 @@ approved_at:
 
 ## 1. Tóm tắt
 
-Khi lệnh merge của GitHub trả lỗi, `scripts/merge-if-green.sh` không báo "TỪ CHỐI" ngay. Nó tìm trên nhánh chính commit squash của chính PR này: dòng đầu là `<tiêu đề> (#<số>)` và cây file trùng cây file của commit đầu PR. Tìm thấy thì script báo `ĐÃ MERGE (GitHub báo lỗi)`, thoát 0 và yêu cầu chạy `main-guard` bằng `workflow_dispatch`, vì GitHub có thể không phát sự kiện `push` (L-054). Gọi lại script cho một PR đã vào nhánh chính như vậy cũng nhận ra, báo `ĐÃ MERGE TRƯỚC ĐÓ`, và không bao giờ merge lần hai. `main-guard.yml` thêm `workflow_dispatch`. Mọi kiểm tra hiện có của script giữ nguyên thứ tự và hành vi; mỗi kiểm tra có một test cho trường hợp mới (L-044).
+Khi lệnh merge của GitHub trả lỗi, `scripts/merge-if-green.sh` không báo "TỪ CHỐI" ngay. Nó tìm trên nhánh chính commit squash của chính PR này: dòng đầu là `<tiêu đề> (#<số>)` và cây file trùng cây file của commit đầu PR. Tìm thấy thì script báo `ĐÃ MERGE (GitHub báo lỗi)`, thoát 0 và yêu cầu chạy `main-guard` bằng `workflow_dispatch`, vì GitHub có thể không phát sự kiện `push` (L-054). Gọi lại script cho một PR đã vào nhánh chính như vậy cũng nhận ra, báo `ĐÃ MERGE TRƯỚC ĐÓ`, và không bao giờ merge lần hai. `main-guard.yml` có `workflow_dispatch` từ T-041, chạy trước task này. Dòng PB-04 của bảng tra lỗi (`docs/ops/failure-playbook.md`, T-039) đổi việc phải làm theo mã thoát mới. Mọi kiểm tra hiện có của script giữ nguyên thứ tự và hành vi; mỗi kiểm tra có một test cho trường hợp mới (L-044).
 
 ## 2. Hiểu yêu cầu
 
@@ -64,7 +64,9 @@ ADR liên quan: ADR-0010 (cổng chất lượng, chỉ merge qua script), ADR-1
 
 Kiểm tra lúc lập plan: `pulls/67` và `git cat-file` như ở mục 2. Chưa chạy thử script mới (E dưới 2).
 
-**`.github/workflows/main-guard.yml`:** thêm `workflow_dispatch:` dưới `on:`. Workflow không đọc `github.event.before` hay dữ liệu riêng của sự kiện push (`grep -n "github.event" .github/workflows/main-guard.yml` không có kết quả). Nó kiểm commit đầu nhánh chính lúc chạy, nên chạy tay cho kết quả giống như chạy do push.
+**`.github/workflows/main-guard.yml`:** T-040 không sửa file này. `workflow_dispatch` do plan T-041 thêm (mục 3.1 và 3.2 của plan đó), nên T-041 phải merge trước T-040. Workflow không đọc `github.event.before` hay dữ liệu riêng của sự kiện push (`grep -n "github.event" .github/workflows/main-guard.yml` không có kết quả). Nó kiểm commit đầu nhánh chính lúc chạy, nên chạy tay cho kết quả giống như chạy do push.
+
+**`docs/ops/failure-playbook.md` (tạo ở T-039):** dòng PB-04 (`unexpected end of JSON input`, `merge-if-green.sh`) hiện bảo phiên tự tìm commit `(#<số PR>)` trên `origin/main`. Sửa cột việc phải làm thành: làm theo đầu ra của `merge-if-green.sh`. `ĐÃ MERGE (GitHub báo lỗi)` hay `ĐÃ MERGE TRƯỚC ĐÓ` thì coi là đã merge và chờ `main-guard` bằng lệnh script in ra (bước 9); `TỪ CHỐI` thì làm như bước 9. Cột nguồn thêm T-040. Phần này của T-040 chỉ là dòng PB-04; T-038 sửa dòng PB-08 (plan T-039, mục 6).
 
 **`docs/auto-run.md`:**
 - Bước 9 thêm một gạch đầu dòng: script in `ĐÃ MERGE (GitHub báo lỗi)` thì coi như đã merge, chờ `main-guard` bằng lệnh script in ra; in `ĐÃ MERGE TRƯỚC ĐÓ` thì không merge lại, ghi vào báo cáo để người đóng PR.
@@ -77,7 +79,7 @@ Kiểm tra lúc lập plan: `pulls/67` và `git cat-file` như ở mục 2. Chư
 | Sửa | `scripts/merge-if-green.sh` | `HEAD_TREE`, hàm `merged_on_main`, kiểm tra "đã merge trước đó" sau dòng 60, xử lý lỗi của lệnh merge (mục 3.1), chú thích mã thoát |
 | Sửa | `scripts/tests/fake-gh` | Đọc đường dẫn đúng khi `-X` đứng trước (mục 3.1). Vào commit test của bước 3, cùng các test mới: test cũ vẫn qua với bản giả mới (L-025) |
 | Sửa | `scripts/tests/run.sh` | Các test của mục 4, trong một khối mới sau khối "merge-if-green.sh lets an exact revert through" (khoảng dòng 226 đến 265). T-036, T-037, T-039 thêm khối riêng của chúng ở chỗ khác; không plan nào khác sửa các khối `merge-if-green` có sẵn |
-| Sửa | `.github/workflows/main-guard.yml` | Thêm `workflow_dispatch:` |
+| Sửa | `docs/ops/failure-playbook.md` | Dòng PB-04: việc phải làm theo mã thoát mới (mục 3.1) |
 | Sửa | `docs/auto-run.md` | Bước 9: một gạch đầu dòng (mục 3.1) |
 | Sửa | `docs/lessons.md` | L-054: dòng Áp dụng ghi T-040 khi merge |
 | Sửa | `docs/features/quality-gate/tickets/T-040-merge-if-green-da-merge.md` | Trạng thái theo phiên |
@@ -145,10 +147,10 @@ Test không dùng `--dry-run` ghi tên lệnh vào `.writes`, nên kiểm đư�
 | GitHub ghi chậm | Test script | `merge-if-green finds the commit on a later read`: `commits?sha=main...` là `__sequence__` (lần đầu không có, lần hai có), thoát 0 |
 | Gọi lại | Test script | `merge-if-green reports a PR already on main without merging` (0, `ĐÃ MERGE TRƯỚC ĐÓ`, `.writes` rỗng) |
 | Merge bình thường không đổi | Test script | `merge-if-green merges a green PR`: lệnh merge thành công, thoát 0, `ĐÃ MERGE: PR #12`, không đọc `commits?sha=main` sau merge, không có `POST .../dispatches`. Test này cũng chứng minh `fake-gh` mới đọc đúng `-X PUT` |
-| `main-guard` chạy được bằng tay | Kiểm tay sau merge | `gh workflow run main-guard.yml --ref main` tạo một lần chạy xanh trên nhánh chính |
+| Bảng tra lỗi khớp script | Test script có sẵn của T-039 | Test bảng tra lỗi của T-039 (mỗi dòng có mẫu và việc phải làm) vẫn qua sau khi sửa PB-04 |
 | Test cũ giữ nguyên | Test script có sẵn | Toàn bộ `scripts/tests/run.sh` qua ("All script tests passed") với `fake-gh` mới |
 
-**Ngoại lệ viết test trước:** dòng `workflow_dispatch:` của `main-guard.yml` không có test tự động (workflow), kiểm tay sau merge như bảng trên.
+**Ngoại lệ viết test trước:** Không có. Việc `main-guard` chạy được bằng tay thuộc T-041 (test cấu trúc và kiểm tay ở plan đó).
 
 ### 4.1. Chạy thử
 
@@ -156,11 +158,11 @@ Không cần (E dưới 2): dùng lại `gh api`, `jq` như các nhánh khác c�
 
 ## 5. Chấm rủi ro
 
-**Điểm chặn bị chạm:** điểm 7 (CI, cổng chất lượng): `scripts/merge-if-green.sh` và `.github/workflows/main-guard.yml`.
+**Điểm chặn bị chạm:** điểm 7 (CI, cổng chất lượng): `scripts/merge-if-green.sh`.
 
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
-| A. Phạm vi thay đổi | 1 | Một script, bản giả của test, một dòng workflow |
+| A. Phạm vi thay đổi | 1 | Một script, bản giả của test, một dòng của bảng tra lỗi |
 | B. Độ rõ của yêu cầu | 1 | Có một lần xảy ra thật (PR #67) với bằng chứng đầy đủ; thông báo lỗi lần sau có thể khác nên nhận biết bằng dữ liệu |
 | C. Khả năng kiểm chứng tự động | 1 | Test với `gh` giả cho mọi nhánh; lỗi thật của GitHub không tái hiện được |
 | D. Ảnh hưởng chéo | 2 | Mọi lần merge của người và phiên; `fake-gh` dùng chung cho test của ba script |
@@ -169,15 +171,16 @@ Không cần (E dưới 2): dùng lại `gh api`, `jq` như các nhánh khác c�
 
 ## 6. Ảnh hưởng chéo
 
-- File hoặc thành phần dùng chung bị chạm: `scripts/merge-if-green.sh`, `scripts/tests/fake-gh`, `scripts/tests/run.sh`, `.github/workflows/main-guard.yml`, `docs/auto-run.md`.
+- File hoặc thành phần dùng chung bị chạm: `scripts/merge-if-green.sh`, `scripts/tests/fake-gh`, `scripts/tests/run.sh`, `docs/ops/failure-playbook.md`, `docs/auto-run.md`.
 - Task khác có thể xung đột:
   - T-036, T-037, T-038, T-039 cùng sửa `docs/auto-run.md` và `scripts/tests/run.sh`, ở đoạn khác (mục 3.1, 3.2).
   - T-039 có thể đọc `main-guard.yml` (`failure-kind.sh`) nhưng không sửa phần `on:`.
-  - T-041 sửa `start-run.yml` và có thể đọc lần chạy `main-guard` theo commit. Lần chạy bằng `workflow_dispatch` có `event: workflow_dispatch`, nên T-041 phải nhận cả hai loại sự kiện (ghi vào plan T-041).
-- Đề xuất thứ tự chạy: đứng độc lập, không phụ thuộc task nào trong nhóm. Làm trong phiên có người theo dõi hoặc đầu danh sách chạy, vì mọi task sau đều merge qua script này.
+  - T-041 sửa `start-run.yml` và có thể đọc lần chạy `main-guard` theo commit. Lần chạy bằng `workflow_dispatch` có `event: workflow_dispatch`; plan T-041 đã tính lần chạy loại này (mục 2 của plan đó).
+- Đề xuất thứ tự chạy: sau T-039 (tạo `docs/ops/failure-playbook.md` có dòng PB-04) và T-041 (thêm `workflow_dispatch` vào `main-guard.yml`). Làm trong phiên có người theo dõi hoặc sớm trong danh sách chạy, vì mọi task sau đều merge qua script này.
 
 ## 7. Điều kiện dừng riêng
 
+- `main-guard.yml` chưa có `workflow_dispatch` (T-041 chưa merge), hoặc chưa có `docs/ops/failure-playbook.md` (T-039 chưa merge): không bắt đầu task (phụ thuộc).
 - Toàn bộ `scripts/tests/run.sh` không qua với `fake-gh` mới mà không cần sửa test cũ: dừng (dấu hiệu là bản giả đổi hành vi của test khác).
 
 ## 8. Câu hỏi cho người duyệt

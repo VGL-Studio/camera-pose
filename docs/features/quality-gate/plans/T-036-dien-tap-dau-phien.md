@@ -1,16 +1,16 @@
 ---
 ticket: T-036
 title: Diễn tập đầu phiên trong đúng môi trường cloud
-status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # cỡ S, số gợi ý của scripts/token-usage.py estimate (tạm, chưa đủ 5 task)
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Nhật               # người duyệt
-cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at: 2026-10-24
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 ---
 
 # PLAN T-036: DIỄN TẬP ĐẦU PHIÊN TRONG ĐÚNG MÔI TRƯỜNG CLOUD
@@ -25,6 +25,13 @@ approved_at: 2026-10-24
 
 Mỗi điều sai là một dòng lỗi có lý do và việc người cần làm, nên phiên kết thúc ngay ở kiểm tra đầu phiên thay vì sau khoảng 15 phút `check.sh` (L-049, L-056). Test với `java` và `gradlew` giả, viết trước, thất bại trên code hiện tại.
 
+**Phiên bản 2** sửa theo rà soát độc lập trước RUN-20261024-01:
+
+- Hàm `fake_java` của `scripts/tests/run.sh` được định nghĩa ở khối `java-check` (dòng 1034), sau khối `cloud-env-check.sh` (dòng 516). Test mới gọi nó sớm hơn sẽ gặp `command not found` và `set -e` dừng cả `run.sh`, tức thất bại sai lý do. Phiên bản 2 chuyển định nghĩa `fake_java` lên trước khối `cloud-env-check.sh`, trong commit test của bước 3 (mục 3.2).
+- Ticket ghi đúng câu trả lời đã duyệt ở phiên bản 1 (bỏ nhánh thử, `./gradlew --version`).
+- Ghi rủi ro cho phiên tiếp tục và việc chạy thử trên máy cloud ở bước 5 (mục 6, mục 7).
+- T-041 và T-038 làm trong phiên có người theo dõi trước phiên, không còn trong danh sách chạy (mục 6).
+
 ## 2. Hiểu yêu cầu
 
 Ticket không có spec nghiệp vụ; yêu cầu là bài học L-056, L-051, L-002 (`docs/lessons.md`).
@@ -34,7 +41,7 @@ Ticket không có spec nghiệp vụ; yêu cầu là bài học L-056, L-051, L-
 | L-056 | Khi Java của môi trường cloud không chạy được Gradle của dự án thì `cloud-env-check.sh` báo lỗi ngay, trước `check.sh` | Gọi `scripts/java-check.sh` (đã đọc đúng dòng `Picked up`, T-035); thoát khác 0 thì thêm một dòng lỗi kèm phần thông báo của `java-check.sh` |
 | L-056 | Khi Gradle wrapper không khởi động được (tải bản phân phối bị chặn, JVM lỗi vì `JAVA_TOOL_OPTIONS`) thì báo lỗi ngay | `./gradlew --version -q` (không chạy task nào của dự án, không đụng bộ nhớ đệm build); thoát khác 0 thì báo lỗi với 5 dòng cuối của đầu ra |
 | L-056 | Khi SDK thiếu nền tảng của `compileSdk` thì báo lỗi ngay | Đọc `compileSdk` trong `gradle/libs.versions.toml` (chỉ đọc), kiểm `$ANDROID_HOME/platforms/android-<số>` (hoặc `$HOME/android-sdk` khi chưa đặt `ANDROID_HOME`, như `env-canary.sh`) |
-| L-051 | Nhánh task không bị kẹt trên máy cloud vì lệnh đẩy | Ticket ghi "đẩy và xóa nhánh thử". Đề xuất của AI: không làm ở đây (mục 8, câu 1): lần từ chối của L-051 đến từ bộ phân loại lệnh của phiên, không đến từ git; lệnh đẩy chạy bên trong script không gặp bộ phân loại đó, nên không phát hiện được. Quyền đẩy của git đã được kiểm khi phiên đẩy nhánh báo cáo ở đầu mục 2 của `auto-run.md`. T-037 lo phần nhánh task |
+| L-051 | Nhánh task không bị kẹt trên máy cloud vì lệnh đẩy | Không làm ở đây (phiên bản 1, mục 8, câu 1, đã duyệt; ticket đã ghi): lần từ chối của L-051 đến từ bộ phân loại lệnh của phiên, không đến từ git; lệnh đẩy chạy bên trong script không gặp bộ phân loại đó, nên không phát hiện được. Quyền đẩy của git đã được kiểm khi phiên đẩy nhánh báo cáo ở đầu mục 2 của `auto-run.md`. T-037 lo phần nhánh task |
 | L-002 | Bí mật staging là file giả | Ngoài phạm vi theo ticket: `preflight.sh` đã kiểm |
 | Hành vi cũ | Phiên bản setup script cũ, thiếu init script mirror: vẫn từ chối như nay | Giữ nguyên hai kiểm tra đầu và thông báo của chúng |
 
@@ -75,7 +82,7 @@ Thời gian trên cloud với bộ nhớ đệm trống (phải tải bản phâ
 | --- | --- | --- |
 | Sửa | `scripts/cloud-env-check.sh` | Ba kiểm tra mới, `ANDROID_HOME` mặc định, thông báo theo từng vấn đề (mục 3.1); biến `JAVA_CHECK_CMD`, `GRADLEW_CMD`, `GRADLEW_TIMEOUT` để test thay; chú thích đầu file ghi rõ đây là cổng của kiểm tra đầu phiên |
 | Sửa | `scripts/env-canary.sh` | Chỉ câu lý do khi `ENV_CHECK_CMD` đỏ (mục 3.1) |
-| Sửa | `scripts/tests/run.sh` | Hàm `env_check` hiện có nhận thêm `JAVA_CHECK_CMD`, `GRADLEW_CMD`, `ANDROID_HOME` (mặc định là bản giả đều qua, để ba test cũ giữ nguyên ý); bảy test mới ở mục 4, đặt ngay sau ba test `cloud-env-check.sh` hiện có. Hàm phụ trợ và test vào cùng commit test của bước 3 (L-025). Chỉ đụng khối test `cloud-env-check.sh` và một dòng của khối `env-canary` (mục 6) |
+| Sửa | `scripts/tests/run.sh` | Chuyển nguyên định nghĩa hàm `fake_java` (6 dòng, hiện ở khối `java-check`, dòng 1034) lên ngay trước khối `cloud-env-check.sh` (dòng 516), không đổi thân hàm; khối `java-check` vẫn gọi nó như cũ (`$work/bin` đã có từ dòng 8). Hàm `env_check` hiện có nhận thêm `JAVA_CHECK_CMD`, `GRADLEW_CMD`, `ANDROID_HOME` (mặc định là bản giả đều qua, để ba test cũ giữ nguyên ý); bảy test mới ở mục 4, đặt ngay sau ba test `cloud-env-check.sh` hiện có. Việc chuyển `fake_java`, hàm phụ trợ và test đều vào commit test của bước 3 (L-025): chạy `run.sh` sau commit đó thì test mới thất bại vì `cloud-env-check.sh` chưa kiểm, không vì thiếu hàm. Chỉ đụng khối test `cloud-env-check.sh`, định nghĩa `fake_java` và một dòng của khối `env-canary` (mục 6) |
 | Sửa | `docs/auto-run.md` | Chỉ dòng `cloud-env-check.sh` của bảng mục 2 (mục 3.1) |
 | Sửa | `docs/ops/staging-and-runs.md` | Mục 2.1, bước 2 (đoạn "Kiểm tra nhanh sau khi dán"): nhắc các kiểm tra mới |
 | Sửa | `docs/ops/setup-new-app.md` | Bảng xử lý sự cố (dòng `cloud-env-check.sh`): thêm hai dòng cho Java, Gradle |
@@ -155,31 +162,37 @@ Không cần (E dưới 2): các lệnh đều đã dùng trong dự án (`java-
   - `scripts/tests/run.sh`: chỉ khối `cloud-env-check.sh` và một kiểm trong khối `env-canary`;
   - `docs/auto-run.md`: chỉ dòng `cloud-env-check.sh` của mục 2.
 - Task khác có thể xung đột:
-  - T-037, T-038, T-039, T-040 cùng sửa `docs/auto-run.md`: T-037 các bước 3, 4, 7; T-038 và T-039 bước 8; T-040 bước 9. T-041 sửa dòng "Nhánh chính đang xanh" của mục 2, là một dòng khác của cùng bảng. Không plan nào khác sửa dòng `cloud-env-check.sh`.
+  - T-037, T-039, T-040 cùng sửa `docs/auto-run.md` trong danh sách chạy: T-037 các bước 3, 4, 7; T-039 bước 8; T-040 bước 9. T-041 (dòng "Nhánh chính đang xanh" của mục 2) và T-038 (bước 8) làm trong phiên có người theo dõi trước phiên, nên đã có trên nhánh chính khi task này chạy. Không plan nào khác sửa dòng `cloud-env-check.sh`.
+  - T-039 và T-042 cũng thêm khối test vào `scripts/tests/run.sh`; không plan nào khác dùng hay chuyển `fake_java`.
   - Mỗi plan thêm khối test riêng vào `scripts/tests/run.sh`; plan này không sửa khối của plan khác.
   - Chỉ xung đột dòng khi gộp. Task chạy sau gộp nhánh chính trước khi đẩy.
+- **Rủi ro cho phiên tiếp tục:** phiên tiếp tục sau khi hết hạn mức làm lại mục 2 của `auto-run.md` (`auto-run.md`, mục 4, Tiếp tục phiên), nên sẽ chạy bản `cloud-env-check.sh` mới nếu task này đã merge. Bản mới báo sai thì phiên tiếp tục kết thúc mà không làm task còn lại. Vì vậy bước 5 chạy bản mới ngay trên máy cloud của phiên (mục 7).
 - Đề xuất thứ tự chạy:
   - Đứng đầu danh sách chạy có nó. Kiểm tra mới chỉ có tác dụng từ phiên sau.
   - Nếu cloud có lỗi Java hay Gradle thì `check.sh` nền của chính phiên đó đã dừng phiên trước khi tới task, như RUN-20261023-03. Vì vậy làm trong phiên có người theo dõi cũng được (mục 8, câu 3).
 
 ## 7. Điều kiện dừng riêng
 
-- Trên cloud của chính phiên, `cloud-env-check.sh` mới báo lỗi trong khi `check.sh` nền qua (kiểm báo sai). Dừng task, không merge, ghi cả hai đầu ra vào nhật ký.
+- Bước 5: chạy `scripts/cloud-env-check.sh` của nhánh task ngay trên máy cloud của phiên (ghi thời gian của bước Gradle vào nhật ký). Bản mới báo lỗi trong khi `check.sh` nền của đầu phiên qua (kiểm báo sai): dừng task, không merge, ghi cả hai đầu ra vào nhật ký.
 
 ## 8. Câu hỏi cho người duyệt
 
 1. **Nhánh thử (ticket ghi "đẩy và xóa nhánh `claude/probe-<mã phiên>`").** Lần từ chối của L-051 do bộ phân loại lệnh của phiên Claude Code chặn lệnh `git push` mà phiên con gõ, không phải do git. Một lệnh đẩy nằm trong script thì bộ phân loại chỉ thấy lệnh `scripts/cloud-env-check.sh`, nên không tái hiện được lần từ chối đó. Quyền đẩy của git đã được kiểm ở đầu mục 2 (phiên đẩy nhánh báo cáo). Đề xuất của AI: bỏ phần này khỏi T-036, để T-037 xử lý hậu quả (đẩy sớm, giữ bundle khi bị từ chối). Ghi vào ticket khi duyệt.
 2. **Giới hạn 300 giây cho `./gradlew --version`.** Chưa đo được trên cloud với bộ nhớ đệm trống. Đề xuất của AI: 300 giây (lâu hơn nhiều mức tải bình thường, ngắn hơn một lần `check.sh`). Phiên đầu ghi thời gian thật vào báo cáo, sửa sau nếu cần (mục 3.4).
-3. **`env-canary` chưa bao giờ chạy được.** Hai lần chạy gần nhất (2026-10-22, 2026-10-23) đỏ ở bước kích hoạt: "Thiếu bí mật ENV_CANARY_FIRE_URL hoặc ENV_CANARY_FIRE_TOKEN". Nếu có kiểm tra này, lỗi của L-049 đã lộ từ sáng 2026-10-23, trước RUN-20261023-03. Đề xuất của AI: người tạo routine `env-canary` và thêm hai bí mật theo `docs/ops/staging-and-runs.md`, mục 2.4. Đây là việc của người, không thuộc plan. Sau đó T-036 làm `env-canary` bắt được cả lỗi Java và Gradle trong vài giây.
+3. **`env-canary`.** Phiên bản 1 ghi routine chưa chạy được vì thiếu bí mật. Ngày 2026-10-24, Tuấn đã tạo routine và hai bí mật; lần chạy 40061910624 kích hoạt được routine. Không còn câu hỏi.
 4. **Làm ở đâu.** Đề xuất của AI: đưa vào danh sách chạy kế tiếp, đứng đầu. Task chỉ đổi script và tài liệu, không cần máy hay bí mật.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Tuấn chấp nhận mọi đề xuất của AI ở mục 8. Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-01 tìm hàm `fake_java` được gọi trước chỗ định nghĩa (test thất bại sai lý do) và ticket chưa ghi câu trả lời đã duyệt (mục 1).
+
+Phiên bản 2:
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <ghi chú, nếu có>
 
 ## 10. Nhật ký thực hiện
 

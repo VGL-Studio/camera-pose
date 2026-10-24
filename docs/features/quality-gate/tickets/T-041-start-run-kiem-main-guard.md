@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-055 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
+status: planned
 risk: high
 size: S
 depends_on: [T-030]
 sprint:
-plan:
+plan: features/quality-gate/plans/T-041-start-run-kiem-main-guard.md
 created: 2026-10-24
 ---
 

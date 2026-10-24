@@ -26,6 +26,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
       ui: ${{ steps.filter.outputs.ui }}
+      release: ${{ steps.filter.outputs.release }}
     # No checkout needed: on pull_request events paths-filter reads the changed files from the API.
     steps:
       - uses: dorny/paths-filter@v3
@@ -34,6 +35,8 @@ jobs:
           # code: anything that affects the build or the quality gate itself.
           # ui: anything that runs in the app or changes how it is built (core modules without UI too,
           #     since a bug there can still crash the app at startup).
+          # release: what can break the release build (R8) while the debug build passes: libraries, build files and
+          #     R8 rules (L-053, plan T-038).
           filters: |
             code:
               - 'app/**'
@@ -61,6 +64,16 @@ jobs:
               - 'gradlew'
               - 'scripts/test-summary.sh'
               - '.github/workflows/pr-check.yml'
+            release:
+              - 'gradle/libs.versions.toml'
+              - 'settings.gradle.kts'
+              - 'build.gradle.kts'
+              - '**/build.gradle.kts'
+              - 'build-logic/**'
+              - 'gradle.properties'
+              - '**/proguard-rules.pro'
+              - '**/consumer-rules.pro'
+              - '.github/workflows/pr-check.yml'
 
   build-and-test:
     needs: changes
@@ -87,6 +100,13 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: scripts/check.sh 2>&1 | tee build.log
 
+      # The quality gate builds debug only; R8 runs in the release build, so a library without its keep rules
+      # passes check.sh and fails at staging time (L-053). No secret: the fake Firebase file and no signing config
+      # give an unsigned APK, as on a dev machine.
+      - name: Build bản release (R8)
+        if: needs.changes.outputs.code == 'true' && needs.changes.outputs.release == 'true'
+        run: ./gradlew --console=plain :app:assembleStagingRelease 2>&1 | tee release.log
+
       - name: Lưu báo cáo test và ảnh screenshot
         if: always() && needs.changes.outputs.code == 'true'
         uses: actions/upload-artifact@v4
@@ -105,16 +125,29 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            echo "### build-and-test thất bại"
-            echo
-            echo "Task thất bại và lỗi:"
-            echo '```'
-            grep -E " FAILED$|^e: |Lint error|\.kt:[0-9]+:[0-9]+|error:|What went wrong" -A 6 build.log | head -n 150 || true
-            echo '```'
-            echo "Cuối log:"
-            echo '```'
-            tail -n 60 build.log
-            echo '```'
+            if [ -f release.log ]; then
+              echo "### build-and-test thất bại: build bản release (R8) thất bại"
+              echo
+              echo "Lỗi R8:"
+              echo '```'
+              grep -E "ERROR: R8:|Missing class|What went wrong" -A 3 release.log | head -n 80 || true
+              echo '```'
+              echo "Cuối log:"
+              echo '```'
+              tail -n 40 release.log
+              echo '```'
+            else
+              echo "### build-and-test thất bại"
+              echo
+              echo "Task thất bại và lỗi:"
+              echo '```'
+              grep -E " FAILED$|^e: |Lint error|\.kt:[0-9]+:[0-9]+|error:|What went wrong" -A 6 build.log | head -n 150 || true
+              echo '```'
+              echo "Cuối log:"
+              echo '```'
+              tail -n 60 build.log
+              echo '```'
+            fi
           } > comment.md
           gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment.md
 

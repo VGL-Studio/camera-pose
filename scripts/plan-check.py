@@ -38,6 +38,8 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
      draft and approved plans alike (decision of 2026-10-24). It becomes an error for a draft plan (a warning stays
      for an approved one, like rule 7) once a device-session has run the first three scenario files of T-046 and all
      passed; that is a separate one-line change with its test.
+ 12. A plan does not write a bare $TMPDIR or ${TMPDIR}: a cloud session leaves TMPDIR unset, so the path lands in /
+     (L-071). Write ${TMPDIR:-/tmp}. Errors for a draft plan, warnings for an approved one, like rule 7.
 PLAN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
 
@@ -343,6 +345,17 @@ def permission_and_library_problems(text, fields, listed):
     return problems
 
 
+# $TMPDIR or ${TMPDIR} without a default (rule 12).
+BARE_TMPDIR = re.compile(r"\$TMPDIR\b|\$\{TMPDIR\}")
+
+
+def tmpdir_problems(text):
+    """Bare TMPDIR spellings of the plan (rule 12)."""
+    return [f"plan ghi {spelling}: môi trường cloud không đặt TMPDIR, nên đường dẫn rơi vào gốc ổ đĩa; "
+            "ghi ${TMPDIR:-/tmp} (quy tắc 12, L-071)."
+            for spelling in sorted(set(BARE_TMPDIR.findall(text)))]
+
+
 def check(plan_path):
     errors, warnings = [], []
     text = plan_path.read_text()
@@ -435,7 +448,8 @@ def check(plan_path):
                    "bằng scripts/check.sh (L-001, L-010).")
         (errors if status == "draft" else warnings).append(message)
     if status in ("draft", "approved"):
-        for message in permission_and_library_problems(text, fields, listed) + check_sh_problems(text, listed):
+        for message in (permission_and_library_problems(text, fields, listed) + check_sh_problems(text, listed)
+                        + tmpdir_problems(text)):
             (errors if status == "draft" else warnings).append(message)
     warnings += ticket_status_problems(fields)
     warnings += manual_test_problems(text, listed)

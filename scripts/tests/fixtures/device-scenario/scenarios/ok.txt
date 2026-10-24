@@ -1,0 +1,10 @@
+ticket: T-900
+criterion: Mẫu đạt | có dấu gạch
+timeout: 30
+# Passing file on the sequence consent.xml, onboarding.xml, camera.xml
+fresh
+consent decline 5
+tap_if id=onboarding_enable_camera
+wait id=camera_screen 5
+expect id=camera_poses
+shot done

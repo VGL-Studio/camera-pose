@@ -68,7 +68,8 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 
 - [ ] Ảnh chuẩn screenshot mới: <màn hình, đường dẫn ảnh>
 - [ ] Ảnh so sánh với thiết kế: <feature, `docs/features/<feature>/design/review/`, nhận xét của rà soát độc lập>
-- [ ] Tiêu chí kiểm tra thủ công: <ticket, tiêu chí, các bước>
+- [ ] Tiêu chí kiểm tra thủ công (máy thật, người): <ticket, tiêu chí, các bước>
+- [ ] Kịch bản emulator lỗi hay bỏ qua: <tệp, kết quả, bước lỗi, phản hồi FB-...>, hoặc "Không có"
 - [ ] Điểm rà soát mức ghi chú: <ticket, nội dung>
 - [ ] Test chập chờn: <issue `flaky` đang mở, tên test>, hoặc "Không có" (ADR-1002)
 - [ ] Task bị revert: <ticket, issue `main-broken`, PR revert>, hoặc "Không có" (ADR-1002)
@@ -85,6 +86,7 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 
 - Workflow `device-session.yml`: <lần chạy, commit, kết quả>
 - Tín hiệu: crash <n>, ANR <n>, lỗi của app <n>, cảnh báo <n>; khởi động nguội <ms, ms, ms>
+- Kịch bản theo plan: <n đạt, n lỗi, n bỏ qua; tệp lỗi và bước>, hoặc "không có"
 - Phát hiện: <mỗi dòng một phát hiện, mức, bằng chứng ngắn, phản hồi FB-... đã soạn; hoặc "Không có">
 - Quyết định: phát staging / không phát vì <crash hoặc ANR>
 

@@ -1,0 +1,5 @@
+ticket: T-904
+criterion: Mẫu tag và chuỗi không có
+timeout: 30
+expect id=no_such_tag_zz
+expect str=no_such_string_zz

@@ -6,8 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.ComponentDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsPropertiesAndroid
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyDescendant
@@ -65,6 +69,21 @@ class NetworkDialogHostTest {
         roots[1].assert(hasAnyDescendant(hasTestTag(NetworkDialogTestTags.SCREEN)))
         // Still in the semantics tree, so AppLaunchTest finds the screen behind the dialog.
         assertEquals(1, composeRule.onAllNodesWithTag(CONTENT).fetchSemanticsNodes().size)
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun shownDialog_exposesTestTagsAsResourceId() {
+        setContentButton(SHOWN) {}
+
+        // The dialog is another window, so it does not take testTagsAsResourceId from the app root; without it
+        // `uiautomator dump` shows no resource-id inside the dialog (plan T-046).
+        val exposesTags = SemanticsMatcher("TestTagsAsResourceId is true") {
+            it.config.getOrNull(SemanticsPropertiesAndroid.TestTagsAsResourceId) == true
+        }
+        val dialogRoot = composeRule.onAllNodes(isRoot(), useUnmergedTree = true)[1]
+        dialogRoot.assert(hasAnyDescendant(exposesTags))
+        dialogRoot.assert(hasAnyDescendant(hasTestTag(NetworkDialogTestTags.RETRY)))
     }
 
     @Test

@@ -13,6 +13,7 @@ import androidx.compose.ui.window.DialogWindowProvider
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.NetworkDialogScreen
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.network.NetworkDialogState
+import com.vglstudio.camera.pose.line.guide.ui.exposeTestTagsForUiAutomator
 
 /**
  * Draws [content] and, while [state] is shown, the network dialog over it (spec network). The dialog is drawn in its
@@ -47,7 +48,10 @@ fun NetworkDialogHost(
             val window = (LocalView.current.parent as? DialogWindowProvider)?.window
             SideEffect { window?.setDimAmount(0f) }
             AppTheme(darkTheme = darkTheme) {
-                NetworkDialogScreen(checking = state.checking, stillOffline = state.stillOffline, onRetry = onRetry)
+                // The dialog is another window, so it does not take testTagsAsResourceId from the app root.
+                Box(Modifier.exposeTestTagsForUiAutomator()) {
+                    NetworkDialogScreen(checking = state.checking, stillOffline = state.stillOffline, onRetry = onRetry)
+                }
             }
             BackHandler(onBack = onBack)
         }

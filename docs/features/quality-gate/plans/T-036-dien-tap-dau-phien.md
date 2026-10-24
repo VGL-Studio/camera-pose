@@ -203,7 +203,7 @@ Phiên bản 2:
 - **Kết quả:** đã merge
 - **Nhánh, PR:** `claude/T-036-dien-tap-dau-phien`, PR #103 (commit merge c49a267)
 - **Đã làm:** `cloud-env-check.sh` kiểm thêm Java (`java-check.sh`), `./gradlew --version` (giới hạn 300 giây) và nền tảng `compileSdk` của SDK; thông báo tách theo loại vấn đề; `env-canary.sh` đổi câu lý do; ba đoạn tài liệu.
-- **Test viết trước:** 16 test mới, `fake_java` chuyển lên trước khối `cloud-env-check` trong cùng commit. Ở khung cũ 9 test thất bại ở phần khẳng định (đúng lý do: script chưa kiểm Java, Gradle, SDK, chưa đổi câu lý do); các test "qua" và "không có câu dán lại" là đối chứng.
+- **Test viết trước:** 14 khẳng định mới, `fake_java` chuyển lên trước khối `cloud-env-check` trong cùng commit. Ở khung cũ 9 test thất bại ở phần khẳng định (đúng lý do: script chưa kiểm Java, Gradle, SDK, chưa đổi câu lý do); các test "qua" và "không có câu dán lại" là đối chứng.
 - **Sửa test sau khi viết (chi tiết, không đổi điều kiểm):** đếm hai cụm trên cùng một dòng bằng `grep -o`; mẫu câu lý do của `env-canary` có dấu backtick quanh tên script.
 - **Rà soát độc lập:** không có điểm chặn. Một ghi chú về chữ "bốn dòng" trong `staging-and-runs.md`, đã sửa.
 - **Kết quả CI:** `check.sh` cục bộ qua; `pr-check` xanh; `main-guard` của commit merge xanh (lần chạy 40072879944).

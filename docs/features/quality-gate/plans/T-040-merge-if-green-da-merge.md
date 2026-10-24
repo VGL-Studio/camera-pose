@@ -232,7 +232,7 @@ Phiên bản 2:
 - **Kết quả:** đã merge
 - **Nhánh, PR:** `claude/T-040-merge-if-green-da-merge`, PR #107 (commit merge db1bac5), merge bằng bản `merge-if-green.sh` của `origin/main` chép ra ngoài worktree (mục 3.1)
 - **Đã làm:** `merge-if-green.sh` thêm `HEAD_TREE`, `merged_on_main` (tiêu đề `<tiêu đề> (#<số>)` và cây file trùng commit đầu PR), kiểm tra `ĐÃ MERGE TRƯỚC ĐÓ` ngay sau kiểm tra PR mở, và xử lý lệnh merge lỗi (đọc lại 3 lần, `ĐÃ MERGE (GitHub báo lỗi)`, xóa nhánh, yêu cầu `main-guard` bằng REST); `fake-gh` đọc đường dẫn sau `-X` và trả 404; dòng PB-04 của bảng tra lỗi; bước 9 của `auto-run.md`.
-- **Test viết trước:** 46 test mới (kể cả 3 vòng for) theo bảng L-044. Ở khung cũ 24 thất bại ở phần khẳng định (bản `fake-gh` mới đã vào commit test, mọi test cũ vẫn qua, không có Traceback).
+- **Test viết trước:** khoảng 50 khẳng định mới theo bảng L-044. Ở khung cũ 24 thất bại ở phần khẳng định (bản `fake-gh` mới đã vào commit test, mọi test cũ vẫn qua, không có Traceback).
 - **Sửa test sau khi viết (chi tiết):** `mig_writes` in 0 khi chưa có tệp ghi; test "đọc một lần" dùng `__sequence__` để đếm lần đọc.
 - **Rà soát độc lập:** không chặn. Nên sửa đã xử lý: `fake-gh` trả 404 cả khi `commits/<sha>` không có trong fixture.
 - **Kết quả CI:** `check.sh` cục bộ qua; `pr-check` xanh.

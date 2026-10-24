@@ -235,7 +235,7 @@ Phiên bản 2:
 - **Kết quả:** đã merge
 - **Nhánh, PR:** `claude/T-037-nhanh-task-khong-mat`, PR #105 (commit merge c151c43)
 - **Đã làm:** `scripts/save-branch.sh` (đẩy, thử lại lỗi mạng theo lịch, bundle ở `$HOME/rescue/` khi không đẩy được, mã 3, `--bundle-only`); `auto-run.md` bước 1, 3, 7, Giao bước 3 đến 5, đoạn "Khi không đẩy được", mục 4, 5; mẫu danh sách chạy có mục "Nhánh chưa đẩy".
-- **Test viết trước:** 30 test trên bare repo cục bộ. Khung rỗng luôn in `ĐÃ ĐẨY` và trả 0: 22 test thất bại ở phần khẳng định.
+- **Test viết trước:** 30 khẳng định trên bare repo cục bộ. Khung rỗng luôn in `ĐÃ ĐẨY` và trả 0: 22 test thất bại ở phần khẳng định.
 - **Sửa test sau khi viết (chi tiết, không đổi điều kiểm):** `git bundle verify` chạy trong bản sao của test (không phải thư mục gốc repo); đếm commit so với `origin/main`; khối test tắt `GIT_CONFIG_*` của đầu file để dùng bare repo thật.
 - **Rà soát độc lập:** không chặn. Một điểm nên sửa đã xử lý: đoạn "Khi không đẩy được" chuyển xuống cuối bước 7.
 - **Kết quả CI:** `check.sh` cục bộ qua; `pr-check` xanh.

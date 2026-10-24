@@ -1,7 +1,7 @@
 ---
 ticket: T-017
 title: Nhận dạng dáng và điểm khớp
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -337,3 +337,16 @@ Phiên bản 2:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-24, RUN-20261023-04 và phiên có người theo dõi: đã merge
+
+- **Kết quả:** đã merge, PR #81, commit `ee3ddbb`. CI xanh vòng đầu. Phiên RUN-20261023-04 làm xong bước 3 đến 5 nhưng lệnh đẩy nhánh bị bộ phân loại tự động từ chối (L-051); Tuấn đẩy tay từ máy cloud, phần còn lại làm trong phiên có người theo dõi (Tuấn).
+- **Test viết trước:** 75 test của phiên, đều thất bại đúng lý do (báo cáo RUN-20261023-04). Thêm trong phiên có người theo dõi: 2 test máy gập, 2 test TalkBack, 2 test ViewModel; mỗi test thất bại đúng lý do trước khi sửa.
+- **Lệch so với plan:**
+  1. T-020 merge trước, nên `CameraUnfolded.kt` (ngoài mục 3.2) được sửa để màn máy gập có `MatchHint` và màu viền nút chụp khi đạt. Tuấn quyết định sửa ngay, không soạn plan mới. Test: `CameraScreenMatchTest.unfolded_*`.
+  2. Gộp xung đột với T-019, T-020: `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `CameraControls.kt` (`ShutterButton` `internal`, `ringColor` mặc định màu thường), `CameraScreen.kt`.
+  3. Theo rà soát độc lập, Tuấn chọn cách sửa: vùng đọc của `MatchHint` chỉ mang lời nhắc, không mang điểm (mục 8, câu 7; test `semantics_readsScoreAndText` của mục 4 đổi thành `semantics_readsOnlyTheText`, bỏ chuỗi `camera_cd_match_score`); có người mà không đoạn nào so được thì tính như khung không có người.
+  4. `DesignSystemCatalog.kt` sắp lại hàng `ZoomControl` và thu ô `GridOverlay`.
+- **Rà soát độc lập:** 0 chặn, 2 nên sửa (đã sửa), 7 ghi chú. Chưa sửa: khung trễ sau khi đóng camera có thể đưa trạng thái về `Scoring` (giả thuyết); bộ phân tích `@Singleton` mà `release()` do `CameraXController` `@ViewModelScoped` gọi.
+- **Số đo:** APK `assembleStagingRelease` chưa ký 89 595 035 byte (trước T-017 khoảng 5,5 MB; tiêu chí dung lượng đã bỏ khỏi spec, PR #64). FPS chưa đo (cần máy thật). Manifest gộp không có quyền mới.
+- **Cần người kiểm tra:** trên máy thật: FPS (log `VGL.Camera` `Pose analysis: <n> fps`), người thật đạt 80, không báo nhầm, TalkBack, máy gập, luồng "chi tiết tư thế, Chụp với tư thế này" (nhận dạng còn chạy); 4 ảnh chuẩn mới `CameraScreen_{matched,matching,no-person}_dark`, `CameraScreen_matching_small` và ảnh `DesignSystem_camera_components_dark` ghi lại; ảnh so sánh trong `docs/features/camera/design/review/`.

@@ -1,16 +1,16 @@
 ---
 ticket: T-046
 title: Tiêu chí kiểm thủ công chạy được trên emulator thành kịch bản device-session
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 13M          # cỡ M (10.4M, scripts/token-usage.py estimate) cộng hạn chót, bộ chọn và test thêm sau rà soát độc lập
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-24
 ---
 
 # PLAN T-046: TIÊU CHÍ KIỂM THỦ CÔNG CHẠY ĐƯỢC TRÊN EMULATOR THÀNH KỊCH BẢN DEVICE-SESSION
@@ -562,9 +562,9 @@ Còn chờ người xác nhận:
 
 Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Giữ một task, quy tắc 11 chỉ chú ý (Tuấn chọn). Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm 4 test `device-session` có sẵn sẽ chạy cả 3 kịch bản thật của repo (`DEVICE_SCENARIOS_GLOB` mặc định) và đếm sai số lần cấp quyền, bật mạng; dòng kịch bản T-020 chỉ có bộ lọc trái cú pháp "một từ khóa chính" (nay dùng `idp=camera_pose_`, tag có sẵn `CameraTestTags.pose(id)`); `sleep 300` của `fake-adb` không có `exec` để lại tiến trình mồ côi; câu 7 của mục 8 chưa có trả lời.
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <ghi chú, nếu có>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Phiên bản 2 sửa theo hai lượt rà soát độc lập trước RUN-20261024-02 (lượt 2: không còn điểm chặn); Tuấn đồng ý duyệt.
 
 ## 10. Nhật ký thực hiện
 

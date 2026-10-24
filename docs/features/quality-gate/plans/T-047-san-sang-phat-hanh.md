@@ -1,16 +1,16 @@
 ---
 ticket: T-047
 title: Mục "Sẵn sàng phát hành" trên trang tiến độ
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.3M         # cỡ S, số gợi ý của scripts/token-usage.py estimate
 blocking_points: [ci]        # status.py chạy trong status-page.yml (contents: write), như T-034
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-24
 ---
 
 # PLAN T-047: MỤC "SẴN SÀNG PHÁT HÀNH" TRÊN TRANG TIẾN ĐỘ
@@ -254,9 +254,9 @@ Tuấn đã trả lời ngày 2026-10-24, theo đề xuất của rà soát đ�
 
 Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Rủi ro Cao, duyệt chéo (Tuấn chọn). Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm chữ của mục 6 có thể ghi mã bài học, làm đỏ test có sẵn `new-app.sh regenerates the progress page without the template's lessons` (đếm `L-0[0-9][0-9]` trên trang của app mới phải bằng 0), và dữ liệu giả dùng tên dòng mẫu khác plan T-046.
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <ghi chú, nếu có>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Phiên bản 2 sửa theo hai lượt rà soát độc lập trước RUN-20261024-02 (lượt 2: không còn điểm chặn); Tuấn đồng ý duyệt.
 
 ## 10. Nhật ký thực hiện
 

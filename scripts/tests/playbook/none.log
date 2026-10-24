@@ -1,0 +1,3 @@
+> Task :feature:camera:compileDebugKotlin FAILED
+e: file:///work/feature/camera/CameraViewModel.kt:42:17 Unresolved reference: foo
+FAILURE: Build failed with an exception.

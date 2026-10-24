@@ -74,7 +74,8 @@ main_guard_status() { # <fixture> [env...]: prints "<exit code> <output on one l
   echo "$1" > "$work/mgs.json"
   shift
   local out code=0
-  out="$(env PATH="$work/bin:$PATH" FIXTURE="$work/mgs.json" GITHUB_REPOSITORY=o/r "$@" \
+  # Without GITHUB_ACTIONS, so that the tests read the same lines on a dev machine and on CI (which sets it).
+  out="$(env -u GITHUB_ACTIONS PATH="$work/bin:$PATH" FIXTURE="$work/mgs.json" GITHUB_REPOSITORY=o/r "$@" \
     scripts/main-guard-status.sh ddddd04 2>&1)" || code=$?
   echo "$code $(tr '\n' ' ' <<<"$out")"
 }
@@ -111,6 +112,9 @@ expect "main-guard-status: pending gives the creation time of the workflow run f
 mgs="$(main_guard_status '{
   "ddddd04":{"parent":"","states":["failure"]}}')"
 expect "main-guard-status: red run is refused" 1 "$(grep -c '^1 ĐỎ' <<<"$mgs")"
+mgs="$(main_guard_status '{
+  "ddddd04":{"parent":"","states":["failure"]}}' GITHUB_ACTIONS=true)"
+expect "main-guard-status: in GitHub Actions a refusal is an ::error:: line" 1 "$(grep -c '^1 ::error::ĐỎ' <<<"$mgs")"
 mgs="$(main_guard_status '{
   "bbbbbb2":{"parent":"","states":["success"]},
   "ccccc03":{"parent":"bbbbbb2","files":["docs/b.md"]},

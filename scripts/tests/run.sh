@@ -639,6 +639,13 @@ expect "plan-check: a script reading a changed file stops" stop "$(plan_check "$
 expect "plan-check: names the reader" 1 "$(grep -c 'scripts/reader.py nhắc tới docs/data/values.json' "$work/plan-check.out")"
 write_plan "$plans/T-904-a.md" medium draft "$(row Sửa docs/data/values.json)" 'scripts/reader.py chỉ đọc khóa a, không đổi.'
 expect "plan-check: a reader the plan explains passes" pass "$(plan_check "$plans/T-904-a.md")"
+# A reader that appears after the plan was approved (a new script naming the file in a comment) is only a warning:
+# nobody may edit an approved plan, and the session runs plan-check again right before the task and skips plans
+# with errors, so every approved plan would be skipped (RUN-20261024-01, scripts/main-guard-status.sh).
+write_plan "$plans/T-908-a.md" medium approved "$(row Sửa docs/data/values.json)"
+expect "plan-check: a new reader of an approved plan only warns" pass "$(plan_check "$plans/T-908-a.md")"
+expect "plan-check: the warning names the new reader" 1 \
+  "$(grep -c 'CHÚ Ý: scripts/reader.py nhắc tới docs/data/values.json' "$work/plan-check.out")"
 write_plan "$plans/T-905-a.md" medium draft "$(row Sửa core/x/B.kt)"
 expect "plan-check: core module needs a high-risk plan" stop "$(plan_check "$plans/T-905-a.md")"
 write_plan "$plans/T-906-a.md" high approved "$(row Sửa core/x/B.kt)"

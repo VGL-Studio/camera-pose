@@ -3,12 +3,14 @@ package com.vglstudio.camera.pose.line.guide.core.config.di
 import com.vglstudio.camera.pose.line.guide.core.config.AppLinks
 import com.vglstudio.camera.pose.line.guide.core.config.DefaultAppLinks
 import com.vglstudio.camera.pose.line.guide.core.config.DefaultFeatureFlags
+import com.vglstudio.camera.pose.line.guide.core.config.DefaultPoseMatchingSettings
 import com.vglstudio.camera.pose.line.guide.core.config.DefaultRemoteSettings
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.config.FirebaseRemoteConfigRefresher
 import com.vglstudio.camera.pose.line.guide.core.config.FirebaseRemoteFlagSource
 import com.vglstudio.camera.pose.line.guide.core.config.LocallyEnabledFlags
+import com.vglstudio.camera.pose.line.guide.core.config.PoseMatchingSettings
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteConfigRefresher
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteFlagSource
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteSettings
@@ -29,6 +31,9 @@ internal abstract class ConfigModule {
 
     @Binds
     abstract fun bindAppLinks(impl: DefaultAppLinks): AppLinks
+
+    @Binds
+    abstract fun bindPoseMatchingSettings(impl: DefaultPoseMatchingSettings): PoseMatchingSettings
 
     @Binds
     abstract fun bindRemoteFlagSource(impl: FirebaseRemoteFlagSource): RemoteFlagSource

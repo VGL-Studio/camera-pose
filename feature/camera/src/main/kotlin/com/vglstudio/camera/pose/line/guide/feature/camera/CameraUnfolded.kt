@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchUiState
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PosePicker
@@ -77,6 +78,7 @@ internal fun CameraUnfoldedLayout(
     onLastPhotoClick: (() -> Unit)?,
     chipsState: LazyListState,
     stripState: LazyListState,
+    matchState: MatchUiState = MatchUiState.Off,
 ) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready
@@ -131,6 +133,7 @@ internal fun CameraUnfoldedLayout(
                                     hintBottomPadding = Spacing.md,
                                     toolsOffset = if (tools != null) DpOffset(placement.x.dp, placement.y.dp) else null,
                                     onStepBottomChange = { stepBottom = it },
+                                    matchState = matchState,
                                 )
                             },
                             zoomVisible = false,
@@ -146,6 +149,7 @@ internal fun CameraUnfoldedLayout(
                     onFlipClick = onFlipClick,
                     lastPhoto = lastPhoto,
                     onLastPhotoClick = onLastPhotoClick,
+                    matched = matchState is MatchUiState.Matched,
                     modifier = Modifier.weight(1f).padding(top = aboveFrame),
                 )
             }
@@ -171,6 +175,7 @@ internal fun UnfoldedCaptureColumn(
     onFlipClick: () -> Unit,
     lastPhoto: ImageBitmap?,
     onLastPhotoClick: (() -> Unit)?,
+    matched: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val scale = (frameHeight / FRAME_HEIGHT_IN_DESIGN).coerceAtMost(1f)
@@ -180,6 +185,7 @@ internal fun UnfoldedCaptureColumn(
         }
         Box(modifier = Modifier.align(Alignment.Center)) {
             ShutterButton(
+                ringColor = if (matched) MaterialTheme.appColors.successContainer else MaterialTheme.appColors.onCamera,
                 enabled = ready != null && !ready.capturing,
                 countingDown = ready?.countdown != null,
                 onShutterClick = onShutterClick,

@@ -54,4 +54,9 @@ object StagingFeatureFlagsModule {
     @IntoSet
     @LocallyEnabledFlags
     fun inAppReview(): FeatureFlag = FeatureFlag.IN_APP_REVIEW
+
+    @Provides
+    @IntoSet
+    @LocallyEnabledFlags
+    fun poseMatching(): FeatureFlag = FeatureFlag.POSE_MATCHING
 }

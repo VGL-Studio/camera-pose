@@ -44,6 +44,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.CameraIconButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ChoiceDialog
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.GridOverlay
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.MatchHint
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCard
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseThumb
@@ -224,16 +225,20 @@ fun CameraComponentCatalog(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(text = "Camera components", style = MaterialTheme.typography.titleLarge, color = appColors.onCamera)
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             CameraIconButton(icon = refresh, onClick = {}, contentDescription = null)
             CameraIconButton(icon = refresh, onClick = {}, contentDescription = null, active = true)
             CameraIconButton(text = "3s", onClick = {}, contentDescription = null, active = true)
             CameraIconButton(icon = refresh, onClick = {}, contentDescription = null, enabled = false)
+            // Nobody in the frame: the icon in the circle instead of a score.
+            MatchHint(text = "Step back", icon = painterResource(R.drawable.ic_person_search))
         }
-        ZoomControl(levels = listOf("0.5", "1x", "2"), selectedIndex = 1, onSelect = {})
-        ZoomControl(levels = listOf("1x", "2"), selectedIndex = 0, onSelect = {})
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Box(modifier = Modifier.size(200.dp, 267.dp).background(appColors.cameraSurface)) { GridOverlay() }
+            ZoomControl(levels = listOf("0.5", "1x", "2"), selectedIndex = 1, onSelect = {})
+            ZoomControl(levels = listOf("1x", "2"), selectedIndex = 0, onSelect = {})
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Box(modifier = Modifier.size(150.dp, 200.dp).background(appColors.cameraSurface)) { GridOverlay() }
             StateMessage(
                 icon = painterResource(R.drawable.ic_wifi_off),
                 title = "Title",
@@ -266,6 +271,11 @@ fun CameraComponentCatalog(modifier: Modifier = Modifier) {
                 AdjustAction(icon = refresh, label = "Hide", onClick = {})
                 AdjustAction(icon = refresh, label = "Reset", onClick = {}, enabled = false)
             }
+        }
+        // The pose matching hint: scoring, matched, and nobody in the frame (plan T-017).
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            MatchHint(text = "Raise arm", score = 68)
+            MatchHint(text = "Matched!", score = 92, matched = true)
         }
     }
 }

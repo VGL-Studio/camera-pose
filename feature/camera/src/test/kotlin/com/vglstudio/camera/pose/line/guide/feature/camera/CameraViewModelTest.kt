@@ -8,6 +8,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.CameraUiState.Ready
 import com.vglstudio.camera.pose.line.guide.feature.camera.camera.CameraCapabilities
 import com.vglstudio.camera.pose.line.guide.feature.camera.capture.CapturedPhoto
 import com.vglstudio.camera.pose.line.guide.feature.camera.capture.CapturedPhotoHolder
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.PoseMatchHolder
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.CameraSettings
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.FlashMode
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.Lens
@@ -40,6 +41,7 @@ class CameraViewModelTest {
     private val repository = FakeCameraSettingsRepository()
     private val holder = CapturedPhotoHolder()
     private val activePose = ActivePoseHolder()
+    private val matchHolder = PoseMatchHolder()
     private val interruptions = FakeCountdownInterruptions()
     private val analytics = FakeAnalytics()
     private val logger = RecordingAppLogger()
@@ -52,6 +54,7 @@ class CameraViewModelTest {
             repository = repository,
             holder = holder,
             activePose = activePose,
+            matchHolder = matchHolder,
             countdownInterruptions = interruptions,
             userPreferences = userPreferences,
             analytics = analytics,
@@ -428,6 +431,48 @@ class CameraViewModelTest {
             analytics.events,
         )
         assertEquals("w01", holder.latest.value?.poseId)
+    }
+
+    @Test
+    fun shutter_whenMatched_logsMatchedTrue() = runTest {
+        activePose.set(PoseFixtures.pose("w01"))
+        matchHolder.set(true)
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals(
+            listOf(
+                AnalyticsEvent(
+                    name = "photo_captured",
+                    params = mapOf("pose_id" to "w01", "timer" to "off", "matched" to "true"),
+                ),
+            ),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun shutter_notMatched_logsMatchedFalse() = runTest {
+        activePose.set(PoseFixtures.pose("w01"))
+        matchHolder.set(true)
+        matchHolder.set(false)
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals(
+            listOf(
+                AnalyticsEvent(
+                    name = "photo_captured",
+                    params = mapOf("pose_id" to "w01", "timer" to "off", "matched" to "false"),
+                ),
+            ),
+            analytics.events,
+        )
+        // The control: matched at the moment of the next photo, not remembered from before.
+        matchHolder.set(true)
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals("true", analytics.events.last().params["matched"])
     }
 
     @Test

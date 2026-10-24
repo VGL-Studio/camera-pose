@@ -51,6 +51,8 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
 import com.vglstudio.camera.pose.line.guide.feature.camera.lastphoto.LastPhotoViewModel
 import com.vglstudio.camera.pose.line.guide.feature.camera.layout.isUnfolded
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchUiState
+import com.vglstudio.camera.pose.line.guide.feature.camera.match.PoseMatchViewModel
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.OverlayToolColumn
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
@@ -73,9 +75,11 @@ internal fun CameraRoute(
     viewModel: CameraViewModel = hiltViewModel(),
     poseViewModel: PoseViewModel = hiltViewModel(),
     lastPhotoViewModel: LastPhotoViewModel = hiltViewModel(),
+    matchViewModel: PoseMatchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val poseState by poseViewModel.uiState.collectAsStateWithLifecycle()
+    val matchState by matchViewModel.uiState.collectAsStateWithLifecycle()
     val poseActions = remember(poseViewModel) {
         PoseActions(
             onCategorySelect = poseViewModel::onCategorySelect,
@@ -166,13 +170,15 @@ internal fun CameraRoute(
             poseActions = poseActions,
             lastPhoto = lastPhoto,
             onLastPhotoClick = lastPhotoUri?.let { uri -> { currentOnOpenLastPhoto(uri) } },
+            matchState = matchState,
         )
     }
 }
 
 /**
  * Stateless screen: everything it shows comes from [uiState] and [poseState]. [lastPhoto] is the thumbnail of the
- * latest saved photo; the slot can be tapped only with [onLastPhotoClick] (T-016). Tested on the JVM and by
+ * latest saved photo; the slot can be tapped only with [onLastPhotoClick] (T-016). [matchState] is the pose matching
+ * (T-017): its hint on the frame, and the green outline and shutter ring when the pose matches. Tested on the JVM and by
  * screenshots, without [preview], so the frame shows the camera surface colour. Layout from design/context/
  * (411 x 891): top bar at 32, the 3:4 preview below it (with the pose overlay when the camera is ready), the chip row
  * and pose strip, and the capture row.
@@ -197,6 +203,7 @@ internal fun CameraScreen(
     poseActions: PoseActions = PoseActions(),
     lastPhoto: ImageBitmap? = null,
     onLastPhotoClick: (() -> Unit)? = null,
+    matchState: MatchUiState = MatchUiState.Off,
 ) {
     // The scroll positions live above the choice of layout, so they survive a change of layout (plan T-020).
     val chipsState = rememberLazyListState()
@@ -223,6 +230,7 @@ internal fun CameraScreen(
                 onLastPhotoClick = onLastPhotoClick,
                 chipsState = chipsState,
                 stripState = stripState,
+                matchState = matchState,
             )
         } else {
             CameraPhoneLayout(
@@ -245,6 +253,7 @@ internal fun CameraScreen(
                 onLastPhotoClick = onLastPhotoClick,
                 chipsState = chipsState,
                 stripState = stripState,
+                matchState = matchState,
             )
         }
     }
@@ -272,6 +281,7 @@ internal fun CameraPhoneLayout(
     onLastPhotoClick: (() -> Unit)?,
     chipsState: LazyListState,
     stripState: LazyListState,
+    matchState: MatchUiState,
 ) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready
@@ -324,6 +334,7 @@ internal fun CameraPhoneLayout(
                                 null
                             },
                             onStepBottomChange = { stepBottom = it },
+                            matchState = matchState,
                         )
                     },
                     zoomVisible = overlay?.panelOpen != true,
@@ -347,6 +358,7 @@ internal fun CameraPhoneLayout(
             onFlipClick = onFlipClick,
             lastPhoto = lastPhoto,
             onLastPhotoClick = onLastPhotoClick,
+            matched = matchState is MatchUiState.Matched,
         )
         Spacer(modifier = Modifier.height(Spacing.xl))
     }
@@ -382,6 +394,7 @@ internal object CameraTestTags {
     const val OPACITY_SLIDER = "camera_opacity_slider"
     const val SIZE_SLIDER = "camera_size_slider"
     const val LOCK_HINT = "camera_lock_hint"
+    const val MATCH_HINT = "camera_match_hint"
 
     /** Tag of the strip cell of a pose: `camera_pose_<id>`. */
     fun pose(id: String): String = "camera_pose_$id"

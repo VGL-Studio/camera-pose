@@ -16,4 +16,5 @@ enum class FeatureFlag(val key: String, val defaultValue: Boolean = false) {
     POSES("feature_poses_enabled"),
     SETTINGS("feature_settings_enabled"),
     IN_APP_REVIEW("feature_in_app_review_enabled"),
+    POSE_MATCHING("feature_pose_matching_enabled"),
 }

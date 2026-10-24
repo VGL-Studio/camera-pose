@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -276,7 +277,8 @@ private fun CountdownBadge(seconds: Int) {
 
 /**
  * Last photo on the left (the latest saved photo, T-016), shutter in the middle, switch camera on the right. Without
- * [onLastPhotoClick] the slot is empty and cannot be tapped.
+ * [onLastPhotoClick] the slot is empty and cannot be tapped. The shutter ring is green while the pose is [matched]
+ * (T-017).
  */
 @Composable
 internal fun CaptureRow(
@@ -286,6 +288,7 @@ internal fun CaptureRow(
     onFlipClick: () -> Unit,
     lastPhoto: ImageBitmap? = null,
     onLastPhotoClick: (() -> Unit)? = null,
+    matched: Boolean = false,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(CAPTURE_ROW_HEIGHT),
@@ -296,6 +299,7 @@ internal fun CaptureRow(
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
             ShutterButton(
+                ringColor = if (matched) MaterialTheme.appColors.successContainer else MaterialTheme.appColors.onCamera,
                 enabled = ready != null && !ready.capturing,
                 countingDown = ready?.countdown != null,
                 onShutterClick = onShutterClick,
@@ -350,6 +354,7 @@ internal fun LastPhotoSlot(image: ImageBitmap?, onClick: (() -> Unit)?) {
 /** Ring 76 with a 62 disc; while counting down it shows a close icon and cancels instead. */
 @Composable
 internal fun ShutterButton(
+    ringColor: Color = MaterialTheme.appColors.onCamera,
     enabled: Boolean,
     countingDown: Boolean,
     onShutterClick: () -> Unit,
@@ -363,7 +368,7 @@ internal fun ShutterButton(
         modifier = Modifier
             .size(SHUTTER_SIZE)
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
-            .border(SHUTTER_RING, appColors.onCamera, CircleShape)
+            .border(SHUTTER_RING, ringColor, CircleShape)
             .semantics { contentDescription = description }
             .clickable(
                 enabled = enabled,

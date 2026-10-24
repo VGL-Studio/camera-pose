@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <!-- A person and a magnifier, drawn for this app in the style of Material Symbols Rounded "person_search". -->
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M260,300a140,140 0,1 0,280 0a140,140 0,1 0,-280 0z"/>
+  <path
+      android:fillColor="#00000000"
+      android:pathData="M120,780L120,730Q120,650 220,610Q290,585 360,580"
+      android:strokeColor="@android:color/white"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:strokeWidth="70"/>
+  <path
+      android:fillColor="#00000000"
+      android:pathData="M550,640a110,110 0,1 0,220 0a110,110 0,1 0,-220 0z"
+      android:strokeColor="@android:color/white"
+      android:strokeWidth="70"/>
+  <path
+      android:fillColor="#00000000"
+      android:pathData="M750,720L860,830"
+      android:strokeColor="@android:color/white"
+      android:strokeLineCap="round"
+      android:strokeWidth="70"/>
+</vector>

@@ -6,9 +6,9 @@
 | CameraScreen_default_dark_unfolded | 5.4% | `CameraScreen_default_dark_unfolded_compare.png` |
 | CameraScreen_error_dark | 4.1% | `CameraScreen_error_dark_compare.png` |
 | CameraScreen_locked_dark | 6.8% | `CameraScreen_locked_dark_compare.png` |
-| CameraScreen_matched_dark | thiếu ảnh chuẩn screenshot | |
-| CameraScreen_matching_dark | thiếu ảnh chuẩn screenshot | |
-| CameraScreen_no-person_dark | thiếu ảnh chuẩn screenshot | |
+| CameraScreen_matched_dark | 6.9% | `CameraScreen_matched_dark_compare.png` |
+| CameraScreen_matching_dark | 6.8% | `CameraScreen_matching_dark_compare.png` |
+| CameraScreen_no-person_dark | 6.9% | `CameraScreen_no-person_dark_compare.png` |
 | CameraScreen_no-pose_dark | 3.8% | `CameraScreen_no-pose_dark_compare.png` |
 | CameraScreen_permission-denied_dark | 4.2% | `CameraScreen_permission-denied_dark_compare.png` |
 | CameraScreen_starting_dark | 2.8% | `CameraScreen_starting_dark_compare.png` |

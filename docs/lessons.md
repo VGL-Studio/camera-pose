@@ -577,7 +577,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-061: hàng chờ plan cạn sau mỗi phiên, phiên kế tiếp phải chờ người và AI viết plan
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, 2026-10-24.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, 2026-10-24.
 - **Chuyện gì:** sau RUN-20261023-02, phải một phiên có người theo dõi để viết 8 plan, trả lời câu hỏi, rà soát độc lập, soạn phiên bản 2, rồi mới lập được RUN-20261023-03. Thời gian từ lúc phiên xong tới lúc phiên kế tiếp chạy chủ yếu là chờ plan.
 - **Bằng chứng:** RUN-20261023-02 kết thúc 03:35 UTC; RUN-20261023-03 bắt đầu 16:53 UTC.
 - **Đề xuất sửa:** cuối mỗi phiên (sau báo cáo, khi còn hạn mức), phiên soạn plan `draft` cho các ticket `ready` kế tiếp, chạy thử mục 4.1, chạy `plan-check.py`, và gom mọi câu hỏi cần người vào một mục của báo cáo. Người chỉ trả lời và duyệt.
@@ -586,7 +586,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-062: mục "kiểm thủ công" dồn lại sau mỗi phiên, phần lớn chạy được trên emulator
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, mục Cần người kiểm tra.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, mục Cần người kiểm tra.
 - **Chuyện gì:** báo cáo RUN-20261023-04 có 7 nhóm kiểm thủ công. Nhiều mục không cần máy thật: xoay màn hình khi quảng cáo đang chờ, banner lỗi rồi làm mới, luồng "chi tiết tư thế, Chụp với tư thế này", gập mở (emulator gập). Chúng chờ người, nên lỗi như của L-059 chỉ lộ khi có người thử.
 - **Bằng chứng:** báo cáo RUN-20261023-04; `device-session.yml` chỉ chạy một kịch bản chung.
 - **Đề xuất sửa:** plan ghi mỗi tiêu chí kiểm thủ công là "máy thật" hay "emulator"; phần emulator thành kịch bản của `device-session.yml` (`scenarios.txt`), phiên chạy cuối phiên và đọc `summary.md`; chỉ phần máy thật (FPS, camera thật, Play) còn cho người.
@@ -604,7 +604,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-064: không có danh sách sẵn sàng phát hành, nên không biết còn bao xa tới bản production
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04 (mã quảng cáo thật cho `poses_banner`, `poses_detail_banner`, `review_interstitial`).
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04 (mã quảng cáo thật cho `poses_banner`, `poses_detail_banner`, `review_interstitial`).
 - **Chuyện gì:** việc cần cho bản production nằm rải rác trong báo cáo các phiên: mã quảng cáo thật còn thiếu, kiểm thủ công chưa làm, lỗi đang mở, ảnh chuẩn chưa xem. Không ai thấy một danh sách, và `scripts/release.sh` chỉ báo thiếu khi đã chạy.
 - **Bằng chứng:** báo cáo RUN-20261023-04, mục Đề xuất về dự án mẫu.
 - **Đề xuất sửa:** `scripts/status.py` sinh thêm mục "Sẵn sàng phát hành" trên trang tiến độ, từ các nguồn đã có (vị trí quảng cáo trong `AdPlacement` so với mã đã cấu hình ở staging, mục kiểm thủ công chưa đánh dấu trong báo cáo, issue mở, ticket chưa `on-staging`). AI không đọc cấu hình production.
@@ -622,12 +622,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-066: `wait-run.sh --pr` gọi ngay sau khi đẩy đọc lần chạy cũ bị hủy và báo đỏ
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, PR #98, #100.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, PR #98, #100.
 - **Chuyện gì:** đẩy commit mới lên nhánh của PR thì GitHub hủy lần chạy `pr-check` của commit trước (`cancelled`) rồi mới tạo lần chạy mới. `wait-run.sh --pr` đọc commit đầu của PR một lần lúc bắt đầu; gọi trong lúc lần chạy của commit trước bị hủy thì thấy `cancelled` và báo `ĐỎ (cancelled)`, mã 1. Theo số đo của PR #100, lần chạy của commit mới (`eba5f98`) được tạo trước (05:31:35Z), lần chạy của commit cũ (`e35ae86`) bị hủy sau đó (05:32:16Z). Ba lần trong một buổi; phiên tự chạy gặp mã 1 sẽ đọc log, không thấy lỗi, và có thể tính nhầm vào 3 lần sửa hay chạy lại vô ích.
 - **Bằng chứng:** PR #100, lần chạy 40066418977 `cancelled` (commit `e35ae86`) khi commit mới đã đẩy; lần chạy kế 40066593456 xanh. PR #98: cùng dấu hiệu.
 - **Đề xuất sửa:** `wait-run.sh --pr` chỉ nhận lần chạy có `head_sha` bằng commit đầu hiện tại của PR (đọc `pulls/<số>` mỗi vòng), và coi `cancelled` của commit cũ là "chưa có lần chạy" thay vì đỏ; test với `gh` giả. Trong lúc chờ sửa: `auto-run.md` bước 8, kết quả `cancelled` thì gọi lại `wait-run.sh`, không tính là lỗi.
 - **Áp dụng:** ticket T-044, plan phiên bản 2, PR #119, làm trong RUN-20261024-02 (`--pr` đọc lại commit đầu mỗi vòng, `--sha`). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261024-02: từ PR #120, cả 3 lần chờ (PR #120, #121, #122) bằng `--sha` nhận đúng lần chạy của commit đầu, không gặp `cancelled`; trường hợp bị hủy mới có bằng chứng từ test giả.
 
 ### L-067: vòng chờ bằng `pgrep -f` khớp chính lệnh đang chạy nó, và `pkill -f` giết cả shell của phiên
 
@@ -636,7 +636,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** RUN-20261024-01, T-039, giờ 07:25 đến 07:35 UTC.
 - **Đề xuất sửa:** `auto-run.md` bước 9 nói rõ: chờ `main-guard` chỉ bằng `scripts/wait-run.sh --workflow main-guard.yml --since <giờ>` chạy ở chế độ nền, đọc kết quả từ tệp đầu ra của nó; không dùng `pgrep` hay `pkill` theo chuỗi lệnh.
 - **Áp dụng:** `docs/auto-run.md` bước 9: chờ `main-guard` chỉ bằng `wait-run.sh` ở chế độ nền, không dùng `pgrep -f`, `pkill -f` (PR này). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261024-02: 4 lần chờ `main-guard` đều bằng `wait-run.sh --workflow` ở chế độ nền, không dùng `pgrep` hay `pkill`, không treo.
 
 ### L-068: `scripts/tests/run.sh` đặt `origin` toàn cục thành URL giả, test dùng bare repo thật phải tắt biến đó
 
@@ -667,9 +667,18 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-071: plan dùng `$TMPDIR` cho bản chép script nhưng môi trường cloud không đặt biến đó
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261024-02 (T-044).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261024-02 (T-044).
 - **Chuyện gì:** mục 6 của plan T-044 viết `git show origin/main:scripts/wait-run.sh > "$TMPDIR/wait-run.sh"`. Trong phiên cloud `TMPDIR` rỗng, nên lệnh ghi thẳng vào `/wait-run.sh` ở gốc ổ đĩa. Cùng lúc, lệnh chờ bằng `sleep` đứng đầu bị công cụ chặn, phải viết lại thành vòng `for ... sleep` nằm trong lệnh.
 - **Bằng chứng:** RUN-20261024-02, giờ 15:12 UTC: `echo "TMPDIR=[$TMPDIR]"` in `TMPDIR=[]`; file `/t044-tests.txt` nằm ở gốc.
 - **Đề xuất sửa:** plan và `auto-run.md` ghi `${TMPDIR:-/tmp}` (hoặc thư mục scratchpad của phiên) thay cho `$TMPDIR`; ghi rõ vòng chờ phải là `for i in ...; do ...; sleep N; done` hoặc chạy nền, không bắt đầu lệnh bằng `sleep`.
-- **Áp dụng:**
+- **Áp dụng:** `scripts/plan-check.py` quy tắc 12 (plan `draft` ghi `$TMPDIR` trần thì lỗi, plan `approved` thì chú ý), `docs/auto-run.md` bước 9, `docs/CLAUDE.md` mục Khi viết plan (PR này). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#150.
+- **Kiểm chứng:**
+
+### L-072: test của script dùng `sed -i` kiểu GNU, bộ test dừng giữa chừng trên macOS
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, sau RUN-20261024-02 (T-047, PR #122).
+- **Chuyện gì:** test `status` mà T-047 thêm vào `scripts/tests/run.sh` gọi `sed -i 's/.../'`. `sed` của macOS (BSD) đọc chữ ngay sau `-i` là đuôi tệp sao lưu, nên báo `invalid command code` và bộ test dừng ở test thứ 395, không in dòng tổng kết: `check.sh` đỏ trên máy dev. CI chạy Linux với `sed` GNU nên xanh; phiên cloud cũng là Linux nên không thấy. Cùng loại với L-069 (bash 3.2): lỗi chỉ lộ ra trên máy dev, sau khi đã merge.
+- **Bằng chứng:** chạy `scripts/tests/run.sh` trên macOS ngày 2026-10-24: `sed: 1: "/var/folders/...": invalid command code f`; PR #124 sửa thành `sed -i.bak ... && rm`.
+- **Đề xuất sửa:** trong script và test chỉ dùng dạng chạy được trên cả hai (`sed -i.bak ... && rm ...bak`, hay ghi ra tệp mới rồi `mv`); thêm vào phần dò tự động của L-069 một quy tắc tìm `sed -i` không có đuôi trong `scripts/`.
+- **Áp dụng:** chưa có. Dự án mẫu: VGL-Studio/app-project-template#150.
 - **Kiểm chứng:**

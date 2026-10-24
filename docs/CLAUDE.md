@@ -89,6 +89,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Plan thêm file trên R2 mà app bắt buộc phải có (catalog, ảnh của bộ khởi đầu): thêm đường dẫn vào `scripts/required-assets.txt` và ghi file này ở mục 3.2, để `preflight.yml` kiểm file đó mỗi sáng (L-011, `docs/ops/staging-and-runs.md`, mục 2.8).
 - Plan đổi `scripts/merge-if-green.sh` hay `.github/workflows/main-guard.yml`: liệt kê mọi kiểm tra hiện có mà trường hợp mới phải đi qua (nhãn, `main-broken`, phiên đang chạy, nhánh cập nhật, CI) và nói trường hợp mới qua hay bị chặn ở từng kiểm tra, mỗi kiểm tra một test (L-044).
 - Hàm phụ trợ nằm trong file test mà cũng phải đổi (ví dụ danh sách mà test so sánh): ghi rõ phần nào vào commit test của bước 3, phần nào vào commit code của bước 4, để test viết trước thất bại đúng lý do (L-025).
+- Lệnh trong plan ghi tệp tạm vào `${TMPDIR:-/tmp}`, không ghi `$TMPDIR` trần, vì môi trường cloud không đặt biến này; lệnh chờ không bắt đầu bằng `sleep` (L-071; `scripts/plan-check.py`, quy tắc 12).
 - Viết xong thì chạy `scripts/plan-check.py <plan>`, sửa hết lỗi trước khi đưa người duyệt, dán kết quả vào mô tả PR. Phiên tự chạy chạy lại script này ngay trước task và bỏ qua plan có lỗi.
 - Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`.
 

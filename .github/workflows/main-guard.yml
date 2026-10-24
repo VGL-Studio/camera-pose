@@ -31,6 +31,8 @@ permissions:
 
 jobs:
   guard:
+    # A run by hand on another branch would open main-broken, push a revert or close an issue for that branch.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

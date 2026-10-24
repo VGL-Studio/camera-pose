@@ -6,9 +6,11 @@
 # changes code (main-guard ignores docs-only commits, paths-ignore of main-guard.yml):
 #   0  green run                      XANH
 #   1  red run                        ĐỎ
-#   2  run still going                CHỜ (with the time the run started, for wait-run.sh --since)
-#   3  code but no run (no push event from GitHub, L-054), or no run within MAX_DEPTH commits   CHƯA KIỂM
-#   4  GitHub did not answer (unknown commit, network)   LỖI
+#   2  run still going                CHỜ (with the time the workflow run was created, for wait-run.sh --since)
+#   3  code but no run (no push event from GitHub, L-054), a run that ended without a verdict (cancelled,
+#      timed out, ...), or no run within MAX_DEPTH commits                                   CHƯA KIỂM
+#   4  GitHub did not answer (unknown commit, network), or a wrong argument                  LỖI
+# A commit is skipped as docs-only only when GitHub lists its files, all of them docs, and it has one parent.
 # start-run.yml calls it before firing the routine; the session calls it at its start (docs/auto-run.md, section 2).
 # Uses only the GitHub REST API through `gh api`.
 #
@@ -26,15 +28,16 @@ if [[ -z "$REPO" ]]; then
 fi
 
 if [[ $# -ge 1 ]]; then
-  [[ $# -eq 1 && "$1" =~ ^[0-9a-f]{7,40}$ ]] || { echo "cách dùng: scripts/main-guard-status.sh [<sha>]" >&2; exit 1; }
+  [[ $# -eq 1 && "$1" =~ ^[0-9a-f]{7,40}$ ]] || { echo "LỖI: cách dùng: scripts/main-guard-status.sh [<sha>]" >&2; exit 4; }
   HEAD_SHA="$1"
 else
-  git fetch -q origin main
-  HEAD_SHA="$(git rev-parse origin/main)"
+  git fetch -q origin main && HEAD_SHA="$(git rev-parse origin/main)" ||
+    { echo "LỖI: không lấy được nhánh chính (git fetch origin main)." >&2; exit 4; }
 fi
 
-# guard_state of find-breaking-commit.sh (copied, so that script is not changed), plus the start time: the newest
-# main-guard run on a commit, as success | failure | pending | none, then when it started.
+# Based on guard_state of find-breaking-commit.sh (copied, so that script is not changed): the newest main-guard
+# run on a commit, as success | failure | pending | none, or "other <conclusion>" for a run that ended without a
+# verdict (cancelled, timed_out, skipped, neutral, action_required, stale).
 guard_state() {
   local sha="$1" runs
   runs="$(gh api "repos/$REPO/commits/$sha/check-runs?check_name=$CHECK_NAME&per_page=20" --jq '.check_runs')" || return 1
@@ -42,11 +45,17 @@ guard_state() {
   jq -r '
     if length == 0 then "none"
     else (sort_by(.started_at) | last) as $r
-      | (if $r.status != "completed" then "pending"
-         elif $r.conclusion == "success" then "success"
-         elif $r.conclusion == "failure" then "failure"
-         else "pending" end) + " " + ($r.started_at // "")
+      | if $r.status != "completed" then "pending"
+        elif $r.conclusion == "success" then "success"
+        elif $r.conclusion == "failure" then "failure"
+        else "other " + ($r.conclusion // "unknown") end
     end' <<<"$runs"
+}
+
+# When the newest main-guard workflow run of a commit was created: wait-run.sh --since keeps runs created after
+# the time given, and a run is created before its check run starts.
+created_at() {
+  gh api "repos/$REPO/actions/workflows/main-guard.yml/runs?head_sha=$1&per_page=1" --jq '.workflow_runs[0].created_at // empty'
 }
 
 parent_of() {
@@ -69,17 +78,25 @@ depth=0
 while [[ -n "$current" && "$depth" -lt "$MAX_DEPTH" ]]; do
   depth=$((depth + 1))
   answer="$(guard_state "$current" 2>/dev/null)" || unreadable "$current"
-  read -r state started <<<"$answer"
+  read -r state detail <<<"$answer"
   short="${current:0:7}"
   case "$state" in
     success) say "XANH: main-guard qua trên $short."; exit 0 ;;
     failure) say "ĐỎ: main-guard không qua trên $short. Không bắt đầu phiên khi nhánh chính đỏ."; exit 1 ;;
-    pending) say "CHỜ: main-guard đang chạy trên $short (bắt đầu ${started:-không rõ}). Chờ xong rồi kích hoạt lại; phiên chờ bằng scripts/wait-run.sh --workflow main-guard.yml --since ${started:-<giờ bắt đầu>}."; exit 2 ;;
+    pending)
+      created="$(created_at "$current" 2>/dev/null)" || created=""
+      say "CHỜ: main-guard đang chạy trên $short (lần chạy tạo lúc ${created:-không rõ}). Chờ xong rồi kích hoạt lại; phiên chờ bằng scripts/wait-run.sh --workflow main-guard.yml --since ${created:-<giờ tạo lần chạy>}."
+      exit 2 ;;
+    other)
+      say "CHƯA KIỂM: $short có lần chạy main-guard kết thúc mà không có kết quả ($detail). $HOW_TO_RUN"
+      exit 3 ;;
   esac
-  # Files outside docs/ and *.md: main-guard runs for them (paths-ignore of main-guard.yml).
-  files="$(gh api "repos/$REPO/commits/$current" --jq '[.files[].filename | select((startswith("docs/") or endswith(".md")) | not)] | length' 2>/dev/null)" ||
+  # Files outside docs/ and *.md: main-guard runs for them (paths-ignore of main-guard.yml). No file list (GitHub
+  # cuts very large commits) or a merge commit (files listed against the first parent only) counts as code.
+  shape="$(gh api "repos/$REPO/commits/$current" --jq '"\([.files[].filename | select((startswith("docs/") or endswith(".md")) | not)] | length) \(.files | length) \(.parents | length)"' 2>/dev/null)" ||
     unreadable "$current"
-  if [[ "$files" != "0" ]]; then
+  read -r code_files all_files parents <<<"$shape"
+  if [[ "$code_files" != "0" || "$all_files" == "0" || "${parents:-0}" -gt 1 ]]; then
     say "CHƯA KIỂM: $short có thay đổi code nhưng main-guard chưa chạy (GitHub có thể đã không phát sự kiện push, L-054). $HOW_TO_RUN"
     exit 3
   fi

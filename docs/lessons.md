@@ -538,3 +538,75 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/cloud-env-check.sh` gọi `scripts/java-check.sh` (và các kiểm tra rẻ khác mà `check.sh` chạy trước khi build), để lỗi môi trường lộ trong vài giây đầu phiên và báo rõ `env-broken`, thay vì sau `check.sh`; test của script dùng `fake_java` có dòng `Picked up`.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-057: phiên không có bảng tra lỗi đã biết, nên lỗi lặp lại vẫn làm phiên dừng hay tốn vòng sửa
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** retro 2026-10-24 sau RUN-20261023-04 (L-046, L-048, L-050, L-054).
+- **Chuyện gì:** mỗi lỗi hạ tầng đã gặp (hết hạn mức Actions, PR xung đột không có CI, R2 hết giờ chờ trong `ui-test`, API merge báo lỗi mà đã merge) được sửa riêng bằng một mã thoát hay một đoạn trong `auto-run.md`. Không có một chỗ duy nhất để phiên tra "thông báo này nghĩa là gì, làm gì tiếp". Lỗi mới cùng kiểu (R2 hết giờ chờ, L-050) vẫn bị tính là lỗi thật và tốn vòng CI.
+- **Bằng chứng:** RUN-20261023-04, T-022: `ui-test` đỏ 2 lần vì R2; `scripts/failure-kind.sh` chỉ phân loại thô cho `main-guard`.
+- **Đề xuất sửa:** `docs/ops/failure-playbook.md`: bảng mẫu thông báo lỗi (regex) và việc phải làm (chạy lại không tính vào 3 lần sửa, chờ, coi như đã merge, dừng task, dừng phiên); script phân loại đọc bảng này và in việc phải làm; mỗi bài học môi trường mới thêm một dòng.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-058: điều kiện dừng 1 dừng task khi task khác trong cùng danh sách đổi chỗ gọi
+
+- **Trạng thái:** proposed. **Loại:** rủi ro. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017, T-020.
+- **Chuyện gì:** T-020 merge trước T-017 và tạo `CameraUnfolded.kt`, gọi thẳng `ShutterButton` và `PoseOverlay`. T-017 thêm tham số cho hai hàm đó, nên phải sửa `CameraUnfolded.kt` dù file không có trong mục 3.2 (điều kiện dừng 1). Phần sửa nhỏ, nối đúng ý của cả hai plan; người quyết định "sửa ngay, không cần plan". Phiên đông task sẽ còn gặp trường hợp này.
+- **Bằng chứng:** PR #81, commit `2e28f8c`, `2d04149`; plan T-020 mục 3 ghi ý định giữ `MatchHint` ở máy gập.
+- **Đề xuất sửa:** ADR của app nới điều kiện dừng 1: được sửa file ngoài mục 3.2 khi file đó do task khác của cùng danh sách tạo hay đổi sau khi plan được duyệt, phần sửa chỉ nối chỗ gọi theo ý đã ghi trong một trong hai plan, có test viết trước, ghi vào nhật ký và rà soát độc lập xét riêng phần này. Không áp dụng cho file của mục 1 thang rủi ro (`.github/`, `scripts/check.sh`, cấu hình build, manifest).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-059: điểm "nên sửa" của rà soát độc lập bị để lại cho người, có điểm là lỗi thật
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04 (T-018, T-019, T-020, T-022, T-023), PR #81.
+- **Chuyện gì:** báo cáo RUN-20261023-04 liệt kê 13 điểm nên sửa chưa sửa. Một điểm là lỗi người dùng gặp được: T-018 hủy composition khi chờ quảng cáo làm `onFinished` không được gọi, màn xem lại đứng yên. Trên PR #81, hai điểm nên sửa (TalkBack, không đoạn nào so được) sửa trong 30 phút với test viết trước.
+- **Bằng chứng:** báo cáo RUN-20261023-04, mục Cần người kiểm tra; PR #81.
+- **Đề xuất sửa:** `auto-run.md` bước 6: phiên sửa mọi điểm nên sửa nằm trong file của mục 3.2, có test viết trước thất bại đúng lý do, không đổi điều test của plan kiểm; chỉ để người quyết điểm mâu thuẫn với plan, spec hay test của plan. Cần sửa cùng ADR của L-058.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-060: `run-check.py` không thấy hai plan phụ thuộc file của nhau
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** rà soát trước RUN-20261023-03 (điểm chặn T-017, T-020).
+- **Chuyện gì:** `run-check.py` báo hai plan cùng sửa một file, nhưng không báo khi plan này tạo file mà plan kia giả định đã có (hoặc chưa có), nên thứ tự chạy sai chỉ được rà soát độc lập thấy. Khi một task dừng hay merge lệch thứ tự, không script nào báo trước file nào sẽ phải sửa thêm.
+- **Bằng chứng:** RUN-20261023-03, bảng rà soát: "T-017 phải sửa `CameraUnfolded.kt` không có trong mục 3.2".
+- **Đề xuất sửa:** `run-check.py` đọc mục 3.2 của mọi plan: plan sau nhắc tên file mà plan trước tạo thì phải xếp sau, và in "nếu <plan trước> chưa merge thì <plan sau> ..."; với hai plan cùng sửa một hàm có tên trong mục 3.1, in cảnh báo kèm tên hàm.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-061: hàng chờ plan cạn sau mỗi phiên, phiên kế tiếp phải chờ người và AI viết plan
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, 2026-10-24.
+- **Chuyện gì:** sau RUN-20261023-02, phải một phiên có người theo dõi để viết 8 plan, trả lời câu hỏi, rà soát độc lập, soạn phiên bản 2, rồi mới lập được RUN-20261023-03. Thời gian từ lúc phiên xong tới lúc phiên kế tiếp chạy chủ yếu là chờ plan.
+- **Bằng chứng:** RUN-20261023-02 kết thúc 03:35 UTC; RUN-20261023-03 bắt đầu 16:53 UTC.
+- **Đề xuất sửa:** cuối mỗi phiên (sau báo cáo, khi còn hạn mức), phiên soạn plan `draft` cho các ticket `ready` kế tiếp, chạy thử mục 4.1, chạy `plan-check.py`, và gom mọi câu hỏi cần người vào một mục của báo cáo. Người chỉ trả lời và duyệt.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-062: mục "kiểm thủ công" dồn lại sau mỗi phiên, phần lớn chạy được trên emulator
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, mục Cần người kiểm tra.
+- **Chuyện gì:** báo cáo RUN-20261023-04 có 7 nhóm kiểm thủ công. Nhiều mục không cần máy thật: xoay màn hình khi quảng cáo đang chờ, banner lỗi rồi làm mới, luồng "chi tiết tư thế, Chụp với tư thế này", gập mở (emulator gập). Chúng chờ người, nên lỗi như của L-059 chỉ lộ khi có người thử.
+- **Bằng chứng:** báo cáo RUN-20261023-04; `device-session.yml` chỉ chạy một kịch bản chung.
+- **Đề xuất sửa:** plan ghi mỗi tiêu chí kiểm thủ công là "máy thật" hay "emulator"; phần emulator thành kịch bản của `device-session.yml` (`scenarios.txt`), phiên chạy cuối phiên và đọc `summary.md`; chỉ phần máy thật (FPS, camera thật, Play) còn cho người.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-063: không có vòng nối từ số liệu của bản staging về thứ tự tính năng
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** retro 2026-10-24.
+- **Chuyện gì:** phiên làm đúng danh sách, nhưng danh sách lập từ spec ban đầu. Phiên thử, phản hồi và số liệu phân tích của bản staging chưa được dùng để quyết tính năng nào làm tiếp, bỏ hay sửa, nên app có thể đủ tính năng nhưng chưa phải những tính năng hợp lý nhất.
+- **Bằng chứng:** `docs/test-sessions/`, `features/*/feedback/` chưa dẫn tới đề xuất xếp lại backlog nào.
+- **Đề xuất sửa:** sau mỗi bản staging, AI viết một đề xuất xếp lại backlog (thêm, bỏ, đổi thứ tự, sửa spec), mỗi dòng có bằng chứng từ phiên thử, phản hồi hay số liệu; người phụ trách sản phẩm chốt. Mẫu tài liệu mới trong `docs/templates/`.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-064: không có danh sách sẵn sàng phát hành, nên không biết còn bao xa tới bản production
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04 (mã quảng cáo thật cho `poses_banner`, `poses_detail_banner`, `review_interstitial`).
+- **Chuyện gì:** việc cần cho bản production nằm rải rác trong báo cáo các phiên: mã quảng cáo thật còn thiếu, kiểm thủ công chưa làm, lỗi đang mở, ảnh chuẩn chưa xem. Không ai thấy một danh sách, và `scripts/release.sh` chỉ báo thiếu khi đã chạy.
+- **Bằng chứng:** báo cáo RUN-20261023-04, mục Đề xuất về dự án mẫu.
+- **Đề xuất sửa:** `scripts/status.py` sinh thêm mục "Sẵn sàng phát hành" trên trang tiến độ, từ các nguồn đã có (vị trí quảng cáo trong `AdPlacement` so với mã đã cấu hình ở staging, mục kiểm thủ công chưa đánh dấu trong báo cáo, issue mở, ticket chưa `on-staging`). AI không đọc cấu hình production.
+- **Áp dụng:**
+- **Kiểm chứng:**

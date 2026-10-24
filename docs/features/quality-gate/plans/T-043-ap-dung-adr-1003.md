@@ -1,7 +1,7 @@
 ---
 ticket: T-043
 title: Áp dụng ADR-1003 vào thang rủi ro và quy trình phiên tự chạy
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -130,3 +130,10 @@ Phần cần viết không khớp được với một vế của ADR-1003 (ph�
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-24, phiên có người theo dõi (Tuấn): đã merge
+
+- **Kết quả:** đã merge, PR #91, commit `3bd5324`. Tài liệu quy trình, không có test tự động (ngoại lệ ở mục 4); `scripts/tests/run.sh` và `foundation.py --check` qua.
+- **Rà soát độc lập:** 1 chặn, 7 nên sửa (đã sửa hết), 8 ghi chú (ghi trong mô tả PR #91, để người quyết vì là chữ của ADR).
+- **Lệch so với plan:** sửa thêm bước 4 (bảng và gạch đầu dòng), bước 5 và đoạn giao việc cho phiên con của `auto-run.md`, vì các câu đó vẫn coi mục 3.2 là ranh giới tuyệt đối và sẽ làm phiên dừng sau khi nối chỗ gọi (điểm chặn của rà soát); tiêu chí L-058 không đạt nếu thiếu.
+- **Cần người quyết:** cách đếm 3 file và 40 dòng; "cùng danh sách" khi task chuyển sang danh sách mới; giới hạn 3 lần sửa "của task" hay theo từng điểm; danh sách file cấm nối so với điểm chặn 7.

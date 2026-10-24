@@ -1,7 +1,7 @@
 ---
 ticket: T-038
 title: pr-check build bản release khi đổi thư viện hay module
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -180,3 +180,10 @@ Bí mật: không cần. Bản giả `app/src/staging/google-services.json` đ�
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-24, phiên có người theo dõi (Tuấn): đã merge
+
+- **Kết quả:** đã merge, PR #92, commit `d3b84df`. Làm trong phiên có người theo dõi vì đẩy thay đổi `.github/workflows/` từ máy cloud chưa được thử (rà soát trước RUN-20261024-01).
+- **Kiểm trên CI (mục 4):** PR #92 xanh, bước "Build bản release (R8)" chạy 6 phút 36 giây (04:28:02 đến 04:34:38). PR thử #93 bỏ dòng `-dontwarn` của `core/review/consumer-rules.pro`: `build-and-test` đỏ ở bước R8, bình luận trích `Missing class com.google.android.gms.common.annotation.NoNullnessRewrite` (lần chạy 40062288424); đã đóng PR và xóa nhánh. `grep secrets.`: không có.
+- **Rà soát độc lập:** 0 chặn, 2 nên sửa, đã sửa: bình luận lỗi chọn nhánh theo `steps.release.outcome` thay vì việc `release.log` có tồn tại; `auto-run.md` bước 8 nêu cả `consumer-rules.pro`, `proguard-rules.pro`, `docs/CLAUDE.md` ghi plan thêm thư viện đưa file luật R8 vào mục 3.2. Ghi chú không sửa: bộ lọc chưa có `gradle/wrapper/`.
+- **Cần người kiểm tra:** PR kế tiếp chỉ đổi code Kotlin: bước R8 phải là bỏ qua.

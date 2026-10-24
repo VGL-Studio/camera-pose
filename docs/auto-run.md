@@ -136,7 +136,7 @@ Kết quả rà soát chia ba mức:
 | Mức | Xử lý |
 | --- | --- |
 | Chặn | Quay lại bước 4. Tính vào giới hạn 3 lần sửa cho cùng một lỗi. |
-| Nên sửa | Phải sửa (ADR-1003) khi đủ ba điều: phần sửa chỉ chạm file của mục 3.2 hay file nối chỗ gọi được phép; có test viết trước thất bại đúng lý do; không đổi điều mà test của mục 4 của plan kiểm. Điểm nằm ngoài file được phép, hay không viết được test: không sửa, ghi vào báo cáo. Điểm mâu thuẫn với plan, spec hay một test của plan: không sửa, ghi vào báo cáo kèm phương án để người quyết. Sửa xong thì chạy lại bước 5 và giao rà soát độc lập lần nữa cho phần vừa sửa. Mỗi lần sửa tính vào giới hạn 3 lần sửa của task. |
+| Nên sửa | Phải sửa (ADR-1003) khi đủ ba điều: phần sửa chỉ chạm file của mục 3.2 hay file nối chỗ gọi được phép; có test viết trước thất bại đúng lý do; không đổi điều mà test của mục 4 của plan kiểm. Điểm nằm ngoài file được phép, hay không viết được test: không sửa, ghi vào báo cáo. Điểm mâu thuẫn với plan, spec hay một test của plan: không sửa, ghi vào báo cáo kèm phương án để người quyết. Sửa xong thì chạy lại bước 5 và giao rà soát độc lập lần nữa cho phần vừa sửa. Giới hạn 3 lần sửa tính riêng cho từng điểm nên sửa (như cho cùng một lỗi), không cộng dồn giữa các điểm; một điểm hết 3 lần thì hoàn tác phần sửa của điểm đó, ghi vào báo cáo, làm tiếp các điểm khác (ADR-1003, phần bổ sung). |
 | Ghi chú | Ghi vào báo cáo để người xem. |
 
 Phần nối chỗ gọi ngoài mục 3.2 và từng điểm đã sửa theo rà soát được ghi trong mô tả PR, mục "Ngoài mục 3.2" và "Đã sửa theo rà soát" (ADR-1003).

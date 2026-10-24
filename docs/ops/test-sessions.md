@@ -73,12 +73,83 @@ Cuối mỗi phiên tự chạy có task được merge, trước `staging.yml`,
 - **Có crash hoặc ANR:** workflow đỏ, phiên không phát bản staging, ghi phát hiện vào báo cáo phiên và soạn sẵn phản hồi mức chặn.
 - **Không có:** phiên phát staging, ghi tóm tắt và các phát hiện khác (lỗi đã bắt, lệch kịch bản) vào báo cáo phiên.
 - Kịch bản mất mạng tắt chế độ máy bay, Wi-Fi và dữ liệu di động, rồi chờ tới khi máy không còn mạng mặc định mới mở app (L-031). Không tắt được thì kịch bản bị bỏ qua: `scenarios.txt` ghi `network=still_on skipped`, `summary.md` có dòng "Kịch bản mất mạng bị bỏ qua", và không có `offline.png`. Không dùng ảnh hay log của lần đó làm bằng chứng cho trạng thái lỗi.
+- **Kịch bản theo plan:** sau kịch bản chuẩn, `scenarios` chạy mọi tệp `feature/*/src/deviceScenarios/*.txt` và `app/src/deviceScenarios/*.txt` qua `scripts/device-scenario.py` (mục 5), mỗi tệp từ trạng thái mới cài. `summary.md` có bảng "Kịch bản theo plan". Một tệp `lỗi` là phát hiện để phân tích, không chặn phát staging; `bỏ qua (môi trường)` (thiếu camera, không tắt được mạng) không phải lỗi của app. Crash và ANR trong lúc chạy kịch bản vẫn chặn như mọi crash.
 - Số liệu thời gian và khung hình trên emulator không có GPU chỉ để so giữa các lần chạy, không dùng để chặn.
 - Hành vi đã biết của emulator: sau khi xóa dữ liệu, các lần mở trước khi tải cấu hình xong lần đầu (thường là lần đầu, có khi cả lần thứ hai) hết 10 giây tải cấu hình (TS-20261017-01, TS-20261018-01); trên máy thật không lặp lại (TS-20261017-02, FB-20261017-02). Không ghi thành phát hiện mới, trừ khi xảy ra sau khi app đã tải cấu hình xong một lần.
 
 Chạy tay: **Actions > device-session > Run workflow** trên `main`. Mỗi lần khoảng 25 phút CI.
 
-## 5. Quy tắc về dữ liệu
+## 5. Kịch bản theo plan
+
+Tiêu chí kiểm thủ công chạy được trên emulator thì viết thành tệp kịch bản (L-062, T-046). Tệp nằm ngoài `docs/` để `pr-check` và `main-guard` chạy khi tệp hay `testTag` bị đổi: `feature/<feature>/src/deviceScenarios/<T-NNN>-<tên>.txt`, hoặc `app/src/deviceScenarios/` cho luồng của vỏ app. Gradle không đọc thư mục này.
+
+**Cách chạy.** Cuối phiên tự chạy, `device-session.yml` tự chạy chúng. Trên máy dev:
+
+```text
+scripts/device-session.sh start <tên>
+scripts/device-session.sh scenarios --yes
+scripts/device-session.sh stop
+scripts/device-scenario.py check <tệp>...      # không cần máy: cú pháp, testTag và chuỗi có thật
+```
+
+Kết quả nằm trong thư mục phiên: `scenarios.txt` (mỗi bước một dòng `plan <tệp> step=<n> <lệnh> ok|FAIL|SKIP`, cuối tệp `result=` và `seconds=`), `scenarios/<tên tệp bỏ .txt>/<tên>.png` (lệnh `shot`), và `fail.png`, `fail.xml` của bước lỗi đầu tiên. `summary.md` in bảng "Kịch bản theo plan": tệp, ticket, tiêu chí, kết quả (`đạt`, `lỗi`, `bỏ qua (môi trường)`, `bỏ qua (hết thời gian)`, `lỗi tệp`), bước lỗi, số giây, số crash và ANR trong tệp.
+
+**Phần đầu** (ba dòng, trước mọi lệnh): `ticket: T-022`, `criterion: <điều tệp chứng minh>`, `timeout: <giây>` (mặc định 180, tối đa 300). Dòng trống và dòng bắt đầu bằng `#` bị bỏ qua.
+
+**Bộ chọn phần tử** (đọc từ `uiautomator dump`):
+
+| Từ khóa | Khớp với |
+| --- | --- |
+| `id=<testTag>` | `resource-id` đúng bằng tag |
+| `idp=<tiền tố>` | `resource-id` bắt đầu bằng tiền tố, ví dụ `idp=poses_card_` |
+| `desc=<chuỗi>` | `content-desc` |
+| `text=<chuỗi>` | chữ hiển thị |
+| `str=<tên chuỗi>` | giá trị trong `res/values/strings.xml` của mọi module, khớp cả `text` lẫn `content-desc` |
+
+Bộ lọc thêm: `in=<testTag>` (trong cây con của phần tử có tag đó), `index=<n>` (phần tử thứ n, đếm từ 1), `selected=true` (thuộc tính `selected` hoặc `checked`), `clickable=true`. Nhiều bộ chọn ngăn bằng ` | ` nghĩa là khớp một trong số đó.
+
+**Lệnh:**
+
+| Lệnh | Việc |
+| --- | --- |
+| `fresh` | Xóa dữ liệu, cấp quyền runtime, mở app |
+| `consent decline [giây]` | Chạm nút từ chối của hộp thoại đồng ý quảng cáo (ADR-0013) khi nó hiện, hoặc thấy luôn màn hình đầu của app |
+| `wait <bộ chọn> [giây]` | Chờ tới khi khớp (mặc định 20 giây) |
+| `need <bộ chọn> [giây]` | Như `wait`, nhưng hết giờ thì tệp kết thúc `bỏ qua (môi trường)`. Dùng cho điều kiện mà emulator CI có thể không có (camera) |
+| `tap <bộ chọn>`, `tap_if <bộ chọn>` | Chạm vào tâm của phần tử; `tap_if` bỏ qua khi không thấy |
+| `scroll <bộ chọn> [lần]` | Vuốt lên trong vùng của phần tử (mặc định 3 lần) |
+| `expect`, `expect_no`, `count <bộ chọn> <n>` | Kiểm có, không có, hay đúng n phần tử, sau một lần dump |
+| `network off\|on` | Tắt hay bật cả Wi-Fi và dữ liệu; không tắt được thì `bỏ qua (môi trường)` |
+| `device rotate landscape\|portrait`, `device night on\|off` | Xoay màn hình, chế độ tối |
+| `device unfold`, `device fold` | Giả lập gập mở bằng đổi kích thước (673 × 841 dp, khung `_unfolded`) rồi trả về như cũ |
+| `device locale <thẻ>` | Ngôn ngữ riêng của app (Android 13 trở lên) |
+| `back`, `shot <tên>` | Phím Back; chụp màn hình |
+
+Ví dụ ngắn:
+
+```text
+ticket: T-022
+criterion: Chi tiết tư thế mở được từ thư viện
+timeout: 120
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+need id=camera_poses 15
+tap id=camera_poses
+wait id=poses_grid 20
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+shot detail
+```
+
+**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 600); mỗi tệp có `min(timeout của tệp, thời gian còn lại)`; mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp. Sau mỗi tệp, trình chạy trả máy về gốc: kích thước và mật độ, xoay màn hình, chế độ tối, mạng, ngôn ngữ riêng của app. Trình chạy hỏng thì `scenarios` ghi dòng `plan runner_error` và vẫn kết thúc bình thường.
+
+**Cửa sổ riêng.** `testTag` chỉ thành `resource-id` trong cửa sổ có `testTagsAsResourceId`: vỏ app đặt nó ở gốc giao diện (`MainActivity`) và ở hộp thoại mạng (`NetworkDialogHost`). Hộp thoại hay popup khác (mỗi cái một cửa sổ) mà kịch bản cần tìm theo `id=` thì gắn `Modifier.exposeTestTagsForUiAutomator()` (`app/.../ui/UiAutomatorTags.kt`) ở gốc nội dung của nó, nơi mở chúng.
+
+**Đổi tên `testTag`** thì sửa kịch bản: `scripts/device-scenario.py check` chạy trong `scripts/tests/run.sh` ở mọi PR đổi `feature/**` hay `app/**` và báo tag hay chuỗi không còn.
+
+## 6. Quy tắc về dữ liệu
 
 - Chỉ thử bản staging. Không ghi phiên trên bản production hay trên máy có dữ liệu thật của người dùng khác.
 - App không ghi dữ liệu cá nhân vào log (ADR-0019), nhưng log hệ thống có thể có tên máy, tài khoản, tên mạng Wi-Fi. Vì vậy log thô không vào git; báo cáo chỉ trích dòng làm bằng chứng, đã bỏ các thông tin đó.

@@ -1814,7 +1814,7 @@ expect "device-scenario: a hanging adb fails the file within its deadline" "0 1 
   "$ds_code $(ds_count 'FAIL adb_timeout') $(ds_count '^plan hang-a.txt result=lỗi') $(ds_count '^plan hang-b.txt result=đạt') $([[ $((SECONDS - ds_started)) -lt 15 ]] && echo yes || echo no)"
 
 expect "device-scenario: files beyond the budget are skipped" "0 2 yes" \
-  "$(ds_run "camera.xml" "$ds_fixtures/scenarios/*.txt" DEVICE_SCENARIOS_BUDGET=0 | head -n 1) $(ds_count 'result=bỏ qua (hết thời gian)') $([[ "$(ds_count '^shell wm size reset$' "$ds_calls")" -ge 1 ]] && echo yes || echo no)"
+  "$(ds_run "camera.xml" "$ds_fixtures/scenarios/[of]*.txt" DEVICE_SCENARIOS_BUDGET=0 | head -n 1) $(ds_count 'result=bỏ qua (hết thời gian)') $([[ "$(ds_count '^shell wm size reset$' "$ds_calls")" -ge 1 ]] && echo yes || echo no)"
 
 ds_reset_calls() { # how many of the reset commands the last run sent
   local n=0 pattern

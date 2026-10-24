@@ -1,0 +1,42 @@
+ticket: T-024
+criterion: Gập mở, bước 1 đến 4 (plan T-024, mục 4), bằng wm size thay cho gập thật
+timeout: 180
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+need id=camera_poses 15
+tap id=camera_poses
+wait id=poses_grid 20
+# lưu một thẻ để chip "Đã lưu" có nội dung
+tap str=poses_cd_save in=poses_grid index=1
+wait str=poses_cd_unsave in=poses_grid 5
+# (1) mở gập ở thư viện: 3 cột; chọn chip, gập lại: chip giữ
+device unfold
+wait id=poses_grid 10
+shot unfolded
+tap str=poses_chip_saved
+wait str=poses_chip_saved selected=true 5
+device fold
+wait id=poses_grid 10
+expect str=poses_chip_saved selected=true
+shot folded
+device unfold
+wait id=poses_grid 10
+expect str=poses_chip_saved selected=true
+# (2) chi tiết khi mở gập; gập lại: cùng tư thế
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+expect id=pose_detail_bottom_bar
+shot detail-unfolded
+device fold
+wait id=pose_detail_screen 10
+shot detail-folded
+# (3) "Chụp với tư thế này" khi mở gập
+device unfold
+wait id=pose_detail_screen 10
+tap str=poses_detail_shoot
+wait id=camera_screen 15
+# (4) chế độ tối
+device night on
+shot camera-unfolded-dark

@@ -1,0 +1,56 @@
+ticket: T-022
+criterion: Luồng thật trên máy, bước 1 đến 7 (plan T-022, mục 4)
+timeout: 240
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+wait id=camera_screen 15
+need id=camera_poses 15
+# (1) thư viện, chạm thẻ: chi tiết mở, ảnh lớn hiện
+tap id=camera_poses
+wait id=poses_grid 20
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+wait id=pose_detail_image 30
+shot detail
+# (2) cuộn hết nội dung, nút luôn thấy
+scroll id=pose_detail_screen 5
+expect id=pose_detail_bottom_bar
+# (3) lưu ở chi tiết, quay lại: thẻ đã lưu
+tap str=poses_cd_save in=pose_detail_screen
+wait str=poses_cd_unsave in=pose_detail_screen 5
+back
+wait id=poses_grid 10
+expect str=poses_cd_unsave in=poses_grid index=1
+# (4) "Chụp với tư thế này": camera mở; Back ở camera thoát app
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+tap str=poses_detail_shoot
+wait id=camera_screen 15
+shot camera-with-pose
+back
+expect_no id=camera_screen
+# (5) mất mạng, mở chi tiết chưa tải ảnh lớn: hộp thoại mạng; bật mạng, Thử lại: ảnh hiện
+fresh
+consent decline 30
+wait id=camera_screen | id=onboarding_screen 60
+tap_if id=onboarding_enable_camera
+need id=camera_poses 15
+tap id=camera_poses
+wait id=poses_grid 20
+network off
+tap idp=poses_card_ in=poses_grid index=3
+wait id=network_dialog 30
+shot offline
+network on
+tap id=network_dialog_retry
+wait id=pose_detail_image 30
+# (6) chế độ tối
+device night on
+wait id=pose_detail_screen 10
+shot dark
+# (7) tiếng Anh
+device locale en-US
+wait id=pose_detail_screen 15
+shot english

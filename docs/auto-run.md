@@ -286,6 +286,9 @@ Sau đó AI:
    - Ghi giờ hiện tại (UTC), khởi động `device-session.yml` trên nhánh chính (`reason` là mã phiên), rồi chờ bằng `scripts/wait-run.sh --workflow device-session.yml --since <giờ vừa ghi>` ở chế độ nền (khoảng 12 phút). **Trong lúc chờ, làm bước 2.** Xong thì tải artifact `device-session`.
    - Không tải được artifact (thường do mạng của môi trường chặn nơi lưu artifact, L-030): đọc bản tóm tắt trong cuối log của job, ghi vào báo cáo "chưa phân tích được" kèm lỗi tải, và vẫn quyết định phát hay không theo crash và ANR của bản tóm tắt. Người tải artifact và nhờ AI phân tích sau, trong phiên có người theo dõi.
    - Phân tích thư mục phiên theo `docs/CLAUDE.md`, mục Khi phân tích một phiên thử, nhưng ghi kết quả vào mục Kiểm thử trên máy ảo của báo cáo phiên thay vì một file `docs/test-sessions/` riêng. Phản hồi `FB-...` soạn sẵn đi qua PR báo cáo.
+   - Đọc bảng "Kịch bản theo plan" của `summary.md` (`docs/ops/test-sessions.md`, mục 5). Dòng `lỗi` là một phát hiện: ghi bước lỗi, mở `fail.png`, `fail.xml` và đoạn log sau dấu `scenario=plan file=<tệp>` làm bằng chứng, soạn phản hồi `FB-...` mức `nen-sua`, và ghi vào "Cần người kiểm tra". Dòng `bỏ qua (môi trường)` ghi vào báo cáo, không soạn phản hồi; dòng kiểm thủ công tương ứng vẫn chờ người. Dòng `lỗi tệp`, `bỏ qua (hết thời gian)` và dòng `plan runner_error` là lỗi của kịch bản hay của trình chạy: ghi vào báo cáo.
+   - Tiêu chí về bố cục (vị trí, số cột, giao diện tối) chỉ ghi là đạt sau khi phiên mở ảnh `shot` của bước đó và đối chiếu với tiêu chí, hoặc khi kịch bản có lệnh `count` hay `expect` kiểm đúng điều đó.
+   - Kịch bản theo plan lỗi không chặn phát staging; crash và ANR thì vẫn chặn.
    - **Có crash hoặc ANR** (workflow đỏ, `summary.md` ghi "chặn"): không khởi động `staging.yml`. Ghi vào báo cáo dấu vết lỗi và commit nghi gây ra, soạn phản hồi mức `chan`. Nhánh chính vẫn xanh nên không mở `main-broken`; người quyết định sửa trước hay phát.
    - Workflow đỏ mà không có `summary.md` (lỗi hạ tầng của emulator): chạy lại một lần; vẫn lỗi thì ghi vào báo cáo và vẫn phát staging, vì cổng chất lượng đã qua.
    - Không có crash hay ANR: ghi giờ, khởi động `staging.yml` để build bản staging từ nhánh chính và phát cho nhóm qua Firebase App Distribution, rồi chờ bằng `scripts/wait-run.sh --workflow staging.yml --since <giờ vừa ghi>` ở chế độ nền (khoảng 7 phút). Trong lúc chờ, viết mục Kiểm thử trên máy ảo của báo cáo.
@@ -337,7 +340,7 @@ Báo cáo phiên là thứ dev đọc đầu tiên khi bắt đầu làm việc 
 
 - Nhánh chưa đẩy, ngay dưới Tóm tắt khi có bundle: chép đoạn `scripts/save-branch.sh` in ra.
 - Kết quả từng task: đã merge, bị dừng, bị bỏ qua, kèm lý do.
-- Những gì người cần tự kiểm tra: ảnh chuẩn screenshot mới, tiêu chí kiểm tra thủ công, điểm rà soát mức ghi chú.
+- Những gì người cần tự kiểm tra: ảnh chuẩn screenshot mới, tiêu chí kiểm tra thủ công máy thật và người, kịch bản emulator lỗi hay bị bỏ qua, điểm rà soát mức ghi chú.
 - Task bị dừng: dừng ở bước nào, vì sao, đề xuất hướng xử lý.
 - Thông tin bản staging: phiên bản, kênh phát.
 - Thời gian chạy và mức sử dụng của phiên, token của từng task so với ước tính trong plan (`docs/ops/token-usage.md`).

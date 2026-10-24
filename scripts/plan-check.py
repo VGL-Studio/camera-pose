@@ -32,9 +32,16 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
      already in the repository (CI fails on a missing one); no image of the file list sits under src/test outside
      src/test/screenshots/. Errors for a draft plan, warnings for an approved one, like rule 7.
  10. The ticket's status follows the plan's (L-019, L-045): a warning when they disagree, fixed by scripts/status.py --sync.
+ 11. Every "Kiểm tra thủ công" row of section 4 says where it runs (L-062, plan T-046): '(emulator: <scenario file>)',
+     '(máy thật: <reason>)' or '(người: <reason>)'. An emulator row names scenario files that are in the file list
+     or in the repository, and a file in the repository passes `scripts/device-scenario.py check`. Only a warning, for
+     draft and approved plans alike (decision of 2026-10-24). It becomes an error for a draft plan (a warning stays
+     for an approved one, like rule 7) once a device-session has run the first three scenario files of T-046 and all
+     passed; that is a separate one-line change with its test.
 PLAN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
 
+import importlib.util
 import os
 import re
 import sys
@@ -195,6 +202,52 @@ def check_sh_problems(text, listed):
         if path.endswith(".png") and re.search(r"(^|/)src/test[A-Za-z]*/", path) and "src/test/screenshots/" not in path:
             problems.append(f"{path}: ảnh chuẩn screenshot phải nằm trong <module>/src/test/screenshots/; "
                             "scripts/check.sh chỉ tìm ảnh ở đó.")
+    return problems
+
+
+def scenario_runner():
+    """The module of scripts/device-scenario.py (its name has a hyphen, so it is loaded by path)."""
+    path = Path(__file__).resolve().parent / "device-scenario.py"
+    spec = importlib.util.spec_from_file_location("device_scenario", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["device_scenario"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+MANUAL_PLACE = re.compile(r"\((emulator|máy thật|người):([^)]*)\)", re.I)
+
+
+def manual_test_problems(text, listed):
+    """Rule 11: where each manual test row of section 4 runs, and the scenario files of the emulator rows."""
+    match = re.search(r"^## 4\..*?$(.*?)(?=^## |\Z)", text, re.S | re.M)
+    problems = []
+    for line in (match.group(1) if match else "").splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        for cell in (c.strip() for c in line.strip().strip("|").split("|")):
+            if not cell.lower().startswith("kiểm tra thủ công"):
+                continue
+            place = MANUAL_PLACE.search(cell)
+            if not place:
+                problems.append(f"quy tắc 11: dòng kiểm tra thủ công '{cell[:60]}' không ghi nơi chạy. Ghi "
+                                "'(emulator: <tệp kịch bản>)', '(máy thật: <lý do>)' hay '(người: <lý do>)' "
+                                "(docs/templates/plan.md, mục 4; L-062).")
+                continue
+            kind, detail = place.group(1).lower(), place.group(2).replace("`", "").strip()
+            if kind != "emulator":
+                if not detail:
+                    problems.append(f"quy tắc 11: dòng kiểm tra thủ công '{cell[:60]}' ghi ({kind}:) nhưng thiếu lý do.")
+                continue
+            files = [f.strip() for f in detail.split(",") if f.strip()]
+            if not files:
+                problems.append(f"quy tắc 11: dòng kiểm tra thủ công '{cell[:60]}' ghi (emulator:) nhưng thiếu tệp kịch bản.")
+            for name in files:
+                if name not in listed and not (ROOT / name).is_file():
+                    problems.append(f"quy tắc 11: tệp kịch bản {name} không có trong mục 3.2 hay repo.")
+                elif (ROOT / name).is_file():
+                    for message in scenario_runner().check_files([str(ROOT / name)], ROOT):
+                        problems.append(f"quy tắc 11: {message.replace(str(ROOT) + '/', '')}")
     return problems
 
 
@@ -385,6 +438,7 @@ def check(plan_path):
         for message in permission_and_library_problems(text, fields, listed) + check_sh_problems(text, listed):
             (errors if status == "draft" else warnings).append(message)
     warnings += ticket_status_problems(fields)
+    warnings += manual_test_problems(text, listed)
     if "## 4. Kiểm thử" not in text:
         warnings.append("không thấy mục 4. Kiểm thử.")
     return errors, warnings

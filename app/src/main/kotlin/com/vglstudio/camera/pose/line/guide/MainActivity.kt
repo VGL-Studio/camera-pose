@@ -34,6 +34,7 @@ import com.vglstudio.camera.pose.line.guide.settings.isDark
 import com.vglstudio.camera.pose.line.guide.settings.languageToApply
 import com.vglstudio.camera.pose.line.guide.settings.readStoredLanguage
 import com.vglstudio.camera.pose.line.guide.settings.withAppLanguage
+import com.vglstudio.camera.pose.line.guide.ui.exposeTestTagsForUiAutomator
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
@@ -95,7 +96,7 @@ class MainActivity : ComponentActivity() {
                 AppTheme(darkTheme = darkTheme) {
                     // The surface fills the whole window, including the area behind the system bars,
                     // so those areas take the theme background in both light and dark mode.
-                    Surface(modifier = Modifier.fillMaxSize()) {
+                    Surface(modifier = Modifier.fillMaxSize().exposeTestTagsForUiAutomator()) {
                         val networkDialogState by networkDialog.state.collectAsState()
                         // Followed, not read once: the library button shows and hides with the remote value (ADR-0003).
                         val posesEnabled by featureFlags.enabled(FeatureFlag.POSES).collectAsState(initial = false)

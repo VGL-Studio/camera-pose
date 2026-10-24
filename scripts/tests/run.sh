@@ -1244,6 +1244,9 @@ printf 'no front matter here\n' > "$work/pq2/docs/features/demo/tickets/T-930-x.
 git -C "$work/pq2" init -q -b main
 expect "plan-queue: a ticket without front matter exits 2" 2 "$(PQ_ROOT="$work/pq2" pq_codes)"
 echo '{"routes": {}}' > "$work/pq-nogh.json"
+printf -- '---\nid: X-1\nstatus: ready\n---\n' > "$work/pq2/docs/features/demo/tickets/T-931-x.md"
+printf -- '---\nid: T-930\nstatus: ready\n---\n' > "$work/pq2/docs/features/demo/tickets/T-930-x.md"
+expect "plan-queue: a ticket id that is not T-NNN exits 2" 2 "$(PQ_ROOT="$work/pq2" pq_codes)"
 expect "plan-queue: a gh error exits 2" 2 "$(PQ_FIXTURE="$work/pq-nogh.json" pq_codes)"
 echo '{"routes": {"pulls?state=open&per_page=100": []}}' > "$work/pq-empty.json"
 expect "plan-queue: runs on the repository" 1 \

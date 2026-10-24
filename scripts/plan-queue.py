@@ -11,7 +11,7 @@ Order: `sprint` (a number before a word before empty), then the ticket number.
 
 stdout: at most N lines `T-NNN<TAB><ticket path>`. stderr: one line per ticket skipped, with the reason.
 Exit 0 when the documents were read (also for an empty list); 2 when a document, a `git` or a `gh` call failed.
-Writes no file. The session runs `git fetch origin` before calling it.
+Reads at most 100 open pull requests and 100 files per pull request (no paging). Writes no file. The session runs `git fetch origin` before calling it.
 PLAN_QUEUE_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
 
@@ -62,8 +62,8 @@ def read_tickets(run_check):
     tickets = {}
     for path in sorted(DOCS.glob("features/*/tickets/T-*.md")):
         fields = run_check.front_matter(path.read_text())
-        if not fields.get("id") or not fields.get("status"):
-            fail(f"{path.relative_to(ROOT)}: không đọc được khối frontmatter có id và status.")
+        if not re.fullmatch(r"T-\d+", fields.get("id", "")) or not fields.get("status"):
+            fail(f"{path.relative_to(ROOT)}: không đọc được khối frontmatter có id dạng T-NNN và status.")
         fields["path"] = path
         tickets[fields["id"]] = fields
     return tickets

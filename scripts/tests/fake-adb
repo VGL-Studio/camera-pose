@@ -5,6 +5,11 @@
 # "none", i.e. offline). `exec-out cat` prints $FAKE_ADB_UI (a UI dump), `find /sdcard` prints $FAKE_ADB_FILES. Every call is appended to $FAKE_ADB_CALLS when set.
 # `dumpsys package` lists $FAKE_ADB_RUNTIME_PERMISSIONS (space-separated) as runtime permissions; `pm grant` fails
 # for the permissions in $FAKE_ADB_GRANT_FAILS.
+# UI dumps for scripts/device-scenario.py: `uiautomator dump` takes the next file of $FAKE_ADB_UI_SEQ (space-separated
+# paths; the count is kept in $FAKE_ADB_STATE_DIR/ui-seq.n, default $TMPDIR; the last file repeats) and `exec-out cat`
+# prints it. A file named *.idle-error makes the dump print "ERROR: could not get idle state." and print nothing.
+# $FAKE_ADB_HANG names a shell subcommand (for example uiautomator) that never returns. `wm size` and `wm density`
+# report a 1080x2400 screen at 420 dpi.
 [[ -n "${FAKE_ADB_CALLS:-}" ]] && echo "$*" >> "${FAKE_ADB_CALLS}"
 case "$1" in
   get-state) [[ -n "${FAKE_ADB_NO_DEVICE:-}" ]] && exit 1; echo device ;;
@@ -14,7 +19,22 @@ case "$1" in
     exec sleep 300 ;;
   shell)
     shift
+    [[ -n "${FAKE_ADB_HANG:-}" && "$*" == "${FAKE_ADB_HANG}"* ]] && exec sleep 300
     case "$*" in
+      "uiautomator dump"*)
+        if [[ -n "${FAKE_ADB_UI_SEQ:-}" ]]; then
+          state="${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}"
+          mkdir -p "$state"
+          read -r -a files <<<"${FAKE_ADB_UI_SEQ}"
+          n="$(cat "$state/ui-seq.n" 2>/dev/null || echo 0)"
+          (( n >= ${#files[@]} )) && n=$(( ${#files[@]} - 1 ))
+          echo "${files[$n]}" > "$state/ui-seq.cur"
+          echo $(( n + 1 )) > "$state/ui-seq.n"
+          if [[ "${files[$n]}" == *.idle-error ]]; then echo "ERROR: could not get idle state."; exit 0; fi
+          echo "UI hierarchy dumped to: /sdcard/ds.xml"
+        fi ;;
+      "wm size") echo "Physical size: 1080x2400" ;;
+      "wm density") echo "Physical density: 420" ;;
       "pm path"*) [[ -n "${FAKE_ADB_NO_APP:-}" ]] && exit 1; echo "package:/data/app/base.apk" ;;
       "getprop ro.build.version.sdk") echo 34 ;;
       getprop*) echo Fake ;;
@@ -34,6 +54,15 @@ case "$1" in
       monkey*) echo "Events injected: 1500" ;;
       *) exit 0 ;;
     esac ;;
-  exec-out) [[ "$*" == "exec-out cat"* ]] && cat "${FAKE_ADB_UI:-/dev/null}"; exit 0 ;;
+  exec-out)
+    if [[ "$*" == "exec-out cat"* ]]; then
+      if [[ -n "${FAKE_ADB_UI_SEQ:-}" ]]; then
+        current="$(cat "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/ui-seq.cur" 2>/dev/null || true)"
+        [[ -n "$current" && "$current" != *.idle-error ]] && cat "$current"
+      else
+        cat "${FAKE_ADB_UI:-/dev/null}"
+      fi
+    fi
+    exit 0 ;;
   *) exit 0 ;;
 esac

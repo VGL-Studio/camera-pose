@@ -1,0 +1,8 @@
+ticket: T-901
+criterion: Mẫu lỗi
+timeout: 30
+# Fails at step 3 on camera.xml
+back
+expect id=camera_screen
+expect id=onboarding_screen
+shot never

@@ -576,6 +576,67 @@ expect "wait-run: an unknown mergeable state keeps waiting" "2 CHƯA" \
 expect "wait-run: a run that exists is waited for even if the PR became dirty" "0 XANH" \
   "$(conflict_run "$(conflict_routes dirty "$green")")"
 
+# wait-run.sh --pr follows the newest commit of the PR and --sha waits for the commit just pushed (plan T-044, L-066).
+# Fixture from PR #100: e35ae86 was pushed first, eba5f98 after it; GitHub cancelled the run of e35ae86 once eba5f98
+# had a run. pulls/7 is a sequence of heads; the read at the start of the script takes the first element.
+head_at() { printf '{"head": {"sha": "%s"}, "mergeable_state": "%s"}' "$1" "${2:-clean}"; }
+cancelled='{"workflow_runs": [{"id": 90, "status": "completed", "conclusion": "cancelled", "html_url": "u"}]}'
+no_runs='{"workflow_runs": []}'
+ui_red_jobs='{"jobs": [{"id": 130, "name": "ui-test", "conclusion": "failure", "steps": [{"name": "Set up job"}]}]}'
+head_routes() { # <pulls/7 answers, comma separated> <runs of e35ae86> <runs of eba5f98> [<runs of c0ffee1> [<jobs answer>]]
+  printf '{"routes": {"pulls/7": {"__sequence__": [%s]}, "actions/workflows/pr-check.yml/runs?head_sha=e35ae86&per_page=10": %s, "actions/workflows/pr-check.yml/runs?head_sha=eba5f98&per_page=10": %s, "actions/workflows/pr-check.yml/runs?head_sha=c0ffee1&per_page=10": %s, "actions/runs/91/jobs?per_page=50": %s}}' \
+    "$1" "$2" "$3" "${4:-$no_runs}" "${5:-$no_jobs}"
+}
+wait_line() { # <fixture> <timeout seconds> <args...>; prints "<exit code> <result line>"
+  echo "$1" > "$work/wait.json"; local seconds="$2"; shift 2
+  rm -f "$work/wait.json.seen"
+  local out code=0
+  out="$(PATH="$work/bin:$PATH" FIXTURE="$work/wait.json" WAIT_RUN_POLL_SECONDS=0 WAIT_RUN_TIMEOUT_SECONDS="$seconds" \
+    scripts/wait-run.sh "$@" 2>&1)" || code=$?
+  echo "$code $out"
+}
+wait_code() { # same arguments as wait_line; prints "<exit code> <first word of the line>"
+  local line; line="$(wait_line "$@")"
+  local rest="${line#* }"
+  echo "${line%% *} ${rest%%[: ]*}"
+}
+old_new="$(head_at e35ae86), $(head_at e35ae86), $(head_at eba5f98)"
+new_run_sequence='{"__sequence__": [{"workflow_runs": [{"id": 91, "status": "in_progress", "conclusion": null, "html_url": "u"}]}, '"$green"']}'
+old_cancelled_fixture="$(head_routes "$old_new" "$cancelled" "$new_run_sequence")"
+expect "wait-run: follows the PR head when the old commit's run is cancelled" "0 XANH" \
+  "$(WAIT_RUN_CANCEL_RECHECKS=3 wait_code "$old_cancelled_fixture" 10 --pr 7)"
+line="$(WAIT_RUN_CANCEL_RECHECKS=3 wait_line "$old_cancelled_fixture" 10 --pr 7)"
+expect "wait-run: the green line names the new head" "1 0" \
+  "$(echo "$(grep -c 'eba5f98' <<< "$line") $(grep -c 'e35ae86' <<< "$line" || true)")"
+expect "wait-run: a new head while the old run is going waits for the new commit" "0 XANH" \
+  "$(wait_code "$(head_routes "$old_new" "$pending" "$green")" 10 --pr 7)"
+expect "wait-run: a cancelled run of a head that stays is red after the re-reads" "1 ĐỎ" \
+  "$(WAIT_RUN_CANCEL_RECHECKS=2 wait_code "$(head_routes "$(head_at e35ae86)" "$cancelled" "$no_runs")" 10 --pr 7)"
+line="$(WAIT_RUN_CANCEL_RECHECKS=99 wait_line "$(head_routes "$(head_at e35ae86)" "$cancelled" "$no_runs")" 2 --pr 7)"
+expect "wait-run: re-reading after a cancel stops at the deadline" "1 1" \
+  "$(echo "$(grep -c '^2 CHƯA' <<< "$line") $(grep -c 'bị hủy' <<< "$line" || true)")"
+# The second read is empty and the empty answer stays: a script that took it would ask GitHub for head_sha= forever.
+expect "wait-run: an unreadable head keeps the last one" "0 XANH" \
+  "$(wait_code "$(head_routes "$(head_at e35ae86), $(head_at '')" "$green" "$no_runs")" 10 --pr 7)"
+sha_fixture="$(head_routes "$old_new" "$green" '{"workflow_runs": [{"id": 91, "status": "completed", "conclusion": "failure", "html_url": "u"}]}' "$no_runs" "$ui_red_jobs")"
+expect "wait-run: --sha ignores a finished run of the previous head" "1 ĐỎ" \
+  "$(wait_code "$sha_fixture" 10 --pr 7 --sha eba5f98)"
+expect "wait-run: without --sha the same fixture is green" "0 XANH" "$(wait_code "$sha_fixture" 10 --pr 7)"
+expect "wait-run: --sha does not report a conflict of the previous head" "0 XANH" \
+  "$(wait_code "$(head_routes "$(head_at e35ae86 dirty), $(head_at e35ae86 dirty), $(head_at eba5f98 clean)" "$no_runs" "$green")" 10 --pr 7 --sha eba5f98)"
+line="$(WAIT_RUN_CANCEL_RECHECKS=3 wait_line "$(head_routes "$(head_at eba5f98), $(head_at eba5f98), $(head_at c0ffee1)" "$no_runs" "$cancelled" "$green")" 10 --pr 7 --sha eba5f98)"
+expect "wait-run: a head that moves past --sha is followed" "1 1" \
+  "$(echo "$(grep -c '^0 XANH' <<< "$line") $(grep -c 'c0ffee1' <<< "$line" || true)")"
+line="$(wait_line "$(head_routes "$(head_at e35ae86)" "$green" "$green")" 1 --pr 7 --sha eba5f98)"
+expect "wait-run: --sha the PR never reaches asks to call again" "1 1" \
+  "$(echo "$(grep -c '^2 CHƯA' <<< "$line") $(grep -c 'chưa nhận commit eba5f98' <<< "$line" || true)")"
+line="$(wait_line "$(head_routes "$(head_at e35ae86)" "$green" "$green")" 10 --pr 7 --sha main)"
+expect "wait-run: rejects a --sha that is not a commit" "1 1" \
+  "$(echo "$(grep -c '^3 LỖI' <<< "$line") $(grep -c 'mã commit' <<< "$line" || true)")"
+line="$(wait_line '{"routes": {}}' 10 --workflow staging.yml --since 2026-10-18T02:20:00Z --sha eba5f98)"
+expect "wait-run: refuses --sha with --workflow" "1 1" \
+  "$(echo "$(grep -c '^3 LỖI' <<< "$line") $(grep -c 'cùng --pr' <<< "$line" || true)")"
+
 dispatch_routes='{"routes": {"actions/workflows/staging.yml/runs?branch=main&per_page=20": {"workflow_runs": [
   {"id": 93, "created_at": "2026-10-18T02:25:00Z", "status": "completed", "conclusion": "failure", "html_url": "u"},
   {"id": 92, "created_at": "2026-10-18T02:21:00Z", "status": "completed", "conclusion": "success", "html_url": "u"},

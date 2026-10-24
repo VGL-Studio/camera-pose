@@ -599,20 +599,69 @@ for args in "--package com.vglstudio.camera.pose.line.guide.notes" "--package No
   fi
 done
 
-# cloud-env-check.sh passes only when the environment was built from the current cloud-setup.sh.
+# cloud-env-check.sh passes only when the environment was built from the current cloud-setup.sh and can run
+# the project's Gradle (plan T-036, L-056).
+fake_java() { # <version line> [lines printed before it]; writes a fake java printing them like `java -version`
+  { printf '#!/bin/sh\n'
+    [ -n "${2:-}" ] && printf '%s\n' "$2" | while IFS= read -r line; do printf 'echo '"'"'%s'"'"' >&2\n' "$line"; done
+    printf 'echo '"'"'%s'"'"' >&2\necho "OpenJDK Runtime Environment" >&2\n' "$1"; } > "$work/bin/fake-java"
+  chmod +x "$work/bin/fake-java"
+}
 setup_version="$(sed -n 's/^SETUP_VERSION=\([0-9][0-9]*\)$/\1/p' scripts/cloud-setup.sh)"
-mkdir -p "$work/gradle-home/init.d"
+compile_sdk="$(sed -n 's/^compileSdk = "\([0-9][0-9]*\)"$/\1/p' gradle/libs.versions.toml)"
+mkdir -p "$work/gradle-home/init.d" "$work/sdk-ok/platforms/android-$compile_sdk" "$work/sdk-empty"
 touch "$work/gradle-home/init.d/maven-central-mirror.gradle"
+printf '#!/bin/sh\nexit 0\n' > "$work/gradlew-ok"
+printf '#!/bin/sh\necho "Could not install Gradle distribution"\nexit 1\n' > "$work/gradlew-fail"
+printf '#!/bin/sh\nsleep 5\n' > "$work/gradlew-hang"
+printf '#!/bin/sh\nexit 0\n' > "$work/java-check-ok"
+chmod +x "$work/gradlew-ok" "$work/gradlew-fail" "$work/gradlew-hang" "$work/java-check-ok"
+# env_check <setup version> <gradle home>: prints pass or stop. Java, Gradle and the SDK are fakes that pass,
+# unless the caller sets ENV_JAVA_CHECK, ENV_GRADLEW, ENV_SDK, ENV_GRADLEW_TIMEOUT. The output goes to $work/env-check.out.
 env_check() {
   echo "$1" > "$work/cloud-setup-version"
   if CLOUD_SETUP_VERSION_FILE="$work/cloud-setup-version" GRADLE_USER_HOME="$2" \
-    scripts/cloud-env-check.sh > /dev/null 2>&1; then echo pass; else echo stop; fi
+    JAVA_CHECK_CMD="${ENV_JAVA_CHECK:-$work/java-check-ok}" GRADLEW_CMD="${ENV_GRADLEW:-$work/gradlew-ok}" \
+    ANDROID_HOME="${ENV_SDK:-$work/sdk-ok}" GRADLEW_TIMEOUT="${ENV_GRADLEW_TIMEOUT:-300}" \
+    scripts/cloud-env-check.sh > "$work/env-check.out" 2>&1; then echo pass; else echo stop; fi
 }
 expect "cloud-setup.sh has a version" yes "$([[ -n "$setup_version" ]] && echo yes || echo no)"
 expect "cloud-env-check.sh passes on the current version" pass "$(env_check "$setup_version" "$work/gradle-home")"
 expect "cloud-env-check.sh stops on an older version" stop "$(env_check 1 "$work/gradle-home")"
 expect "cloud-env-check.sh stops without the mirror init script" stop \
   "$(env_check "$setup_version" "$work/no-gradle-home")"
+fake_java 'openjdk version "21.0.12.1" 2026-07-21' 'Picked up JAVA_TOOL_OPTIONS: -Dx=1'
+expect "cloud-env-check.sh passes with Java 21 after a Picked up line" pass \
+  "$(ENV_JAVA_CHECK=scripts/java-check.sh JAVA_CMD="$work/bin/fake-java" env_check "$setup_version" "$work/gradle-home")"
+fake_java 'openjdk version "26" 2026-03-17'
+expect "cloud-env-check.sh stops on Java 26 and names Java" stop \
+  "$(ENV_JAVA_CHECK=scripts/java-check.sh JAVA_CMD="$work/bin/fake-java" env_check "$setup_version" "$work/gradle-home")"
+expect "cloud-env-check.sh names Java 26 in the message" 1 "$(grep -c 'Java 26' "$work/env-check.out" || true)"
+expect "cloud-env-check.sh does not ask to paste the setup script for a Java problem" 0 \
+  "$(grep -c 'dán lại toàn bộ scripts/cloud-setup.sh' "$work/env-check.out" || true)"
+expect "cloud-env-check.sh points a Java problem at JAVA_TOOL_OPTIONS" 1 "$(grep -c 'JAVA_TOOL_OPTIONS' "$work/env-check.out" || true)"
+expect "cloud-env-check.sh stops when the Gradle wrapper fails" stop \
+  "$(ENV_GRADLEW="$work/gradlew-fail" env_check "$setup_version" "$work/gradle-home")"
+expect "cloud-env-check.sh names the Gradle wrapper and its output" 2 \
+  "$(grep -o 'Gradle wrapper\|Could not install Gradle distribution' "$work/env-check.out" | wc -l | tr -d ' ')"
+if command -v timeout > /dev/null; then
+  hang_start=$SECONDS
+  hang_result="$(ENV_GRADLEW="$work/gradlew-hang" ENV_GRADLEW_TIMEOUT=1 env_check "$setup_version" "$work/gradle-home")"
+  expect "cloud-env-check.sh stops when the Gradle wrapper hangs" stop "$hang_result"
+  expect "cloud-env-check.sh gives up on a hanging Gradle wrapper within 4 seconds" yes \
+    "$([ $((SECONDS - hang_start)) -lt 4 ] && echo yes || echo no)"
+else
+  echo "skip - cloud-env-check.sh Gradle wrapper timeout: máy test không có timeout"
+fi
+expect "cloud-env-check.sh stops without the compileSdk platform" stop \
+  "$(ENV_SDK="$work/sdk-empty" env_check "$setup_version" "$work/gradle-home")"
+expect "cloud-env-check.sh names the missing platform" 1 \
+  "$(grep -c "platforms;android-$compile_sdk" "$work/env-check.out" || true)"
+expect "cloud-env-check.sh passes with the compileSdk platform" pass \
+  "$(ENV_SDK="$work/sdk-ok" env_check "$setup_version" "$work/gradle-home")"
+env_check 1 "$work/gradle-home" > /dev/null
+expect "cloud-env-check.sh tells to paste the setup script for a setup problem" 1 \
+  "$(grep -c 'dán lại toàn bộ scripts/cloud-setup.sh' "$work/env-check.out" || true)"
 
 # plan-check.py finds, from the plan alone, what would otherwise stop a task during the night (L-020).
 repo="$work/plan-repo"
@@ -1032,6 +1081,16 @@ expect "env-canary: red opens an env-broken issue" "POST issues;" "$(canary "$wo
 expect "env-canary: red again comments on the open issue" "POST issues/7/comments;" \
   "$(canary "$work/pass.sh" "$work/fail.sh" '[{"number": 7}]')"
 expect "env-canary: old setup script is red" "POST issues;" "$(canary "$work/fail.sh" "$work/pass.sh" '[]')"
+# A gh wrapper that also records its arguments, to read the issue body the canary writes.
+mkdir -p "$work/bin-record"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s/canary-gh.args"\nexec "%s/bin/gh" "$@"\n' "$work" "$work" > "$work/bin-record/gh"
+chmod +x "$work/bin-record/gh"
+rm -f "$work/canary-gh.args"
+echo '{"routes": {"issues?state=open&labels=env-broken&per_page=10": []}}' > "$work/canary.json"
+PATH="$work/bin-record:$PATH" FIXTURE="$work/canary.json" CANARY_CHECKOUT=no RETRY_WAIT_SECONDS=0 \
+  ENV_CHECK_CMD="$work/fail.sh" CHECK_CMD="$work/pass.sh" scripts/env-canary.sh > /dev/null 2>&1 || true
+expect "env-canary: env check red names cloud-env-check.sh" 1 \
+  "$(grep -c 'cloud-env-check.sh. báo lỗi' "$work/canary-gh.args" || true)"
 expect "env-canary: green closes the open issue" "POST issues/7/comments;PATCH issues/7;" \
   "$(canary "$work/pass.sh" "$work/pass.sh" '[{"number": 7}]')"
 expect "env-canary: green with nothing open changes nothing" "" "$(canary "$work/pass.sh" "$work/pass.sh" '[]')"
@@ -1134,12 +1193,6 @@ expect "preflight: reports every failing check" 2 "$(preflight > /dev/null; pf_l
 expect "preflight: never prints secret values" 0 "$(grep -c 'MARKER-SECRET-1\|proj-test-1\|987654321' "$work/preflight-all.out" || true)"
 
 # java-check.sh stops check.sh before Gradle when Java cannot run the project's Gradle (L-022).
-fake_java() { # <version line> [lines printed before it]; writes a fake java printing them like `java -version`
-  { printf '#!/bin/sh\n'
-    [ -n "${2:-}" ] && printf '%s\n' "$2" | while IFS= read -r line; do printf 'echo '"'"'%s'"'"' >&2\n' "$line"; done
-    printf 'echo '"'"'%s'"'"' >&2\necho "OpenJDK Runtime Environment" >&2\n' "$1"; } > "$work/bin/fake-java"
-  chmod +x "$work/bin/fake-java"
-}
 java_check() { local code=0; JAVA_CMD="${1:-$work/bin/fake-java}" scripts/java-check.sh > "$work/java.out" 2>&1 || code=$?; echo "$code"; }
 fake_java 'openjdk version "17.0.12" 2024-07-16'
 expect "java-check: Java 17 passes" 0 "$(java_check)"

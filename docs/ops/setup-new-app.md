@@ -110,6 +110,8 @@ Khi có bản đầu tiên lên Google Play: `docs/ops/release.md` (khóa upload
 | Dấu hiệu | Nguyên nhân | Xử lý |
 | --- | --- | --- |
 | Phiên tự chạy kết thúc vì Gradle nhận 429 từ `repo.maven.apache.org` | Môi trường cloud dùng setup script cũ, chưa có mirror | Dán lại `scripts/cloud-setup.sh` vào môi trường (phần 6), lập danh sách chạy mới |
+| Báo cáo ghi "Java của môi trường không chạy được Gradle của dự án" | `scripts/cloud-env-check.sh` chạy `scripts/java-check.sh` và thấy Java ngoài khoảng Gradle hỗ trợ, hoặc dòng `Picked up` của `JAVA_TOOL_OPTIONS` làm sai việc đọc phiên bản | Xem `JAVA_TOOL_OPTIONS` và JDK của môi trường cloud, đối chiếu với `scripts/cloud-setup.sh`; thông báo gốc của `java-check.sh` nằm trong báo cáo |
+| Báo cáo ghi "Gradle wrapper không khởi động được" | `./gradlew --version` lỗi hoặc quá 300 giây: không tải được bản phân phối Gradle qua proxy, hoặc JVM lỗi vì biến môi trường | Đọc 5 dòng cuối trong thông báo; kiểm tra proxy và `JAVA_TOOL_OPTIONS` của môi trường |
 | Phiên nhận 429 từ `repo1.maven.org` khi chạy test Robolectric | Môi trường dùng setup script cũ, chưa có mirror cho Robolectric | Dán lại `scripts/cloud-setup.sh` vào môi trường (phần 6) |
 | Phiên kết thúc ngay đầu phiên, báo cáo ghi "Môi trường cloud chưa dùng scripts/cloud-setup.sh mới nhất" | `scripts/cloud-env-check.sh` thấy số phiên bản setup script của môi trường khác nhánh chính | Dán lại `scripts/cloud-setup.sh` vào môi trường (phần 6), lập danh sách chạy mới |
 | Gradle báo `Could not find ...kotlin-stdlib...` khi build `build-logic`, chỉ tìm ở `plugins.gradle.org` | Setup script phiên bản 1: mirror chưa phủ thư viện tải qua plugin portal | Dán lại `scripts/cloud-setup.sh` (phiên bản 2 trở lên) |

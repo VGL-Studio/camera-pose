@@ -2,7 +2,7 @@
 ticket: T-046
 title: Tiêu chí kiểm thủ công chạy được trên emulator thành kịch bản device-session
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 13M          # cỡ M (10.4M, scripts/token-usage.py estimate) cộng hạn chót, bộ chọn và test thêm sau rà soát độc lập
@@ -147,7 +147,8 @@ Vì vậy phần kịch bản theo plan không làm job dài thêm quá khoảng
 - **Đọc dump:** `adb shell uiautomator dump /sdcard/ds.xml`, rồi `adb exec-out cat /sdcard/ds.xml`, như `scripts/app-explore/ax.sh`.
   - Dump báo `ERROR: could not get idle state.` (màn có hiệu ứng chạy mãi) thì thử lại sau 1 giây, trong hạn của lệnh.
   - Hết hạn thì lý do là `could not get idle state`.
-- **Thư mục kịch bản:** `DEVICE_SCENARIOS_GLOB`, mặc định `feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/*.txt`, để test dùng thư mục riêng.
+- **Thư mục kịch bản:** `DEVICE_SCENARIOS_GLOB`, mặc định `feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/*.txt`, để test dùng thư mục riêng. Glob do trình chạy giải bằng `glob` của Python (không để shell bung). Glob không khớp tệp nào (thư mục rỗng) thì trình chạy thoát trước mọi lệnh `adb`, kể cả bước đọc `wm size` đầu lượt: không cấp quyền, không đổi mạng, không gọi `adb`, `summary.md` ghi "Kịch bản theo plan: không có".
+- **Test có sẵn không đổi:** khối test `device-session` của `scripts/tests/run.sh` đặt `export DEVICE_SCENARIOS_GLOB="$work/no-scenarios/*.txt"` (thư mục rỗng) cùng dòng `export DEVICE_SESSION_SLEEP=0` có sẵn, và bỏ nó ở dòng `unset` cuối khối. Chỉ các test mới của bước 4, bảng `summary.md` và `_helper` đặt glob riêng. Đây là thiết lập môi trường, không đổi điều test có sẵn kiểm (các test đếm quyền, đếm lần bật mạng giữ nguyên số) (phiên bản 2).
 
 **`scripts/device-session.sh`.**
 - **`cmd_scenarios`:** thêm bước 4 cuối hàm, sau monkey: gọi trình chạy (mục trên). Lệnh gọi lấy từ `DEVICE_SCENARIO_CMD`, mặc định `python3 scripts/device-scenario.py`, để test thay bằng lệnh hỏng.
@@ -199,7 +200,7 @@ Vì vậy phần kịch bản theo plan không làm job dài thêm quá khoảng
   - Dòng `lỗi tệp`, `bỏ qua (hết thời gian)`, `runner_error`: lỗi của kịch bản hay của trình chạy, ghi vào báo cáo.
   - Tiêu chí bố cục (vị trí, số cột, giao diện tối) chỉ ghi là đạt sau khi phiên mở ảnh `shot` của bước đó và đối chiếu với tiêu chí, hoặc khi kịch bản có lệnh `count` hay `expect` kiểm đúng điều đó.
   - Kịch bản lỗi không chặn phát staging.
-  - Ý "Những gì người cần tự kiểm tra" (dòng 308) đổi thành "tiêu chí kiểm tra thủ công máy thật và người".
+  - Ý "Những gì người cần tự kiểm tra" (mục 5 của `docs/auto-run.md`; tìm theo chữ, số dòng lệch sau T-044, T-045) đổi thành "tiêu chí kiểm tra thủ công máy thật và người".
 - **`docs/templates/run.md`:**
   - mục "Kiểm thử trên máy ảo" thêm dòng `- Kịch bản theo plan: <n đạt, n lỗi, n bỏ qua; tệp lỗi và bước>`;
   - "Cần người kiểm tra": dòng "Tiêu chí kiểm tra thủ công" thành "Tiêu chí kiểm tra thủ công (máy thật, người)", thêm dòng "Kịch bản emulator lỗi hay bỏ qua".
@@ -327,7 +328,7 @@ wait id=onboarding_screen | id=camera_screen 60
 tap_if id=onboarding_enable_camera
 wait id=camera_screen 15
 need id=camera_grid_button 15
-tap clickable=true in=camera_strip index=2
+tap idp=camera_pose_ in=camera_strip index=2
 tap id=camera_grid_button
 wait id=camera_grid 5
 device unfold
@@ -360,7 +361,7 @@ Phần "chụp, màn xem lại" của T-020 không chạy: không có camera th�
 | --- | --- | --- |
 | Tạo | `scripts/device-scenario.py` | `check` (cú pháp, `id=` có trong `*.kt`, `str=` có trong `strings.xml`) và `run`: bộ chọn, lệnh, hạn chót, timeout mỗi lệnh `adb`, ghi `scenarios.txt` có thời gian, ảnh, `fail.xml`, dấu log mỗi tệp, trả máy về gốc |
 | Sửa | `scripts/device-session.sh` | `cmd_scenarios` bước 4 (gọi trình chạy qua `DEVICE_SCENARIO_CMD`, có `timeout`); lệnh `helper`; mục "Kịch bản theo plan" của `cmd_summary` (crash/ANR theo tệp, "không có"); khối Usage (dòng 6 đến 15) thêm `helper` và số dòng trong `usage()` cho khớp |
-| Sửa | `scripts/tests/fake-adb` | Giữ nguyên hành vi hiện có, kể cả `exec-out cat` in `$FAKE_ADB_UI` khi không đặt chuỗi (test của `scripts/app-explore/`). Thêm: `$FAKE_ADB_UI_SEQ` (các tệp dump cách nhau bằng dấu cách, mỗi lần `uiautomator dump` lấy tệp kế tiếp, đếm qua tệp `$FAKE_ADB_UI_SEQ.n`, hết thì giữ tệp cuối); tệp trong chuỗi có tên `*.idle-error` thì `uiautomator dump` in `ERROR: could not get idle state.` và `exec-out cat` không in gì; `$FAKE_ADB_HANG` (tên lệnh con, ví dụ `uiautomator`) thì lệnh đó `sleep 300`; `wm size` in `Physical size: 1080x2400`, `wm density` in `Physical density: 420`; `input`, `wm`, `cmd uimode`, `settings`, `cmd locale` ghi vào `$FAKE_ADB_CALLS` |
+| Sửa | `scripts/tests/fake-adb` | Giữ nguyên hành vi hiện có, kể cả `exec-out cat` in `$FAKE_ADB_UI` khi không đặt chuỗi (test của `scripts/app-explore/`). Thêm: `$FAKE_ADB_UI_SEQ` (các tệp dump cách nhau bằng dấu cách, mỗi lần `uiautomator dump` lấy tệp kế tiếp, đếm qua tệp `$FAKE_ADB_UI_SEQ.n`, hết thì giữ tệp cuối); tệp trong chuỗi có tên `*.idle-error` thì `uiautomator dump` in `ERROR: could not get idle state.` và `exec-out cat` không in gì; `$FAKE_ADB_HANG` (tên lệnh con, ví dụ `uiautomator`) thì lệnh đó `exec sleep 300` (có `exec`, như nhánh `logcat` có sẵn, để timeout của trình chạy giết đúng tiến trình, không để tiến trình con giữ stderr; trình chạy bắt output của mọi lệnh `adb`); `wm size` in `Physical size: 1080x2400`, `wm density` in `Physical density: 420`; `input`, `wm`, `cmd uimode`, `settings`, `cmd locale` ghi vào `$FAKE_ADB_CALLS` |
 | Tạo | `scripts/tests/fixtures/device-scenario/onboarding.xml` | Dump mẫu: `onboarding_screen`, nút `onboarding_enable_camera` `[96,1740][984,1872]` |
 | Tạo | `scripts/tests/fixtures/device-scenario/camera.xml` | Dump mẫu: `camera_screen`, `camera_poses` |
 | Tạo | `scripts/tests/fixtures/device-scenario/grid.xml` | Dump mẫu: `poses_grid` có 3 thẻ `poses_card_a`, `_b`, `_c`, một thẻ ngoài lưới, chip `Đã lưu` `selected="true"` |
@@ -372,7 +373,7 @@ Phần "chụp, màn xem lại" của T-020 không chạy: không có camera th�
 | Tạo | `scripts/tests/fixtures/device-scenario/scenarios/need.txt` | Tệp có `need` không khớp ở bước 2 |
 | Tạo | `scripts/tests/fixtures/device-scenario/bad.txt` | Lệnh lạ ở dòng 5 |
 | Tạo | `scripts/tests/fixtures/device-scenario/bad-id.txt` | `id=` không có trong code, `str=` không có trong `strings.xml` |
-| Sửa | `scripts/tests/run.sh` | Khối `device-scenario` (sau khối `device-session`, trước dòng tổng kết); khối `device-session` thêm test bước 4, `helper`, bảng; khối `plan-check` thêm test quy tắc 11 |
+| Sửa | `scripts/tests/run.sh` | Khối `device-scenario` (sau khối `device-session`, trước dòng tổng kết); khối `device-session` thêm test bước 4, `helper`, bảng, và đặt `export DEVICE_SCENARIOS_GLOB` trỏ thư mục rỗng cạnh `DEVICE_SESSION_SLEEP`, bỏ ở dòng `unset` cuối khối (mục 3.1, phiên bản 2); khối `plan-check` thêm test quy tắc 11 |
 | Sửa | `scripts/plan-check.py` | Quy tắc 11: dòng "Kiểm tra thủ công" ghi nơi chạy; tệp emulator có trong mục 3.2 hay repo, `check` qua. Chỉ chú ý, cho mọi plan; docstring ghi điều kiện để đổi thành lỗi |
 | Tạo | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/ui/UiAutomatorTags.kt` | `Modifier.exposeTestTagsForUiAutomator()`; chú thích về cửa sổ riêng |
 | Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt` | `Surface(modifier = Modifier.fillMaxSize().exposeTestTagsForUiAutomator())` |
@@ -553,13 +554,17 @@ Còn chờ người xác nhận:
 
    Đề xuất của AI: chấp nhận cả hai.
 
+   **Trả lời:** chấp nhận cả hai (Tuấn, 2026-10-24).
+
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Giữ một task, quy tắc 11 chỉ chú ý (Tuấn chọn). Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm 4 test `device-session` có sẵn sẽ chạy cả 3 kịch bản thật của repo (`DEVICE_SCENARIOS_GLOB` mặc định) và đếm sai số lần cấp quyền, bật mạng; dòng kịch bản T-020 chỉ có bộ lọc trái cú pháp "một từ khóa chính" (nay dùng `idp=camera_pose_`, tag có sẵn `CameraTestTags.pose(id)`); `sleep 300` của `fake-adb` không có `exec` để lại tiến trình mồ côi; câu 7 của mục 8 chưa có trả lời.
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Giữ một task, quy tắc 11 chỉ chú ý (Tuấn chọn).
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Phiên bản 2 sửa theo hai lượt rà soát độc lập trước RUN-20261024-02 (lượt 2: không còn điểm chặn); Tuấn đồng ý duyệt.
 
 ## 10. Nhật ký thực hiện
 

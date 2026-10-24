@@ -2,7 +2,7 @@
 ticket: T-045
 title: Cuối phiên soạn sẵn plan cho ticket kế tiếp
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 10.4M        # cỡ M, số gợi ý của scripts/token-usage.py estimate
@@ -63,7 +63,7 @@ Cách dùng: `scripts/plan-queue.py [--max N]`. `PLAN_QUEUE_ROOT` đổi gốc r
 - Script đọc mọi `docs/features/*/tickets/T-*.md`. Ticket không có khối frontmatter hay không có `id`, `status`: in `LỖI` và thoát mã 2.
 
 *Bỏ ticket đang có plan ở nơi khác.*
-- Nhánh: đọc `git for-each-ref --format='%(refname:short)' refs/remotes/origin/claude/plan-`. Phiên chạy `git fetch origin` trước khi gọi script. Ticket có nhánh `origin/claude/plan-T-NNN` hay `origin/claude/plan-T-NNN-*` thì bỏ qua: `T-NNN: bỏ qua, đang có plan trên nhánh <nhánh>`.
+- Nhánh: đọc `git -C <PLAN_QUEUE_ROOT> for-each-ref --format='%(refname:short)' refs/remotes/origin/claude/plan-` (mọi lệnh `git` của script chạy bằng `git -C` ở gốc tài liệu, không ở thư mục hiện tại, để test trên repo giả không đọc ref của repo thật). Phiên chạy `git fetch origin` trước khi gọi script. Ticket có nhánh `origin/claude/plan-T-NNN` hay `origin/claude/plan-T-NNN-*` thì bỏ qua: `T-NNN: bỏ qua, đang có plan trên nhánh <nhánh>`.
 - PR mở: đọc bằng `gh api "repos/<owner>/<repo>/pulls?state=open&per_page=100"`, rồi `gh api repos/<owner>/<repo>/pulls/<số>/files` cho từng PR. `owner/repo` lấy từ remote `origin`, như `wait-run.sh`. Ticket có file nằm trong một PR mở thì bỏ qua: `T-NNN: bỏ qua, đang có PR mở #<số> sửa ticket`.
 - Lệnh `git` hay `gh` lỗi: in `LỖI` kèm lệnh và thoát mã 2. Không đoán.
 
@@ -201,7 +201,7 @@ Không có.
 
 ## 4. Kiểm thử
 
-Test của `plan-queue.py` viết trước, trong `scripts/tests/run.sh`. Cây tài liệu giả `$work/pq` là một repo git. Remote `origin` của nó là một bare repo cục bộ, có nhánh `claude/plan-T-919-x`; khối test tắt `GIT_CONFIG_*` theo L-068. `fake-gh` trả về PR mở #77, sửa file ticket T-920.
+Test của `plan-queue.py` viết trước, trong `scripts/tests/run.sh`. Cây tài liệu giả `$work/pq` là một repo git. Khối test **giữ** `GIT_CONFIG_*` của `run.sh` (URL `https://github.com/o/r.git`), vì `plan-queue.py` đọc `owner/repo` từ `remote.origin.url` để gọi `fake-gh`; tắt nó thì `origin` thành đường dẫn cục bộ và mọi test ra mã 2. Nhánh `claude/plan-T-919-x` tạo thẳng bằng `git update-ref refs/remotes/origin/claude/plan-T-919-x HEAD`, không cần bare repo hay `git fetch`. Script không gọi `git fetch` (phiên gọi trước khi chạy script). Repo giả đặt danh tính commit `GIT_AUTHOR_*`, `GIT_COMMITTER_*` như hàm `git_t` của `run.sh`, vì máy CI không có sẵn (phiên bản 2). `fake-gh` trả về PR mở #77, sửa file ticket T-920.
 
 | Ticket | Thiết lập | Kết quả mong đợi |
 | --- | --- | --- |
@@ -306,9 +306,11 @@ Tuấn đã trả lời cả 5 câu ngày 2026-10-24, theo đề xuất của r�
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Mỗi plan một PR (Tuấn chọn). Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm đoạn cây tài liệu giả của mục 4 tắt `GIT_CONFIG_*` theo L-068, trong khi `plan-queue.py` đọc `owner/repo` từ `remote.origin.url`: mọi test sẽ ra mã 2 (mục 4).
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Mỗi plan một PR (Tuấn chọn).
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Phiên bản 2 sửa theo hai lượt rà soát độc lập trước RUN-20261024-02 (lượt 2: không còn điểm chặn); Tuấn đồng ý duyệt.
 
 ## 10. Nhật ký thực hiện
 

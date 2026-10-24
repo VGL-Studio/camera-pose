@@ -1454,7 +1454,7 @@ expect "save-branch: a refused push is not reported as pushed" 3 "$(sb_run claud
 expect "save-branch: a refused push prints no ĐÃ ĐẨY" 0 "$(grep -c 'ĐÃ ĐẨY' "$work/sb.out" || true)"
 expect "save-branch: a refused push leaves the remote without the branch" none "$(sb_remote_head)"
 expect "save-branch: a refused push leaves a verified bundle" ok \
-  "$(git bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
+  "$(git -C "$sb_clone" bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
 expect "save-branch: the bundle holds the branch head" "$sb_head refs/heads/claude/T-999-thu" \
   "$(git bundle list-heads "$sb_bundle" | head -n 1)"
 expect "save-branch: the bundle needs main as its base" bad \
@@ -1464,7 +1464,7 @@ git clone -q "$sb_origin" "$sb_restore" 2> /dev/null
 restore_cmd="$(grep -m1 '^git fetch ' "$work/sb.out" || true)"
 (cd "$sb_restore" && eval "$restore_cmd") > /dev/null 2>&1 || true
 expect "save-branch: the printed commands restore the branch" "$sb_head 2" \
-  "$(git -C "$sb_restore" rev-parse -q --verify refs/heads/claude/T-999-thu || echo none) $(git -C "$sb_restore" rev-list --count main..claude/T-999-thu 2> /dev/null || echo 0)"
+  "$(git -C "$sb_restore" rev-parse -q --verify refs/heads/claude/T-999-thu || echo none) $(git -C "$sb_restore" rev-list --count origin/main..claude/T-999-thu 2> /dev/null || echo 0)"
 for needle in "Nhánh chưa đẩy" "${sb_head:0:7}" "2 commit" "$sb_bundle"; do
   expect "save-branch: the rescue section has '$needle'" yes \
     "$(grep -qF -- "$needle" "$work/sb.out" && echo yes || echo no)"
@@ -1473,12 +1473,12 @@ rm -rf "$sb_bundle" "$sb_restore"
 sb_hook_mode reject
 expect "save-branch: --bundle-only exits 3" 3 "$(sb_run --bundle-only claude/T-999-thu)"
 expect "save-branch: --bundle-only never pushes" 0 "$(sb_calls_count)"
-expect "save-branch: --bundle-only leaves a bundle" ok "$(git bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
+expect "save-branch: --bundle-only leaves a bundle" ok "$(git -C "$sb_clone" bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
 rm -f "$sb_bundle"
 sb_hook_mode network
 expect "save-branch: a network error is retried, then bundled" 3 "$(SB_RETRY="0 0" sb_run claude/T-999-thu)"
 expect "save-branch: a network error calls the hook 3 times" 3 "$(sb_calls_count)"
-expect "save-branch: a network error leaves a bundle" ok "$(git bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
+expect "save-branch: a network error leaves a bundle" ok "$(git -C "$sb_clone" bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
 rm -f "$sb_bundle"
 sb_hook_mode flaky
 expect "save-branch: a network error that clears is pushed" 0 "$(SB_RETRY="0 0" sb_run claude/T-999-thu)"

@@ -52,6 +52,10 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 
 <Hai đến ba câu: bao nhiêu task merge, bao nhiêu task dừng, điều quan trọng nhất cần người xem.>
 
+### Nhánh chưa đẩy
+
+<Không có. Hoặc chép đoạn "Nhánh chưa đẩy" mà `scripts/save-branch.sh` in ra: nhánh, mã commit, đường dẫn bundle, lệnh lấy lại (auto-run.md, bước 7).>
+
 ### Kết quả từng task
 
 | Ticket | Kết quả | PR | Test viết trước | Rà soát độc lập | CI | Ghi chú |

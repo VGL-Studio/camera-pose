@@ -171,7 +171,13 @@ Không cần (E dưới 2). Dữ liệu dựng fixture, đọc ngày 2026-10-24 
 - `gh api repos/VGL-Studio/camera-pose/actions/runs/40066418977`: `head_sha` `e35ae86...`, `pull_request`, `completed`/`cancelled`, tạo 05:29:02Z, cập nhật (bị hủy) 05:32:16Z.
 - `.../actions/runs/40066593456`: `head_sha` `eba5f98...`, `completed`/`success`, tạo 05:31:35Z.
 - `.../pulls/100/commits`: `e35ae86` commit lúc 05:28:55Z, `eba5f98` lúc 05:31:27Z. Lần chạy cũ bị hủy sau khi commit mới đã có lần chạy, nên `wait-run.sh` đang chờ commit cũ (đọc commit đầu một lần lúc bắt đầu) thấy `cancelled` và báo `ĐỎ`.
-- Độ trễ của `pulls/<số>` sau một lần đẩy: đo trên chính PR của plan này (ghi ở dòng dưới khi có số đo). Phần `--sha` không phụ thuộc số đo này; số đo chỉ giúp chọn `WAIT_RUN_CANCEL_RECHECKS`.
+- Độ trễ của `pulls/<số>` sau một lần đẩy, đo ngày 2026-10-24 trên chính PR #112 của plan này:
+  - đẩy commit rỗng `38d1703` rồi đọc `pulls/112` mỗi giây;
+  - lần đọc thứ nhất, 1,1 giây sau lệnh đẩy, còn trả commit trước `99bb59b`;
+  - lần đọc thứ hai, 3,5 giây sau, trả `38d1703`.
+- Lần chạy `pr-check` của `99bb59b` (40101055973) đã xong `success` lúc 14:07:10Z, trước khi lần chạy của `38d1703` (40101078161) được tạo lúc 14:07:13Z.
+- Kết luận: `wait-run.sh --pr 112` gọi ngay sau lệnh đẩy sẽ báo `XANH` cho commit cũ. Đây đúng là trường hợp mà `--sha` chặn (mục 8, câu 1).
+- Độ trễ vài giây nằm trong một vòng chờ (30 giây), nên 3 lần đọc lại khi gặp `cancelled` là dư.
 
 ## 5. Chấm rủi ro
 
@@ -203,7 +209,7 @@ Không cần (E dưới 2). Dữ liệu dựng fixture, đọc ngày 2026-10-24 
 
 ## 8. Câu hỏi cho người duyệt
 
-1. **Thêm `--sha` hay chỉ theo commit đầu?** Đề xuất của AI: thêm, không bắt buộc. Ngay sau `git push`, `pulls/<số>` có thể còn trả commit trước; nếu commit trước đã xanh, `wait-run.sh` báo `XANH` ngay cho commit cũ. Chỉ theo commit đầu (yêu cầu của ticket) không chặn được trường hợp này. Lời gọi không kèm `--sha` vẫn chạy như hiện nay, cộng phần theo commit đầu.
+1. **Thêm `--sha` hay chỉ theo commit đầu?** Đề xuất của AI: thêm, không bắt buộc. Ngay sau `git push`, `pulls/<số>` còn trả commit trước trong vài giây (đo được 1,1 giây ở PR #112, mục 4.1). Nếu commit trước đã xanh, `wait-run.sh` báo `XANH` ngay cho commit cũ. Chỉ theo commit đầu (yêu cầu của ticket) không chặn được trường hợp này. Lời gọi không kèm `--sha` vẫn chạy như hiện nay, cộng phần theo commit đầu.
 2. **Đọc lại bao nhiêu lần khi gặp `cancelled` của commit đang là đầu?** Đề xuất của AI: 3 lần, mỗi lần cách một vòng chờ (30 giây), tổng khoảng 90 giây, đủ cho độ trễ của GitHub thấy ở PR #100 (lần chạy cũ bị hủy 41 giây sau khi lần chạy mới đã tạo). Lâu hơn chỉ làm chậm báo `ĐỎ (cancelled)` thật, vốn hiếm.
 3. **Làm trong phiên tự chạy hay phiên có người theo dõi?** Đề xuất của AI: phiên tự chạy được, như T-040 (sửa `merge-if-green.sh` trong RUN-20261024-01), với lệnh chờ chạy từ bản chép của `origin/main` (mục 6). Plan không sửa `.github/`.
 

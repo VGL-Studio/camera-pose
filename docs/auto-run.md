@@ -61,7 +61,7 @@ Mỗi task đi qua 10 bước theo thứ tự. Điều kiện dừng ở mục 4
 | 1. Tạo nhánh | Tạo nhánh `claude/T-NNN-<tu-khoa>` từ nhánh chính mới nhất. Không dùng nhánh mặc định mà routine tạo cho phiên | Nhánh riêng của task |
 | 2. Đọc tài liệu | Đọc theo thứ tự trong [CLAUDE.md](CLAUDE.md) | Đủ ngữ cảnh |
 | 3. Viết test trước | Viết test theo mục Kiểm thử của plan, chạy và xác nhận test thất bại đúng lý do | Commit chứa test |
-| 4. Viết code | Viết code cho đến khi test qua, chỉ trong danh sách file của plan | Code chạy được |
+| 4. Viết code | Viết code cho đến khi test qua, chỉ trong danh sách file của plan (trừ phần nối chỗ gọi theo ADR-1003, `risk-scoring.md` mục 4) | Code chạy được |
 | 5. Kiểm tra cục bộ | Build, lint, unit test, screenshot test, quy tắc phụ thuộc module, đối chiếu danh sách file | Sẵn sàng rà soát |
 | 6. Rà soát độc lập | Phiên AI khác rà soát thay đổi | Danh sách điểm phát hiện đã xử lý |
 | 7. Commit và đẩy | Commit theo quy ước, đẩy nhánh, mở PR. PR của task chỉ có code, test, ảnh chuẩn và ảnh so sánh thiết kế | PR liên kết tới plan |
@@ -84,13 +84,13 @@ Mỗi task đi qua 10 bước theo thứ tự. Điều kiện dừng ở mục 4
 Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho một phiên AI con, để giữ ngữ cảnh của phiên chính cho các task sau (L-031).
 
 - Phiên con làm trong worktree riêng của nhánh task: `git worktree add ../task-T-NNN claude/T-NNN-<tu-khoa>`. Thư mục chính giữ sạch, để phiên chính làm việc khác song song: chạy `check.sh` nền, chờ `main-guard`, chuẩn bị task sau, viết báo cáo. Bộ nhớ đệm Gradle ở `~/.gradle` dùng chung nên không tải lại (L-034).
-- Nội dung giao việc tối thiểu: đường dẫn plan và worktree; danh sách file của mục 3.2 là ranh giới; thứ tự commit (test trước, rồi code); đẩy nhánh sau mỗi commit; điều kiện dừng (`risk-scoring.md` mục 4 và mục 7 của plan); báo cáo theo các dòng của nhật ký plan (Test viết trước, Lệch so với plan).
-- Phiên con xong: phiên chính kiểm `git diff --name-only origin/main...` khớp mục 3.2, đọc báo cáo, rồi giao rà soát độc lập (bước 6) cho một phiên khác. Xóa worktree sau khi merge (`git worktree remove`).
+- Nội dung giao việc tối thiểu: đường dẫn plan và worktree; danh sách file của mục 3.2 là ranh giới (trừ phần nối chỗ gọi theo ADR-1003, `risk-scoring.md` mục 4), phiên con báo mọi file nối chỗ gọi; thứ tự commit (test trước, rồi code); đẩy nhánh sau mỗi commit; điều kiện dừng (`risk-scoring.md` mục 4 và mục 7 của plan); báo cáo theo các dòng của nhật ký plan (Test viết trước, Lệch so với plan).
+- Phiên con xong: phiên chính kiểm `git diff --name-only origin/main...` khớp mục 3.2 cộng phần nối chỗ gọi mà phiên con đã báo, đọc báo cáo, rồi giao rà soát độc lập (bước 6) cho một phiên khác. Xóa worktree sau khi merge (`git worktree remove`).
 - Không sửa file trong thư mục đang chạy `check.sh` nền: lần chạy đó kiểm một trạng thái lẫn lộn và phải chạy lại.
 
 ### Bước 4. Viết code
 
-- Chỉ tạo và sửa các file trong danh sách file của plan.
+- Chỉ tạo và sửa các file trong danh sách file của plan (trừ phần nối chỗ gọi theo ADR-1003, `risk-scoring.md` mục 4).
 - Phương án chính không chạy và plan có phương án dự phòng đã duyệt (mục 3.4 của plan): chuyển sang phương án đó theo `risk-scoring.md`, mục 4, thay vì dừng task. Ghi vào nhật ký lúc chuyển, điều kiện chuyển đã gặp và lỗi của phương án chính; báo cáo phiên liệt kê ở mục Cần người kiểm tra.
 - Không sửa test đã viết ở bước 3 để làm cho test qua. Nếu test sai ở chi tiết không làm thay đổi điều nó kiểm tra (ví dụ sai tên một hàm), được sửa và ghi lý do vào nhật ký. Nếu cần thay đổi điều test kiểm tra thì dừng task.
 
@@ -111,7 +111,7 @@ Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho
   | Android Lint báo lỗi (`:app:lintStagingDebug`) | Sửa code, không tắt quy tắc |
   | Bản staging không build được (`:app:assembleStagingDebug`) | |
   | Test của script thất bại (`scripts/tests/run.sh`); trên CI thiếu `python3` hay `jq` | |
-- So sánh danh sách file thay đổi thực tế với danh sách file trong plan. Có file ngoài danh sách thì dừng task.
+- So sánh danh sách file thay đổi thực tế với danh sách file trong plan. Có file ngoài danh sách mà không phải phần nối chỗ gọi theo ADR-1003 (`risk-scoring.md`, mục 4) thì dừng task.
 - Feature có thiết kế (`docs/features/<feature>/design/screens/`): chạy `scripts/design-compare.sh <feature>` sau `scripts/check.sh`. Kết quả trong `design/review/` để rà soát, không phải cổng chặn (ADR-0020). Ảnh thiết kế nào báo thiếu ảnh chuẩn screenshot là thiếu test, phải thêm theo plan.
 - Lỗi tải thư viện hay công cụ (mã 429, 5xx, hết thời gian chờ, mất kết nối) là lỗi hạ tầng, không phải lỗi của code, và không tính vào giới hạn 3 lần sửa. Phiên chạy qua đêm có thời gian, nên chờ lâu thay vì bỏ cuộc sớm: chạy lại sau 1, 2, 4, 8 rồi 15 phút (tổng khoảng 30 phút). Vẫn lỗi thì kết thúc phiên theo mục 4.
 - Mỗi lần chạy lại sau lỗi tải, dùng `GRADLE_REFRESH_DEPENDENCIES=true scripts/check.sh`. Gradle ghi nhớ lần tải lỗi và các lần sau báo "Could not find" mà không gọi lại mạng; biến này (đọc trong init script của `scripts/cloud-setup.sh`) buộc Gradle hỏi lại (RUN-20261016-01).
@@ -119,7 +119,7 @@ Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho
 
 ### Bước 6. Rà soát độc lập
 
-Một phiên AI riêng được khởi tạo để rà soát. Phiên này chỉ nhận plan, spec, thiết kế, ADR và phần thay đổi; không nhận quá trình làm việc của phiên viết code, để đánh giá với con mắt mới.
+Một phiên AI riêng được khởi tạo để rà soát. Phiên này chỉ nhận plan, spec, thiết kế, ADR và phần thay đổi; không nhận quá trình làm việc của phiên viết code, để đánh giá với con mắt mới. Có phần nối chỗ gọi (ADR-1003) thì phiên rà soát nhận thêm danh sách file đó, số file và số dòng code, task đã đổi chỗ gọi và commit merge của task đó.
 
 Nội dung rà soát:
 
@@ -136,7 +136,7 @@ Kết quả rà soát chia ba mức:
 | Mức | Xử lý |
 | --- | --- |
 | Chặn | Quay lại bước 4. Tính vào giới hạn 3 lần sửa cho cùng một lỗi. |
-| Nên sửa | Phải sửa (ADR-1003) khi phần sửa chỉ chạm file của mục 3.2 hay file nối chỗ gọi được phép, có test viết trước thất bại đúng lý do, và không đổi điều mà test của mục 4 của plan kiểm. Không viết được test thì không sửa, ghi vào báo cáo. Điểm mâu thuẫn với plan, spec hay một test của plan: không sửa, ghi vào báo cáo kèm phương án để người quyết. Sửa xong chạy lại bước 5 và rà soát lại phần vừa sửa; mỗi lần sửa tính vào giới hạn 3 lần sửa. |
+| Nên sửa | Phải sửa (ADR-1003) khi đủ ba điều: phần sửa chỉ chạm file của mục 3.2 hay file nối chỗ gọi được phép; có test viết trước thất bại đúng lý do; không đổi điều mà test của mục 4 của plan kiểm. Điểm nằm ngoài file được phép, hay không viết được test: không sửa, ghi vào báo cáo. Điểm mâu thuẫn với plan, spec hay một test của plan: không sửa, ghi vào báo cáo kèm phương án để người quyết. Sửa xong thì chạy lại bước 5 và giao rà soát độc lập lần nữa cho phần vừa sửa. Mỗi lần sửa tính vào giới hạn 3 lần sửa của task. |
 | Ghi chú | Ghi vào báo cáo để người xem. |
 
 Phần nối chỗ gọi ngoài mục 3.2 và từng điểm đã sửa theo rà soát được ghi trong mô tả PR, mục "Ngoài mục 3.2" và "Đã sửa theo rà soát" (ADR-1003).

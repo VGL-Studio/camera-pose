@@ -63,11 +63,11 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 - Phần sửa chỉ nối chỗ gọi: truyền tham số mới, gọi hàm mới, đổi tên theo thay đổi của chính plan, ở các file gọi thứ mà plan đổi; không thêm hành vi nào chưa ghi trong plan đang chạy hay plan đã tạo file đó.
 - File không thuộc điểm chặn ở mục 1: không thuộc `.github/`, `scripts/`, `build-logic/`, `gradle/`, file `*.gradle.kts`; không phải `AndroidManifest.xml`, `consumer-rules.pro`, `proguard-rules.pro`; không phải file của `:core:ads`, `:core:analytics`, ảnh chuẩn của module khác.
 - Có test viết trước cho phần nối, thất bại đúng lý do, commit trước code như bước 3 của `auto-run.md`.
-- Phần sửa nhỏ: tổng cộng không quá 3 file thêm và 40 dòng code (không tính test) cho mỗi task.
+- Phần sửa nhỏ: tổng cộng không quá 3 file thêm và 40 dòng code (không tính test) cho mỗi task. Mô tả PR ghi số file và số dòng code của phần nối; rà soát độc lập kiểm số này.
 
 Phần nối được ghi vào nhật ký của plan (file, lý do, task đã đổi chỗ gọi, test) và mô tả PR (mục "Ngoài mục 3.2"); rà soát độc lập xét riêng phần này, không đúng là nối chỗ gọi thì báo mức chặn (`auto-run.md`, bước 6).
 
-**Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2, giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9 (ngoại lệ duy nhất của điều kiện 1 là nối chỗ gọi theo ADR-1003, ở trên).
+**Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2 (cộng phần nối chỗ gọi theo ADR-1003, như với phương án chính), giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
 
 Khi dừng, AI làm ba việc:
 

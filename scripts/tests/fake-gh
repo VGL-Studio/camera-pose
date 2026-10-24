@@ -6,7 +6,18 @@ import json, os, sys, subprocess, re
 fx = json.load(open(os.environ["FIXTURE"]))
 args = sys.argv[1:]
 assert args[0] == "api"
-path = args[1]
+# The path is the first argument after "api" that is not an option or an option's value: `-X PUT repos/...` puts
+# the option before it.
+OPTIONS_WITH_VALUE = {"-X", "--method", "-f", "-F", "-H", "--jq", "--input", "--field", "--raw-field", "--header"}
+path, skip = None, False
+for arg in args[1:]:
+    if skip:
+        skip = False
+    elif arg in OPTIONS_WITH_VALUE:
+        skip = True
+    elif not arg.startswith("-"):
+        path = arg
+        break
 jq = args[args.index("--jq")+1] if "--jq" in args else "."
 # Fixed answers: "routes" maps a path below repos/<owner>/<repo>/ to JSON (filtered by --jq) or to raw text.
 route = re.sub(r"^repos/[^/]+/[^/]+/", "", path)
@@ -33,6 +44,9 @@ if route in fx.get("routes", {}):
     sys.stdout.write(out.stdout); sys.exit(out.returncode)
 if route.startswith("contents/"):
     sys.exit(1)
+# A path the fixture does not serve answers like GitHub: 404 and exit 1 (not a Python error).
+if not re.match(r"repos/[^/]+/[^/]+/commits/[0-9a-f]+(/check-runs)?($|\?)", path):
+    sys.stderr.write("HTTP 404: Not Found\n"); sys.exit(1)
 m = re.match(r"repos/[^/]+/[^/]+/commits/([0-9a-f]+)/check-runs", path)
 calls_file = os.environ["FIXTURE"] + ".calls"
 calls = json.load(open(calls_file)) if os.path.exists(calls_file) else {}

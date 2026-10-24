@@ -136,7 +136,13 @@ def order_hints(ticket, plan_text):
     for line in chapter(plan_text, 6).splitlines():
         if "thứ tự" not in line:
             continue
+        # Quoted text is history ("bản trước ghi ..."), not a hint.
+        line = re.sub(r'"[^"]*"|“[^”]*”', "", line)
         for clause in re.split(r";|\.\s|\.$", line):
+            # "trước hay sau ... đều được", a condition ("X chạy sau Y thì ...") or a negation ("không cần A trước B")
+            # gives no order.
+            if re.search(r"trước hay sau|hay trước|đều được|không cần|không bắt buộc|\sthì\s", clause):
+                continue
             for match in re.finditer(rf"({ids_pattern})\s+trước\s+({ids_pattern}(?:(?:,\s*|\s+và\s+){ids_pattern})*)", clause):
                 pairs += [(match.group(1), later) for later in re.findall(ids_pattern, match.group(2))]
             for match in re.finditer(rf"(?<![\w-])trước\s+({ids_pattern}(?:(?:,\s*|\s+và\s+){ids_pattern})*)", clause):

@@ -732,6 +732,16 @@ write_run_plan T-002 feature/demo/New.kt '| KB-1 | Unit | `bTest` |' Sửa
 expect "run-check: a later plan that changes the created file does not warn" 0 \
   "$(run_check > /dev/null; grep -c 'cùng ghi Tạo' "$work/run-check.out")"
 write_ticket T-002 ''
+# A ticket without a business spec (a script or process ticket whose requirement is a lesson) has no spec and no
+# scenario; only a ticket that names scenarios needs a spec.
+write_run_plan T-002 feature/demo/B.kt '| L-001 | Test script | `bTest` |'
+printf -- '---\nid: T-002\nstatus: approved\nspec:                        # no business spec\nscenarios: []\ndepends_on: []\n---\n' \
+  > "$rr/docs/features/demo/tickets/T-002-x.md"
+expect "run-check: a ticket without spec and scenarios passes" pass "$(run_check)"
+printf -- '---\nid: T-002\nstatus: approved\nspec:\nscenarios: [KB-1]\ndepends_on: []\n---\n' \
+  > "$rr/docs/features/demo/tickets/T-002-x.md"
+expect "run-check: a ticket with scenarios but no spec stops" stop "$(run_check)"
+write_ticket T-002 ''
 
 # token-usage.py counts tokens per task from transcripts, one usage per request, never failing the session.
 tokens="$work/token-repo"

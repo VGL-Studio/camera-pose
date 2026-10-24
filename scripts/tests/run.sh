@@ -224,6 +224,109 @@ expect "merge-if-green --update still refuses while main is broken" 1 \
   "$(merge_update claude/template-x finished '[{"number": 7, "body": "Nhánh chính đỏ."}]')"
 expect "merge-if-green --update does not update while main is broken" 0 "$(update_writes)"
 
+# merge-if-green.sh notices a PR that is already on main, and a merge that GitHub answered with an error although the
+# squash commit reached main (plan T-040, L-054). Every earlier check still comes first (L-044).
+# The fixture is built from MIG_* variables; MIG_MAIN is the answer of "commits?sha=main", a JSON value or a
+# {"__sequence__": [...]} (one answer per read).
+mig_title_line='t (#12)'
+mig_on_main='[{"sha": "c49a682c49a682", "commit": {"message": "t (#12)\n\nbody", "tree": {"sha": "tree1"}}}]'
+mig_other_tree='[{"sha": "d111111d111111", "commit": {"message": "t (#12)", "tree": {"sha": "tree2"}}}]'
+mig_other_title='[{"sha": "e222222e222222", "commit": {"message": "other (#99)", "tree": {"sha": "tree1"}}}]'
+mig_run() { # <extra arg or empty>; reads MIG_*; prints the exit code, output in $work/mig.out
+  local checks='{"check_runs": [
+    {"name": "changes", "status": "completed", "conclusion": "'"${MIG_CHANGES:-success}"'", "started_at": "2026-10-23T08:00:00Z", "check_suite": {"id": 77}},
+    {"name": "build-and-test", "status": "completed", "conclusion": "success", "started_at": "2026-10-23T08:00:10Z", "check_suite": {"id": 77}},
+    {"name": "ui-test", "status": "completed", "conclusion": "skipped", "started_at": "2026-10-23T08:00:10Z", "check_suite": {"id": 77}}]}'
+  local main_route=""
+  [ -z "${MIG_MAIN:-}" ] || main_route='"commits?sha=main&per_page=30": '"$MIG_MAIN"','
+  rm -f "$work/mig.json.writes" "$work/mig.json.seen"
+  cat > "$work/mig.json" << JSON
+{"fail_writes": ${MIG_FAIL:-[]},
+ "routes": {
+  "pulls/12": {"state": "${MIG_STATE:-open}", "draft": ${MIG_DRAFT:-false}, "base": {"ref": "${MIG_BASE:-main}"}, "head": {"sha": "abc1234", "ref": "claude/template-x"}, "title": "t", "labels": ${MIG_LABELS:-[]}},
+  "issues?state=open&labels=main-broken&per_page=10": ${MIG_ISSUES:-[]},
+  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
+  "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: ${MIG_RUN:-finished}\n---\n",
+  "compare/main...abc1234": {"behind_by": ${MIG_BEHIND:-0}},
+  "git/commits/abc1234": {"tree": {"sha": "tree1"}},
+  $main_route
+  "commits/abc1234/check-runs?per_page=100": $checks,
+  "commits/abc1234": {"sha": "abc1234", "commit": {"committer": {"date": "${MIG_DATE:-2026-10-23T07:50:00Z}"}}}
+}}
+JSON
+  local code=0
+  PATH="$work/bin:$PATH" FIXTURE="$work/mig.json" MERGE_IF_GREEN_NOW=1792742400 MERGE_IF_GREEN_POLL_SECONDS=0 \
+    scripts/merge-if-green.sh 12 ${1:+"$1"} > "$work/mig.out" 2>&1 || code=$?
+  echo "$code"
+}
+mig_writes() { cat "$work/mig.json.writes" 2> /dev/null | grep -c -- "$1" || true; }
+mig_reads() { jq -r '."commits?sha=main&per_page=30" // 0' "$work/mig.json.seen" 2>/dev/null || echo 0; }
+mig_reset() { unset MIG_MAIN MIG_STATE MIG_DRAFT MIG_BASE MIG_LABELS MIG_ISSUES MIG_RUN MIG_BEHIND MIG_FAIL MIG_CHANGES MIG_DATE; }
+mig_reset
+
+# A PR that is already on main: reported, never merged twice, no other write.
+export MIG_MAIN="$mig_on_main"
+expect "merge-if-green reports a PR already on main without merging" 0 "$(mig_run)"
+expect "merge-if-green says ĐÃ MERGE TRƯỚC ĐÓ" 1 "$(grep -c '^ĐÃ MERGE TRƯỚC ĐÓ: PR #12' "$work/mig.out" || true)"
+expect "merge-if-green writes nothing for a PR already on main" 0 "$(mig_writes .)"
+expect "merge-if-green --dry-run reports a PR already on main" 0 "$(mig_run --dry-run)"
+expect "merge-if-green --dry-run never calls the merge" 0 "$(mig_writes PUT)"
+expect "merge-if-green still refuses a closed PR that is on main" 1 "$(MIG_STATE=closed mig_run)"
+expect "merge-if-green reports a draft PR already on main without merging" 0 "$(MIG_DRAFT=true mig_run)"
+expect "merge-if-green does not merge a draft PR already on main" 0 "$(mig_writes PUT)"
+expect "merge-if-green reports a needs-human PR already on main without merging" 0 "$(MIG_LABELS='[{"name": "needs-human"}]' mig_run)"
+expect "merge-if-green does not merge a needs-human PR already on main" 0 "$(mig_writes PUT)"
+expect "merge-if-green does not reach the merge of a needs-human PR" 1 \
+  "$(MIG_MAIN='[]' MIG_LABELS='[{"name": "needs-human"}]' mig_run)"
+expect "merge-if-green still refuses a PR into another branch" 1 "$(MIG_MAIN='[]' MIG_BASE=other mig_run)"
+expect "merge-if-green reports a PR already on main while main is broken" 0 \
+  "$(MIG_ISSUES='[{"number": 7, "body": "Nhánh chính đỏ."}]' mig_run)"
+expect "merge-if-green does not merge while main is broken" 0 "$(mig_writes PUT)"
+expect "merge-if-green reports a person's PR already on main while a run is running" 0 "$(MIG_RUN=running mig_run)"
+expect "merge-if-green does not merge a person's PR while a run is running" 0 "$(mig_writes PUT)"
+expect "merge-if-green still refuses a person's PR not on main while a run is running" 1 \
+  "$(MIG_MAIN='[]' MIG_RUN=running mig_run)"
+expect "merge-if-green does not update a PR already on main" 0 "$(MIG_BEHIND=2 mig_run --update)"
+expect "merge-if-green does not call update-branch for a PR already on main" 0 "$(mig_writes update-branch)"
+expect "merge-if-green does not merge a red PR when the API fails" 1 \
+  "$(MIG_MAIN='[]' MIG_CHANGES=failure MIG_FAIL='["PUT pulls/12/merge"]' mig_run)"
+expect "merge-if-green does not reach the merge of a red PR" 0 "$(mig_writes PUT)"
+
+# The merge itself: GitHub answers with an error although the squash commit reached main.
+export MIG_FAIL='["PUT pulls/12/merge"]' MIG_MAIN='{"__sequence__": [[], '"$mig_on_main"']}'
+expect "merge-if-green reports a merge that GitHub answered with an error" 0 "$(mig_run)"
+expect "merge-if-green says ĐÃ MERGE (GitHub báo lỗi)" 1 "$(grep -c '^ĐÃ MERGE (GitHub báo lỗi): PR #12' "$work/mig.out" || true)"
+expect "merge-if-green asks for main-guard after such a merge" 1 "$(mig_writes '^POST actions/workflows/main-guard.yml/dispatches$')"
+expect "merge-if-green deletes the branch after such a merge" 1 "$(mig_writes '^DELETE git/refs/heads/claude/template-x$')"
+expect "merge-if-green tells how to wait for main-guard" 1 "$(grep -c 'scripts/wait-run.sh --workflow main-guard.yml --since' "$work/mig.out" || true)"
+export MIG_FAIL='["PUT pulls/12/merge", "POST actions/workflows/main-guard.yml/dispatches"]'
+expect "merge-if-green still reports the merge when main-guard cannot be started" 0 "$(mig_run)"
+expect "merge-if-green warns when main-guard cannot be started" 1 "$(grep -c '^CHÚ Ý: không yêu cầu được main-guard' "$work/mig.out" || true)"
+export MIG_FAIL='["PUT pulls/12/merge"]'
+for lacking in '[]' "$mig_other_tree" "$mig_other_title"; do
+  MIG_MAIN="$lacking"
+  expect "merge-if-green refuses when the API fails and main lacks the commit" 1 "$(mig_run)"
+  expect "merge-if-green says GitHub refused the merge" 1 "$(grep -c '^TỪ CHỐI: GitHub từ chối merge PR #12' "$work/mig.out" || true)"
+  expect "merge-if-green does not ask for main-guard when the merge failed" 0 "$(mig_writes dispatches)"
+done
+export MIG_MAIN='{"__sequence__": [[], [], [], '"$mig_on_main"']}'
+expect "merge-if-green finds the commit on a later read" 0 "$(mig_run)"
+expect "merge-if-green read main four times before finding it" 4 "$(mig_reads)"
+unset MIG_FAIL MIG_MAIN
+expect "merge-if-green keeps the old path when the commit list cannot be read" 0 "$(mig_run)"
+expect "merge-if-green still says ĐÃ MERGE after a plain merge" 1 "$(grep -c '^ĐÃ MERGE: PR #12' "$work/mig.out" || true)"
+export MIG_MAIN='{"__sequence__": [[]]}'
+expect "merge-if-green merges a green PR" 0 "$(mig_run)"
+expect "merge-if-green merges with a PUT" 1 "$(mig_writes '^PUT pulls/12/merge$')"
+expect "merge-if-green does not ask for main-guard after a plain merge" 0 "$(mig_writes dispatches)"
+expect "merge-if-green reads main once before a plain merge, not after" 1 "$(mig_reads)"
+MIG_DATE=2026-10-23T07:59:00Z mig_run > /dev/null
+expect "merge-if-green still warns about a fresh commit before the merge" 1 "$(grep -c '^CHÚ Ý: commit cuối abc1234' "$work/mig.out" || true)"
+mig_reset
+FIXTURE="$work/mig.json" PATH="$work/bin:$PATH" gh api repos/o/r/git/commits/zzz > "$work/fake404.out" 2> "$work/fake404.err" || fake404=$?
+expect "fake-gh answers an unknown path with 404" "1 1 0" \
+  "${fake404:-0} $(grep -c 'HTTP 404' "$work/fake404.err" || true) $(grep -c Traceback "$work/fake404.err" || true)"
+
 # A check run still queued or in progress whose check suite completed with success counts as green (plan T-029, L-017).
 # A commit pushed less than 3 minutes ago gets a warning, not a refusal (L-018).
 merge_checks() { # <changes status> <suite answer> <commit date>; prints the exit code
@@ -878,9 +981,11 @@ write_ticket() { # <id> <depends>
   printf -- '---\nid: %s\nstatus: approved\nspec: features/demo/spec.md\nscenarios: [KB-1]\ndepends_on: [%s]\n---\n' \
     "$1" "$2" > "$rr/docs/features/demo/tickets/$1-x.md"
 }
-write_run_plan() { # <id> <file> <test row> [operation]
-  printf -- '---\nticket: %s\nstatus: approved\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| %s | `%s` | x |\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
-    "$1" "${4:-Sửa}" "$2" "$3" > "$rr/docs/features/demo/plans/$1-x.md"
+write_run_plan() { # <id> <file> <test row> [operation] [text added to section 3] [text added as section 6]
+  local section6=""
+  [ -z "${6:-}" ] || section6="## 6. Ảnh hưởng chéo"$'\n\n'"$6"$'\n\n'
+  printf -- '---\nticket: %s\nstatus: approved\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n## 3. Giải pháp\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| %s | `%s` | x |\n\n%s\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n%s## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
+    "$1" "${4:-Sửa}" "$2" "${5:-}" "$3" "$section6" > "$rr/docs/features/demo/plans/$1-x.md"
 }
 write_run() { # <rows>
   printf -- '---\nstatus: draft\n---\n\n## 1. Danh sách chạy\n\n| Thứ tự | Ticket | Feature | Plan | Rủi ro | Phụ thuộc | Ghi chú |\n| --- | --- | --- | --- | --- | --- | --- |\n%b\n\n## 2. Kiểm tra\n' \
@@ -936,6 +1041,63 @@ printf -- '---\nid: T-002\nstatus: approved\nspec:\nscenarios: [KB-1]\ndepends_o
   > "$rr/docs/features/demo/tickets/T-002-x.md"
 expect "run-check: a ticket with scenarios but no spec stops" stop "$(run_check)"
 write_ticket T-002 ''
+
+# run-check.py reads a plan's order hints and the files of other plans of the list (plan T-042, L-060).
+# write_run_plan's fifth argument goes into section 3 of the plan, the sixth is a section 6 line.
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-001 trước T-002.'
+write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
+write_run "$(run_row 1 T-002)$(run_row 2 T-001)"
+expect "run-check: a plan's order hint broken by the list stops" stop "$(run_check)"
+expect "run-check: the broken order hint names the pair and the lesson" 1 \
+  "$(grep -c 'T-001 trước T-002.*L-060\|L-060.*T-001 trước T-002' "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+expect "run-check: a list following the order hint passes" pass "$(run_check)"
+expect "run-check: a list following the order hint has no L-060 message" 0 "$(grep -c 'L-060' "$work/run-check.out" || true)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
+write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |' Sửa '' '- Đề xuất thứ tự chạy: sau T-001.'
+write_run "$(run_row 1 T-002)$(run_row 2 T-001)"
+expect "run-check: a 'sau' order hint is read" stop "$(run_check)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: trong nhóm demo: T-001, T-002.'
+write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
+expect "run-check: a group order hint is read" stop "$(run_check)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-002, T-003 không phụ thuộc T-001.'
+expect "run-check: a list of tickets that is not an order is no hint" pass "$(run_check)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-001 trước T-002.'
+write_run "$(run_row 1 T-002)$(run_row 2 T-001)\n\nBỏ đề xuất thứ tự: T-001 trước T-002 (hai plan chỉ chung vài dòng)."
+expect "run-check: a dropped order hint with a reason passes" pass "$(run_check)"
+expect "run-check: a dropped order hint with a reason warns once" 1 "$(grep -c 'CHÚ Ý.*T-001 trước T-002' "$work/run-check.out" || true)"
+
+# Files of other plans: a plan using a file that a later plan creates (and not in its own section 3.2).
+git init -q "$rr"
+mkdir -p "$rr/feature/other"
+touch "$rr/feature/other/strings.xml"
+git -C "$rr" add -A
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa 'Nối `Unfolded.kt` vào màn hình.'
+write_run_plan T-002 feature/demo/Unfolded.kt '| KB-1 | Unit | `bTest` |' Tạo
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+expect "run-check: a plan using a file a later plan creates stops" stop "$(run_check)"
+expect "run-check: names the file and the creating plan" 1 "$(grep -c 'nhắc `Unfolded.kt` mà T-002 (đứng sau) tạo' "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-002)$(run_row 2 T-001)"
+expect "run-check: a later plan using a created file only warns" pass "$(run_check)"
+expect "run-check: the warning says what is missing if the creating plan stops" 1 \
+  "$(grep -c 'CHÚ Ý.*nếu T-002 dừng thì T-001 thiếu.*Unfolded.kt' "$work/run-check.out" || true)"
+write_ticket T-001 'T-002'
+run_check > /dev/null
+expect "run-check: a plan depending on the creating plan gets no such warning" 0 "$(grep -c 'nếu T-002 dừng' "$work/run-check.out" || true)"
+write_ticket T-001 ''
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa 'Dùng `strings.xml`.'
+write_run_plan T-002 feature/demo/strings.xml '| KB-1 | Unit | `bTest` |' Tạo
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+run_check > /dev/null
+expect "run-check: a common file name is no use" 0 "$(grep -c 'L-060' "$work/run-check.out" || true)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' 'Plan kia có thể thêm `Unfolded.kt`, không ảnh hưởng.'
+write_run_plan T-002 feature/demo/Unfolded.kt '| KB-1 | Unit | `bTest` |' Tạo
+run_check > /dev/null
+expect "run-check: a file named only in section 6 is no use" 0 "$(grep -c 'L-060' "$work/run-check.out" || true)"
+rm -rf "$rr/.git"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
+write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 
 # token-usage.py counts tokens per task from transcripts, one usage per request, never failing the session.
 tokens="$work/token-repo"

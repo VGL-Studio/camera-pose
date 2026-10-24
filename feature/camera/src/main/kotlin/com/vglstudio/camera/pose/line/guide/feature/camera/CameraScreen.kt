@@ -230,6 +230,7 @@ internal fun CameraScreen(
                 onLastPhotoClick = onLastPhotoClick,
                 chipsState = chipsState,
                 stripState = stripState,
+                matchState = matchState,
             )
         } else {
             CameraPhoneLayout(

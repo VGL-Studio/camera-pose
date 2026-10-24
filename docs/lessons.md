@@ -628,3 +628,21 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `wait-run.sh --pr` chỉ nhận lần chạy có `head_sha` bằng commit đầu hiện tại của PR (đọc `pulls/<số>` mỗi vòng), và coi `cancelled` của commit cũ là "chưa có lần chạy" thay vì đỏ; test với `gh` giả. Trong lúc chờ sửa: `auto-run.md` bước 8, kết quả `cancelled` thì gọi lại `wait-run.sh`, không tính là lỗi.
 - **Áp dụng:** ticket T-044 (chưa có plan). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
+
+### L-067: vòng chờ bằng `pgrep -f` khớp chính lệnh đang chạy nó, và `pkill -f` giết cả shell của phiên
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261024-01 (T-039).
+- **Chuyện gì:** vòng `while pgrep -f "wait-run.sh --workflow" ...; do sleep; done` không bao giờ thoát vì `pgrep -f` thấy dòng lệnh của chính vòng đó; chạy `pkill -f "pgrep -f"` để dọn thì giết luôn shell (thoát 144). Mất khoảng 25 phút chờ vô ích.
+- **Bằng chứng:** RUN-20261024-01, T-039, giờ 07:25 đến 07:35 UTC.
+- **Đề xuất sửa:** `auto-run.md` bước 9 nói rõ: chờ `main-guard` chỉ bằng `scripts/wait-run.sh --workflow main-guard.yml --since <giờ>` chạy ở chế độ nền, đọc kết quả từ tệp đầu ra của nó; không dùng `pgrep` hay `pkill` theo chuỗi lệnh.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-068: `scripts/tests/run.sh` đặt `origin` toàn cục thành URL giả, test dùng bare repo thật phải tắt biến đó
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261024-01 (T-037).
+- **Chuyện gì:** đầu `run.sh` xuất `GIT_CONFIG_COUNT=1` với `remote.origin.url=https://github.com/o/r.git` cho mọi lệnh git. Khối test đẩy lên một bare repo cục bộ vì thế đẩy tới `github.com/o/r` (403). Khối `save-branch` phải `unset` ba biến này rồi đặt lại ở cuối.
+- **Bằng chứng:** RUN-20261024-01, lần chạy đầu của khối `save-branch`: `access denied by the git proxy: o/r is not in this session's authorized repository set`.
+- **Đề xuất sửa:** thêm chú thích đầu `scripts/tests/run.sh` nêu điều này, hoặc một hàm `with_real_git_config` dùng chung.
+- **Áp dụng:**
+- **Kiểm chứng:**

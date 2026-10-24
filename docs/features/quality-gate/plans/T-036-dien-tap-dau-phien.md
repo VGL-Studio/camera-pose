@@ -1,7 +1,7 @@
 ---
 ticket: T-036
 title: Diễn tập đầu phiên trong đúng môi trường cloud
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -197,3 +197,16 @@ Phiên bản 2:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261024-01, phiên bản plan 2
+
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-036-dien-tap-dau-phien`, PR #103 (commit merge c49a267)
+- **Đã làm:** `cloud-env-check.sh` kiểm thêm Java (`java-check.sh`), `./gradlew --version` (giới hạn 300 giây) và nền tảng `compileSdk` của SDK; thông báo tách theo loại vấn đề; `env-canary.sh` đổi câu lý do; ba đoạn tài liệu.
+- **Test viết trước:** 14 khẳng định mới, `fake_java` chuyển lên trước khối `cloud-env-check` trong cùng commit. Ở khung cũ 9 test thất bại ở phần khẳng định (đúng lý do: script chưa kiểm Java, Gradle, SDK, chưa đổi câu lý do); các test "qua" và "không có câu dán lại" là đối chứng.
+- **Sửa test sau khi viết (chi tiết, không đổi điều kiểm):** đếm hai cụm trên cùng một dòng bằng `grep -o`; mẫu câu lý do của `env-canary` có dấu backtick quanh tên script.
+- **Rà soát độc lập:** không có điểm chặn. Một ghi chú về chữ "bốn dòng" trong `staging-and-runs.md`, đã sửa.
+- **Kết quả CI:** `check.sh` cục bộ qua; `pr-check` xanh; `main-guard` của commit merge xanh (lần chạy 40072879944).
+- **Lệch so với plan:** `docs/lessons.md` không sửa: dòng Áp dụng của L-056 đã ghi T-036 (RUN-20261024-01). Ticket và nhật ký đi qua PR báo cáo.
+- **Việc còn lại:** thời gian bước Gradle trên cloud với bộ nhớ đệm trống chưa đo; trên phiên này bản mới chạy trong 1,7 giây (bản phân phối đã tải sẵn). Phiên kế tiếp ghi thời gian thật ở Kiểm tra đầu phiên.
+- **Cần người xem:** bản mới chạy được trên máy cloud của phiên (thoát 0, in một dòng tổng hợp).

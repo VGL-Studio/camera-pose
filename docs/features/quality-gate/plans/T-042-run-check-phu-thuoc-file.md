@@ -1,7 +1,7 @@
 ---
 ticket: T-042
 title: run-check.py báo plan phụ thuộc file của plan khác
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -195,3 +195,17 @@ Mọi test vào `scripts/tests/run.sh`, khối `run-check` hiện có, dùng rep
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261024-01, phiên bản plan 1
+
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-042-run-check-phu-thuoc-file`, PR #106 (commit merge 7f8b96c)
+- **Đã làm:** `run-check.py` thêm `order_hints` (đọc dòng "thứ tự" ở mục 6: `A trước B`, `sau A`, nhóm, `rồi`) và báo lỗi khi danh sách xếp ngược, chú ý khi có "Bỏ đề xuất thứ tự"; báo plan nhắc file mà plan khác tạo (lỗi khi đứng trước, chú ý khi đứng sau); `pre-run-review.md` thêm hai dòng.
+- **Test viết trước:** 16 khẳng định mới; ở khung cũ 8 thất bại ở phần khẳng định (script chưa có kiểm tra); các test "pass" đi cùng test đối chứng sai thứ tự.
+- **Sửa sau khi viết test (chi tiết):** hàm `write_run_plan` của test thiếu tiêu đề `## 3.` nên mục 3 không đọc được; thêm vào hàm phụ trợ. Code: câu "T-011 bắt buộc sau T-009" bị đọc thành cặp tự thân T-009/T-009 (phát hiện khi chạy trên danh sách cũ ở bước 5); mẫu `sau` nay nhận chủ ngữ và bỏ cặp tự thân.
+- **Chạy trên dữ liệu thật:** 10 danh sách cũ chỉ RUN-20261022-01 có lỗi L-060 (T-008/T-010, đã biết); RUN-20261023-04 đổi chỗ T-017 và T-020 cho đúng 1 lỗi.
+- **Rà soát độc lập:** không chặn. Ghi chú: câu phủ định ("không cần A trước B") vẫn bị đọc thành ràng buộc, và đề xuất xuống dòng giữa chừng bị bỏ sót (rủi ro đã nêu ở mục 3.4).
+- **Kết quả CI:** `check.sh` cục bộ qua; `pr-check` xanh; `main-guard` xanh (lần chạy 40076745616).
+- **Lệch so với plan:** `docs/lessons.md` không sửa (dòng Áp dụng đã ghi). Phương án dự phòng mục 3.4 không dùng.
+- **Việc còn lại:** thêm dòng "Bỏ đề xuất thứ tự: T-008 trước T-010" vào RUN-20261022-01 nếu muốn danh sách cũ sạch lỗi (ngoài mục 3.2, không làm).
+- **Cần người xem:** mức "lỗi" cho đề xuất thứ tự bị ngược (mục 8, câu 1 đã duyệt).

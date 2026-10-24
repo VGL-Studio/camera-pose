@@ -1,7 +1,7 @@
 ---
 ticket: T-040
 title: merge-if-green.sh nhận ra PR đã vào nhánh chính khi API merge báo lỗi
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -226,3 +226,16 @@ Phiên bản 2:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261024-01, phiên bản plan 2
+
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-040-merge-if-green-da-merge`, PR #107 (commit merge db1bac5), merge bằng bản `merge-if-green.sh` của `origin/main` chép ra ngoài worktree (mục 3.1)
+- **Đã làm:** `merge-if-green.sh` thêm `HEAD_TREE`, `merged_on_main` (tiêu đề `<tiêu đề> (#<số>)` và cây file trùng commit đầu PR), kiểm tra `ĐÃ MERGE TRƯỚC ĐÓ` ngay sau kiểm tra PR mở, và xử lý lệnh merge lỗi (đọc lại 3 lần, `ĐÃ MERGE (GitHub báo lỗi)`, xóa nhánh, yêu cầu `main-guard` bằng REST); `fake-gh` đọc đường dẫn sau `-X` và trả 404; dòng PB-04 của bảng tra lỗi; bước 9 của `auto-run.md`.
+- **Test viết trước:** khoảng 50 khẳng định mới theo bảng L-044. Ở khung cũ 24 thất bại ở phần khẳng định (bản `fake-gh` mới đã vào commit test, mọi test cũ vẫn qua, không có Traceback).
+- **Sửa test sau khi viết (chi tiết):** `mig_writes` in 0 khi chưa có tệp ghi; test "đọc một lần" dùng `__sequence__` để đếm lần đọc.
+- **Rà soát độc lập:** không chặn. Nên sửa đã xử lý: `fake-gh` trả 404 cả khi `commits/<sha>` không có trong fixture.
+- **Kết quả CI:** `check.sh` cục bộ qua; `pr-check` xanh.
+- **Lệch so với plan:** không viết test `merge-if-green sees an exact revert merged despite an error` của bảng L-044: bản revert đúng dùng chung đoạn lỗi merge đã có test ở hai phía và test này cần repo git thật như `merge_while_broken`. `docs/lessons.md` không sửa (dòng Áp dụng của L-054 đã ghi T-040).
+- **Việc còn lại:** đưa `merge-if-green.sh` và `fake-gh` về dự án mẫu qua issue `from-app` (mục 8, câu 4); chỉ làm trong phiên có người theo dõi.
+- **Cần người xem:** nhận biết "đã merge" bằng cây file chỉ đúng khi nhánh PR không chậm so với main lúc squash (giả định ở mục 2).

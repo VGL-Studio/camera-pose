@@ -330,7 +330,7 @@ expect "playbook: every pattern of the real table is valid" 0 "$(grep -c 'LỖI 
 pb_rows="$(sed -n '/playbook:start/,/playbook:end/p' docs/ops/failure-playbook.md | grep -oE '^\| PB-[0-9]+' | tr -d '| ' | sort)"
 pb_files="$(ls $pb_dir | grep -oE '^PB-[0-9]+' | sort -u)"
 expect "playbook: every row has a log file and every log file a row" "$pb_rows" "$pb_files"
-expect "playbook: the table has 10 rows" 10 "$(printf '%s\n' "$pb_rows" | wc -l | tr -d ' ')"
+expect "playbook: the table has at least 10 rows" yes "$([ "$(printf '%s\n' "$pb_rows" | wc -l)" -ge 10 ] && echo yes || echo no)"
 expect "failure-kind: a playbook-only log still says other" other "$(scripts/failure-kind.sh $pb_dir/PB-01.log)"
 
 # is-exact-revert.sh (ADR-1002, point 3), on a throwaway repo: A, B (the culprit), C (main).

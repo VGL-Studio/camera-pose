@@ -643,7 +643,7 @@ expect "cloud-env-check.sh points a Java problem at JAVA_TOOL_OPTIONS" 1 "$(grep
 expect "cloud-env-check.sh stops when the Gradle wrapper fails" stop \
   "$(ENV_GRADLEW="$work/gradlew-fail" env_check "$setup_version" "$work/gradle-home")"
 expect "cloud-env-check.sh names the Gradle wrapper and its output" 2 \
-  "$(grep -c 'Gradle wrapper\|Could not install Gradle distribution' "$work/env-check.out" || true)"
+  "$(grep -o 'Gradle wrapper\|Could not install Gradle distribution' "$work/env-check.out" | wc -l | tr -d ' ')"
 if command -v timeout > /dev/null; then
   hang_start=$SECONDS
   hang_result="$(ENV_GRADLEW="$work/gradlew-hang" ENV_GRADLEW_TIMEOUT=1 env_check "$setup_version" "$work/gradle-home")"
@@ -1090,7 +1090,7 @@ echo '{"routes": {"issues?state=open&labels=env-broken&per_page=10": []}}' > "$w
 PATH="$work/bin-record:$PATH" FIXTURE="$work/canary.json" CANARY_CHECKOUT=no RETRY_WAIT_SECONDS=0 \
   ENV_CHECK_CMD="$work/fail.sh" CHECK_CMD="$work/pass.sh" scripts/env-canary.sh > /dev/null 2>&1 || true
 expect "env-canary: env check red names cloud-env-check.sh" 1 \
-  "$(grep -c 'cloud-env-check.sh báo lỗi' "$work/canary-gh.args" || true)"
+  "$(grep -c 'cloud-env-check.sh. báo lỗi' "$work/canary-gh.args" || true)"
 expect "env-canary: green closes the open issue" "POST issues/7/comments;PATCH issues/7;" \
   "$(canary "$work/pass.sh" "$work/pass.sh" '[{"number": 7}]')"
 expect "env-canary: green with nothing open changes nothing" "" "$(canary "$work/pass.sh" "$work/pass.sh" '[]')"

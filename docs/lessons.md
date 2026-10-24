@@ -623,10 +623,10 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 ### L-066: `wait-run.sh --pr` gọi ngay sau khi đẩy đọc lần chạy cũ bị hủy và báo đỏ
 
 - **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, PR #98, #100.
-- **Chuyện gì:** đẩy commit mới lên nhánh của PR thì GitHub hủy lần chạy `pr-check` của commit trước (`cancelled`) rồi mới tạo lần chạy mới. `wait-run.sh --pr` gọi trong vài giây sau lần đẩy thấy lần chạy cũ đã xong với kết quả `cancelled` và báo `ĐỎ (cancelled)`, mã 1. Ba lần trong một buổi; phiên tự chạy gặp mã 1 sẽ đọc log, không thấy lỗi, và có thể tính nhầm vào 3 lần sửa hay chạy lại vô ích.
+- **Chuyện gì:** đẩy commit mới lên nhánh của PR thì GitHub hủy lần chạy `pr-check` của commit trước (`cancelled`) rồi mới tạo lần chạy mới. `wait-run.sh --pr` đọc commit đầu của PR một lần lúc bắt đầu; gọi trong lúc lần chạy của commit trước bị hủy thì thấy `cancelled` và báo `ĐỎ (cancelled)`, mã 1. Theo số đo của PR #100, lần chạy của commit mới (`eba5f98`) được tạo trước (05:31:35Z), lần chạy của commit cũ (`e35ae86`) bị hủy sau đó (05:32:16Z). Ba lần trong một buổi; phiên tự chạy gặp mã 1 sẽ đọc log, không thấy lỗi, và có thể tính nhầm vào 3 lần sửa hay chạy lại vô ích.
 - **Bằng chứng:** PR #100, lần chạy 40066418977 `cancelled` (commit `e35ae86`) khi commit mới đã đẩy; lần chạy kế 40066593456 xanh. PR #98: cùng dấu hiệu.
 - **Đề xuất sửa:** `wait-run.sh --pr` chỉ nhận lần chạy có `head_sha` bằng commit đầu hiện tại của PR (đọc `pulls/<số>` mỗi vòng), và coi `cancelled` của commit cũ là "chưa có lần chạy" thay vì đỏ; test với `gh` giả. Trong lúc chờ sửa: `auto-run.md` bước 8, kết quả `cancelled` thì gọi lại `wait-run.sh`, không tính là lỗi.
-- **Áp dụng:** ticket T-044 (chưa có plan). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
+- **Áp dụng:** ticket T-044, plan phiên bản 2, làm trong RUN-20261024-02 (`--pr` đọc lại commit đầu mỗi vòng, `--sha`). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-067: vòng chờ bằng `pgrep -f` khớp chính lệnh đang chạy nó, và `pkill -f` giết cả shell của phiên

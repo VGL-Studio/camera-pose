@@ -104,6 +104,7 @@ jobs:
       # passes check.sh and fails at staging time (L-053). No secret: the fake Firebase file and no signing config
       # give an unsigned APK, as on a dev machine.
       - name: Build bản release (R8)
+        id: release
         if: needs.changes.outputs.code == 'true' && needs.changes.outputs.release == 'true'
         run: ./gradlew --console=plain :app:assembleStagingRelease 2>&1 | tee release.log
 
@@ -125,10 +126,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            if [ -f release.log ]; then
-              echo "### build-and-test thất bại: build bản release (R8) thất bại"
+            if [ "${{ steps.release.outcome }}" = "failure" ]; then
+              echo "### build-and-test thất bại: build bản release thất bại"
               echo
-              echo "Lỗi R8:"
+              echo "Lỗi (R8 hay biên dịch bản release):"
               echo '```'
               grep -E "ERROR: R8:|Missing class|What went wrong" -A 3 release.log | head -n 80 || true
               echo '```'

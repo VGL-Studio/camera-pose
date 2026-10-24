@@ -166,6 +166,10 @@ def check(run_path):
             where = "đứng sau trong danh sách" if dependency in in_list else f"chưa merge ('{status}')"
             errors.append(f"{ticket}: phụ thuộc {dependency} {where}.")
 
+        scenarios = [s for s in ids(fields.get("scenarios")) if s.startswith("KB-")]
+        if not fields.get("spec") and not scenarios:
+            # A script or process ticket: its requirement is a lesson or an ADR, not a business spec.
+            continue
         spec_path = DOCS / fields.get("spec", "")
         if not fields.get("spec") or not spec_path.is_file():
             errors.append(f"{ticket}: không tìm thấy spec '{fields.get('spec')}'.")
@@ -177,7 +181,7 @@ def check(run_path):
 
         counts = criteria_per_scenario(spec_path.read_text())
         tests = test_rows(plan_text)
-        for scenario in [s for s in ids(fields.get("scenarios")) if s.startswith("KB-")]:
+        for scenario in scenarios:
             covering = [row for row in tests if re.search(rf"\b{scenario}\b", row)]
             if not covering:
                 errors.append(f"{ticket}: kịch bản {scenario} của ticket không có dòng nào ở mục 4 của plan.")

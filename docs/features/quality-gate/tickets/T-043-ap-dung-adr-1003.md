@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là ADR-1003 (L-058, L-059)
 scenarios: []
 owner: Tuấn
-status: planned
+status: approved
 risk: high
 size: S
 depends_on: []

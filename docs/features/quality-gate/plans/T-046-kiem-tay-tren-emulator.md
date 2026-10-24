@@ -1,7 +1,7 @@
 ---
 ticket: T-046
 title: Tiêu chí kiểm thủ công chạy được trên emulator thành kịch bản device-session
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -569,3 +569,15 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ng
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261024-02, phiên bản plan 2
+
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-046-kiem-tay-tren-emulator`, PR #121 (commit merge `d1bc390`)
+- **Đã làm:** `scripts/device-scenario.py` (trình chạy kịch bản, hạn chót tuyệt đối cho mọi lệnh `adb`, chọn phần tử theo resource-id từ `uiautomator dump`), `scripts/device-session.sh scenarios` và bảng trong `summary.md`, `scripts/tests/fake-adb` và fixture, ba tệp `deviceScenarios` (T-020, T-022, T-024), quy tắc 11 của `plan-check.py` (mức chú ý), `exposeTestTagsForUiAutomator` ở `MainActivity` và `NetworkDialogHost`, `docs/CLAUDE.md`, `docs/auto-run.md`, `docs/templates/plan.md`, `docs/templates/run.md`, `docs/ops/test-sessions.md`.
+- **Test viết trước:** 52 lệnh `expect` mới trong `scripts/tests/run.sh` và 3 test Kotlin; 48 lệnh `expect` và 2 test Kotlin thất bại đúng lý do. Test qua ngay: đối chứng `withoutModifier_hasNoTestTagsAsResourceId` (cặp với test kia), `run-check: the latest run list has no new error from rule 11` (test chặn qua ngay, có điều kiện đầu ra không rỗng), `an empty glob exits before any adb call` (làm chặt bằng lần chạy đối chứng có tệp).
+- **Rà soát độc lập:** 0 chặn; nên sửa nhưng chưa sửa (ghi ở Cần người kiểm tra của báo cáo): (1) ba kịch bản chưa kiểm hết tiêu chí của ticket (đúng như mục 3.1 của plan); (2) `check` quét cả `src/test` nên tag bị đổi tên trong code chính mà test còn giữ chuỗi cũ vẫn qua; (3) ngân sách 600 giây không tính thời gian đặt lại máy giữa các tệp; (4) `timeout` ngoài chỉ gửi SIGTERM, tiến trình `adb` con có thể còn lại. Các điểm này không đổi điều test của plan kiểm; để người quyết định.
+- **Kết quả CI:** `scripts/check.sh` qua (1050 test JVM, 0 lỗi); `pr-check` xanh (lần chạy 40112382455).
+- **Lệch so với plan:** `fake-adb` đếm chuỗi dump ở `$FAKE_ADB_STATE_DIR/ui-seq.n`; test "ngân sách" dùng glob 2 tệp (`scenarios/[of]*.txt`) cho khớp chữ "hai tệp" của plan; thêm biến `DEVICE_SCENARIO_POLL`; ảnh lưu ở `scenarios/<tên tệp bỏ .txt>/<tên>.png`. Làm bước 3 đến 5 bằng phiên con trong worktree riêng (auto-run.md, "Giao bước 3 đến 5 cho phiên con").
+- **Việc còn lại:** dòng Áp dụng của L-062 (số PR #121) ghi ở PR báo cáo. Lần `device-session` đầu sau khi merge là lần kiểm thật đầu tiên của trình chạy (plan mục 3.4, 7): điểm chưa chắc là resource-id của Compose, hộp thoại đồng ý (UMP trong WebView) và `could not get idle state` ở màn camera.
+- **Cần người xem:** bảng "Kịch bản emulator" trong `summary.md` của `device-session` cuối phiên; ảnh chuẩn screenshot của hộp thoại mạng (thêm một `Box` bọc ngoài) — `check.sh` và CI không báo lệch.

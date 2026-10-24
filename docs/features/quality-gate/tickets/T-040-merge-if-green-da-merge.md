@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-054 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
+status: planned
 risk: high
 size: S
 depends_on: [T-029]
 sprint:
-plan:
+plan: features/quality-gate/plans/T-040-merge-if-green-da-merge.md
 created: 2026-10-24
 ---
 

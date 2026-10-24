@@ -619,3 +619,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** quy tắc 2 báo lỗi khi plan còn `draft`, chỉ chú ý khi plan đã `approved`, như quy tắc 7; file đọc thật sự bị ảnh hưởng sẽ lộ ra ở test của task, và phiên xử lý theo ADR-1003 hay điều kiện dừng.
 - **Áp dụng:** `scripts/plan-check.py` quy tắc 2, test trong `scripts/tests/run.sh` (PR này).
 - **Kiểm chứng:**
+
+### L-066: `wait-run.sh --pr` gọi ngay sau khi đẩy đọc lần chạy cũ bị hủy và báo đỏ
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, PR #98, #100.
+- **Chuyện gì:** đẩy commit mới lên nhánh của PR thì GitHub hủy lần chạy `pr-check` của commit trước (`cancelled`) rồi mới tạo lần chạy mới. `wait-run.sh --pr` gọi trong vài giây sau lần đẩy thấy lần chạy cũ đã xong với kết quả `cancelled` và báo `ĐỎ (cancelled)`, mã 1. Ba lần trong một buổi; phiên tự chạy gặp mã 1 sẽ đọc log, không thấy lỗi, và có thể tính nhầm vào 3 lần sửa hay chạy lại vô ích.
+- **Bằng chứng:** PR #100, lần chạy 40066418977 `cancelled` (commit `e35ae86`) khi commit mới đã đẩy; lần chạy kế 40066593456 xanh. PR #98: cùng dấu hiệu.
+- **Đề xuất sửa:** `wait-run.sh --pr` chỉ nhận lần chạy có `head_sha` bằng commit đầu hiện tại của PR (đọc `pulls/<số>` mỗi vòng), và coi `cancelled` của commit cũ là "chưa có lần chạy" thay vì đỏ; test với `gh` giả. Trong lúc chờ sửa: `auto-run.md` bước 8, kết quả `cancelled` thì gọi lại `wait-run.sh`, không tính là lỗi.
+- **Áp dụng:**
+- **Kiểm chứng:**

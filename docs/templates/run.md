@@ -5,6 +5,7 @@ sprint: <tên hoặc số sprint>
 approved_by: <dev duyệt danh sách và kích hoạt phiên>
 max_tasks: <số task tối đa>      # dev quyết định theo ước tính; mặc định bằng số task trong danh sách (docs/CLAUDE.md, mục Khi lập danh sách chạy)
 staging_needed_by:           # tùy chọn: thời điểm muốn có bản staging, ví dụ 2026-10-21 08:00
+plan_queue: 2                # số plan soạn sẵn cuối phiên, 0 là tắt (auto-run.md, mục 4, bước 5); tăng lên 3 sau 2 phiên tốt
 started_at:
 finished_at:
 staging_build:               # phiên bản bản staging được phát cuối phiên
@@ -144,6 +145,8 @@ Task lệch ước tính từ 2 lần trở lên: <task, lý do có thể; hoặ
 | | Khởi động `device-session`; xong |
 | | Khởi động `staging`; xong |
 | | Mở PR báo cáo |
+| | Soạn plan hàng chờ: bắt đầu |
+| | Mở PR tóm tắt plan soạn sẵn |
 
 ### Bài học
 
@@ -158,3 +161,20 @@ Task lệch ước tính từ 2 lần trở lên: <task, lý do có thể; hoặ
 ### Đề xuất cho buổi họp tiếp theo
 
 1. <...>
+
+### Plan soạn sẵn và câu hỏi cho người
+
+<!-- auto-run.md, mục 4. Hàng chờ và ticket bỏ qua điền ở bước 2 (viết báo cáo), phần còn lại điền qua PR tóm tắt ở bước 5. Ghi "Không soạn" kèm lý do khi bước 5 không chạy. -->
+
+- Hàng chờ: <các dòng của `scripts/plan-queue.py`, hoặc "Không soạn" kèm lý do>
+- Ticket bỏ qua: <các dòng stderr của `scripts/plan-queue.py`, hoặc "Không có">
+
+| Ticket | PR plan | Rủi ro | `plan-check.py` | Rà soát độc lập | Chạy thử |
+| --- | --- | --- | --- | --- | --- |
+| T-NNN | #<số> | <thấp / trung bình / cao, "cần duyệt chéo" với plan rủi ro cao> | qua / lỗi | <số chặn, số nên sửa; hoặc "chưa rà soát"> | <đã chạy / chưa chạy (lý do)> |
+
+Câu hỏi cho người:
+
+1. <T-NNN: nguyên văn câu hỏi ở mục 8 của plan, kèm phương án AI đề xuất>
+
+Dừng vì giới hạn: <plan nào chưa xong và vì sao, hoặc "Không có">

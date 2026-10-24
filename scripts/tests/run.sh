@@ -110,6 +110,10 @@ mgs="$(main_guard_status '{
   "ccccc03":{"parent":"bbbbbb2","files":["docs/b.md"]},
   "ddddd04":{"parent":"ccccc03","files":["docs/a.md"]}}' MAX_DEPTH=2)"
 expect "main-guard-status: stops after MAX_DEPTH" 3 "${mgs%% *}"
+# GitHub not answering (unknown commit, network) is not "code without a run": stop with its own code.
+mgs="$(main_guard_status '{
+  "ddddd04":{"parent":"ccccc03","files":["docs/a.md"]}}')"
+expect "main-guard-status: an unreadable commit stops with code 4" 1 "$(grep -c '^4 LỖI: không đọc được' <<<"$mgs")"
 # start-run.yml checks main-guard after the run-file checks and before firing the routine; main-guard.yml can be
 # run by hand for a commit that got no push event (L-054), keeping its push trigger as it was.
 start_wf=.github/workflows/start-run.yml

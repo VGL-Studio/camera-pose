@@ -881,7 +881,7 @@ write_ticket() { # <id> <depends>
 write_run_plan() { # <id> <file> <test row> [operation] [text added to section 3] [text added as section 6]
   local section6=""
   [ -z "${6:-}" ] || section6="## 6. Ảnh hưởng chéo"$'\n\n'"$6"$'\n\n'
-  printf -- '---\nticket: %s\nstatus: approved\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| %s | `%s` | x |\n\n%s\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n%s## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
+  printf -- '---\nticket: %s\nstatus: approved\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n## 3. Giải pháp\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| %s | `%s` | x |\n\n%s\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n%s## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
     "$1" "${4:-Sửa}" "$2" "${5:-}" "$3" "$section6" > "$rr/docs/features/demo/plans/$1-x.md"
 }
 write_run() { # <rows>

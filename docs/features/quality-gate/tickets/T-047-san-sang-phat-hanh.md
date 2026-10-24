@@ -6,7 +6,7 @@ spec:                        # không có spec nghiệp vụ; yêu cầu là bà
 scenarios: []
 owner: Tuấn
 status: planned
-risk: medium
+risk: high
 size: S
 depends_on: []
 sprint:

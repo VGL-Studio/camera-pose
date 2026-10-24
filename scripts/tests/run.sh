@@ -1076,6 +1076,22 @@ manual_rows "$plans/T-945-a.md" \
 expect "plan-check: a correct plan has no line of rule 11 (the rule does run on T-940)" "pass 0 1" \
   "$(plan_check "$plans/T-945-a.md") $(rule11) $(plan_check "$plans/T-940-a.md" > /dev/null; rule11)"
 
+# Rule 12: a cloud session has no TMPDIR, so a bare $TMPDIR writes to / (L-071).
+# The dollar signs are plan text, not shell expansion.
+# shellcheck disable=SC2016
+write_plan "$plans/T-946-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Chép: `git show origin/main:scripts/x.sh > "$TMPDIR/x.sh"`, rồi `${TMPDIR}/x.sh`.'
+expect "plan-check: a bare TMPDIR in a draft plan stops, both spellings named" "stop 2" \
+  "$(plan_check "$plans/T-946-a.md") $(grep -c 'LỖI:.*TMPDIR.*L-071' "$work/plan-check.out" || true)"
+# shellcheck disable=SC2016
+write_plan "$plans/T-947-a.md" high approved "$(row Sửa feature/demo/A.kt)" 'Chép vào `"$TMPDIR/x.sh"`.'
+expect "plan-check: a bare TMPDIR in an approved plan only warns" "1" \
+  "$(plan_check "$plans/T-947-a.md" > /dev/null; grep -c 'CHÚ Ý:.*TMPDIR.*L-071' "$work/plan-check.out" || true)"
+# Control: the default form passes.
+# shellcheck disable=SC2016
+write_plan "$plans/T-948-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Chép vào `"${TMPDIR:-/tmp}/x.sh"`.'
+expect "plan-check: TMPDIR with a default passes" "pass 0" \
+  "$(plan_check "$plans/T-948-a.md") $(grep -c 'TMPDIR' "$work/plan-check.out" || true)"
+
 # The latest run list must not get an error from rule 11 (it only warns).
 latest_run="$(ls docs/runs/RUN-*.md | sort | tail -n 1)"
 python3 -I scripts/run-check.py "$latest_run" > "$work/run-check-latest.out" 2>&1 || true

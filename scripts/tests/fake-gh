@@ -45,6 +45,8 @@ if m:
     data = {"check_runs": runs}
 else:
     sha = re.match(r"repos/[^/]+/[^/]+/commits/([0-9a-f]+)$", path).group(1); c = fx[sha]
-    data = {"parents": ([{"sha": c["parent"]}] if c.get("parent") else []), "files": [{"filename": f} for f in c.get("files", ["app/x.kt"])]}
+    # "parents" (a list) gives a merge commit; otherwise "parent" is the only parent.
+    parents = c["parents"] if "parents" in c else ([c["parent"]] if c.get("parent") else [])
+    data = {"parents": [{"sha": p} for p in parents], "files": [{"filename": f} for f in c.get("files", ["app/x.kt"])]}
 out = subprocess.run(["jq", "-r", jq], input=json.dumps(data), capture_output=True, text=True)
 sys.stdout.write(out.stdout); sys.exit(out.returncode)

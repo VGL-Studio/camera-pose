@@ -17,7 +17,7 @@ approved_at:
 
 ## 1. Tóm tắt
 
-`scripts/status.py` sinh thêm mục "## 6. Sẵn sàng phát hành" ở cuối `docs/STATUS.md`. Chữ cố định của mục 6 không ghi mã bài học (`L-0NN`): test có sẵn `new-app.sh regenerates the progress page without the template's lessons` đếm `L-0[0-9][0-9]` trên trang của app mới phải bằng 0 (phiên bản 2). Mục này gom từ các nguồn đã có trong repo những việc còn phải xong trước bản production:
+`scripts/status.py` sinh thêm mục "## 6. Sẵn sàng phát hành" ở cuối `docs/STATUS.md`. Chữ cố định của mục 6 không ghi mã bài học (`L-0NN`): test có sẵn `new-app.sh regenerates the progress page without the template's lessons` đếm `L-0[0-9][0-9]` trên trang của app mới phải bằng 0; test đó chỉ chạy ở dự án mẫu (`scripts/new-app.sh`), nên ràng buộc có tác dụng khi đưa về dự án mẫu (#133) (phiên bản 2). Mục này gom từ các nguồn đã có trong repo những việc còn phải xong trước bản production:
 
 - vị trí quảng cáo cần mã thật, đọc từ `AdPlacement.kt`;
 - mục "Cần người kiểm tra" chưa đánh dấu trong báo cáo các phiên;

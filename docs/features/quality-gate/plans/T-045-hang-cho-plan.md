@@ -63,7 +63,7 @@ Cách dùng: `scripts/plan-queue.py [--max N]`. `PLAN_QUEUE_ROOT` đổi gốc r
 - Script đọc mọi `docs/features/*/tickets/T-*.md`. Ticket không có khối frontmatter hay không có `id`, `status`: in `LỖI` và thoát mã 2.
 
 *Bỏ ticket đang có plan ở nơi khác.*
-- Nhánh: đọc `git for-each-ref --format='%(refname:short)' refs/remotes/origin/claude/plan-`. Phiên chạy `git fetch origin` trước khi gọi script. Ticket có nhánh `origin/claude/plan-T-NNN` hay `origin/claude/plan-T-NNN-*` thì bỏ qua: `T-NNN: bỏ qua, đang có plan trên nhánh <nhánh>`.
+- Nhánh: đọc `git -C <PLAN_QUEUE_ROOT> for-each-ref --format='%(refname:short)' refs/remotes/origin/claude/plan-` (mọi lệnh `git` của script chạy bằng `git -C` ở gốc tài liệu, không ở thư mục hiện tại, để test trên repo giả không đọc ref của repo thật). Phiên chạy `git fetch origin` trước khi gọi script. Ticket có nhánh `origin/claude/plan-T-NNN` hay `origin/claude/plan-T-NNN-*` thì bỏ qua: `T-NNN: bỏ qua, đang có plan trên nhánh <nhánh>`.
 - PR mở: đọc bằng `gh api "repos/<owner>/<repo>/pulls?state=open&per_page=100"`, rồi `gh api repos/<owner>/<repo>/pulls/<số>/files` cho từng PR. `owner/repo` lấy từ remote `origin`, như `wait-run.sh`. Ticket có file nằm trong một PR mở thì bỏ qua: `T-NNN: bỏ qua, đang có PR mở #<số> sửa ticket`.
 - Lệnh `git` hay `gh` lỗi: in `LỖI` kèm lệnh và thoát mã 2. Không đoán.
 
@@ -201,7 +201,7 @@ Không có.
 
 ## 4. Kiểm thử
 
-Test của `plan-queue.py` viết trước, trong `scripts/tests/run.sh`. Cây tài liệu giả `$work/pq` là một repo git. Khối test **giữ** `GIT_CONFIG_*` của `run.sh` (URL `https://github.com/o/r.git`), vì `plan-queue.py` đọc `owner/repo` từ `remote.origin.url` để gọi `fake-gh`; tắt nó thì `origin` thành đường dẫn cục bộ và mọi test ra mã 2. Nhánh `claude/plan-T-919-x` tạo thẳng bằng `git update-ref refs/remotes/origin/claude/plan-T-919-x HEAD`, không cần bare repo hay `git fetch`; nếu script gọi `git fetch` thì test đặt thêm `url.<bare>.insteadOf` cho `https://github.com/o/r.git` như `merge_while_broken` của `run.sh` (phiên bản 2). `fake-gh` trả về PR mở #77, sửa file ticket T-920.
+Test của `plan-queue.py` viết trước, trong `scripts/tests/run.sh`. Cây tài liệu giả `$work/pq` là một repo git. Khối test **giữ** `GIT_CONFIG_*` của `run.sh` (URL `https://github.com/o/r.git`), vì `plan-queue.py` đọc `owner/repo` từ `remote.origin.url` để gọi `fake-gh`; tắt nó thì `origin` thành đường dẫn cục bộ và mọi test ra mã 2. Nhánh `claude/plan-T-919-x` tạo thẳng bằng `git update-ref refs/remotes/origin/claude/plan-T-919-x HEAD`, không cần bare repo hay `git fetch`. Script không gọi `git fetch` (phiên gọi trước khi chạy script). Repo giả đặt danh tính commit `GIT_AUTHOR_*`, `GIT_COMMITTER_*` như hàm `git_t` của `run.sh`, vì máy CI không có sẵn (phiên bản 2). `fake-gh` trả về PR mở #77, sửa file ticket T-920.
 
 | Ticket | Thiết lập | Kết quả mong đợi |
 | --- | --- | --- |

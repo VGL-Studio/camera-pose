@@ -92,8 +92,6 @@ Bộ lọc thêm, tùy chọn:
 - `selected=true`: thuộc tính `selected` hoặc `checked` của nút là `true`;
 - `clickable=true`.
 
-Bộ chọn chỉ gồm bộ lọc (không có từ khóa chính, ví dụ `clickable=true in=camera_strip index=2`) là hợp lệ: khớp mọi node trong cây con của `in=` thỏa các bộ lọc. `check` chấp nhận dạng này nhưng báo lỗi khi bộ chọn không có cả từ khóa chính lẫn `in=` (phiên bản 2).
-
 Nhiều bộ chọn ngăn bằng ` | ` nghĩa là khớp một trong số đó.
 
 **Các lệnh:**
@@ -149,7 +147,7 @@ Vì vậy phần kịch bản theo plan không làm job dài thêm quá khoảng
 - **Đọc dump:** `adb shell uiautomator dump /sdcard/ds.xml`, rồi `adb exec-out cat /sdcard/ds.xml`, như `scripts/app-explore/ax.sh`.
   - Dump báo `ERROR: could not get idle state.` (màn có hiệu ứng chạy mãi) thì thử lại sau 1 giây, trong hạn của lệnh.
   - Hết hạn thì lý do là `could not get idle state`.
-- **Thư mục kịch bản:** `DEVICE_SCENARIOS_GLOB`, mặc định `feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/*.txt`, để test dùng thư mục riêng. Glob không khớp tệp nào (thư mục rỗng) thì trình chạy không làm gì: không cấp quyền, không đổi mạng, không gọi `adb`, `summary.md` ghi "Kịch bản theo plan: không có".
+- **Thư mục kịch bản:** `DEVICE_SCENARIOS_GLOB`, mặc định `feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/*.txt`, để test dùng thư mục riêng. Glob do trình chạy giải bằng `glob` của Python (không để shell bung). Glob không khớp tệp nào (thư mục rỗng) thì trình chạy thoát trước mọi lệnh `adb`, kể cả bước đọc `wm size` đầu lượt: không cấp quyền, không đổi mạng, không gọi `adb`, `summary.md` ghi "Kịch bản theo plan: không có".
 - **Test có sẵn không đổi:** khối test `device-session` của `scripts/tests/run.sh` đặt `export DEVICE_SCENARIOS_GLOB="$work/no-scenarios/*.txt"` (thư mục rỗng) cùng dòng `export DEVICE_SESSION_SLEEP=0` có sẵn, và bỏ nó ở dòng `unset` cuối khối. Chỉ các test mới của bước 4, bảng `summary.md` và `_helper` đặt glob riêng. Đây là thiết lập môi trường, không đổi điều test có sẵn kiểm (các test đếm quyền, đếm lần bật mạng giữ nguyên số) (phiên bản 2).
 
 **`scripts/device-session.sh`.**
@@ -330,7 +328,7 @@ wait id=onboarding_screen | id=camera_screen 60
 tap_if id=onboarding_enable_camera
 wait id=camera_screen 15
 need id=camera_grid_button 15
-tap clickable=true in=camera_strip index=2
+tap idp=camera_pose_ in=camera_strip index=2
 tap id=camera_grid_button
 wait id=camera_grid 5
 device unfold
@@ -375,7 +373,7 @@ Phần "chụp, màn xem lại" của T-020 không chạy: không có camera th�
 | Tạo | `scripts/tests/fixtures/device-scenario/scenarios/need.txt` | Tệp có `need` không khớp ở bước 2 |
 | Tạo | `scripts/tests/fixtures/device-scenario/bad.txt` | Lệnh lạ ở dòng 5 |
 | Tạo | `scripts/tests/fixtures/device-scenario/bad-id.txt` | `id=` không có trong code, `str=` không có trong `strings.xml` |
-| Sửa | `scripts/tests/run.sh` | Khối `device-scenario` (sau khối `device-session`, trước dòng tổng kết); khối `device-session` thêm test bước 4, `helper`, bảng; khối `plan-check` thêm test quy tắc 11 |
+| Sửa | `scripts/tests/run.sh` | Khối `device-scenario` (sau khối `device-session`, trước dòng tổng kết); khối `device-session` thêm test bước 4, `helper`, bảng, và đặt `export DEVICE_SCENARIOS_GLOB` trỏ thư mục rỗng cạnh `DEVICE_SESSION_SLEEP`, bỏ ở dòng `unset` cuối khối (mục 3.1, phiên bản 2); khối `plan-check` thêm test quy tắc 11 |
 | Sửa | `scripts/plan-check.py` | Quy tắc 11: dòng "Kiểm tra thủ công" ghi nơi chạy; tệp emulator có trong mục 3.2 hay repo, `check` qua. Chỉ chú ý, cho mọi plan; docstring ghi điều kiện để đổi thành lỗi |
 | Tạo | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/ui/UiAutomatorTags.kt` | `Modifier.exposeTestTagsForUiAutomator()`; chú thích về cửa sổ riêng |
 | Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt` | `Surface(modifier = Modifier.fillMaxSize().exposeTestTagsForUiAutomator())` |
@@ -562,7 +560,7 @@ Còn chờ người xác nhận:
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Giữ một task, quy tắc 11 chỉ chú ý (Tuấn chọn). Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm 4 test `device-session` có sẵn sẽ chạy cả 3 kịch bản thật của repo (`DEVICE_SCENARIOS_GLOB` mặc định) và đếm sai số lần cấp quyền, bật mạng; dòng kịch bản T-020 chỉ có bộ lọc trái cú pháp "một từ khóa chính"; `sleep 300` của `fake-adb` không có `exec` để lại tiến trình mồ côi; câu 7 của mục 8 chưa có trả lời.
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Giữ một task, quy tắc 11 chỉ chú ý (Tuấn chọn). Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm 4 test `device-session` có sẵn sẽ chạy cả 3 kịch bản thật của repo (`DEVICE_SCENARIOS_GLOB` mặc định) và đếm sai số lần cấp quyền, bật mạng; dòng kịch bản T-020 chỉ có bộ lọc trái cú pháp "một từ khóa chính" (nay dùng `idp=camera_pose_`, tag có sẵn `CameraTestTags.pose(id)`); `sleep 300` của `fake-adb` không có `exec` để lại tiến trình mồ côi; câu 7 của mục 8 chưa có trả lời.
 
 - **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
 - **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>

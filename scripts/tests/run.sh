@@ -100,8 +100,14 @@ mgs="$(main_guard_status '{
   "ddddd04":{"parent":"ccccc03","files":["docs/a.md"],"states":["success"]}}')"
 expect "main-guard-status: a run on a docs-only head counts" 1 "$(grep -c '^0 XANH: main-guard qua trên ddddd04' <<<"$mgs")"
 mgs="$(main_guard_status '{
+  "routes":{"actions/workflows/main-guard.yml/runs?head_sha=ddddd04&per_page=1":
+    {"workflow_runs":[{"created_at":"2025-12-31T23:59:00Z"}]}},
   "ddddd04":{"parent":"","states":["pending"]}}')"
 expect "main-guard-status: pending run asks to wait" 1 "$(grep -c '^2 CHỜ' <<<"$mgs")"
+# wait-run.sh --since keeps runs created after the time given, so the time is the workflow run's creation, which
+# comes before the check run starts (2026-01-01T00:00:00Z in fake-gh).
+expect "main-guard-status: pending gives the creation time of the workflow run for --since" 1 \
+  "$(grep -c -- '--since 2025-12-31T23:59:00Z' <<<"$mgs")"
 mgs="$(main_guard_status '{
   "ddddd04":{"parent":"","states":["failure"]}}')"
 expect "main-guard-status: red run is refused" 1 "$(grep -c '^1 ĐỎ' <<<"$mgs")"
@@ -110,6 +116,23 @@ mgs="$(main_guard_status '{
   "ccccc03":{"parent":"bbbbbb2","files":["docs/b.md"]},
   "ddddd04":{"parent":"ccccc03","files":["docs/a.md"]}}' MAX_DEPTH=2)"
 expect "main-guard-status: stops after MAX_DEPTH" 3 "${mgs%% *}"
+# A run that ended without a verdict (cancelled, timed out, ...) proves nothing and will not change: run it again.
+mgs="$(main_guard_status '{
+  "ddddd04":{"parent":"","states":["cancelled"]}}')"
+expect "main-guard-status: a cancelled run asks to run main-guard again" 1 "$(grep -c '^3 CHƯA KIỂM: ddddd04.*cancelled' <<<"$mgs")"
+# A commit is skipped only when it surely changes docs alone: no file list (GitHub cuts very large commits) or a
+# merge commit (its files are against the first parent only) counts as code.
+mgs="$(main_guard_status '{
+  "ccccc03":{"parent":"","states":["success"]},
+  "ddddd04":{"parent":"ccccc03","files":[]}}')"
+expect "main-guard-status: a commit without a file list counts as code" 1 "$(grep -c '^3 CHƯA KIỂM: ddddd04' <<<"$mgs")"
+mgs="$(main_guard_status '{
+  "bbbbbb2":{"parent":"","states":["success"]},
+  "ccccc03":{"parent":"","states":["success"]},
+  "ddddd04":{"parents":["ccccc03","bbbbbb2"],"files":["docs/a.md"]}}')"
+expect "main-guard-status: a merge commit counts as code" 1 "$(grep -c '^3 CHƯA KIỂM: ddddd04' <<<"$mgs")"
+expect "main-guard-status: a wrong argument is an error (code 4)" 4 \
+  "$(PATH="$work/bin:$PATH" scripts/main-guard-status.sh not-a-sha > /dev/null 2>&1; echo $?)"
 # GitHub not answering (unknown commit, network) is not "code without a run": stop with its own code.
 mgs="$(main_guard_status '{
   "ddddd04":{"parent":"ccccc03","files":["docs/a.md"]}}')"
@@ -117,12 +140,14 @@ expect "main-guard-status: an unreadable commit stops with code 4" 1 "$(grep -c 
 # start-run.yml checks main-guard after the run-file checks and before firing the routine; main-guard.yml can be
 # run by hand for a commit that got no push event (L-054), keeping its push trigger as it was.
 start_wf=.github/workflows/start-run.yml
-expect "start-run: main-guard step runs after the run-file checks and before the routine" "yes yes" \
-  "$(awk '/main-broken/ && !b { b = NR } /scripts\/main-guard-status.sh/ && !s { s = NR } /name: Kích hoạt routine/ { r = NR }
-     END { print ((b && s > b && s < r) ? "yes" : "no") }' "$start_wf") $(grep -qE '^  checks: read$' "$start_wf" && echo yes || echo no)"
+expect "start-run: main-guard step runs after the run-file checks and before the routine" "yes yes 0" \
+  "$(awk '/main-broken/ && !b { b = NR } /scripts\/main-guard-status.sh/ && !s { s = NR }
+     /name: Kiểm tra môi trường staging/ { e = NR } /name: Kích hoạt routine/ { r = NR }
+     END { print ((b && s > b && s < e && e < r) ? "yes" : "no") }' "$start_wf") $(grep -qE '^  checks: read$' "$start_wf" && echo yes || echo no) $(grep -c 'continue-on-error' "$start_wf")"
 guard_wf=.github/workflows/main-guard.yml
-expect "main-guard: has workflow_dispatch and keeps the push trigger with the same paths-ignore" "1 1 1 1" \
-  "$(grep -cE '^  workflow_dispatch:' "$guard_wf") $(grep -cE '^  push:$' "$guard_wf") $(grep -cE "^      - 'docs/\*\*'$" "$guard_wf") $(grep -cE "^      - '\*\*/\*\.md'$" "$guard_wf")"
+# Run by hand on another branch, the guard would open main-broken, push a revert or close an issue for that branch.
+expect "main-guard: has workflow_dispatch and keeps the push trigger with the same paths-ignore" "1 1 1 1 1" \
+  "$(grep -cE '^  workflow_dispatch:' "$guard_wf") $(grep -cE '^  push:$' "$guard_wf") $(grep -cE "^      - 'docs/\*\*'$" "$guard_wf") $(grep -cE "^      - '\*\*/\*\.md'$" "$guard_wf") $(awk '/^  guard:$/ { g = 1; next } g && /^    if: github.ref == .refs\/heads\/main.$/ { n++ } g && /^    steps:$/ { g = 0 } END { print n + 0 }' "$guard_wf")"
 
 # merge-if-green.sh must reject any argument other than exactly "<PR> [--dry-run]" before doing anything.
 for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" "" \

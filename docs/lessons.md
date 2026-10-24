@@ -469,29 +469,29 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-049: `java-check.sh` đọc nhầm dòng "Picked up JAVA_TOOL_OPTIONS", `check.sh` từ chối trên cloud
 
-- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03, kiểm tra đầu phiên.
+- **Trạng thái:** verified. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03, kiểm tra đầu phiên.
 - **Chuyện gì:** môi trường cloud đặt `JAVA_TOOL_OPTIONS` (proxy, truststore), nên `java -version` in dòng `Picked up JAVA_TOOL_OPTIONS: ...` trước dòng phiên bản. `scripts/java-check.sh` lấy dòng đầu (`head -n 1`), không đọc được phiên bản và dừng `scripts/check.sh`. Java thật là 21 (nằm trong khoảng 17 đến 24). Phiên không chạy task nào.
 - **Bằng chứng:** `start-check.log`: `LỖI: không đọc được phiên bản Java từ 'Picked up JAVA_TOOL_OPTIONS: ...'`; `java -version` in `openjdk version "21.0.12.1"` ở dòng thứ hai.
 - **Đề xuất sửa:** `scripts/java-check.sh` lấy dòng khớp `version "` thay vì dòng đầu (`grep -m1 ' version "'`), kèm test với đầu ra có dòng `Picked up`. Sửa file này là đổi cổng chất lượng: plan rủi ro cao, duyệt chéo. Phiên không tự sửa script và không bỏ `JAVA_TOOL_OPTIONS` (cấu hình tải nằm ở setup script).
 - **Áp dụng:** T-035, PR #69 (`scripts/java-check.sh` đọc dòng có phiên bản; test với dòng `Picked up`).
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261023-04: kiểm tra đầu phiên trên cloud qua, `scripts/check.sh` nền qua (9 phút 10 giây, 748 test JVM); Tuấn xác nhận ngày 2026-10-24.
 
 ### L-050: `AppLaunchTest` đỏ vì tải file R2 hết giờ chờ trên runner; quy tắc "chạy lại một lần" biến nó thành lỗi thật
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-022, PR #71.
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-022, PR #71.
 - **Chuyện gì:** `ui-test` đỏ hai lần liên tiếp (lần chạy 39997301164, lần 1 và lần chạy lại) ở `AppLaunchTest.appStarts_passesOnboarding_andReachesCamera`, không liên quan code của task. Tải file R2 (ảnh viền, ảnh nhỏ của bộ khởi đầu) hết giờ chờ 15 giây trên runner; màn tải dừng ở lỗi và chờ người bấm "Thử lại"; test chờ 60 giây rồi hết giờ. Chỉ một commit mới (một sửa nhỏ hợp lệ theo rà soát) cho lần chạy xanh (40000627087).
 - **Bằng chứng:** log `VGL.Loading: Task STARTER_SET failed`, `VGL.Assets: Could not download ... SocketTimeoutException`; lần 2 cùng dấu hiệu.
 - **Đề xuất sửa:** `AppLaunchTest` bấm "Thử lại" khi màn tải lỗi, hoặc chờ lâu hơn; `auto-run.md` bước 8 ghi cách xử lý khi `ui-test` đỏ vì tải R2 hết giờ chờ (không tính vào 3 lần sửa, không tự đẩy commit rỗng).
-- **Áp dụng:**
+- **Áp dụng:** T-039 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-051: nhánh task chỉ nằm trên máy cloud khi lệnh đẩy bị từ chối
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017.
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017.
 - **Chuyện gì:** phiên con của T-017 làm xong bước 3 đến 5 (4 commit, `check.sh` qua) nhưng `git push` bị bộ phân loại tự động từ chối ("dangerous", không giải thích); sáu lệnh đẩy tương tự của các phiên con khác trước và sau đó qua. Phiên chính không đẩy thay. Công việc chỉ nằm trên máy cloud tạm thời.
 - **Bằng chứng:** `git branch -r` không có `claude/T-017-camera-diem-khop`; báo của phiên con.
 - **Đề xuất sửa:** `auto-run.md` bước 3: đẩy nhánh task rỗng ngay lúc tạo (như phiên chính đã làm với T-022), để từ chối nếu có xảy ra sớm, trước khi tốn công viết code.
-- **Áp dụng:**
+- **Áp dụng:** T-037 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-052: rà soát độc lập và phiên viết code kết luận khác nhau về một điểm chặn
@@ -514,11 +514,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-054: GitHub merge xong nhưng trả lỗi, PR vẫn mở và không có sự kiện đẩy
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #67.
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #67.
 - **Chuyện gì:** `merge-if-green.sh 67` nhận lỗi `unexpected end of JSON input` từ API merge và in `TỪ CHỐI: GitHub từ chối merge`, nhưng commit c49a682 đã nằm trên nhánh chính. PR vẫn `OPEN`, không workflow `push` nào chạy (`main-guard`, `status-page`). Gọi lại script sẽ tạo commit trùng; người phải merge tay trên web (commit rỗng c83777a) để PR đóng, và các workflow `push` chạy trễ. Phiên tự chạy gặp chuyện này sẽ tưởng merge bị từ chối và dừng task, hoặc thử lại.
 - **Bằng chứng:** đầu ra của `merge-if-green.sh 67`; `git log origin/main` có c49a682 khi PR #67 còn `OPEN`; không có lần chạy `main-guard` cho c49a682.
 - **Đề xuất sửa:** `merge-if-green.sh` gặp lỗi từ API merge thì kiểm tra nhánh chính đã chứa commit đầu của PR chưa (`git merge-base --is-ancestor`, hoặc commit trên nhánh chính có số PR); có rồi thì in `ĐÃ MERGE (GitHub báo lỗi)` với mã riêng, ghi rằng workflow `push` có thể không chạy, và chạy `main-guard` bằng `workflow_dispatch`. `auto-run.md` bước 8 ghi cách xử lý mã này. Sửa script này cần plan rủi ro cao, duyệt chéo (L-044).
-- **Áp dụng:**
+- **Áp dụng:** T-040 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-055: `start-run.yml` không kiểm `main-guard` xanh trên commit đầu nhánh chính
@@ -532,20 +532,20 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-056: kiểm tra trước phiên không chạy `java-check.sh` trong môi trường cloud
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03 (L-049).
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03 (L-049).
 - **Chuyện gì:** `preflight.yml` và `start-run.yml` chạy trên runner GitHub, không có `JAVA_TOOL_OPTIONS` của môi trường cloud, nên lỗi của L-049 không lộ ở đó. Lỗi chỉ lộ khi phiên cloud đã khởi động và chạy `check.sh`, nên cả phiên kết thúc mà không task nào chạy. Mọi khác biệt giữa runner và môi trường cloud (biến môi trường, proxy, phiên bản công cụ) đều có thể làm hỏng phiên theo cách này.
 - **Bằng chứng:** RUN-20261023-03: `start-run` xanh, phiên dừng ở `java-check.sh`; RUN-20261023-04 qua sau khi sửa T-035.
 - **Đề xuất sửa:** `scripts/cloud-env-check.sh` gọi `scripts/java-check.sh` (và các kiểm tra rẻ khác mà `check.sh` chạy trước khi build), để lỗi môi trường lộ trong vài giây đầu phiên và báo rõ `env-broken`, thay vì sau `check.sh`; test của script dùng `fake_java` có dòng `Picked up`.
-- **Áp dụng:**
+- **Áp dụng:** T-036 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-057: phiên không có bảng tra lỗi đã biết, nên lỗi lặp lại vẫn làm phiên dừng hay tốn vòng sửa
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** retro 2026-10-24 sau RUN-20261023-04 (L-046, L-048, L-050, L-054).
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** retro 2026-10-24 sau RUN-20261023-04 (L-046, L-048, L-050, L-054).
 - **Chuyện gì:** mỗi lỗi hạ tầng đã gặp (hết hạn mức Actions, PR xung đột không có CI, R2 hết giờ chờ trong `ui-test`, API merge báo lỗi mà đã merge) được sửa riêng bằng một mã thoát hay một đoạn trong `auto-run.md`. Không có một chỗ duy nhất để phiên tra "thông báo này nghĩa là gì, làm gì tiếp". Lỗi mới cùng kiểu (R2 hết giờ chờ, L-050) vẫn bị tính là lỗi thật và tốn vòng CI.
 - **Bằng chứng:** RUN-20261023-04, T-022: `ui-test` đỏ 2 lần vì R2; `scripts/failure-kind.sh` chỉ phân loại thô cho `main-guard`.
 - **Đề xuất sửa:** `docs/ops/failure-playbook.md`: bảng mẫu thông báo lỗi (regex) và việc phải làm (chạy lại không tính vào 3 lần sửa, chờ, coi như đã merge, dừng task, dừng phiên); script phân loại đọc bảng này và in việc phải làm; mỗi bài học môi trường mới thêm một dòng.
-- **Áp dụng:**
+- **Áp dụng:** T-039 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-058: điều kiện dừng 1 dừng task khi task khác trong cùng danh sách đổi chỗ gọi
@@ -568,29 +568,29 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-060: `run-check.py` không thấy hai plan phụ thuộc file của nhau
 
-- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** rà soát trước RUN-20261023-03 (điểm chặn T-017, T-020).
+- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** rà soát trước RUN-20261023-03 (điểm chặn T-017, T-020).
 - **Chuyện gì:** `run-check.py` báo hai plan cùng sửa một file, nhưng không báo khi plan này tạo file mà plan kia giả định đã có (hoặc chưa có), nên thứ tự chạy sai chỉ được rà soát độc lập thấy. Khi một task dừng hay merge lệch thứ tự, không script nào báo trước file nào sẽ phải sửa thêm.
 - **Bằng chứng:** RUN-20261023-03, bảng rà soát: "T-017 phải sửa `CameraUnfolded.kt` không có trong mục 3.2".
 - **Đề xuất sửa:** `run-check.py` đọc mục 3.2 của mọi plan: plan sau nhắc tên file mà plan trước tạo thì phải xếp sau, và in "nếu <plan trước> chưa merge thì <plan sau> ..."; với hai plan cùng sửa một hàm có tên trong mục 3.1, in cảnh báo kèm tên hàm.
-- **Áp dụng:**
+- **Áp dụng:** T-042 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-061: hàng chờ plan cạn sau mỗi phiên, phiên kế tiếp phải chờ người và AI viết plan
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, 2026-10-24.
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, 2026-10-24.
 - **Chuyện gì:** sau RUN-20261023-02, phải một phiên có người theo dõi để viết 8 plan, trả lời câu hỏi, rà soát độc lập, soạn phiên bản 2, rồi mới lập được RUN-20261023-03. Thời gian từ lúc phiên xong tới lúc phiên kế tiếp chạy chủ yếu là chờ plan.
 - **Bằng chứng:** RUN-20261023-02 kết thúc 03:35 UTC; RUN-20261023-03 bắt đầu 16:53 UTC.
 - **Đề xuất sửa:** cuối mỗi phiên (sau báo cáo, khi còn hạn mức), phiên soạn plan `draft` cho các ticket `ready` kế tiếp, chạy thử mục 4.1, chạy `plan-check.py`, và gom mọi câu hỏi cần người vào một mục của báo cáo. Người chỉ trả lời và duyệt.
-- **Áp dụng:**
+- **Áp dụng:** ticket T-045 (chưa có plan). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-062: mục "kiểm thủ công" dồn lại sau mỗi phiên, phần lớn chạy được trên emulator
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, mục Cần người kiểm tra.
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, mục Cần người kiểm tra.
 - **Chuyện gì:** báo cáo RUN-20261023-04 có 7 nhóm kiểm thủ công. Nhiều mục không cần máy thật: xoay màn hình khi quảng cáo đang chờ, banner lỗi rồi làm mới, luồng "chi tiết tư thế, Chụp với tư thế này", gập mở (emulator gập). Chúng chờ người, nên lỗi như của L-059 chỉ lộ khi có người thử.
 - **Bằng chứng:** báo cáo RUN-20261023-04; `device-session.yml` chỉ chạy một kịch bản chung.
 - **Đề xuất sửa:** plan ghi mỗi tiêu chí kiểm thủ công là "máy thật" hay "emulator"; phần emulator thành kịch bản của `device-session.yml` (`scenarios.txt`), phiên chạy cuối phiên và đọc `summary.md`; chỉ phần máy thật (FPS, camera thật, Play) còn cho người.
-- **Áp dụng:**
+- **Áp dụng:** ticket T-046 (chưa có plan). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-063: không có vòng nối từ số liệu của bản staging về thứ tự tính năng
@@ -604,11 +604,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-064: không có danh sách sẵn sàng phát hành, nên không biết còn bao xa tới bản production
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04 (mã quảng cáo thật cho `poses_banner`, `poses_detail_banner`, `review_interstitial`).
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04 (mã quảng cáo thật cho `poses_banner`, `poses_detail_banner`, `review_interstitial`).
 - **Chuyện gì:** việc cần cho bản production nằm rải rác trong báo cáo các phiên: mã quảng cáo thật còn thiếu, kiểm thủ công chưa làm, lỗi đang mở, ảnh chuẩn chưa xem. Không ai thấy một danh sách, và `scripts/release.sh` chỉ báo thiếu khi đã chạy.
 - **Bằng chứng:** báo cáo RUN-20261023-04, mục Đề xuất về dự án mẫu.
 - **Đề xuất sửa:** `scripts/status.py` sinh thêm mục "Sẵn sàng phát hành" trên trang tiến độ, từ các nguồn đã có (vị trí quảng cáo trong `AdPlacement` so với mã đã cấu hình ở staging, mục kiểm thủ công chưa đánh dấu trong báo cáo, issue mở, ticket chưa `on-staging`). AI không đọc cấu hình production.
-- **Áp dụng:**
+- **Áp dụng:** ticket T-047 (chưa có plan). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-065: file mới nhắc tới file chung làm mọi plan đã duyệt lỗi `plan-check`, phiên sẽ bỏ qua cả danh sách
@@ -622,9 +622,9 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-066: `wait-run.sh --pr` gọi ngay sau khi đẩy đọc lần chạy cũ bị hủy và báo đỏ
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, PR #98, #100.
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, PR #98, #100.
 - **Chuyện gì:** đẩy commit mới lên nhánh của PR thì GitHub hủy lần chạy `pr-check` của commit trước (`cancelled`) rồi mới tạo lần chạy mới. `wait-run.sh --pr` gọi trong vài giây sau lần đẩy thấy lần chạy cũ đã xong với kết quả `cancelled` và báo `ĐỎ (cancelled)`, mã 1. Ba lần trong một buổi; phiên tự chạy gặp mã 1 sẽ đọc log, không thấy lỗi, và có thể tính nhầm vào 3 lần sửa hay chạy lại vô ích.
 - **Bằng chứng:** PR #100, lần chạy 40066418977 `cancelled` (commit `e35ae86`) khi commit mới đã đẩy; lần chạy kế 40066593456 xanh. PR #98: cùng dấu hiệu.
 - **Đề xuất sửa:** `wait-run.sh --pr` chỉ nhận lần chạy có `head_sha` bằng commit đầu hiện tại của PR (đọc `pulls/<số>` mỗi vòng), và coi `cancelled` của commit cũ là "chưa có lần chạy" thay vì đỏ; test với `gh` giả. Trong lúc chờ sửa: `auto-run.md` bước 8, kết quả `cancelled` thì gọi lại `wait-run.sh`, không tính là lỗi.
-- **Áp dụng:**
+- **Áp dụng:** ticket T-044 (chưa có plan). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**

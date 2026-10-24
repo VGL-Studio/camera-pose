@@ -1,7 +1,7 @@
 ---
 ticket: T-041
 title: start-run.yml kiểm main-guard xanh trên commit đầu nhánh chính
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -204,3 +204,14 @@ Không cần (E dưới 2): `gh api` check run và lịch sử first-parent đã
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-24, phiên có người theo dõi (Tuấn): đã merge
+
+- **Kết quả:** đã merge, PR #98, commit `4a88eb1`. Làm trong phiên có người theo dõi vì sửa `.github/workflows/`.
+- **Test viết trước:** 11 test trong `scripts/tests/run.sh` cùng khung rỗng (9 thất bại đúng lý do, 2 đối chứng); 1 test mã 4; sau rà soát thêm 6 test thất bại đúng lý do trước khi sửa. Trên dữ liệu thật: `c83777a` của RUN-20261023-03 bị báo `CHƯA KIỂM`.
+- **Lệch so với plan:** lệnh chạy `main-guard` dùng REST `actions/workflows/main-guard.yml/dispatches` (quy tắc chỉ dùng REST trong cloud); mã 2 in `created_at` của lần chạy cho `--since`; mã 4 khi API không trả lời, tham số sai hay `git fetch` lỗi; test so đầu dòng bằng `grep`.
+- **Rà soát độc lập:** 2 chặn, 3 nên sửa, đã sửa hết, rà soát lại sạch: job `guard` chỉ chạy trên `refs/heads/main` (lần chạy bằng tay trên nhánh khác không mở hay đóng `main-broken`); giờ `--since` là `created_at` của workflow run (giờ bắt đầu check run muộn hơn, `wait-run.sh` sẽ bỏ sót); kết quả `cancelled` và tương tự là mã 3, không phải "đang chạy"; commit không có danh sách file hay có hơn một cha tính là có code; test cấu trúc `start-run` kiểm thứ tự trước bước staging.
+- **CI đỏ một lần:** CI đặt `GITHUB_ACTIONS`, script thêm `::error::` đầu dòng, 7 test so đầu dòng thất bại (lần chạy 40065098653) dù qua trên máy dev. Sửa test: hàm phụ trợ bỏ `GITHUB_ACTIONS`, thêm test riêng cho dòng `::error::`.
+- **Kiểm thủ công sau merge (mục 4):** `main-guard` push 40065742211 xanh trên `a83a199`; chạy bằng tay (REST `dispatches`) 40065968556, event `workflow_dispatch`, xanh trên cùng commit, cùng danh sách bước và kết quả từng bước với lần push. `scripts/main-guard-status.sh` trên `main`: `XANH: main-guard qua trên a83a199`, thoát 0. Kiểm (1) (start-run với danh sách giả) bỏ qua để không kích hoạt routine.
+- **Câu 2 (`scripts/release.sh`):** AI không đọc file; trả lời bằng lập luận ở mục 9.
+- **Ghi chú chưa sửa:** `start-run.yml` không có `actions: read`, nên trong workflow mã 2 có thể in giờ "không rõ" (mã thoát vẫn đúng); commit hơn 300 file.

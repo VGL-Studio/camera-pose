@@ -505,11 +505,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-053: thư viện mới qua `check.sh` và CI nhưng bản release (R8) hỏng
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-019.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-019.
 - **Chuyện gì:** T-019 thêm `play-review-ktx`. `check.sh`, `pr-check` và `main-guard` không build bản release, nên `:app:minifyStagingReleaseWithR8` hỏng (`Missing class com.google.android.gms.common.annotation.NoNullnessRewrite`) chỉ lộ ở `device-session` cuối phiên, sau khi PR đã merge. Mục 4.1 của plan T-019 ghi đã thử R8 qua. Bản staging không phát được cho tới khi sửa.
 - **Bằng chứng:** `device-session` lần chạy 40031369521; PR nháp #78 (thêm `-dontwarn`, `:app:assembleStagingRelease` qua trên cloud).
 - **Đề xuất sửa:** thêm `:app:assembleStagingRelease` (hoặc `minifyStagingReleaseWithR8`) vào cổng chất lượng khi PR thêm module hay thư viện; mục 4.1 của plan yêu cầu ghi đúng lệnh release đã chạy.
-- **Áp dụng:**
+- **Áp dụng:** T-038, PR #92: `pr-check` build `:app:assembleStagingRelease` khi PR đổi thư viện, file build hay luật R8; PR thử #93 đỏ đúng lỗi của T-019.
 - **Kiểm chứng:**
 
 ### L-054: GitHub merge xong nhưng trả lỗi, PR vẫn mở và không có sự kiện đẩy
@@ -523,11 +523,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-055: `start-run.yml` không kiểm `main-guard` xanh trên commit đầu nhánh chính
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, RUN-20261023-03.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, RUN-20261023-03.
 - **Chuyện gì:** sau sự cố của L-054, commit đầu nhánh chính (c83777a, có code `scripts/run-check.py` của c49a682) chưa có lần chạy `main-guard` nào. `start-run.yml` vẫn khởi động phiên: nó chỉ xem issue `main-broken`, `setup-broken` và chạy `scripts/preflight.sh`, không xem `main-guard` đã chạy và xanh trên chính commit đó chưa. Phiên dựa vào kiểm tra đầu phiên của chính nó (`check.sh` nền), tốn khoảng 15 phút cloud trước khi biết nhánh chính có xanh không.
 - **Bằng chứng:** lúc kích hoạt RUN-20261023-03 chưa có lần chạy `main-guard` cho c49a682 hay c83777a; `start-run.yml` xanh; các bước kiểm tra của `.github/workflows/start-run.yml`.
 - **Đề xuất sửa:** `start-run.yml` thêm bước: commit đầu nhánh chính có đổi file ngoài `docs/` mà chưa có lần chạy `main-guard` xanh cho chính commit đó thì từ chối, in hướng dẫn chạy `main-guard` bằng `workflow_dispatch` rồi kích hoạt lại. Sửa `.github/` cần plan rủi ro cao, duyệt chéo.
-- **Áp dụng:**
+- **Áp dụng:** T-041, PR #98: `scripts/main-guard-status.sh` trong `start-run.yml` và kiểm tra đầu phiên; `main-guard.yml` chạy được bằng tay (`workflow_dispatch`, chỉ trên `main`).
 - **Kiểm chứng:**
 
 ### L-056: kiểm tra trước phiên không chạy `java-check.sh` trong môi trường cloud
@@ -550,20 +550,20 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-058: điều kiện dừng 1 dừng task khi task khác trong cùng danh sách đổi chỗ gọi
 
-- **Trạng thái:** proposed. **Loại:** rủi ro. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017, T-020.
+- **Trạng thái:** applied. **Loại:** rủi ro. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017, T-020.
 - **Chuyện gì:** T-020 merge trước T-017 và tạo `CameraUnfolded.kt`, gọi thẳng `ShutterButton` và `PoseOverlay`. T-017 thêm tham số cho hai hàm đó, nên phải sửa `CameraUnfolded.kt` dù file không có trong mục 3.2 (điều kiện dừng 1). Phần sửa nhỏ, nối đúng ý của cả hai plan; người quyết định "sửa ngay, không cần plan". Phiên đông task sẽ còn gặp trường hợp này.
 - **Bằng chứng:** PR #81, commit `2e28f8c`, `2d04149`; plan T-020 mục 3 ghi ý định giữ `MatchHint` ở máy gập.
 - **Đề xuất sửa:** ADR của app nới điều kiện dừng 1: được sửa file ngoài mục 3.2 khi file đó do task khác của cùng danh sách tạo hay đổi sau khi plan được duyệt, phần sửa chỉ nối chỗ gọi theo ý đã ghi trong một trong hai plan, có test viết trước, ghi vào nhật ký và rà soát độc lập xét riêng phần này. Không áp dụng cho file của mục 1 thang rủi ro (`.github/`, `scripts/check.sh`, cấu hình build, manifest).
-- **Áp dụng:**
+- **Áp dụng:** ADR-1003 (accepted 2026-10-24); T-043, PR #91 (`docs/risk-scoring.md` mục 4, `docs/auto-run.md` bước 4, 5, 6, 10).
 - **Kiểm chứng:**
 
 ### L-059: điểm "nên sửa" của rà soát độc lập bị để lại cho người, có điểm là lỗi thật
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04 (T-018, T-019, T-020, T-022, T-023), PR #81.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04 (T-018, T-019, T-020, T-022, T-023), PR #81.
 - **Chuyện gì:** báo cáo RUN-20261023-04 liệt kê 13 điểm nên sửa chưa sửa. Một điểm là lỗi người dùng gặp được: T-018 hủy composition khi chờ quảng cáo làm `onFinished` không được gọi, màn xem lại đứng yên. Trên PR #81, hai điểm nên sửa (TalkBack, không đoạn nào so được) sửa trong 30 phút với test viết trước.
 - **Bằng chứng:** báo cáo RUN-20261023-04, mục Cần người kiểm tra; PR #81.
 - **Đề xuất sửa:** `auto-run.md` bước 6: phiên sửa mọi điểm nên sửa nằm trong file của mục 3.2, có test viết trước thất bại đúng lý do, không đổi điều test của plan kiểm; chỉ để người quyết điểm mâu thuẫn với plan, spec hay test của plan. Cần sửa cùng ADR của L-058.
-- **Áp dụng:**
+- **Áp dụng:** ADR-1003 (accepted 2026-10-24); T-043, PR #91 (`docs/risk-scoring.md` mục 4, `docs/auto-run.md` bước 4, 5, 6, 10).
 - **Kiểm chứng:**
 
 ### L-060: `run-check.py` không thấy hai plan phụ thuộc file của nhau

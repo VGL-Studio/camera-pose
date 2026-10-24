@@ -281,6 +281,58 @@ expect "failure-kind: no Gradle failure line -> other" other \
   "$(failure_kind "FAIL - merge-if-green rejects '12 -n'\\n1 script test(s) failed\\n")"
 expect "failure-kind: missing log -> other" other "$(scripts/failure-kind.sh "$work/no-such.log")"
 
+# failure-kind.sh --playbook looks a failure up in docs/ops/failure-playbook.md (plan T-039, L-057).
+pb_dir=scripts/tests/playbook
+playbook() { scripts/failure-kind.sh --playbook "$@" 2> "$work/pb.err"; }
+pb_head() { playbook "$1" ${2:+"$2"} | cut -d: -f1; }
+expect "playbook: PB-01 R2 download timeout in ui-test -> chay-lai" "PB-01 chay-lai" "$(pb_head $pb_dir/PB-01.log)"
+expect "playbook: PB-01 also matches the first attempt (Task STARTER_SET failed, no Assets line)" "PB-01 chay-lai" \
+  "$(pb_head $pb_dir/PB-01-attempt1.log)"
+expect "playbook: PB-02 GitHub did not start the job -> cho" "PB-02 cho" "$(pb_head $pb_dir/PB-02.log)"
+expect "playbook: PB-03 conflicting PR -> gop-nhanh" "PB-03 gop-nhanh" "$(pb_head $pb_dir/PB-03.log)"
+expect "playbook: PB-04 merge API error -> kiem-da-merge" "PB-04 kiem-da-merge" "$(pb_head $pb_dir/PB-04.log)"
+expect "playbook: PB-05 Java unreadable -> moi-truong" "PB-05 moi-truong" "$(pb_head $pb_dir/PB-05.log)"
+expect "playbook: PB-05 also matches Java out of range" "PB-05 moi-truong" "$(pb_head $pb_dir/PB-05-range.log)"
+expect "playbook: PB-06 proxy 403 -> moi-truong" "PB-06 moi-truong" "$(pb_head $pb_dir/PB-06.log)"
+expect "playbook: PB-07 fake Firebase file -> nguoi" "PB-07 nguoi" "$(pb_head $pb_dir/PB-07.log)"
+expect "playbook: PB-08 missing R8 classes -> that" "PB-08 that" "$(pb_head $pb_dir/PB-08.log)"
+expect "playbook: PB-09 library download 429 -> lich-thu-lai" "PB-09 lich-thu-lai" "$(pb_head $pb_dir/PB-09.log)"
+expect "playbook: PB-10 a UI timeout without R2 lines is a real failure" "PB-10 that" "$(pb_head $pb_dir/PB-10.log)"
+expect "playbook: an unknown failure says khong-co" "khong-co" "$(pb_head $pb_dir/none.log)"
+expect "playbook: a missing log says khong-co" "khong-co" "$(pb_head "$work/no-such.log")"
+expect "playbook: a missing log exits 0" 0 "$(scripts/failure-kind.sh --playbook "$work/no-such.log" > /dev/null 2>&1; echo $?)"
+expect "playbook: the line carries the action and the source" "PB-02 cho: GitHub không cấp máy. Làm theo \`auto-run.md\` mục 4, dòng \"GitHub không chạy job\" (L-046, lần chạy 39916343646)" \
+  "$(playbook $pb_dir/PB-02.log)"
+# Test tables for the parser: an escaped pipe is an alternative; a broken pattern is skipped and reported.
+cat > "$work/pb-table.md" <<'MD'
+intro
+<!-- playbook:start -->
+| Mã | Mẫu | Thấy ở | Loại | Việc phải làm | Nguồn |
+| --- | --- | --- | --- | --- | --- |
+| PB-01 | `aaa\|bbb` | x | `that` | làm A | nguồn A |
+<!-- playbook:end -->
+MD
+echo "only bbb here" > "$work/pb-bbb.log"
+expect "playbook: an escaped pipe is an alternative" "PB-01 that" "$(pb_head "$work/pb-bbb.log" "$work/pb-table.md")"
+cat > "$work/pb-broken.md" <<'MD'
+<!-- playbook:start -->
+| Mã | Mẫu | Thấy ở | Loại | Việc phải làm | Nguồn |
+| --- | --- | --- | --- | --- | --- |
+| PB-01 | `(` | x | `that` | làm A | nguồn A |
+| PB-02 | `bbb` | x | `cho` | làm B | nguồn B |
+<!-- playbook:end -->
+MD
+expect "playbook: a broken pattern is skipped" "PB-02 cho" "$(pb_head "$work/pb-bbb.log" "$work/pb-broken.md")"
+expect "playbook: a broken pattern is reported" 1 "$(grep -c 'LỖI BẢNG' "$work/pb.err" || true)"
+: > "$work/pb-empty.log"
+playbook "$work/pb-empty.log" > /dev/null
+expect "playbook: every pattern of the real table is valid" 0 "$(grep -c 'LỖI BẢNG' "$work/pb.err" || true)"
+pb_rows="$(sed -n '/playbook:start/,/playbook:end/p' docs/ops/failure-playbook.md | grep -oE '^\| PB-[0-9]+' | tr -d '| ' | sort)"
+pb_files="$(ls $pb_dir | grep -oE '^PB-[0-9]+' | sort -u)"
+expect "playbook: every row has a log file and every log file a row" "$pb_rows" "$pb_files"
+expect "playbook: the table has at least 10 rows" yes "$([ "$(printf '%s\n' "$pb_rows" | wc -l)" -ge 10 ] && echo yes || echo no)"
+expect "failure-kind: a playbook-only log still says other" other "$(scripts/failure-kind.sh $pb_dir/PB-01.log)"
+
 # is-exact-revert.sh (ADR-1002, point 3), on a throwaway repo: A, B (the culprit), C (main).
 root="$PWD"
 rev="$work/rev"

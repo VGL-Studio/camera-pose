@@ -113,7 +113,7 @@ Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho
   | Test của script thất bại (`scripts/tests/run.sh`); trên CI thiếu `python3` hay `jq` | |
 - So sánh danh sách file thay đổi thực tế với danh sách file trong plan. Có file ngoài danh sách mà không phải phần nối chỗ gọi theo ADR-1003 (`risk-scoring.md`, mục 4) thì dừng task.
 - Feature có thiết kế (`docs/features/<feature>/design/screens/`): chạy `scripts/design-compare.sh <feature>` sau `scripts/check.sh`. Kết quả trong `design/review/` để rà soát, không phải cổng chặn (ADR-0020). Ảnh thiết kế nào báo thiếu ảnh chuẩn screenshot là thiếu test, phải thêm theo plan.
-- Lỗi tải thư viện hay công cụ (mã 429, 5xx, hết thời gian chờ, mất kết nối) là lỗi hạ tầng, không phải lỗi của code, và không tính vào giới hạn 3 lần sửa. Phiên chạy qua đêm có thời gian, nên chờ lâu thay vì bỏ cuộc sớm: chạy lại sau 1, 2, 4, 8 rồi 15 phút (tổng khoảng 30 phút). Vẫn lỗi thì kết thúc phiên theo mục 4.
+- Lỗi tải thư viện hay công cụ (mã 429, 5xx, hết thời gian chờ, mất kết nối; bảng tra lỗi, PB-09) là lỗi hạ tầng, không phải lỗi của code, và không tính vào giới hạn 3 lần sửa. Phiên chạy qua đêm có thời gian, nên chờ lâu thay vì bỏ cuộc sớm: chạy lại sau 1, 2, 4, 8 rồi 15 phút (tổng khoảng 30 phút). Vẫn lỗi thì kết thúc phiên theo mục 4.
 - Mỗi lần chạy lại sau lỗi tải, dùng `GRADLE_REFRESH_DEPENDENCIES=true scripts/check.sh`. Gradle ghi nhớ lần tải lỗi và các lần sau báo "Could not find" mà không gọi lại mạng; biến này (đọc trong init script của `scripts/cloud-setup.sh`) buộc Gradle hỏi lại (RUN-20261016-01).
 - Môi trường cloud tải mọi thư viện Maven Central qua mirror của Google, nhờ init script do `scripts/cloud-setup.sh` ghi: kho `mavenCentral()`, thư viện mà plugin tải qua plugin portal, và Robolectric. Log còn thấy `repo.maven.apache.org` hay `repo1.maven.org` nghĩa là init script chưa phủ đường tải đó: ghi vào báo cáo kèm dòng log, đề xuất bài học. Phiên không tự thêm init script, không tự đổi kho tải hay biến môi trường để đi vòng: môi trường chặn các lệnh đó (RUN-20261016-01), và cấu hình tải phải nằm ở setup script để mọi phiên giống nhau.
 
@@ -165,7 +165,17 @@ Nếu phiên rà soát và phiên viết code hiểu spec khác nhau, AI không 
 **Chờ workflow.** Mỗi lần hỏi GitHub trạng thái là một lượt gọi model đọc lại toàn bộ ngữ cảnh của phiên, nên không hỏi lặp lại bằng tay. `scripts/wait-run.sh` tự chờ trong một lệnh và in một dòng kết quả: mã 0 xanh, 1 đỏ (kèm tên job đỏ), 2 hết thời gian chờ thì gọi lại, 4 GitHub không chạy job (`HẠ TẦNG`), 5 PR xung đột với nhánh chính (`XUNG ĐỘT`). Chạy lệnh ở chế độ nền và làm việc khác trong lúc chờ nếu có (mục 4); không có việc khác thì chạy thường. Môi trường giới hạn một lệnh 10 phút thì dùng `--timeout 9` và gọi lại khi nhận mã 2.
 - Mã 4 (`HẠ TẦNG`): GitHub không cấp máy cho job, thường vì hết hạn mức Actions; job không chạy bước nào nên không có log. Không sửa code, không chạy lại, không tính vào 3 lần sửa của cùng một lỗi: làm theo mục 4, dòng "GitHub không chạy job" (L-046).
 - Mã 5 (`XUNG ĐỘT`): GitHub không chạy `pr-check` cho PR xung đột với nhánh chính, nên chờ thêm cũng không có lần chạy nào. Gộp nhánh chính vào nhánh (`git merge origin/main`), sửa xung đột trong phạm vi file của plan, đẩy, rồi chờ lại; không tính vào 3 lần sửa (L-048).
-- CI đỏ thì AI đọc log để phân biệt lỗi thật với lỗi chập chờn. Lỗi chập chờn được chạy lại một lần. Lỗi thật thì quay lại bước 4, tối đa 3 lần cho cùng một lỗi, sau đó dừng task.
+- CI đỏ (`wait-run.sh` mã 1) thì tra [bảng tra lỗi](ops/failure-playbook.md) trước khi sửa code:
+  1. Lấy log của job đỏ rồi tra bảng:
+     ```bash
+     gh api "repos/{owner}/{repo}/actions/runs/<id>/jobs" --jq '.jobs[] | select(.conclusion == "failure") | .id'
+     gh api --allow-escape-sequences "repos/{owner}/{repo}/actions/jobs/<job id>/logs" > ci.log
+     scripts/failure-kind.sh --playbook ci.log
+     ```
+     Làm theo dòng script in ra. Không tải được log (địa chỉ chuyển hướng sang kho lưu trữ khác, proxy có thể chặn như artifact, L-030): chạy `failure-kind.sh --playbook` trên đầu ra của `wait-run.sh`; vẫn không khớp thì xử lý như `khong-co` và ghi "không tải được log job" vào báo cáo.
+  2. Loại `chay-lai`, `lich-thu-lai`, `cho`, `gop-nhanh`, `kiem-da-merge` không tính vào 3 lần sửa.
+  3. `khong-co` và `that` thì như cũ: lỗi chập chờn chạy lại một lần, lỗi thật quay lại bước 4, tối đa 3 lần cho cùng một lỗi, sau đó dừng task.
+  4. Báo cáo phiên ghi mã dòng bảng của mỗi lần chạy lại (mục Số liệu, "Số lần thử lại vì lỗi hạ tầng").
 - Bước "Build bản release (R8)" của `build-and-test` đỏ (PR đổi thư viện, file build hay luật R8) là lỗi thật của task: sửa trong luật R8 của module có trong mục 3.2 (`consumer-rules.pro`, `proguard-rules.pro`); file đó không có trong mục 3.2 thì dừng task theo điều kiện 1 (`consumer-rules.pro`, `proguard-rules.pro` thuộc điểm chặn, không thuộc phần nối chỗ gọi của ADR-1003) (T-038, L-053).
 - Khi `ui-test` đỏ, log của job có bước "Chi tiết test trên emulator" in toàn văn lỗi của từng test và log của app trên emulator (ADR-0019). Đọc bước đó trước khi kết luận. Bản đầy đủ nằm trong artifact `ui-test-report` của lần chạy: `gh api repos/{owner}/{repo}/actions/runs/<id>/artifacts`, rồi tải tệp zip theo `archive_download_url`.
 - Không thêm lệnh in chẩn đoán vào test để tìm lỗi trên CI; đọc chi tiết và log nói trên.
@@ -301,6 +311,8 @@ Mỗi phiên là một lần học. Bài học được ghi trong phiên, quyế
 - Phải đoán vì tài liệu, plan hay mẫu không nói rõ, hoặc tài liệu nói sai so với thực tế.
 - Một bước tốn thời gian bất thường so với mục Số liệu của các phiên trước.
 - Một cách làm hiệu quả đáng ghi thành hướng dẫn cho lần sau.
+
+Bài học loại `môi trường` có thông báo lỗi dò được thì PR cải tiến thêm một dòng vào [bảng tra lỗi](ops/failure-playbook.md), kèm tệp log thật trong `scripts/tests/playbook/`.
 
 Mỗi bài học ghi: chuyện gì đã xảy ra, bằng chứng (log, PR, thời gian), đề xuất sửa tài liệu nào và sửa gì, loại và phạm vi theo [lessons.md](lessons.md). PR báo cáo thêm các bài học này vào sổ với trạng thái `proposed`.
 

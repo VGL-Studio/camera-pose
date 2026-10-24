@@ -473,7 +473,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** môi trường cloud đặt `JAVA_TOOL_OPTIONS` (proxy, truststore), nên `java -version` in dòng `Picked up JAVA_TOOL_OPTIONS: ...` trước dòng phiên bản. `scripts/java-check.sh` lấy dòng đầu (`head -n 1`), không đọc được phiên bản và dừng `scripts/check.sh`. Java thật là 21 (nằm trong khoảng 17 đến 24). Phiên không chạy task nào.
 - **Bằng chứng:** `start-check.log`: `LỖI: không đọc được phiên bản Java từ 'Picked up JAVA_TOOL_OPTIONS: ...'`; `java -version` in `openjdk version "21.0.12.1"` ở dòng thứ hai.
 - **Đề xuất sửa:** `scripts/java-check.sh` lấy dòng khớp `version "` thay vì dòng đầu (`grep -m1 ' version "'`), kèm test với đầu ra có dòng `Picked up`. Sửa file này là đổi cổng chất lượng: plan rủi ro cao, duyệt chéo. Phiên không tự sửa script và không bỏ `JAVA_TOOL_OPTIONS` (cấu hình tải nằm ở setup script).
-- **Áp dụng:** T-035, PR #69 (`scripts/java-check.sh` đọc dòng có phiên bản; test với dòng `Picked up`).
+- **Áp dụng:** T-035, PR #69 (`scripts/java-check.sh` đọc dòng có phiên bản; test với dòng `Picked up`). Dự án mẫu: không đề xuất, `java-check.sh` của mẫu đọc `java.specification.version` nên không gặp lỗi này.
 - **Kiểm chứng:** RUN-20261023-04: kiểm tra đầu phiên trên cloud qua, `scripts/check.sh` nền qua (9 phút 10 giây, 748 test JVM); Tuấn xác nhận ngày 2026-10-24.
 
 ### L-050: `AppLaunchTest` đỏ vì tải file R2 hết giờ chờ trên runner; quy tắc "chạy lại một lần" biến nó thành lỗi thật
@@ -482,7 +482,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `ui-test` đỏ hai lần liên tiếp (lần chạy 39997301164, lần 1 và lần chạy lại) ở `AppLaunchTest.appStarts_passesOnboarding_andReachesCamera`, không liên quan code của task. Tải file R2 (ảnh viền, ảnh nhỏ của bộ khởi đầu) hết giờ chờ 15 giây trên runner; màn tải dừng ở lỗi và chờ người bấm "Thử lại"; test chờ 60 giây rồi hết giờ. Chỉ một commit mới (một sửa nhỏ hợp lệ theo rà soát) cho lần chạy xanh (40000627087).
 - **Bằng chứng:** log `VGL.Loading: Task STARTER_SET failed`, `VGL.Assets: Could not download ... SocketTimeoutException`; lần 2 cùng dấu hiệu.
 - **Đề xuất sửa:** `AppLaunchTest` bấm "Thử lại" khi màn tải lỗi, hoặc chờ lâu hơn; `auto-run.md` bước 8 ghi cách xử lý khi `ui-test` đỏ vì tải R2 hết giờ chờ (không tính vào 3 lần sửa, không tự đẩy commit rỗng).
-- **Áp dụng:** T-039, PR #104: dòng PB-01 của `docs/ops/failure-playbook.md` (`ui-test` đỏ vì tải R2 hết giờ chờ: chạy lại job đỏ, không tính vào 3 lần sửa). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-039, PR #104: dòng PB-01 của `docs/ops/failure-playbook.md` (`ui-test` đỏ vì tải R2 hết giờ chờ: chạy lại job đỏ, không tính vào 3 lần sửa). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-051: nhánh task chỉ nằm trên máy cloud khi lệnh đẩy bị từ chối
@@ -491,7 +491,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** phiên con của T-017 làm xong bước 3 đến 5 (4 commit, `check.sh` qua) nhưng `git push` bị bộ phân loại tự động từ chối ("dangerous", không giải thích); sáu lệnh đẩy tương tự của các phiên con khác trước và sau đó qua. Phiên chính không đẩy thay. Công việc chỉ nằm trên máy cloud tạm thời.
 - **Bằng chứng:** `git branch -r` không có `claude/T-017-camera-diem-khop`; báo của phiên con.
 - **Đề xuất sửa:** `auto-run.md` bước 3: đẩy nhánh task rỗng ngay lúc tạo (như phiên chính đã làm với T-022), để từ chối nếu có xảy ra sớm, trước khi tốn công viết code.
-- **Áp dụng:** T-037, PR #105: `scripts/save-branch.sh` (đẩy sau mỗi commit, thử lại lỗi mạng, giữ nhánh thành bundle khi không đẩy được, mã 3); `auto-run.md` bước 3, 7, mục "Khi không đẩy được". Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-037, PR #105: `scripts/save-branch.sh` (đẩy sau mỗi commit, thử lại lỗi mạng, giữ nhánh thành bundle khi không đẩy được, mã 3); `auto-run.md` bước 3, 7, mục "Khi không đẩy được". Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-052: rà soát độc lập và phiên viết code kết luận khác nhau về một điểm chặn
@@ -509,7 +509,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** T-019 thêm `play-review-ktx`. `check.sh`, `pr-check` và `main-guard` không build bản release, nên `:app:minifyStagingReleaseWithR8` hỏng (`Missing class com.google.android.gms.common.annotation.NoNullnessRewrite`) chỉ lộ ở `device-session` cuối phiên, sau khi PR đã merge. Mục 4.1 của plan T-019 ghi đã thử R8 qua. Bản staging không phát được cho tới khi sửa.
 - **Bằng chứng:** `device-session` lần chạy 40031369521; PR nháp #78 (thêm `-dontwarn`, `:app:assembleStagingRelease` qua trên cloud).
 - **Đề xuất sửa:** thêm `:app:assembleStagingRelease` (hoặc `minifyStagingReleaseWithR8`) vào cổng chất lượng khi PR thêm module hay thư viện; mục 4.1 của plan yêu cầu ghi đúng lệnh release đã chạy.
-- **Áp dụng:** T-038, PR #92: `pr-check` build `:app:assembleStagingRelease` khi PR đổi thư viện, file build hay luật R8; PR thử #93 đỏ đúng lỗi của T-019.
+- **Áp dụng:** T-038, PR #92: `pr-check` build `:app:assembleStagingRelease` khi PR đổi thư viện, file build hay luật R8; PR thử #93 đỏ đúng lỗi của T-019. Dự án mẫu: VGL-Studio/app-project-template#131.
 - **Kiểm chứng:**
 
 ### L-054: GitHub merge xong nhưng trả lỗi, PR vẫn mở và không có sự kiện đẩy
@@ -518,7 +518,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `merge-if-green.sh 67` nhận lỗi `unexpected end of JSON input` từ API merge và in `TỪ CHỐI: GitHub từ chối merge`, nhưng commit c49a682 đã nằm trên nhánh chính. PR vẫn `OPEN`, không workflow `push` nào chạy (`main-guard`, `status-page`). Gọi lại script sẽ tạo commit trùng; người phải merge tay trên web (commit rỗng c83777a) để PR đóng, và các workflow `push` chạy trễ. Phiên tự chạy gặp chuyện này sẽ tưởng merge bị từ chối và dừng task, hoặc thử lại.
 - **Bằng chứng:** đầu ra của `merge-if-green.sh 67`; `git log origin/main` có c49a682 khi PR #67 còn `OPEN`; không có lần chạy `main-guard` cho c49a682.
 - **Đề xuất sửa:** `merge-if-green.sh` gặp lỗi từ API merge thì kiểm tra nhánh chính đã chứa commit đầu của PR chưa (`git merge-base --is-ancestor`, hoặc commit trên nhánh chính có số PR); có rồi thì in `ĐÃ MERGE (GitHub báo lỗi)` với mã riêng, ghi rằng workflow `push` có thể không chạy, và chạy `main-guard` bằng `workflow_dispatch`. `auto-run.md` bước 8 ghi cách xử lý mã này. Sửa script này cần plan rủi ro cao, duyệt chéo (L-044).
-- **Áp dụng:** T-040, PR #107: `merge-if-green.sh` gặp lỗi từ API merge thì tìm commit của PR trên nhánh chính, in `ĐÃ MERGE (GitHub báo lỗi)`; dòng PB-04 của bảng tra lỗi. Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-040, PR #107: `merge-if-green.sh` gặp lỗi từ API merge thì tìm commit của PR trên nhánh chính, in `ĐÃ MERGE (GitHub báo lỗi)`; dòng PB-04 của bảng tra lỗi. Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-055: `start-run.yml` không kiểm `main-guard` xanh trên commit đầu nhánh chính
@@ -527,7 +527,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** sau sự cố của L-054, commit đầu nhánh chính (c83777a, có code `scripts/run-check.py` của c49a682) chưa có lần chạy `main-guard` nào. `start-run.yml` vẫn khởi động phiên: nó chỉ xem issue `main-broken`, `setup-broken` và chạy `scripts/preflight.sh`, không xem `main-guard` đã chạy và xanh trên chính commit đó chưa. Phiên dựa vào kiểm tra đầu phiên của chính nó (`check.sh` nền), tốn khoảng 15 phút cloud trước khi biết nhánh chính có xanh không.
 - **Bằng chứng:** lúc kích hoạt RUN-20261023-03 chưa có lần chạy `main-guard` cho c49a682 hay c83777a; `start-run.yml` xanh; các bước kiểm tra của `.github/workflows/start-run.yml`.
 - **Đề xuất sửa:** `start-run.yml` thêm bước: commit đầu nhánh chính có đổi file ngoài `docs/` mà chưa có lần chạy `main-guard` xanh cho chính commit đó thì từ chối, in hướng dẫn chạy `main-guard` bằng `workflow_dispatch` rồi kích hoạt lại. Sửa `.github/` cần plan rủi ro cao, duyệt chéo.
-- **Áp dụng:** T-041, PR #98: `scripts/main-guard-status.sh` trong `start-run.yml` và kiểm tra đầu phiên; `main-guard.yml` chạy được bằng tay (`workflow_dispatch`, chỉ trên `main`).
+- **Áp dụng:** T-041, PR #98: `scripts/main-guard-status.sh` trong `start-run.yml` và kiểm tra đầu phiên; `main-guard.yml` chạy được bằng tay (`workflow_dispatch`, chỉ trên `main`). Dự án mẫu: VGL-Studio/app-project-template#130.
 - **Kiểm chứng:**
 
 ### L-056: kiểm tra trước phiên không chạy `java-check.sh` trong môi trường cloud
@@ -536,7 +536,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `preflight.yml` và `start-run.yml` chạy trên runner GitHub, không có `JAVA_TOOL_OPTIONS` của môi trường cloud, nên lỗi của L-049 không lộ ở đó. Lỗi chỉ lộ khi phiên cloud đã khởi động và chạy `check.sh`, nên cả phiên kết thúc mà không task nào chạy. Mọi khác biệt giữa runner và môi trường cloud (biến môi trường, proxy, phiên bản công cụ) đều có thể làm hỏng phiên theo cách này.
 - **Bằng chứng:** RUN-20261023-03: `start-run` xanh, phiên dừng ở `java-check.sh`; RUN-20261023-04 qua sau khi sửa T-035.
 - **Đề xuất sửa:** `scripts/cloud-env-check.sh` gọi `scripts/java-check.sh` (và các kiểm tra rẻ khác mà `check.sh` chạy trước khi build), để lỗi môi trường lộ trong vài giây đầu phiên và báo rõ `env-broken`, thay vì sau `check.sh`; test của script dùng `fake_java` có dòng `Picked up`.
-- **Áp dụng:** T-036, PR #103: `scripts/cloud-env-check.sh` gọi `java-check.sh` và các kiểm tra rẻ của `check.sh` trong vài giây đầu phiên. Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-036, PR #103: `scripts/cloud-env-check.sh` gọi `java-check.sh` và các kiểm tra rẻ của `check.sh` trong vài giây đầu phiên. Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#130.
 - **Kiểm chứng:**
 
 ### L-057: phiên không có bảng tra lỗi đã biết, nên lỗi lặp lại vẫn làm phiên dừng hay tốn vòng sửa
@@ -545,7 +545,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** mỗi lỗi hạ tầng đã gặp (hết hạn mức Actions, PR xung đột không có CI, R2 hết giờ chờ trong `ui-test`, API merge báo lỗi mà đã merge) được sửa riêng bằng một mã thoát hay một đoạn trong `auto-run.md`. Không có một chỗ duy nhất để phiên tra "thông báo này nghĩa là gì, làm gì tiếp". Lỗi mới cùng kiểu (R2 hết giờ chờ, L-050) vẫn bị tính là lỗi thật và tốn vòng CI.
 - **Bằng chứng:** RUN-20261023-04, T-022: `ui-test` đỏ 2 lần vì R2; `scripts/failure-kind.sh` chỉ phân loại thô cho `main-guard`.
 - **Đề xuất sửa:** `docs/ops/failure-playbook.md`: bảng mẫu thông báo lỗi (regex) và việc phải làm (chạy lại không tính vào 3 lần sửa, chờ, coi như đã merge, dừng task, dừng phiên); script phân loại đọc bảng này và in việc phải làm; mỗi bài học môi trường mới thêm một dòng.
-- **Áp dụng:** T-039, PR #104: `docs/ops/failure-playbook.md` (PB-01 đến PB-10) và script phân loại đọc bảng. Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-039, PR #104: `docs/ops/failure-playbook.md` (PB-01 đến PB-10) và script phân loại đọc bảng. Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-058: điều kiện dừng 1 dừng task khi task khác trong cùng danh sách đổi chỗ gọi
@@ -554,7 +554,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** T-020 merge trước T-017 và tạo `CameraUnfolded.kt`, gọi thẳng `ShutterButton` và `PoseOverlay`. T-017 thêm tham số cho hai hàm đó, nên phải sửa `CameraUnfolded.kt` dù file không có trong mục 3.2 (điều kiện dừng 1). Phần sửa nhỏ, nối đúng ý của cả hai plan; người quyết định "sửa ngay, không cần plan". Phiên đông task sẽ còn gặp trường hợp này.
 - **Bằng chứng:** PR #81, commit `2e28f8c`, `2d04149`; plan T-020 mục 3 ghi ý định giữ `MatchHint` ở máy gập.
 - **Đề xuất sửa:** ADR của app nới điều kiện dừng 1: được sửa file ngoài mục 3.2 khi file đó do task khác của cùng danh sách tạo hay đổi sau khi plan được duyệt, phần sửa chỉ nối chỗ gọi theo ý đã ghi trong một trong hai plan, có test viết trước, ghi vào nhật ký và rà soát độc lập xét riêng phần này. Không áp dụng cho file của mục 1 thang rủi ro (`.github/`, `scripts/check.sh`, cấu hình build, manifest).
-- **Áp dụng:** ADR-1003 (accepted 2026-10-24); T-043, PR #91 (`docs/risk-scoring.md` mục 4, `docs/auto-run.md` bước 4, 5, 6, 10).
+- **Áp dụng:** ADR-1003 (accepted 2026-10-24); T-043, PR #91 (`docs/risk-scoring.md` mục 4, `docs/auto-run.md` bước 4, 5, 6, 10). Dự án mẫu: VGL-Studio/app-project-template#132.
 - **Kiểm chứng:**
 
 ### L-059: điểm "nên sửa" của rà soát độc lập bị để lại cho người, có điểm là lỗi thật
@@ -563,7 +563,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** báo cáo RUN-20261023-04 liệt kê 13 điểm nên sửa chưa sửa. Một điểm là lỗi người dùng gặp được: T-018 hủy composition khi chờ quảng cáo làm `onFinished` không được gọi, màn xem lại đứng yên. Trên PR #81, hai điểm nên sửa (TalkBack, không đoạn nào so được) sửa trong 30 phút với test viết trước.
 - **Bằng chứng:** báo cáo RUN-20261023-04, mục Cần người kiểm tra; PR #81.
 - **Đề xuất sửa:** `auto-run.md` bước 6: phiên sửa mọi điểm nên sửa nằm trong file của mục 3.2, có test viết trước thất bại đúng lý do, không đổi điều test của plan kiểm; chỉ để người quyết điểm mâu thuẫn với plan, spec hay test của plan. Cần sửa cùng ADR của L-058.
-- **Áp dụng:** ADR-1003 (accepted 2026-10-24); T-043, PR #91 (`docs/risk-scoring.md` mục 4, `docs/auto-run.md` bước 4, 5, 6, 10).
+- **Áp dụng:** ADR-1003 (accepted 2026-10-24); T-043, PR #91 (`docs/risk-scoring.md` mục 4, `docs/auto-run.md` bước 4, 5, 6, 10). Dự án mẫu: VGL-Studio/app-project-template#132.
 - **Kiểm chứng:**
 
 ### L-060: `run-check.py` không thấy hai plan phụ thuộc file của nhau
@@ -572,7 +572,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `run-check.py` báo hai plan cùng sửa một file, nhưng không báo khi plan này tạo file mà plan kia giả định đã có (hoặc chưa có), nên thứ tự chạy sai chỉ được rà soát độc lập thấy. Khi một task dừng hay merge lệch thứ tự, không script nào báo trước file nào sẽ phải sửa thêm.
 - **Bằng chứng:** RUN-20261023-03, bảng rà soát: "T-017 phải sửa `CameraUnfolded.kt` không có trong mục 3.2".
 - **Đề xuất sửa:** `run-check.py` đọc mục 3.2 của mọi plan: plan sau nhắc tên file mà plan trước tạo thì phải xếp sau, và in "nếu <plan trước> chưa merge thì <plan sau> ..."; với hai plan cùng sửa một hàm có tên trong mục 3.1, in cảnh báo kèm tên hàm.
-- **Áp dụng:** T-042, PR #106: `run-check.py` báo đề xuất thứ tự bị ngược và plan nhắc file mà plan khác tạo. Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-042, PR #106: `run-check.py` báo đề xuất thứ tự bị ngược và plan nhắc file mà plan khác tạo. Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#132.
 - **Kiểm chứng:**
 
 ### L-061: hàng chờ plan cạn sau mỗi phiên, phiên kế tiếp phải chờ người và AI viết plan
@@ -581,7 +581,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** sau RUN-20261023-02, phải một phiên có người theo dõi để viết 8 plan, trả lời câu hỏi, rà soát độc lập, soạn phiên bản 2, rồi mới lập được RUN-20261023-03. Thời gian từ lúc phiên xong tới lúc phiên kế tiếp chạy chủ yếu là chờ plan.
 - **Bằng chứng:** RUN-20261023-02 kết thúc 03:35 UTC; RUN-20261023-03 bắt đầu 16:53 UTC.
 - **Đề xuất sửa:** cuối mỗi phiên (sau báo cáo, khi còn hạn mức), phiên soạn plan `draft` cho các ticket `ready` kế tiếp, chạy thử mục 4.1, chạy `plan-check.py`, và gom mọi câu hỏi cần người vào một mục của báo cáo. Người chỉ trả lời và duyệt.
-- **Áp dụng:** ticket T-045 (chưa có plan). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** ticket T-045 (chưa có plan). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
 - **Kiểm chứng:**
 
 ### L-062: mục "kiểm thủ công" dồn lại sau mỗi phiên, phần lớn chạy được trên emulator
@@ -590,7 +590,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** báo cáo RUN-20261023-04 có 7 nhóm kiểm thủ công. Nhiều mục không cần máy thật: xoay màn hình khi quảng cáo đang chờ, banner lỗi rồi làm mới, luồng "chi tiết tư thế, Chụp với tư thế này", gập mở (emulator gập). Chúng chờ người, nên lỗi như của L-059 chỉ lộ khi có người thử.
 - **Bằng chứng:** báo cáo RUN-20261023-04; `device-session.yml` chỉ chạy một kịch bản chung.
 - **Đề xuất sửa:** plan ghi mỗi tiêu chí kiểm thủ công là "máy thật" hay "emulator"; phần emulator thành kịch bản của `device-session.yml` (`scenarios.txt`), phiên chạy cuối phiên và đọc `summary.md`; chỉ phần máy thật (FPS, camera thật, Play) còn cho người.
-- **Áp dụng:** ticket T-046 (chưa có plan). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** ticket T-046 (chưa có plan). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
 - **Kiểm chứng:**
 
 ### L-063: không có vòng nối từ số liệu của bản staging về thứ tự tính năng
@@ -608,7 +608,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** việc cần cho bản production nằm rải rác trong báo cáo các phiên: mã quảng cáo thật còn thiếu, kiểm thủ công chưa làm, lỗi đang mở, ảnh chuẩn chưa xem. Không ai thấy một danh sách, và `scripts/release.sh` chỉ báo thiếu khi đã chạy.
 - **Bằng chứng:** báo cáo RUN-20261023-04, mục Đề xuất về dự án mẫu.
 - **Đề xuất sửa:** `scripts/status.py` sinh thêm mục "Sẵn sàng phát hành" trên trang tiến độ, từ các nguồn đã có (vị trí quảng cáo trong `AdPlacement` so với mã đã cấu hình ở staging, mục kiểm thủ công chưa đánh dấu trong báo cáo, issue mở, ticket chưa `on-staging`). AI không đọc cấu hình production.
-- **Áp dụng:** ticket T-047 (chưa có plan). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** ticket T-047 (chưa có plan). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
 - **Kiểm chứng:**
 
 ### L-065: file mới nhắc tới file chung làm mọi plan đã duyệt lỗi `plan-check`, phiên sẽ bỏ qua cả danh sách
@@ -617,7 +617,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** T-041 thêm `scripts/main-guard-status.sh`; chú thích của nó nhắc `scripts/tests/run.sh`, `docs/auto-run.md`. Quy tắc 2 của `plan-check.py` (L-020) báo lỗi cho cả 5 plan đã duyệt của danh sách, vì plan sửa các file đó mà không nêu file đọc mới. Không ai được sửa plan đã duyệt, và phiên chạy lại `plan-check` ngay trước task rồi bỏ qua plan có lỗi: cả phiên sẽ không chạy task nào. Mỗi file mới nhắc tới một file chung đều có thể làm vậy.
 - **Bằng chứng:** `scripts/run-check.py docs/runs/RUN-20261024-01.md` sau PR #98: 10 lỗi "nhắc tới ... mà plan sửa" cho T-036, T-037, T-039, T-040, T-042.
 - **Đề xuất sửa:** quy tắc 2 báo lỗi khi plan còn `draft`, chỉ chú ý khi plan đã `approved`, như quy tắc 7; file đọc thật sự bị ảnh hưởng sẽ lộ ra ở test của task, và phiên xử lý theo ADR-1003 hay điều kiện dừng.
-- **Áp dụng:** `scripts/plan-check.py` quy tắc 2, test trong `scripts/tests/run.sh` (PR này).
+- **Áp dụng:** `scripts/plan-check.py` quy tắc 2, test trong `scripts/tests/run.sh` (PR này). Dự án mẫu: VGL-Studio/app-project-template#132.
 - **Kiểm chứng:**
 
 ### L-066: `wait-run.sh --pr` gọi ngay sau khi đẩy đọc lần chạy cũ bị hủy và báo đỏ
@@ -626,7 +626,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** đẩy commit mới lên nhánh của PR thì GitHub hủy lần chạy `pr-check` của commit trước (`cancelled`) rồi mới tạo lần chạy mới. `wait-run.sh --pr` gọi trong vài giây sau lần đẩy thấy lần chạy cũ đã xong với kết quả `cancelled` và báo `ĐỎ (cancelled)`, mã 1. Ba lần trong một buổi; phiên tự chạy gặp mã 1 sẽ đọc log, không thấy lỗi, và có thể tính nhầm vào 3 lần sửa hay chạy lại vô ích.
 - **Bằng chứng:** PR #100, lần chạy 40066418977 `cancelled` (commit `e35ae86`) khi commit mới đã đẩy; lần chạy kế 40066593456 xanh. PR #98: cùng dấu hiệu.
 - **Đề xuất sửa:** `wait-run.sh --pr` chỉ nhận lần chạy có `head_sha` bằng commit đầu hiện tại của PR (đọc `pulls/<số>` mỗi vòng), và coi `cancelled` của commit cũ là "chưa có lần chạy" thay vì đỏ; test với `gh` giả. Trong lúc chờ sửa: `auto-run.md` bước 8, kết quả `cancelled` thì gọi lại `wait-run.sh`, không tính là lỗi.
-- **Áp dụng:** ticket T-044 (chưa có plan). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** ticket T-044 (chưa có plan). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-067: vòng chờ bằng `pgrep -f` khớp chính lệnh đang chạy nó, và `pkill -f` giết cả shell của phiên
@@ -635,7 +635,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** vòng `while pgrep -f "wait-run.sh --workflow" ...; do sleep; done` không bao giờ thoát vì `pgrep -f` thấy dòng lệnh của chính vòng đó; chạy `pkill -f "pgrep -f"` để dọn thì giết luôn shell (thoát 144). Mất khoảng 25 phút chờ vô ích.
 - **Bằng chứng:** RUN-20261024-01, T-039, giờ 07:25 đến 07:35 UTC.
 - **Đề xuất sửa:** `auto-run.md` bước 9 nói rõ: chờ `main-guard` chỉ bằng `scripts/wait-run.sh --workflow main-guard.yml --since <giờ>` chạy ở chế độ nền, đọc kết quả từ tệp đầu ra của nó; không dùng `pgrep` hay `pkill` theo chuỗi lệnh.
-- **Áp dụng:** `docs/auto-run.md` bước 9: chờ `main-guard` chỉ bằng `wait-run.sh` ở chế độ nền, không dùng `pgrep -f`, `pkill -f` (PR này). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** `docs/auto-run.md` bước 9: chờ `main-guard` chỉ bằng `wait-run.sh` ở chế độ nền, không dùng `pgrep -f`, `pkill -f` (PR này). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-068: `scripts/tests/run.sh` đặt `origin` toàn cục thành URL giả, test dùng bare repo thật phải tắt biến đó
@@ -644,7 +644,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** đầu `run.sh` xuất `GIT_CONFIG_COUNT=1` với `remote.origin.url=https://github.com/o/r.git` cho mọi lệnh git. Khối test đẩy lên một bare repo cục bộ vì thế đẩy tới `github.com/o/r` (403). Khối `save-branch` phải `unset` ba biến này rồi đặt lại ở cuối.
 - **Bằng chứng:** RUN-20261024-01, lần chạy đầu của khối `save-branch`: `access denied by the git proxy: o/r is not in this session's authorized repository set`.
 - **Đề xuất sửa:** thêm chú thích đầu `scripts/tests/run.sh` nêu điều này, hoặc một hàm `with_real_git_config` dùng chung.
-- **Áp dụng:** chú thích đầu `scripts/tests/run.sh` (PR này). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** chú thích đầu `scripts/tests/run.sh` (PR này). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#129.
 - **Kiểm chứng:**
 
 ### L-069: script dùng mảng rỗng với `set -u` dừng trên bash 3.2 của macOS, `check.sh` đỏ trên máy dev
@@ -653,5 +653,5 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `scripts/cloud-env-check.sh` in danh sách lỗi bằng `"${setup_problems[@]}"`. Bash 3.2 (bash mặc định của macOS) coi mảng rỗng là biến chưa đặt khi có `set -u`, nên script dừng ở dòng đó trước khi in thông báo. 5 test của `scripts/tests/run.sh` đỏ trên máy Mac, nên `scripts/check.sh` đỏ trên mọi máy dev từ PR #103. CI và môi trường cloud dùng bash 5 nên không thấy.
 - **Bằng chứng:** `scripts/cloud-env-check.sh: line 54: setup_problems[@]: unbound variable`; 5 test `cloud-env-check.sh names ...` đỏ trên nhánh chính 5ed9c51 với `GNU bash, version 3.2.57`.
 - **Đề xuất sửa:** dùng `${a[@]+"${a[@]}"}` cho mảng có thể rỗng (đã sửa trong PR này); thêm một quy tắc vào `scripts/tests/run.sh` hay `plan-check.py` dò `"${...[@]}"` trong script có `set -u`, hoặc chạy test của script bằng bash 3.2 trong CI (job macOS hay ảnh `bash:3.2`).
-- **Áp dụng:** sửa `scripts/cloud-env-check.sh` (PR này); phần dò tự động chưa làm.
+- **Áp dụng:** sửa `scripts/cloud-env-check.sh` (PR này); phần dò tự động chưa làm. Dự án mẫu: VGL-Studio/app-project-template#130.
 - **Kiểm chứng:**

@@ -1401,6 +1401,108 @@ expect "app-explore: newfiles lists only files added since the first check" "/sd
 expect "app-explore: the tree shows sizes in dp" 1 \
   "$(AX_DENSITY=440 python3 -I scripts/app-explore/tree.py "$ax_fixtures/ads.xml" | grep -c 'btn_capture' )"
 
+# save-branch.sh pushes a task branch, retries network errors, and bundles the branch when the push fails (plan T-037, L-051).
+# A bare repository stands in for GitHub; its pre-receive hook makes the push fail in the way a test needs.
+# The header of this file points every origin at a fake GitHub URL; this block needs the real bare repository.
+sb_git_config=("$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0")
+unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+sb_root="$PWD"
+sb_origin="$work/sb-origin.git"
+sb_clone="$work/sb-clone"
+git init -q --bare "$sb_origin"
+git init -q -b main "$sb_clone"
+git -C "$sb_clone" config user.email t@example.com
+git -C "$sb_clone" config user.name t
+git -C "$sb_clone" commit -q --allow-empty -m base
+git -C "$sb_clone" remote add origin "$sb_origin"
+git -C "$sb_clone" push -q origin main
+git -C "$sb_clone" fetch -q origin
+git -C "$sb_clone" checkout -q -b claude/T-999-thu
+git -C "$sb_clone" commit -q --allow-empty -m one
+git -C "$sb_clone" commit -q --allow-empty -m two
+sb_head="$(git -C "$sb_clone" rev-parse HEAD)"
+sb_hook="$sb_origin/hooks/pre-receive"
+sb_calls="$work/sb-hook.calls"
+sb_hook_mode() { # reject | network | none | flaky
+  rm -f "$sb_calls" "$sb_calls.count"
+  case "$1" in
+    none) rm -f "$sb_hook" ;;
+    reject) printf '#!/bin/sh\necho x >> "%s"\necho "remote: denied" >&2\nexit 1\n' "$sb_calls" > "$sb_hook" ;;
+    network) printf '#!/bin/sh\necho x >> "%s"\necho "fatal: The remote end hung up unexpectedly" >&2\nexit 1\n' "$sb_calls" > "$sb_hook" ;;
+    flaky) printf '#!/bin/sh\necho x >> "%s"\nif [ -f "%s.count" ]; then exit 0; fi\ntouch "%s.count"\necho "fatal: The remote end hung up unexpectedly" >&2\nexit 1\n' \
+      "$sb_calls" "$sb_calls" "$sb_calls" > "$sb_hook" ;;
+  esac
+  [ "$1" = none ] || chmod +x "$sb_hook"
+}
+sb_run() { # <args>; runs save-branch.sh in the clone; output in $work/sb.out, prints the exit code
+  local code=0
+  (cd "$sb_clone" && SAVE_BRANCH_DIR="$work/rescue" SAVE_BRANCH_RETRY_SECONDS="${SB_RETRY:-0}" \
+    "$sb_root/scripts/save-branch.sh" "$@") > "$work/sb.out" 2>&1 || code=$?
+  echo "$code"
+}
+sb_calls_count() { if [ -f "$sb_calls" ]; then wc -l < "$sb_calls" | tr -d ' '; else echo 0; fi; }
+sb_remote_head() { git -C "$sb_origin" rev-parse --verify -q refs/heads/claude/T-999-thu || echo none; }
+sb_bundle="$work/rescue/claude__T-999-thu.bundle"
+
+sb_hook_mode none
+expect "save-branch: pushes the branch and says so" 0 "$(sb_run claude/T-999-thu)"
+expect "save-branch: the pushed branch is on the remote" "$sb_head" "$(sb_remote_head)"
+expect "save-branch: says ĐÃ ĐẨY" 1 "$(grep -c 'ĐÃ ĐẨY' "$work/sb.out" || true)"
+git -C "$sb_origin" update-ref -d refs/heads/claude/T-999-thu
+sb_hook_mode reject
+expect "save-branch: a refused push is not reported as pushed" 3 "$(sb_run claude/T-999-thu)"
+expect "save-branch: a refused push prints no ĐÃ ĐẨY" 0 "$(grep -c 'ĐÃ ĐẨY' "$work/sb.out" || true)"
+expect "save-branch: a refused push leaves the remote without the branch" none "$(sb_remote_head)"
+expect "save-branch: a refused push leaves a verified bundle" ok \
+  "$(git -C "$sb_clone" bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
+expect "save-branch: the bundle holds the branch head" "$sb_head refs/heads/claude/T-999-thu" \
+  "$(git bundle list-heads "$sb_bundle" | head -n 1)"
+expect "save-branch: the bundle needs main as its base" bad \
+  "$(git init -q "$work/sb-empty" && cd "$work/sb-empty" && git bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
+sb_restore="$work/sb-restore"
+git clone -q "$sb_origin" "$sb_restore" 2> /dev/null
+restore_cmd="$(grep -m1 '^git fetch ' "$work/sb.out" || true)"
+(cd "$sb_restore" && eval "$restore_cmd") > /dev/null 2>&1 || true
+expect "save-branch: the printed commands restore the branch" "$sb_head 2" \
+  "$(git -C "$sb_restore" rev-parse -q --verify refs/heads/claude/T-999-thu || echo none) $(git -C "$sb_restore" rev-list --count origin/main..claude/T-999-thu 2> /dev/null || echo 0)"
+for needle in "Nhánh chưa đẩy" "${sb_head:0:7}" "2 commit" "$sb_bundle"; do
+  expect "save-branch: the rescue section has '$needle'" yes \
+    "$(grep -qF -- "$needle" "$work/sb.out" && echo yes || echo no)"
+done
+rm -rf "$sb_bundle" "$sb_restore"
+sb_hook_mode reject
+expect "save-branch: --bundle-only exits 3" 3 "$(sb_run --bundle-only claude/T-999-thu)"
+expect "save-branch: --bundle-only never pushes" 0 "$(sb_calls_count)"
+expect "save-branch: --bundle-only leaves a bundle" ok "$(git -C "$sb_clone" bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
+rm -f "$sb_bundle"
+sb_hook_mode network
+expect "save-branch: a network error is retried, then bundled" 3 "$(SB_RETRY="0 0" sb_run claude/T-999-thu)"
+expect "save-branch: a network error calls the hook 3 times" 3 "$(sb_calls_count)"
+expect "save-branch: a network error leaves a bundle" ok "$(git -C "$sb_clone" bundle verify "$sb_bundle" > /dev/null 2>&1 && echo ok || echo bad)"
+rm -f "$sb_bundle"
+sb_hook_mode flaky
+expect "save-branch: a network error that clears is pushed" 0 "$(SB_RETRY="0 0" sb_run claude/T-999-thu)"
+expect "save-branch: a cleared network error says ĐÃ ĐẨY" 1 "$(grep -c 'ĐÃ ĐẨY' "$work/sb.out" || true)"
+git -C "$sb_origin" update-ref -d refs/heads/claude/T-999-thu
+sb_hook_mode reject
+expect "save-branch: a refusal by GitHub exits 3" 3 "$(SB_RETRY="0 0" sb_run claude/T-999-thu)"
+expect "save-branch: a refusal by GitHub is not retried" 1 "$(sb_calls_count)"
+rm -f "$sb_bundle"
+git -C "$sb_clone" branch -q claude/T-998-nothing main
+sb_hook_mode reject
+expect "save-branch: a refused push with nothing beyond main exits 3" 3 "$(sb_run claude/T-998-nothing)"
+expect "save-branch: nothing beyond main says CHƯA ĐẨY and không cần bundle" 1 "$(grep -c 'CHƯA ĐẨY.*không cần bundle' "$work/sb.out" || true)"
+expect "save-branch: nothing beyond main prints no ĐÃ ĐẨY" 0 "$(grep -c 'ĐÃ ĐẨY' "$work/sb.out" || true)"
+expect "save-branch: nothing beyond main leaves no bundle" none "$(ls "$work/rescue/claude__T-998-nothing.bundle" 2> /dev/null || echo none)"
+sb_hook_mode none
+expect "save-branch: the same branch pushes when nothing refuses" 0 "$(sb_run claude/T-998-nothing)"
+expect "save-branch: that push says ĐÃ ĐẨY" 1 "$(grep -c 'ĐÃ ĐẨY' "$work/sb.out" || true)"
+sb_hook_mode reject
+expect "save-branch: refuses a branch outside claude/" 2 "$(sb_run main)"
+expect "save-branch: a branch outside claude/is never pushed" 0 "$(sb_calls_count)"
+expect "save-branch: refuses a branch that does not exist" 2 "$(sb_run claude/T-000-none)"
+export GIT_CONFIG_COUNT="${sb_git_config[0]}" GIT_CONFIG_KEY_0="${sb_git_config[1]}" GIT_CONFIG_VALUE_0="${sb_git_config[2]}"
+
 if [[ "$failures" -gt 0 ]]; then
   echo "$failures script test(s) failed"
   exit 1

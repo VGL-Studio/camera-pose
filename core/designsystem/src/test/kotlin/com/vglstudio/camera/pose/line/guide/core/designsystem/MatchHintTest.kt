@@ -74,6 +74,19 @@ class MatchHintTest {
         }
     }
 
+    /** Whether the dark text colour is drawn in the middle 16 x 16 dp of the circle, where the score is. */
+    private fun Bitmap.hasDarkPixelInCircle(): Boolean {
+        val bounds = composeRule.onNodeWithTag(HINT).fetchSemanticsNode().boundsInWindow
+        with(composeRule.density) {
+            val centreX = bounds.left.toInt() + 28.dp.roundToPx()
+            val centreY = bounds.top.toInt() + 28.dp.roundToPx()
+            val half = 8.dp.roundToPx()
+            return (centreX - half..centreX + half).any { x ->
+                (centreY - half..centreY + half).any { y -> isNear(DARK, Color(getPixel(x, y))) }
+            }
+        }
+    }
+
     private fun isNear(expected: Color, actual: Color): Boolean {
         fun near(a: Float, b: Float) = abs(a - b) * 255f <= TOLERANCE
         return near(expected.red, actual.red) && near(expected.green, actual.green) && near(expected.blue, actual.blue)
@@ -108,7 +121,8 @@ class MatchHintTest {
         val bitmap = screen()
         assertColor(YELLOW, bitmap.at(13.dp, 28.dp), "circle")
         assertColor(Color.White, bitmap.at(5.dp, 28.dp), "pill")
-        assertTrue(composeRule.onAllNodesWithText("68", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
+        // The score is drawn in the circle; it is not in the semantics (semantics_readsOnlyTheText).
+        assertTrue("no digit drawn in the circle", bitmap.hasDarkPixelInCircle())
     }
 
     @Test
@@ -117,7 +131,8 @@ class MatchHintTest {
         val bitmap = screen()
         assertColor(GREEN, bitmap.at(5.dp, 28.dp), "pill")
         assertColor(Color.White, bitmap.at(13.dp, 28.dp), "circle")
-        assertTrue(composeRule.onAllNodesWithText("92", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
+        // The score is drawn in the circle; it is not in the semantics (semantics_readsOnlyTheText).
+        assertTrue("no digit drawn in the circle", bitmap.hasDarkPixelInCircle())
     }
 
     @Test

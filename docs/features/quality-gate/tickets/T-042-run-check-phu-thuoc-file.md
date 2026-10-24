@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-060 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
-risk: medium
+status: planned
+risk: high
 size: S
 depends_on: []
 sprint:
-plan:
+plan: features/quality-gate/plans/T-042-run-check-phu-thuoc-file.md
 created: 2026-10-24
 ---
 
@@ -32,7 +32,7 @@ created: 2026-10-24
 
 ## Rủi ro sơ bộ
 
-Trung bình: script kiểm tra trước khi duyệt, không chặn CI.
+Cao: kiểm tra đầu phiên chạy script này (điểm chặn 7, quy trình phiên tự chạy); plan chấm lại từ mức trung bình sơ bộ.
 
 ## Định nghĩa hoàn thành
 

@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-066 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
+status: approved
 risk: high
 size: S
 depends_on: [T-033]
 sprint:
-plan:
+plan: features/quality-gate/plans/T-044-wait-run-commit-hien-tai.md
 created: 2026-10-24
 ---
 

@@ -655,3 +655,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** dùng `${a[@]+"${a[@]}"}` cho mảng có thể rỗng (đã sửa trong PR này); thêm một quy tắc vào `scripts/tests/run.sh` hay `plan-check.py` dò `"${...[@]}"` trong script có `set -u`, hoặc chạy test của script bằng bash 3.2 trong CI (job macOS hay ảnh `bash:3.2`).
 - **Áp dụng:** sửa `scripts/cloud-env-check.sh` (PR này); phần dò tự động chưa làm. Dự án mẫu: VGL-Studio/app-project-template#130.
 - **Kiểm chứng:**
+
+### L-070: PR chỉ sửa một script của cổng chất lượng mà không sửa `scripts/tests/run.sh` thì không chạy test của script
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, viết plan T-046.
+- **Chuyện gì:** bộ lọc `code` của `pr-check.yml` chỉ gồm `scripts/check.sh`, `scripts/test-summary.sh`, `scripts/tests/**`, `scripts/find-breaking-commit.sh` trong `scripts/`. Một PR chỉ sửa `scripts/merge-if-green.sh`, `wait-run.sh`, `run-check.py`, `plan-check.py`, `device-session.sh` hay script khác mà không đụng `scripts/tests/` thì `build-and-test` bị bỏ qua, nên `scripts/tests/run.sh` (gọi từ `check.sh`) không chạy và PR vẫn xanh. Các PR trước qua được chỉ vì luôn thêm test vào `run.sh`.
+- **Bằng chứng:** `.github/workflows/pr-check.yml`, khối `filters`; các PR #99, #103 đến #107 đều sửa kèm `scripts/tests/run.sh`.
+- **Đề xuất sửa:** thêm `'scripts/**'` vào bộ lọc `code` (hay ít nhất `scripts/*.sh`, `scripts/*.py`). Sửa `.github/` cần plan rủi ro cao, duyệt chéo. Trong lúc chờ: plan sửa script ghi `scripts/tests/run.sh` ở mục 3.2 (đã là thói quen, nhưng chưa thành quy tắc).
+- **Áp dụng:**
+- **Kiểm chứng:**

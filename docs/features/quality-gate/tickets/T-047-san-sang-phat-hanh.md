@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-064 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
-risk: medium
+status: approved
+risk: high
 size: S
 depends_on: []
 sprint:
-plan:
+plan: features/quality-gate/plans/T-047-san-sang-phat-hanh.md
 created: 2026-10-24
 ---
 

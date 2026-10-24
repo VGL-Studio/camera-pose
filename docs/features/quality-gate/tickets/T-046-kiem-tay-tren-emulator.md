@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-062 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
+status: approved
 risk: high
 size: M
 depends_on: []
 sprint:
-plan:
+plan: features/quality-gate/plans/T-046-kiem-tay-tren-emulator.md
 created: 2026-10-24
 ---
 
@@ -22,13 +22,15 @@ Mỗi phiên để lại nhiều mục kiểm thủ công; phần lớn không c
 
 ## Phạm vi
 
-- `docs/templates/plan.md` mục 4: cột "Chạy ở".
+- `docs/templates/plan.md` mục 4: nơi chạy của mỗi dòng kiểm thủ công, ghi trong cột "Loại test" (`emulator`, `máy thật`, `người`) thay cho một cột "Chạy ở" mới (plan T-046, mục 8, câu 7).
 - Cách viết kịch bản cho `device-session` (`docs/ops/test-sessions.md`) và cách phiên đọc kết quả (`docs/auto-run.md` mục 4).
-- Kịch bản đầu tiên cho các mục còn chờ của RUN-20261023-04 (T-018, T-022, T-023, T-024, T-020).
+- Kịch bản đầu tiên cho các mục còn chờ của RUN-20261023-04 chạy được trên emulator: T-022, T-024, phần bố cục của T-020.
 
 **Không bao gồm:**
 
 - Kiểm FPS, camera thật, Play In-App Review (cần máy thật).
+- T-018, T-023: quảng cáo chỉ hiện khi Remote Config bật vị trí, mà bản staging dùng file Firebase giả (L-002); giữ "máy thật: Remote Config" (plan T-046, mục 8, câu 4 và 7).
+- Emulator gập thật (sửa `device-session.yml`): ticket riêng.
 - Đưa về dự án mẫu: issue `from-app` riêng.
 
 ## Rủi ro sơ bộ

@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-061 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
+status: approved
 risk: medium
 size: M
 depends_on: []
 sprint:
-plan:
+plan: features/quality-gate/plans/T-045-hang-cho-plan.md
 created: 2026-10-24
 ---
 

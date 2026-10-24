@@ -109,7 +109,8 @@ Mã này chỉ kích hoạt được đúng routine đó, không đọc được
 
 1. Danh sách chạy `docs/runs/RUN-YYYYMMDD-NN.md` có trạng thái `approved` đã được merge vào nhánh chính.
 2. **Actions > start-run > Run workflow**, nhánh `main`, nhập đường dẫn danh sách chạy.
-3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), hoặc môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4). Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
+3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`, T-041). Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
+4. Bị từ chối vì `main-guard` chưa chạy (`CHƯA KIỂM`, thường vì GitHub không phát sự kiện push sau một lần merge, L-054): **Actions > main-guard > Run workflow** trên `main` (hoặc lệnh mà thông báo in ra), chờ xanh, rồi chạy lại `start-run`. Đang chạy (`CHỜ`): chờ xong rồi chạy lại.
 
 Lưu ý:
 
@@ -154,7 +155,7 @@ Routine không dùng được cloud session credits: phiên của routine luôn 
 **Trước khi mở.** Không có `start-run.yml` nên người tự làm các kiểm tra của workflow đó:
 
 1. Danh sách chạy `approved` đã merge vào nhánh chính.
-2. Không có issue đang mở mang nhãn `main-broken` hay `env-broken`: `gh issue list --label main-broken --state open`, rồi cùng lệnh với `env-broken`.
+2. Không có issue đang mở mang nhãn `main-broken` hay `env-broken`: `gh issue list --label main-broken --state open`, rồi cùng lệnh với `env-broken`. `scripts/main-guard-status.sh` in `XANH` (mục 2.3, bước 4 khi không xanh).
 3. Không có phiên tự chạy nào khác đang chạy (không có danh sách chạy `running` trên một nhánh báo cáo).
 4. Ghi số dư credit lúc này (trang cài đặt tài khoản trên claude.ai) để tính tiền phiên đã dùng.
 

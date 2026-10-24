@@ -1,7 +1,7 @@
 ---
 ticket: T-019
 title: Hỏi đánh giá app trong app
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -239,3 +239,11 @@ Phiên bản 2:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, RUN-20261023-04: đã merge
+
+- **Kết quả:** đã merge, PR #77, commit `2db5012`. CI xanh ngay vòng đầu. Không dùng phương án dự phòng 3.4.
+- **Test viết trước:** 25 test mới (17 trong `:core:review`, 8 trong `:feature:camera`); 20 thất bại đúng lý do trên khung rỗng; 5 qua ngay đúng loại plan nêu hoặc có test anh em đối chứng. Viết chặt lại có đối chứng: 5 (`flagOff_neverAsks`, `readError_isNull`, `writeError_isSwallowed`, `promptFails_isLoggedAndNotRecorded`, `notSaved_goesBackWithoutReview`); thêm `PlayReviewPromptTest` bọc `FakeReviewManager` để đếm `requestReviewFlow`.
+- **Lệch so với plan:** hằng `MIN_SAVED_PHOTOS_DEFAULT`, `MIN_DAYS_BETWEEN_DEFAULT`; `ReviewModule` dùng `@Provides` cho `InAppReview` thay vì `@Binds`; `ask()` bọc cả đường đọc cờ và cài đặt trong `try`. Manifest gộp: `uses-permission` giống hệt (11 dòng), thêm đúng một activity `PlayCoreDialogWrapperActivity`. Dòng `plan:` của ticket đã có trên main nên không nằm trong diff.
+- **Rà soát độc lập:** 0 chặn; 4 nên sửa, chưa sửa: (1) không có test ở mức `ReviewRoute` cho nhánh "quảng cáo vừa hiện thì không hỏi" (cần `LocalAdsController` giả trả `true`); (2) tham số `askReview` của `leaveReview` thừa (`@Suppress("UNUSED_PARAMETER")`), nên đoạn đầu `notSaved_goesBackWithoutReview` luôn đúng; (3) `withoutProvider_doesNothing` không có assert; (4) `ask()` try rộng: `history.recordAsked` ném lỗi không phải `IOException` thì hộp đã hiện mà thời điểm chưa lưu, có thể hỏi lại lần sau.
+- **Cần người kiểm tra:** kiểm thủ công trên bản có Play (hộp đánh giá thật chỉ hiện từ bản cài qua Play); T-017 chưa merge nên có thể xung đột nhỏ ở `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `feature/camera/build.gradle.kts`.

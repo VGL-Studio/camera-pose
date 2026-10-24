@@ -7,6 +7,7 @@
     <string name="review_share">Chia sẻ</string>
     <string name="review_next_pose">Tư thế tiếp</string>
     <string name="review_save">Lưu vào thư viện</string>
+    <string name="review_save_unfolded">Lưu ảnh</string>
     <string name="review_saving">Đang lưu…</string>
     <string name="review_save_error_storage_full">Không lưu được ảnh: bộ nhớ máy đã đầy.</string>
     <string name="review_save_error">Không lưu được ảnh.</string>

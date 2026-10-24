@@ -112,27 +112,26 @@ internal fun ReviewPhoto(image: ImageBitmap?, modifier: Modifier = Modifier) {
     }
 }
 
-/** "Chụp lại", "Chia sẻ", "Tư thế tiếp": round buttons with a label, faded and disabled while saving. */
+/**
+ * "Chụp lại", "Chia sẻ", "Tư thế tiếp": round buttons with a label, faded and disabled while saving. Side by side with
+ * the label under each button, or with [vertical] stacked, the label to the right of its button (unfolded phone).
+ */
 @Composable
 internal fun ReviewActions(
     enabled: Boolean,
     onRetakeClick: () -> Unit,
     onShareClick: () -> Unit,
     onNextPoseClick: () -> Unit,
+    vertical: Boolean = false,
 ) {
-    Row(
-        modifier = Modifier
-            .widthIn(max = ACTIONS_MAX_WIDTH)
-            .fillMaxWidth()
-            .testTag(ReviewTestTags.ACTIONS),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
+    val actions: @Composable () -> Unit = {
         ReviewAction(
             icon = painterResource(R.drawable.ic_review_replay),
             label = stringResource(R.string.review_retake),
             enabled = enabled,
             onClick = onRetakeClick,
             tag = ReviewTestTags.RETAKE,
+            labelBeside = vertical,
         )
         ReviewAction(
             icon = painterResource(R.drawable.ic_review_share),
@@ -140,6 +139,7 @@ internal fun ReviewActions(
             enabled = enabled,
             onClick = onShareClick,
             tag = ReviewTestTags.SHARE,
+            labelBeside = vertical,
         )
         ReviewAction(
             icon = painterResource(R.drawable.ic_review_skip_next),
@@ -147,20 +147,36 @@ internal fun ReviewActions(
             enabled = enabled,
             onClick = onNextPoseClick,
             tag = ReviewTestTags.NEXT_POSE,
+            labelBeside = vertical,
         )
+    }
+    if (vertical) {
+        Column(
+            modifier = Modifier.testTag(ReviewTestTags.ACTIONS),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) { actions() }
+    } else {
+        Row(
+            modifier = Modifier
+                .widthIn(max = ACTIONS_MAX_WIDTH)
+                .fillMaxWidth()
+                .testTag(ReviewTestTags.ACTIONS),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) { actions() }
     }
 }
 
 /** One action: screen readers hear a single button named by its label. */
 @Composable
-private fun ReviewAction(icon: Painter, label: String, enabled: Boolean, onClick: () -> Unit, tag: String) {
-    Column(
-        modifier = Modifier
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .testTag(tag),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
+private fun ReviewAction(
+    icon: Painter,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    tag: String,
+    labelBeside: Boolean,
+) {
+    val button: @Composable () -> Unit = {
         CameraIconButton(
             icon = icon,
             onClick = onClick,
@@ -168,12 +184,36 @@ private fun ReviewAction(icon: Painter, label: String, enabled: Boolean, onClick
             enabled = enabled,
             modifier = Modifier.clearAndSetSemantics {},
         )
+    }
+    val text: @Composable () -> Unit = {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
         )
+    }
+    val modifier = Modifier
+        .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+        .testTag(tag)
+    if (labelBeside) {
+        Row(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            button()
+            text()
+        }
+    } else {
+        Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            button()
+            text()
+        }
     }
 }
 
@@ -187,6 +227,8 @@ internal fun SaveErrorMessage(
     onRetrySave: () -> Unit,
     onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    // True in a narrow column, where the message wraps and the action would be drawn over it.
+    actionOnNewLine: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val message = when (save) {
@@ -198,6 +240,7 @@ internal fun SaveErrorMessage(
     val blocked = save == SaveStatus.PERMISSION_BLOCKED
     Snackbar(
         modifier = modifier.testTag(ReviewTestTags.SAVE_ERROR),
+        actionOnNewLine = actionOnNewLine,
         shape = RoundedCornerShape(Radius.card),
         containerColor = colors.inverseSurface,
         contentColor = colors.inverseOnSurface,

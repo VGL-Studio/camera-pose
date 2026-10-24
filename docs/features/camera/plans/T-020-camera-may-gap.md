@@ -1,7 +1,7 @@
 ---
 ticket: T-020
 title: Camera và màn xem lại trên máy gập
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 8                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
@@ -202,3 +202,11 @@ Không cần (E dưới 2). Ghi thêm để người duyệt biết: lần chạ
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, RUN-20261023-04: đã merge
+
+- **Kết quả:** đã merge, PR #76, commit `b811368`. CI xanh ngay vòng đầu. T-017 chưa merge (xem báo cáo phiên) nên không có phần `MatchHint`; plan cho phép.
+- **Test viết trước:** 24 test mới (2 unit, 19 giao diện, 3 screenshot); trên khung rỗng 10 test giao diện và 1 test ngưỡng thất bại đúng lý do (khung ở x=150 thay vì 16, nút chụp dưới dải tư thế, `isUnfolded(673)` false). Viết chặt lại có đối chứng: 5 (2 thêm khẳng định bố cục gập đầu test; 3 làm hỏng code tạm rồi hoàn lại). `switchingLayout_keepsStripScrollAndPose` thất bại sớm ở bước khẳng định bố cục (lệch dự đoán plan: phần giữ cuộn chưa được thử ở bước 3).
+- **Lệch so với plan:** (1) lề dưới camera gập `Spacing.xl + Spacing.xs` (36 dp) thay `Spacing.md`, vì `Spacing.md` cho khung cao 621 dp thay vì 600; (2) nút đổi camera lệch 122 dp (số liệu `design/context`); (3) ảnh xem lại giới hạn bề rộng, cột phải tối thiểu 175 dp; (4) `SaveErrorMessage` thêm `actionOnNewLine` vì ở cột hẹp "Thử lại" đè lên chữ (thất bại trước khi sửa); (5) `ReviewPhoneContent` tách ra, `ERROR_STATUSES`, `PREVIEW_ASPECT_RATIO`, `DEFAULT_STEP_BOTTOM`, `TOP_BAR_HEIGHT` đổi sang `internal`; (6) `ReviewScreenUnfoldedTest.kt` tách hai lớp: giao diện và screenshot (CLAUDE.md bước 10).
+- **Rà soát độc lập:** 0 chặn; 2 nên sửa, chưa sửa: cột phải màn xem lại không cuộn khi cửa sổ rộng từ 600 dp nhưng thấp hoặc cỡ chữ lớn (`ReviewUnfolded.kt`), nên bọc `verticalScroll`; chưa có test đo vị trí dọc nút đổi camera (122 dp) và ô ảnh vừa chụp (152 dp). Ghi chú: chưa có ca `PERMISSION_BLOCKED` ở bố cục gập.
+- **Cần người kiểm tra:** gập mở thật trên máy gập hoặc emulator gập (mục 4); 3 ảnh chuẩn `_unfolded`; ảnh so sánh thiết kế (camera gập 5,4%, xem lại gập 3,6%).

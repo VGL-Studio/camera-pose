@@ -1,7 +1,7 @@
 ---
 ticket: T-023
 title: Banner ở thư viện và chi tiết tư thế
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -211,3 +211,11 @@ Bảng điểm dưới đây chỉ để tham khảo:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### 2026-10-23, RUN-20261023-04: đã merge
+
+- **Kết quả:** đã merge, PR #74, commit `6760799`. CI xanh ngay vòng đầu.
+- **Test viết trước:** 13 test mới (`AdSlotTest` 5, `AdUnitIdsTest` 1, `PosesScreenTest` 3, `PoseDetailScreenTest` 3, cộng 1 khẳng định thêm) và 6 screenshot test; 12 thất bại đúng lý do trên khung rỗng. Viết chặt lại có đối chứng: 1 (`AdUnitIdsTest.posesPlacements_areBannersWithSpecKeys`, qua ngay vì hai dòng `AdPlacement` nằm trong commit test; đổi tạm khóa thì thất bại, rồi khôi phục).
+- **Lệch so với plan:** `beforeLoad_keepsBannerHeight_withSeparator` thất bại trên khung (plan ghi qua ngay) vì khẳng định cả đường kẻ; `bannerListener` dùng `object : AdListener() {}` (lớp abstract); tag `poses_banner_slot` là hằng `PosesTestTags.BANNER_SLOT`. Không dùng phương án dự phòng 3.4.
+- **Rà soát độc lập:** 0 chặn; 2 nên sửa nhỏ, chưa sửa: nhãn `// Small screens` rỗng trong `PosesScreenTest.kt`; `bannerListener` ghi đè `adView.adListener` cũ (hiện chưa ai gán). Đột biến tạm (bỏ thu về 0 dp, bỏ gỡ đường kẻ) làm 2 test thất bại mỗi lần: test thu về 0 dp bắt được cả hai nhánh.
+- **Cần người kiểm tra:** kiểm thủ công mục 4 bước (4): banner thu về 0 dp sau lần tải lỗi có tự làm mới trong lần mở màn đó không (ghi chú rà soát trước phiên); 6 ảnh chuẩn `_ad_*`; ảnh so sánh thiết kế. Đề xuất về dự án mẫu: thay đổi `AdSlot` (`separator`, thu về 0 dp khi lỗi) theo `docs/ops/from-app.md`; `release.sh` sẽ đòi mã thật cho `poses_banner`, `poses_detail_banner`.

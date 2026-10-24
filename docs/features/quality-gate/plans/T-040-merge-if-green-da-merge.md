@@ -2,7 +2,7 @@
 ticket: T-040
 title: merge-if-green.sh nhận ra PR đã vào nhánh chính khi API merge báo lỗi
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # cỡ S, số gợi ý của scripts/token-usage.py estimate
@@ -18,6 +18,13 @@ approved_at: 2026-10-24
 ## 1. Tóm tắt
 
 Khi lệnh merge của GitHub trả lỗi, `scripts/merge-if-green.sh` không báo "TỪ CHỐI" ngay. Nó tìm trên nhánh chính commit squash của chính PR này: dòng đầu là `<tiêu đề> (#<số>)` và cây file trùng cây file của commit đầu PR. Tìm thấy thì script báo `ĐÃ MERGE (GitHub báo lỗi)`, thoát 0 và yêu cầu chạy `main-guard` bằng `workflow_dispatch`, vì GitHub có thể không phát sự kiện `push` (L-054). Gọi lại script cho một PR đã vào nhánh chính như vậy cũng nhận ra, báo `ĐÃ MERGE TRƯỚC ĐÓ`, và không bao giờ merge lần hai. `main-guard.yml` có `workflow_dispatch` từ T-041, chạy trước task này. Dòng PB-04 của bảng tra lỗi (`docs/ops/failure-playbook.md`, T-039) đổi việc phải làm theo mã thoát mới. Mọi kiểm tra hiện có của script giữ nguyên thứ tự và hành vi; mỗi kiểm tra có một test cho trường hợp mới (L-044).
+
+**Phiên bản 2** sửa theo rà soát độc lập trước RUN-20261024-01:
+- Điểm chặn: hai lần đọc mới (`git/commits/<sha>`, `commits?sha=main&per_page=30`) không có trong fixture của khoảng 25 test cũ, `fake-gh` ném lỗi Python, nên test cũ sẽ đỏ. Bản 2 tính lần đọc lỗi là "không thấy" (`|| true`, đi tiếp đường cũ), và `fake-gh` trả lỗi 404 gọn gàng (thoát 1) cho đường dẫn nó không phục vụ. Đã chạy thử ba bước (mục 4.1): test cũ không đỏ, test mới thất bại đúng lý do, rồi qua hết.
+- Test "đọc lại" dùng chuỗi đúng: lần đọc của kiểm tra đầu script không có, rồi trong vòng thử lại: không có, không có, có.
+- Phiên merge PR của chính task này bằng bản `merge-if-green.sh` của `origin/main` chép ra ngoài worktree, không bằng bản đang sửa.
+- Bỏ phần nói về `scripts/release.sh` (AI không đọc file này).
+- T-041 và T-038 đã làm trong phiên có người theo dõi trước phiên; `main-guard.yml` đã có `workflow_dispatch`.
 
 ## 2. Hiểu yêu cầu
 
@@ -46,12 +53,12 @@ ADR liên quan: ADR-0010 (cổng chất lượng, chỉ merge qua script), ADR-1
 
 **`scripts/merge-if-green.sh`:**
 
-1. Đọc thêm cây file của commit đầu PR: `HEAD_TREE="$(gh api "repos/$REPO/git/commits/$HEAD_SHA" --jq .tree.sha)"`.
+1. Đọc thêm cây file của commit đầu PR: `HEAD_TREE="$(gh api "repos/$REPO/git/commits/$HEAD_SHA" --jq .tree.sha 2>/dev/null || true)"`. Đọc lỗi thì `HEAD_TREE` rỗng và script đi đường cũ: nhờ vậy fixture của các test cũ (không có đường dẫn này) cho đúng kết quả cũ, và một lần GitHub trả lỗi khi đọc không chặn merge (`set -e` không dừng script).
 2. Hàm `merged_on_main`: đọc `repos/$REPO/commits?sha=$BASE_BRANCH&per_page=30`. Tìm commit đầu tiên có:
    - dòng đầu của `commit.message` đúng bằng `"$TITLE (#$PR)"`;
    - `commit.tree.sha` bằng `HEAD_TREE`.
 
-   Có thì in sha của commit đó, không có thì in rỗng. Cả hai điều kiện là bắt buộc: chỉ tiêu đề thì có thể trùng với một PR khác cùng số trong tiêu đề sao chép; chỉ cây file thì không biết là PR nào.
+   `HEAD_TREE` rỗng, hay lần đọc danh sách commit lỗi (`2>/dev/null || true`), thì in rỗng như "không thấy". Có thì in sha của commit đó, không có thì in rỗng. Cả hai điều kiện là bắt buộc: chỉ tiêu đề thì có thể trùng với một PR khác cùng số trong tiêu đề sao chép; chỉ cây file thì không biết là PR nào.
 3. **Kiểm tra mới, ngay sau kiểm tra PR còn mở (dòng 60).** `merged_on_main` có kết quả thì in `ĐÃ MERGE TRƯỚC ĐÓ: PR #<số> đã nằm trên nhánh chính ở commit <7 ký tự> (GitHub chưa đóng PR). Không merge lần hai; đóng PR trên web.` và thoát 0. Với `--dry-run`: cùng thông báo, thoát 0. Đặt trước các kiểm tra khác vì script không ghi gì lên GitHub ở nhánh này, nên mọi điều kiện về merge (nhãn, nhánh chính đỏ, phiên đang chạy, CI) không áp dụng. Bảng ở mục 4 có test cho từng điều kiện.
 4. **Bước merge (dòng 175 đến 179).** Lệnh `gh api -X PUT .../merge` lỗi thì:
    - gọi `merged_on_main` tối đa 3 lần, cách `${MERGE_IF_GREEN_POLL_SECONDS:-10}` giây;
@@ -60,11 +67,13 @@ ADR liên quan: ADR-0010 (cổng chất lượng, chỉ merge qua script), ADR-1
    - không có kết quả: `TỪ CHỐI: GitHub từ chối merge PR #<số>.` và thoát 1 như hiện nay.
 5. Chú thích đầu file: mã 0 gồm cả "đã merge mà GitHub báo lỗi" và "đã merge trước đó".
 
-**`scripts/tests/fake-gh`:** hiện đọc đường dẫn ở tham số thứ hai (`args[1]`). Lệnh merge của script là `gh api -X PUT "repos/..."`, tức `-X` đứng trước đường dẫn, nên bản giả đọc nhầm `-X` thành đường dẫn. Chưa test nào đi tới lệnh merge thật, vì mọi test đều dùng `--dry-run`. Sửa: đường dẫn là tham số đầu tiên sau `api` không bắt đầu bằng `-` và không phải giá trị của `-X`, `-f`, `-H`, `--jq`.
+**`scripts/tests/fake-gh`:** hiện đọc đường dẫn ở tham số thứ hai (`args[1]`). Lệnh merge của script là `gh api -X PUT "repos/..."`, tức `-X` đứng trước đường dẫn, nên bản giả đọc nhầm `-X` thành đường dẫn. Chưa test nào đi tới lệnh merge thật, vì mọi test đều dùng `--dry-run`. Sửa hai chỗ: (a) đường dẫn là tham số đầu tiên sau `api` không bắt đầu bằng `-` và không phải giá trị của `-X`, `-f`, `-F`, `-H`, `--jq`, `--method`, `--input`; (b) đường dẫn mà fixture không phục vụ (không có trong `routes`, không phải `commits/<sha>` có trong fixture) in `HTTP 404: Not Found` ra stderr và thoát 1, thay vì ném lỗi Python. Mã thoát giống trước (lỗi Python cũng thoát 1), nên các test đang dựa vào lỗi đó (ví dụ `PUSHED_AT` đọc `commits/<sha>` khi fixture không có) không đổi.
 
-Kiểm tra lúc lập plan: `pulls/67` và `git cat-file` như ở mục 2. Chưa chạy thử script mới (E dưới 2).
+Kiểm tra lúc lập plan: `pulls/67` và `git cat-file` như ở mục 2; chạy thử ba bước ở mục 4.1.
 
-**`.github/workflows/main-guard.yml`:** T-040 không sửa file này. `workflow_dispatch` do plan T-041 thêm (mục 3.1 và 3.2 của plan đó), nên T-041 phải merge trước T-040. Workflow không đọc `github.event.before` hay dữ liệu riêng của sự kiện push (`grep -n "github.event" .github/workflows/main-guard.yml` không có kết quả). Nó kiểm commit đầu nhánh chính lúc chạy, nên chạy tay cho kết quả giống như chạy do push.
+**Merge PR của chính task này.** Phiên đứng trên nhánh task, nên `scripts/merge-if-green.sh` trong worktree là bản đang sửa. Bản mới sai (ví dụ báo nhầm `ĐÃ MERGE TRƯỚC ĐÓ` rồi thoát 0 mà không merge) thì không gì chặn. Ở bước 9 của task này, phiên merge bằng bản của nhánh chính chép ra ngoài worktree: `git show origin/main:scripts/merge-if-green.sh > "$TMPDIR/merge-if-green-main.sh" && bash "$TMPDIR/merge-if-green-main.sh" <số PR>` (chạy trong thư mục repo để đọc `remote.origin.url`). Bài học T-033: không dùng script đang sửa để kiểm chính nó.
+
+**`.github/workflows/main-guard.yml`:** T-040 không sửa file này. `workflow_dispatch` do plan T-041 thêm, làm trong phiên có người theo dõi trước RUN-20261024-01; task kiểm điều đó ở điều kiện dừng mục 7. Script gọi REST (`gh api -X POST .../actions/workflows/main-guard.yml/dispatches -f ref=main`), không `gh workflow run`, vì phiên cloud chỉ dùng REST (`auto-run.md`, bước 7). Workflow không đọc `github.event.before` hay dữ liệu riêng của sự kiện push (`grep -n "github.event" .github/workflows/main-guard.yml` không có kết quả). Nó kiểm commit đầu nhánh chính lúc chạy, nên chạy tay cho kết quả giống như chạy do push.
 
 **`docs/ops/failure-playbook.md` (tạo ở T-039):** dòng PB-04 (`unexpected end of JSON input`, `merge-if-green.sh`) hiện bảo phiên tự tìm commit `(#<số PR>)` trên `origin/main`. Sửa cột việc phải làm thành: làm theo đầu ra của `merge-if-green.sh`. `ĐÃ MERGE (GitHub báo lỗi)` hay `ĐÃ MERGE TRƯỚC ĐÓ` thì coi là đã merge và chờ `main-guard` bằng lệnh script in ra (bước 9); `TỪ CHỐI` thì làm như bước 9. Cột nguồn thêm T-040. Phần này của T-040 chỉ là dòng PB-04; T-038 sửa dòng PB-08 (plan T-039, mục 6).
 
@@ -92,7 +101,7 @@ Nơi khác đọc các file plan sửa (`grep -rn "merge-if-green\|fake-gh\|main
 - `scripts/is-exact-revert.sh` được gọi từ `merge-if-green.sh`, không đổi.
 - `scripts/status.py` đọc `docs/lessons.md`; plan chỉ thêm chữ vào dòng Áp dụng.
 - `scripts/check.sh` chạy `scripts/tests/run.sh` (dòng 32) và nhắc `main-guard.yml` trong chú thích (dòng 5). `check.sh` không đổi; test mới chạy cùng các test cũ ở đó.
-- `scripts/release.sh` đọc lần chạy `main-guard.yml` theo commit (`gh run list --workflow main-guard.yml --commit`, dòng 114) không lọc theo sự kiện. Lần chạy bằng `workflow_dispatch` trên commit đầu nhánh chính vì thế cũng được tính. Đó đúng là điều cần sau sự cố của L-054, khi commit không có lần chạy do push.
+- `scripts/release.sh`: AI không đọc file này (CLAUDE.md, ADR-0009). Lần chạy `main-guard` bằng `workflow_dispatch` có được tính khi phát hành không là câu 2 của plan T-041, Tuấn xem trước khi kích hoạt phiên (danh sách chạy RUN-20261024-01). Plan T-040 không đổi gì ở phần này.
 - `scripts/failure-kind.sh` chỉ nhắc `main-guard.yml` trong chú thích (dòng 6, 8); workflow vẫn gọi nó như cũ.
 - Các file nhắc `docs/auto-run.md` chỉ dẫn tới bước hay mục của nó, không đọc nội dung. Đó là `.github/workflows/device-session.yml`, `.github/workflows/pr-check.yml`, `.github/workflows/start-run.yml`, `.github/workflows/resume-run.yml`, `scripts/cloud-env-check.sh`, `scripts/cloud-setup.sh` và `scripts/resume-check.py`. Plan chỉ thêm một gạch đầu dòng ở bước 9, không đổi tên hay số của bước, mục nào.
 
@@ -144,7 +153,9 @@ Test không dùng `--dry-run` ghi tên lệnh vào `.writes`, nên kiểm đư�
 | Lỗi mà đã merge | Test script | `merge-if-green reports a merge that GitHub answered with an error` (0); có dòng `^ĐÃ MERGE (GitHub báo lỗi): PR #12`; `.writes` có `PUT pulls/12/merge`, `POST actions/workflows/main-guard.yml/dispatches`, `DELETE git/refs/heads/claude/template-x`. Thất bại trên code hiện tại (thoát 1) |
 | Yêu cầu chạy `main-guard` lỗi | Test script | `merge-if-green still reports the merge when main-guard cannot be started` (0, có `CHÚ Ý: không yêu cầu được main-guard`), với `fail_writes` thêm dòng `POST .../dispatches` |
 | Lỗi thật | Test script | `merge-if-green refuses when the API fails and main lacks the commit` (1, `TỪ CHỐI: GitHub từ chối merge`, không có `POST .../dispatches`). Đối chứng cho test đầu (L-035): trên nhánh chính có một commit cùng tiêu đề nhưng cây khác, và một commit cùng cây nhưng tiêu đề của PR khác |
-| GitHub ghi chậm | Test script | `merge-if-green finds the commit on a later read`: `commits?sha=main...` là `__sequence__` (lần đầu không có, lần hai có), thoát 0 |
+| GitHub ghi chậm | Test script | `merge-if-green finds the commit on a later read`: `commits?sha=main...` là `__sequence__` gồm bốn câu trả lời: lần của kiểm tra đầu script không có, rồi trong vòng thử lại không có, không có, có (lần thứ ba). Thoát 0, `.seen` ghi 4 lần đọc |
+| Lần đọc lỗi tính là không thấy | Test script | `merge-if-green keeps the old path when the commit list cannot be read`: fixture không có `commits?sha=main...` (`fake-gh` trả 404), lệnh merge thành công: thoát 0, `ĐÃ MERGE: PR #12`. Và toàn bộ test cũ (fixture không có hai đường dẫn mới) cho đúng mã cũ |
+| Bản giả trả 404 gọn gàng | Test script | `fake-gh answers an unknown path with 404`: `gh api repos/o/r/git/commits/zzz` thoát 1, stderr có `HTTP 404`, không có `Traceback` |
 | Gọi lại | Test script | `merge-if-green reports a PR already on main without merging` (0, `ĐÃ MERGE TRƯỚC ĐÓ`, `.writes` rỗng) |
 | Merge bình thường không đổi | Test script | `merge-if-green merges a green PR`: lệnh merge thành công, thoát 0, `ĐÃ MERGE: PR #12`, không đọc `commits?sha=main` sau merge, không có `POST .../dispatches`. Test này cũng chứng minh `fake-gh` mới đọc đúng `-X PUT` |
 | Bảng tra lỗi khớp script | Test script có sẵn của T-039 | Test bảng tra lỗi của T-039 (mỗi dòng có mẫu và việc phải làm) vẫn qua sau khi sửa PB-04 |
@@ -154,7 +165,15 @@ Test không dùng `--dry-run` ghi tên lệnh vào `.writes`, nên kiểm đư�
 
 ### 4.1. Chạy thử
 
-Không cần (E dưới 2): dùng lại `gh api`, `jq` như các nhánh khác của script.
+Không bắt buộc (E dưới 2), nhưng phiên bản 2 chạy thử để gỡ điểm chặn của rà soát. 2026-10-24, máy dev, worktree từ `origin/main`, thay đổi tạm không commit. Lệnh: `bash scripts/tests/run.sh`, với một khối test tạm gồm 11 kiểm tra của mục 4 (lỗi mà đã merge, yêu cầu `main-guard`, đọc lại lần thứ ba, lỗi thật cùng đối chứng, gọi lại, không ghi gì khi đã merge trước đó, merge bình thường, `fake-gh` đọc `-X PUT`).
+
+| Bước | `fake-gh` | `merge-if-green.sh` | Kết quả |
+| --- | --- | --- | --- |
+| 0 | `origin/main` | `origin/main` | 323 test cũ qua. 6 kiểm tra mới đỏ. Lưu ý: "lỗi mà đã merge" thoát 0 sai lý do, vì bản giả cũ đọc `-X` thành đường dẫn nên lệnh merge "thành công" (ghi `PUT -X`) |
+| 1 (commit test của bước 3) | sửa (mục 3.1) | `origin/main` | Mọi test cũ qua, không có `Traceback`. Đỏ đúng lý do: lỗi mà đã merge (thoát 1 `TỪ CHỐI`), không có `ĐÃ MERGE (GitHub báo lỗi)`, không yêu cầu `main-guard`, đọc lại (thoát 1), gọi lại (thoát 3, nhánh chậm), không có `ĐÃ MERGE TRƯỚC ĐÓ`. Đối chứng qua: lỗi thật thoát 1 không gọi `dispatches`; merge bình thường thoát 0 có `PUT pulls/12/merge` |
+| 2 (code của bước 4) | sửa | bản tạm theo mục 3.1 | `All script tests passed` |
+
+Gặp trong lúc chạy thử: chuỗi JSON lồng trong `"$(merge_api "{\"__sequence__\": ...}")"` bị bash cắt mất phần đầu. Test của bước 3 dựng chuỗi trong một biến trước (`later='{"__sequence__": [[], '"$on_main"']}'`).
 
 ## 5. Chấm rủi ro
 
@@ -173,14 +192,14 @@ Không cần (E dưới 2): dùng lại `gh api`, `jq` như các nhánh khác c�
 
 - File hoặc thành phần dùng chung bị chạm: `scripts/merge-if-green.sh`, `scripts/tests/fake-gh`, `scripts/tests/run.sh`, `docs/ops/failure-playbook.md`, `docs/auto-run.md`.
 - Task khác có thể xung đột:
-  - T-036, T-037, T-038, T-039 cùng sửa `docs/auto-run.md` và `scripts/tests/run.sh`, ở đoạn khác (mục 3.1, 3.2).
-  - T-039 có thể đọc `main-guard.yml` (`failure-kind.sh`) nhưng không sửa phần `on:`.
-  - T-041 sửa `start-run.yml` và có thể đọc lần chạy `main-guard` theo commit. Lần chạy bằng `workflow_dispatch` có `event: workflow_dispatch`; plan T-041 đã tính lần chạy loại này (mục 2 của plan đó).
-- Đề xuất thứ tự chạy: sau T-039 (tạo `docs/ops/failure-playbook.md` có dòng PB-04) và T-041 (thêm `workflow_dispatch` vào `main-guard.yml`). Làm trong phiên có người theo dõi hoặc sớm trong danh sách chạy, vì mọi task sau đều merge qua script này.
+  - T-036, T-037, T-039, T-042 cùng sửa `scripts/tests/run.sh`, và T-036, T-037, T-039 sửa `docs/auto-run.md`, ở đoạn khác (mục 3.1, 3.2). Không plan nào khác sửa các khối `merge-if-green` có sẵn hay `fake-gh`.
+  - T-041 và T-038 đã làm trong phiên có người theo dõi trước RUN-20261024-01 (`workflow_dispatch` của `main-guard.yml`, bước build release của `pr-check.yml`).
+- Đề xuất thứ tự chạy: T-039 trước T-040 (T-039 tạo `docs/ops/failure-playbook.md` có dòng PB-04). T-040 cuối danh sách: mọi task trước merge bằng bản cũ của script, chỉ bước merge của chính T-040 dùng bản của nhánh chính chép ra ngoài (mục 3.1).
 
 ## 7. Điều kiện dừng riêng
 
 - `main-guard.yml` chưa có `workflow_dispatch` (T-041 chưa merge), hoặc chưa có `docs/ops/failure-playbook.md` (T-039 chưa merge): không bắt đầu task (phụ thuộc).
+- Merge PR của task này bằng bản `merge-if-green.sh` của nhánh chính (mục 3.1), không bằng bản trên nhánh task.
 - Toàn bộ `scripts/tests/run.sh` không qua với `fake-gh` mới mà không cần sửa test cũ: dừng (dấu hiệu là bản giả đổi hành vi của test khác).
 
 ## 8. Câu hỏi cho người duyệt
@@ -189,14 +208,20 @@ Không cần (E dưới 2): dùng lại `gh api`, `jq` như các nhánh khác c�
 2. **Đóng PR còn mở.** Lần #67, PR vẫn mở sau lỗi. Đề xuất của AI: script không đóng PR và không bình luận, chỉ in hướng dẫn "đóng PR trên web". Nhánh `claude/*` vẫn bị xóa như khi merge thường, nên GitHub tự đóng PR (không ghi `merged`). Người không cần merge lại trên web như lần #67, vì lần đó tạo thêm commit rỗng `c83777a`.
 3. **Đọc bao nhiêu commit của nhánh chính.** Đề xuất của AI: 30 commit gần nhất. Kiểm tra "đã merge trước đó" chỉ có ích ngay sau sự cố, khi nhánh chính mới có thêm vài commit. Đọc thêm thì tốn một lần gọi API lớn hơn cho mọi lần merge.
 4. **Đưa về dự án mẫu.** Đề xuất của AI: có. Lỗi của GitHub không riêng app này. Issue `from-app` sau khi merge, cùng `fake-gh` đã sửa.
+5. **Mỗi lần merge đọc thêm hai lần API** (cây file của commit đầu PR, 30 commit của nhánh chính) cho kiểm tra "đã merge trước đó". Đề xuất của AI: chấp nhận; hai lần đọc nhỏ, đọc lỗi thì đi đường cũ.
+6. **`fake-gh` trả 404 cho đường dẫn lạ** thay vì ném lỗi Python. Đề xuất của AI: làm (mục 3.1); mã thoát giống trước nên test của `wait-run.sh`, `find-breaking-commit.sh` không đổi, và lỗi trong log test dễ đọc hơn.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Tuấn chấp nhận mọi đề xuất của AI ở mục 8. Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-01 tìm một điểm chặn (test cũ đỏ vì hai lần đọc mới) và hai điểm nên sửa (chuỗi đọc lại, merge bằng script đang sửa).
+
+Phiên bản 2:
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Phiên bản 2.
 
 ## 10. Nhật ký thực hiện
 

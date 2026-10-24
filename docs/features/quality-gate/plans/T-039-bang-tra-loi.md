@@ -2,7 +2,7 @@
 ticket: T-039
 title: Bảng tra lỗi đã biết và việc phải làm
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 12.9M        # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
@@ -24,6 +24,13 @@ Tạo `docs/ops/failure-playbook.md`: một bảng, mỗi dòng gồm mẫu thô
 `docs/auto-run.md` bước 8 bảo phiên tra bảng trước khi sửa code khi CI đỏ. Mục 6 bảo mỗi bài học môi trường mới thêm một dòng vào bảng.
 
 Kiểm chứng: mỗi dòng của bảng có một test dùng đoạn log thật, kèm một test kiểm mọi dòng đều có test, và mọi test cũ của `failure-kind.sh` qua mà không sửa.
+
+**Phiên bản 2** sửa theo rà soát độc lập trước RUN-20261024-01:
+- PB-01 có đường lui khi lệnh chạy lại job bị proxy của môi trường cloud từ chối (403): đẩy một commit rỗng lên nhánh task, như `auto-run.md` mục 4 đã làm cho `pr-check`.
+- Bước 8 có đường lui khi không tải được log của job (`actions/jobs/<id>/logs` chuyển hướng sang kho lưu trữ khác, có thể bị proxy chặn như artifact, L-030): dùng đầu ra của `wait-run.sh` và xử lý như `khong-co`.
+- PB-05 thêm mẫu cho Java ngoài khoảng (`Java NN không chạy được Gradle`, `java-check.sh` dòng 42); sửa chữ ở bảng cột (dấu `\|` đổi thành `|`).
+- PB-08 thống nhất với `auto-run.md` bước 8 do T-038 viết (T-038 làm trong phiên có người theo dõi trước phiên): một cách nói, dừng task theo điều kiện 1 khi luật R8 cần ở file ngoài mục 3.2. T-039 giữ dòng PB-08; không plan nào khác sửa dòng này.
+- Phối hợp: T-038, T-041 không còn trong danh sách chạy; ADR-1003 đã có hiệu lực (`auto-run.md` bước 4, 5, 6, 10 đổi ở PR #91), các đoạn plan này sửa không đổi chữ.
 
 ## 2. Hiểu yêu cầu
 
@@ -50,7 +57,7 @@ ADR liên quan: ADR-1002 (điểm 1: `failure-kind.sh` cho `main-guard`; plan kh
 | Cột | Nội dung |
 | --- | --- |
 | Mã | `PB-NN`, không dùng lại khi xóa dòng |
-| Mẫu | Biểu thức chính quy kiểu `grep -E`, trong dấu backtick. Dấu `\|` trong mẫu viết `\|` (Markdown); script đổi về `\|` trước khi dò |
+| Mẫu | Biểu thức chính quy kiểu `grep -E`, trong dấu backtick. Dấu `\|` trong mẫu viết `\|` (Markdown); script đổi thành `|` trước khi dò |
 | Thấy ở | Log hay đầu ra nào (job `ui-test`, `check.sh`, `merge-if-green.sh`, `wait-run.sh`, chú thích của check run) |
 | Loại | Một trong: `chay-lai`, `lich-thu-lai`, `cho`, `gop-nhanh`, `kiem-da-merge`, `moi-truong`, `nguoi`, `that` |
 | Việc phải làm | Câu ngắn, tiếng Việt, đủ để làm ngay |
@@ -60,14 +67,14 @@ Bảng ban đầu, theo thứ tự dò (dòng cụ thể trước dòng chung):
 
 | Mã | Mẫu | Thấy ở | Loại | Việc phải làm | Nguồn |
 | --- | --- | --- | --- | --- | --- |
-| PB-01 | `VGL\.Loading: Task [A-Z_]+ failed\|VGL\.Assets: Could not download .*reason=NETWORK` | job `ui-test` | `chay-lai` | Tải file R2 hết giờ chờ trên runner. Chạy lại job đỏ (`rerun-failed-jobs`), tối đa 2 lần, không tính vào 3 lần sửa. Lần thứ 3 vẫn đỏ cùng mẫu: PR không đổi `core/assets`, `core/poses`, `feature/loading` thì ghi vào báo cáo và dừng task, không sửa code; PR có đổi thì xử lý như lỗi thật | L-050, lần chạy 39997301164 |
+| PB-01 | `VGL\.Loading: Task [A-Z_]+ failed\|VGL\.Assets: Could not download .*reason=NETWORK` | job `ui-test` | `chay-lai` | Tải file R2 hết giờ chờ trên runner. Chạy lại job đỏ (`gh api -X POST "repos/{owner}/{repo}/actions/runs/<id>/rerun-failed-jobs"`), tối đa 2 lần, không tính vào 3 lần sửa. Lệnh chạy lại bị proxy từ chối (403): đẩy một commit rỗng lên nhánh task (`git commit --allow-empty`, `auto-run.md` mục 4), tính như một lần chạy lại. Lần thứ 3 vẫn đỏ cùng mẫu: PR không đổi `core/assets`, `core/poses`, `feature/loading` thì ghi vào báo cáo và dừng task, không sửa code; PR có đổi thì xử lý như lỗi thật | L-050, lần chạy 39997301164 |
 | PB-02 | `HẠ TẦNG:\|The job was not started because` | `wait-run.sh` mã 4, chú thích của check run | `cho` | GitHub không cấp máy. Làm theo `auto-run.md` mục 4, dòng "GitHub không chạy job" | L-046, lần chạy 39916343646 |
 | PB-03 | `XUNG ĐỘT:\|merge conflict between base and head \(HTTP 422\)` | `wait-run.sh` mã 5, `merge-if-green.sh --update` | `gop-nhanh` | `git merge origin/main`, sửa xung đột trong file của plan, đẩy, chờ CI lại. Không tính vào 3 lần sửa | L-047, L-048 |
 | PB-04 | `unexpected end of JSON input` | `merge-if-green.sh` | `kiem-da-merge` | Không gọi lại merge. Tìm trên `origin/main` commit có `(#<số PR>)` ở cuối tiêu đề (`git log origin/main --oneline -20`). Có: coi là đã merge, chờ `main-guard` (nếu không có lần chạy sau 10 phút thì ghi báo cáo để người chạy tay), ghi để người đóng PR. Không có: làm như `TỪ CHỐI` (bước 9) | L-054, PR #67 |
-| PB-05 | `không đọc được phiên bản Java\|không chạy được java` | `check.sh` (`java-check.sh`) | `moi-truong` | Môi trường build hỏng, không phải lỗi của code. Không sửa script. Kết thúc phiên, báo cáo nguyên văn dòng lỗi và `java -version` | L-049, L-022 |
+| PB-05 | `không đọc được phiên bản Java\|không chạy được java\|Java [0-9]+ không chạy được Gradle` | `check.sh` (`java-check.sh`) | `moi-truong` | Môi trường build hỏng, không phải lỗi của code. Không sửa script. Kết thúc phiên, báo cáo nguyên văn dòng lỗi và `java -version` | L-049, L-022 |
 | PB-06 | `CONNECT tunnel failed, response 403` | lệnh `curl` trong môi trường cloud | `moi-truong` | Proxy cloud chặn máy chủ. Không thử lại, không tìm đường khác. Kiểm việc đó bằng workflow trên GitHub, hoặc ghi cho người kiểm | L-005 |
 | PB-07 | `No matching client found for package name` | `staging.yml`, `device-session.yml` | `nguoi` | Bí mật Firebase staging là file giả. Không phát staging; ghi vào Cần người kiểm tra | L-002, lần chạy 39589924059 |
-| PB-08 | `Missing classes detected while running R8\|Missing class .* \(referenced from` | build bản release | `that` | Lỗi thật của task vừa thêm thư viện. Thêm `-dontwarn` hay `-keep` theo `missing_rules.txt` vào `consumer-rules.pro` của module mà plan sửa, nếu file có trong mục 3.2. Không có thì dừng task, mở PR nháp sửa nguyên nhân (`needs-human`) | L-053, lần chạy 40031369521 |
+| PB-08 | `Missing classes detected while running R8\|Missing class .* \(referenced from` | build bản release | `that` | Lỗi thật của task vừa thêm thư viện, không phải lỗi hạ tầng (`auto-run.md` bước 8, gạch đầu dòng R8 của T-038). Thêm `-dontwarn` hay `-keep` theo `missing_rules.txt` vào `consumer-rules.pro` hay `proguard-rules.pro` có trong mục 3.2, tính vào 3 lần sửa. File cần sửa không có trong mục 3.2 thì dừng task theo điều kiện 1 (luật R8 không phải phần nối chỗ gọi của ADR-1003); nhánh và PR giữ nguyên cho người | L-053, lần chạy 40031369521 |
 | PB-09 | `Could not (GET\|HEAD\|resolve\|download) .*(status code (429\|5[0-9][0-9])\|timed out)\|Read timed out\|Connect timed out\|Connection reset` | `check.sh` (Gradle tải thư viện) | `lich-thu-lai` | Lỗi tải thư viện. Chạy lại theo lịch 1, 2, 4, 8, 15 phút của bước 5, không tính vào 3 lần sửa. Hết lịch thì kết thúc phiên (mục 4) | `auto-run.md` bước 5 |
 | PB-10 | `ComposeTimeoutException: Condition still not satisfied` | job `ui-test` | `that` | Test trên emulator chờ hết giờ. Tra PB-01 trước (dòng trên khớp thì là R2). Không khớp: lỗi thật, đọc bước "Chi tiết test trên emulator" (bước 8) | L-050 (lần 1 có cả hai mẫu) |
 
@@ -90,13 +97,13 @@ gh api "repos/{owner}/{repo}/actions/runs/<id>/jobs" --jq '.jobs[] | select(.con
 gh api --allow-escape-sequences "repos/{owner}/{repo}/actions/jobs/<job id>/logs" > ci.log
 scripts/failure-kind.sh --playbook ci.log
 ```
-Không có `--allow-escape-sequences` thì `gh` không in log vì log có mã màu (mục 4.1).
+Không có `--allow-escape-sequences` thì `gh` không in log vì log có mã màu (mục 4.1). Địa chỉ `actions/jobs/<id>/logs` chuyển hướng sang kho lưu trữ khác của GitHub; proxy của môi trường cloud có thể chặn nơi đó như với artifact (L-030), mới thử trên máy dev. Lệnh tải lỗi hay tệp rỗng: dùng đầu ra của `wait-run.sh` (tên job đỏ, chú thích) làm log, chạy `failure-kind.sh --playbook` trên đó; vẫn không khớp thì xử lý như `khong-co`, và ghi "không tải được log job" vào báo cáo.
 
 **`docs/auto-run.md`** (phần của plan này; T-036, T-037, T-038, T-040 sửa các đoạn khác, xem mục 6):
 
 - Bước 5, gạch đầu dòng "Lỗi tải thư viện hay công cụ": thêm "(bảng tra lỗi, PB-09)".
 - Bước 8, gạch đầu dòng "CI đỏ thì AI đọc log...": viết lại. CI đỏ (`wait-run.sh` mã 1):
-  1. Lấy log của job đỏ bằng các lệnh trên, chạy `scripts/failure-kind.sh --playbook`, làm theo dòng in ra.
+  1. Lấy log của job đỏ bằng các lệnh trên, chạy `scripts/failure-kind.sh --playbook`, làm theo dòng in ra. Không tải được log: dùng đầu ra của `wait-run.sh`, không khớp thì như `khong-co` (trên).
   2. Loại `chay-lai`, `lich-thu-lai`, `cho`, `gop-nhanh`, `kiem-da-merge` không tính vào 3 lần sửa.
   3. `khong-co` và `that` thì như cũ: lỗi chập chờn chạy lại một lần, lỗi thật quay lại bước 4, tối đa 3 lần.
   4. Báo cáo phiên ghi mã dòng bảng của mỗi lần chạy lại (mục Số liệu, "Số lần thử lại vì lỗi hạ tầng").
@@ -111,7 +118,7 @@ Không có `--allow-escape-sequences` thì `gh` không in log vì log có mã m�
 | Tạo | `docs/ops/failure-playbook.md` | Bảng ở mục 3.1 (vào commit test của bước 3, vì test đọc bảng; L-025) |
 | Sửa | `scripts/failure-kind.sh` | Chế độ `--playbook`; chú thích đầu file. Phần cũ không đổi |
 | Sửa | `scripts/tests/run.sh` | Test ở mục 4, ngay sau khối `failure-kind` hiện có (sau dòng `failure-kind: missing log -> other`) |
-| Tạo | `scripts/tests/playbook/` | Một tệp đoạn log cho mỗi dòng bảng, chép từ log thật (mục 4.1), tên `PB-NN.log`; cộng `none.log` (log đỏ không khớp dòng nào) |
+| Tạo | `scripts/tests/playbook/` | Một tệp đoạn log cho mỗi dòng bảng, chép từ log thật (mục 4.1), tên `PB-NN.log`; cộng `PB-01-attempt1.log`, `PB-05-range.log` (vế thứ hai của một dòng) và `none.log` (log đỏ không khớp dòng nào) |
 | Sửa | `docs/auto-run.md` | Bước 5 (một cụm từ), bước 8 (đoạn CI đỏ), mục 6 (một gạch đầu dòng) |
 | Sửa | `docs/lessons.md` | Dòng Áp dụng của L-057, L-050 (phần bảng; phần sửa `AppLaunchTest` không thuộc plan này) |
 | Sửa | `docs/features/quality-gate/plans/T-039-bang-tra-loi.md` | Nhật ký thực hiện |
@@ -147,13 +154,14 @@ Test trong `scripts/tests/run.sh`, viết trước code, ngay sau khối `failur
 | --- | --- | --- |
 | Mỗi dòng của bảng khớp log thật của nó | Test script | Mỗi dòng một test `playbook: PB-NN <tên ngắn>`, ví dụ `playbook: PB-01 R2 download timeout in ui-test -> chay-lai`. Đầu ra bắt đầu bằng `PB-NN <loại>:` |
 | PB-01, cả hai lần của 39997301164 | Test script | `playbook: PB-01 also matches the first attempt (Task STARTER_SET failed, no Assets line)`: tệp `PB-01-attempt1.log` chỉ có dòng `VGL.Loading` và `ComposeTimeoutException`, ra PB-01 chứ không ra PB-10 (kiểm thứ tự dò) |
+| PB-05, Java ngoài khoảng | Test script | `playbook: PB-05 also matches Java out of range`: tệp `PB-05-range.log` có dòng `LỖI: Java 26 không chạy được Gradle 8.14.3 của dự án (cần 17 tới 24).` (thông báo của `java-check.sh` dòng 42, chạy với `java` giả như test T-035); ra `PB-05 moi-truong:` |
 | PB-10 khi không có dấu hiệu R2 | Test script | `playbook: PB-10 a UI timeout without R2 lines is a real failure`: chỉ có `ComposeTimeoutException`; ra `PB-10 that:` |
 | Dấu `\|` trong mẫu | Test script | `playbook: an escaped pipe is an alternative`: bảng tạm (tham số thứ hai) có mẫu `aaa\|bbb`; log chỉ có `bbb` thì khớp |
 | Không khớp | Test script | `playbook: an unknown failure says khong-co`: `none.log` (lỗi biên dịch Kotlin thật); đầu ra bắt đầu bằng `khong-co:`. Đối chứng (L-035): test này qua cả trên khung rỗng, nên chỉ có giá trị cùng các test dòng ở trên, vốn thất bại trên khung rỗng |
 | Không có log | Test script | `playbook: a missing log says khong-co`; mã 0 |
 | Mẫu hỏng không làm hỏng cả bảng | Test script | `playbook: a broken pattern is skipped and reported`: bảng tạm có một mẫu `(` và một mẫu đúng; đầu ra là dòng của mẫu đúng, stderr có `LỖI BẢNG` |
 | Bảng thật không có mẫu hỏng | Test script | `playbook: every pattern of the real table is valid`: chạy với một log rỗng, stderr không có `LỖI BẢNG` |
-| Mọi dòng đều có test | Test script | `playbook: every row has a log file`: mỗi `PB-NN` trong bảng có `scripts/tests/playbook/PB-NN.log`, và mỗi tệp có một dòng bảng |
+| Mọi dòng đều có test | Test script | `playbook: every row has a log file`: mỗi `PB-NN` trong bảng có `scripts/tests/playbook/PB-NN.log`, và mỗi tệp `PB-NN*.log` có một dòng bảng cùng mã |
 | Chế độ cũ không đổi | Test script | 8 test `failure-kind:` hiện có qua mà không sửa. Thêm `failure-kind: a playbook-only log still says other`: log `PB-01.log` qua chế độ cũ in `other` (chế độ cũ không đọc bảng) |
 | Phiên dùng bảng | Kiểm tra thủ công | Người duyệt chéo đọc diff `docs/auto-run.md`. Lần R2 hết giờ chờ tới, báo cáo phiên ghi `PB-01` ở Số liệu |
 
@@ -199,11 +207,11 @@ Không cần (E dưới 2): thêm một chế độ cho script có sẵn, `grep 
 
 - File hoặc thành phần dùng chung bị chạm: `scripts/failure-kind.sh` (cổng chất lượng qua `main-guard.yml`), `docs/auto-run.md`, `scripts/tests/run.sh`.
 - Task khác có thể xung đột:
-  - T-038 cũng sửa bước 8 (lỗi R8 là lỗi thật của task). Hai plan cùng chạm đoạn "CI đỏ" của bước 8. Thống nhất: T-039 viết lại gạch đầu dòng "CI đỏ thì AI đọc log..."; T-038 thêm gạch đầu dòng riêng về R8 ngay sau. Dòng PB-08 của bảng trỏ về đó. Chạy sau thì gộp tay, giữ cả hai.
-  - T-040 sửa bước 9 và `merge-if-green.sh` (L-054). Khi T-040 đã merge, `merge-if-green.sh` tự nhận ra đã merge, và dòng PB-04 đổi việc phải làm thành "làm theo mã thoát mới của `merge-if-green.sh`" (T-040 sửa dòng đó; ghi vào plan T-040).
-  - T-036 sửa mục 2, T-037 sửa bảng các bước, bước 3, 7 và mục 5. Không chạm đoạn của plan này.
+  - T-038 (làm trong phiên có người theo dõi trước RUN-20261024-01) thêm gạch đầu dòng riêng về R8 ở bước 8. T-039 chỉ viết lại gạch đầu dòng "CI đỏ thì AI đọc log..." và giữ nguyên gạch đầu dòng R8 của T-038. Dòng PB-08 của bảng trỏ về đó và do T-039 giữ.
+  - T-040 (sau T-039 trong danh sách) sửa bước 9 và `merge-if-green.sh` (L-054). Khi T-040 merge, nó sửa dòng PB-04 thành "làm theo đầu ra của `merge-if-green.sh`" (mục 3.1 của plan T-040).
+  - T-036 sửa mục 2, T-037 sửa bảng các bước, bước 3, 4, 7, mục Giao bước 3 đến 5, mục 4 và mục 5. Không chạm đoạn của plan này (bước 5 gạch đầu dòng "Lỗi tải thư viện", bước 8 gạch đầu dòng "CI đỏ", mục 6).
   - `scripts/tests/run.sh`: khối mới nằm ngay sau khối `failure-kind`, giữa dòng 196 và khối `is-exact-revert`. Các plan khác thêm khối ở chỗ khác.
-- Đề xuất thứ tự chạy: phiên có người theo dõi (đổi cổng chất lượng và quy trình). Trước T-040 và T-038 thì tiện hơn, vì hai plan đó sửa dòng PB-04 và PB-08 của bảng này.
+- Đề xuất thứ tự chạy: trước T-040, vì T-040 sửa dòng PB-04 của bảng này.
 
 ## 7. Điều kiện dừng riêng
 
@@ -216,14 +224,20 @@ Không cần (E dưới 2): thêm một chế độ cho script có sẵn, `grep 
 2. **`main-guard` có dùng bảng không?** Đề xuất của AI: chưa. `main-guard` chỉ chạy `check.sh`, không có emulator, nên lỗi của bảng ít gặp ở đó, trừ PB-09 (tải thư viện). Đổi `main-guard.yml` là plan rủi ro cao riêng, chỉ làm khi có lần `main-broken` vì lỗi tải thư viện.
 3. **PB-09 chưa có log thật của dự án.** Mẫu viết theo thông báo chuẩn của Gradle (`Could not GET '...'. Received status code 429 from server`, `Read timed out`). Đề xuất của AI: giữ dòng này, vì bước 5 đã có quy tắc cho lỗi này. Lần đầu gặp thật thì thay đoạn log của test bằng log thật.
 4. **Có thêm dòng cho lần lệnh đẩy bị bộ phân loại từ chối (L-051) không?** Đề xuất của AI: không. Lần từ chối là kết quả của lời gọi lệnh trong phiên, không nằm trong log nào để dò. T-037 đã có đoạn "Khi không đẩy được" trong `auto-run.md`.
+5. **Commit rỗng khi lệnh chạy lại bị 403 (PB-01) có tính vào 2 lần chạy lại không.** Đề xuất của AI: có, để một lỗi R2 kéo dài vẫn dừng sau tối đa 2 lần thử thêm.
+6. **Không tải được log job.** Đề xuất của AI: xử lý như `khong-co` (lỗi thật, tối đa 3 lần sửa), không coi là lỗi hạ tầng, để phiên không chạy lại mãi một lỗi thật chỉ vì không đọc được log.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Tuấn chấp nhận mọi đề xuất của AI ở mục 8. Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-01 tìm hai điểm nên sửa (PB-01 và cách lấy log chưa có đường lui khi proxy cloud chặn) và ba ghi chú (PB-05, chữ ở bảng cột, PB-08).
+
+Phiên bản 2:
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Phiên bản 2.
 
 ## 10. Nhật ký thực hiện
 

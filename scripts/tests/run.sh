@@ -1180,6 +1180,17 @@ write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
 expect "run-check: a group order hint is read" stop "$(run_check)"
 write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-002, T-003 không phụ thuộc T-001.'
 expect "run-check: a list of tickets that is not an order is no hint" pass "$(run_check)"
+write_run "$(run_row 1 T-002)$(run_row 2 T-001)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: có thể chạy trước hay sau T-002.'
+expect "run-check: 'trước hay sau' is no hint" pass "$(run_check)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: không cần T-001 trước T-002.'
+expect "run-check: a negated order is no hint" pass "$(run_check)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: tự do; T-002 chạy sau T-001 thì gộp `A.kt`.'
+expect "run-check: a condition is no hint" pass "$(run_check)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: tự do (bản trước ghi "T-001 trước T-002", đã bỏ).'
+expect "run-check: a quoted old hint is no hint" pass "$(run_check)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-001 trước T-002.'
+expect "run-check: the control hint in the same list still stops" stop "$(run_check)"
 write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-001 trước T-002.'
 write_run "$(run_row 1 T-002)$(run_row 2 T-001)\n\nBỏ đề xuất thứ tự: T-001 trước T-002 (hai plan chỉ chung vài dòng)."
 expect "run-check: a dropped order hint with a reason passes" pass "$(run_check)"
@@ -1499,7 +1510,8 @@ printf -- '- [ ] Dấu PROD-MARKER-T047 trong mục kiểm\n' >> "$st/runs/RUN-2
 status_page > /dev/null
 expect "status: release readiness never reads production config" "0 1" \
   "$no_marker $(grep -c PROD-MARKER-T047 "$page" || true)"
-sed -i 's/^- \[ \] Kiểm FPS/- [x] Kiểm FPS/' "$st/runs/RUN-20261004-01.md"
+# -i.bak works on both GNU and BSD (macOS) sed; plain -i makes BSD read the script as a suffix.
+sed -i.bak 's/^- \[ \] Kiểm FPS/- [x] Kiểm FPS/' "$st/runs/RUN-20261004-01.md" && rm "$st/runs/RUN-20261004-01.md.bak"
 status_page > /dev/null
 expect "status: a checked item leaves the page" "0 1" \
   "$(grep -c 'Kiểm FPS' "$page" || true) $(grep -c 'RUN-20261004-01.md): T-040' "$page" || true)"

@@ -478,20 +478,20 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-050: `AppLaunchTest` đỏ vì tải file R2 hết giờ chờ trên runner; quy tắc "chạy lại một lần" biến nó thành lỗi thật
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-022, PR #71.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-022, PR #71.
 - **Chuyện gì:** `ui-test` đỏ hai lần liên tiếp (lần chạy 39997301164, lần 1 và lần chạy lại) ở `AppLaunchTest.appStarts_passesOnboarding_andReachesCamera`, không liên quan code của task. Tải file R2 (ảnh viền, ảnh nhỏ của bộ khởi đầu) hết giờ chờ 15 giây trên runner; màn tải dừng ở lỗi và chờ người bấm "Thử lại"; test chờ 60 giây rồi hết giờ. Chỉ một commit mới (một sửa nhỏ hợp lệ theo rà soát) cho lần chạy xanh (40000627087).
 - **Bằng chứng:** log `VGL.Loading: Task STARTER_SET failed`, `VGL.Assets: Could not download ... SocketTimeoutException`; lần 2 cùng dấu hiệu.
 - **Đề xuất sửa:** `AppLaunchTest` bấm "Thử lại" khi màn tải lỗi, hoặc chờ lâu hơn; `auto-run.md` bước 8 ghi cách xử lý khi `ui-test` đỏ vì tải R2 hết giờ chờ (không tính vào 3 lần sửa, không tự đẩy commit rỗng).
-- **Áp dụng:** T-039 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-039, PR #104: dòng PB-01 của `docs/ops/failure-playbook.md` (`ui-test` đỏ vì tải R2 hết giờ chờ: chạy lại job đỏ, không tính vào 3 lần sửa). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-051: nhánh task chỉ nằm trên máy cloud khi lệnh đẩy bị từ chối
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-017.
 - **Chuyện gì:** phiên con của T-017 làm xong bước 3 đến 5 (4 commit, `check.sh` qua) nhưng `git push` bị bộ phân loại tự động từ chối ("dangerous", không giải thích); sáu lệnh đẩy tương tự của các phiên con khác trước và sau đó qua. Phiên chính không đẩy thay. Công việc chỉ nằm trên máy cloud tạm thời.
 - **Bằng chứng:** `git branch -r` không có `claude/T-017-camera-diem-khop`; báo của phiên con.
 - **Đề xuất sửa:** `auto-run.md` bước 3: đẩy nhánh task rỗng ngay lúc tạo (như phiên chính đã làm với T-022), để từ chối nếu có xảy ra sớm, trước khi tốn công viết code.
-- **Áp dụng:** T-037 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-037, PR #105: `scripts/save-branch.sh` (đẩy sau mỗi commit, thử lại lỗi mạng, giữ nhánh thành bundle khi không đẩy được, mã 3); `auto-run.md` bước 3, 7, mục "Khi không đẩy được". Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-052: rà soát độc lập và phiên viết code kết luận khác nhau về một điểm chặn
@@ -514,11 +514,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-054: GitHub merge xong nhưng trả lỗi, PR vẫn mở và không có sự kiện đẩy
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #67.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-23, PR #67.
 - **Chuyện gì:** `merge-if-green.sh 67` nhận lỗi `unexpected end of JSON input` từ API merge và in `TỪ CHỐI: GitHub từ chối merge`, nhưng commit c49a682 đã nằm trên nhánh chính. PR vẫn `OPEN`, không workflow `push` nào chạy (`main-guard`, `status-page`). Gọi lại script sẽ tạo commit trùng; người phải merge tay trên web (commit rỗng c83777a) để PR đóng, và các workflow `push` chạy trễ. Phiên tự chạy gặp chuyện này sẽ tưởng merge bị từ chối và dừng task, hoặc thử lại.
 - **Bằng chứng:** đầu ra của `merge-if-green.sh 67`; `git log origin/main` có c49a682 khi PR #67 còn `OPEN`; không có lần chạy `main-guard` cho c49a682.
 - **Đề xuất sửa:** `merge-if-green.sh` gặp lỗi từ API merge thì kiểm tra nhánh chính đã chứa commit đầu của PR chưa (`git merge-base --is-ancestor`, hoặc commit trên nhánh chính có số PR); có rồi thì in `ĐÃ MERGE (GitHub báo lỗi)` với mã riêng, ghi rằng workflow `push` có thể không chạy, và chạy `main-guard` bằng `workflow_dispatch`. `auto-run.md` bước 8 ghi cách xử lý mã này. Sửa script này cần plan rủi ro cao, duyệt chéo (L-044).
-- **Áp dụng:** T-040 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-040, PR #107: `merge-if-green.sh` gặp lỗi từ API merge thì tìm commit của PR trên nhánh chính, in `ĐÃ MERGE (GitHub báo lỗi)`; dòng PB-04 của bảng tra lỗi. Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-055: `start-run.yml` không kiểm `main-guard` xanh trên commit đầu nhánh chính
@@ -532,20 +532,20 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-056: kiểm tra trước phiên không chạy `java-check.sh` trong môi trường cloud
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03 (L-049).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261023-03 (L-049).
 - **Chuyện gì:** `preflight.yml` và `start-run.yml` chạy trên runner GitHub, không có `JAVA_TOOL_OPTIONS` của môi trường cloud, nên lỗi của L-049 không lộ ở đó. Lỗi chỉ lộ khi phiên cloud đã khởi động và chạy `check.sh`, nên cả phiên kết thúc mà không task nào chạy. Mọi khác biệt giữa runner và môi trường cloud (biến môi trường, proxy, phiên bản công cụ) đều có thể làm hỏng phiên theo cách này.
 - **Bằng chứng:** RUN-20261023-03: `start-run` xanh, phiên dừng ở `java-check.sh`; RUN-20261023-04 qua sau khi sửa T-035.
 - **Đề xuất sửa:** `scripts/cloud-env-check.sh` gọi `scripts/java-check.sh` (và các kiểm tra rẻ khác mà `check.sh` chạy trước khi build), để lỗi môi trường lộ trong vài giây đầu phiên và báo rõ `env-broken`, thay vì sau `check.sh`; test của script dùng `fake_java` có dòng `Picked up`.
-- **Áp dụng:** T-036 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-036, PR #103: `scripts/cloud-env-check.sh` gọi `java-check.sh` và các kiểm tra rẻ của `check.sh` trong vài giây đầu phiên. Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-057: phiên không có bảng tra lỗi đã biết, nên lỗi lặp lại vẫn làm phiên dừng hay tốn vòng sửa
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** retro 2026-10-24 sau RUN-20261023-04 (L-046, L-048, L-050, L-054).
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** retro 2026-10-24 sau RUN-20261023-04 (L-046, L-048, L-050, L-054).
 - **Chuyện gì:** mỗi lỗi hạ tầng đã gặp (hết hạn mức Actions, PR xung đột không có CI, R2 hết giờ chờ trong `ui-test`, API merge báo lỗi mà đã merge) được sửa riêng bằng một mã thoát hay một đoạn trong `auto-run.md`. Không có một chỗ duy nhất để phiên tra "thông báo này nghĩa là gì, làm gì tiếp". Lỗi mới cùng kiểu (R2 hết giờ chờ, L-050) vẫn bị tính là lỗi thật và tốn vòng CI.
 - **Bằng chứng:** RUN-20261023-04, T-022: `ui-test` đỏ 2 lần vì R2; `scripts/failure-kind.sh` chỉ phân loại thô cho `main-guard`.
 - **Đề xuất sửa:** `docs/ops/failure-playbook.md`: bảng mẫu thông báo lỗi (regex) và việc phải làm (chạy lại không tính vào 3 lần sửa, chờ, coi như đã merge, dừng task, dừng phiên); script phân loại đọc bảng này và in việc phải làm; mỗi bài học môi trường mới thêm một dòng.
-- **Áp dụng:** T-039 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-039, PR #104: `docs/ops/failure-playbook.md` (PB-01 đến PB-10) và script phân loại đọc bảng. Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-058: điều kiện dừng 1 dừng task khi task khác trong cùng danh sách đổi chỗ gọi
@@ -568,11 +568,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-060: `run-check.py` không thấy hai plan phụ thuộc file của nhau
 
-- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** rà soát trước RUN-20261023-03 (điểm chặn T-017, T-020).
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** rà soát trước RUN-20261023-03 (điểm chặn T-017, T-020).
 - **Chuyện gì:** `run-check.py` báo hai plan cùng sửa một file, nhưng không báo khi plan này tạo file mà plan kia giả định đã có (hoặc chưa có), nên thứ tự chạy sai chỉ được rà soát độc lập thấy. Khi một task dừng hay merge lệch thứ tự, không script nào báo trước file nào sẽ phải sửa thêm.
 - **Bằng chứng:** RUN-20261023-03, bảng rà soát: "T-017 phải sửa `CameraUnfolded.kt` không có trong mục 3.2".
 - **Đề xuất sửa:** `run-check.py` đọc mục 3.2 của mọi plan: plan sau nhắc tên file mà plan trước tạo thì phải xếp sau, và in "nếu <plan trước> chưa merge thì <plan sau> ..."; với hai plan cùng sửa một hàm có tên trong mục 3.1, in cảnh báo kèm tên hàm.
-- **Áp dụng:** T-042 (RUN-20261024-01). Tuấn nhận ngày 2026-10-24.
+- **Áp dụng:** T-042, PR #106: `run-check.py` báo đề xuất thứ tự bị ngược và plan nhắc file mà plan khác tạo. Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-061: hàng chờ plan cạn sau mỗi phiên, phiên kế tiếp phải chờ người và AI viết plan
@@ -631,18 +631,27 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-067: vòng chờ bằng `pgrep -f` khớp chính lệnh đang chạy nó, và `pkill -f` giết cả shell của phiên
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261024-01 (T-039).
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261024-01 (T-039).
 - **Chuyện gì:** vòng `while pgrep -f "wait-run.sh --workflow" ...; do sleep; done` không bao giờ thoát vì `pgrep -f` thấy dòng lệnh của chính vòng đó; chạy `pkill -f "pgrep -f"` để dọn thì giết luôn shell (thoát 144). Mất khoảng 25 phút chờ vô ích.
 - **Bằng chứng:** RUN-20261024-01, T-039, giờ 07:25 đến 07:35 UTC.
 - **Đề xuất sửa:** `auto-run.md` bước 9 nói rõ: chờ `main-guard` chỉ bằng `scripts/wait-run.sh --workflow main-guard.yml --since <giờ>` chạy ở chế độ nền, đọc kết quả từ tệp đầu ra của nó; không dùng `pgrep` hay `pkill` theo chuỗi lệnh.
-- **Áp dụng:**
+- **Áp dụng:** `docs/auto-run.md` bước 9: chờ `main-guard` chỉ bằng `wait-run.sh` ở chế độ nền, không dùng `pgrep -f`, `pkill -f` (PR này). Tuấn nhận ngày 2026-10-24.
 - **Kiểm chứng:**
 
 ### L-068: `scripts/tests/run.sh` đặt `origin` toàn cục thành URL giả, test dùng bare repo thật phải tắt biến đó
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261024-01 (T-037).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261024-01 (T-037).
 - **Chuyện gì:** đầu `run.sh` xuất `GIT_CONFIG_COUNT=1` với `remote.origin.url=https://github.com/o/r.git` cho mọi lệnh git. Khối test đẩy lên một bare repo cục bộ vì thế đẩy tới `github.com/o/r` (403). Khối `save-branch` phải `unset` ba biến này rồi đặt lại ở cuối.
 - **Bằng chứng:** RUN-20261024-01, lần chạy đầu của khối `save-branch`: `access denied by the git proxy: o/r is not in this session's authorized repository set`.
 - **Đề xuất sửa:** thêm chú thích đầu `scripts/tests/run.sh` nêu điều này, hoặc một hàm `with_real_git_config` dùng chung.
-- **Áp dụng:**
+- **Áp dụng:** chú thích đầu `scripts/tests/run.sh` (PR này). Tuấn nhận ngày 2026-10-24.
+- **Kiểm chứng:**
+
+### L-069: script dùng mảng rỗng với `set -u` dừng trên bash 3.2 của macOS, `check.sh` đỏ trên máy dev
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, sau RUN-20261024-01 (T-036, PR #103).
+- **Chuyện gì:** `scripts/cloud-env-check.sh` in danh sách lỗi bằng `"${setup_problems[@]}"`. Bash 3.2 (bash mặc định của macOS) coi mảng rỗng là biến chưa đặt khi có `set -u`, nên script dừng ở dòng đó trước khi in thông báo. 5 test của `scripts/tests/run.sh` đỏ trên máy Mac, nên `scripts/check.sh` đỏ trên mọi máy dev từ PR #103. CI và môi trường cloud dùng bash 5 nên không thấy.
+- **Bằng chứng:** `scripts/cloud-env-check.sh: line 54: setup_problems[@]: unbound variable`; 5 test `cloud-env-check.sh names ...` đỏ trên nhánh chính 5ed9c51 với `GNU bash, version 3.2.57`.
+- **Đề xuất sửa:** dùng `${a[@]+"${a[@]}"}` cho mảng có thể rỗng (đã sửa trong PR này); thêm một quy tắc vào `scripts/tests/run.sh` hay `plan-check.py` dò `"${...[@]}"` trong script có `set -u`, hoặc chạy test của script bằng bash 3.2 trong CI (job macOS hay ảnh `bash:3.2`).
+- **Áp dụng:** sửa `scripts/cloud-env-check.sh` (PR này); phần dò tự động chưa làm.
 - **Kiểm chứng:**

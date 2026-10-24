@@ -13,6 +13,8 @@ failures=0
 # merge-if-green.sh, wait-run.sh and env-canary.sh read owner/repo from the origin remote. A new app has no remote
 # until someone pushes it, so give every git command of the tests a fake one (git reads GIT_CONFIG_* as -c options).
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.url GIT_CONFIG_VALUE_0=https://github.com/o/r.git
+# A block that pushes to a real local bare repo must unset these three variables first and restore them at its end
+# (see the save-branch block), or every push goes to the fake URL and fails (L-068).
 expect() {
   local name="$1" expected="$2" actual="$3"
   if [[ "$actual" == "$expected" ]]; then

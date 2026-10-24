@@ -51,7 +51,8 @@ fi
 
 if [ "${#setup_problems[@]}" -gt 0 ] || [ "${#tool_problems[@]}" -gt 0 ]; then
   echo "Môi trường cloud báo lỗi ở kiểm tra đầu phiên:" >&2
-  printf -- '- %s\n' "${setup_problems[@]}" "${tool_problems[@]}" >&2
+  # ${a[@]+"${a[@]}"}: bash 3.2 (macOS) treats an empty array as unbound under set -u.
+  printf -- '- %s\n' ${setup_problems[@]+"${setup_problems[@]}"} ${tool_problems[@]+"${tool_problems[@]}"} >&2
   if [ "${#setup_problems[@]}" -gt 0 ]; then
     echo "Người cần làm: dán lại toàn bộ scripts/cloud-setup.sh vào Setup script của môi trường" >&2
     echo "(docs/ops/staging-and-runs.md, mục 2.1, bước 2), rồi lập danh sách chạy mới." >&2

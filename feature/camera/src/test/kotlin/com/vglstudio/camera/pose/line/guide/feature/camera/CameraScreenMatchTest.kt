@@ -191,6 +191,37 @@ class CameraScreenMatchTest {
         assertColor(WHITE, ringColor(), "shutter ring")
     }
 
+    // The unfolded layout of T-020 (673 x 841 dp) keeps the hint and both colours.
+
+    @Test
+    @Config(qualifiers = "w673dp-h841dp-xxhdpi")
+    fun unfolded_matched_showsMessage_greenOutline_andShutterRing() {
+        setScreen(MatchUiState.Matched(92))
+        assertTrue(textExists("Đúng dáng rồi, bấm chụp!"))
+        assertColor(SUCCESS, outlineColor(), "outline")
+        assertColor(SUCCESS, ringColor(), "shutter ring")
+
+        // The control: back to scoring, both turn white again.
+        matchState = MatchUiState.Scoring(70, MatchHintText.RAISE_LEFT_ARM)
+        composeRule.waitForIdle()
+        assertColor(WHITE, outlineColor(), "outline")
+        assertColor(WHITE, ringColor(), "shutter ring")
+    }
+
+    @Test
+    @Config(qualifiers = "w673dp-h841dp-xxhdpi")
+    fun unfolded_matchHint_isAboveTheBottomOfTheFrame() {
+        setScreen(MatchUiState.Scoring(68, MatchHintText.RAISE_LEFT_ARM))
+        val hint = composeRule.onNodeWithTag(CameraTestTags.MATCH_HINT).getUnclippedBoundsInRoot()
+        val preview = composeRule.onNodeWithTag(CameraTestTags.PREVIEW).getUnclippedBoundsInRoot()
+        // No zoom control in the frame here, so the hint sits Spacing.md above the bottom of the frame (plan T-020).
+        val gap = preview.bottom.value - hint.bottom.value
+        assertTrue("gap $gap, hint $hint, preview $preview", abs(gap - 16f) <= 2f)
+        val hintCentre = (hint.left.value + hint.right.value) / 2
+        val previewCentre = (preview.left.value + preview.right.value) / 2
+        assertTrue("hint $hint, preview $preview", abs(hintCentre - previewCentre) <= 1f)
+    }
+
     @Test
     fun noPerson_showsHintWithoutScore() {
         setScreen(MatchUiState.NoPerson)

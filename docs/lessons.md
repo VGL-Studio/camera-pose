@@ -581,7 +581,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** sau RUN-20261023-02, phải một phiên có người theo dõi để viết 8 plan, trả lời câu hỏi, rà soát độc lập, soạn phiên bản 2, rồi mới lập được RUN-20261023-03. Thời gian từ lúc phiên xong tới lúc phiên kế tiếp chạy chủ yếu là chờ plan.
 - **Bằng chứng:** RUN-20261023-02 kết thúc 03:35 UTC; RUN-20261023-03 bắt đầu 16:53 UTC.
 - **Đề xuất sửa:** cuối mỗi phiên (sau báo cáo, khi còn hạn mức), phiên soạn plan `draft` cho các ticket `ready` kế tiếp, chạy thử mục 4.1, chạy `plan-check.py`, và gom mọi câu hỏi cần người vào một mục của báo cáo. Người chỉ trả lời và duyệt.
-- **Áp dụng:** ticket T-045 (chưa có plan). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
+- **Áp dụng:** ticket T-045, plan phiên bản 2, làm trong RUN-20261024-02 (`scripts/plan-queue.py`, `auto-run.md` mục 4 bước 5). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#133.
 - **Kiểm chứng:**
 
 ### L-062: mục "kiểm thủ công" dồn lại sau mỗi phiên, phần lớn chạy được trên emulator

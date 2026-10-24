@@ -100,6 +100,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Các plan trong danh sách đều qua `scripts/plan-check.py`.
 - Lập xong thì kiểm tra cả danh sách theo [ops/pre-run-review.md](ops/pre-run-review.md): chạy `scripts/run-check.py <danh sách chạy>` và sửa hết lỗi, rồi giao một phiên AI riêng (ngữ cảnh mới, chỉ đọc) rà soát mâu thuẫn, test chưa đủ tốt và khả năng chạy được trong phiên. Ghi kết quả vào mục Kiểm tra trước khi duyệt của danh sách. Điểm chặn thì soạn plan phiên bản mới hay đề xuất sửa spec, hoặc đề xuất bỏ task; không tự sửa plan `approved` hay spec `confirmed`.
 - Ghi tổng `token_estimate` của danh sách trong mục Lý do của thứ tự chạy, so với tổng token thật của vài phiên gần nhất (`docs/metrics/token-usage.csv`), để người duyệt thấy danh sách có vừa một phiên không. Chỉ để tham khảo, không bỏ task vì vượt.
+- `plan_queue` mặc định 2 (số plan soạn sẵn cuối phiên); dev đổi hay đặt `0`.
 - Danh sách chạy có trạng thái `draft`. Chỉ dev mới chuyển sang `approved` và kích hoạt phiên.
 
 ## Trong phiên tự chạy
@@ -107,10 +108,10 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Làm đúng các bước trong [auto-run.md](auto-run.md), lần lượt từng task, không chạy song song.
 - Chỉ thực hiện plan có trạng thái `approved` có trong danh sách chạy đã duyệt.
 - Tuân thủ điều kiện dừng ở mục 4 của [risk-scoring.md](risk-scoring.md).
-- Đặt tên nhánh theo dạng `claude/T-NNN-<tu-khoa>`.
+- Đặt tên nhánh theo dạng `claude/T-NNN-<tu-khoa>`, trừ nhánh plan soạn sẵn cuối phiên: `claude/plan-T-NNN-<tu-khoa>`.
 - Chỉ merge bằng `scripts/merge-if-green.sh`. Không dùng nút merge, `gh pr merge` hay gọi thẳng API để merge. Không đóng hay sửa issue mang nhãn `main-broken`; việc đó thuộc về người. Nhánh chính đỏ vì commit merge của chính phiên thì revert theo `auto-run.md`, mục 3, Khi nhánh chính đỏ vì task của phiên (ADR-1002).
 - Sau mỗi task, ghi nhật ký vào cuối plan và cập nhật trạng thái ticket: `on-staging` khi đã merge, `stopped` khi dừng.
-- Cuối phiên, viết báo cáo vào file phiên chạy.
+- Cuối phiên, viết báo cáo vào file phiên chạy, rồi soạn plan `draft` cho hàng chờ theo `auto-run.md`, mục 4, bước 5; không tự duyệt, không merge PR plan.
 
 ## Khi phân tích một phiên thử
 

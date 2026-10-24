@@ -1,16 +1,16 @@
 ---
 ticket: T-045
 title: Cuối phiên soạn sẵn plan cho ticket kế tiếp
-status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 10.4M        # cỡ M, số gợi ý của scripts/token-usage.py estimate
 blocking_points: [process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Nhật               # người duyệt
-cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at: 2026-10-24
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 ---
 
 # PLAN T-045: CUỐI PHIÊN SOẠN SẴN PLAN CHO TICKET KẾ TIẾP
@@ -201,7 +201,7 @@ Không có.
 
 ## 4. Kiểm thử
 
-Test của `plan-queue.py` viết trước, trong `scripts/tests/run.sh`. Cây tài liệu giả `$work/pq` là một repo git. Remote `origin` của nó là một bare repo cục bộ, có nhánh `claude/plan-T-919-x`; khối test tắt `GIT_CONFIG_*` theo L-068. `fake-gh` trả về PR mở #77, sửa file ticket T-920.
+Test của `plan-queue.py` viết trước, trong `scripts/tests/run.sh`. Cây tài liệu giả `$work/pq` là một repo git. Khối test **giữ** `GIT_CONFIG_*` của `run.sh` (URL `https://github.com/o/r.git`), vì `plan-queue.py` đọc `owner/repo` từ `remote.origin.url` để gọi `fake-gh`; tắt nó thì `origin` thành đường dẫn cục bộ và mọi test ra mã 2. Nhánh `claude/plan-T-919-x` tạo thẳng bằng `git update-ref refs/remotes/origin/claude/plan-T-919-x HEAD`, không cần bare repo hay `git fetch`; nếu script gọi `git fetch` thì test đặt thêm `url.<bare>.insteadOf` cho `https://github.com/o/r.git` như `merge_while_broken` của `run.sh` (phiên bản 2). `fake-gh` trả về PR mở #77, sửa file ticket T-920.
 
 | Ticket | Thiết lập | Kết quả mong đợi |
 | --- | --- | --- |
@@ -306,9 +306,11 @@ Tuấn đã trả lời cả 5 câu ngày 2026-10-24, theo đề xuất của r�
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Mỗi plan một PR (Tuấn chọn).
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Mỗi plan một PR (Tuấn chọn). Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm đoạn cây tài liệu giả của mục 4 tắt `GIT_CONFIG_*` theo L-068, trong khi `plan-queue.py` đọc `owner/repo` từ `remote.origin.url`: mọi test sẽ ra mã 2 (mục 4).
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <ghi chú, nếu có>
 
 ## 10. Nhật ký thực hiện
 

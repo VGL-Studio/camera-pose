@@ -1,16 +1,16 @@
 ---
 ticket: T-044
 title: wait-run.sh --pr chỉ nhận lần chạy của commit đầu hiện tại
-status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.3M         # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Nhật               # người duyệt
-cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at: 2026-10-24
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 ---
 
 # PLAN T-044: WAIT-RUN.SH --PR CHỈ NHẬN LẦN CHẠY CỦA COMMIT ĐẦU HIỆN TẠI
@@ -175,7 +175,7 @@ Test nào cần đọc lại khi gặp `cancelled` thì đặt `WAIT_RUN_CANCEL_
 
 Lưu ý khi dựng `__sequence__` của `pulls/7`: lần đọc ở đầu script (kiểm PR đọc được, mục 3.1) cũng tiêu một phần tử. Vì vậy chuỗi commit đầu luôn lặp commit cũ dư một lần so với số vòng chờ muốn thấy commit cũ.
 
-Hàm `wait_run` có sẵn đặt cứng `WAIT_RUN_TIMEOUT_SECONDS=2` và chỉ in mã thoát cùng chữ đầu của dòng. Test kiểm nội dung dòng (mã commit, câu "chưa nhận commit", "bị hủy") dùng một hàm mới `wait_line`, như `infra_line`: ghi fixture, chạy script với cùng biến, in cả dòng kết quả, rồi `grep -c`. Test cần thời gian chờ khác 2 giây đặt `WAIT_RUN_TIMEOUT_SECONDS` qua `wait_line` (tham số thứ hai, như `conflict_run`), không dùng `wait_run`.
+Hàm `wait_run` có sẵn đặt cứng `WAIT_RUN_TIMEOUT_SECONDS=2` và chỉ in mã thoát cùng chữ đầu của dòng. Test kiểm nội dung dòng (mã commit, câu "chưa nhận commit", "bị hủy") dùng một hàm mới `wait_line`, như `infra_line`: ghi fixture, chạy script với cùng biến, in cả dòng kết quả, rồi `grep -c`. Khác `infra_line`, `wait_line` luôn `rm -f "$work/wait.json.seen"` trước khi chạy (để `__sequence__` của test trước không lẫn sang) và luôn đặt `WAIT_RUN_TIMEOUT_SECONDS="${2:-10}"` (không để mặc định 40 phút). Test nào kết quả không phụ thuộc hạn chờ dùng 10 giây thay cho 2 giây của `wait_run`, để máy CI chậm không làm test chập chờn (phiên bản 2). Test cần thời gian chờ khác 2 giây đặt `WAIT_RUN_TIMEOUT_SECONDS` qua `wait_line` (tham số thứ hai, như `conflict_run`), không dùng `wait_run`.
 
 | Tiêu chí | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
@@ -257,9 +257,11 @@ Không cần (E dưới 2). Dữ liệu dựng fixture, đọc ngày 2026-10-24 
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp.
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm hàm `wait_line` chưa xóa `wait.json.seen` và không đặt hạn chờ: phần tử `__sequence__` của test trước lẫn sang test sau, và logic sai thì test quay vòng 40 phút (mục 4).
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <ghi chú, nếu có>
 
 ## 10. Nhật ký thực hiện
 

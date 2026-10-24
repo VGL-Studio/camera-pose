@@ -1,23 +1,23 @@
 ---
 ticket: T-047
 title: Mục "Sẵn sàng phát hành" trên trang tiến độ
-status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.3M         # cỡ S, số gợi ý của scripts/token-usage.py estimate
 blocking_points: [ci]        # status.py chạy trong status-page.yml (contents: write), như T-034
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Nhật               # người duyệt
-cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at: 2026-10-24
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 ---
 
 # PLAN T-047: MỤC "SẴN SÀNG PHÁT HÀNH" TRÊN TRANG TIẾN ĐỘ
 
 ## 1. Tóm tắt
 
-`scripts/status.py` sinh thêm mục "## 6. Sẵn sàng phát hành" ở cuối `docs/STATUS.md`. Mục này gom từ các nguồn đã có trong repo những việc còn phải xong trước bản production:
+`scripts/status.py` sinh thêm mục "## 6. Sẵn sàng phát hành" ở cuối `docs/STATUS.md`. Chữ cố định của mục 6 không ghi mã bài học (`L-0NN`): test có sẵn `new-app.sh regenerates the progress page without the template's lessons` đếm `L-0[0-9][0-9]` trên trang của app mới phải bằng 0 (phiên bản 2). Mục này gom từ các nguồn đã có trong repo những việc còn phải xong trước bản production:
 
 - vị trí quảng cáo cần mã thật, đọc từ `AdPlacement.kt`;
 - mục "Cần người kiểm tra" chưa đánh dấu trong báo cáo các phiên;
@@ -151,8 +151,8 @@ Mọi test nằm trong khối `status.py` của `scripts/tests/run.sh` và dùng
 | `- [ ] Ảnh chuẩn screenshot mới: <màn hình, đường dẫn ảnh>` (dòng mẫu) | Không |
 | `- [ ] Test chập chờn: Không có (issue flaky không mở).` | Không |
 | `- [ ] Ảnh chuẩn screenshot mới: không có (dừng trước bước ghi ảnh).` | Không |
-| `- [ ] Tiêu chí kiểm tra thủ công (máy thật): không có` | Không |
-| `- [ ] Kịch bản emulator lỗi: Không có` | Không |
+| `- [ ] Tiêu chí kiểm tra thủ công (máy thật, người): không có` | Không |
+| `- [ ] Kịch bản emulator lỗi hay bỏ qua: Không có` | Không |
 | `- [ ] T-040: ghi chú, không có test cho trường hợp revert` | Có (dấu hai chấm đầu tiên đứng sau "T-040") |
 | `- [ ] Điểm rà soát mức ghi chú:` kèm hai dòng con | Có, "(2 dòng con)" |
 
@@ -221,7 +221,7 @@ Mọi test nằm trong khối `status.py` của `scripts/tests/run.sh` và dùng
 - **Task có thể xung đột:**
   - **T-044** (`scripts/wait-run.sh`, khối test `wait-run` của `scripts/tests/run.sh`): khác đoạn, không phụ thuộc.
   - **T-045:** chỉ thêm khóa `plan_queue` vào mẫu danh sách chạy và mục "### Plan soạn sẵn và câu hỏi cho người" vào báo cáo; không đổi mục "Cần người kiểm tra". `manual_checks()` dừng ở tiêu đề `###` kế tiếp, nên mục mới của T-045 đứng sau không bị đọc vào. Muốn đưa câu hỏi của T-045 lên trang thì làm ở ticket sau.
-  - **T-046:** đổi dòng mẫu "Tiêu chí kiểm tra thủ công" thành "Tiêu chí kiểm tra thủ công (máy thật)" và thêm dòng "Kịch bản emulator lỗi" vào mục "Cần người kiểm tra" của `docs/templates/run.md`. Cả hai vẫn là `- [ ] <tên>: ...`; khi ghi "không có" thì bị bỏ (báo cáo giả có hai dòng này). Test "mẫu báo cáo thật" của T-047 đọc `docs/templates/run.md` thật, nên chạy sau T-046 thì kiểm luôn mẫu mới.
+  - **T-046:** đổi dòng mẫu "Tiêu chí kiểm tra thủ công" thành "Tiêu chí kiểm tra thủ công (máy thật, người)" và thêm dòng "Kịch bản emulator lỗi hay bỏ qua" vào mục "Cần người kiểm tra" của `docs/templates/run.md`. Cả hai vẫn là `- [ ] <tên>: ...`; khi ghi "không có" thì bị bỏ (báo cáo giả có hai dòng này). Test "mẫu báo cáo thật" của T-047 đọc `docs/templates/run.md` thật, nên chạy sau T-046 thì kiểm luôn mẫu mới.
   - Không plan nào trong ba plan trên ghi Tạo một file mà T-047 đọc.
 - **Liên quan dự án mẫu:** đề xuất cùng nội dung VGL-Studio/app-project-template#133.
 - **Đề xuất thứ tự chạy:** T-046 trước T-047; T-045 trước T-047. T-047 độc lập với T-044.
@@ -252,9 +252,11 @@ Tuấn đã trả lời ngày 2026-10-24, theo đề xuất của rà soát đ�
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Rủi ro Cao, duyệt chéo (Tuấn chọn).
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Rà soát độc lập (phiên mới, chỉ đọc) trước khi duyệt; mọi điểm chặn và nên sửa đã sửa trong bản nháp. Rủi ro Cao, duyệt chéo (Tuấn chọn). Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-02 (docs/ops/pre-run-review.md, mục 2) tìm chữ của mục 6 có thể ghi mã bài học, làm đỏ test có sẵn `new-app.sh regenerates the progress page without the template's lessons` (đếm `L-0[0-9][0-9]` trên trang của app mới phải bằng 0), và dữ liệu giả dùng tên dòng mẫu khác plan T-046.
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <ghi chú, nếu có>
 
 ## 10. Nhật ký thực hiện
 

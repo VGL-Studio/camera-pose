@@ -649,20 +649,20 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-069: script dùng mảng rỗng với `set -u` dừng trên bash 3.2 của macOS, `check.sh` đỏ trên máy dev
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, sau RUN-20261024-01 (T-036, PR #103).
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, sau RUN-20261024-01 (T-036, PR #103).
 - **Chuyện gì:** `scripts/cloud-env-check.sh` in danh sách lỗi bằng `"${setup_problems[@]}"`. Bash 3.2 (bash mặc định của macOS) coi mảng rỗng là biến chưa đặt khi có `set -u`, nên script dừng ở dòng đó trước khi in thông báo. 5 test của `scripts/tests/run.sh` đỏ trên máy Mac, nên `scripts/check.sh` đỏ trên mọi máy dev từ PR #103. CI và môi trường cloud dùng bash 5 nên không thấy.
 - **Bằng chứng:** `scripts/cloud-env-check.sh: line 54: setup_problems[@]: unbound variable`; 5 test `cloud-env-check.sh names ...` đỏ trên nhánh chính 5ed9c51 với `GNU bash, version 3.2.57`.
 - **Đề xuất sửa:** dùng `${a[@]+"${a[@]}"}` cho mảng có thể rỗng (đã sửa trong PR này); thêm một quy tắc vào `scripts/tests/run.sh` hay `plan-check.py` dò `"${...[@]}"` trong script có `set -u`, hoặc chạy test của script bằng bash 3.2 trong CI (job macOS hay ảnh `bash:3.2`).
-- **Áp dụng:** sửa `scripts/cloud-env-check.sh` (PR này); phần dò tự động chưa làm. Dự án mẫu: VGL-Studio/app-project-template#130.
+- **Áp dụng:** sửa `scripts/cloud-env-check.sh` (PR #109); phần dò tự động (chạy test của script bằng bash 3.2, hay quy tắc dò `"${...[@]}"` trong script có `set -u`) chưa có ticket. Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#130.
 - **Kiểm chứng:**
 
 ### L-070: PR chỉ sửa một script của cổng chất lượng mà không sửa `scripts/tests/run.sh` thì không chạy test của script
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, viết plan T-046.
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, viết plan T-046.
 - **Chuyện gì:** bộ lọc `code` của `pr-check.yml` chỉ gồm `scripts/check.sh`, `scripts/test-summary.sh`, `scripts/tests/**`, `scripts/find-breaking-commit.sh` trong `scripts/`. Một PR chỉ sửa `scripts/merge-if-green.sh`, `wait-run.sh`, `run-check.py`, `plan-check.py`, `device-session.sh` hay script khác mà không đụng `scripts/tests/` thì `build-and-test` bị bỏ qua, nên `scripts/tests/run.sh` (gọi từ `check.sh`) không chạy và PR vẫn xanh. Các PR trước qua được chỉ vì luôn thêm test vào `run.sh`.
 - **Bằng chứng:** `.github/workflows/pr-check.yml`, khối `filters`; các PR #99, #103 đến #107 đều sửa kèm `scripts/tests/run.sh`.
 - **Đề xuất sửa:** thêm `'scripts/**'` vào bộ lọc `code` (hay ít nhất `scripts/*.sh`, `scripts/*.py`). Sửa `.github/` cần plan rủi ro cao, duyệt chéo. Trong lúc chờ: plan sửa script ghi `scripts/tests/run.sh` ở mục 3.2 (đã là thói quen, nhưng chưa thành quy tắc).
-- **Áp dụng:**
+- **Áp dụng:** chưa làm: cần plan rủi ro cao sửa `.github/workflows/pr-check.yml` (thêm `scripts/**` vào bộ lọc `code`), chưa có ticket. Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#138.
 - **Kiểm chứng:**
 
 ### L-071: plan dùng `$TMPDIR` cho bản chép script nhưng môi trường cloud không đặt biến đó

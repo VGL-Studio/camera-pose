@@ -1,7 +1,7 @@
 ---
 id: ADR-1003
 title: Phiên tự chạy được nối chỗ gọi mà task khác cùng danh sách đổi, và phải tự sửa điểm nên sửa trong phạm vi plan, đều có test viết trước
-status: proposed             # proposed | accepted | superseded
+status: accepted             # proposed | accepted | superseded
 origin: app                  # template: ADR của dự án mẫu (mã dưới 1000) | app: ADR riêng của app (mã từ 1001)
 date: 2026-10-24
 deciders: [Nhật, Tuấn]
@@ -92,4 +92,4 @@ PR soạn ADR này không sửa hai file đó.
   - Rà soát độc lập phải xét thêm phần đó.
   - Mỗi lần sửa theo rà soát tốn thêm thời gian bước 5 và một lần rà soát.
   - Quy tắc của dự án mẫu (`risk-scoring.md`) khác ở app này cho tới khi dự án mẫu nhận đề xuất (`docs/ops/from-app.md`).
-- **Việc AI phải tuân thủ:** chưa áp dụng khi ADR này còn `proposed` và `docs/risk-scoring.md`, `docs/auto-run.md` chưa dẫn tới nó; ở app này, phiên được sửa file ngoài mục 3.2 chỉ để nối chỗ gọi mà task khác của cùng danh sách đã tạo hay đổi sau khi plan được duyệt; phần nối có test viết trước, tối đa 3 file và 40 dòng code mỗi task, không chạm file của điểm chặn ở mục 1 của `risk-scoring.md`; ở bước 6, phiên phải sửa điểm nên sửa nằm trong file được phép, có test viết trước thất bại đúng lý do, không đổi điều test của plan kiểm; điểm nên sửa mâu thuẫn với plan, spec hay test của plan thì ghi vào báo cáo kèm phương án, không tự sửa; mỗi phần ngoài mục 3.2 và mỗi lần sửa theo rà soát được ghi vào nhật ký plan và mô tả PR, và được rà soát độc lập xét riêng; mọi điều kiện dừng khác của `risk-scoring.md` vẫn áp dụng.
+- **Việc AI phải tuân thủ:** chỉ áp dụng khi `docs/risk-scoring.md` (mục 4) và `docs/auto-run.md` (bước 6) đã dẫn tới ADR này (T-043); ở app này, phiên được sửa file ngoài mục 3.2 chỉ để nối chỗ gọi mà task khác của cùng danh sách đã tạo hay đổi sau khi plan được duyệt; phần nối có test viết trước, tối đa 3 file và 40 dòng code mỗi task, không chạm file của điểm chặn ở mục 1 của `risk-scoring.md`; ở bước 6, phiên phải sửa điểm nên sửa nằm trong file được phép, có test viết trước thất bại đúng lý do, không đổi điều test của plan kiểm; điểm nên sửa mâu thuẫn với plan, spec hay test của plan thì ghi vào báo cáo kèm phương án, không tự sửa; mỗi phần ngoài mục 3.2 và mỗi lần sửa theo rà soát được ghi vào nhật ký plan và mô tả PR, và được rà soát độc lập xét riêng; mọi điều kiện dừng khác của `risk-scoring.md` vẫn áp dụng.

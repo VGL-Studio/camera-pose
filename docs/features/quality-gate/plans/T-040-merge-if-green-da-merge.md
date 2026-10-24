@@ -1,16 +1,16 @@
 ---
 ticket: T-040
 title: merge-if-green.sh nhận ra PR đã vào nhánh chính khi API merge báo lỗi
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # cỡ S, số gợi ý của scripts/token-usage.py estimate
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-24
 ---
 
 # PLAN T-040: MERGE-IF-GREEN.SH NHẬN RA PR ĐÃ VÀO NHÁNH CHÍNH KHI API MERGE BÁO LỖI
@@ -219,9 +219,9 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Tu
 
 Phiên bản 2:
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <ghi chú, nếu có>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Phiên bản 2.
 
 ## 10. Nhật ký thực hiện
 

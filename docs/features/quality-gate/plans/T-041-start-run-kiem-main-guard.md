@@ -199,7 +199,7 @@ Không cần (E dưới 2): `gh api` check run và lịch sử first-parent đã
 
 - **Quyết định:** Duyệt
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 2 (scripts/release.sh có lọc lần chạy main-guard theo sự kiện push không): Tuấn xem release.sh trước khi task chạy, ghi trong danh sách chạy.
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 2 (scripts/release.sh có lọc lần chạy main-guard theo sự kiện push không): Tuấn xem release.sh trước khi task chạy, ghi trong danh sách chạy. Cập nhật 2026-10-24: Tuấn giao AI trả lời; AI không đọc `scripts/release.sh` (CLAUDE.md) mà trả lời bằng lập luận: lần chạy `workflow_dispatch` dùng cùng `GITHUB_SHA` và cùng các bước như lần chạy `push`, nên nếu `release.sh` lọc theo `push` thì chỉ chặt hơn (bỏ qua lần chạy bằng tay), nếu không lọc thì lần chạy bằng tay kiểm đúng commit đó; không trường hợp nào cho qua commit chưa kiểm. Kiểm khi làm: lần chạy bằng tay chạy đủ mọi bước như lần `push`.
 
 ## 10. Nhật ký thực hiện
 

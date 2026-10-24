@@ -610,3 +610,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/status.py` sinh thêm mục "Sẵn sàng phát hành" trên trang tiến độ, từ các nguồn đã có (vị trí quảng cáo trong `AdPlacement` so với mã đã cấu hình ở staging, mục kiểm thủ công chưa đánh dấu trong báo cáo, issue mở, ticket chưa `on-staging`). AI không đọc cấu hình production.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-065: file mới nhắc tới file chung làm mọi plan đã duyệt lỗi `plan-check`, phiên sẽ bỏ qua cả danh sách
+
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, lập RUN-20261024-01.
+- **Chuyện gì:** T-041 thêm `scripts/main-guard-status.sh`; chú thích của nó nhắc `scripts/tests/run.sh`, `docs/auto-run.md`. Quy tắc 2 của `plan-check.py` (L-020) báo lỗi cho cả 5 plan đã duyệt của danh sách, vì plan sửa các file đó mà không nêu file đọc mới. Không ai được sửa plan đã duyệt, và phiên chạy lại `plan-check` ngay trước task rồi bỏ qua plan có lỗi: cả phiên sẽ không chạy task nào. Mỗi file mới nhắc tới một file chung đều có thể làm vậy.
+- **Bằng chứng:** `scripts/run-check.py docs/runs/RUN-20261024-01.md` sau PR #98: 10 lỗi "nhắc tới ... mà plan sửa" cho T-036, T-037, T-039, T-040, T-042.
+- **Đề xuất sửa:** quy tắc 2 báo lỗi khi plan còn `draft`, chỉ chú ý khi plan đã `approved`, như quy tắc 7; file đọc thật sự bị ảnh hưởng sẽ lộ ra ở test của task, và phiên xử lý theo ADR-1003 hay điều kiện dừng.
+- **Áp dụng:** `scripts/plan-check.py` quy tắc 2, test trong `scripts/tests/run.sh` (PR này).
+- **Kiểm chứng:**

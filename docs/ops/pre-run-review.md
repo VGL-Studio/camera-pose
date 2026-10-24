@@ -19,8 +19,10 @@ Phiên tự chạy dừng hay merge sai thường vì những lỗi đã nằm s
 | Hai plan cùng sửa một file mà không phụ thuộc nhau (L-014) | Chú ý |
 | Danh sách chỉ có một chuỗi phụ thuộc (L-015) | Chú ý |
 | Hai plan cùng ghi Tạo một file, kể cả khi phụ thuộc nhau (L-033) | Chú ý |
+| Danh sách xếp ngược dòng "Đề xuất thứ tự chạy" ở mục 6 của một plan ("A trước B", "sau A", "nhóm ...: A, B, C", "A, rồi B") (L-060) | Lỗi |
+| Plan nhắc một file mà plan khác trong danh sách tạo, không có file đó ở mục 3.2 của mình và không phụ thuộc plan kia: lỗi khi đứng trước, chú ý (kèm file sẽ thiếu nếu plan kia dừng) khi đứng sau (L-060) | Lỗi hoặc chú ý |
 
-Lỗi phải sửa trước khi đưa danh sách cho dev. Mỗi dòng chú ý được xem ở lớp thứ hai và ghi kết luận.
+Muốn giữ thứ tự ngược với một đề xuất của plan (ví dụ hai task chỉ chung vài dòng), ghi vào danh sách chạy một dòng `Bỏ đề xuất thứ tự: A trước B` kèm lý do, trong mục Lý do của thứ tự chạy; lỗi khi đó thành chú ý. Lỗi phải sửa trước khi đưa danh sách cho dev. Mỗi dòng chú ý được xem ở lớp thứ hai và ghi kết luận.
 
 ## 2. Rà soát độc lập
 

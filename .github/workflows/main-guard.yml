@@ -7,10 +7,12 @@
 #   otherwise only add a comment. Infrastructure failures (checkout, Java, network) are not "red".
 # - Green run: close open main-broken issues when this commit contains the blamed commit, or is that very
 #   commit run again (an older commit finishing late must not close a newer breakage; ADR-1002, point 2).
+# - Run by hand (workflow_dispatch) for a commit that got no push event (L-054): same steps on the head of main.
 # Changing this file is a high-risk plan; cross-review required.
 name: main-guard
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths-ignore:

@@ -27,6 +27,7 @@ defaults:
 permissions:
   contents: read
   issues: read
+  checks: read
 
 jobs:
   start:
@@ -76,6 +77,13 @@ jobs:
             echo "::error::Môi trường staging chưa sẵn sàng (có issue setup-broken đang mở). Sửa theo issue, chạy lại workflow preflight, rồi bắt đầu phiên."
             exit 1
           fi
+
+      # main-guard passed on the newest commit of main with code. No issue is opened when GitHub sends no push
+      # event for a merge (L-054), so the main-broken check above lets such a commit through (L-055, plan T-041).
+      - name: Kiểm tra main-guard trên nhánh chính
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/main-guard-status.sh "${GITHUB_SHA}"
 
       - uses: actions/setup-node@v4
         with:

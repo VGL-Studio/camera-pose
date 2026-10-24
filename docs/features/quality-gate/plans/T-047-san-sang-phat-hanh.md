@@ -1,7 +1,7 @@
 ---
 ticket: T-047
 title: Mục "Sẵn sàng phát hành" trên trang tiến độ
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -261,3 +261,15 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ng
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261024-02, phiên bản plan 2
+
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-047-san-sang-phat-hanh`, PR #122 (commit merge `8483304`)
+- **Đã làm:** `scripts/status.py` sinh mục "6. Sẵn sàng phát hành" (khóa quảng cáo từ `AdPlacement.kt`, mục kiểm thủ công chưa đánh dấu của báo cáo phiên `finished`, ticket chưa lên staging, phản hồi mở, đường dẫn issue); test trong `scripts/tests/run.sh`; `docs/CLAUDE.md` mục Trang tiến độ. Chạy `status.py` trên dữ liệu thật: 4 khóa quảng cáo, 38 mục kiểm thủ công trong 8 phiên (đúng số của mục 4.1).
+- **Test viết trước:** 23 lệnh `expect` mới; 22 thất bại đúng lý do, 1 qua ngay (test chặn đọc mẫu `run.md` thật, mẫu không có mục nào hiện lên trang). Hai test "không đọc file production" và bốn test dạng "bằng 0" làm chặt bằng phép đếm đối chứng.
+- **Rà soát độc lập:** 0 chặn; nên sửa nhẹ, chưa sửa: (1) `is_not_a_task` coi `<->` hay `a < b ... c > d` là chữ mẫu; (2) regex `issue_links` không neo đầu chuỗi (không rò thông tin); test thiếu cho `shorten()`, nhánh báo cáo không giải mã được, `spec:` rỗng; test "opens only docs and AdPlacement.kt" đếm chữ `release` cả trong `docs/`. Không đổi điều test của plan kiểm; để người quyết định.
+- **Kết quả CI:** `scripts/check.sh` qua (1050 test JVM); `pr-check` xanh (lần chạy 40115818013).
+- **Lệch so với plan:** test credentials dùng `grep -cw tok`; "`spec:` rỗng" hiểu là khóa có mặt với giá trị rỗng; làm bước 3 đến 5 bằng phiên con trong worktree riêng.
+- **Việc còn lại:** dòng Áp dụng của L-064 (số PR #122).
+- **Cần người xem:** Trang tiến độ mục 6 trên nhánh `status` sau khi `status-page.yml` chạy.

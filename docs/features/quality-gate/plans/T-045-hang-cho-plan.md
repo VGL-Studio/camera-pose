@@ -1,7 +1,7 @@
 ---
 ticket: T-045
 title: Cuối phiên soạn sẵn plan cho ticket kế tiếp
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -315,3 +315,15 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Ng
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261024-02, phiên bản plan 2
+
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-045-hang-cho-plan`, PR #120 (commit merge `8a1b683`)
+- **Đã làm:** `scripts/plan-queue.py` (chọn ticket `ready` chưa có plan, spec chốt, phụ thuộc đủ, không có nhánh `plan-T-NNN` hay PR mở; thứ tự sprint số, chữ, rỗng rồi mã); test trong `scripts/tests/run.sh` (20 ticket giả, repo git giả, `fake-gh`); `docs/auto-run.md` mục 4 (bước 2 và bước 5 mới), mục 5, mục 6; `docs/templates/run.md` (`plan_queue`, mục "Plan soạn sẵn và câu hỏi cho người", hai dòng thời gian); `docs/CLAUDE.md`; `CLAUDE.md`; L-061 dòng Áp dụng.
+- **Test viết trước:** 26 test `plan-queue` trên khung rỗng của script; 15 thất bại đúng lý do. Các test "không được chọn" và "không ghi file" qua ngay trên khung rỗng (đầu ra rỗng); chúng chỉ có nghĩa cùng test thứ tự đầy đủ (kiểm danh sách chính xác), nên không viết lại.
+- **Rà soát độc lập:** 0 chặn, 3 nên sửa: (1) giới hạn 100 PR, 100 file mỗi PR: ghi vào docstring, không phân trang (plan không yêu cầu); (2) `id` sai dạng gây traceback mã 1: sửa, thêm test `a ticket id that is not T-NNN exits 2` (test và sửa cùng một commit, thất bại đúng lý do trước khi sửa); (3) chữ prefix nhánh lệch plan, kết quả giống nhau: để nguyên.
+- **Kết quả CI:** `check.sh` cục bộ qua; `pr-check` xanh (lần chạy 40108704349).
+- **Lệch so với plan:** `for-each-ref` liệt kê `refs/remotes/origin/claude/` rồi lọc trong Python, vì Git khớp tiền tố theo thành phần đường dẫn nên `.../claude/plan-` không khớp `plan-T-919-x`. Kết quả như plan.
+- **Việc còn lại:** Không có. Phiên này không bật `plan_queue` (danh sách lập trước T-045).
+- **Cần người xem:** Bước 5 chưa chạy thật lần nào; phiên có `plan_queue` đầu tiên là lần kiểm thật.

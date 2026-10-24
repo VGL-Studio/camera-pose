@@ -67,6 +67,59 @@ expect "start of history: blame the oldest red" bbbbbb2 "$(find_breaking '{
   "bbbbbb2":{"parent":"","states":["failure"]},
   "ddddd04":{"parent":"bbbbbb2","states":["failure"]}}')"
 
+# main-guard-status.sh: start-run.yml and the session start only when main-guard passed on the newest commit of main
+# with code (L-055, plan T-041). Same fixture as find-breaking-commit.sh; D=ddddd04 is the head of main.
+main_guard_status() { # <fixture> [env...]: prints "<exit code> <output on one line>"
+  rm -f "$work/mgs.json.calls"
+  echo "$1" > "$work/mgs.json"
+  shift
+  local out code=0
+  out="$(env PATH="$work/bin:$PATH" FIXTURE="$work/mgs.json" GITHUB_REPOSITORY=o/r "$@" \
+    scripts/main-guard-status.sh ddddd04 2>&1)" || code=$?
+  echo "$code $(tr '\n' ' ' <<<"$out")"
+}
+mgs="$(main_guard_status '{
+  "ccccc03":{"parent":"","states":["success"]},
+  "ddddd04":{"parent":"ccccc03","states":["success"]}}')"
+expect "main-guard-status: green run on the head passes" 1 "$(grep -c '^0 XANH' <<<"$mgs")"
+# RUN-20261023-03: c83777a (docs only, no run) on top of c49a682 (scripts/run-check.py, no run: GitHub sent no push).
+mgs="$(main_guard_status '{
+  "bbbbbb2":{"parent":"","states":["success"]},
+  "ccccc03":{"parent":"bbbbbb2","files":["scripts/run-check.py"]},
+  "ddddd04":{"parent":"ccccc03","files":["docs/runs/RUN-1.md"]}}')"
+expect "main-guard-status: code commit without a run is refused" 1 "$(grep -c '^3 CHƯA KIỂM: ccccc03' <<<"$mgs")"
+expect "main-guard-status: the refusal says how to run main-guard" 1 \
+  "$(grep -c 'actions/workflows/main-guard.yml/dispatches' <<<"$mgs")"
+mgs="$(main_guard_status '{
+  "ccccc03":{"parent":"","states":["success"]},
+  "ddddd04":{"parent":"ccccc03","files":["docs/a.md"]}}')"
+expect "main-guard-status: docs-only head after a green code commit passes" 1 "$(grep -c '^0 XANH' <<<"$mgs")"
+expect "main-guard-status: names the green code commit" 1 "$(grep -c 'ccccc03' <<<"$mgs")"
+mgs="$(main_guard_status '{
+  "ccccc03":{"parent":""},
+  "ddddd04":{"parent":"ccccc03","files":["docs/a.md"],"states":["success"]}}')"
+expect "main-guard-status: a run on a docs-only head counts" 1 "$(grep -c '^0 XANH: main-guard qua trên ddddd04' <<<"$mgs")"
+mgs="$(main_guard_status '{
+  "ddddd04":{"parent":"","states":["pending"]}}')"
+expect "main-guard-status: pending run asks to wait" 1 "$(grep -c '^2 CHỜ' <<<"$mgs")"
+mgs="$(main_guard_status '{
+  "ddddd04":{"parent":"","states":["failure"]}}')"
+expect "main-guard-status: red run is refused" 1 "$(grep -c '^1 ĐỎ' <<<"$mgs")"
+mgs="$(main_guard_status '{
+  "bbbbbb2":{"parent":"","states":["success"]},
+  "ccccc03":{"parent":"bbbbbb2","files":["docs/b.md"]},
+  "ddddd04":{"parent":"ccccc03","files":["docs/a.md"]}}' MAX_DEPTH=2)"
+expect "main-guard-status: stops after MAX_DEPTH" 3 "${mgs%% *}"
+# start-run.yml checks main-guard after the run-file checks and before firing the routine; main-guard.yml can be
+# run by hand for a commit that got no push event (L-054), keeping its push trigger as it was.
+start_wf=.github/workflows/start-run.yml
+expect "start-run: main-guard step runs after the run-file checks and before the routine" "yes yes" \
+  "$(awk '/main-broken/ && !b { b = NR } /scripts\/main-guard-status.sh/ && !s { s = NR } /name: Kích hoạt routine/ { r = NR }
+     END { print ((b && s > b && s < r) ? "yes" : "no") }' "$start_wf") $(grep -qE '^  checks: read$' "$start_wf" && echo yes || echo no)"
+guard_wf=.github/workflows/main-guard.yml
+expect "main-guard: has workflow_dispatch and keeps the push trigger with the same paths-ignore" "1 1 1 1" \
+  "$(grep -cE '^  workflow_dispatch:' "$guard_wf") $(grep -cE '^  push:$' "$guard_wf") $(grep -cE "^      - 'docs/\*\*'$" "$guard_wf") $(grep -cE "^      - '\*\*/\*\.md'$" "$guard_wf")"
+
 # merge-if-green.sh must reject any argument other than exactly "<PR> [--dry-run]" before doing anything.
 for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" "" \
   "12 --update extra" "12 --updat" "12 --update --dry-run"; do

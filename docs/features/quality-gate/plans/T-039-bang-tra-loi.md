@@ -1,7 +1,7 @@
 ---
 ticket: T-039
 title: Bảng tra lỗi đã biết và việc phải làm
-status: approved             # draft | approved | stopped | done
+status: done             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -242,3 +242,15 @@ Phiên bản 2:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261024-01, phiên bản plan 2
+
+- **Kết quả:** đã merge
+- **Nhánh, PR:** `claude/T-039-bang-tra-loi`, PR #104 (commit merge 74462ee)
+- **Đã làm:** `docs/ops/failure-playbook.md` (10 dòng PB-01 đến PB-10); `failure-kind.sh --playbook <log> [<bảng>]` đọc bảng bằng `python3 -I`; `auto-run.md` bước 5, bước 8 (lệnh lấy log, đường lui khi không tải được log, 4 điểm), mục 6; 13 tệp log mẫu trong `scripts/tests/playbook/`.
+- **Test viết trước:** 31 test; ở khung cũ 18 thất bại ở phần khẳng định (script chưa có `--playbook`). Test "chế độ cũ không đổi" và 8 test `failure-kind:` cũ qua không sửa.
+- **Rà soát độc lập:** không chặn. Một điểm nên sửa đã xử lý: bỏ test khóa cứng đúng 10 dòng (đổi thành ít nhất 10, để bảng lớn dần). Ghi chú: test "log chỉ có trong bảng vẫn ra other" yếu, vì `PB-01.log` vốn không có dòng lỗi Gradle; giữ nguyên.
+- **Kết quả CI:** `check.sh` cục bộ qua; `pr-check` xanh; `main-guard` xanh (lần chạy 40075166615).
+- **Lệch so với plan:** `docs/lessons.md` không sửa (dòng Áp dụng của L-057 và L-050 đã ghi T-039). Mẫu PB-09 viết theo thông báo chuẩn của Gradle, chưa có log thật (mục 8, câu 3 của plan).
+- **Việc còn lại:** `main-guard.yml` chưa dùng bảng (mục 8, câu 2).
+- **Cần người xem:** các dòng việc phải làm của bảng, nhất là PB-01 (tối đa 2 lần chạy lại) và PB-08.

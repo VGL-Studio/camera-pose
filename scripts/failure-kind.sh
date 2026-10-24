@@ -7,9 +7,51 @@
 #          other  anything else, including a log without a Gradle failure (a rule of check.sh, a script
 #                 test, an error before Gradle) or a missing log: main-guard.yml treats it as red.
 # Always exits 0, so the workflow reads the answer instead of failing on this step.
+#
+# Usage:   scripts/failure-kind.sh --playbook <log> [<table>]
+# Prints:  one line "PB-NN <kind>: <what to do> (<source>)" for the first row of docs/ops/failure-playbook.md
+#          (or <table>) whose pattern matches the log, or "khong-co: ..." when no row matches (T-039, L-057).
+#          A pattern grep -E rejects is skipped and reported as "LỖI BẢNG" on stderr. Always exits 0.
 # Changing this file changes the quality gate: high-risk plan, cross-review required.
 
 set -uo pipefail
+
+if [ "${1:-}" = "--playbook" ]; then
+  playbook_log="${2:-}"
+  table="${3:-$(dirname "$0")/../docs/ops/failure-playbook.md}"
+  if [ -z "${playbook_log}" ] || [ ! -f "${playbook_log}" ]; then
+    echo "khong-co: không có log để tra bảng (${playbook_log:-không đưa đường dẫn}). Xử lý như lỗi thật (auto-run.md bước 8, tối đa 3 lần sửa)."
+    exit 0
+  fi
+  # Markdown cells are split at every "|" not preceded by a backslash; "\|" inside a pattern becomes "|".
+  python3 -I - "${table}" "${playbook_log}" << 'PY'
+import re, subprocess, sys
+table, log = sys.argv[1], sys.argv[2]
+inside = False
+for line in open(table, encoding="utf-8"):
+    if "<!-- playbook:start -->" in line:
+        inside = True
+        continue
+    if "<!-- playbook:end -->" in line:
+        break
+    if not inside or not re.match(r"\| PB-\d+ ", line):
+        continue
+    cells = [c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+    if len(cells) < 6:
+        continue
+    code, pattern, _, kind, action, source = cells[:6]
+    pattern = pattern.strip("`").replace("\\|", "|")
+    kind = kind.strip("`")
+    result = subprocess.run(["grep", "-Eq", "--", pattern, log], capture_output=True)
+    if result.returncode == 2:
+        print(f"LỖI BẢNG: {code}: mẫu không hợp lệ với grep -E: {pattern}", file=sys.stderr)
+    elif result.returncode == 0:
+        print(f"{code} {kind}: {action} ({source})")
+        sys.exit(0)
+print("khong-co: lỗi chưa có trong docs/ops/failure-playbook.md. Đọc log, xử lý như lỗi thật (auto-run.md bước 8, tối đa 3 lần sửa).")
+PY
+  exit 0
+fi
 
 log="${1:-}"
 if [ -z "${log}" ] || [ ! -f "${log}" ]; then

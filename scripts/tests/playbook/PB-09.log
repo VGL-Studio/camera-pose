@@ -1,0 +1,2 @@
+> Could not resolve com.example:lib:1.0.
+   > Could not GET 'https://dl.google.com/dl/android/maven2/com/example/lib/1.0/lib-1.0.pom'. Received status code 429 from server: Too Many Requests

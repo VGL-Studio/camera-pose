@@ -37,7 +37,7 @@ trap 'rm -f "$log"' EXIT
 
 reason=""
 if ! "$ENV_CHECK_CMD" > "$log" 2>&1; then
-  reason="Môi trường cloud chưa dùng \`scripts/cloud-setup.sh\` mới nhất."
+  reason="\`scripts/cloud-env-check.sh\` báo lỗi môi trường cloud."
 elif ! "$CHECK_CMD" > "$log" 2>&1; then
   echo "scripts/check.sh đỏ, thử lại sau ${RETRY_WAIT_SECONDS} giây và tải lại thư viện."
   sleep "$RETRY_WAIT_SECONDS"

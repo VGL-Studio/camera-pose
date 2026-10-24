@@ -5,12 +5,12 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-062 (docs/lessons.md)
 scenarios: []
 owner: Tuấn
-status: ready
+status: planned
 risk: high
 size: M
 depends_on: []
 sprint:
-plan:
+plan: features/quality-gate/plans/T-046-kiem-tay-tren-emulator.md
 created: 2026-10-24
 ---
 

@@ -1,16 +1,16 @@
 ---
 ticket: T-037
 title: Nhánh task không chỉ nằm trên máy cloud
-status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: [process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Nhật               # người duyệt
-cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at: 2026-10-24
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 ---
 
 # PLAN T-037: NHÁNH TASK KHÔNG CHỈ NẰM TRÊN MÁY CLOUD
@@ -22,6 +22,13 @@ Phiên đẩy nhánh task ngay lúc tạo, trước khi viết dòng test nào, 
 Khi chính lệnh đẩy bị bộ phân loại của môi trường từ chối, phiên không đẩy lại dưới bất kỳ dạng nào. Phiên gọi `save-branch.sh --bundle-only`, dừng task, và báo cáo đưa đoạn đó lên đầu.
 
 Kiểm chứng bằng test của script, trên repo thật dựng tạm (remote là một bare repo cục bộ). Cách lấy lại từ bundle đã chạy thử với 4 commit thật của T-017 (mục 4.1).
+
+**Phiên bản 2** sửa theo rà soát độc lập trước RUN-20261024-01:
+
+- Đẩy hỏng mà nhánh chưa có commit nào ngoài `origin/main` (đúng trường hợp của bước 1) thì script thoát 3 (`CHƯA ĐẨY`), không thoát 0. Phiên bản 1 in `KHÔNG CẦN BUNDLE` và thoát 0, nên phiên tưởng đã đẩy được và mất đúng mục tiêu "lộ sớm" (mục 3.1, mục 4).
+- Danh sách chuỗi lỗi mạng thêm `hung up`, khớp với hook mô phỏng lỗi mạng ở mục 4 (`fatal: The remote end hung up unexpectedly`). Phiên bản 1 thiếu chuỗi này, nên test thử lại sẽ đỏ hay chạm điều kiện dừng 1 của plan.
+- Mục 6 bỏ nhắc nhánh thử của T-036 (đã bỏ khi duyệt T-036). Mục 6 cũng ghi T-038 làm trước phiên, và các câu của `auto-run.md` mà T-043 (ADR-1003) vừa đổi.
+- Ticket ghi đúng câu trả lời đã duyệt ở phiên bản 1 (bundle ở `$HOME/rescue/`, không vào nhánh báo cáo hay artifact).
 
 ## 2. Hiểu yêu cầu
 
@@ -53,7 +60,7 @@ scripts/save-branch.sh --bundle-only <nhánh>   chỉ bundle, không đẩy (l�
 
 - Kiểm `<nhánh>` có dạng `claude/...` và là một nhánh cục bộ; sai thì in `LỖI: ...`, mã 2.
 - Đẩy: `git push -u origin <nhánh>`. Mã 0 thì in `ĐÃ ĐẨY: <nhánh> (<mã commit ngắn>)`, mã 0.
-- Lỗi: đọc stderr. Có `Could not resolve host`, `Connection timed out`, `Connection reset`, `The requested URL returned error: 5`, `RPC failed`, `early EOF` thì là lỗi mạng: chờ `SAVE_BRANCH_RETRY_SECONDS` (mặc định `60 120 240`) rồi thử lại. Lỗi khác (từ chối của GitHub, không có quyền) thì không thử lại.
+- Lỗi: đọc stderr. Có `Could not resolve host`, `Connection timed out`, `Connection reset`, `The requested URL returned error: 5`, `RPC failed`, `early EOF`, `hung up` thì là lỗi mạng: chờ `SAVE_BRANCH_RETRY_SECONDS` (mặc định `60 120 240`) rồi thử lại. Lỗi khác (từ chối của GitHub, không có quyền) thì không thử lại.
 - Không đẩy được: tạo bundle.
   ```bash
   mkdir -p "$HOME/rescue"
@@ -61,14 +68,15 @@ scripts/save-branch.sh --bundle-only <nhánh>   chỉ bundle, không đẩy (l�
   git bundle verify "$HOME/rescue/<tên tệp>.bundle"
   ```
   - Tên tệp lấy từ tên nhánh, đổi `/` thành `__`.
-  - Không có commit nào ngoài `origin/main` thì không tạo bundle (git từ chối "empty bundle"), in `KHÔNG CẦN BUNDLE: nhánh không có commit nào ngoài origin/main`, mã 0.
+  - Không có commit nào ngoài `origin/main` thì không tạo bundle (git từ chối "empty bundle"), in `CHƯA ĐẨY: <nhánh> (không cần bundle: nhánh chưa có commit nào ngoài origin/main)`, mã 3. Không có gì để mất, nhưng lệnh đẩy đã hỏng: phiên phải biết để dừng task như mọi lần đẩy hỏng (đây là trường hợp của bước 1, đẩy lúc tạo nhánh).
   - In đoạn Markdown để chép vào báo cáo: tên nhánh, mã commit đầu nhánh, số commit, đường dẫn bundle, cỡ tệp, và lệnh lấy lại:
     ```
     git fetch <đường dẫn bundle> <nhánh>:<nhánh>
     git push -u origin <nhánh>
     ```
   - Mã thoát 3 (`CHƯA ĐẨY`), để phiên biết phải dừng task.
-- `--bundle-only`: bỏ bước đẩy, làm phần bundle như trên, mã 3.
+- `--bundle-only`: bỏ bước đẩy, làm phần bundle như trên, mã 3 (cả khi không cần bundle).
+- Tóm lại mã thoát: 0 chỉ khi đã đẩy được; 3 mọi trường hợp chưa đẩy (có hay không có bundle); 2 tham số sai.
 - Chú thích đầu file (tiếng Anh): cách dùng, mã thoát, và câu "never retries a push the environment refused: that call never reaches this script".
 
 **`docs/auto-run.md`** (phần của plan này; T-036, T-038, T-039, T-040 sửa các đoạn khác của cùng file, xem mục 6):
@@ -131,7 +139,7 @@ Test trong `scripts/tests/run.sh`, viết trước code. Khung rỗng: `scripts/
 
 Đẩy thất bại được dựng bằng hook `pre-receive` của bare repo:
 - `exit 1` để mô phỏng từ chối;
-- hoặc in `fatal: The remote end hung up unexpectedly` kèm `exit 1` để mô phỏng lỗi mạng (stderr của `git push` khi đó có `early EOF` hay `hung up`; ghi đúng chuỗi git in ra ở bước 3).
+- hoặc in `fatal: The remote end hung up unexpectedly` kèm `exit 1` để mô phỏng lỗi mạng. stderr của `git push` khi đó có `hung up` (chuỗi có trong danh sách lỗi mạng ở mục 3.1); bước 3 ghi đúng chuỗi git in ra vào nhật ký.
 
 | Tiêu chí | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
@@ -145,7 +153,7 @@ Test trong `scripts/tests/run.sh`, viết trước code. Khung rỗng: `scripts/
 | Lỗi mạng thì thử lại | Test script | `save-branch: a network error is retried, then bundled`: hook lỗi mạng, `SAVE_BRANCH_RETRY_SECONDS="0 0"`; hook được gọi 3 lần; có bundle; mã 3 |
 | Lỗi mạng rồi được | Test script | `save-branch: a network error that clears is pushed`: hook lỗi lần đầu (đếm qua tệp), lần hai cho qua; mã 0, `ĐÃ ĐẨY` |
 | Từ chối thì không thử lại | Test script | `save-branch: a refusal by GitHub is not retried`: hook từ chối; hook được gọi đúng 1 lần |
-| Không có gì để giữ | Test script | `save-branch: a branch with nothing beyond main needs no bundle`: nhánh trỏ đúng `main`, hook từ chối; dòng `KHÔNG CẦN BUNDLE`, không có tệp |
+| Không có gì để giữ, vẫn chưa đẩy | Test script | `save-branch: a refused push with nothing beyond main exits 3 without a bundle`: nhánh trỏ đúng `main`, hook từ chối; mã 3, dòng `CHƯA ĐẨY` có `không cần bundle`, không có dòng `ĐÃ ĐẨY`, không có tệp. Đối chứng: cùng nhánh, không có hook thì mã 0 và `ĐÃ ĐẨY` (trên khung rỗng test này thất bại vì khung luôn trả 0) |
 | Tham số sai | Test script | `save-branch: refuses a branch outside claude/`: `main`; mã 2, không đẩy (hook không được gọi) |
 | Phiên dùng script | Kiểm tra thủ công | Người duyệt chéo đọc diff `docs/auto-run.md`; lần từ chối tới (nếu có), báo cáo phiên có mục "Nhánh chưa đẩy" |
 
@@ -179,8 +187,9 @@ Không cần (E dưới 2): `git bundle` là lệnh git chuẩn, test của scri
 
 - File hoặc thành phần dùng chung bị chạm: `docs/auto-run.md`, `scripts/tests/run.sh`.
 - Task khác có thể xung đột:
-  - T-036 sửa `auto-run.md` mục 2 (kiểm tra đầu phiên, có đẩy nhánh thử). Plan này không sửa mục 2. Nhánh thử của T-036 là kiểm tra cả phiên; đẩy nhánh lúc tạo ở plan này là kiểm tra từng task. Hai việc bổ sung cho nhau.
-  - T-038 sửa bước 8 (lỗi R8), T-039 sửa bước 5 và 8 (bảng tra lỗi), T-040 sửa bước 9.
+  - T-036 sửa `auto-run.md` mục 2 (dòng `cloud-env-check.sh`). Plan này không sửa mục 2.
+  - T-039 sửa bước 5 và 8 (bảng tra lỗi), T-040 sửa bước 9. T-038 (bước 8, lỗi R8) làm trong phiên có người theo dõi trước phiên, đã có trên nhánh chính khi task này chạy.
+  - T-043 (ADR-1003, đã merge, PR #91) vừa đổi bảng các bước (dòng bước 4), câu "Nội dung giao việc tối thiểu" (thêm "trừ phần nối chỗ gọi theo ADR-1003 ..., phiên con báo mọi file nối chỗ gọi") và câu "Phiên con xong: ... khớp mục 3.2 cộng phần nối chỗ gọi mà phiên con đã báo". Plan này thêm vào hai câu đó, giữ nguyên phần T-043 viết; câu "Xóa worktree sau khi merge" vẫn còn nguyên.
   - Plan này chỉ sửa bảng các bước (dòng bước 1), bước 3, Giao bước 3 đến 5, bước 7, đoạn mới sau bước 7, một dòng của bảng mục 4 và mục 5. Chỉ xung đột dòng khi gộp, không xung đột ý.
   - `scripts/tests/run.sh`: mỗi plan thêm một khối riêng; plan này thêm khối `save-branch` ở cuối file, trước dòng tổng kết `if [[ "$failures" -gt 0 ]]`.
 - Đề xuất thứ tự chạy: phiên có người theo dõi (đổi quy trình phiên), trước hay sau các plan kia đều được.
@@ -209,9 +218,13 @@ Không cần (E dưới 2): `git bundle` là lệnh git chuẩn, test của scri
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-24); ghi chú: Tuấn chấp nhận mọi đề xuất của AI ở mục 8. Thay bằng phiên bản 2 vì rà soát độc lập trước RUN-20261024-01 tìm script thoát 0 khi đẩy hỏng mà không cần bundle, và danh sách lỗi mạng không khớp hook của test (mục 1).
+
+Phiên bản 2:
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <ghi chú, nếu có>
 
 ## 10. Nhật ký thực hiện
 

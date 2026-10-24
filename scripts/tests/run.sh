@@ -1032,6 +1032,61 @@ write_plan "$plans/T-937-a.md" medium approved "$(row Sửa feature/demo/A.kt)" 
 plan_check "$plans/T-937-a.md" > /dev/null
 expect "plan-check: a ticket in step with its plan gets no warning" 0 "$(grep -c 'ticket T-937' "$work/plan-check.out")"
 
+# Rule 11 (plan T-046, L-062): every manual test row of section 4 says where it runs; an emulator row names a scenario
+# file that exists and passes `device-scenario.py check`. Only a warning, for draft and approved plans alike.
+mkdir -p "$repo/feature/demo/src/deviceScenarios" "$repo/feature/demo/src/main/res/values"
+printf 'object DemoTags { const val TAG = "demo_tag" }\n' > "$repo/feature/demo/DemoTags.kt"
+printf '<resources>\n    <string name="demo_text">Demo</string>\n</resources>\n' > "$repo/feature/demo/src/main/res/values/strings.xml"
+printf 'ticket: T-940\ncriterion: Demo\ntimeout: 30\nwait id=demo_tag 5\nexpect str=demo_text\n' \
+  > "$repo/feature/demo/src/deviceScenarios/T-940-good.txt"
+printf 'ticket: T-941\ncriterion: Demo\ntimeout: 30\nfrobnicate id=demo_tag\n' > "$repo/feature/demo/src/deviceScenarios/T-941-bad.txt"
+manual_rows() { # <plan> <test type cell>...: appends manual test rows to section 4 of a plan
+  local plan="$1" cell
+  shift
+  printf '\n| Tiêu chí | Loại test | Cách kiểm tra |\n| --- | --- | --- |\n' >> "$plan"
+  for cell in "$@"; do printf '| Mục | %s | x |\n' "$cell" >> "$plan"; done
+}
+rule11() { grep -c 'quy tắc 11' "$work/plan-check.out" || true; } # lines of rule 11 in the last plan-check output
+write_plan "$plans/T-940-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+manual_rows "$plans/T-940-a.md" 'Kiểm tra thủ công'
+expect "plan-check: a manual row without where it runs is a warning" "pass 1 1" \
+  "$(plan_check "$plans/T-940-a.md") $(rule11) $(grep -c 'nơi chạy' "$work/plan-check.out" || true)"
+write_plan "$plans/T-941-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$decision_v1"
+manual_rows "$plans/T-941-a.md" 'Kiểm tra thủ công'
+expect "plan-check: a manual row of an approved plan without where it runs is a warning too" "pass 1" \
+  "$(plan_check "$plans/T-941-a.md") $(rule11)"
+write_plan "$plans/T-942-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+manual_rows "$plans/T-942-a.md" 'Kiểm tra thủ công (emulator: feature/demo/src/deviceScenarios/T-942-none.txt)'
+expect "plan-check: an emulator row needs a scenario file in the file list or the repository" "pass 1" \
+  "$(plan_check "$plans/T-942-a.md") $(grep -c 'quy tắc 11.*T-942-none.txt' "$work/plan-check.out" || true)"
+write_plan "$plans/T-943-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+manual_rows "$plans/T-943-a.md" 'Kiểm tra thủ công (emulator: feature/demo/src/deviceScenarios/T-941-bad.txt)'
+expect "plan-check: a scenario file that fails check is a warning" "pass 1" \
+  "$(plan_check "$plans/T-943-a.md") $(grep -c 'quy tắc 11.*T-941-bad.txt dòng 4' "$work/plan-check.out" || true)"
+write_plan "$plans/T-944-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+manual_rows "$plans/T-944-a.md" 'Kiểm tra thủ công (máy thật: )' 'Kiểm tra thủ công (người:)'
+expect "plan-check: máy thật and người need a reason" "pass 2" \
+  "$(plan_check "$plans/T-944-a.md") $(grep -c 'quy tắc 11.*thiếu lý do' "$work/plan-check.out" || true)"
+# Control: a correct plan has no line of rule 11. The file of the first row is only in the file list, not yet in the
+# repository (a plan creates it), so only the rows that can be read are checked.
+write_plan "$plans/T-945-a.md" medium draft "$(row Sửa feature/demo/A.kt)"$'\n'"$(row Tạo feature/demo/src/deviceScenarios/T-945-new.txt)"
+manual_rows "$plans/T-945-a.md" \
+  'Kiểm tra thủ công (emulator: feature/demo/src/deviceScenarios/T-945-new.txt, feature/demo/src/deviceScenarios/T-940-good.txt)' \
+  'Kiểm tra thủ công (máy thật: camera thật)' 'Kiểm tra thủ công (người: đọc tài liệu)' 'Kiểm tra tự động (unit test)'
+expect "plan-check: a correct plan has no line of rule 11 (the rule does run on T-940)" "pass 0 1" \
+  "$(plan_check "$plans/T-945-a.md") $(rule11) $(plan_check "$plans/T-940-a.md" > /dev/null; rule11)"
+
+# The latest run list must not get an error from rule 11 (it only warns).
+latest_run="$(ls docs/runs/RUN-*.md | sort | tail -n 1)"
+python3 -I scripts/run-check.py "$latest_run" > "$work/run-check-latest.out" 2>&1 || true
+expect "run-check: the latest run list has no new error from rule 11" "0 yes" \
+  "$(grep -c 'LỖI.*kiểm tra thủ công\|LỖI.*quy tắc 11' "$work/run-check-latest.out" || true) $([[ -s "$work/run-check-latest.out" ]] && echo yes || echo no)"
+
+# The shell of the app exposes testTags to uiautomator in the main window and in the network dialog window.
+expect "app: MainActivity and NetworkDialogHost call exposeTestTagsForUiAutomator" "1 1" \
+  "$(grep -c 'exposeTestTagsForUiAutomator()' app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt || true) \
+$(grep -c 'exposeTestTagsForUiAutomator()' app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/network/NetworkDialogHost.kt || true)"
+
 # run-check.py checks a whole run list: specs confirmed and answered, dependencies in order, scenarios tested.
 rr="$work/run-repo"
 mkdir -p "$rr/docs/features/demo/tickets" "$rr/docs/features/demo/plans" "$rr/docs/runs" "$rr/feature/demo"
@@ -1620,7 +1675,8 @@ mkdir -p "$work/clean"
 cp "$fixtures/logcat-clean.txt" "$work/clean/logcat.txt"
 expect "device-session: a clean session is not blocking" 0 "$(session /dev/null summary "$work/clean" com.example.app.staging)"
 # The offline scenario turns every radio off and runs only when the device really has no network (L-031).
-export DEVICE_SESSION_SLEEP=0 FAKE_ADB_CALLS="$work/adb-calls.txt"
+# The plan scenarios (scripts/device-scenario.py) get an empty folder here, so these tests keep counting the standard ones.
+export DEVICE_SESSION_SLEEP=0 FAKE_ADB_CALLS="$work/adb-calls.txt" DEVICE_SCENARIOS_GLOB="$work/no-scenarios/*.txt"
 # An emulator session named only in an auto-run report keeps its id (L-026 of camera-pose).
 mkdir -p "$work/runs"
 printf 'Kiểm thử trên máy ảo: phiên TS-%s-04, không có báo cáo riêng.\n' "$(date +%Y%m%d)" > "$work/runs/RUN-1.md"
@@ -1660,7 +1716,239 @@ expect "device-session: a refused grant is recorded" 2 \
   "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null; FAKE_ADB_GRANT_FAILS=android.permission.CAMERA session /dev/null scenarios --yes > /dev/null
      grep -c '^permissions granted=POST_NOTIFICATIONS failed=CAMERA$' "$(find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1)/scenarios.txt")"
 session /dev/null stop > /dev/null
-unset DEVICE_SESSION_SLEEP FAKE_ADB_CALLS FAKE_ADB_RUNTIME_PERMISSIONS
+unset DEVICE_SESSION_SLEEP FAKE_ADB_CALLS FAKE_ADB_RUNTIME_PERMISSIONS DEVICE_SCENARIOS_GLOB
+
+# device-scenario.py runs the scenario files of plans on a device through uiautomator dumps (plan T-046, L-062).
+# adb is scripts/tests/fake-adb; the UI it shows comes from FAKE_ADB_UI_SEQ, one dump file per `uiautomator dump`.
+ds_fixtures=scripts/tests/fixtures/device-scenario
+ds_files="$work/ds-files"
+mkdir -p "$ds_files"
+ds_log="$work/ds-session/scenarios.txt"
+ds_calls="$work/ds-calls.txt"
+ds_run() { # <dump files of the fixtures, in order> <scenario glob> [VAR=value ...]; prints the exit code
+  local seq="" f code=0
+  for f in $1; do seq+="$ds_fixtures/$f "; done
+  rm -rf "$work/ds-session" "$work/adb-state"
+  mkdir -p "$work/ds-session"
+  : > "$ds_calls"
+  env PATH="$work/bin:$PATH" FAKE_ADB_UI_SEQ="${seq% }" FAKE_ADB_STATE_DIR="$work/adb-state" FAKE_ADB_CALLS="$ds_calls" \
+    DEVICE_SCENARIOS_GLOB="$2" DEVICE_SCENARIO_POLL=0.05 DEVICE_SESSION_SLEEP=0 APP_PACKAGE=com.example.app.staging \
+    FAKE_ADB_RUNTIME_PERMISSIONS="android.permission.CAMERA" "${@:3}" \
+    python3 -I scripts/device-scenario.py run --session "$work/ds-session" --package com.example.app.staging \
+    > "$work/ds.out" 2>&1 || code=$?
+  echo "$code"
+}
+ds_count() { grep -c -- "$1" "${2:-$ds_log}" 2> /dev/null || true; } # lines of the log (or another file) that match
+joined() { echo "$@"; }
+ds_script() { # <name> <commands...>: writes a scenario file with a valid header
+  local name="$1"
+  shift
+  printf 'ticket: T-999\ncriterion: Test\ntimeout: 30\n' > "$ds_files/$name"
+  printf '%s\n' "$@" >> "$ds_files/$name"
+}
+
+expect "device-scenario: a passing file is reported as passed" "0 1 6" \
+  "$(ds_run "consent.xml onboarding.xml camera.xml" "$ds_fixtures/scenarios/ok.txt") $(ds_count '^plan ok.txt result=đạt seconds=[0-9]*$') $(ds_count '^plan ok.txt step=[0-9]* .* ok$')"
+expect "device-scenario: a passing file leaves no fail.png" "1 no" \
+  "$(ds_count 'result=đạt') $([[ -e "$work/ds-session/scenarios/ok/fail.png" ]] && echo yes || echo no)"
+expect "device-scenario: a passing file keeps its screenshot" yes \
+  "$([[ -f "$work/ds-session/scenarios/ok/done.png" ]] && echo yes || echo no)"
+expect "device-scenario: the header is written to the log" 1 "$(ds_count '^plan ok.txt ticket=T-900 criterion=Mẫu đạt | có dấu gạch$')"
+expect "device-scenario: tap uses the centre of the bounds" 1 "$(ds_count '^shell input tap 540 1806$' "$ds_calls")"
+expect "device-scenario: marks the start of each file in the log" 1 \
+  "$(ds_count "^shell log -t VGL.Session .*scenario=plan file=ok.txt" "$ds_calls")"
+
+ds_script consent.txt 'consent decline 5'
+expect "device-scenario: consent decline taps Do not consent when shown" "0 1" \
+  "$(ds_run "consent.xml" "$ds_files/consent.txt") $(ds_count '^shell input tap 540 1970$' "$ds_calls")"
+ds_script late.txt 'consent decline 5' 'wait id=onboarding_screen 3'
+expect "device-scenario: consent decline waits for a late consent form" "0 1 1" \
+  "$(ds_run "blank.xml blank.xml consent.xml onboarding.xml" "$ds_files/late.txt") $(ds_count '^shell input tap 540 1970$' "$ds_calls") $(ds_count 'result=đạt')"
+expect "device-scenario: consent decline taps nothing when there is no form" "0 1 0" \
+  "$(ds_run "blank.xml onboarding.xml" "$ds_files/consent.txt") $(ds_count 'result=đạt') $(ds_count 'input tap' "$ds_calls")"
+ds_script none.txt 'consent decline 1'
+expect "device-scenario: consent decline fails when nothing shows" "0 1 1" \
+  "$(ds_run "blank.xml" "$ds_files/none.txt") $(ds_count 'step=1 consent decline 1 FAIL') $(ds_count 'result=lỗi')"
+
+ds_script cards.txt 'tap idp=poses_card_ in=poses_grid index=2'
+expect "device-scenario: idp= in= index= pick the second card of the grid" "0 1" \
+  "$(ds_run "grid.xml" "$ds_files/cards.txt") $(ds_count '^shell input tap 540 600$' "$ds_calls")"
+ds_script strs.txt 'tap str=poses_chip_saved' 'tap str=poses_cd_save'
+expect "device-scenario: str= matches text and content-desc" "0 1 1" \
+  "$(ds_run "grid.xml" "$ds_files/strs.txt") $(ds_count '^shell input tap 140 300$' "$ds_calls") $(ds_count '^shell input tap 325 445$' "$ds_calls")"
+ds_script selected.txt 'expect text=Đã lưu selected=true' 'expect text=Chế độ selected=true'
+expect "device-scenario: selected=true matches selected or checked" "0 1" \
+  "$(ds_run "grid.xml" "$ds_files/selected.txt") $(ds_count 'result=đạt')"
+ds_script unselected.txt 'expect text=Tất cả selected=true'
+expect "device-scenario: selected=true does not match an unselected chip" "0 1 1" \
+  "$(ds_run "grid.xml" "$ds_files/unselected.txt") $(ds_count 'step=1 expect text=Tất cả selected=true FAIL') $(ds_count 'result=lỗi')"
+ds_script clickable.txt 'tap text=Nhãn clickable=true'
+expect "device-scenario: clickable=true skips plain nodes" "0 1" \
+  "$(ds_run "grid.xml" "$ds_files/clickable.txt") $(ds_count '^shell input tap 250 35$' "$ds_calls")"
+ds_script alternatives.txt 'wait id=missing_tag | id=poses_grid 2'
+expect "device-scenario: alternatives separated by | match any of them" "0 1" \
+  "$(ds_run "grid.xml" "$ds_files/alternatives.txt") $(ds_count 'result=đạt')"
+ds_script count3.txt 'count idp=poses_card_ in=poses_grid 3'
+ds_script count4.txt 'count idp=poses_card_ in=poses_grid 4'
+expect "device-scenario: count checks the number of matches" "0 1 0 1" \
+  "$(ds_run "grid.xml" "$ds_files/count3.txt") $(ds_count 'result=đạt') $(ds_run "grid.xml" "$ds_files/count4.txt" > /dev/null; ds_count 'result=đạt') $(ds_count 'step=1 count idp=poses_card_ in=poses_grid 4 FAIL')"
+
+expect "device-scenario: the first failing step stops the file" "0 1 0 1 1 1" \
+  "$(ds_run "camera.xml" "$ds_fixtures/scenarios/fail.txt") $(ds_count '^plan fail.txt step=3 .* FAIL ') $(ds_count '^plan fail.txt step=4') $(ds_count 'result=lỗi seconds=') $( [[ -f "$work/ds-session/scenarios/fail/fail.png" ]] && echo 1) $( [[ -f "$work/ds-session/scenarios/fail/fail.xml" ]] && echo 1)"
+expect "device-scenario: need ends the file as skipped (environment)" "0 1 0 0 none" \
+  "$(ds_run "camera.xml" "$ds_fixtures/scenarios/need.txt") $(ds_count 'result=bỏ qua (môi trường) seconds=') $(ds_count '^plan need.txt step=3') $(ds_count 'FAIL') $([[ -e "$work/ds-session/scenarios/need/fail.png" ]] && echo yes || echo none)"
+
+ds_script busy.txt 'wait id=camera_screen 5'
+expect "device-scenario: not idle is retried until the timeout" "0 1" \
+  "$(ds_run "busy.idle-error busy.idle-error camera.xml" "$ds_files/busy.txt") $(ds_count 'result=đạt')"
+ds_script busy-only.txt 'wait id=camera_screen 1'
+expect "device-scenario: not idle until the timeout is a failure that says so" "0 1" \
+  "$(ds_run "busy.idle-error" "$ds_files/busy-only.txt") $(ds_count 'FAIL could not get idle state')"
+
+# A hanging adb: every adb call has its own deadline, the file fails, the next file runs, the whole run is short.
+printf 'ticket: T-999\ncriterion: Hang\ntimeout: 3\nwait id=camera_screen 3\n' > "$ds_files/hang-a.txt"
+printf 'ticket: T-999\ncriterion: After the hang\ntimeout: 30\nback\nshot after\n' > "$ds_files/hang-b.txt"
+ds_started=$SECONDS
+ds_code="$(ds_run "camera.xml" "$ds_files/hang-*.txt" FAKE_ADB_HANG=uiautomator DEVICE_SCENARIO_ADB_TIMEOUT=1)"
+expect "device-scenario: a hanging adb fails the file within its deadline" "0 1 1 1 yes" \
+  "$ds_code $(ds_count 'FAIL adb_timeout') $(ds_count '^plan hang-a.txt result=lỗi') $(ds_count '^plan hang-b.txt result=đạt') $([[ $((SECONDS - ds_started)) -lt 15 ]] && echo yes || echo no)"
+
+expect "device-scenario: files beyond the budget are skipped" "0 2 yes" \
+  "$(ds_run "camera.xml" "$ds_fixtures/scenarios/[of]*.txt" DEVICE_SCENARIOS_BUDGET=0 | head -n 1) $(ds_count 'result=bỏ qua (hết thời gian)') $([[ "$(ds_count '^shell wm size reset$' "$ds_calls")" -ge 1 ]] && echo yes || echo no)"
+
+ds_reset_calls() { # how many of the reset commands the last run sent
+  local n=0 pattern
+  for pattern in '^shell wm size reset$' '^shell wm density reset$' '^shell cmd uimode night no$' \
+    'settings put system accelerometer_rotation 1$' 'settings put system user_rotation 0$' 'set-app-locales'; do
+    n=$((n + $(ds_count "$pattern" "$ds_calls")))
+  done
+  echo "$n"
+}
+ds_run "camera.xml" "$ds_fixtures/scenarios/fail.txt" > /dev/null
+expect "device-scenario: the device is reset after a failing file" yes "$([[ "$(ds_reset_calls)" -ge 6 ]] && echo yes || echo no)"
+ds_run "consent.xml onboarding.xml camera.xml" "$ds_fixtures/scenarios/ok.txt" > /dev/null
+expect "device-scenario: the device is reset after a passing file" yes "$([[ "$(ds_reset_calls)" -ge 6 ]] && echo yes || echo no)"
+ds_script rotate.txt 'device rotate landscape' 'device night on' 'device unfold' 'device locale en-US'
+ds_run "camera.xml" "$ds_files/rotate.txt" > /dev/null
+expect "device-scenario: device commands change the device and the reset undoes them" "1 1 1 1 1" \
+  "$(ds_count 'user_rotation 1$' "$ds_calls") $(ds_count '^shell cmd uimode night yes$' "$ds_calls") $(ds_count '^shell wm size 1766x2208$' "$ds_calls") $(ds_count '^shell wm density 420$' "$ds_calls") $(ds_count 'set-app-locales com.example.app.staging --locales en-US' "$ds_calls")"
+
+ds_script offline.txt 'network off' 'back'
+expect "device-scenario: network off turns every radio off" "0 1 1" \
+  "$(ds_run "camera.xml" "$ds_files/offline.txt") $(ds_count 'result=đạt') $(ds_count '^shell svc wifi disable$' "$ds_calls")"
+expect "device-scenario: network off that keeps a network skips the file" "0 1 0" \
+  "$(ds_run "camera.xml" "$ds_files/offline.txt" FAKE_ADB_NETWORK=100) $(ds_count 'result=bỏ qua (môi trường)') $(ds_count 'result=đạt')"
+
+expect "device-scenario: check reports an unknown command with its line" "1 1" \
+  "$(code=0; python3 -I scripts/device-scenario.py check "$ds_fixtures/bad.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c 'bad.txt dòng 5' "$work/ds-check.out" || true)"
+expect "device-scenario: a file with a syntax error is a file error that sends no input" "0 1 0" \
+  "$(ds_run "camera.xml" "$ds_fixtures/bad.txt") $(ds_count 'result=lỗi tệp') $(ds_count 'input' "$ds_calls")"
+expect "device-scenario: check reports an id or str that the code does not have" "1 1 1" \
+  "$(code=0; python3 -I scripts/device-scenario.py check "$ds_fixtures/bad-id.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c 'no_such_tag_zz' "$work/ds-check.out" || true) $(grep -c 'no_such_string_zz' "$work/ds-check.out" || true)"
+ds_repo_files="$(ls feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/*.txt 2> /dev/null || true)"
+# shellcheck disable=SC2086
+expect "device-scenario: the scenarios of the repository pass check" "yes 0" \
+  "$([[ "$(echo "$ds_repo_files" | grep -c .)" -ge 3 ]] && echo yes || echo no) $(code=0; python3 -I scripts/device-scenario.py check $ds_repo_files > "$work/ds-check.out" 2>&1 || code=$?; echo "$code")"
+empty_code="$(ds_run "camera.xml" "$work/no-scenarios/*.txt")"
+empty_calls="$(wc -l < "$ds_calls" | tr -d ' ')"
+ds_run "consent.xml onboarding.xml camera.xml" "$ds_fixtures/scenarios/ok.txt" > /dev/null
+expect "device-scenario: an empty glob exits before any adb call (a file makes calls)" "0 0 yes" \
+  "$(joined "$empty_code" "$empty_calls" "$([[ "$(wc -l < "$ds_calls")" -gt 0 ]] && echo yes || echo no)")"
+
+# device-session.sh runs the plan scenarios after the standard ones and shows the result (plan T-046).
+export DEVICE_SESSION_SLEEP=0 FAKE_ADB_CALLS="$work/adb-calls.txt" DEVICE_SCENARIO_POLL=0.05 FAKE_ADB_STATE_DIR="$work/adb-state-session" \
+  FAKE_ADB_RUNTIME_PERMISSIONS="android.permission.CAMERA"
+newest_session() { find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1; }
+rm -rf "$work/adb-state-session"
+session "$fixtures/logcat-clean.txt" start ci > /dev/null
+plan_code="$(DEVICE_SCENARIOS_GLOB="$ds_fixtures/scenarios/ok.txt" \
+  FAKE_ADB_UI_SEQ="$ds_fixtures/consent.xml $ds_fixtures/onboarding.xml $ds_fixtures/camera.xml" session /dev/null scenarios --yes)"
+plan_session="$(newest_session)"
+monkey_line="$(grep -n '^monkey ' "$plan_session/scenarios.txt" | head -n 1 | cut -d: -f1 || true)"
+plan_line="$(grep -n '^plan ok.txt' "$plan_session/scenarios.txt" | head -n 1 | cut -d: -f1 || true)"
+expect "device-session: scenarios runs the plan scenarios after monkey" "0 yes" \
+  "$(joined "$plan_code" "$([[ -n "$monkey_line" && -n "$plan_line" && "$monkey_line" -lt "$plan_line" ]] && echo yes || echo no)")"
+session /dev/null stop > /dev/null
+expect "device-session: the summary shows the plan scenario that ran" 1 \
+  "$(grep -c '^| ok.txt | T-900 | Mẫu đạt / có dấu gạch | đạt |' "$plan_session/summary.md" || true)"
+
+expect "device-session: helper network-off reuses the scenario function" "0 1" \
+  "$(joined "$(session /dev/null helper network-off)" "$(FAKE_ADB_NETWORK=100 session /dev/null helper network-off)")"
+helper_on="$(session /dev/null helper network-on)"
+helper_grant="$(session /dev/null helper grant-permissions)"
+expect "device-session: helper network-on and grant-permissions" "0 0 1" \
+  "$(joined "$helper_on" "$helper_grant" "$(grep -c '^granted=CAMERA$' "$work/session.out" || true)")"
+usage_code="$(session /dev/null)"
+expect "device-session: Usage lists helper" "2 yes" \
+  "$(joined "$usage_code" "$(grep -q 'helper' "$work/session.out" && echo yes || echo no)")"
+
+# The summary reads scenarios.txt and the log; sessions are written by hand here so each case is exact.
+mkplan() { # <dir> <scenarios.txt content> <logcat content>
+  rm -rf "$1"
+  mkdir -p "$1"
+  printf '%s\n' "$2" > "$1/scenarios.txt"
+  printf '%s\n' "$3" > "$1/logcat.txt"
+}
+plan_lines='plan ok.txt ticket=T-900 criterion=Mẫu đạt
+plan ok.txt step=1 fresh ok
+plan ok.txt result=đạt seconds=12
+plan fail.txt ticket=T-901 criterion=Mẫu lỗi
+plan fail.txt step=1 back ok
+plan fail.txt step=2 expect id=x FAIL không thấy
+plan fail.txt result=lỗi seconds=3
+plan need.txt ticket=T-902 criterion=Mẫu thiếu
+plan need.txt step=1 need id=y SKIP không thấy
+plan need.txt result=bỏ qua (môi trường) seconds=2'
+mkplan "$work/plan-summary" "$plan_lines" "$(cat "$fixtures/logcat-clean.txt")"
+summary_code="$(session /dev/null summary "$work/plan-summary" com.example.app.staging)"
+cell() { grep -cF -- "$1" "$work/plan-summary/summary.md" || true; }
+expect "device-session: summary lists the plan scenarios" "0 1 1 1 1" \
+  "$(joined "$summary_code" "$(cell '## Kịch bản theo plan')" \
+    "$(cell '| ok.txt | T-900 | Mẫu đạt | đạt |  | 12 | 0 / 0 |')" \
+    "$(cell '| fail.txt | T-901 | Mẫu lỗi | lỗi | 2: expect id=x | 3 | 0 / 0 |')" \
+    "$(cell '| need.txt | T-902 | Mẫu thiếu | bỏ qua (môi trường) |  | 2 | 0 / 0 |')")"
+mkplan "$work/plan-pipe" 'plan ok.txt ticket=T-900 criterion=a | b
+plan ok.txt result=đạt seconds=1' "$(cat "$fixtures/logcat-clean.txt")"
+session /dev/null summary "$work/plan-pipe" com.example.app.staging > /dev/null
+expect "device-session: a criterion with a pipe keeps the table" "1 9" \
+  "$(joined "$(grep -cF '| ok.txt | T-900 | a / b | đạt |' "$work/plan-pipe/summary.md" || true)" \
+    "$(grep -F '| ok.txt |' "$work/plan-pipe/summary.md" | awk -F'|' '{print NF}')")"
+mkplan "$work/plan-none" 'monkey events=1500 seed=1' "$(cat "$fixtures/logcat-clean.txt")"
+session /dev/null summary "$work/plan-none" com.example.app.staging > /dev/null
+expect "device-session: summary says there are no plan scenarios" 1 \
+  "$(grep -c '^Kịch bản theo plan: không có$' "$work/plan-none/summary.md" || true)"
+mkdir -p "$work/no-scenarios"
+session "$fixtures/logcat-clean.txt" start ci > /dev/null
+empty_code="$(DEVICE_SCENARIOS_GLOB="$work/no-scenarios/*.txt" session /dev/null scenarios --yes)"
+empty_session="$(newest_session)"
+session /dev/null stop > /dev/null
+expect "device-session: an empty scenario folder gives the no-plan-scenarios line" "0 1" \
+  "$(joined "$empty_code" "$(grep -c '^Kịch bản theo plan: không có$' "$empty_session/summary.md" || true)")"
+
+crash_log='10-17 09:00:00.100  1234  1234 I VGL.Session: session=start name=ci
+10-17 09:00:01.000  1234  1234 I VGL.Session: scenario=plan file=ok.txt
+10-17 09:00:05.000  4321  4321 E AndroidRuntime: FATAL EXCEPTION: main
+10-17 09:00:05.000  4321  4321 E AndroidRuntime: Process: com.example.app.staging, PID: 4321
+10-17 09:00:06.000  1234  1234 I VGL.Session: scenario=plan file=fail.txt
+10-17 09:00:07.000  4321  4321 I VGL.loading: state=in_progress'
+printf '%s\n' "$crash_log" > "$work/plan-crash.log"
+session "$work/plan-crash.log" start ci > /dev/null
+crash_session="$(newest_session)"
+printf '%s\n' 'plan ok.txt ticket=T-900 criterion=A' 'plan ok.txt result=đạt seconds=4' \
+  'plan fail.txt ticket=T-901 criterion=B' 'plan fail.txt result=đạt seconds=1' > "$crash_session/scenarios.txt"
+crash_code="$(session /dev/null stop)"
+cell() { grep -cF -- "$1" "$crash_session/summary.md" || true; }
+expect "device-session: a crash during a plan scenario is blocking and named" "1 1 1 1" \
+  "$(joined "$crash_code" "$(cell '| ok.txt | T-900 | A | đạt |  | 4 | 1 / 0 |')" \
+    "$(cell '| fail.txt | T-901 | B | đạt |  | 1 | 0 / 0 |')" "$(cell '| App dừng đột ngột (crash) | 1 | chặn |')")"
+
+session "$fixtures/logcat-clean.txt" start ci > /dev/null
+runner_code="$(DEVICE_SCENARIO_CMD=false session /dev/null scenarios --yes)"
+runner_session="$(newest_session)"
+session /dev/null stop > /dev/null
+expect "device-session: a runner error does not stop scenarios" "0 1" \
+  "$(joined "$runner_code" "$(grep -c '^plan runner_error' "$runner_session/scenarios.txt" || true)")"
+unset DEVICE_SESSION_SLEEP FAKE_ADB_CALLS DEVICE_SCENARIO_POLL FAKE_ADB_STATE_DIR FAKE_ADB_RUNTIME_PERMISSIONS
 
 # app-explore: the guard refuses taps that would open an ad or start a purchase (docs/ops/clone-study.md).
 ax_fixtures=scripts/tests/fixtures/app-explore

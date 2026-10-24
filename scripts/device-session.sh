@@ -8,11 +8,14 @@
 #   scripts/device-session.sh reset           clear the app's data, as if just installed, and mark it in the log
 #   scripts/device-session.sh scenarios --yes [--ask-permissions]
 #                                              run the standard scenarios: cold starts, first launch offline,
-#                                              random taps (monkey). Clears the app's data and toggles airplane mode.
+#                                              random taps (monkey), then the scenario files of the plans
+#                                              (scripts/device-scenario.py). Clears the app's data and toggles airplane mode.
 #                                              Grants the app's runtime permissions after each data clear, unless
 #                                              --ask-permissions keeps the permission prompts (to test that flow).
 #   scripts/device-session.sh stop             stop recording, collect device data, write summary.md
 #   scripts/device-session.sh summary <dir>    (re)write summary.md of a session folder; no device needed
+#   scripts/device-session.sh helper network-off|network-on|grant-permissions
+#                                              functions of the scenarios, called by scripts/device-scenario.py
 # Exit codes: 0 done (summary: no blocking signal), 1 error or blocking signal (crash, ANR), 2 usage.
 #
 # Settings (environment):
@@ -24,6 +27,10 @@
 #                        default: docs/runs
 #   MONKEY_EVENTS        random events in `scenarios`; default 1500
 #   DEVICE_SESSION_SLEEP seconds for every wait in `scenarios`; tests set 0 (default: the wait of each step)
+#   DEVICE_SCENARIOS_GLOB   scenario files of the plans; default: feature/*/src/deviceScenarios/*.txt
+#                        app/src/deviceScenarios/*.txt (read by scripts/device-scenario.py)
+#   DEVICE_SCENARIOS_BUDGET seconds for all scenario files of the plans; default 600
+#   DEVICE_SCENARIO_CMD  command that runs them; default: python3 scripts/device-scenario.py
 # Messages are in Vietnamese for the team; comments are in English.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -37,7 +44,7 @@ MONKEY_SEED=20261017
 MARKER_TAG="VGL.Session"
 
 fail() { echo "LỖI: $*" >&2; exit 1; }
-usage() { sed -n '6,15p' "$0" | sed 's/^# //' >&2; exit 2; }
+usage() { sed -n '6,19p' "$0" | sed 's/^# //' >&2; exit 2; }
 
 app_package() {
   if [[ -n "${APP_PACKAGE:-}" ]]; then echo "${APP_PACKAGE}"; return; fi
@@ -236,8 +243,88 @@ cmd_scenarios() {
   adb shell monkey -p "${pkg}" -s "${MONKEY_SEED}" --throttle 200 --pct-syskeys 0 -v "${MONKEY_EVENTS}" \
     > "${dir}/monkey.txt" 2>&1 || true
   echo "monkey events=${MONKEY_EVENTS} seed=${MONKEY_SEED}" >> "${dir}/scenarios.txt"
+
+  # 4. The scenario files of the plans (docs/ops/test-sessions.md, section 5), each from a fresh install. A failing
+  # scenario is a finding for the analysis, not a block, and a runner that breaks must not stop the session.
+  local runner_status=0 runner="${DEVICE_SCENARIO_CMD:-python3 scripts/device-scenario.py}"
+  # shellcheck disable=SC2086
+  if command -v timeout > /dev/null; then
+    timeout "$((${DEVICE_SCENARIOS_BUDGET:-600} + 120))" ${runner} run --session "${dir}" --package "${pkg}" || runner_status=$?
+  else
+    ${runner} run --session "${dir}" --package "${pkg}" || runner_status=$?
+  fi
+  if [[ "${runner_status}" -ne 0 ]]; then
+    echo "plan runner_error exit=${runner_status}" >> "${dir}/scenarios.txt"
+    echo "CHÚ Ý: trình chạy kịch bản theo plan lỗi (mã ${runner_status}); phần còn lại của phiên vẫn dùng được." >&2
+  fi
   mark "scenario=done"
   echo "Đã chạy xong kịch bản chuẩn. Chạy: scripts/device-session.sh stop"
+}
+
+# Functions of the scenarios that scripts/device-scenario.py calls, so there is one way to cut the network and to grant.
+cmd_helper() {
+  need_device
+  case "${1:-}" in
+    network-off) network_off ;;
+    network-on) network_on ;;
+    grant-permissions) grant_permissions "$(app_package)" ;;
+    *) usage ;;
+  esac
+}
+
+# The table "Kịch bản theo plan" of summary.md, from the plan lines of scenarios.txt and the log. The crash and ANR
+# columns count the app's crashes between the marker of a file and the next VGL.Session line.
+print_plan_scenarios() {
+  local dir="$1" pkg="$2"
+  [[ -f "${dir}/scenarios.txt" ]] || return 0
+  echo "## Kịch bản theo plan"
+  echo
+  if grep -qE '^plan [^ ]+ result=' "${dir}/scenarios.txt"; then
+    echo "| Tệp | Ticket | Tiêu chí | Kết quả | Bước lỗi | Giây | Crash/ANR trong tệp |"
+    echo "| --- | --- | --- | --- | --- | --- | --- |"
+    awk -v pkg="${pkg}" '
+      function cell(text) { gsub(/\|/, "/", text); return text }
+      FNR == NR {
+        if ($0 ~ /^plan [^ ]+ ticket=/) {
+          line = $0; sub(/^plan [^ ]+ ticket=/, "", line)
+          ticket[$2] = line; sub(/ criterion=.*/, "", ticket[$2])
+          crit[$2] = line; sub(/^[^ ]* criterion=/, "", crit[$2])
+        } else if ($0 ~ /^plan [^ ]+ step=[0-9]+ .* FAIL( |$)/ && !($2 in bad)) {
+          rest = $0; sub(/^plan [^ ]+ step=/, "", rest)
+          number = rest; sub(/ .*/, "", number)
+          command = rest; sub(/^[0-9]+ /, "", command); sub(/ FAIL( .*|$)/, "", command)
+          reason = rest; sub(/^.* FAIL /, "", reason)
+          bad[$2] = (command == "check") ? reason : number ": " command
+        } else if ($0 ~ /^plan [^ ]+ result=/) {
+          result = $0; sub(/^plan [^ ]+ result=/, "", result)
+          seconds[$2] = result; sub(/^.* seconds=/, "", seconds[$2])
+          sub(/ seconds=.*/, "", result)
+          outcome[$2] = result; order[++count] = $2
+        }
+        next
+      }
+      /VGL\.Session/ {
+        current = ""
+        if (match($0, /scenario=plan file=[^ ]+/)) current = substr($0, RSTART + 19, RLENGTH - 19)
+        next
+      }
+      current != "" && index($0, "AndroidRuntime: Process: " pkg ",") { crashes[current]++ }
+      current != "" && index($0, "ANR in " pkg) { anrs[current]++ }
+      END {
+        for (i = 1; i <= count; i++) {
+          f = order[i]
+          printf "| %s | %s | %s | %s | %s | %s | %d / %d |\n", f, ticket[f], cell(crit[f]), outcome[f], cell(bad[f]), seconds[f], crashes[f], anrs[f]
+        }
+      }' "${dir}/scenarios.txt" "${dir}/logcat.txt"
+    echo
+  else
+    echo "Kịch bản theo plan: không có"
+    echo
+  fi
+  if grep -q '^plan runner_error' "${dir}/scenarios.txt"; then
+    echo "CHÚ Ý: trình chạy kịch bản theo plan lỗi (dòng \`plan runner_error\` trong scenarios.txt); các tệp chưa chạy không có kết quả."
+    echo
+  fi
 }
 
 cmd_stop() {
@@ -316,6 +403,7 @@ cmd_summary() {
       echo '```'
       echo
     fi
+    print_plan_scenarios "${dir}" "${pkg}"
     if [[ -f "${dir}/gfxinfo.txt" ]]; then
       echo "## Khung hình và bộ nhớ"
       echo
@@ -337,5 +425,6 @@ case "${1:-}" in
   scenarios) shift; cmd_scenarios "$@" ;;
   stop) cmd_stop ;;
   summary) shift; [[ $# -ge 1 ]] || usage; cmd_summary "$1" "${2:-}" ;;
+  helper) shift; cmd_helper "$@" ;;
   *) usage ;;
 esac

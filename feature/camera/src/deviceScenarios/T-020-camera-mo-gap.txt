@@ -1,0 +1,22 @@
+ticket: T-020
+criterion: Gập mở thật, phần bố cục camera (plan T-020, mục 4); không chụp
+timeout: 150
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+wait id=camera_screen 15
+need id=camera_grid_button 15
+tap idp=camera_pose_ in=camera_strip index=2
+tap id=camera_grid_button
+wait id=camera_grid 5
+device unfold
+wait id=camera_screen 10
+expect id=camera_grid
+expect id=camera_strip
+shot unfolded
+device fold
+wait id=camera_screen 10
+expect id=camera_grid
+expect id=camera_strip
+shot folded

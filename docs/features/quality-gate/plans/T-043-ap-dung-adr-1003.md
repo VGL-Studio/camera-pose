@@ -1,16 +1,16 @@
 ---
 ticket: T-043
 title: Áp dụng ADR-1003 vào thang rủi ro và quy trình phiên tự chạy
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.0M         # cỡ S, số gợi ý của scripts/token-usage.py estimate
 blocking_points: []
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-24
 ---
 
 # PLAN T-043: ÁP DỤNG ADR-1003 VÀO THANG RỦI RO VÀ QUY TRÌNH PHIÊN TỰ CHẠY
@@ -123,9 +123,9 @@ Phần cần viết không khớp được với một vế của ADR-1003 (ph�
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <ghi chú, nếu có>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Làm ngay trong phiên có người theo dõi (câu 1).
 
 ## 10. Nhật ký thực hiện
 

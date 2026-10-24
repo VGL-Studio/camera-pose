@@ -126,7 +126,7 @@ Nội dung rà soát:
 - Thay đổi có đáp ứng đủ tiêu chí chấp nhận trong spec không.
 - Test có thực sự kiểm tra tiêu chí chấp nhận không, hay chỉ kiểm tra những gì code đang làm.
 - Có tuân thủ mục "Việc AI phải tuân thủ" của các ADR không.
-- Có chạm vào phần ngoài phạm vi plan không.
+- Có chạm vào phần ngoài phạm vi plan không. Phần ngoài mục 3.2 chỉ được giữ khi đúng là nối chỗ gọi mà task khác cùng danh sách đổi, trong giới hạn của ADR-1003 (`risk-scoring.md`, mục 4); nếu không, mức chặn.
 - Có cấu hình production, khóa bí mật, mã quảng cáo thật trong thay đổi không.
 - Code có theo đúng mẫu đã có trong dự án không.
 - Feature có thiết kế: giao diện có đúng thiết kế không. Xem từng ảnh ghép trong `design/review/` theo mục 7 của mẫu thiết kế; chữ sai, thiếu trạng thái, sai thứ tự hay vai trò màu là mức chặn; lệch nhỏ về khoảng cách là mức ghi chú. Tỷ lệ điểm ảnh khác chỉ để tham khảo.
@@ -136,8 +136,10 @@ Kết quả rà soát chia ba mức:
 | Mức | Xử lý |
 | --- | --- |
 | Chặn | Quay lại bước 4. Tính vào giới hạn 3 lần sửa cho cùng một lỗi. |
-| Nên sửa | Sửa nếu nằm trong phạm vi plan, nếu không thì ghi vào báo cáo. |
+| Nên sửa | Phải sửa (ADR-1003) khi phần sửa chỉ chạm file của mục 3.2 hay file nối chỗ gọi được phép, có test viết trước thất bại đúng lý do, và không đổi điều mà test của mục 4 của plan kiểm. Không viết được test thì không sửa, ghi vào báo cáo. Điểm mâu thuẫn với plan, spec hay một test của plan: không sửa, ghi vào báo cáo kèm phương án để người quyết. Sửa xong chạy lại bước 5 và rà soát lại phần vừa sửa; mỗi lần sửa tính vào giới hạn 3 lần sửa. |
 | Ghi chú | Ghi vào báo cáo để người xem. |
+
+Phần nối chỗ gọi ngoài mục 3.2 và từng điểm đã sửa theo rà soát được ghi trong mô tả PR, mục "Ngoài mục 3.2" và "Đã sửa theo rà soát" (ADR-1003).
 
 Nếu phiên rà soát và phiên viết code hiểu spec khác nhau, AI không tự chọn bên nào mà dừng task, vì đây là dấu hiệu spec hoặc plan chưa rõ.
 
@@ -194,6 +196,7 @@ Theo ADR-1002, mục 4. Phiên chỉ revert commit merge của chính phiên, kh
 - Chỉ ghi khi task đã có kết quả cuối: đã merge, hoặc đã dừng. Không ghi trước khi biết kết quả CI.
 - Ghi giờ các khâu của task vào bảng Dòng thời gian của báo cáo (mẫu phiên, mục Số liệu): tạo nhánh, test viết trước xong, đẩy PR, CI xong, merge hoặc dừng. Giờ lấy từ commit, PR và kết quả `wait-run.sh`, ghi tới phút theo UTC.
 - Ghi trên nhánh báo cáo, không ghi trên nhánh của task. Ghi vào mục Nhật ký thực hiện ở cuối plan theo mẫu, cập nhật dòng của task trong báo cáo phiên, rồi đẩy nhánh báo cáo lên. Nhờ vậy nếu phiên dừng đột ngột (hết hạn mức), người vẫn đọc được kết quả các task đã xong trên nhánh báo cáo.
+- Nhật ký ghi cả phần nối chỗ gọi ngoài mục 3.2 (file, lý do, task đã đổi chỗ gọi, test) và từng điểm đã sửa theo rà soát, với test của nó (ADR-1003).
 - Plan chuyển sang `done`, ticket chuyển sang `on-staging`.
 - Task bị dừng: plan và ticket chuyển sang `stopped`, nhánh và PR của task được giữ nguyên, không merge.
 - Task bị dừng: chuẩn bị sẵn cho người, để sáng hôm sau người chỉ cần xem và duyệt (mục Chuẩn bị cho người khi task dừng).

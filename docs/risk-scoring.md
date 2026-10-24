@@ -47,7 +47,7 @@ Thêm hai quy tắc:
 
 Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không tự xoay xở, khi gặp một trong các tình huống sau:
 
-1. Cần sửa file không nằm trong danh sách file của plan.
+1. Cần sửa file không nằm trong danh sách file của plan (trừ phần nối chỗ gọi theo ADR-1003, dưới).
 2. Cần thêm thư viện, quyền truy cập hoặc bất kỳ điểm chặn nào ở mục 1 mà plan chưa nêu. Để ít gặp điều kiện này, quyền và thư viện được quyết lúc lập plan (`docs/CLAUDE.md`, mục Khi viết plan; mục 3.3 của mẫu plan; `scripts/plan-check.py`, quy tắc 8).
 3. Phát hiện spec, thiết kế hoặc ADR mâu thuẫn với plan hoặc với nhau.
 4. Test vẫn thất bại sau 3 lần sửa liên tiếp cho cùng một lỗi.
@@ -57,7 +57,17 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 8. Cần thay đổi điều mà test viết trước đang kiểm tra để code qua được.
 9. Phiên rà soát độc lập và phiên viết code hiểu spec khác nhau.
 
-**Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2, giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
+**Không phải dừng: nối chỗ gọi mà task khác cùng danh sách đổi (ADR-1003).** AI được sửa một file không có trong danh sách file của plan khi đủ mọi điều kiện sau; vượt bất kỳ điều kiện nào thì dừng theo điều kiện 1:
+
+- File đó được tạo hay đổi, sau khi plan được duyệt, bởi một task khác của cùng danh sách chạy đã merge trong phiên này hay phiên trước.
+- Phần sửa chỉ nối chỗ gọi: truyền tham số mới, gọi hàm mới, đổi tên theo thay đổi của chính plan, ở các file gọi thứ mà plan đổi; không thêm hành vi nào chưa ghi trong plan đang chạy hay plan đã tạo file đó.
+- File không thuộc điểm chặn ở mục 1: không thuộc `.github/`, `scripts/`, `build-logic/`, `gradle/`, file `*.gradle.kts`; không phải `AndroidManifest.xml`, `consumer-rules.pro`, `proguard-rules.pro`; không phải file của `:core:ads`, `:core:analytics`, ảnh chuẩn của module khác.
+- Có test viết trước cho phần nối, thất bại đúng lý do, commit trước code như bước 3 của `auto-run.md`.
+- Phần sửa nhỏ: tổng cộng không quá 3 file thêm và 40 dòng code (không tính test) cho mỗi task.
+
+Phần nối được ghi vào nhật ký của plan (file, lý do, task đã đổi chỗ gọi, test) và mô tả PR (mục "Ngoài mục 3.2"); rà soát độc lập xét riêng phần này, không đúng là nối chỗ gọi thì báo mức chặn (`auto-run.md`, bước 6).
+
+**Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2, giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9 (ngoại lệ duy nhất của điều kiện 1 là nối chỗ gọi theo ADR-1003, ở trên).
 
 Khi dừng, AI làm ba việc:
 
@@ -77,3 +87,4 @@ Khi bắt đầu làm việc lại, nhóm trả lời câu hỏi "vì sao plan c
 | 2026-10-17 | Mục 3: ngoại lệ duyệt chéo khi nhóm chỉ có một dev | Retro RUN-20261016-02: nhóm hiện có một dev, plan rủi ro cao không có người duyệt chéo khác |
 | 2026-10-22 | Mục 4, điều kiện 2: quyền và thư viện quyết lúc lập plan | Tránh dừng task vì quyền hay thư viện chỉ lộ ra trong phiên (L-007, plan T-016 phiên bản 1; L-041) |
 | 2026-10-22 | Mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng | Ba lần dừng của T-007, T-011 đều vì kỹ thuật của plan không chạy, trong khi cách thay đã rõ từ lúc viết plan (L-039) |
+| 2026-10-24 | Mục 4, điều kiện 1: nối chỗ gọi mà task khác cùng danh sách đổi không phải dừng, trong giới hạn của ADR-1003 | T-017 phải sửa `CameraUnfolded.kt` mà T-020 tạo, ngoài mục 3.2 (L-058, PR #81) |

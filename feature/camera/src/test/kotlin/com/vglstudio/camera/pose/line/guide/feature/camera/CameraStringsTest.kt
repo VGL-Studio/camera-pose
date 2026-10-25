@@ -81,7 +81,9 @@ class CameraStringsTest {
     fun opacityLabel_isNotTransparency() {
         TRANSPARENCY.forEach { (tag, word) ->
             val label = context(tag).getString(R.string.camera_adjust_opacity)
-            val transparency = label.contains(word, ignoreCase = true)
+            // A whole word: Hindi अपारदर्शिता (opacity) is पारदर्शिता (transparency) with the prefix of negation.
+            val transparency = Regex("(?<![\\p{L}\\p{M}])" + Regex.escape(word), RegexOption.IGNORE_CASE)
+                .containsMatchIn(label)
             assertFalse("$tag camera_adjust_opacity says transparency: $label", transparency)
         }
     }
@@ -110,12 +112,12 @@ class CameraStringsTest {
 
         /** The word for "transparency" in each language, as the onboarding uses it for the outline. */
         val TRANSPARENCY = listOf(
-            "en" to "transparen",
+            "en" to "transparency",
             "hi" to "पारदर्शिता",
             "pt-BR" to "transparência",
             "es-419" to "transparencia",
             "id" to "transparansi",
-            "th" to "โปร่งใส",
+            "th" to "ความโปร่งใส",
         )
 
         val PLACEHOLDER = Regex("%(\\d+\\$)?[a-z%]")

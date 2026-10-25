@@ -151,7 +151,8 @@ Không bị ảnh hưởng, đã kiểm:
 | Sửa | `feature/poses/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/detail/PoseDetailScreenScreenshotTest.kt` | Như trên; thêm `default_ptBr_small` |
 | Sửa | `feature/poses/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/PosesScreenTest.kt` | `card_stepCountUsesScreenLanguage_english`: "Solo · 5 steps" |
 | Sửa | `feature/poses/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/detail/PoseDetailScreenTest.kt` | `meta_countsStepsInScreenLanguage`: "Solo · Women · Full body · 5 steps"; thêm `smallScreen_portuguese_buttonFullyVisible` |
-| Tạo | `feature/poses/src/test/screenshots/PoseDetailScreen_default-ptbr_small.png` | Ảnh chuẩn mới, ghi ở bước 4 sau khi có bản dịch (không ghi ở bước 3) |
+| Tạo | `feature/poses/src/test/screenshots/PoseDetailScreen_default-pt-br_small.png` | Ảnh chuẩn mới, ghi ở bước 4 sau khi có bản dịch (không ghi ở bước 3, mục 4) |
+| Sửa | `docs/features/poses/design/review/` | Ảnh ghép và `summary.md` do `scripts/design-compare.sh poses` sinh lại ở bước 5, commit cùng PR (`docs/ops/design-workflow.md`, mục 6) |
 | Sửa | `core/designsystem/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/NetworkDialogScreenshotTest.kt` | `vi-` trong hai `qualifiers` |
 | Sửa | `core/designsystem/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/NetworkDialogTest.kt` | `vi-` trong hai `qualifiers` |
 | Sửa | `core/designsystem/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/DesignSystemCatalogScreenshotTest.kt` | `vi-` trong `qualifiers` của lớp |
@@ -164,6 +165,8 @@ Không bị ảnh hưởng, đã kiểm:
 - `scripts/tests/run.sh` được `scripts/check.sh` chạy cả tệp, và được `scripts/main-guard-status.sh`, `scripts/merge-if-green.sh`, `scripts/wait-run.sh` nhắc trong chú thích. Plan chỉ đổi chữ của hai lệnh `ds_script` và một mẫu log trong khối `device-scenario`; cách gọi, hàm `ds_run` và dòng tổng kết không đổi, nên các script đó không bị ảnh hưởng.
 - Ba tệp mẫu chỉ được `scripts/tests/run.sh` đọc, qua `ds_run`.
 - Ảnh chuẩn có sẵn được `scripts/check.sh` (`verifyRoborazziDebug`) và `scripts/design-compare.sh` đọc; plan không đổi ảnh nào.
+
+**Đối chiếu thiết kế.** Sau khi qua `scripts/check.sh`, chạy `scripts/design-compare.sh poses`, commit `docs/features/poses/design/review/` cùng PR và dán `summary.md` vào mô tả PR (`docs/ops/design-workflow.md`, mục 6). Ảnh chuẩn không đổi nên tỷ lệ khác biệt phải như cũ. Không phải cổng chặn: tỷ lệ đổi thì ghi vào "Cần người kiểm tra" của báo cáo, không phải lý do dừng.
 
 Không file nào khác. Không sửa code Kotlin của `src/main`, không sửa `docs/features/poses/design/README.md` (bảng chữ của thiết kế là tiếng Việt và vẫn đúng ở `vi`).
 
@@ -189,7 +192,7 @@ Không có. Không có kỹ thuật mới: cách làm lặp lại đúng setting
 | KB-4: hộp thoại mất mạng hiện đúng 7 ngôn ngữ | Unit test | `DesignSystemStringsTest.everyReleaseLanguage_isTranslated`, `DesignSystemStringsTest.defaultLanguage_hasNoVietnamese`: như trên với 5 khóa |
 | Chữ thật trên màn ở ngôn ngữ khác tiếng Việt | Compose UI test | `PosesScreenTest.card_stepCountUsesScreenLanguage_english` ("Solo · 5 steps"); `PoseDetailScreenTest.meta_countsStepsInScreenLanguage` ("Solo · Women · Full body · 5 steps") |
 | Chữ dài không bị cắt, nút chính không bị che (L-028) | Compose UI test, khung `pt-rBR-w360dp-h640dp-xxhdpi` | `PoseDetailScreenTest.smallScreen_portuguese_buttonFullyVisible`: chi tiết có 5 bước và hai lỗi hay gặp; nút "Fotografar com esta pose" nằm trọn trong màn cả chiều dọc lẫn chiều ngang |
-| Màn hình thấp ở ngôn ngữ có chữ dài | Screenshot test khung `pt-rBR-w360dp-h640dp-xxhdpi` | `PoseDetailScreenScreenshotTest.default_ptBr_small`, `src/test/screenshots/PoseDetailScreen_default-ptbr_small.png`: trạng thái nhiều nội dung nhất (`longDetail()`). Tiếng Bồ Đào Nha vì nút chính và dòng phụ dài nhất trong các ngôn ngữ chữ Latinh ("Fotografar com esta pose", "Individual · ... · Corpo inteiro · 5 passos") |
+| Màn hình thấp ở ngôn ngữ có chữ dài | Screenshot test khung `pt-rBR-w360dp-h640dp-xxhdpi` | `PoseDetailScreenScreenshotTest.default_ptBr_small`, `src/test/screenshots/PoseDetailScreen_default-pt-br_small.png`: trạng thái nhiều nội dung nhất (`longDetail()`). Tiếng Bồ Đào Nha vì nút chính và dòng phụ dài nhất trong các ngôn ngữ chữ Latinh ("Fotografar com esta pose"; dòng phụ của dữ liệu thử dài nhất, ví dụ "Casal · Nữ · Meio corpo · 5 passos" như ảnh chạy thử ở mục 4.1) |
 | Đúng thiết kế (ảnh chuẩn không đổi) | Screenshot test đã có, nay ở `vi` | 28 ảnh của `:feature:poses`, 20 ảnh của `:core:designsystem` (4 của hộp thoại mất mạng, 16 của catalog) qua `verifyRoborazziDebug` không đổi. `scripts/check.sh` qua |
 | Ảnh thiết kế của feature settings | Không đổi | Ảnh thiết kế của ticket khác (T-025): `SettingsScreen_default_light`, `SettingsScreen_default_dark`, `SettingsScreen_theme-picker_light`, `SettingsScreen_theme-picker_dark`. Ticket thuộc feature settings vì lỗi nằm ở KB-4, nhưng plan không chạm màn cài đặt |
 | `str=` của kịch bản emulator vẫn khớp | Test script | `scripts/tests/run.sh`, khối `device-scenario`: "str= matches text and content-desc", "selected=true matches a text whose parent chip is selected", "selected=true stops at the clickable parent of an unselected chip" với tệp mẫu chữ tiếng Anh |
@@ -204,7 +207,11 @@ Không có. Không có kỹ thuật mới: cách làm lặp lại đúng setting
 - `smallScreen_portuguese_buttonFullyVisible` và `default_ptBr_small`;
 - ba tệp mẫu và `run.sh`.
 
-Không ghi ảnh `PoseDetailScreen_default-ptbr_small.png` ở bước 3: ghi ở bước 4, sau khi có tệp chữ, bằng `scripts/check.sh` (tự ghi ảnh thiếu khi chạy trên máy). Kiểm ảnh có chữ tiếng Bồ Đào Nha ("Passos", "Fotografar com esta pose") trước khi commit.
+Không ghi ảnh `PoseDetailScreen_default-pt-br_small.png` ở bước 3. Ở bước 3 chỉ chạy các task test của Gradle (`./gradlew :feature:poses:testDebugUnitTest :core:designsystem:testDebugUnitTest`, `scripts/tests/run.sh`), không chạy `scripts/check.sh`: `check.sh` tự ghi ảnh còn thiếu khi chạy trên máy, nên sẽ ghi ảnh tiếng Anh trước khi có `values-pt-rBR`, và `verify` ở bước 4 sẽ lệch. Ở bước 4, sau khi có tệp chữ:
+1. Xóa `feature/poses/src/test/screenshots/PoseDetailScreen_default-pt-br_small.png` nếu đã có.
+2. Ghi ảnh: `./gradlew :feature:poses:recordRoborazziDebug --tests '*PoseDetailScreenScreenshotTest.default_ptBr_small'`.
+3. Mở ảnh, kiểm có chữ tiếng Bồ Đào Nha ("Passos", "Fotografar com esta pose") và không chữ nào bị cắt.
+4. Rồi mới chạy `scripts/check.sh`.
 
 **Thất bại đúng lý do ở bước 3** (đã chạy thật, mục 4.1):
 - `PosesStringsTest` (2 test), `DesignSystemStringsTest` (2 test): "poses_title is Vietnamese", "hi poses_title is not translated", "brand_tagline is Vietnamese", "hi brand_tagline is not translated";
@@ -251,7 +258,7 @@ Không ghi ảnh `PoseDetailScreen_default-ptbr_small.png` ở bước 3: ghi �
   - Hai test `text=` (đối chứng) qua. Lần chạy đầu quên đổi mẫu log `step=1 expect text=Tất cả selected=true FAIL` nên đối chứng "does not match an unselected chip" thất bại; đã thêm vào mục 3.2.
 - **Kết quả trên bản cài thử:** `scripts/check.sh` qua (`== Cổng chất lượng: QUA`, Test JVM 1056 test, 0 lỗi; `:feature:poses` 163 test, `:core:designsystem` 114 test; `All script tests passed`).
   - Lần đầu `check.sh` dừng ở ktlint vì một dòng của test chữ dài quá 120 ký tự; viết tên khóa ra biến `name` trước `assertFalse` như `SettingsStringsTest` thì qua. Phiên viết test theo cách đó.
-  - Ảnh mới `PoseDetailScreen_default-ptbr_small.png` (1080x1920) đã mở xem: thanh trên, dòng phụ "Casal · Nữ · Meio corpo · 5 passos", tiêu đề "Passos", nút "Fotografar com esta pose" nằm trọn, không chữ nào bị cắt. Tên và bước của tư thế trong ảnh là tiếng Việt vì dữ liệu giả của test chỉ có tiếng Việt, đúng như các ảnh `_small` khác.
+  - Ảnh mới `PoseDetailScreen_default-pt-br_small.png` (1080x1920) đã mở xem: thanh trên, dòng phụ "Casal · Nữ · Meio corpo · 5 passos", tiêu đề "Passos", nút "Fotografar com esta pose" nằm trọn, không chữ nào bị cắt. Tên và bước của tư thế trong ảnh là tiếng Việt vì dữ liệu giả của test chỉ có tiếng Việt, đúng như các ảnh `_small` khác.
   - `PoseDetailScreenTest.smallScreen_portuguese_buttonFullyVisible` chạy riêng trên code hiện tại: thất bại đúng lý do (không tìm thấy node "Fotografar com esta pose"); trên bản cài thử: qua.
   - Không ảnh chuẩn có sẵn nào đổi (94 ảnh, `git status` chỉ có ảnh mới). Bản cài thử đã bỏ, worktree trả về `origin/main`.
 
@@ -282,18 +289,19 @@ Không ghi ảnh `PoseDetailScreen_default-ptbr_small.png` ở bước 3: ghi �
     - Task chạy sau tạo nhánh từ nhánh chính mới nhất.
   - **T-052** (trình chạy kịch bản, quy tắc 11): có thể thêm test vào cùng khối `device-scenario` của `scripts/tests/run.sh`, và có thể sửa `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`, `docs/ops/test-sessions.md`.
     - Plan này chỉ sửa hai lệnh `ds_script` (`selected.txt`, `unselected.txt`) và một mẫu log của `unselected.txt`, không thêm khối, không sửa tệp kịch bản hay tài liệu.
-    - T-052 chạy trước nên T-051 gộp đoạn của T-052.
+    - T-052 cũng sửa `scripts/tests/run.sh`, ở vùng khác: T-051 sửa khoảng dòng 1896 đến 1901 (`selected.txt`, `unselected.txt`), còn T-052 chèn test trước dòng "# Plan T-048: notes…". Task chạy lần lượt; T-052 chạy trước nên T-051 tạo nhánh từ nhánh chính mới nhất và gộp đoạn của T-052.
   - **T-053** (`token-usage.py`): không chung file.
 - **Đề xuất thứ tự chạy:** cuối danh sách, sau T-053, T-052, T-050 (thứ tự Tuấn đề ra). Plan độc lập: không phụ thuộc task nào, không task nào phụ thuộc nó.
 - **Việc sau task này, không làm ở đây:**
   - `str=` của kịch bản emulator đọc `values/`, nay là tiếng Anh với cả settings, onboarding, loading và (sau T-051) poses. Trên máy thật đặt tiếng Việt (`scripts/device-session.sh scenarios --yes` trên máy dev), app hiện tiếng Việt nên `str=` không khớp.
     - Giới hạn này đã có với settings, onboarding và loading trước plan này; CI không bị, vì emulator chạy `en-US`.
-    - Đề xuất về sau (ticket của quality-gate): trình chạy đặt ngôn ngữ app `en-US` khi bắt đầu mỗi tệp, hoặc `docs/ops/test-sessions.md` mục 5 ghi rõ máy chạy kịch bản phải để tiếng Anh. Báo cáo phiên ghi vào Đề xuất cho buổi họp tiếp theo.
+    - `device-session.yml` cũng chỉ dựa vào ngôn ngữ mặc định `en-US` của AVD, không đặt ngôn ngữ máy rõ ràng.
+    - Đề xuất về sau (ticket của quality-gate): trình chạy kịch bản đặt rõ ngôn ngữ (ngôn ngữ app `en-US` khi bắt đầu mỗi tệp, hay ngôn ngữ máy trước khi chạy), hoặc `docs/ops/test-sessions.md` mục 5 ghi rõ máy chạy kịch bản phải để tiếng Anh. Báo cáo phiên ghi vào Đề xuất cho buổi họp tiếp theo.
   - Người biết tiếng duyệt bản dịch của 5 ngôn ngữ trước khi phát hành (spec onboarding, câu hỏi 1). Báo cáo phiên ghi vào "Cần người kiểm tra".
 
 ## 7. Điều kiện dừng riêng
 
-1. `verifyRoborazziDebug` báo một ảnh chuẩn có sẵn đổi (ngoài ảnh mới `PoseDetailScreen_default-ptbr_small.png`): dừng, không ghi lại ảnh. Mục 4.1 cho thấy `vi-` giữ nguyên cả 48 ảnh, nên ảnh đổi nghĩa là có chỗ khác chưa thấy.
+1. `verifyRoborazziDebug` báo một ảnh chuẩn có sẵn đổi (ngoài ảnh mới `PoseDetailScreen_default-pt-br_small.png`): dừng, không ghi lại ảnh. Mục 4.1 cho thấy `vi-` giữ nguyên cả 48 ảnh, nên ảnh đổi nghĩa là có chỗ khác chưa thấy.
 2. Một test ngoài mục 3.2 thất bại vì chữ đổi sang tiếng Anh (ví dụ test của module khác vẽ `NetworkDialogScreen`): dừng, ghi tên test vào nhật ký, không sửa test đó.
 
 ## 8. Câu hỏi cho người duyệt

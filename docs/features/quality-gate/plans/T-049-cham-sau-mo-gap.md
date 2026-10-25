@@ -21,7 +21,7 @@ FB-20261025-01 nghi tọa độ của `input tap` lệch với `bounds` của `u
 
 Plan sửa `scripts/device-scenario.py`:
 - `device unfold` tắt hộp thoại giới thiệu (`wm set-letterbox-style --isEducationEnabled false`) trước khi đổi kích thước; trả máy sau mỗi tệp đặt lại (`wm reset-letterbox-style isEducationEnabled`);
-- `device unfold` chọn kích thước nằm trong giới hạn của Android (3 lần cạnh dài của màn thật), để khung vẫn là 673 x 841 dp;
+- `device unfold` chọn kích thước nằm trong giới hạn của Android (3 lần cạnh dài của màn thật), để khung vẫn là 673 x 841 dp. Trên emulator thử, riêng phần này đã đủ: ở khung đúng, app không bị đóng khung, có 3 cột, hộp thoại không hiện, T-024 qua (mục 4.1);
 - ba điểm còn lại của rà soát T-048: câu chữ quy tắc số mơ hồ, `consent decline` lần hai sau khi đã từ chối, `pidof` chỉ nhận số.
 
 Kiểm chứng:
@@ -74,15 +74,15 @@ Làm theo mẫu có sẵn của `scripts/device-scenario.py` (plan T-046, T-048)
       return f"{-(-673 * density // 160)}x{-(-841 * density // 160)}", str(density)
   ```
 
-- `read_display`: đọc thêm `Physical size: <w>x<h>` vào `self.physical_size` (mặc định `None`, đặt trong `__init__`). Không đọc được thì giữ `None`.
+- `read_display`: trong vòng đọc `wm size` có sẵn, thêm `physical = re.search(r"Physical size: *(\d+)x(\d+)", output)`; khớp thì `self.physical_size = (int(physical.group(1)), int(physical.group(2)))`, một tuple hai số nguyên (rộng, cao). `__init__` đặt `self.physical_size = None`; `wm size` hết hạn hay không khớp thì giữ `None`, và `unfolded_display(None)` trả `1766x2208` ở 420.
 - `step_device` nhánh `unfold` dùng `unfolded_display(self.physical_size)`.
-- `fake-adb`: `wm size` in `Physical size: ${FAKE_ADB_PHYSICAL_SIZE:-1080x2400}`, `wm density` in `Physical density: ${FAKE_ADB_PHYSICAL_DENSITY:-420}`. Mặc định không đổi, nên test có sẵn (`device commands change the device and the reset undoes them` kiểm `wm size 1766x2208`, `wm density 420`) không đổi.
+- `fake-adb`: `wm size` in `Physical size: ${FAKE_ADB_PHYSICAL_SIZE:-1080x2400}`; `wm density` giữ nguyên (`Physical density: 420`), vì cách chọn kích thước không đọc mật độ thật. Mặc định không đổi, nên test có sẵn (`device commands change the device and the reset undoes them` kiểm `wm size 1766x2208`, `wm density 420`) không đổi.
 
 **Ba điểm của T-048.**
 - `selector_and_number`: câu báo lỗi thành `mọi text= hay desc= không ngoặc trên dòng kết thúc bằng một số là mơ hồ, kể cả một từ: ghi giá trị trong ngoặc kép, ví dụ desc="Back" 10`. Dòng docstring đầu tệp ("An unquoted text= or desc= with a space ...") đổi theo: "An unquoted text= or desc= on a line that ends in a number is ambiguous, even one word: quote it (desc="Back" 10)". `ambiguous()` giữ nguyên (docstring của nó sửa theo).
 - `step_consent`: khi thấy nút từ chối mà `self.consent_state == "declined"` thì `raise ConsentFail(CONSENT_AGAIN)` trước khi chạm. Khi thấy màn đầu của app mà `self.consent_state == "declined"` thì trả về, không đặt `"late"`. Docstring đầu tệp (lệnh `consent decline`) thêm: "a second consent decline that sees the form after a decline fails".
 - `start_app`: `re.search(r"\d", output)` thành `re.fullmatch(r"\s*\d+(\s+\d+)*\s*", output)`.
-- `fake-adb`: `pidof` in `$FAKE_ADB_PIDOF_TEXT` rồi thoát 0 khi biến được đặt (trước nhánh trạng thái có sẵn). Chú thích đầu tệp ghi ba biến mới.
+- `fake-adb`: `pidof` in `$FAKE_ADB_PIDOF_TEXT` rồi thoát 0 khi biến được đặt (trước nhánh trạng thái có sẵn). Chú thích đầu tệp ghi hai biến mới.
 
 **Tài liệu.** `docs/ops/test-sessions.md` mục 5:
 - đoạn **Ngoặc kép**: câu quy tắc số mơ hồ như trên, thêm ví dụ `wait desc=Back 10`;
@@ -94,7 +94,7 @@ Làm theo mẫu có sẵn của `scripts/device-scenario.py` (plan T-046, T-048)
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
 | Sửa | `scripts/device-scenario.py` | `unfolded_display`; `physical_size` trong `__init__` và `read_display`; nhánh `unfold` của `step_device`; lệnh `reset-letterbox-style` trong `reset_device`; câu báo lỗi của `selector_and_number`, docstring của `ambiguous`; `step_consent` với `declined`; `start_app` `fullmatch`; docstring đầu tệp |
-| Sửa | `scripts/tests/fake-adb` | `FAKE_ADB_PHYSICAL_SIZE`, `FAKE_ADB_PHYSICAL_DENSITY`, `FAKE_ADB_PIDOF_TEXT`; chú thích đầu tệp |
+| Sửa | `scripts/tests/fake-adb` | `FAKE_ADB_PHYSICAL_SIZE`, `FAKE_ADB_PIDOF_TEXT`; chú thích đầu tệp |
 | Sửa | `scripts/tests/run.sh` | Khối `device-scenario`: 11 test của mục 4, thêm ngay trước dòng `# Plan T-048: notes of the runner about a late consent form or a restarted app are listed under the table.`, với chú thích `# Plan T-049: ...`; tệp kịch bản tạm ghi bằng `ds_script`, không thêm fixture |
 | Sửa | `docs/ops/test-sessions.md` | Mục 5: ba điểm ở cuối mục 3.1 |
 
@@ -125,20 +125,20 @@ Làm theo mẫu có sẵn của `scripts/device-scenario.py` (plan T-046, T-048)
 
 ## 4. Kiểm thử
 
-Test viết trước code: 11 dòng "Test script" dưới đây, thêm vào khối `device-scenario` của `scripts/tests/run.sh`, chạy với `adb` giả. Bước 3 (khung rỗng) chỉ thêm ba biến của `fake-adb`, không đổi `device-scenario.py`. Kết quả thật của từng test trên code hiện tại nằm ở mục 4.1. Dòng ghi **(đối chứng)** qua được cả trên code cũ (L-035) và không tính vào số test thất bại trước.
+Test viết trước code: 11 dòng "Test script" dưới đây, thêm vào khối `device-scenario` của `scripts/tests/run.sh`, chạy với `adb` giả. Bước 3 (khung rỗng) chỉ thêm hai biến của `fake-adb`, không đổi `device-scenario.py`. Kết quả thật của từng test trên code hiện tại nằm ở mục 4.1. Dòng ghi **(đối chứng)** qua được cả trên code cũ (L-035) và không tính vào số test thất bại trước.
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
 | Câu báo lỗi số mơ hồ | Test script | `device-scenario: an unquoted one-word desc= on a line that ends in a number is ambiguous, the message says so`: `ds_script one-word.txt 'wait desc=Back 10'`; `ds_check` mã 1 và `grep -c 'one-word.txt dòng 4: .*kể cả một từ.*ngoặc kép' "$work/ds-check.out"` là 1 |
 | Ngoặc kép một từ | Test script (đối chứng) | `device-scenario: control: the quoted one-word value passes check`: `wait desc="Back" 10`, `ds_check` mã 0 |
-| `consent decline` lần hai thấy hộp thoại | Test script | `device-scenario: a second consent decline that sees the form again after a decline fails, tapping once`: tệp `consent decline 5`, `consent decline 5`; chuỗi `consent.xml onboarding.xml consent.xml onboarding.xml`: mã 0, đúng 1 lệnh `input tap`, dòng `^plan consent-twice-step.txt step=2 consent decline 5 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$` |
-| Giữ `declined` | Test script | `device-scenario: a second consent decline without a form keeps the decline, a form after it is a failure`: tệp `consent decline 5`, `consent decline 5`, `wait id=camera_screen 3`; chuỗi `consent.xml onboarding.xml onboarding.xml consent.xml`: 1 lệnh chạm, dòng `step=3 wait id=camera_screen 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối` |
-| Lần hai không có hộp thoại | Test script (đối chứng) | `device-scenario: control: a second consent decline without a form passes`: tệp `consent decline 5`, `consent decline 5`, `expect id=onboarding_screen`; chuỗi `consent.xml onboarding.xml onboarding.xml`: 1 lệnh chạm, `result=đạt` |
+| `consent decline` lần hai thấy hộp thoại | Test script | `device-scenario: a second consent decline that sees the form again after a decline fails, tapping once`: tệp `consent-second-form.txt` (tên khác các tệp `consent-*.txt` có sẵn ở khối T-048): `consent decline 5`, `consent decline 5`; chuỗi `consent.xml onboarding.xml consent.xml onboarding.xml`: mã 0, đúng 1 lệnh `input tap`, dòng `^plan consent-second-form.txt step=2 consent decline 5 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$` |
+| Giữ `declined` | Test script | `device-scenario: a second consent decline without a form keeps the decline, a form after it is a failure`: tệp `consent-second-keep.txt`: `consent decline 5`, `consent decline 5`, `wait id=camera_screen 3`; chuỗi `consent.xml onboarding.xml onboarding.xml consent.xml`: 1 lệnh chạm, dòng `step=3 wait id=camera_screen 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối` |
+| Lần hai không có hộp thoại | Test script (đối chứng) | `device-scenario: control: a second consent decline without a form passes`: tệp `consent-second-none.txt`: `consent decline 5`, `consent decline 5`, `expect id=onboarding_screen`; chuỗi `consent.xml onboarding.xml onboarding.xml`: 1 lệnh chạm, `result=đạt` |
 | `pidof` lỗi có số | Test script | `device-scenario: fresh does not take an adb error with digits for a process`: tệp `fresh` (`fresh.txt` của khối T-048), `FAKE_ADB_PIDOF_TEXT="error: device 'emulator-5554' not found" DEVICE_SCENARIO_PROCESS_WAIT=0.3`: 2 lệnh `am start -W`, dòng `step=1 fresh FAIL app không chạy sau 2 lần mở` |
 | `pidof` nhiều số | Test script (đối chứng) | `device-scenario: control: pidof with two pids counts as a process`: `FAKE_ADB_PIDOF_TEXT="4242 4243"`: 1 lệnh `am start -W`, `step=1 fresh ok` |
 | Tắt giới thiệu trước khi đổi kích thước | Test script | `device-scenario: device unfold turns the letterbox education off before it changes the size`: tệp `device unfold` (`unfold-edu.txt`), chuỗi `camera.xml grid.xml grid.xml`: 1 dòng `^shell wm set-letterbox-style --isEducationEnabled false$`, đứng trước `^shell wm size 1766x2208$` (`ds_in_order`) |
-| Trả máy đặt lại | Test script | `device-scenario: the reset after a file turns the letterbox education back to the default`: cùng tệp: ít nhất 1 dòng `^shell wm reset-letterbox-style isEducationEnabled$` (trả máy chạy sau tệp và cuối lượt, nên có 2), đứng sau `wm size 1766x2208` |
-| Màn nhỏ | Test script | `device-scenario: on a 320x640 screen unfold picks a size within three times the screen, 673 x 841 dp`: cùng tệp, `FAKE_ADB_PHYSICAL_SIZE=320x640 FAKE_ADB_PHYSICAL_DENSITY=160`: 1 dòng `^shell wm size 1536x1919$`, 1 dòng `^shell wm density 365$`, 0 dòng `wm size 1766x2208` |
+| Trả máy đặt lại | Test script | `device-scenario: the reset after the file and at the end turns the letterbox education back to the default`: cùng tệp (một tệp): đúng 2 dòng `^shell wm reset-letterbox-style isEducationEnabled$` (trả máy sau tệp và trả máy cuối lượt), dòng đầu đứng sau `wm size 1766x2208` |
+| Màn nhỏ | Test script | `device-scenario: on a 320x640 screen unfold picks a size within three times the screen, 673 x 841 dp`: cùng tệp, `FAKE_ADB_PHYSICAL_SIZE=320x640`: 1 dòng `^shell wm size 1536x1919$`, 1 dòng `^shell wm density 365$`, 0 dòng `wm size 1766x2208` |
 | Màn lớn giữ như cũ | Test script (đối chứng) | `device-scenario: control: on a large screen unfold keeps 1766x2208 at 420`: cùng tệp, `fake-adb` mặc định (1080x2400): 1 dòng `wm size 1766x2208`, 1 dòng `wm density 420` |
 | Test có sẵn | Test script | Toàn bộ `scripts/tests/run.sh` có sẵn phải còn qua, gồm `a text with spaces followed by a number is a file error` (tìm "ngoặc kép"), `device commands change the device and the reset undoes them`, `the device is reset after a failing file` (ít nhất 6 lệnh trả máy), các test `consent` và `fresh` của T-048 |
 | T-024 qua bước 14 | Kiểm tra thủ công (emulator: `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`) | `device-session` đầu tiên sau khi merge: dòng T-024 của bảng "Kịch bản theo plan" không lỗi ở bước 14; `unfolded.png` không có hộp thoại "See and do more". Lỗi ở bước sau là phát hiện mới, ghi vào báo cáo (mục 7, điều 3) |
@@ -158,8 +158,16 @@ Tiêu chí E là 1: lệnh `wm set-letterbox-style` mới với repo, đã chạ
 - `unfolded.png` của CI (lần chạy 40179423644): hộp thoại hệ thống "See and do more", "Double-tap outside an app to reposition it", nút "Got it", phủ lên thư viện. `fail.xml` không có nút nào của hộp thoại.
 - Đối chứng trên emulator cài mới (`-wipe-data`), cùng các bước tới thư viện rồi mở gập: giới thiệu bật (mặc định): lần chạm đầu **mất**; `wm set-letterbox-style --isEducationEnabled false` trước khi mở gập: lần chạm đầu **có tác dụng** (`Filter: saved`), ảnh chụp không có hộp thoại.
 - `wm size 1536x1919` và `wm density 365`: cấu hình `sw673dp w673dp h757dp 365dpi`, không bị cắt.
+- **Đặt lại cài đặt giới thiệu:** `wm get-letterbox-style` in `Is education enabled: true` (mặc định); sau `wm set-letterbox-style --isEducationEnabled false`: `false`; sau `wm reset-letterbox-style isEducationEnabled` (mã 0): `true`. Sau lượt chạy của bản cài thử (dưới), cũng `true`.
 
-**Chạy các test mới trên code hiện tại** (L-075; 2026-10-25, nhánh chính `05a6a5f`, macOS, bash 3.2). Khối tạm ở scratchpad nạp phần đầu của `run.sh` (hàm `expect`), các hàm `ds_*`, rồi 11 test của mục 4; `fake-adb` là bản có ba biến mới. Không commit.
+**T-024 ở kích thước mới** (cùng emulator, cài mới bằng `-wipe-data`, bản cài thử của mục 3.1 không commit). Phần đầu của T-024 (`fresh` tới lưu một thẻ) không chạy được ổn định trên emulator arm64 này: hộp thoại đồng ý hiện khoảng 10 giây sau màn chào (trên CI khoảng 1,7 giây), nên `tap_if id=onboarding_enable_camera` gặp màn đang phủ hộp thoại và không chạm, rồi `need id=camera_poses` bỏ qua. Vì vậy một script chẩn đoán đưa app tới thư viện và lưu một thẻ, rồi trình chạy chạy phần còn lại của T-024 từ `device unfold` (tệp tạm `T-024-tail.txt` ở scratchpad, 25 bước, giống hệt các dòng của tệp thật):
+- **Kích thước mới, không tắt giới thiệu** (bỏ riêng lệnh `set-letterbox-style` khỏi bản cài thử): `result=đạt`, 25/25 bước, 118 giây. Bước chạm "Đã lưu" (`tap 304,334`) có tác dụng ngay, `selected=true` đạt. `unfolded.png` 1536x1919: app **không bị đóng khung** (chiếm hết chiều rộng), **3 cột**, không có hộp thoại "See and do more". Gốc của dump ở kích thước này: `[0,0][1536,1919]`.
+- **Bản cài thử đầy đủ** (có tắt giới thiệu): `result=đạt`, 82 giây; bước chạm "Đã lưu" có tác dụng.
+- **Đối chứng: code hiện tại, kích thước cũ** (cùng emulator cài mới, cả tệp T-024): lỗi ở bước 14 `wait str=poses_chip_saved selected=true 5 FAIL không thấy phần tử`, như CI.
+
+Kết luận: ở khung đúng 673 x 841 dp, app khóa hướng dọc không bị đóng khung và hộp thoại giới thiệu không hiện. Việc đóng khung, 2 cột và hộp thoại trên CI đến từ kích thước bị cắt `1766x1920` (gần vuông, 673 x 731 dp). Phần tắt giới thiệu vì vậy không được kiểm trên CI sau khi đổi kích thước; nó chỉ có tác dụng khi kích thước vẫn bị đóng khung (máy không đọc được kích thước thật, hay một máy thật có màn trong nằm ngang). Mục 8 câu 1 hỏi có giữ phần này không.
+
+**Chạy các test mới trên code hiện tại** (L-075; 2026-10-25, nhánh chính `05a6a5f`, macOS, bash 3.2). Khối tạm ở scratchpad nạp phần đầu của `run.sh` (hàm `expect`), các hàm `ds_*`, rồi 11 test của mục 4; `fake-adb` là bản có hai biến mới. Không commit.
 
 | Test | Code hiện tại | Lý do |
 | --- | --- | --- |
@@ -171,13 +179,15 @@ Tiêu chí E là 1: lệnh `wm set-letterbox-style` mới với repo, đã chạ
 | `pidof` lỗi có số | thất bại `'0 1 0'` | một lần mở, `fresh ok` |
 | đối chứng `pidof` hai số | qua `0 1 1` | |
 | tắt giới thiệu trước `wm size` | thất bại `'0 0 no'` | không có lệnh |
-| trả máy đặt lại | thất bại `'0 no no'` | không có lệnh |
+| trả máy đặt lại (đúng 2) | thất bại `'0 0 no'` | không có lệnh |
 | màn 320x640 | thất bại `'0 0 0 1'` | vẫn gửi `1766x2208` |
 | đối chứng màn lớn | qua `0 1 1` | |
 
 Tổng: 7 thất bại đúng lý do, 4 đối chứng qua.
 
-**Bản cài thử** (không commit, đã trả về bằng `git checkout`): sửa `scripts/device-scenario.py` đúng như mục 3.1 và `fake-adb` như mục 3.2. Kết quả: 11/11 test mới qua; toàn bộ `scripts/tests/run.sh` (với `scratchpad/env.sh`): `All script tests passed`. Lần đầu bản cài thử làm test "trả máy đặt lại" ra `0 2 yes` vì trả máy chạy hai lần (sau tệp và cuối lượt); test trong bảng mục 4 đã sửa thành "ít nhất 1".
+**Bản cài thử** (không commit, đã trả về bằng `git checkout`): sửa `scripts/device-scenario.py` đúng như mục 3.1 và `fake-adb` như mục 3.2. Kết quả: 11/11 test mới qua; toàn bộ `scripts/tests/run.sh` (với `scratchpad/env.sh`): `All script tests passed`. Test "trả máy đặt lại" kiểm đúng 2 lần: bản cài thử cho `0 2 yes` (trả máy sau tệp và cuối lượt).
+
+Lần chạy lại sau rà soát độc lập (2026-10-25, nhánh chính `f975fa1`, cùng máy): khối tạm dựng lại với tên tệp `consent-second-*.txt`, test trả máy đúng 2 lần, `fake-adb` không có biến mật độ. Code hiện tại: 7 thất bại đúng lý do như bảng trên, 4 đối chứng qua (`failures=7`). Bản cài thử: `failures=0`; toàn bộ `scripts/tests/run.sh`: `All script tests passed`.
 
 ## 5. Chấm rủi ro
 
@@ -199,7 +209,9 @@ Tổng: 7 thất bại đúng lý do, 4 đối chứng qua.
 - **Việc sau task này, không làm ở đây:**
   - **Quy tắc 11 thành lỗi**, khi một `device-session` có cả 3 kịch bản không `lỗi` (plan T-048, mục 6).
   - **FB-20261025-01:** sau khi merge, chủ feature điền mục Phân loại (đề xuất của AI: lỗi của cách giả lập gập, không phải của app; liên kết T-049).
-  - **FB-20261024-01** (khóa hướng dọc trên màn lớn): nếu bỏ khóa, app không còn bị đóng khung và hộp thoại giới thiệu không hiện nữa; phần tắt giới thiệu vô hại.
+  - **Chú thích của T-024** (`feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`, dòng 14, "Emulator API 34 đóng khung app khóa hướng dọc khi mở gập (2 cột, FB-20261024-01)"): sau T-049 không còn đúng trên emulator CI (mục 4.1: 3 cột, không đóng khung). Xem lại ở một task sau khi `device-session` xác nhận, cùng với việc kiểm số cột (3) mà chú thích đang bỏ qua.
+- **FB-20261024-01** (khóa hướng dọc, màn mở gập bị đóng khung, 2 cột): bằng chứng emulator của phản hồi này (T-024 của RUN-20261024-02) là sản phẩm phụ của kích thước bị cắt `1766x1920`, không phải hành vi ở khung 673 x 841 dp. Phản hồi còn đúng hay không trên máy gập thật thì chưa biết: máy có màn trong nằm ngang (ví dụ 2208 x 1840) có thể vẫn đóng khung app khóa hướng dọc. Chủ feature xem lại phản hồi với kết quả mục 4.1; plan này không sửa tệp phản hồi.
+- **Lệnh `tap_if` khi hộp thoại đồng ý đang hiện** (thấy trên emulator chậm, mục 4.1): bước đọc màn đang phủ hộp thoại chưa có nút từ chối thì không chạm gì và đi tiếp. Trên CI hộp thoại hiện nhanh nên chưa gặp. Ghi lại để theo dõi ở `device-session`, không sửa ở đây.
 - **Dự án mẫu.** PR VGL-Studio/app-project-template#152 (trình chạy kịch bản của T-046) chưa có `device unfold` kiểu này. Đề xuất về mẫu (`docs/ops/from-app.md`) cùng các điểm của T-048; ghi vào mô tả PR.
 - **Đề xuất thứ tự chạy:** độc lập. `device-session` cuối phiên là lần kiểm thật.
 
@@ -211,7 +223,7 @@ Tổng: 7 thất bại đúng lý do, 4 đối chứng qua.
 
 ## 8. Câu hỏi cho người duyệt
 
-1. **Kích thước mở gập trên màn nhỏ.** Trên emulator CI, Android cắt `1766x2208` thành `1766x1920`, nên khung là 673 x 731 dp thay vì 673 x 841 dp. Plan đổi sang `1536x1919` ở 365 dpi (cùng khung dp) khi màn thật nhỏ; trên máy thật lớn vẫn là `1766x2208` ở 420. **Đề xuất của AI:** làm trong ticket này (đã kiểm trên emulator, có test, không đổi gì trên máy lớn). Phương án khác: để nguyên, chỉ tắt hộp thoại giới thiệu.
+1. **Giữ cả hai phần sửa của FB-20261025-01?** Mục 4.1 cho thấy riêng việc đổi kích thước (`1536x1919` ở 365 dpi khi màn thật nhỏ, cùng khung 673 x 841 dp) đã làm T-024 qua bước 14: app không còn bị đóng khung nên hộp thoại giới thiệu không hiện. Phần tắt giới thiệu chỉ có tác dụng khi kích thước vẫn bị đóng khung, và sẽ không được kiểm trên CI. **Đề xuất của AI:** giữ cả hai. Đổi kích thước là phần sửa chính; tắt giới thiệu là lớp phòng hờ rẻ (hai lệnh `wm`, có test với `adb` giả, đã kiểm trên emulator ở kích thước bị cắt) cho máy không đọc được kích thước thật hay máy thật có màn trong nằm ngang. Phương án khác: chỉ đổi kích thước, bỏ phần tắt giới thiệu (bớt 3 test và một lệnh trả máy).
 2. **Trả máy đặt lại cài đặt giới thiệu về mặc định**, kể cả trên máy thật của dev đã tự đổi nó. **Đề xuất của AI:** chấp nhận (cài đặt chỉ dành cho kiểm thử, giống `wm size reset` có sẵn), ghi vào tài liệu. Phương án khác: đọc giá trị cũ bằng `wm get-letterbox-style` và trả lại đúng giá trị đó (thêm một lệnh và một đoạn đọc chữ).
 3. **FB-20261025-01.** Kết luận của plan khác giả thuyết trong phản hồi. **Đề xuất của AI:** không sửa phản hồi trong PR plan này; phiên làm T-049 ghi kết luận và liên kết vào mục Phân loại khi chủ feature đồng ý, hoặc chủ feature tự ghi.
 

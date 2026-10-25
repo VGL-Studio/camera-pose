@@ -59,7 +59,8 @@ Không đính kèm. `fail.png`, `fail.xml`, `unfolded.png` nằm trong artifact 
 
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
-- **Loại:** đề xuất của AI: lỗi của trình chạy kịch bản hay của cách giả lập gập bằng `wm size`, không phải lỗi của app; cần kiểm giả thuyết ở bước 3 để chắc.
+- **Loại:** đề xuất của AI: lỗi của cách giả lập gập bằng `wm size`, không phải lỗi của app; cần kiểm giả thuyết ở bước 3 để chắc.
 - **Xử lý:**
 - **Lý do:**
 - **Liên kết:** plan T-048, mục 3.4 (phương án dự phòng chưa gồm trường hợp này); FB-20261024-01.
+- **Kết luận sau khi kiểm (RUN-20261025-02, ghi theo plan T-049 mục 8 câu 3, Tuấn đồng ý):** giả thuyết lệch tọa độ ở trên sai: trên emulator giống CI, lệnh chạm được đổi đúng vào cửa sổ app (plan T-049, mục 4.1). Nguyên nhân thật: Android cắt `1766x2208` thành `1766x1920` trên màn 320x640 (giới hạn 3 lần cạnh dài), app khóa hướng dọc bị đóng khung, và hộp thoại giới thiệu đóng khung "See and do more" của hệ thống nuốt lần chạm đầu; `uiautomator dump` không thấy hộp thoại này. Lỗi của cách giả lập gập, không phải của app. Đã sửa ở T-049 (PR #136, commit `5ce6f51`): `device unfold` dùng `1536x1919` ở 365 dpi trên màn nhỏ và tắt hộp thoại giới thiệu. `device-session` cuối RUN-20261025-02 (lần chạy 40208468872): T-024 đạt cả 34 bước, bước 14 `wait str=poses_chip_saved selected=true 5 ok`; `unfolded.png` 1536x1919, app không bị đóng khung, 3 cột, không có hộp thoại "See and do more".

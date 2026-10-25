@@ -73,6 +73,19 @@ class CameraStringsTest {
         }
     }
 
+    /**
+     * The slider shows how solid the outline is, 100% when it is fully drawn: a word for "transparency" would read the
+     * other way round (independent review of T-050).
+     */
+    @Test
+    fun opacityLabel_isNotTransparency() {
+        TRANSPARENCY.forEach { (tag, word) ->
+            val label = context(tag).getString(R.string.camera_adjust_opacity)
+            val transparency = label.contains(word, ignoreCase = true)
+            assertFalse("$tag camera_adjust_opacity says transparency: $label", transparency)
+        }
+    }
+
     private fun placeholders(text: String) = PLACEHOLDER.findAll(text).map { it.value }.sorted().toList()
 
     /** Vietnamese letters, double marks included (ậ, ở, ừ…): any combining mark of Vietnamese after NFD, or đ. */
@@ -94,6 +107,16 @@ class CameraStringsTest {
 
         /** (language, string) pairs kept in English, as the same word is in values-<language> of settings or onboarding. */
         val SAME_AS_ENGLISH = emptySet<Pair<String, String>>()
+
+        /** The word for "transparency" in each language, as the onboarding uses it for the outline. */
+        val TRANSPARENCY = listOf(
+            "en" to "transparen",
+            "hi" to "पारदर्शिता",
+            "pt-BR" to "transparência",
+            "es-419" to "transparencia",
+            "id" to "transparansi",
+            "th" to "โปร่งใส",
+        )
 
         val PLACEHOLDER = Regex("%(\\d+\\$)?[a-z%]")
         val VIETNAMESE_MARK = Regex("[\\u0300-\\u0323đĐ]")

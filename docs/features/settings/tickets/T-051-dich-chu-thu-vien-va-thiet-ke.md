@@ -5,7 +5,7 @@ feature: settings
 spec: features/settings/spec.md
 scenarios: [KB-4]
 owner: Nhật
-status: approved
+status: on-staging
 risk: medium
 size: M
 depends_on: []

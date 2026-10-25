@@ -1,7 +1,7 @@
 ---
 ticket: T-051
 title: Chữ của thư viện tư thế và hệ thống thiết kế theo ngôn ngữ đã chọn
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -326,3 +326,15 @@ Không ghi ảnh `PoseDetailScreen_default-pt-br_small.png` ở bước 3. Ở b
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (commit `cc5822f`, 2026-10-25 19:22 UTC).
+- **Nhánh, PR:** `claude/T-051-dich-chu-thu-vien`, PR #146.
+- **Đã làm:** `values/` của `:feature:poses` (30 chuỗi) và `:core:designsystem` (5 chuỗi) sang tiếng Anh; `values-vi/` chép nguyên chữ cũ; `hi`, `pt-BR`, `es-419`, `id`, `th` sinh thẳng từ bảng dịch ở mục 3.1 (script sinh tệp kiểm cột `vi` của bảng trùng từng chuỗi với `values/` cũ). `PosesStringsTest`, `DesignSystemStringsTest`; `vi-` ở 9 chỗ của 5 lớp; hai test `en` đổi chữ khẳng định; `smallScreen_portuguese_buttonFullyVisible`; ảnh chuẩn mới `PoseDetailScreen_default-pt-br_small.png` (đã mở: "Casal · Nữ · Meio corpo · 5 passos", "Passos", nút "Fotografar com esta pose" nằm trọn); ba tệp mẫu và `run.sh` theo chữ tiếng Anh.
+- **Test viết trước:** Gradle: 6 test chữ và khẳng định thất bại đúng lý do ("poses_title is Vietnamese", "hi poses_title is not translated", "brand_tagline is Vietnamese", "hi brand_tagline is not translated", không có "Solo · 5 steps", không có "Solo · Women · Full body · 5 steps"), `smallScreen_portuguese_buttonFullyVisible` thất bại đúng lý do (không có "Fotografar com esta pose"), `default_ptBr_small` chưa có ảnh chuẩn; mọi screenshot test `vi-` và `NetworkDialogTest` là đối chứng, qua. Script: 3 test thất bại đúng lý do (`'0 0 0'`, `'0 0'`, `'0 1 0 0'`), hai test `text=` là đối chứng, qua. Đúng như mục 4.1. Commit test `cc8658e` trước commit code `40dcb3c`; theo L-076, commit test chỉ đẩy sau khi `main-guard` của T-050 xanh.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 4 ghi chú (`design/review/` không đổi; test nút tiếng Bồ Đào Nha không bắt chữ xuống dòng; tiêu đề tiếng Việt bị cắt trong ảnh mới là dữ liệu giả; câu khẩu hiệu tiếng Anh hơi gượng, đã chốt ở mục 9).
+- **Kết quả CI:** `pr-check` xanh ở vòng đầu (lần chạy 40224730688). `scripts/check.sh` cục bộ qua (`:feature:poses` 163 test, `:core:designsystem` 114 test). `scripts/design-compare.sh poses`: `design/review/` sinh lại không đổi, nên không có trong PR.
+- **Lệch so với plan:** `defaultLanguage_hasNoVietnamese` dò tiếng Việt bằng NFD (dấu kết hợp và `đ`) thay cho bảng chữ có dấu, như `CameraStringsTest` của T-050, bắt được cả chữ hai dấu.
+- **Việc còn lại:** người biết tiếng duyệt bản dịch trước khi phát hành production; đề xuất trình chạy kịch bản đặt rõ ngôn ngữ `en-US` (mục 6).
+- **Cần người xem:** ảnh chuẩn mới; đổi ngôn ngữ trên máy thật (English rồi Tiếng Việt), mở thư viện, chi tiết, tắt mạng để hiện hộp thoại mất mạng.

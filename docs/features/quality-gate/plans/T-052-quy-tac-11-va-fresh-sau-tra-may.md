@@ -1,7 +1,7 @@
 ---
 ticket: T-052
 title: Quy tắc 11 của plan-check thành lỗi; `fresh` sau khi trả máy không phải mở lại app
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -237,3 +237,15 @@ Không chạy thử trên emulator: emulator của máy dev đã xóa theo yêu 
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (commit `f3baa0e`, 2026-10-25 18:18 UTC).
+- **Nhánh, PR:** `claude/T-052-quy-tac-11-va-fresh`, PR #144.
+- **Đã làm:** `scripts/plan-check.py` quy tắc 11 là lỗi với plan `draft`; `scripts/device-scenario.py` `fresh` sau lần trả máy chờ `DEVICE_SCENARIO_STOP_SETTLE` giây (mặc định 3) sau khi dừng app; 5 test mới, 4 test có sẵn đổi kết quả mong đợi, 2 chú thích trong `scripts/tests/run.sh`; chú thích kịch bản T-024 và `fake-adb`; `docs/ops/test-sessions.md`, `docs/CLAUDE.md`, `docs/templates/plan.md`. Mục Phân loại của FB-20261025-02 ghi trên nhánh báo cáo (mục 8, câu 3).
+- **Test viết trước:** 9 test (5 mới, 4 đổi kết quả); 6 thất bại đúng lý do (4 test đổi kết quả `expected 'stop ...', got 'pass ...'`; `rule 11 stops a draft plan` `'pass 0 1'`; `fresh after a reset waits` `'0 0 0 no'`), 3 đối chứng qua, đúng như mục 4.1. Commit test `d185cce` trước commit code `3d5f562`.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 6 ghi chú (dòng `note` luôn ghi "chờ 3 giây" kể cả khi chờ thật ngắn hơn; tệp có `device ...` rồi `fresh` trong cùng tệp không chờ; test "ít nhất 2 giây" đo cả lượt; dòng 126 ký tự; không có test riêng cho plan `done`/`stopped`, đã kiểm tay; nhắc ghi FB-20261025-02).
+- **Kết quả CI:** `pr-check` xanh ở vòng đầu (lần chạy 40219969975). `scripts/check.sh` cục bộ qua.
+- **Lệch so với plan:** Không có.
+- **Việc còn lại:** `device-session` cuối phiên kiểm `fresh` của T-022, T-024 không còn mở lại (mục 4, dòng kiểm thủ công emulator); đề xuất về dự án mẫu (issue VGL-Studio/app-project-template#163).
+- **Cần người xem:** người duyệt chéo đọc diff tài liệu (`docs/ops/test-sessions.md` mục 5, `docs/CLAUDE.md`, `docs/templates/plan.md`).

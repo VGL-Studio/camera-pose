@@ -1,7 +1,7 @@
 ---
 ticket: T-053
 title: Token của phiên con tính vào đúng task (dòng `Task: T-NNN` trong lời giao việc)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -166,3 +166,15 @@ Hai test đầu là của mẫu (`scripts/tests/run.sh` của mẫu, dòng 1472 
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (commit `3e15046`, 2026-10-25 17:53 UTC).
+- **Nhánh, PR:** `claude/T-053-token-phien-con`, PR #143.
+- **Đã làm:** `scripts/token-usage.py` thêm `BRIEF_TASK`, `message_text`, đọc tin nhắn user đầu của transcript trong `subagents/` (theo mục 3.1); 4 test mới trong `scripts/tests/run.sh`; `docs/auto-run.md`, `docs/ops/token-usage.md` ghi dòng `Task: T-NNN`; L-073 sang `applied`.
+- **Test viết trước:** 4 test; 3 thất bại đúng lý do (`expected '1', got '0'`, `expected '1', got '0'`, `expected '1 0', got '0 1'`), 1 đối chứng qua, đúng như mục 4.1. Commit test `8b870ed` trước commit code `4744a81`.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa, 7 ghi chú. Nên sửa (không sửa vì mâu thuẫn với chữ của plan, ghi vào báo cáo): dòng `Task:` trong lời giao soạn plan cuối phiên làm token soạn plan thành một dòng CSV của task, kéo trung vị của `estimate` xuống. Đã sửa ghi chú: ngắt dòng docstring 191 ký tự (`774125c`).
+- **Kết quả CI:** `pr-check` xanh ở vòng đầu (lần chạy 40218298285). `scripts/check.sh` cục bộ qua.
+- **Lệch so với plan:** repo dự án mẫu nằm ngoài phạm vi GitHub của phiên, nên không so được với commit `a76b3cd` (mục 7, điều 2); code viết theo mô tả mục 3.1. `scripts/token-usage.py` có 23 dòng thêm cho ba khối (plan ghi 22), khác do dòng trống; `message_text` thêm kiểm `isinstance(message, dict)`.
+- **Việc còn lại:** đề xuất ngược test thứ ba và test đối chứng về dự án mẫu (`docs/ops/from-app.md`).
+- **Cần người xem:** điểm nên sửa của rà soát (dòng `Task:` trong lời giao soạn plan; phương án: bỏ dòng đó, hoặc dùng `Plan: T-NNN`); báo cáo của phiên này và phiên sau có dòng riêng cho task có phiên con.

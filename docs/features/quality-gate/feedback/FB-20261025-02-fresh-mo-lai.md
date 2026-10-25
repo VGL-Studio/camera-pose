@@ -54,6 +54,6 @@ Không đính kèm. `logcat.txt` nằm trong artifact `device-session` của l�
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 - **Loại:** đề xuất của AI: hành vi của trình chạy kịch bản trên emulator, không phải lỗi của app; cần kiểm giả thuyết ở bước 2.
-- **Xử lý:**
-- **Lý do:**
-- **Liên kết:** plan T-049 (lệnh trả máy mới), plan T-048 (mở lại khi `fresh` không có tiến trình).
+- **Xử lý:** T-052 (RUN-20261026-01, PR #144): `fresh` của tệp đứng sau một lần trả máy chờ `DEVICE_SCENARIO_STOP_SETTLE` giây (mặc định 3) sau khi dừng app rồi mới mở. Ghi bởi phiên làm T-052, theo quyết định của Tuấn ở plan T-052, mục 9 (câu 3).
+- **Lý do:** chẩn đoán ở plan T-052, mục 2. Kết luận: dừng app ngay sau lần trả máy làm hệ thống chờ Activity cũ hủy xong; khoảng 1,2 đến 1,4 giây sau khi dừng app, `Destroy timeout of remove-task` giết tiến trình theo tên của task cũ, trúng lần mở mới đang khởi động (`Killing 0: ... remove task`). Giả thuyết về lệnh `wm reset-letterbox-style` (T-049) không có bằng chứng trực tiếp; cách sửa không phụ thuộc giả thuyết đó.
+- **Liên kết:** plan T-049 (lệnh trả máy mới), plan T-048 (mở lại khi `fresh` không có tiến trình), plan T-052 (cách sửa, mục 2 chẩn đoán, mục 3.4 phương án dự phòng).

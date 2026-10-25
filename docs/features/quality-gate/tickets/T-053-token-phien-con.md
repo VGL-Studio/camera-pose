@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-073 (docs/lessons.md, accepted)
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: S
 depends_on: []

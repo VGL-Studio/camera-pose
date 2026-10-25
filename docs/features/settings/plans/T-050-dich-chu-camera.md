@@ -1,7 +1,7 @@
 ---
 ticket: T-050
 title: Chữ của camera và màn xem lại theo ngôn ngữ đã chọn
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 6                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
@@ -208,3 +208,17 @@ Không có.
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (commit `a71bd2a`, 2026-10-25 18:53 UTC).
+- **Nhánh, PR:** `claude/T-050-dich-chu-camera`, PR #145.
+- **Đã làm:** `values/` của `:feature:camera` (camera, màn xem lại) sang tiếng Anh; `values-vi/` chép nguyên chữ cũ (so bằng `python3` với `origin/main`: 65 và 18 chuỗi trùng hết); bản dịch `hi`, `pt-BR`, `es-419`, `id`, `th` (mỗi ngôn ngữ 83 chuỗi); 4 chuỗi thêm `translatable="false"`. `CameraStringsTest`; `vi-` ở 25 chỗ của 12 lớp; ba test `smallPortuguese_*`; ảnh chuẩn mới `ReviewScreen_save-error-pt-br_small.png` (đã mở: chữ tiếng Bồ Đào Nha, không bị cắt hay tràn; "Próxima pose" sát mép phải nhưng nằm trong khung). `SAME_AS_ENGLISH` để rỗng, không thêm cặp nào.
+- **Test viết trước:** `english_isDefault` (`en camera_adjust_flip is Vietnamese`) và `everyReleaseLanguage_isTranslated` (`hi camera_adjust_flip is not translated. Actual: Lật`) thất bại đúng lý do; `everyTranslation_keepsPlaceholders` và ba test `smallPortuguese_*` là đối chứng, qua; 12 lớp có `vi-` qua với mọi ảnh chuẩn cũ (`verifyRoborazziDebug`: chỉ ảnh mới chưa có ảnh chuẩn). Đúng như mục 4.1. Commit test `846cb47` trước commit code `5929daf`.
+- **Rà soát độc lập:** lần 1: 0 chặn, 1 nên sửa, 12 ghi chú; lần 2 (phần sửa): 0 chặn, 0 nên sửa, 6 ghi chú.
+  - Đã sửa (nên sửa, ADR-1003): `camera_adjust_opacity` ở `hi`, `id`, `th` dịch là "độ trong suốt" ("पारदर्शिता", "Transparansi", "ความโปร่งใส"), ngược nghĩa với con trượt độ đậm (100% là đậm nhất). Test `CameraStringsTest.opacityLabel_isNotTransparency` viết trước (`f374916`, thất bại đúng lý do), sửa thành "अपारदर्शिता", "Opasitas", "ความทึบ" (`b47f863`). Chi tiết test sửa ở `ceafd45`: so theo từ đầy đủ, vì "अपारदर्शिता" chứa "पारदर्शिता" sau tiền tố phủ định; đã chạy lại trên bản dịch cũ (thất bại) và mới (qua). Test thứ tư này nằm trong `CameraStringsTest` của mục 3.2, chỉ thêm kiểm tra.
+  - Ghi chú để người biết tiếng xem: `es-419` "¡Pose lista…" có thể là "¡Pose correcta…"; "Voltear" có thể là "Reflejar"; `hi` "पिछली फ़ोटो" có thể là "आखिरी फ़ोटो"; `id` "memori perangkat" có thể là "penyimpanan perangkat"; `th` "ความทึบ" có thể là "ความทึบแสง"; test nhãn bảng chỉnh chỉ chạy ở `pt-BR` (`es-419` "Restablecer", `id` "Sembunyikan" dài hơn); test `opacityLabel` ở `th` chưa bắt cụm "ความโปร่งใส" ghép sau chữ khác; bảng chữ thiết kế "Độ mờ" cũng có thể hiểu ngược (ngoài phạm vi).
+- **Kết quả CI:** `pr-check` xanh ở vòng đầu (lần chạy 40222635950, có test trên emulator). `scripts/check.sh` cục bộ qua (`:feature:camera` 386 test). `scripts/design-compare.sh camera`: `design/review/` sinh lại không đổi, nên không có trong PR.
+- **Lệch so với plan:** `CameraStringsTest` có 4 test thay vì 3 (thêm test theo rà soát). "Try again" ở `pt-BR` của camera là "Tentar de novo" (theo settings "Tente de novo"), còn bảng của plan T-051 dùng "Tentar novamente" cho poses.
+- **Việc còn lại:** người biết tiếng duyệt bản dịch trước khi phát hành production (spec onboarding, câu hỏi 1).
+- **Cần người xem:** bảng chữ tiếng Anh trong mô tả PR #145 (mục 8, câu 1); ảnh chuẩn mới; đổi ngôn ngữ trên máy thật (English, Português, हिन्दी), mở camera, chụp, xem màn xem lại.

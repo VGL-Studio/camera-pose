@@ -94,7 +94,16 @@ scripts/device-scenario.py check <tệp>...      # không cần máy: cú pháp,
 
 Kết quả nằm trong thư mục phiên: `scenarios.txt` (mỗi bước một dòng `plan <tệp> step=<n> <lệnh> ok|FAIL|SKIP`, cuối tệp `result=` và `seconds=`), `scenarios/<tên tệp bỏ .txt>/<tên>.png` (lệnh `shot`), và `fail.png`, `fail.xml` của bước lỗi đầu tiên. `summary.md` in bảng "Kịch bản theo plan": tệp, ticket, tiêu chí, kết quả (`đạt`, `lỗi`, `bỏ qua (môi trường)`, `bỏ qua (hết thời gian)`, `lỗi tệp`), bước lỗi, số giây, số crash và ANR trong tệp.
 
+**Dòng `note`.** Ngay trước dòng `step=` của mỗi bước, trình chạy ghi `plan <tệp> note step=<n> t=<giây từ đầu tệp> <chi tiết>`, để biết bước chạm vào đâu, lúc nào:
+- `tap`, `tap_if` (khi có chạm), `scroll` ghi tọa độ và nhãn của nút (`resource-id`, không có thì chữ, rồi `content-desc`, tối đa 40 ký tự);
+- `fresh`, `consent decline` và lệnh `device` ghi điều đã xảy ra (mở lại, đã chạm từ chối, ổn định sau bao nhiêu giây);
+- các bước khác chỉ có `t=`.
+
+Dòng `note` có `hộp thoại đồng ý hiện muộn` hay `mở lại` (chuyện bất thường) được chép vào `summary.md`, mục "Ghi chú của trình chạy:", ngay sau bảng, mỗi dòng `- <tệp>, bước <n>: <chi tiết>`. Không có thì mục này không hiện. Khi đọc một tệp lỗi, xem các dòng `note` của nó cùng `fail.png`.
+
 **Phần đầu** (ba dòng, trước mọi lệnh): `ticket: T-022`, `criterion: <điều tệp chứng minh>`, `timeout: <giây>` (mặc định 180, tối đa 300). Dòng trống và dòng bắt đầu bằng `#` bị bỏ qua.
+
+**Tên tệp** chỉ gồm chữ, số, `.`, `_`, `-`, bắt đầu bằng chữ hay số, đuôi `.txt`. Tên bắt đầu bằng `T-<số>-` thì dòng `ticket:` phải cùng mã. Sai thì là lỗi tệp: `check` trả mã 1, `run` ghi `lỗi tệp` và không gửi lệnh `adb` nào cho tệp đó.
 
 **Bộ chọn phần tử** (đọc từ `uiautomator dump`):
 
@@ -106,14 +115,22 @@ Kết quả nằm trong thư mục phiên: `scenarios.txt` (mỗi bước một 
 | `text=<chuỗi>` | chữ hiển thị |
 | `str=<tên chuỗi>` | giá trị trong `res/values/strings.xml` của mọi module, khớp cả `text` lẫn `content-desc` |
 
-Bộ lọc thêm: `in=<testTag>` (trong cây con của phần tử có tag đó), `index=<n>` (phần tử thứ n, đếm từ 1), `selected=true` (thuộc tính `selected` hoặc `checked`), `clickable=true`. Nhiều bộ chọn ngăn bằng ` | ` nghĩa là khớp một trong số đó.
+Bộ lọc thêm: `in=<testTag>` (trong cây con của phần tử có tag đó), `index=<n>` (phần tử thứ n, đếm từ 1), `selected=true`, `clickable=true`. Nhiều bộ chọn ngăn bằng ` | ` nghĩa là khớp một trong số đó.
+
+`selected=true` khớp khi thuộc tính `selected` hay `checked` là `true` ở:
+- chính nút đó, nếu nút chạm được (`clickable="true"`);
+- nếu nút không chạm được: chính nó, rồi tối đa 2 nút cha gần nhất, dừng ngay sau nút cha chạm được đầu tiên.
+
+Lý do: chữ của chip Compose nằm trong một nút con, còn `selected` nằm ở nút cha (dump thật của T-024).
+
+**Ngoặc kép.** Giá trị có dấu cách ghi trong ngoặc kép, `wait text="Hands in Pockets" 5`: dấu cách trong ngoặc được giữ, số sau ngoặc đóng là số giây hay số lần. Giá trị `text=` hay `desc=` không có ngoặc, có dấu cách, trên một dòng kết thúc bằng một số là mơ hồ (`wait text=Page 2` là chữ "Page 2" hay chờ 2 giây?), nên là lỗi tệp. Quy tắc này cũng bắt `count text=A b 2` và `wait text=A b selected=true 5`: ghi `text="A b"`.
 
 **Lệnh:**
 
 | Lệnh | Việc |
 | --- | --- |
-| `fresh` | Xóa dữ liệu, cấp quyền runtime, mở app |
-| `consent decline [giây]` | Chạm nút từ chối của hộp thoại đồng ý quảng cáo (ADR-0013) khi nó hiện, hoặc thấy luôn màn hình đầu của app |
+| `fresh` | Dừng app, xóa dữ liệu, cấp quyền runtime, mở app bằng `am start -W` rồi chờ tiến trình của app (`pidof`). Không có tiến trình thì ghi `note`; bộ đệm crash có tên app thì `FAIL app crash ở lần mở đầu`, không thì dừng app và mở lại một lần. Vẫn không có thì `FAIL app không chạy sau 2 lần mở` |
+| `consent decline [giây]` | Chạm nút từ chối của hộp thoại đồng ý quảng cáo (ADR-0013) khi nó hiện, rồi chờ hộp thoại đóng; hoặc thấy luôn màn hình đầu của app (xem Hộp thoại đồng ý, dưới) |
 | `wait <bộ chọn> [giây]` | Chờ tới khi khớp (mặc định 20 giây) |
 | `need <bộ chọn> [giây]` | Như `wait`, nhưng hết giờ thì tệp kết thúc `bỏ qua (môi trường)`. Dùng cho điều kiện mà emulator CI có thể không có (camera) |
 | `tap <bộ chọn>`, `tap_if <bộ chọn>` | Chạm vào tâm của phần tử; `tap_if` bỏ qua khi không thấy |
@@ -124,6 +141,14 @@ Bộ lọc thêm: `in=<testTag>` (trong cây con của phần tử có tag đó)
 | `device unfold`, `device fold` | Giả lập gập mở bằng đổi kích thước (673 × 841 dp, khung `_unfolded`) rồi trả về như cũ |
 | `device locale <thẻ>` | Ngôn ngữ riêng của app (Android 13 trở lên) |
 | `back`, `shot <tên>` | Phím Back; chụp màn hình |
+
+Sau mỗi lệnh `device`, trình chạy đọc màn hình tới khi hai lần dump liên tiếp giống nhau, tối đa `DEVICE_SCENARIO_SETTLE` giây (mặc định 10), vì đổi kích thước hay mật độ làm Activity dựng lại. Không ổn định thì chỉ ghi `note ... không ổn định`, không phải lỗi: bước sau tự chờ phần tử của nó. Bản dump cuối của lệnh `device` và của `consent decline` được dùng lại cho bước ngay sau, chỉ khi bước đó đọc màn hình (`wait`, `need`, `tap`, `tap_if`, `scroll`, `expect`, `expect_no`, `count`); mọi bước khác bỏ bản đó.
+
+**Hộp thoại đồng ý.** Hộp thoại có thể hiện sau màn chào khoảng 2 giây, sau khi `consent decline` đã thấy màn đầu của app.
+- `consent decline` thấy màn đầu mà chưa thấy hộp thoại: bước đọc màn hình sau đó gặp hộp thoại (mà không thấy phần tử nó tìm) thì tự chạm từ chối, chờ hộp thoại đóng, ghi `note ... hộp thoại đồng ý hiện muộn, đã từ chối`. Tối đa một lần mỗi `fresh`.
+- Hộp thoại hiện lại sau khi đã từ chối là `FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối`: app có thể chưa lưu lựa chọn (ADR-0013). Lỗi này, và `hộp thoại đồng ý không đóng sau khi chạm từ chối`, vẫn là `lỗi` trong bước `need`, không thành `bỏ qua (môi trường)`.
+- Tệp chưa có bước `consent decline` (hoặc vừa `fresh`) thì trình chạy không chạm hộp thoại, nên vẫn viết được kịch bản kiểm chính hộp thoại.
+- Trạng thái này không đi qua ranh giới tệp, và `fresh` đặt lại nó.
 
 Ví dụ ngắn:
 
@@ -143,11 +168,17 @@ wait id=pose_detail_screen 15
 shot detail
 ```
 
-**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 600); mỗi tệp có `min(timeout của tệp, thời gian còn lại)`; mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp. Sau mỗi tệp, trình chạy trả máy về gốc: kích thước và mật độ, xoay màn hình, chế độ tối, mạng, ngôn ngữ riêng của app. Trình chạy hỏng thì `scenarios` ghi dòng `plan runner_error` và vẫn kết thúc bình thường.
+**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 900), tính cả thời gian trả máy về gốc. Mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp.
+- Sau mỗi tệp, trình chạy trả máy về gốc: kích thước và mật độ, xoay màn hình, chế độ tối, ngôn ngữ riêng của app, và mạng khi tệp có lệnh `network`. Việc này có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` giây (mặc định 30, mỗi lệnh tối đa 5), cộng 45 giây để bật lại mạng.
+- Mỗi tệp có `min(timeout của tệp, thời gian còn lại - DEVICE_SCENARIO_RESET_LIMIT - 45 nếu tệp có lệnh network - DEVICE_SCENARIO_EVIDENCE_RESERVE)`. Phần chừa cuối (mặc định 20 giây) dành cho dấu log đầu tệp và `fail.png`. Còn lại không dương thì tệp `bỏ qua (hết thời gian)`.
+- Ba tệp hiện có cần tối đa khoảng 850 giây (plan T-048, mục 3.1). **Tệp mới làm tổng vượt 900 giây** thì plan của tệp đó tăng `DEVICE_SCENARIOS_BUDGET` (mặc định ở `scripts/device-scenario.py` và `scripts/device-session.sh`) cùng lúc.
+- `device-session.sh` gọi trình chạy qua `timeout -k 30` với ngân sách cộng 120 giây. Khi nhận SIGTERM, trình chạy dừng lệnh `adb` đang chạy, ghi `plan runner_terminated`, trả máy về gốc trong 10 giây và thoát mã 143. Trình chạy hỏng hay bị dừng thì `scenarios` ghi dòng `plan runner_error` và vẫn kết thúc bình thường.
+
+Các biến khác (test đặt nhỏ để chạy nhanh): `DEVICE_SCENARIO_START_WAIT` (hạn của `am start -W`, mặc định 15 giây; hết hạn mà app có tiến trình thì vẫn tính là đã mở), `DEVICE_SCENARIO_PROCESS_WAIT` (chờ tiến trình của app, mặc định 5 giây), `DEVICE_SCENARIO_CONSENT_CLOSE` (chờ hộp thoại đồng ý đóng sau khi chạm, mặc định 5 giây), `DEVICE_SCENARIO_POLL` (giữa hai lần dump, mặc định 1 giây), `DEVICE_SCENARIO_ROOT` (gốc repo mà `check` đọc, mặc định repo này).
 
 **Cửa sổ riêng.** `testTag` chỉ thành `resource-id` trong cửa sổ có `testTagsAsResourceId`: vỏ app đặt nó ở gốc giao diện (`MainActivity`) và ở hộp thoại mạng (`NetworkDialogHost`). Hộp thoại hay popup khác (mỗi cái một cửa sổ) mà kịch bản cần tìm theo `id=` thì gắn `Modifier.exposeTestTagsForUiAutomator()` (`app/.../ui/UiAutomatorTags.kt`) ở gốc nội dung của nó, nơi mở chúng.
 
-**Đổi tên `testTag`** thì sửa kịch bản: `scripts/device-scenario.py check` chạy trong `scripts/tests/run.sh` ở mọi PR đổi `feature/**` hay `app/**` và báo tag hay chuỗi không còn.
+**Đổi tên `testTag`** thì sửa kịch bản: `scripts/device-scenario.py check` chạy trong `scripts/tests/run.sh` ở mọi PR đổi `feature/**` hay `app/**` và báo tag hay chuỗi không còn. `check` không tìm tag trong tệp `*.kt` nằm dưới một thư mục ngay sau `src/` có tên bắt đầu bằng `test` hay `androidTest`: tag chỉ còn trong test là tag không còn trong app.
 
 ## 6. Quy tắc về dữ liệu
 

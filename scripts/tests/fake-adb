@@ -9,17 +9,30 @@
 # paths; the count is kept in $FAKE_ADB_STATE_DIR/ui-seq.n, default $TMPDIR; the last file repeats) and `exec-out cat`
 # prints it. A file named *.idle-error makes the dump print "ERROR: could not get idle state." and print nothing.
 # $FAKE_ADB_HANG names a shell subcommand (for example uiautomator) that never returns. `wm size` and `wm density`
-# report a 1080x2400 screen at 420 dpi.
+# report a 1080x2400 screen at 420 dpi. `logcat -b crash -d` prints $FAKE_ADB_CRASH_LOG (default nothing) and returns.
+# The app process (plan T-048) is only simulated when $FAKE_ADB_STATE_DIR is set; without it `pidof` prints nothing.
+# With it: `am start -W` counts the starts in starts.n and leaves the process alive (file `alive`) once the count is
+# above $FAKE_ADB_DEAD_STARTS (default 0); `pm clear` and `am force-stop` kill it; `pidof` prints 4242 while it is
+# alive; a hanging subcommand writes its pid to hang.pid and, with FAKE_ADB_ALIVE_AFTER_HANG=1, leaves the process
+# alive first (an app that starts slowly but runs).
 [[ -n "${FAKE_ADB_CALLS:-}" ]] && echo "$*" >> "${FAKE_ADB_CALLS}"
 case "$1" in
   get-state) [[ -n "${FAKE_ADB_NO_DEVICE:-}" ]] && exit 1; echo device ;;
   logcat)
     [[ " $* " == *" -c "* ]] && exit 0
+    if [[ " $* " == *" -b crash "* && " $* " == *" -d "* ]]; then cat "${FAKE_ADB_CRASH_LOG:-/dev/null}"; exit 0; fi
     cat "${FAKE_ADB_LOGCAT:-/dev/null}"
     exec sleep 300 ;;
   shell)
     shift
-    [[ -n "${FAKE_ADB_HANG:-}" && "$*" == "${FAKE_ADB_HANG}"* ]] && exec sleep 300
+    if [[ -n "${FAKE_ADB_HANG:-}" && "$*" == "${FAKE_ADB_HANG}"* ]]; then
+      if [[ -n "${FAKE_ADB_STATE_DIR:-}" ]]; then
+        mkdir -p "${FAKE_ADB_STATE_DIR}"
+        echo "$$" > "${FAKE_ADB_STATE_DIR}/hang.pid"
+        [[ "${FAKE_ADB_ALIVE_AFTER_HANG:-}" == 1 ]] && touch "${FAKE_ADB_STATE_DIR}/alive"
+      fi
+      exec sleep 300
+    fi
     case "$*" in
       "uiautomator dump"*)
         if [[ -n "${FAKE_ADB_UI_SEQ:-}" ]]; then
@@ -50,7 +63,21 @@ case "$1" in
       "find /sdcard"*) cat "${FAKE_ADB_FILES:-/dev/null}" ;;
       "dumpsys connectivity"*) echo "Active default network: ${FAKE_ADB_NETWORK:-none}" ;;
       "cmd package resolve-activity"*) echo "com.example.app/.MainActivity" ;;
-      "am start -W"*) printf 'Status: ok\r\nTotalTime: 1234\r\n' ;;
+      "am start -W"*)
+        if [[ -n "${FAKE_ADB_STATE_DIR:-}" ]]; then
+          mkdir -p "${FAKE_ADB_STATE_DIR}"
+          starts=$(( $(cat "${FAKE_ADB_STATE_DIR}/starts.n" 2>/dev/null || echo 0) + 1 ))
+          echo "$starts" > "${FAKE_ADB_STATE_DIR}/starts.n"
+          (( starts > ${FAKE_ADB_DEAD_STARTS:-0} )) && touch "${FAKE_ADB_STATE_DIR}/alive"
+        fi
+        printf 'Status: ok\r\nTotalTime: 1234\r\n' ;;
+      "pm clear"* | "am force-stop"*)
+        [[ -n "${FAKE_ADB_STATE_DIR:-}" ]] && rm -f "${FAKE_ADB_STATE_DIR}/alive"
+        exit 0 ;;
+      "pidof"*)
+        [[ -z "${FAKE_ADB_STATE_DIR:-}" ]] && exit 0
+        [[ -f "${FAKE_ADB_STATE_DIR}/alive" ]] || exit 1
+        echo 4242 ;;
       monkey*) echo "Events injected: 1500" ;;
       *) exit 0 ;;
     esac ;;

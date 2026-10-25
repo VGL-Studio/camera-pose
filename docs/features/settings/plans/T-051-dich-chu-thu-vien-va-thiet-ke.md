@@ -1,16 +1,16 @@
 ---
 ticket: T-051
 title: Chữ của thư viện tư thế và hệ thống thiết kế theo ngôn ngữ đã chọn
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 8M           # cỡ M (5.0M, scripts/token-usage.py estimate) cộng khoảng 60%: 12 tệp chữ mới, 2 test chữ, 9 file test đổi, 3 tệp mẫu của test script
 blocking_points: [core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-25
 ---
 
 # PLAN T-051: CHỮ CỦA THƯ VIỆN TƯ THẾ VÀ HỆ THỐNG THIẾT KẾ THEO NGÔN NGỮ ĐÃ CHỌN
@@ -319,9 +319,9 @@ Không ghi ảnh `PoseDetailScreen_default-pt-br_small.png` ở bước 3. Ở b
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-25, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: câu khẩu hiệu tiếng Anh là "Everything falls into rhythm.". Câu 2: giữ chuỗi thường, không dùng plurals. Câu 3: dùng nguyên văn bảng dịch ở mục 3.1; người biết tiếng sửa sau bằng PR riêng. Plan qua một rà soát độc lập (0 chặn, 2 nên sửa, đã sửa hết).
 
 ## 10. Nhật ký thực hiện
 

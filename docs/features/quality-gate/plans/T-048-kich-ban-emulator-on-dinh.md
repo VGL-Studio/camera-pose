@@ -1,16 +1,16 @@
 ---
 ticket: T-048
 title: Trình chạy kịch bản emulator chạy ổn định trên CI (sửa sau lần device-session đầu tiên)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9M           # cỡ M (5.2M, scripts/token-usage.py estimate) cộng khoảng 70% vì nhiều test với adb giả (T-046: 52 expect) và phần SIGTERM
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-24
 ---
 
 # PLAN T-048: TRÌNH CHẠY KỊCH BẢN EMULATOR CHẠY ỔN ĐỊNH TRÊN CI
@@ -479,9 +479,9 @@ Không còn câu hỏi mở.
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-24, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu trả lời mục 8: T-022 mở chi tiết trước rồi mới tắt mạng; khóa hướng dọc ghi phản hồi riêng (FB-20261024-01); T-020 bỏ qua có lý do tính là qua; tự từ chối hộp thoại đồng ý ở mọi bước. Plan qua 5 vòng rà soát độc lập, vòng cuối không còn điểm chặn.
 
 ## 10. Nhật ký thực hiện
 

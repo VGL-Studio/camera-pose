@@ -17,7 +17,7 @@ Claude Code ghi mỗi phiên vào một transcript trên máy chạy phiên: `~/
 
 **Transcript nào thuộc repo:** dòng nào có thư mục làm việc là thư mục repo, một worktree của repo (`git worktree list`), hoặc một thư mục mang tên repo (tên lấy từ remote `origin`, không có thì lấy tên thư mục; đặt `TOKEN_USAGE_REPO` để chọn tên khác). Nhờ vậy chạy script trong worktree của nhánh báo cáo (`../report`) vẫn thấy transcript của thư mục chính và ngược lại (L-008 của camera-pose).
 
-**Gán cho task theo nhánh:** request trên nhánh `claude/T-NNN-...` hoặc `claude/fix-T-NNN-...` thuộc task T-NNN, kể cả phiên rà soát độc lập chạy trên nhánh đó. Mọi request khác (kiểm tra đầu phiên, nhánh báo cáo, emulator, viết báo cáo) vào dòng **Chung**.
+**Gán cho task theo nhánh:** request trên nhánh `claude/T-NNN-...` hoặc `claude/fix-T-NNN-...` thuộc task T-NNN, kể cả phiên rà soát độc lập chạy trên nhánh đó. Phiên con làm trong worktree bằng đường dẫn vẫn ghi nhánh của phiên chính, nên lời giao việc có một dòng riêng, đúng `Task: T-NNN` (không gạch đầu dòng, không định dạng, không thêm chữ sau): mọi request của transcript trong `subagents/` có dòng đó ở tin nhắn đầu thuộc task T-NNN. Một lời giao cho một task: tin nhắn gửi tiếp cho phiên con cũ vẫn tính vào task đầu. Transcript của phiên chính không bao giờ gán theo dòng này (L-073). Mọi request khác (kiểm tra đầu phiên, nhánh báo cáo, emulator, viết báo cáo) vào dòng **Chung**.
 
 ## 2. Ước tính khi viết plan
 

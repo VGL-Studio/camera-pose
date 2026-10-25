@@ -7,9 +7,10 @@ Usage:
   scripts/token-usage.py credit --run RUN-ID --usd AMOUNT [--csv FILE]
 
 report: reads every transcript (subagents included) of this repository, keeps one usage per API request,
-  attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...),
-  and prints a Markdown table with the plan's estimate next to the actual count. With --run and --csv it also
-  writes the rows of that run into the CSV, replacing rows of the same run so it can run again.
+  attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...)
+  or, for a subagent transcript, by a `Task: T-NNN` line of its first user message, and prints a Markdown
+  table with the plan's estimate next to the actual count. With --run and --csv it also writes the rows
+  of that run into the CSV, replacing rows of the same run so it can run again.
 estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan, and the cloud
   session credit spent per million tokens over the runs that recorded it.
 credit: records the cloud session credit (US dollars) a run opened with `claude --cloud` spent, read by a person
@@ -49,6 +50,9 @@ DEFAULT_ESTIMATES = {"S": 5_000_000, "M": 15_000_000, "L": 30_000_000}
 MIN_SAMPLES = 5
 SIZE_ORDER = {"S": 0, "M": 1, "L": 2}
 TASK_BRANCH = re.compile(r"^claude/(?:fix-)?(T-\d+)(?:-|$)")
+# A subagent works in a worktree by path, so its transcript keeps the main checkout's branch. The main session
+# writes a line "Task: T-NNN" in its brief, and every request of that subagent transcript counts for the task (L-073).
+BRIEF_TASK = re.compile(r"^Task: (T-\d+)\s*$", re.M)
 
 
 def parse_amount(text):
@@ -149,6 +153,16 @@ def repo_matcher():
     return in_repo
 
 
+def message_text(message):
+    """The text of a transcript message: content is a string or a list of parts."""
+    content = (message or {}).get("content") if isinstance(message, dict) else None
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(part.get("text", "") for part in content if isinstance(part, dict))
+    return ""
+
+
 def requests(files, since, until):
     """One usage per API request: the last line of a request carries its final counts."""
     found = {}
@@ -158,8 +172,18 @@ def requests(files, since, until):
             lines = path.open(encoding="utf-8", errors="replace")
         except OSError:
             continue
+        brief_task, first_user = None, "subagents" in path.parts
         with lines:
             for line in lines:
+                if first_user and '"user"' in line:
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        entry = {}
+                    if entry.get("type") == "user":
+                        first_user = False
+                        match = BRIEF_TASK.search(message_text(entry.get("message")))
+                        brief_task = f"claude/{match.group(1)}" if match else None
                 if '"usage"' not in line:
                     continue
                 try:
@@ -175,7 +199,7 @@ def requests(files, since, until):
                     continue
                 key = entry.get("requestId") or entry.get("uuid")
                 found[key] = {
-                    "branch": entry.get("gitBranch") or "",
+                    "branch": brief_task or entry.get("gitBranch") or "",
                     "input": usage.get("input_tokens") or 0,
                     "cache_write": usage.get("cache_creation_input_tokens") or 0,
                     "cache_read": usage.get("cache_read_input_tokens") or 0,

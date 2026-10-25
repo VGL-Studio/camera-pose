@@ -21,7 +21,7 @@ ticket: line. A file that breaks a rule is a file error: check exits 1, run reco
 Selectors (one keyword, optional filters; several selectors separated by " | " match any of them):
   id=<testTag>  idp=<testTag prefix>  desc=<content-desc>  text=<text>  str=<name in res/values/strings.xml>
   A value may be quoted ("Hands in Pockets"): the quotes keep its spaces, a number after them is the seconds or count.
-  An unquoted text= or desc= with a space on a line that ends in a number is ambiguous, so it is a file error.
+  An unquoted text= or desc= on a line that ends in a number is ambiguous, even one word: quote it (desc="Back" 10).
   filters: in=<testTag> (inside that element), index=<n> (nth match, from 1), selected=true, clickable=true
   selected=true (or checked) looks at the node itself; for a node that is not clickable also at up to two parents,
   stopping after the first clickable one (the text of a Compose chip is a child of the selected node).
@@ -33,7 +33,8 @@ Commands:
   consent decline [seconds]     tap "Do not consent" when the ad consent form shows (ADR-0013) and wait until it
                                 closes, or see the first screen of the app without a form. When the form shows later,
                                 a step that reads the screen declines it once ("hiện muộn" in the note); a form that
-                                shows again after a decline is a failure, also inside need (the choice was not kept)
+                                shows again after a decline is a failure, also inside need (the choice was not kept);
+                                a second consent decline that sees the form after a decline fails
   wait <selector> [seconds]     wait until it shows (default 20)
   need <selector> [seconds]     like wait; when it never shows the file ends as "bỏ qua (môi trường)"
   tap <selector> | tap_if <selector>   tap the centre of the element; tap_if does nothing when it is absent
@@ -100,6 +101,16 @@ PLACEHOLDER = re.compile(r"%(?:\d+\$)?[sdf]")
 LOCALE_TAG = re.compile(r"[A-Za-z]{2,3}(-[A-Za-z0-9]+)*")
 
 
+def unfolded_display(physical):
+    """(size, density) for 673 x 841 dp: 1766x2208 at 420, or smaller when Android would cut 2208 down to three
+    times the longer side of the screen (a 320x640 emulator allows 1920)."""
+    limit = 3 * max(physical) if physical else None
+    if limit is None or 2208 <= limit:
+        return UNFOLDED_SIZE, UNFOLDED_DENSITY
+    density = 160 * limit // 841
+    return f"{-(-673 * density // 160)}x{-(-841 * density // 160)}", str(density)
+
+
 class AdbTimeout(Exception):
     """An adb call did not return within its deadline."""
 
@@ -148,7 +159,8 @@ def parse_selector(text):
 
 
 def ambiguous(rest):
-    """True when an unquoted text= or desc= value has a space: `wait text=Page 2` could mean "Page 2" or 2 seconds."""
+    """True when an unquoted text= or desc= value has a space once the number at the end of the line is read as part
+    of it, so even one word is ambiguous: `wait desc=Back 10` could mean "Back 10" or 10 seconds."""
     for part in re.split(r"\s+\|\s+", rest.strip()):
         match = SELECTOR.match(part)
         if match and match.group(1) in ("text", "desc") and not match.group(2).startswith('"') \
@@ -161,7 +173,8 @@ def selector_and_number(rest, required=False):
     """(alternatives, n) of `<selector> [n]`; ValueError when the number could belong to the value."""
     text, number = split_number(rest, required)
     if number is not None and ambiguous(rest):
-        raise ValueError("giá trị có dấu cách rồi tới một số là mơ hồ; ghi giá trị trong ngoặc kép")
+        raise ValueError("mọi text= hay desc= không ngoặc trên dòng kết thúc bằng một số là mơ hồ, kể cả một từ: "
+                         'ghi giá trị trong ngoặc kép, ví dụ desc="Back" 10')
     return parse_selector(text), number
 
 
@@ -476,6 +489,7 @@ class Runner:
         self.activity = None
         self.strings = string_values(ROOT)
         self.original_size = self.original_density = None
+        self.physical_size = None  # (width, height) of the screen from `wm size`, for device unfold
         self.network_touched = False
         self.network_used = False  # any file of the run, so the last reset turns the network on
         self.cached_screen = None  # last dump of consent decline or device, for the next step that reads the screen
@@ -641,7 +655,7 @@ class Runner:
         end = min(time.monotonic() + self.process_wait, self.file_deadline)
         while True:
             _, output = self.adb("shell", "pidof", self.package)
-            if re.search(r"\d", output):
+            if re.fullmatch(r"\s*\d+(\s+\d+)*\s*", output):
                 if timed_out:
                     self.note(f"fresh: {timed_out}, có tiến trình")
                 return None
@@ -657,6 +671,8 @@ class Runner:
             if screen is not None:
                 node = screen.find(decline)
                 if node is not None:
+                    if self.consent_state == "declined":
+                        raise ConsentFail(CONSENT_AGAIN)
                     self.note(f"đã chạm từ chối {self.tap_node(node, noted=False)}")
                     closed = self.wait_consent_closed(min(time.monotonic() + self.consent_close, self.file_deadline))
                     if closed is None:
@@ -665,6 +681,8 @@ class Runner:
                     self.cached_screen = closed
                     return
                 if screen.find(first) is not None:
+                    if self.consent_state == "declined":
+                        return  # keep the decline: a form after it is a failure, not a late form
                     self.consent_state = "late"  # no form yet; a step that reads the screen declines a late one
                     self.note("chưa thấy hộp thoại đồng ý")
                     return
@@ -731,8 +749,12 @@ class Runner:
         elif words[0] == "night":
             self.adb("shell", "cmd", "uimode", "night", "yes" if words[1] == "on" else "no")
         elif words[0] == "unfold":
-            self.adb("shell", "wm", "size", UNFOLDED_SIZE)
-            self.adb("shell", "wm", "density", UNFOLDED_DENSITY)
+            # The first tap after a letterboxed unfold only closes the education dialog of the system, which
+            # uiautomator does not see (FB-20261025-01); the reset turns it back to the default.
+            self.adb("shell", "wm", "set-letterbox-style", "--isEducationEnabled", "false")
+            size, density = unfolded_display(self.physical_size)
+            self.adb("shell", "wm", "size", size)
+            self.adb("shell", "wm", "density", density)
         elif words[0] == "fold":
             self.adb("shell", "wm", "size", self.original_size or "reset")
             self.adb("shell", "wm", "density", self.original_density or "reset")
@@ -781,6 +803,9 @@ class Runner:
                 _, output = run_process(["adb", "shell", "wm", what], 5)
             except AdbTimeout:
                 continue
+            physical = re.search(r"Physical size: *(\d+)x(\d+)", output)
+            if physical:
+                self.physical_size = (int(physical.group(1)), int(physical.group(2)))
             override = re.search(r"Override (?:size|density): *(\S+)", output)
             if override:
                 setattr(self, f"original_{what}", override.group(1))
@@ -793,6 +818,7 @@ class Runner:
         commands = [
             ["shell", "wm", "size", self.original_size or "reset"],
             ["shell", "wm", "density", self.original_density or "reset"],
+            ["shell", "wm", "reset-letterbox-style", "isEducationEnabled"],
             ["shell", "settings", "put", "system", "accelerometer_rotation", "1"],
             ["shell", "settings", "put", "system", "user_rotation", "0"],
             ["shell", "cmd", "uimode", "night", "no"],

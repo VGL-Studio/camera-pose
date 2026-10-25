@@ -17,7 +17,7 @@ import org.robolectric.annotation.GraphicsMode
 /** The network dialog, named after the design images in docs/features/network/design/screens (ADR-0020). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class NetworkDialogScreenshotTest {
     @Test
     fun default_light() {
@@ -42,7 +42,7 @@ class NetworkDialogScreenshotTest {
     }
 
     @Test
-    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
     fun stillOffline_small() {
         captureRoboImage("src/test/screenshots/NetworkDialogScreen_stillOffline_small.png") {
             Dialog(darkTheme = false, stillOffline = true)

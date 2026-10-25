@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="poses_title">पोज़ लाइब्रेरी</string>
+    <string name="poses_summary">%2$d ग्रुप में %1$d पोज़</string>
+    <string name="poses_chip_all">सभी</string>
+    <string name="poses_chip_saved">सेव किए गए</string>
+    <string name="poses_card_meta">%1$s · %2$d स्टेप</string>
+    <string name="poses_subject_single">अकेले</string>
+    <string name="poses_subject_couple">कपल</string>
+    <string name="poses_subject_group">ग्रुप</string>
+    <string name="poses_error_title">लाइब्रेरी लोड नहीं हो सकी</string>
+    <string name="poses_error_message">लाइब्रेरी लोड करते समय गड़बड़ी हुई। कुछ मिनट बाद फिर से कोशिश करें।</string>
+    <string name="poses_error_action">फिर से कोशिश करें</string>
+    <string name="poses_saved_empty_title">अभी कोई पोज़ सेव नहीं है</string>
+    <string name="poses_saved_empty_message">किसी पोज़ कार्ड पर सेव आइकन टैप करें, वह यहाँ दिखेगा।</string>
+    <string name="poses_saved_empty_action">सभी पोज़ देखें</string>
+    <string name="poses_save_failed">पोज़ सेव नहीं हो सका। बाद में फिर से कोशिश करें।</string>
+    <string name="poses_cd_back">वापस</string>
+    <string name="poses_cd_settings">सेटिंग</string>
+    <string name="poses_cd_save">पोज़ सेव करें</string>
+    <string name="poses_cd_unsave">सेव से हटाएँ</string>
+    <string name="poses_cd_reload_image">इमेज फिर से लोड करें</string>
+    <string name="poses_detail_meta">%1$s · %2$s · %3$s · %4$d स्टेप</string>
+    <string name="poses_detail_meta_no_group">%1$s · %2$s · %3$d स्टेप</string>
+    <string name="poses_framing_full">पूरा शरीर</string>
+    <string name="poses_framing_half">आधा शरीर</string>
+    <string name="poses_framing_close">क्लोज़-अप</string>
+    <string name="poses_detail_steps_title">स्टेप</string>
+    <string name="poses_detail_mistakes_title">आम गलतियाँ</string>
+    <string name="poses_detail_shoot">इस पोज़ के साथ फ़ोटो लें</string>
+    <string name="poses_image_error_title">इमेज लोड नहीं हो सकी</string>
+    <string name="poses_image_error_message">इमेज लोड करते समय गड़बड़ी हुई। कुछ मिनट बाद फिर से कोशिश करें।</string>
+</resources>

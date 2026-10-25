@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="poses_title">Pustaka pose</string>
+    <string name="poses_summary">%1$d pose dalam %2$d grup</string>
+    <string name="poses_chip_all">Semua</string>
+    <string name="poses_chip_saved">Tersimpan</string>
+    <string name="poses_card_meta">%1$s · %2$d langkah</string>
+    <string name="poses_subject_single">Sendiri</string>
+    <string name="poses_subject_couple">Pasangan</string>
+    <string name="poses_subject_group">Grup</string>
+    <string name="poses_error_title">Pustaka tidak dapat dimuat</string>
+    <string name="poses_error_message">Terjadi kesalahan saat memuat pustaka. Coba lagi dalam beberapa menit.</string>
+    <string name="poses_error_action">Coba lagi</string>
+    <string name="poses_saved_empty_title">Belum ada pose tersimpan</string>
+    <string name="poses_saved_empty_message">Ketuk ikon simpan di kartu pose untuk menyimpannya di sini.</string>
+    <string name="poses_saved_empty_action">Lihat semua pose</string>
+    <string name="poses_save_failed">Pose tidak dapat disimpan. Coba lagi nanti.</string>
+    <string name="poses_cd_back">Kembali</string>
+    <string name="poses_cd_settings">Setelan</string>
+    <string name="poses_cd_save">Simpan pose</string>
+    <string name="poses_cd_unsave">Hapus dari tersimpan</string>
+    <string name="poses_cd_reload_image">Muat ulang gambar</string>
+    <string name="poses_detail_meta">%1$s · %2$s · %3$s · %4$d langkah</string>
+    <string name="poses_detail_meta_no_group">%1$s · %2$s · %3$d langkah</string>
+    <string name="poses_framing_full">Seluruh badan</string>
+    <string name="poses_framing_half">Setengah badan</string>
+    <string name="poses_framing_close">Jarak dekat</string>
+    <string name="poses_detail_steps_title">Langkah</string>
+    <string name="poses_detail_mistakes_title">Kesalahan umum</string>
+    <string name="poses_detail_shoot">Foto dengan pose ini</string>
+    <string name="poses_image_error_title">Gambar tidak dapat dimuat</string>
+    <string name="poses_image_error_message">Terjadi kesalahan saat memuat gambar. Coba lagi dalam beberapa menit.</string>
+</resources>

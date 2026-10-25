@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="poses_title">คลังท่าโพส</string>
+    <string name="poses_summary">%1$d ท่าใน %2$d กลุ่ม</string>
+    <string name="poses_chip_all">ทั้งหมด</string>
+    <string name="poses_chip_saved">ที่บันทึกไว้</string>
+    <string name="poses_card_meta">%1$s · %2$d ขั้นตอน</string>
+    <string name="poses_subject_single">คนเดียว</string>
+    <string name="poses_subject_couple">คู่รัก</string>
+    <string name="poses_subject_group">กลุ่ม</string>
+    <string name="poses_error_title">โหลดคลังท่าโพสไม่ได้</string>
+    <string name="poses_error_message">เกิดข้อผิดพลาดขณะโหลดคลังท่าโพส ลองอีกครั้งในอีกสักครู่</string>
+    <string name="poses_error_action">ลองอีกครั้ง</string>
+    <string name="poses_saved_empty_title">ยังไม่มีท่าโพสที่บันทึกไว้</string>
+    <string name="poses_saved_empty_message">แตะไอคอนบันทึกบนการ์ดท่าโพสเพื่อเก็บไว้ที่นี่</string>
+    <string name="poses_saved_empty_action">ดูท่าโพสทั้งหมด</string>
+    <string name="poses_save_failed">บันทึกท่าโพสไม่สำเร็จ ลองอีกครั้งภายหลัง</string>
+    <string name="poses_cd_back">กลับ</string>
+    <string name="poses_cd_settings">การตั้งค่า</string>
+    <string name="poses_cd_save">บันทึกท่าโพส</string>
+    <string name="poses_cd_unsave">เลิกบันทึกท่าโพส</string>
+    <string name="poses_cd_reload_image">โหลดรูปอีกครั้ง</string>
+    <string name="poses_detail_meta">%1$s · %2$s · %3$s · %4$d ขั้นตอน</string>
+    <string name="poses_detail_meta_no_group">%1$s · %2$s · %3$d ขั้นตอน</string>
+    <string name="poses_framing_full">เต็มตัว</string>
+    <string name="poses_framing_half">ครึ่งตัว</string>
+    <string name="poses_framing_close">ระยะใกล้</string>
+    <string name="poses_detail_steps_title">ขั้นตอน</string>
+    <string name="poses_detail_mistakes_title">ข้อผิดพลาดที่พบบ่อย</string>
+    <string name="poses_detail_shoot">ถ่ายด้วยท่านี้</string>
+    <string name="poses_image_error_title">โหลดรูปไม่ได้</string>
+    <string name="poses_image_error_message">เกิดข้อผิดพลาดขณะโหลดรูป ลองอีกครั้งในอีกสักครู่</string>
+</resources>

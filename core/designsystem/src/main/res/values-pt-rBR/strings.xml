@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="brand_tagline">Tudo entra no ritmo.</string>
+    <string name="network_dialog_title">Sem conexão de rede</string>
+    <string name="network_dialog_message">O app precisa de rede para funcionar. Verifique sua conexão com a internet e tente novamente.</string>
+    <string name="network_dialog_retry">Tentar novamente</string>
+    <string name="network_dialog_still_offline">Ainda sem conexão</string>
+</resources>

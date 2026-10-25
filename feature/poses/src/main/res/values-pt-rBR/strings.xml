@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="poses_title">Biblioteca de poses</string>
+    <string name="poses_summary">%1$d poses em %2$d grupos</string>
+    <string name="poses_chip_all">Todas</string>
+    <string name="poses_chip_saved">Salvas</string>
+    <string name="poses_card_meta">%1$s · %2$d passos</string>
+    <string name="poses_subject_single">Individual</string>
+    <string name="poses_subject_couple">Casal</string>
+    <string name="poses_subject_group">Grupo</string>
+    <string name="poses_error_title">Não foi possível carregar a biblioteca</string>
+    <string name="poses_error_message">Algo deu errado ao carregar a biblioteca. Tente novamente em alguns minutos.</string>
+    <string name="poses_error_action">Tentar novamente</string>
+    <string name="poses_saved_empty_title">Nenhuma pose salva ainda</string>
+    <string name="poses_saved_empty_message">Toque no ícone de salvar em um card de pose para guardá-la aqui.</string>
+    <string name="poses_saved_empty_action">Ver todas as poses</string>
+    <string name="poses_save_failed">Não foi possível salvar a pose. Tente novamente mais tarde.</string>
+    <string name="poses_cd_back">Voltar</string>
+    <string name="poses_cd_settings">Configurações</string>
+    <string name="poses_cd_save">Salvar pose</string>
+    <string name="poses_cd_unsave">Remover das salvas</string>
+    <string name="poses_cd_reload_image">Recarregar imagem</string>
+    <string name="poses_detail_meta">%1$s · %2$s · %3$s · %4$d passos</string>
+    <string name="poses_detail_meta_no_group">%1$s · %2$s · %3$d passos</string>
+    <string name="poses_framing_full">Corpo inteiro</string>
+    <string name="poses_framing_half">Meio corpo</string>
+    <string name="poses_framing_close">Rosto em close</string>
+    <string name="poses_detail_steps_title">Passos</string>
+    <string name="poses_detail_mistakes_title">Erros comuns</string>
+    <string name="poses_detail_shoot">Fotografar com esta pose</string>
+    <string name="poses_image_error_title">Não foi possível carregar a imagem</string>
+    <string name="poses_image_error_message">Algo deu errado ao carregar a imagem. Tente novamente em alguns minutos.</string>
+</resources>

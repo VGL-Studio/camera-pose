@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand tagline shown with BrandLogo. Each app replaces it with its own (ADR-0008). -->
-    <string name="brand_tagline">Mọi việc vào đúng nhịp.</string>
+    <string name="brand_tagline">Everything falls into rhythm.</string>
 
     <!-- Network dialog shown over every screen after loading (spec network, design text table). -->
-    <string name="network_dialog_title">Mất kết nối mạng</string>
-    <string name="network_dialog_message">App cần mạng để hoạt động. Kiểm tra kết nối Internet rồi thử lại.</string>
-    <string name="network_dialog_retry">Thử lại</string>
-    <string name="network_dialog_still_offline">Vẫn chưa có mạng</string>
+    <string name="network_dialog_title">No network connection</string>
+    <string name="network_dialog_message">The app needs a network connection to work. Check your internet connection, then try again.</string>
+    <string name="network_dialog_retry">Try again</string>
+    <string name="network_dialog_still_offline">Still offline</string>
 </resources>

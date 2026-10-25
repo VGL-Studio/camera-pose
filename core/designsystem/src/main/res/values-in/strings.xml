@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="brand_tagline">Semuanya pas iramanya.</string>
+    <string name="network_dialog_title">Tidak ada koneksi jaringan</string>
+    <string name="network_dialog_message">Aplikasi memerlukan jaringan agar dapat berfungsi. Periksa koneksi internet Anda, lalu coba lagi.</string>
+    <string name="network_dialog_retry">Coba lagi</string>
+    <string name="network_dialog_still_offline">Masih belum ada jaringan</string>
+</resources>

@@ -299,7 +299,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** commit dabc2a3 tới 15f10b2 (16:58 tới 17:12); token T-012 21,9M so với ước tính 20M.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 3: cho phép và mô tả cách giao bước 3 đến 5 cho phiên con (nội dung giao việc tối thiểu); nhắc không sửa file trong thư mục đang chạy `check.sh` nền, chỉ chạy rà soát độc lập song song.
 - **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-052).
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261025-01 (T-048): phiên con làm bước 3 đến 5 (32 test, code, `check.sh`) trong khoảng 22 phút; phiên chính chỉ đọc báo cáo, ngữ cảnh nhỏ.
 
 ### L-032: Nút chữ trong thành phần có nền khác màu tự đặt màu chữ, đè màu thiết kế
 
@@ -326,7 +326,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** phản hồi của hook trong phiên, lúc phiên con T-014, T-021, T-025 đang làm.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 3 (cùng chỗ với L-031): phiên chính tạo worktree riêng cho nhánh task (`git worktree add ../task-T-NNN claude/T-NNN-...`) và giao việc cho phiên con trong worktree đó; thư mục chính giữ sạch cho việc của phiên chính. Bộ nhớ đệm Gradle ở `~/.gradle` dùng chung nên không tốn thêm thời gian tải.
 - **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-052).
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261025-01: phiên con làm trong `../task-T-048`; phiên chính chờ `check.sh` đầu phiên và ghi nhánh báo cáo song song, không xung đột.
 
 ### L-035: Thêm một bước đối chứng để test viết trước không qua ngay trên khung rỗng
 
@@ -672,7 +672,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** RUN-20261024-02, giờ 15:12 UTC: `echo "TMPDIR=[$TMPDIR]"` in `TMPDIR=[]`; file `/t044-tests.txt` nằm ở gốc.
 - **Đề xuất sửa:** plan và `auto-run.md` ghi `${TMPDIR:-/tmp}` (hoặc thư mục scratchpad của phiên) thay cho `$TMPDIR`; ghi rõ vòng chờ phải là `for i in ...; do ...; sleep N; done` hoặc chạy nền, không bắt đầu lệnh bằng `sleep`.
 - **Áp dụng:** `scripts/plan-check.py` quy tắc 12 (plan `draft` ghi `$TMPDIR` trần thì lỗi, plan `approved` thì chú ý), `docs/auto-run.md` bước 9, `docs/CLAUDE.md` mục Khi viết plan (PR này). Tuấn nhận ngày 2026-10-24. Dự án mẫu: VGL-Studio/app-project-template#150.
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261025-01: tệp tạm của phiên ở thư mục scratchpad, vòng chờ viết `for ... sleep`; code mới của T-048 dùng `$work`.
 
 ### L-072: test của script dùng `sed -i` kiểu GNU, bộ test dừng giữa chừng trên macOS
 
@@ -681,4 +681,13 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** chạy `scripts/tests/run.sh` trên macOS ngày 2026-10-24: `sed: 1: "/var/folders/...": invalid command code f`; PR #124 sửa thành `sed -i.bak ... && rm`.
 - **Đề xuất sửa:** trong script và test chỉ dùng dạng chạy được trên cả hai (`sed -i.bak ... && rm ...bak`, hay ghi ra tệp mới rồi `mv`); thêm vào phần dò tự động của L-069 một quy tắc tìm `sed -i` không có đuôi trong `scripts/`.
 - **Áp dụng:** chưa có. Dự án mẫu: VGL-Studio/app-project-template#150.
+- **Kiểm chứng:**
+
+### L-073: `token-usage.py` gán token của phiên con vào dòng Chung, số theo task thiếu phần lớn
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261025-01 (T-048).
+- **Chuyện gì:** T-048 giao bước 3 đến 5 cho một phiên con làm trong worktree `../task-T-048` (L-031, L-034), và rà soát độc lập cho một phiên con khác. Transcript của cả hai phiên con ghi `cwd` là thư mục chính và `gitBranch` là nhánh của thư mục chính (nhánh mặc định của phiên), vì lệnh của chúng chỉ `cd` vào worktree trong từng lệnh shell. `scripts/token-usage.py` gán theo nhánh, nên T-048 hiện 589k (0,1 lần ước tính 9M) còn phần thật khoảng 12,4M nằm ở dòng Chung. Chạy lại khi worktree còn trong `git worktree list` cũng không đổi.
+- **Bằng chứng:** RUN-20261025-01, mục Token: `subagents/agent-*.jsonl` có 81 và 49 dòng, tất cả `('/home/user/camera-pose', 'claude/run-20261025-01-esag49')`; đếm tay 7,96M và 3,81M.
+- **Đề xuất sửa:** `scripts/token-usage.py` gán transcript phiên con theo worktree hay nhánh xuất hiện trong lệnh của nó (`cd /home/user/task-T-NNN`, `git -C ...`), hoặc theo một bảng phiên con và task mà phiên chính ghi; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên đếm tay phần phiên con.
+- **Áp dụng:** chưa có.
 - **Kiểm chứng:**

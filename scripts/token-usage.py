@@ -8,8 +8,9 @@ Usage:
 
 report: reads every transcript (subagents included) of this repository, keeps one usage per API request,
   attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...)
-  or, for a subagent transcript, by a `Task: T-NNN` line of its first user message, and prints a Markdown table with the plan's estimate next to the actual count. With --run and --csv it also
-  writes the rows of that run into the CSV, replacing rows of the same run so it can run again.
+  or, for a subagent transcript, by a `Task: T-NNN` line of its first user message, and prints a Markdown
+  table with the plan's estimate next to the actual count. With --run and --csv it also writes the rows
+  of that run into the CSV, replacing rows of the same run so it can run again.
 estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan, and the cloud
   session credit spent per million tokens over the runs that recorded it.
 credit: records the cloud session credit (US dollars) a run opened with `claude --cloud` spent, read by a person

@@ -35,7 +35,7 @@ Sau ticket này, mỗi lần `device-session` cho kết quả kịch bản có n
   - `fresh` mở bằng `am start -W` có hạn riêng, kiểm tiến trình app có chạy, mở lại một lần (trừ khi bộ đệm crash có app);
   - từ chối hộp thoại đồng ý hiện muộn ở mọi bước đọc màn hình, tối đa một lần mỗi `fresh`; hộp thoại hiện lại sau khi đã từ chối là lỗi;
   - `selected=true` đọc cả nút cha;
-  - chờ màn hình ổn định sau `device unfold|fold|rotate`;
+  - chờ màn hình ổn định sau `device unfold|fold|rotate|night|locale`;
   - ghi dòng `note` (tọa độ chạm, thời điểm) cho mỗi bước;
   - giá trị có dấu cách đặt trong ngoặc kép;
   - `check` chỉ đọc mã chính, không đọc `src/test`;

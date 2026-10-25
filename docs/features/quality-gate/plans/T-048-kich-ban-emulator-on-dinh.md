@@ -74,18 +74,25 @@ Dạng dòng `step=` và `result=` trong `scenarios.txt` không đổi. Quy ư�
 - sau khi chạm "Do not consent", chờ hộp thoại đóng;
 - chờ màn hình ổn định sau lệnh `device`.
 
-Bản dump cuối cùng của các bước đó được giữ trong `Runner.cached_screen`. Bước đọc màn hình ngay sau dùng bản này thay cho lần dump đầu tiên của nó, chỉ một lần. Nhờ vậy, test có sẵn (mỗi lần dump lấy một tệp của chuỗi) không đổi số lần dump.
+Bản dump cuối cùng của các bước đó được giữ trong `Runner.cached_screen`, với quy tắc hết hạn sau:
+- Chỉ bước ngay sau dùng được bản giữ, và chỉ khi bước đó đọc màn hình (`wait`, `need`, `tap`, `tap_if`, `scroll`, `expect`, `expect_no`, `count`). Bước đó dùng nó thay cho lần dump đầu tiên của mình, đúng một lần, rồi xóa.
+- Mọi bước khác (`fresh`, `back`, `network`, `shot`, `device`, `consent decline`) xóa `cached_screen` ngay khi bắt đầu, vì chúng đổi màn hình hoặc tự đọc màn hình.
+  - `device` và `consent decline` có thể đặt lại một bản mới khi kết thúc.
+  - `fresh` xóa nó cùng lúc với `consent_state`.
+- Vì vậy, `consent decline 5`, `back`, `expect id=camera_screen` không bao giờ đọc màn hình trước khi bấm Back.
+
+Nhờ vậy, test có sẵn (mỗi lần dump lấy một tệp của chuỗi) không đổi số lần dump.
 
 **`fresh`** (mở app giống kịch bản chuẩn của `device-session.sh`, dòng 201 đến 228):
 1. `logcat -b crash -c`, `am force-stop <gói>`, `pm clear <gói>`, cấp quyền (`helper grant-permissions`, như hiện nay).
-2. `am start -W -n <activity>` với hạn riêng `min(15, phần còn lại của tệp)`. Hết hạn (`AdbTimeout`) thì coi như không có tiến trình.
-3. Chờ `pidof <gói>` in một số, tối đa `DEVICE_SCENARIO_PROCESS_WAIT` giây (mặc định 5; test đặt 0.3), đọc mỗi `DEVICE_SCENARIO_POLL` giây.
+2. `am start -W -n <activity>` với hạn riêng `min(DEVICE_SCENARIO_START_WAIT, phần còn lại của tệp)` (mặc định 15 giây; test đặt 1). Hết hạn (`AdbTimeout`) thì nhớ lý do `am start -W hết <n> giây` và vẫn làm bước 3, để app khởi động chậm mà vẫn sống không bị dừng.
+3. Chờ `pidof <gói>` in một số, tối đa `DEVICE_SCENARIO_PROCESS_WAIT` giây (mặc định 5; test đặt 0.3), đọc mỗi `DEVICE_SCENARIO_POLL` giây. Có tiến trình thì bước `ok`; nếu bước 2 đã hết hạn thì dòng `note` vẫn ghi lý do đó.
 4. Không có tiến trình:
    - ghi `note step=<n> t=<s> fresh: lần mở 1 không có tiến trình (<am start -W hết 15 giây | pidof rỗng>), mở lại`;
    - đọc `logcat -b crash -d`: có tên gói thì `FAIL app crash ở lần mở đầu` (không mở lại, để lỗi khởi động của app không bị che);
    - không thì `am force-stop`, làm lại bước 2 và 3 một lần.
 5. Vẫn không có: `FAIL app không chạy sau 2 lần mở`.
-6. Bật lại cờ đồng ý của tệp: `consent_state = None`, `auto_declines = 0`.
+6. Ngay đầu bước (trước 1): `cached_screen = None`, `consent_state = None`, `auto_declines = 0`.
 
 Mọi lệnh nằm trong hạn của tệp.
 
@@ -124,7 +131,7 @@ Với dump thật: chip "Tất cả" khớp ở bậc 1; chip "Đã lưu" dừng
 
 **Ngoặc kép, tên tệp và `ticket:`** (trong `parse_file`, nên cả `check` lẫn `run` đều thấy):
 - `SELECTOR` nhận giá trị `"..."` (không có `"` bên trong) cho mọi loại; giá trị trong ngoặc giữ nguyên dấu cách; số sau dấu ngoặc đóng là số giây hay số lần.
-- Dòng có `text=` hay `desc=` không ngoặc, giá trị có dấu cách, mà `split_number` tách được một số ở cuối: lỗi `giá trị có dấu cách rồi tới một số là mơ hồ; ghi giá trị trong ngoặc kép`.
+- Dòng có `text=` hay `desc=` không ngoặc, giá trị có dấu cách, mà `split_number` tách được một số ở cuối: lỗi `giá trị có dấu cách rồi tới một số là mơ hồ; ghi giá trị trong ngoặc kép`. Quy tắc này cũng bắt `count text=A b 2` và `wait text=A b selected=true 5`: các dòng đó cũng phải ghi `text="A b"`. `docs/ops/test-sessions.md` ghi điều này.
 - `SAFE_NAME = r"[A-Za-z0-9][A-Za-z0-9._-]*\.txt"`. Tên không khớp thì lỗi ở dòng 0. Tên bắt đầu bằng `T-<số>-` mà `ticket:` khác mã đó cũng là lỗi.
 - `run_file`: có lỗi thì ghi như dòng lỗi tệp có sẵn (`step=0 check FAIL dòng <n>: <lý do>`, `result=lỗi tệp`). Tên trong log thay ký tự ngoài `SAFE_NAME` bằng `_`. Không có lệnh `adb` nào cho tệp đó, kể cả dấu `log -t`.
 - Ba kịch bản của repo và mọi tệp fixture có sẵn đều qua các quy tắc này (đã kiểm: `T-020`, `T-022`, `T-024` có `ticket:` trùng tên; `ok.txt`, `fail.txt`, `need.txt` không bắt đầu bằng `T-`).
@@ -132,11 +139,13 @@ Với dump thật: chip "Tất cả" khớp ở bậc 1; chip "Đã lưu" dừng
 **`check` không đọc test.**
 - Hàm tìm `*.kt` bỏ tệp có một thư mục ngay sau `src/` mà tên bắt đầu bằng `test` hay `androidTest`. Đây cũng là quy tắc của dự án mẫu (PR VGL-Studio/app-project-template#152).
 - Tệp `*.kt` không nằm dưới `src/` vẫn được tìm. Ví dụ `feature/demo/DemoTags.kt` của test quy tắc 11.
-- Gốc tìm kiếm lấy từ `DEVICE_SCENARIO_ROOT` nếu đặt (cho test), không thì là gốc repo như hiện nay.
+- `DEVICE_SCENARIO_ROOT` (cho test) chỉ được `main` đọc, cho lệnh `check`, rồi truyền vào `check_files(paths, root=...)`. Hằng `ROOT` của module không đổi, nên `plan-check.py` và `run` vẫn dùng gốc repo.
+- Bộ lọc `src/test*` xét đường dẫn tương đối so với gốc đó, như bộ lọc thư mục `build` có sẵn.
 - Chữ ký `check_files(paths, root=ROOT)` không đổi, vì `plan-check.py` (quy tắc 11) gọi hàm này.
 
 **Ngân sách gồm thời gian trả máy.**
 - `reset_device` có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` (mặc định 30 giây), mỗi lệnh `min(5, phần còn lại)`. Bật lại mạng thêm tối đa 45 giây, chỉ khi tệp có lệnh `network`.
+- **Phần chừa của mỗi tệp còn gồm 20 giây cho bằng chứng và dấu log:** `log -t` đầu tệp 10 giây, `screencap` của `fail.png` 10 giây. Hai việc này hiện có hạn 10 giây riêng, nằm ngoài hạn của tệp.
 - `read_display` (đầu lượt): mỗi lệnh `wm` có 5 giây, tính vào ngân sách như mọi thời gian khác (ngân sách đo từ lúc trình chạy bắt đầu).
 - Hạn của tệp là `min(timeout, ngân sách còn lại - hạn trả máy của tệp đó)`. Phần còn lại không dương thì tệp ghi `bỏ qua (hết thời gian)`.
 - Lần trả máy cuối lượt có cùng hạn tổng.
@@ -146,15 +155,15 @@ Tính toán với ba tệp hiện có:
 | Phần | Giây |
 | --- | --- |
 | `read_display` (tối đa) | 10 |
-| T-020 `timeout` 150 + trả máy 30 | 180 |
-| T-022 `timeout` 240 + trả máy 30 + mạng 45 | 315 |
-| T-024 `timeout` 180 + trả máy 30 | 210 |
+| T-020 `timeout` 150 + trả máy 30 + bằng chứng 20 | 200 |
+| T-022 `timeout` 240 + trả máy 30 + mạng 45 + bằng chứng 20 | 335 |
+| T-024 `timeout` 180 + trả máy 30 + bằng chứng 20 | 230 |
 | Trả máy cuối lượt (có mạng) | 75 |
-| **Tổng tối đa** | **790** |
+| **Tổng tối đa** | **850** |
 
-- **Ngân sách mặc định 900 giây,** ở cả `device-scenario.py` và `device-session.sh`, chừa khoảng 110 giây cho một tệp thêm sau này. Trước đây là 600, nhỏ hơn 790, nên tệp cuối có thể bị cắt.
-- **Hạn ngoài của `device-session.sh`:** `900 + 120 = 1020` giây, cộng 30 giây của `-k`.
-- **Thời gian của job:** trước đây job chạy 15 đến 25 phút, trong đó phần kịch bản khoảng 4 phút (33 + 77 + 127 giây ở lần 2). Trường hợp xấu nhất là 25 - 4 + 17,5 ≈ 39 phút, dưới giới hạn 50 phút của `device-session.yml`.
+- **Ngân sách mặc định 900 giây,** ở cả `device-scenario.py` và `device-session.sh`, chừa khoảng 50 giây. Trước đây là 600, nhỏ hơn 850, nên tệp cuối có thể bị cắt.
+- **Hạn ngoài của `device-session.sh`:** `900 + 120 = 1020` giây, cộng 30 giây của `-k`. Sau lần trả máy cuối, trong trường hợp xấu nhất, còn khoảng 1020 - 900 - 75 = 45 giây cho việc thoát và ghi tệp.
+- **Thời gian của job:** trước đây job chạy 15 đến 25 phút, trong đó phần kịch bản khoảng 4 phút (33 + 77 + 127 giây ở lần 2). Trường hợp xấu nhất là 25 - 4 + 18 ≈ 39 phút, dưới giới hạn 50 phút của `device-session.yml`.
 - **Khi tổng vượt 900 giây:** tệp mới làm tổng vượt thì plan của tệp đó tăng `DEVICE_SCENARIOS_BUDGET` cùng lúc. Điều này được ghi trong `docs/ops/test-sessions.md`.
 
 **SIGTERM.**
@@ -199,7 +208,7 @@ Kịch bản T-020 không đổi.
 - dòng `note` và mục "Ghi chú của trình chạy";
 - quy ước tên tệp và `ticket:`;
 - ngân sách 900 giây gồm thời gian trả máy, và quy tắc "tệp làm tổng vượt thì tăng ngân sách";
-- các biến `DEVICE_SCENARIO_SETTLE`, `DEVICE_SCENARIO_RESET_LIMIT`, `DEVICE_SCENARIO_CONSENT_CLOSE`, `DEVICE_SCENARIO_PROCESS_WAIT`, `DEVICE_SCENARIO_ROOT`.
+- các biến `DEVICE_SCENARIO_SETTLE`, `DEVICE_SCENARIO_RESET_LIMIT`, `DEVICE_SCENARIO_CONSENT_CLOSE`, `DEVICE_SCENARIO_START_WAIT`, `DEVICE_SCENARIO_PROCESS_WAIT`, `DEVICE_SCENARIO_ROOT`.
 
 Docstring đầu `device-scenario.py` cập nhật cùng nội dung.
 
@@ -207,9 +216,9 @@ Docstring đầu `device-scenario.py` cập nhật cùng nội dung.
 
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
-| Sửa | `scripts/device-scenario.py` | `fresh` (`logcat -b crash -c`, `force-stop`, `pm clear`, `am start -W` hạn 15 giây, chờ `pidof`, bộ đệm crash, mở lại một lần); `consent_state`, `auto_declines`, chờ hộp thoại đóng; `cached_screen`; `selected=true` theo quy tắc nút cha (bảng cha trong `Screen`); chờ ổn định sau `device`; dòng `note`; ngoặc kép, số mơ hồ, `SAFE_NAME`, `ticket:` khớp tên trong `parse_file`; `check` bỏ `src/test*`, `src/androidTest*`, `DEVICE_SCENARIO_ROOT`; hạn tổng của `reset_device`, `read_display` 5 giây, hạn tệp chừa phần trả máy, ngân sách mặc định 900; `Terminated`, `run_process` giết nhóm con và `wait()`; docstring |
+| Sửa | `scripts/device-scenario.py` | `fresh` (xóa `cached_screen` và cờ đồng ý, `logcat -b crash -c`, `force-stop`, `pm clear`, `am start -W` hạn `DEVICE_SCENARIO_START_WAIT`, chờ `pidof` kể cả khi `am start -W` hết hạn, bộ đệm crash, mở lại một lần); `consent_state`, `auto_declines`, chờ hộp thoại đóng; `cached_screen` (chỉ bước đọc màn hình ngay sau dùng, mọi bước khác xóa); `selected=true` theo quy tắc nút cha (bảng cha trong `Screen`); chờ ổn định sau `device`; dòng `note`; ngoặc kép, số mơ hồ, `SAFE_NAME`, `ticket:` khớp tên trong `parse_file`; `check` bỏ `src/test*`, `src/androidTest*`, `DEVICE_SCENARIO_ROOT`; hạn tổng của `reset_device`, `read_display` 5 giây, hạn tệp chừa phần trả máy, ngân sách mặc định 900; `Terminated`, `run_process` giết nhóm con và `wait()`; docstring |
 | Sửa | `scripts/device-session.sh` | Dòng 252: `timeout -k 30`, mặc định 900; `cmd_summary`: mục "Ghi chú của trình chạy"; chú thích khối biến môi trường (dòng 30 đến 33): mặc định 900 |
-| Sửa | `scripts/tests/fake-adb` | Giữ mọi hành vi có sẵn. Mọi hành vi mới về trạng thái chỉ chạy khi `FAKE_ADB_STATE_DIR` được đặt; không đặt thì `pidof` không in gì (như hiện nay, `*) exit 0`), nên test `device-session` (dòng 1758 đến 1836 của `run.sh`) và `scripts/app-explore/ax.sh` (đọc `pidof`) không đổi. Khi đặt: `pidof <gói>` in `4242` khi có tệp `$FAKE_ADB_STATE_DIR/alive`; `am start -W` tăng `starts.n` và tạo `alive` khi `starts.n` lớn hơn `$FAKE_ADB_DEAD_STARTS` (mặc định 0); `pm clear`, `am force-stop` xóa `alive`; nhánh `$FAKE_ADB_HANG` ghi `$$` vào `hang.pid` trước `exec sleep 300`. Không cần trạng thái: `logcat -b crash -d` in `$FAKE_ADB_CRASH_LOG` (mặc định không gì) rồi thoát, thay vì chờ như `logcat -v`. Chú thích đầu tệp |
+| Sửa | `scripts/tests/fake-adb` | Giữ mọi hành vi có sẵn. Mọi hành vi mới về trạng thái chỉ chạy khi `FAKE_ADB_STATE_DIR` được đặt; không đặt thì `pidof` không in gì (như hiện nay, `*) exit 0`), nên test `device-session` (dòng 1758 đến 1836 của `run.sh`) và `scripts/app-explore/ax.sh` (đọc `pidof`) không đổi. Khi đặt: `pidof <gói>` in `4242` khi có tệp `$FAKE_ADB_STATE_DIR/alive`; `am start -W` tăng `starts.n` và tạo `alive` khi `starts.n` lớn hơn `$FAKE_ADB_DEAD_STARTS` (mặc định 0); `pm clear`, `am force-stop` xóa `alive`; nhánh `$FAKE_ADB_HANG` (chạy trước `case`) chạy `mkdir -p "$FAKE_ADB_STATE_DIR"`, ghi `$$` vào `hang.pid`, tạo `alive` nếu `FAKE_ADB_ALIVE_AFTER_HANG=1`, rồi `exec sleep 300`. Không dùng `mapfile` (bash 3.2, L-069). Không cần trạng thái: `logcat -b crash -d` in `$FAKE_ADB_CRASH_LOG` (mặc định không gì) rồi thoát, thay vì chờ như `logcat -v`. Chú thích đầu tệp |
 | Tạo | `scripts/tests/fixtures/device-scenario/chips.xml` | Theo cấu trúc dump thật của T-024: chip "Tất cả" (`TextView` trong `View` `clickable="false"` `selected="true"`), chip "Đã lưu" (`TextView` trong `View` `clickable="true"` `selected="false"`); nút `clickable="true"` `content-desc="deep_clickable"` trong một cha `selected="true"`; `TextView` "Sâu" có ông cố (bậc 3) `selected="true"`, hai bậc trên không chạm được, không chọn; `TextView` "Hands in Pockets" `[96,1200][984,1300]` ngoài chip |
 | Tạo | `scripts/tests/fixtures/device-scenario/chips-saved.xml` | Như `chips.xml` nhưng nút cha của "Đã lưu" có `selected="true"` (đối chứng) |
 | Sửa | `scripts/tests/run.sh` | Khối `device-scenario` (sau dòng `an empty glob exits before any adb call`): test của mục 4, tệp kịch bản tạm ghi vào `$work` (`ds_script`), không thêm fixture tệp kịch bản; khối `device-session`: test `timeout -k`, test "Ghi chú của trình chạy" |
@@ -223,7 +232,11 @@ Docstring đầu `device-scenario.py` cập nhật cùng nội dung.
   - Đã kiểm test có sẵn của quy tắc 11 (`run.sh` dòng 1036 đến 1045): `T-940-good.txt` có `ticket: T-940`, `T-941-bad.txt` có `ticket: T-941`, đều khớp tên. Không dòng nào có `text=`/`desc=` mơ hồ. Tag `demo_tag` nằm ở `feature/demo/DemoTags.kt`, không dưới `src/test`. Vì vậy các test đó không đổi kết quả.
 - **`.github/workflows/device-session.yml`** gọi `scripts/device-session.sh` (`start ci`, `scenarios --yes`, `stop`) và đọc `summary.md`, không đặt `DEVICE_SCENARIOS_BUDGET`. Lệnh và tên tệp không đổi. Thời gian xấu nhất tính ở mục 3.1 (khoảng 39 phút) dưới `timeout-minutes: 50`.
 - **`scripts/device-session.sh` `cmd_summary`** đọc các dòng `^plan [^ ]+ step=[0-9]+ .* FAIL` và `^plan [^ ]+ result=`. Dòng `note` có chữ `note` ngay sau tên tệp, nên không khớp hai mẫu đó. Mục "Ghi chú của trình chạy" là phần thêm sau bảng. Dòng `plan runner_terminated` không khớp mẫu `result=`, giống dòng `plan runner_error` có sẵn.
-- **`scripts/tests/fake-adb`** cũng được test của `scripts/app-explore/` và của kịch bản chuẩn `device-session` dùng. Hành vi mới chỉ chạy khi `FAKE_ADB_STATE_DIR` được đặt; các test đó không đặt biến này. Riêng `logcat -b crash -d` không có trong các test đó. Đầu ra của `am start -W`, `pm clear`, `am force-stop` không đổi.
+- **`scripts/tests/fake-adb`** cũng được test của `scripts/app-explore/` và của `device-session` dùng. Biến `FAKE_ADB_STATE_DIR` được đặt ở những chỗ sau:
+  - khối `device-session` đầu (khoảng dòng 1758 đến 1836) và test của `app-explore` không đặt, nên `pidof` không in gì, như hiện nay;
+  - khối `device-session` có trình chạy (khoảng dòng 1976 đến 2068) `export FAKE_ADB_STATE_DIR="$work/adb-state-session"`, và mọi `ds_run` đặt `"$work/adb-state"`.
+
+  Ở hai chỗ đặt biến, kịch bản chuẩn (`device-session.sh`) chỉ gọi `pm clear`, `am force-stop`, `am start -W`, không gọi `pidof`. Tệp `alive` mà `am start -W` tạo chỉ có tác dụng với `fresh` của trình chạy, và `fresh` tự gọi `am start -W` trước khi đọc `pidof`. Vì vậy test có sẵn của hai chỗ đó không đổi kết quả. Đầu ra của `am start -W`, `pm clear`, `am force-stop` không đổi. `logcat -b crash -d` không có trong test có sẵn nào.
 - **`app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/ui/UiAutomatorTagsTest.kt`** nhắc `scripts/device-scenario.py` trong chú thích (lý do bật `testTagsAsResourceId`), không chạy nó. Plan không đổi cách đọc `resource-id`.
 - **`scripts/tests/run.sh`** được `scripts/check.sh` chạy (cả tệp), và được `scripts/main-guard-status.sh`, `scripts/merge-if-green.sh`, `scripts/wait-run.sh` nhắc trong chú thích. Plan chỉ thêm test vào khối `device-scenario` và `device-session`; cách gọi và dòng tổng kết không đổi. Hàm `ds_run` không đổi; biến mới truyền qua tham số `VAR=value` có sẵn.
 - **`docs/ops/test-sessions.md`** được `docs/CLAUDE.md` và `docs/templates/plan.md` dẫn tới "mục 5". Tên mục giữ nguyên.
@@ -266,28 +279,33 @@ Lý do thất bại dự kiến trên code hiện tại:
 - `fresh`: không có `am start -W`, không đọc `pidof`;
 - `selected`: không khớp nút cha (đã đo ở mục 4.1);
 - `note`: không có dòng nào;
-- ngoặc kép: lỗi cú pháp;
+- ngoặc kép: code cũ giữ dấu ngoặc trong giá trị, nên `check` qua, còn `wait` lỗi `không thấy phần tử`;
 - ngân sách: trả máy chờ 10 giây mỗi lệnh;
 - SIGTERM: tiến trình `sleep` còn sống.
+
+Các dòng ghi **(đối chứng)** qua được cả trên code cũ. Chúng giữ cho phần sửa không quá tay (L-035), và không tính vào số test thất bại trước.
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
 | `fresh` mở bằng `-W` | Test script | `device-scenario: fresh clears the app and starts it with am start -W`: `$FAKE_ADB_CALLS` có, theo thứ tự, `shell am force-stop`, `shell pm clear`, `shell am start -W -n com.example.app/.MainActivity`, `shell pidof com.example.app.staging`; bước `ok`; một lệnh `am start -W` |
 | Tiến trình bị giết thì mở lại | Test script | `device-scenario: fresh starts the app again when the first start left no process`: `FAKE_ADB_DEAD_STARTS=1 DEVICE_SCENARIO_PROCESS_WAIT=0.3`: hai lệnh `am start -W`, một lệnh `logcat -b crash -d`, bước `ok`, dòng `note step=1` có `pidof rỗng, mở lại` |
-| `am start -W` treo | Test script | `device-scenario: a hanging am start counts as no process and is retried`: `FAKE_ADB_HANG="am start"`, `DEVICE_SCENARIO_PROCESS_WAIT=0.3`, `timeout: 60`: dòng `note` có `am start -W hết 15 giây`, đúng hai lệnh `am start -W`, `step=1 fresh FAIL app không chạy sau 2 lần mở`, cả lượt xong dưới 40 giây |
+| `am start -W` treo | Test script | `device-scenario: a hanging am start counts as no process and is retried`: `FAKE_ADB_HANG="am start"`, `DEVICE_SCENARIO_START_WAIT=1`, `DEVICE_SCENARIO_PROCESS_WAIT=0.3`, `timeout: 60`: dòng `note` có `am start -W hết 1 giây`, đúng hai lệnh `am start -W`, `step=1 fresh FAIL app không chạy sau 2 lần mở`, cả lượt xong dưới 15 giây |
+| App chậm mà sống không bị dừng | Test script | `device-scenario: a slow am start with a live process is not restarted`: `FAKE_ADB_HANG="am start"`, `DEVICE_SCENARIO_START_WAIT=1`, `FAKE_ADB_ALIVE_AFTER_HANG=1` (nhánh treo của `am start` tạo `alive` trước khi `exec sleep`, như app khởi động chậm mà vẫn sống): một lệnh `am start -W`, bước `ok`, `note` có `am start -W hết 1 giây`, không có lệnh `am force-stop` thứ hai |
 | Không mở được | Test script | `device-scenario: fresh fails when the app never runs`: `FAKE_ADB_DEAD_STARTS=5 DEVICE_SCENARIO_PROCESS_WAIT=0.3`: `step=1 fresh FAIL app không chạy sau 2 lần mở`, đúng hai lệnh `am start -W` |
 | Crash lần đầu không bị che | Test script | `device-scenario: fresh fails on a first-start crash instead of starting again`: `FAKE_ADB_DEAD_STARTS=1`, `FAKE_ADB_CRASH_LOG` là tệp có `FATAL EXCEPTION` và `Process: com.example.app.staging`: `step=1 fresh FAIL app crash ở lần mở đầu`, đúng một lệnh `am start -W` |
 | Đồng ý hiện muộn | Test script | `device-scenario: a consent form that shows after consent decline saw the app is declined once`: tệp `consent decline 5`, `wait id=onboarding_screen 10`, `expect id=onboarding_screen`; chuỗi dump `onboarding.xml consent.xml onboarding.xml`: cả tệp `đạt`, đúng một lệnh chạm tâm nút `Do not consent` (`540 1970`), có `note` "hiện muộn" |
 | Chỉ một lần | Test script | `device-scenario: a second late consent form is not declined again`: chuỗi `onboarding.xml consent.xml onboarding.xml consent.xml`, tệp `consent decline 5`, `wait id=onboarding_screen 3`, `wait id=camera_screen 1`: đúng một lệnh chạm; bước 3 `FAIL` |
 | Hiện lại sau khi từ chối | Test script | `device-scenario: a consent form that shows again after decline is a failure`: chuỗi `consent.xml onboarding.xml consent.xml`, tệp `consent decline 5`, `wait id=camera_screen 3`: một lệnh chạm, `step=2 ... FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối` |
-| Đối chứng: không có bước đồng ý | Test script | `device-scenario: without consent decline a consent form is not tapped`: chuỗi `consent.xml`, tệp chỉ có `expect id=onboarding_screen`: không có lệnh `input tap` nào; `expect` lỗi |
-| `fresh` đặt lại cờ | Test script | `device-scenario: fresh resets the consent state`: tệp `fresh`, `consent decline 5`, `fresh`, `consent decline 5`, `wait id=onboarding_screen 3`; chuỗi `consent.xml onboarding.xml onboarding.xml consent.xml onboarding.xml`: hai lệnh chạm, `đạt` (lần `fresh` thứ hai cho phép hộp thoại hiện lần nữa) |
-| Chờ hộp thoại đóng | Test script | `device-scenario: consent decline waits for the form to close and taps once`: chuỗi `consent.xml consent.xml consent.xml onboarding.xml`, tệp `consent decline 5`, `wait id=onboarding_screen 1`: một lệnh chạm, `đạt`, `ui-seq.n` là 4 (bản cuối dùng lại cho bước 2). Đối chứng: chuỗi chỉ `consent.xml`, `DEVICE_SCENARIO_CONSENT_CLOSE=1`: `FAIL hộp thoại đồng ý không đóng`, một lệnh chạm |
+| Đối chứng: không có bước đồng ý | Test script (đối chứng) | `device-scenario: without consent decline a consent form is not tapped`: chuỗi `consent.xml`, tệp chỉ có `expect id=onboarding_screen`: không có lệnh `input tap` nào; `expect` lỗi |
+| `fresh` đặt lại cờ | Test script | `device-scenario: fresh resets the consent state`: tệp `fresh`, `consent decline 5`, `fresh`, `consent decline 5`, `wait id=onboarding_screen 3`; chuỗi `consent.xml onboarding.xml consent.xml onboarding.xml`: hai lệnh chạm, `đạt`. `fresh` thứ hai xóa `cached_screen` và `consent_state`, nên `consent decline` thứ hai đọc `consent.xml` mới |
+| Bản giữ hết hạn | Test script | `device-scenario: a kept screen is not used after back`: tệp `consent decline 5`, `back`, `expect id=camera_screen`; chuỗi `consent.xml onboarding.xml camera.xml`: `đạt`, `ui-seq.n` là 3 (`back` xóa bản `onboarding.xml` đã giữ, `expect` dump lại) |
+| Chờ hộp thoại đóng | Test script | `device-scenario: consent decline waits for the form to close and taps once`: chuỗi `consent.xml consent.xml consent.xml onboarding.xml`, tệp `consent decline 5`, `wait id=onboarding_screen 1`: một lệnh chạm, `đạt`, `ui-seq.n` là 4 (bản cuối dùng lại cho bước 2) |
+| Hộp thoại không đóng | Test script | `device-scenario: a consent form that does not close after the tap is a failure`: chuỗi chỉ `consent.xml`, `DEVICE_SCENARIO_CONSENT_CLOSE=1`: `step=1 ... FAIL hộp thoại đồng ý không đóng sau khi chạm từ chối`, một lệnh chạm. Đây là phần thất bại trên code cũ (code cũ trả `ok` ngay sau khi chạm) |
 | Test có sẵn của đồng ý | Test script | `consent decline taps Do not consent when shown` (chỉ kiểm mã 0 và một lệnh chạm), `waits for a late consent form`, `taps nothing when there is no form`, `fails when nothing shows` giữ nguyên, phải còn qua. Test `a passing file is reported as passed` (`ok.txt` trên `consent.xml onboarding.xml camera.xml`) cũng vậy: bản `onboarding.xml` xác nhận hộp thoại đóng được dùng lại cho `tap_if`, nên lệnh `shell input tap 540 1806` của test `tap uses the centre of the bounds` vẫn có |
 | `selected=true` theo nút cha | Test script | `device-scenario: selected=true matches a text whose parent chip is selected`: `chips.xml`, `expect str=poses_chip_all selected=true` đạt |
-| Đối chứng chip | Test script | `device-scenario: selected=true stops at the clickable parent of an unselected chip`: `chips.xml`, `expect str=poses_chip_saved selected=true` lỗi; `chips-saved.xml` thì đạt (L-035) |
-| Nút chạm được chỉ xét chính nó | Test script | `device-scenario: a clickable node is selected only by itself`: `chips.xml`, `expect desc=deep_clickable selected=true` lỗi (cha chọn, nút không) |
-| Không quá 2 bậc | Test script | `device-scenario: selected=true looks at most two parents up`: `chips.xml`, `expect text=Sâu selected=true` lỗi (ông cố chọn) |
+| Đối chứng chip | Test script | `device-scenario: selected=true stops at the clickable parent of an unselected chip`: `chips.xml`, `expect str=poses_chip_saved selected=true` lỗi (đối chứng, qua cả trên code cũ); `chips-saved.xml` thì đạt (phần thất bại trên code cũ) |
+| Nút chạm được chỉ xét chính nó | Test script (đối chứng) | `device-scenario: a clickable node is selected only by itself`: `chips.xml`, `expect desc=deep_clickable selected=true` lỗi (cha chọn, nút không) |
+| Không quá 2 bậc | Test script (đối chứng) | `device-scenario: selected=true looks at most two parents up`: `chips.xml`, `expect text=Sâu selected=true` lỗi (ông cố chọn) |
 | `selected=true` có sẵn | Test script | Hai test có sẵn `selected=true matches selected or checked` và `does not match an unselected chip` giữ nguyên, phải còn qua |
 | Ổn định sau `device` | Test script | `device-scenario: a device command waits until two dumps agree`: tệp chỉ có `device unfold`; chuỗi `camera.xml grid.xml grid.xml`: đạt, `ui-seq.n` là 3 khi lượt xong; có `note step=1 ... ổn định`. Thêm: tệp `device unfold`, `expect id=poses_grid` trên cùng chuỗi: `ui-seq.n` vẫn là 3 (bước 2 dùng lại bản cuối) |
 | Không ổn định không phải lỗi | Test script | `device-scenario: a screen that never settles is noted, not failed`: `DEVICE_SCENARIO_SETTLE=1`, chuỗi xen kẽ `camera.xml grid.xml` 30 tệp: bước 1 `ok`, `note` có `không ổn định` |
@@ -299,7 +317,7 @@ Lý do thất bại dự kiến trên code hiện tại:
 | Tên tệp lạ | Test script | `device-scenario: a file name with odd characters is a file error and sends no adb command`: tệp `$work/ds-names/a b|c.txt` (nội dung đúng), `DEVICE_SCENARIOS_GLOB="$work/ds-names/*.txt"` (glob một mẫu, không có dấu cách): `scenarios.txt` có `plan a_b_c.txt step=0 check FAIL` có "tên tệp" và `result=lỗi tệp`; `$FAKE_ADB_CALLS` không có `log -t`; `check` mã 1 |
 | `ticket:` khớp tên | Test script | `device-scenario: a T-NNN file whose ticket differs is a file error`: `T-901-x.txt` có `ticket: T-902`: `check` mã 1. Đối chứng: `ok.txt` qua |
 | Ngân sách gồm trả máy | Test script | `device-scenario: the reset time is taken from the budget`: `FAKE_ADB_HANG="settings"` (chỉ trả máy treo; `read_display` dùng `wm` nên không treo), `DEVICE_SCENARIO_RESET_LIMIT=2`, `DEVICE_SCENARIOS_BUDGET=6`, một tệp `timeout: 300` có `wait id=absent 30` trên `blank.xml`: cả lượt xong dưới 13 giây, có `result=lỗi`. Trên code hiện tại: hai lệnh `settings` của mỗi lần trả máy chờ 10 giây, hai lần trả máy, nên lượt kéo dài hơn 40 giây |
-| SIGTERM | Test script | `device-scenario: a terminated runner kills its adb child and says so`. Viết đúng cho `set -euo pipefail`: `env PATH=... FAKE_ADB_STATE_DIR="$work/adb-term" FAKE_ADB_HANG=uiautomator DEVICE_SCENARIO_ADB_TIMEOUT=100 DEVICE_SCENARIOS_GLOB=... python3 -I scripts/device-scenario.py run --session "$work/ds-term" --package com.example.app.staging &`, `pid=$!`; vòng `for _ in $(seq 1 100)` chờ `hang.pid` có (mỗi vòng `sleep 0.1`, không chờ cứng); `kill -TERM "$pid"`; `code=0; wait "$pid" \|\| code=$?`. Kiểm: `code` là 143; `scenarios.txt` có `plan runner_terminated`; `kill -0 "$(cat "$work/adb-term/hang.pid")"` thất bại. Không dùng `pgrep -f` (L-067) |
+| SIGTERM | Test script | `device-scenario: a terminated runner kills its adb child and says so`. Viết đúng cho `set -euo pipefail`: `env PATH=... FAKE_ADB_STATE_DIR="$work/adb-term" FAKE_ADB_HANG=uiautomator DEVICE_SCENARIO_ADB_TIMEOUT=100 DEVICE_SCENARIOS_GLOB=... python3 -I scripts/device-scenario.py run --session "$work/ds-term" --package com.example.app.staging &`, `pid=$!`; vòng `for _ in $(seq 1 100)` chờ `hang.pid` có (mỗi vòng `sleep 0.1`, không chờ cứng); `kill -TERM "$pid"`; `code=0; wait "$pid" \|\| code=$?`. Đầu ra của lệnh nền ghi vào `$work/ds-term.out`. Kiểm: `code` là 143; `scenarios.txt` có `plan runner_terminated`; `kill -0 "$(cat "$work/adb-term/hang.pid")"` thất bại. Cuối test: `kill -9 "$(cat "$work/adb-term/hang.pid")" 2>/dev/null \|\| true`. Không dùng `pgrep -f` (L-067) |
 | `timeout -k` | Test script | `device-session: the runner is called with timeout -k`: `grep -c 'timeout -k 30' scripts/device-session.sh` là 1 |
 | Kịch bản của repo | Test script | Test có sẵn `device-scenario: the scenarios of the repository pass check`, chạy với `check` mới trên hai tệp đã sửa |
 | Quy tắc 11 không đổi | Test script | Các test có sẵn `plan-check: ... rule 11` (dòng 1036 đến 1077 của `run.sh`) phải còn qua |

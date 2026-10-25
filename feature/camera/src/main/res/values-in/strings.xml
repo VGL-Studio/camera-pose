@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Text table of the design (docs/features/camera/design/README.md, section 2). -->
+    <string name="camera_starting">Membuka kamera…</string>
+    <string name="camera_permission_title">Belum ada akses kamera</string>
+    <string name="camera_permission_message">Izinkan kamera di Setelan perangkat untuk memotret dengan pose.</string>
+    <string name="camera_permission_action">Buka setelan</string>
+    <string name="camera_error_title">Kamera tidak dapat dibuka</string>
+    <string name="camera_error_message">Kamera mungkin sedang dipakai aplikasi lain. Tutup aplikasi itu, lalu coba lagi.</string>
+    <string name="camera_error_action">Coba lagi</string>
+    <!-- Screen reader descriptions of the icon buttons (plan T-013, question 10). -->
+    <string name="camera_cd_poses">Pustaka pose</string>
+    <string name="camera_cd_settings">Setelan</string>
+    <string name="camera_cd_flash_off">Flash: mati</string>
+    <string name="camera_cd_flash_on">Flash: nyala</string>
+    <string name="camera_cd_flash_auto">Flash: otomatis</string>
+    <string name="camera_cd_timer_off">Timer: mati</string>
+    <string name="camera_cd_timer_3">Timer: 3 detik</string>
+    <string name="camera_cd_timer_10">Timer: 10 detik</string>
+    <string name="camera_cd_grid">Kisi sepertiga</string>
+    <string name="camera_cd_flip">Ganti kamera</string>
+    <string name="camera_cd_shutter">Ambil foto</string>
+    <string name="camera_cd_cancel_countdown">Batalkan hitung mundur</string>
+    <string name="camera_cd_last_photo">Foto terakhir</string>
+    <!-- Pose part (plan T-014). Text table of the design. -->
+    <string name="camera_chip_all">Semua</string>
+    <string name="camera_show_steps">Langkah</string>
+    <string name="camera_no_pose_hint">Pilih pose dari deretan di bawah</string>
+    <!-- Spec camera, section 7. -->
+    <string name="camera_outline_failed">Garis pose tidak dapat dimuat</string>
+    <string name="camera_outline_retry">Coba lagi</string>
+    <!-- Proposed by the plan (questions 8 and 11). -->
+    <string name="camera_poses_failed">Daftar pose tidak dapat dimuat.</string>
+    <string name="camera_poses_retry">Coba lagi</string>
+    <string name="camera_cd_step_previous">Langkah sebelumnya</string>
+    <string name="camera_cd_step_next">Langkah berikutnya</string>
+    <string name="camera_cd_hide_steps">Sembunyikan kartu langkah</string>
+    <string name="camera_cd_show_steps">Tampilkan kartu langkah</string>
+    <string name="camera_cd_thumb_failed">%1$s, gambar tidak dapat dimuat, ketuk untuk mencoba lagi</string>
+    <!-- Outline adjustment (plan T-015). Text table of the design. -->
+    <string name="camera_adjust_title">Atur lapisan</string>
+    <string name="camera_adjust_opacity">Transparansi</string>
+    <string name="camera_adjust_size">Ukuran</string>
+    <string name="camera_adjust_flip">Balik</string>
+    <string name="camera_adjust_lock">Kunci</string>
+    <string name="camera_adjust_hide">Sembunyikan</string>
+    <string name="camera_adjust_reset">Atur ulang</string>
+    <string name="camera_locked_hint">Lapisan terkunci</string>
+    <!-- Proposed by the plan (question 8). -->
+    <string name="camera_cd_adjust">Atur lapisan</string>
+    <string name="camera_cd_mirror">Balik garis pose</string>
+    <string name="camera_cd_lock">Kunci lapisan</string>
+    <string name="camera_cd_unlock">Buka kunci lapisan</string>
+    <string name="camera_cd_show_outline">Tampilkan pose</string>
+    <string name="camera_cd_hide_outline">Sembunyikan pose</string>
+    <string name="camera_cd_close_adjust">Tutup panel pengaturan</string>
+    <!-- Pose matching (plan T-017). Text table of the design for the first three; the rest are proposed by the plan (question 4). -->
+    <string name="camera_match_matched">Pose sudah pas, ketuk untuk memotret!</string>
+    <string name="camera_match_no_person">Mundur agar seluruh badan masuk bingkai</string>
+    <string name="camera_match_raise_left_arm">Angkat lengan kiri lebih tinggi</string>
+    <string name="camera_match_lower_left_arm">Turunkan lengan kiri</string>
+    <string name="camera_match_raise_right_arm">Angkat lengan kanan lebih tinggi</string>
+    <string name="camera_match_lower_right_arm">Turunkan lengan kanan</string>
+    <string name="camera_match_bend_left_elbow">Tekuk siku kiri lagi</string>
+    <string name="camera_match_straighten_left_arm">Luruskan lengan kiri</string>
+    <string name="camera_match_bend_right_elbow">Tekuk siku kanan lagi</string>
+    <string name="camera_match_straighten_right_arm">Luruskan lengan kanan</string>
+    <string name="camera_match_widen_left_leg">Buka kaki kiri lebih lebar</string>
+    <string name="camera_match_close_left_leg">Rapatkan kaki kiri</string>
+    <string name="camera_match_widen_right_leg">Buka kaki kanan lebih lebar</string>
+    <string name="camera_match_close_right_leg">Rapatkan kaki kanan</string>
+    <string name="camera_match_bend_left_knee">Tekuk lutut kiri lagi</string>
+    <string name="camera_match_straighten_left_leg">Luruskan kaki kiri</string>
+    <string name="camera_match_bend_right_knee">Tekuk lutut kanan lagi</string>
+    <string name="camera_match_straighten_right_leg">Luruskan kaki kanan</string>
+</resources>

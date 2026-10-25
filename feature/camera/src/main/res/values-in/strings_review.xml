@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Review screen (plan T-016). Text table of docs/features/camera/design/README.md, section 2, and plan section 8. -->
+<resources>
+    <string name="review_title">Tinjau</string>
+    <string name="review_cd_close">Tutup</string>
+    <string name="review_retake">Ambil ulang</string>
+    <string name="review_share">Bagikan</string>
+    <string name="review_next_pose">Pose berikutnya</string>
+    <string name="review_save">Simpan ke galeri</string>
+    <string name="review_save_unfolded">Simpan foto</string>
+    <string name="review_saving">Menyimpan…</string>
+    <string name="review_save_error_storage_full">Foto tidak dapat disimpan: memori perangkat penuh.</string>
+    <string name="review_save_error">Foto tidak dapat disimpan.</string>
+    <string name="review_permission_denied">Perlu izin menyimpan foto untuk menyimpan ke galeri.</string>
+    <string name="review_permission_blocked">Izinkan penyimpanan foto di Setelan perangkat untuk menyimpan ke galeri.</string>
+    <string name="review_retry">Coba lagi</string>
+    <string name="review_discard_title">Buang foto ini?</string>
+    <string name="review_discard_message">Foto belum disimpan ke galeri.</string>
+    <string name="review_discard_confirm">Buang foto</string>
+    <string name="review_discard_save">Simpan foto</string>
+    <string name="review_share_title">Bagikan foto</string>
+</resources>

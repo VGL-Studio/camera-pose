@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Text table of the design (docs/features/camera/design/README.md, section 2). -->
+    <string name="camera_starting">कैमरा खुल रहा है…</string>
+    <string name="camera_permission_title">कैमरे की अनुमति नहीं है</string>
+    <string name="camera_permission_message">पोज़ के साथ फ़ोटो लेने के लिए डिवाइस की सेटिंग में कैमरे की अनुमति दें।</string>
+    <string name="camera_permission_action">सेटिंग खोलें</string>
+    <string name="camera_error_title">कैमरा नहीं खुल सका</string>
+    <string name="camera_error_message">हो सकता है कोई दूसरा ऐप कैमरा इस्तेमाल कर रहा हो। उस ऐप को बंद करके फिर से कोशिश करें।</string>
+    <string name="camera_error_action">फिर से कोशिश करें</string>
+    <!-- Screen reader descriptions of the icon buttons (plan T-013, question 10). -->
+    <string name="camera_cd_poses">पोज़ लाइब्रेरी</string>
+    <string name="camera_cd_settings">सेटिंग</string>
+    <string name="camera_cd_flash_off">फ़्लैश: बंद</string>
+    <string name="camera_cd_flash_on">फ़्लैश: चालू</string>
+    <string name="camera_cd_flash_auto">फ़्लैश: ऑटो</string>
+    <string name="camera_cd_timer_off">टाइमर: बंद</string>
+    <string name="camera_cd_timer_3">टाइमर: 3 सेकंड</string>
+    <string name="camera_cd_timer_10">टाइमर: 10 सेकंड</string>
+    <string name="camera_cd_grid">तीन हिस्सों वाला ग्रिड</string>
+    <string name="camera_cd_flip">कैमरा बदलें</string>
+    <string name="camera_cd_shutter">फ़ोटो लें</string>
+    <string name="camera_cd_cancel_countdown">काउंटडाउन रद्द करें</string>
+    <string name="camera_cd_last_photo">पिछली फ़ोटो</string>
+    <!-- Pose part (plan T-014). Text table of the design. -->
+    <string name="camera_chip_all">सभी</string>
+    <string name="camera_show_steps">स्टेप</string>
+    <string name="camera_no_pose_hint">नीचे की पट्टी से एक पोज़ चुनें</string>
+    <!-- Spec camera, section 7. -->
+    <string name="camera_outline_failed">आउटलाइन लोड नहीं हो सकी</string>
+    <string name="camera_outline_retry">फिर से कोशिश करें</string>
+    <!-- Proposed by the plan (questions 8 and 11). -->
+    <string name="camera_poses_failed">पोज़ की सूची लोड नहीं हो सकी।</string>
+    <string name="camera_poses_retry">फिर से कोशिश करें</string>
+    <string name="camera_cd_step_previous">पिछला स्टेप</string>
+    <string name="camera_cd_step_next">अगला स्टेप</string>
+    <string name="camera_cd_hide_steps">स्टेप कार्ड छिपाएं</string>
+    <string name="camera_cd_show_steps">स्टेप कार्ड दिखाएं</string>
+    <string name="camera_cd_thumb_failed">%1$s, इमेज लोड नहीं हुई, फिर से कोशिश करने के लिए टैप करें</string>
+    <!-- Outline adjustment (plan T-015). Text table of the design. -->
+    <string name="camera_adjust_title">ओवरले एडजस्ट करें</string>
+    <string name="camera_adjust_opacity">अपारदर्शिता</string>
+    <string name="camera_adjust_size">आकार</string>
+    <string name="camera_adjust_flip">पलटें</string>
+    <string name="camera_adjust_lock">लॉक</string>
+    <string name="camera_adjust_hide">छिपाएं</string>
+    <string name="camera_adjust_reset">रीसेट</string>
+    <string name="camera_locked_hint">ओवरले लॉक है</string>
+    <!-- Proposed by the plan (question 8). -->
+    <string name="camera_cd_adjust">ओवरले एडजस्ट करें</string>
+    <string name="camera_cd_mirror">आउटलाइन पलटें</string>
+    <string name="camera_cd_lock">ओवरले लॉक करें</string>
+    <string name="camera_cd_unlock">ओवरले अनलॉक करें</string>
+    <string name="camera_cd_show_outline">पोज़ दिखाएं</string>
+    <string name="camera_cd_hide_outline">पोज़ छिपाएं</string>
+    <string name="camera_cd_close_adjust">एडजस्ट पैनल बंद करें</string>
+    <!-- Pose matching (plan T-017). Text table of the design for the first three; the rest are proposed by the plan (question 4). -->
+    <string name="camera_match_matched">पोज़ सही है, फ़ोटो लें!</string>
+    <string name="camera_match_no_person">पीछे हटें ताकि पूरा शरीर फ़्रेम में आए</string>
+    <string name="camera_match_raise_left_arm">बायां हाथ और ऊपर उठाएं</string>
+    <string name="camera_match_lower_left_arm">बायां हाथ और नीचे करें</string>
+    <string name="camera_match_raise_right_arm">दायां हाथ और ऊपर उठाएं</string>
+    <string name="camera_match_lower_right_arm">दायां हाथ और नीचे करें</string>
+    <string name="camera_match_bend_left_elbow">बाईं कोहनी और मोड़ें</string>
+    <string name="camera_match_straighten_left_arm">बायां हाथ सीधा करें</string>
+    <string name="camera_match_bend_right_elbow">दाईं कोहनी और मोड़ें</string>
+    <string name="camera_match_straighten_right_arm">दायां हाथ सीधा करें</string>
+    <string name="camera_match_widen_left_leg">बायां पैर और बाहर ले जाएं</string>
+    <string name="camera_match_close_left_leg">बायां पैर अंदर लाएं</string>
+    <string name="camera_match_widen_right_leg">दायां पैर और बाहर ले जाएं</string>
+    <string name="camera_match_close_right_leg">दायां पैर अंदर लाएं</string>
+    <string name="camera_match_bend_left_knee">बायां घुटना और मोड़ें</string>
+    <string name="camera_match_straighten_left_leg">बायां पैर सीधा करें</string>
+    <string name="camera_match_bend_right_knee">दायां घुटना और मोड़ें</string>
+    <string name="camera_match_straighten_right_leg">दायां पैर सीधा करें</string>
+</resources>

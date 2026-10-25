@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Review screen (plan T-016). Text table of docs/features/camera/design/README.md, section 2, and plan section 8. -->
 <resources>
-    <string name="review_title">Xem lại</string>
-    <string name="review_cd_close">Đóng</string>
-    <string name="review_retake">Chụp lại</string>
-    <string name="review_share">Chia sẻ</string>
-    <string name="review_next_pose">Tư thế tiếp</string>
-    <string name="review_save">Lưu vào thư viện</string>
-    <string name="review_save_unfolded">Lưu ảnh</string>
-    <string name="review_saving">Đang lưu…</string>
-    <string name="review_save_error_storage_full">Không lưu được ảnh: bộ nhớ máy đã đầy.</string>
-    <string name="review_save_error">Không lưu được ảnh.</string>
-    <string name="review_permission_denied">Cần quyền lưu ảnh để lưu vào thư viện.</string>
-    <string name="review_permission_blocked">Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện.</string>
-    <string name="review_retry">Thử lại</string>
-    <string name="review_discard_title">Bỏ ảnh này?</string>
-    <string name="review_discard_message">Ảnh chưa được lưu vào thư viện.</string>
-    <string name="review_discard_confirm">Bỏ ảnh</string>
-    <string name="review_discard_save">Lưu ảnh</string>
-    <string name="review_share_title">Chia sẻ ảnh</string>
+    <string name="review_title">Review</string>
+    <string name="review_cd_close">Close</string>
+    <string name="review_retake">Retake</string>
+    <string name="review_share">Share</string>
+    <string name="review_next_pose">Next pose</string>
+    <string name="review_save">Save to gallery</string>
+    <string name="review_save_unfolded">Save photo</string>
+    <string name="review_saving">Saving…</string>
+    <string name="review_save_error_storage_full">Couldn\'t save the photo: your phone\'s storage is full.</string>
+    <string name="review_save_error">Couldn\'t save the photo.</string>
+    <string name="review_permission_denied">Permission to save photos is needed to save to your gallery.</string>
+    <string name="review_permission_blocked">Allow saving photos in your phone\'s Settings to save to your gallery.</string>
+    <string name="review_retry">Try again</string>
+    <string name="review_discard_title">Discard this photo?</string>
+    <string name="review_discard_message">The photo hasn\'t been saved to your gallery.</string>
+    <string name="review_discard_confirm">Discard</string>
+    <string name="review_discard_save">Save photo</string>
+    <string name="review_share_title">Share photo</string>
     <!-- Folder of saved photos under Pictures/, the same in every language (plan T-016, question 4). -->
     <string name="review_album_name" translatable="false">Camera Pose</string>
 </resources>

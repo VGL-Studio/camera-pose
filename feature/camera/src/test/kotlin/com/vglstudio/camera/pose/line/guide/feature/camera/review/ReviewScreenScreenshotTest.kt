@@ -21,7 +21,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class ReviewScreenScreenshotTest {
     @Test
     fun default_dark() {
@@ -46,9 +46,18 @@ class ReviewScreenScreenshotTest {
 
     // Short phone frame (L-028): the most content, with the error message, three actions and the main button.
     @Test
-    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
     fun saveError_small() {
         captureRoboImage("src/test/screenshots/ReviewScreen_save-error_small.png") {
+            Screen(Ready(PATH, SaveStatus.FAILED_STORAGE_FULL))
+        }
+    }
+
+    // The same state in Portuguese, usually the longest of the release languages (plan T-050).
+    @Test
+    @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
+    fun saveError_portuguese_small() {
+        captureRoboImage("src/test/screenshots/ReviewScreen_save-error-pt-br_small.png") {
             Screen(Ready(PATH, SaveStatus.FAILED_STORAGE_FULL))
         }
     }
@@ -60,7 +69,7 @@ class ReviewScreenScreenshotTest {
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class ReviewScreenSavingScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()

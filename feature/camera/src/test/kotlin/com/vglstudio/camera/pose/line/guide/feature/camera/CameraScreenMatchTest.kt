@@ -50,7 +50,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class CameraScreenMatchTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -193,7 +193,7 @@ class CameraScreenMatchTest {
     // The unfolded layout of T-020 (673 x 841 dp) keeps the hint and both colours.
 
     @Test
-    @Config(qualifiers = "w673dp-h841dp-xxhdpi")
+    @Config(qualifiers = "vi-w673dp-h841dp-xxhdpi")
     fun unfolded_matched_showsMessage_greenOutline_andShutterRing() {
         setScreen(MatchUiState.Matched(92))
         assertTrue(textExists("Đúng dáng rồi, bấm chụp!"))
@@ -208,7 +208,7 @@ class CameraScreenMatchTest {
     }
 
     @Test
-    @Config(qualifiers = "w673dp-h841dp-xxhdpi")
+    @Config(qualifiers = "vi-w673dp-h841dp-xxhdpi")
     fun unfolded_matchHint_isAboveTheBottomOfTheFrame() {
         setScreen(MatchUiState.Scoring(68, MatchHintText.RAISE_LEFT_ARM))
         val hint = composeRule.onNodeWithTag(CameraTestTags.MATCH_HINT).getUnclippedBoundsInRoot()
@@ -302,7 +302,7 @@ class CameraScreenMatchTest {
     }
 
     private companion object {
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
         const val WHITE = 0xFFFFFFFFL
         const val SUCCESS = 0xFF3DDC97L
 

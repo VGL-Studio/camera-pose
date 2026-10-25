@@ -1,16 +1,16 @@
 ---
 ticket: T-052
 title: Quy tắc 11 của plan-check thành lỗi; `fresh` sau khi trả máy không phải mở lại app
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5M           # cỡ S (4.8M, scripts/token-usage.py estimate); 5 test mới, 4 test đổi kết quả mong đợi
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-25
 ---
 
 # PLAN T-052: QUY TẮC 11 CỦA PLAN-CHECK THÀNH LỖI; `fresh` SAU KHI TRẢ MÁY KHÔNG PHẢI MỞ LẠI APP
@@ -230,9 +230,9 @@ Không chạy thử trên emulator: emulator của máy dev đã xóa theo yêu 
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-25, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: chấp nhận đổi kết quả mong đợi của 4 test có sẵn của quy tắc 11 (mục 3.2). Câu 2: chờ 3 giây sau khi dừng app ở fresh sau lần trả máy. Câu 3: phiên làm T-052 ghi kết luận vào mục Phân loại của FB-20261025-02. Câu 4: không thêm lệnh đếm cột cho T-024. Plan qua một rà soát độc lập (0 chặn, 4 nên sửa, đã sửa hết).
 
 ## 10. Nhật ký thực hiện
 

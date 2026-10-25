@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là đề xuất của báo cáo RUN-20261025-02 và FB-20261025-02
 scenarios: []
 owner: Tuấn
-status: backlog
+status: approved
 risk: high
 size: S
 depends_on: [T-049]

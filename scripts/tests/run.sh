@@ -2171,6 +2171,36 @@ expect "device-session: summary lists the plan scenarios" "0 1 1 1 1" \
     "$(cell '| ok.txt | T-900 | Mẫu đạt | đạt |  | 12 | 0 / 0 |')" \
     "$(cell '| fail.txt | T-901 | Mẫu lỗi | lỗi | 2: expect id=x | 3 | 0 / 0 |')" \
     "$(cell '| need.txt | T-902 | Mẫu thiếu | bỏ qua (môi trường) |  | 2 | 0 / 0 |')")"
+# Plan T-049: the ambiguous-number rule says it covers one word, a second consent decline after a decline, pidof only
+# counts pids, and device unfold turns the letterbox education off and fits the size to a small screen.
+ds_script one-word.txt 'wait desc=Back 10'
+expect "device-scenario: an unquoted one-word desc= on a line that ends in a number is ambiguous, the message says so" "1 1" \
+  "$(ds_check "$ds_files/one-word.txt") $(ds_count 'one-word.txt dòng 4: .*kể cả một từ.*ngoặc kép' "$work/ds-check.out")"
+ds_script one-word-quoted.txt 'wait desc="Back" 10'
+expect "device-scenario: control: the quoted one-word value passes check" 0 "$(ds_check "$ds_files/one-word-quoted.txt")"
+ds_script consent-second-form.txt 'consent decline 5' 'consent decline 5'
+expect "device-scenario: a second consent decline that sees the form again after a decline fails, tapping once" "0 1 1" \
+  "$(ds_run "consent.xml onboarding.xml consent.xml onboarding.xml" "$ds_files/consent-second-form.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-form.txt step=2 consent decline 5 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$')"
+ds_script consent-second-keep.txt 'consent decline 5' 'consent decline 5' 'wait id=camera_screen 3'
+expect "device-scenario: a second consent decline without a form keeps the decline, a form after it is a failure" "0 1 1" \
+  "$(ds_run "consent.xml onboarding.xml onboarding.xml consent.xml" "$ds_files/consent-second-keep.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-keep.txt step=3 wait id=camera_screen 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$')"
+ds_script consent-second-none.txt 'consent decline 5' 'consent decline 5' 'expect id=onboarding_screen'
+expect "device-scenario: control: a second consent decline without a form passes" "0 1 1" \
+  "$(ds_run "consent.xml onboarding.xml onboarding.xml" "$ds_files/consent-second-none.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-none.txt result=đạt')"
+expect "device-scenario: fresh does not take an adb error with digits for a process" "0 2 1" \
+  "$(ds_run "camera.xml" "$ds_files/fresh.txt" FAKE_ADB_PIDOF_TEXT="error: device 'emulator-5554' not found" DEVICE_SCENARIO_PROCESS_WAIT=0.3) $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh.txt step=1 fresh FAIL app không chạy sau 2 lần mở$')"
+expect "device-scenario: control: pidof with two pids counts as a process" "0 1 1" \
+  "$(ds_run "camera.xml" "$ds_files/fresh.txt" FAKE_ADB_PIDOF_TEXT="4242 4243") $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh.txt step=1 fresh ok$')"
+ds_script unfold-edu.txt 'device unfold'
+expect "device-scenario: device unfold turns the letterbox education off before it changes the size" "0 1 yes" \
+  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt") $(ds_count '^shell wm set-letterbox-style --isEducationEnabled false$' "$ds_calls") $(ds_in_order "$ds_calls" '^shell wm set-letterbox-style --isEducationEnabled false$' '^shell wm size 1766x2208$')"
+expect "device-scenario: the reset after the file and at the end turns the letterbox education back to the default" "0 2 yes" \
+  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt") $(ds_count '^shell wm reset-letterbox-style isEducationEnabled$' "$ds_calls") $(ds_in_order "$ds_calls" '^shell wm size 1766x2208$' '^shell wm reset-letterbox-style isEducationEnabled$')"
+expect "device-scenario: on a 320x640 screen unfold picks a size within three times the screen, 673 x 841 dp" "0 1 1 0" \
+  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt" FAKE_ADB_PHYSICAL_SIZE=320x640) $(ds_count '^shell wm size 1536x1919$' "$ds_calls") $(ds_count '^shell wm density 365$' "$ds_calls") $(ds_count '^shell wm size 1766x2208$' "$ds_calls")"
+expect "device-scenario: control: on a large screen unfold keeps 1766x2208 at 420" "0 1 1" \
+  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt") $(ds_count '^shell wm size 1766x2208$' "$ds_calls") $(ds_count '^shell wm density 420$' "$ds_calls")"
+
 # Plan T-048: notes of the runner about a late consent form or a restarted app are listed under the table.
 mkplan "$work/plan-notes" "$plan_lines
 plan ok.txt note step=1 t=0.4

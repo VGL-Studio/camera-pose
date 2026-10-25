@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Review screen (plan T-016). Text table of docs/features/camera/design/README.md, section 2, and plan section 8. -->
+<resources>
+    <string name="review_title">Revisar</string>
+    <string name="review_cd_close">Fechar</string>
+    <string name="review_retake">Tirar de novo</string>
+    <string name="review_share">Compartilhar</string>
+    <string name="review_next_pose">Próxima pose</string>
+    <string name="review_save">Salvar na galeria</string>
+    <string name="review_save_unfolded">Salvar foto</string>
+    <string name="review_saving">Salvando…</string>
+    <string name="review_save_error_storage_full">Não foi possível salvar a foto: o armazenamento do aparelho está cheio.</string>
+    <string name="review_save_error">Não foi possível salvar a foto.</string>
+    <string name="review_permission_denied">É preciso permitir salvar fotos para salvar na galeria.</string>
+    <string name="review_permission_blocked">Permita salvar fotos nas Configurações do aparelho para salvar na galeria.</string>
+    <string name="review_retry">Tentar de novo</string>
+    <string name="review_discard_title">Descartar esta foto?</string>
+    <string name="review_discard_message">A foto ainda não foi salva na galeria.</string>
+    <string name="review_discard_confirm">Descartar</string>
+    <string name="review_discard_save">Salvar foto</string>
+    <string name="review_share_title">Compartilhar foto</string>
+</resources>

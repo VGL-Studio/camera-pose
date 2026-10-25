@@ -1,5 +1,6 @@
 package com.vglstudio.camera.pose.line.guide.feature.camera
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -22,6 +23,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraUiState.Ready
@@ -42,7 +44,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class CameraScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -278,8 +280,21 @@ class CameraScreenTest {
         assertTrue(button.left >= preview.left && button.right <= preview.right)
     }
 
+    // Portuguese is usually the longest of the release languages (plan T-050): the button still fits the frame.
+    @Test
+    @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
+    fun smallPortuguese_permissionDenied_buttonVisible() {
+        setScreen(CameraUiState.PermissionDenied)
+        val action = ApplicationProvider.getApplicationContext<Context>().getString(R.string.camera_permission_action)
+        val preview = composeRule.onNodeWithTag(CameraTestTags.PREVIEW).getUnclippedBoundsInRoot()
+        val button = composeRule.onNodeWithText(action).getUnclippedBoundsInRoot()
+        assertTrue("button $button is outside the preview $preview", button.top >= preview.top)
+        assertTrue("button $button is outside the preview $preview", button.bottom <= preview.bottom)
+        assertTrue(button.left >= preview.left && button.right <= preview.right)
+    }
+
     private companion object {
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
 
         val READY = Ready(
             flash = FlashMode.OFF,

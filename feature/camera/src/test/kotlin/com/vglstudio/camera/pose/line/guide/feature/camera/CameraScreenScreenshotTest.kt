@@ -37,7 +37,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class CameraScreenScreenshotTest {
     @Test
     fun permissionDenied_dark() {
@@ -161,7 +161,7 @@ class CameraScreenScreenshotTest {
     }
 
     companion object {
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
 
         // Chips and step text of the design (context/CameraScreen_default_dark.md).
         val CHIPS = listOf(
@@ -250,7 +250,7 @@ class CameraScreenScreenshotTest {
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class CameraScreenStartingScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()

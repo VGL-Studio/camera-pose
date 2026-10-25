@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Review screen (plan T-016). Text table of docs/features/camera/design/README.md, section 2, and plan section 8. -->
+<resources>
+    <string name="review_title">फ़ोटो देखें</string>
+    <string name="review_cd_close">बंद करें</string>
+    <string name="review_retake">फिर से लें</string>
+    <string name="review_share">शेयर करें</string>
+    <string name="review_next_pose">अगला पोज़</string>
+    <string name="review_save">गैलरी में सेव करें</string>
+    <string name="review_save_unfolded">फ़ोटो सेव करें</string>
+    <string name="review_saving">सेव हो रही है…</string>
+    <string name="review_save_error_storage_full">फ़ोटो सेव नहीं हो सकी: डिवाइस का स्टोरेज भर गया है।</string>
+    <string name="review_save_error">फ़ोटो सेव नहीं हो सकी।</string>
+    <string name="review_permission_denied">गैलरी में सेव करने के लिए फ़ोटो सेव करने की अनुमति चाहिए।</string>
+    <string name="review_permission_blocked">गैलरी में सेव करने के लिए डिवाइस की सेटिंग में फ़ोटो सेव करने की अनुमति दें।</string>
+    <string name="review_retry">फिर से कोशिश करें</string>
+    <string name="review_discard_title">यह फ़ोटो हटाएं?</string>
+    <string name="review_discard_message">फ़ोटो अभी गैलरी में सेव नहीं हुई है।</string>
+    <string name="review_discard_confirm">फ़ोटो हटाएं</string>
+    <string name="review_discard_save">फ़ोटो सेव करें</string>
+    <string name="review_share_title">फ़ोटो शेयर करें</string>
+</resources>

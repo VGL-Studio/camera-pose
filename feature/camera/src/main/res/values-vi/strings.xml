@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Text table of the design (docs/features/camera/design/README.md, section 2). -->
+    <string name="camera_starting">Đang mở camera…</string>
+    <string name="camera_permission_title">Chưa có quyền dùng camera</string>
+    <string name="camera_permission_message">Cho phép camera trong Cài đặt máy để chụp theo tư thế.</string>
+    <string name="camera_permission_action">Mở cài đặt</string>
+    <string name="camera_error_title">Không mở được camera</string>
+    <string name="camera_error_message">Camera có thể đang được ứng dụng khác dùng. Đóng ứng dụng đó rồi thử lại.</string>
+    <string name="camera_error_action">Thử lại</string>
+    <!-- Screen reader descriptions of the icon buttons (plan T-013, question 10). -->
+    <string name="camera_cd_poses">Thư viện tư thế</string>
+    <string name="camera_cd_settings">Cài đặt</string>
+    <string name="camera_cd_flash_off">Flash: tắt</string>
+    <string name="camera_cd_flash_on">Flash: bật</string>
+    <string name="camera_cd_flash_auto">Flash: tự động</string>
+    <string name="camera_cd_timer_off">Hẹn giờ: tắt</string>
+    <string name="camera_cd_timer_3">Hẹn giờ: 3 giây</string>
+    <string name="camera_cd_timer_10">Hẹn giờ: 10 giây</string>
+    <string name="camera_cd_grid">Lưới chia ba</string>
+    <string name="camera_cd_flip">Đổi camera</string>
+    <string name="camera_cd_shutter">Chụp ảnh</string>
+    <string name="camera_cd_cancel_countdown">Hủy đếm ngược</string>
+    <string name="camera_cd_last_photo">Ảnh vừa chụp</string>
+    <!-- Pose part (plan T-014). Text table of the design. -->
+    <string name="camera_chip_all">Tất cả</string>
+    <string name="camera_show_steps">Bước</string>
+    <string name="camera_no_pose_hint">Chọn một tư thế ở dải bên dưới</string>
+    <!-- Spec camera, section 7. -->
+    <string name="camera_outline_failed">Chưa tải được nét viền</string>
+    <string name="camera_outline_retry">Thử lại</string>
+    <!-- Proposed by the plan (questions 8 and 11). -->
+    <string name="camera_poses_failed">Chưa tải được danh sách tư thế.</string>
+    <string name="camera_poses_retry">Thử lại</string>
+    <string name="camera_cd_step_previous">Bước trước</string>
+    <string name="camera_cd_step_next">Bước sau</string>
+    <string name="camera_cd_hide_steps">Ẩn thẻ bước</string>
+    <string name="camera_cd_show_steps">Hiện thẻ bước</string>
+    <string name="camera_cd_thumb_failed">%1$s, chưa tải được ảnh, chạm để thử lại</string>
+    <!-- Outline adjustment (plan T-015). Text table of the design. -->
+    <string name="camera_adjust_title">Chỉnh lớp phủ</string>
+    <string name="camera_adjust_opacity">Độ mờ</string>
+    <string name="camera_adjust_size">Cỡ</string>
+    <string name="camera_adjust_flip">Lật</string>
+    <string name="camera_adjust_lock">Khóa</string>
+    <string name="camera_adjust_hide">Ẩn</string>
+    <string name="camera_adjust_reset">Đặt lại</string>
+    <string name="camera_locked_hint">Đã khóa lớp phủ</string>
+    <!-- Proposed by the plan (question 8). -->
+    <string name="camera_cd_adjust">Chỉnh lớp phủ</string>
+    <string name="camera_cd_mirror">Lật nét viền</string>
+    <string name="camera_cd_lock">Khóa lớp phủ</string>
+    <string name="camera_cd_unlock">Mở khóa lớp phủ</string>
+    <string name="camera_cd_show_outline">Hiện tư thế</string>
+    <string name="camera_cd_hide_outline">Ẩn tư thế</string>
+    <string name="camera_cd_close_adjust">Đóng bảng chỉnh</string>
+    <!-- Pose matching (plan T-017). Text table of the design for the first three; the rest are proposed by the plan (question 4). -->
+    <string name="camera_match_matched">Đúng dáng rồi, bấm chụp!</string>
+    <string name="camera_match_no_person">Lùi lại để cả người vào khung</string>
+    <string name="camera_match_raise_left_arm">Nâng tay trái cao hơn</string>
+    <string name="camera_match_lower_left_arm">Hạ tay trái thấp hơn</string>
+    <string name="camera_match_raise_right_arm">Nâng tay phải cao hơn</string>
+    <string name="camera_match_lower_right_arm">Hạ tay phải thấp hơn</string>
+    <string name="camera_match_bend_left_elbow">Gập khuỷu tay trái thêm</string>
+    <string name="camera_match_straighten_left_arm">Duỗi thẳng tay trái</string>
+    <string name="camera_match_bend_right_elbow">Gập khuỷu tay phải thêm</string>
+    <string name="camera_match_straighten_right_arm">Duỗi thẳng tay phải</string>
+    <string name="camera_match_widen_left_leg">Đưa chân trái ra xa hơn</string>
+    <string name="camera_match_close_left_leg">Khép chân trái vào</string>
+    <string name="camera_match_widen_right_leg">Đưa chân phải ra xa hơn</string>
+    <string name="camera_match_close_right_leg">Khép chân phải vào</string>
+    <string name="camera_match_bend_left_knee">Gập gối trái thêm</string>
+    <string name="camera_match_straighten_left_leg">Duỗi thẳng chân trái</string>
+    <string name="camera_match_bend_right_knee">Gập gối phải thêm</string>
+    <string name="camera_match_straighten_right_leg">Duỗi thẳng chân phải</string>
+</resources>

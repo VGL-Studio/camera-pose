@@ -1,7 +1,10 @@
 package com.vglstudio.camera.pose.line.guide.feature.camera
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -34,8 +37,10 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraUiState.Ready
@@ -65,7 +70,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class CameraScreenOverlayTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -96,11 +101,13 @@ class CameraScreenOverlayTest {
         overlay: OverlayState = OverlayState(),
         camera: CameraUiState = READY,
         selected: SelectedPose? = sampleSelected(),
+        probe: @Composable () -> Unit = {},
     ) {
         cameraState = camera
         poseState = poseReady(overlay, selected)
         composeRule.setContent {
             AppTheme(darkTheme = true) {
+                probe()
                 CameraScreen(
                     uiState = cameraState,
                     onFlashClick = {},
@@ -475,6 +482,47 @@ class CameraScreenOverlayTest {
         assertEquals(listOf("reset"), calls)
     }
 
+    // Portuguese is usually the longest of the release languages (plan T-050). The labels of the four actions are one
+    // line, unbounded and hidden from screen readers, so their width is measured with the style of AdjustAction and set
+    // around the middle of the button of the same name.
+    @Test
+    @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
+    fun smallPortuguese_adjustPanel_labelsFit() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val labels = listOf(
+            R.string.camera_adjust_flip,
+            R.string.camera_adjust_lock,
+            R.string.camera_adjust_hide,
+            R.string.camera_adjust_reset,
+        ).map { context.getString(it) }
+        val widthsPx = mutableMapOf<String, Int>()
+        setScreen(OverlayState(panelOpen = true)) {
+            val measurer = rememberTextMeasurer()
+            val style = MaterialTheme.typography.labelMedium
+            labels.forEach { widthsPx[it] = measurer.measure(it, style).size.width }
+        }
+        labels.forEach { composeRule.onNodeWithContentDescription(it).performScrollTo() }
+        composeRule.waitForIdle()
+
+        val density = composeRule.density.density
+        val panel = composeRule.onNodeWithTag(CameraTestTags.ADJUST_PANEL).getUnclippedBoundsInRoot()
+        val spans = labels.map { label ->
+            val button = composeRule.onNodeWithContentDescription(label).getUnclippedBoundsInRoot()
+            val center = (button.left.value + button.right.value) / 2f
+            val half = widthsPx.getValue(label) / density / 2f
+            Triple(label, button.top.value, (center - half)..(center + half))
+        }
+        spans.forEach { (label, _, span) ->
+            assertTrue(
+                "$label $span inside panel $panel",
+                span.start >= panel.left.value && span.endInclusive <= panel.right.value,
+            )
+        }
+        spans.zipWithNext().filter { (a, b) -> a.second == b.second }.forEach { (a, b) ->
+            assertTrue("${a.first} ${a.third} overlaps ${b.first} ${b.third}", a.third.endInclusive <= b.third.start)
+        }
+    }
+
     private fun lumaAt(tag: String, fraction: Float): Int {
         composeRule.waitForIdle()
         val root = (composeRule as AndroidComposeTestRule<*, *>).activity.window.decorView
@@ -489,7 +537,7 @@ class CameraScreenOverlayTest {
     }
 
     private companion object {
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
         val STRIP_IDS = listOf("w01", "m01", "w02", "m02", "w03")
         val IMAGE = PoseImage.Ready(ImageBitmap(1, 1))
 

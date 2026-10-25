@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Text table of the design (docs/features/camera/design/README.md, section 2). -->
+    <string name="camera_starting">กำลังเปิดกล้อง…</string>
+    <string name="camera_permission_title">ยังไม่ได้รับสิทธิ์ใช้กล้อง</string>
+    <string name="camera_permission_message">อนุญาตกล้องในการตั้งค่าของเครื่องเพื่อถ่ายตามท่าโพส</string>
+    <string name="camera_permission_action">เปิดการตั้งค่า</string>
+    <string name="camera_error_title">เปิดกล้องไม่ได้</string>
+    <string name="camera_error_message">แอปอื่นอาจกำลังใช้กล้องอยู่ ปิดแอปนั้นแล้วลองอีกครั้ง</string>
+    <string name="camera_error_action">ลองอีกครั้ง</string>
+    <!-- Screen reader descriptions of the icon buttons (plan T-013, question 10). -->
+    <string name="camera_cd_poses">คลังท่าโพส</string>
+    <string name="camera_cd_settings">การตั้งค่า</string>
+    <string name="camera_cd_flash_off">แฟลช: ปิด</string>
+    <string name="camera_cd_flash_on">แฟลช: เปิด</string>
+    <string name="camera_cd_flash_auto">แฟลช: อัตโนมัติ</string>
+    <string name="camera_cd_timer_off">ตั้งเวลา: ปิด</string>
+    <string name="camera_cd_timer_3">ตั้งเวลา: 3 วินาที</string>
+    <string name="camera_cd_timer_10">ตั้งเวลา: 10 วินาที</string>
+    <string name="camera_cd_grid">เส้นตาราง 3 ส่วน</string>
+    <string name="camera_cd_flip">สลับกล้อง</string>
+    <string name="camera_cd_shutter">ถ่ายภาพ</string>
+    <string name="camera_cd_cancel_countdown">ยกเลิกการนับถอยหลัง</string>
+    <string name="camera_cd_last_photo">ภาพล่าสุด</string>
+    <!-- Pose part (plan T-014). Text table of the design. -->
+    <string name="camera_chip_all">ทั้งหมด</string>
+    <string name="camera_show_steps">ขั้นตอน</string>
+    <string name="camera_no_pose_hint">เลือกท่าโพสจากแถบด้านล่าง</string>
+    <!-- Spec camera, section 7. -->
+    <string name="camera_outline_failed">โหลดเส้นโครงไม่สำเร็จ</string>
+    <string name="camera_outline_retry">ลองอีกครั้ง</string>
+    <!-- Proposed by the plan (questions 8 and 11). -->
+    <string name="camera_poses_failed">โหลดรายการท่าโพสไม่สำเร็จ</string>
+    <string name="camera_poses_retry">ลองอีกครั้ง</string>
+    <string name="camera_cd_step_previous">ขั้นตอนก่อนหน้า</string>
+    <string name="camera_cd_step_next">ขั้นตอนถัดไป</string>
+    <string name="camera_cd_hide_steps">ซ่อนการ์ดขั้นตอน</string>
+    <string name="camera_cd_show_steps">แสดงการ์ดขั้นตอน</string>
+    <string name="camera_cd_thumb_failed">%1$s, โหลดรูปไม่สำเร็จ แตะเพื่อลองอีกครั้ง</string>
+    <!-- Outline adjustment (plan T-015). Text table of the design. -->
+    <string name="camera_adjust_title">ปรับเลเยอร์</string>
+    <string name="camera_adjust_opacity">ความทึบ</string>
+    <string name="camera_adjust_size">ขนาด</string>
+    <string name="camera_adjust_flip">พลิก</string>
+    <string name="camera_adjust_lock">ล็อก</string>
+    <string name="camera_adjust_hide">ซ่อน</string>
+    <string name="camera_adjust_reset">รีเซ็ต</string>
+    <string name="camera_locked_hint">ล็อกเลเยอร์แล้ว</string>
+    <!-- Proposed by the plan (question 8). -->
+    <string name="camera_cd_adjust">ปรับเลเยอร์</string>
+    <string name="camera_cd_mirror">พลิกเส้นโครง</string>
+    <string name="camera_cd_lock">ล็อกเลเยอร์</string>
+    <string name="camera_cd_unlock">ปลดล็อกเลเยอร์</string>
+    <string name="camera_cd_show_outline">แสดงท่าโพส</string>
+    <string name="camera_cd_hide_outline">ซ่อนท่าโพส</string>
+    <string name="camera_cd_close_adjust">ปิดแผงปรับ</string>
+    <!-- Pose matching (plan T-017). Text table of the design for the first three; the rest are proposed by the plan (question 4). -->
+    <string name="camera_match_matched">ท่าถูกแล้ว กดถ่ายเลย!</string>
+    <string name="camera_match_no_person">ถอยหลังให้ทั้งตัวอยู่ในกรอบ</string>
+    <string name="camera_match_raise_left_arm">ยกแขนซ้ายให้สูงขึ้น</string>
+    <string name="camera_match_lower_left_arm">ลดแขนซ้ายให้ต่ำลง</string>
+    <string name="camera_match_raise_right_arm">ยกแขนขวาให้สูงขึ้น</string>
+    <string name="camera_match_lower_right_arm">ลดแขนขวาให้ต่ำลง</string>
+    <string name="camera_match_bend_left_elbow">งอข้อศอกซ้ายอีก</string>
+    <string name="camera_match_straighten_left_arm">เหยียดแขนซ้ายให้ตรง</string>
+    <string name="camera_match_bend_right_elbow">งอข้อศอกขวาอีก</string>
+    <string name="camera_match_straighten_right_arm">เหยียดแขนขวาให้ตรง</string>
+    <string name="camera_match_widen_left_leg">กางขาซ้ายออกอีก</string>
+    <string name="camera_match_close_left_leg">หุบขาซ้ายเข้า</string>
+    <string name="camera_match_widen_right_leg">กางขาขวาออกอีก</string>
+    <string name="camera_match_close_right_leg">หุบขาขวาเข้า</string>
+    <string name="camera_match_bend_left_knee">งอเข่าซ้ายอีก</string>
+    <string name="camera_match_straighten_left_leg">เหยียดขาซ้ายให้ตรง</string>
+    <string name="camera_match_bend_right_knee">งอเข่าขวาอีก</string>
+    <string name="camera_match_straighten_right_leg">เหยียดขาขวาให้ตรง</string>
+</resources>

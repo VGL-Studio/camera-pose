@@ -45,7 +45,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class ReviewScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -228,6 +228,14 @@ class ReviewScreenTest {
         assertFitsOnShortScreen()
     }
 
+    // Portuguese is usually the longest of the release languages (plan T-050): the long text still fits.
+    @Test
+    @Config(qualifiers = SMALL_PORTUGUESE)
+    fun smallPortuguese_saveError_primaryButtonVisible() {
+        setScreen(Ready(PATH, SaveStatus.FAILED_STORAGE_FULL))
+        assertFitsOnShortScreen()
+    }
+
     private fun assertFitsOnShortScreen() {
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         val save = composeRule.onNodeWithTag(ReviewTestTags.SAVE).getUnclippedBoundsInRoot()
@@ -255,6 +263,7 @@ class ReviewScreenTest {
 
     private companion object {
         const val PATH = "/cache/captures/capture_1.jpg"
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
+        const val SMALL_PORTUGUESE = "pt-rBR-w360dp-h640dp-xxhdpi"
     }
 }

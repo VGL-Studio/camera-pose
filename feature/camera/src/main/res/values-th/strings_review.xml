@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Review screen (plan T-016). Text table of docs/features/camera/design/README.md, section 2, and plan section 8. -->
+<resources>
+    <string name="review_title">ตรวจดูภาพ</string>
+    <string name="review_cd_close">ปิด</string>
+    <string name="review_retake">ถ่ายใหม่</string>
+    <string name="review_share">แชร์</string>
+    <string name="review_next_pose">ท่าโพสถัดไป</string>
+    <string name="review_save">บันทึกลงคลังภาพ</string>
+    <string name="review_save_unfolded">บันทึกภาพ</string>
+    <string name="review_saving">กำลังบันทึก…</string>
+    <string name="review_save_error_storage_full">บันทึกภาพไม่ได้: พื้นที่เก็บข้อมูลของเครื่องเต็ม</string>
+    <string name="review_save_error">บันทึกภาพไม่ได้</string>
+    <string name="review_permission_denied">ต้องได้รับสิทธิ์บันทึกภาพเพื่อบันทึกลงคลังภาพ</string>
+    <string name="review_permission_blocked">อนุญาตการบันทึกภาพในการตั้งค่าของเครื่องเพื่อบันทึกลงคลังภาพ</string>
+    <string name="review_retry">ลองอีกครั้ง</string>
+    <string name="review_discard_title">ทิ้งภาพนี้ไหม</string>
+    <string name="review_discard_message">ภาพยังไม่ได้บันทึกลงคลังภาพ</string>
+    <string name="review_discard_confirm">ทิ้งภาพ</string>
+    <string name="review_discard_save">บันทึกภาพ</string>
+    <string name="review_share_title">แชร์ภาพ</string>
+</resources>

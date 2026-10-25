@@ -39,7 +39,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class PosesScreenScreenshotTest {
     @Test
     fun default_light() {
@@ -144,8 +144,8 @@ class PosesScreenScreenshotTest {
     }
 
     private companion object {
-        const val UNFOLDED = "w673dp-h841dp-xxhdpi"
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val UNFOLDED = "vi-w673dp-h841dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
 
         val ERROR = PosesUiState.Error(LoadFailureReason.OTHER)
 

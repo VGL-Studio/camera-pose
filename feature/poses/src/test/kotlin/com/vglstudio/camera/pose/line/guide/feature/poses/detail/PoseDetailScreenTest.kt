@@ -215,7 +215,7 @@ class PoseDetailScreenTest {
         )
         setScreen(ready(detail = pose))
         composeRule.onNodeWithText("Lean on the rail").assertExists()
-        composeRule.onNodeWithText("Một người · Women · Toàn thân · 5 bước").assertExists()
+        composeRule.onNodeWithText("Solo · Women · Full body · 5 steps").assertExists()
         composeRule.onNodeWithText("English step 5").assertExists()
         composeRule.onNodeWithText(STEPS[0]).assertDoesNotExist()
     }
@@ -345,6 +345,17 @@ class PoseDetailScreenTest {
         assertTrue("button ${button.bottom} above banner ${banner.top}", button.bottom.value <= banner.top.value + 0.5f)
         composeRule.onNodeWithText("Chụp với tư thế này").performClick()
         assertEquals(1, shoots)
+    }
+
+    // Portuguese has the longest main button of the Latin-script languages (plan T-051): it fits on the short screen.
+    @Test
+    @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
+    fun smallScreen_portuguese_buttonFullyVisible() {
+        setScreen(ready(detail = detail(steps = FIVE_STEPS, mistakes = listOf(MISTAKE, LONG_MISTAKE))))
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val button = composeRule.onNodeWithText("Fotografar com esta pose").getUnclippedBoundsInRoot()
+        assertTrue("button $button inside the screen $root", button.top >= root.top && button.bottom <= root.bottom)
+        assertTrue("button $button inside the screen $root", button.left >= root.left && button.right <= root.right)
     }
 
     @Test

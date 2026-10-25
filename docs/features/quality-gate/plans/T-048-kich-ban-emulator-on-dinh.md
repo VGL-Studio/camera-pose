@@ -1,7 +1,7 @@
 ---
 ticket: T-048
 title: Trình chạy kịch bản emulator chạy ổn định trên CI (sửa sau lần device-session đầu tiên)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -486,3 +486,24 @@ Không còn câu hỏi mở.
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261025-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #129, commit merge `bb3b286`, 2026-10-25 09:04 UTC).
+- **Nhánh, PR:** `claude/T-048-kich-ban-emulator-on-dinh`, https://github.com/VGL-Studio/camera-pose/pull/129. Commit: `da52176` (test), `bfd4839` (code), `0e1e099` (tài liệu, hai kịch bản).
+- **Đã làm:** đúng mục 3.1 và 3.2. Bước 3 đến 5 giao cho một phiên con trong worktree `../task-T-048` (L-031).
+  - `scripts/device-scenario.py`: `fresh` mở bằng `am start -W`, kiểm `pidof`, mở lại một lần, lỗi khi bộ đệm crash có app; `consent_state`, tự từ chối hộp thoại hiện muộn, `ConsentFail`; `cached_screen`; `selected=true` theo nút cha; chờ ổn định sau `device`; dòng `note`; ngoặc kép, số mơ hồ, `SAFE_NAME`, `ticket:`; `check` bỏ `src/test*`, `DEVICE_SCENARIO_ROOT`; ngân sách 900 giây gồm trả máy và `EVIDENCE_RESERVE`; SIGTERM.
+  - `scripts/device-session.sh`: `timeout -k 30`, mặc định 900, mục "Ghi chú của trình chạy".
+  - Kịch bản T-022 (khối (5) mới), T-024 (chú thích), `docs/ops/test-sessions.md` mục 5.
+- **Test viết trước:** 32 test mới (30 trong khối `device-scenario`, 2 trong khối `device-session`), commit trước code. Trên code cũ: 29 thất bại đúng lý do, khớp bảng 4.1 (`29 script test(s) failed`); 3 test đối chứng qua ngay như plan ghi (không có bước đồng ý, nút chạm được chỉ xét chính nó, không quá 2 bậc). Không phải viết chặt thêm test nào (L-035). `scripts/tests/run.sh` chỉ thêm dòng (`158 0`), không test có sẵn nào đổi.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa, 10 ghi chú. Phiên rà soát chạy lại bộ test trên code cũ và mới, kết quả khớp.
+  - Nên sửa (không sửa): tài liệu `docs/ops/test-sessions.md` và câu báo lỗi của quy tắc số mơ hồ chỉ nói "giá trị có dấu cách", trong khi code báo lỗi cho mọi `text=`/`desc=` không ngoặc trên dòng kết thúc bằng một số, kể cả một từ (`wait desc=Back 10`). Đây là cách hiểu duy nhất làm test `wait text=Page 2` của plan thất bại đúng lý do. Chỉ đổi câu chữ, không viết được test thất bại trước, nên theo bước 6 ghi vào báo cáo kèm đề xuất.
+  - Ghi chú đáng xem: tự từ chối trong bước dùng `dump_ready` có cả khung 5 giây, gồm lần dump đầu, nên trên máy chậm có thể lỗi `không đóng sau khi chạm từ chối`; `consent decline` thứ hai sau khi đã từ chối vẫn chạm lại mà không lỗi; `pidof` coi mọi chữ số trong đầu ra là có tiến trình; giá trị ngoặc một phần (`text="A" extra 5`) không bị báo lỗi cú pháp.
+- **Kết quả CI:** `pr-check.yml` xanh lần đầu (lần chạy 40178581317, commit `0e1e099`). `scripts/check.sh` cục bộ qua (`Test JVM: 1050 test, 0 lỗi`, `All script tests passed`).
+- **Lệch so với plan:** không đổi điều test kiểm. Chi tiết nhỏ:
+  - Test "tiến trình bị giết thì mở lại" dò `pidof rỗng.*mở lại`, khớp cả dạng ở mục 3.1 (`(pidof rỗng), mở lại`) lẫn mục 4.
+  - Chữ của dòng `note`: `hộp thoại đồng ý hiện muộn, đã từ chối (chạm x,y)`; `consent decline` thường ghi `đã chạm từ chối x,y` hay `chưa thấy hộp thoại đồng ý`; lần mở thứ hai thất bại có thêm `fresh: lần mở 2 không có tiến trình (...)`. Không dòng nào ngoài hai trường hợp bất thường lên `summary.md`.
+  - `fake-adb`: khi có `FAKE_ADB_STATE_DIR` mà app chưa chạy thì `pidof` trả mã 1 như máy thật; không đặt biến thì giữ như cũ.
+- **Ngoài mục 3.2:** không có.
+- **Việc còn lại:** `device-session` cuối phiên này là lần chạy thật đầu tiên của trình chạy mới (mục 6); kết quả ghi ở báo cáo phiên. Đổi quy tắc 11 thành lỗi khi một `device-session` có cả 3 kịch bản không `lỗi` (mục 6).
+- **Cần người xem:** điểm nên sửa về câu chữ của quy tắc số mơ hồ; các ghi chú của rà soát; kết quả "Kịch bản theo plan" và "Ghi chú của trình chạy" của `device-session` cuối phiên.

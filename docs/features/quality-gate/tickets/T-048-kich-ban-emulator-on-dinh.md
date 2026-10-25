@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là kết quả device-session của RUN-20261024-02 và rà soát độc lập của T-046
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: M
 depends_on: [T-046]

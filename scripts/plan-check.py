@@ -34,10 +34,9 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
  10. The ticket's status follows the plan's (L-019, L-045): a warning when they disagree, fixed by scripts/status.py --sync.
  11. Every "Kiểm tra thủ công" row of section 4 says where it runs (L-062, plan T-046): '(emulator: <scenario file>)',
      '(máy thật: <reason>)' or '(người: <reason>)'. An emulator row names scenario files that are in the file list
-     or in the repository, and a file in the repository passes `scripts/device-scenario.py check`. Only a warning, for
-     draft and approved plans alike (decision of 2026-10-24). It becomes an error for a draft plan (a warning stays
-     for an approved one, like rule 7) once a device-session has run the first three scenario files of T-046 and all
-     passed; that is a separate one-line change with its test.
+     or in the repository, and a file in the repository passes `scripts/device-scenario.py check`. Errors for a draft
+     plan, warnings for an approved one, like rule 7 (since plan T-052: the device-session of RUN-20261025-02 had no
+     failing scenario file).
  12. A plan does not write a bare $TMPDIR or ${TMPDIR}: a cloud session leaves TMPDIR unset, so the path lands in /
      (L-071). Write ${TMPDIR:-/tmp}. Errors for a draft plan, warnings for an approved one, like rule 7.
 PLAN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
@@ -452,7 +451,7 @@ def check(plan_path):
                         + tmpdir_problems(text)):
             (errors if status == "draft" else warnings).append(message)
     warnings += ticket_status_problems(fields)
-    warnings += manual_test_problems(text, listed)
+    (errors if status == "draft" else warnings).extend(manual_test_problems(text, listed))
     if "## 4. Kiểm thử" not in text:
         warnings.append("không thấy mục 4. Kiểm thử.")
     return errors, warnings

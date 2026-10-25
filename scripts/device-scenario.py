@@ -29,7 +29,8 @@ Selectors (one keyword, optional filters; several selectors separated by " | " m
 Commands:
   fresh                         clear data, grant runtime permissions, open the app with am start -W and wait for its
                                 process (pidof); without one, fail when the crash buffer names the app, otherwise
-                                start it once more ("mở lại" in the note)
+                                start it once more ("mở lại" in the note); after the device was given back it
+                                waits DEVICE_SCENARIO_STOP_SETTLE seconds (default 3) after stopping the app
   consent decline [seconds]     tap "Do not consent" when the ad consent form shows (ADR-0013) and wait until it
                                 closes, or see the first screen of the app without a form. When the form shows later,
                                 a step that reads the screen declines it once ("hiện muộn" in the note); a form that
@@ -61,6 +62,7 @@ Settings: DEVICE_SCENARIOS_GLOB (files to run; default feature/*/src/deviceScena
 app/src/deviceScenarios/*.txt), DEVICE_SCENARIO_POLL (seconds between two dumps, default 1),
 DEVICE_SCENARIO_START_WAIT (limit of am start -W, default 15), DEVICE_SCENARIO_PROCESS_WAIT (seconds to wait for the
 app process, default 5), DEVICE_SCENARIO_CONSENT_CLOSE (seconds to wait for the consent form to close, default 5),
+DEVICE_SCENARIO_STOP_SETTLE (seconds fresh waits after stopping the app when the device was given back, default 3),
 DEVICE_SCENARIO_ROOT (repository that check reads; default this one). check does not read Kotlin files under a
 folder right after src/ whose name starts with test or androidTest.
 Messages are in Vietnamese for the team; comments are in English.
@@ -482,6 +484,9 @@ class Runner:
         self.start_wait = env_seconds("DEVICE_SCENARIO_START_WAIT", 15)
         self.process_wait = env_seconds("DEVICE_SCENARIO_PROCESS_WAIT", 5)
         self.evidence_reserve = env_seconds("DEVICE_SCENARIO_EVIDENCE_RESERVE", 20)
+        self.stop_settle = env_seconds("DEVICE_SCENARIO_STOP_SETTLE", 3)
+        # The device was given back since the last fresh, so fresh waits after stopping the app.
+        self.device_reset = False
         self.log_path = self.session / "scenarios.txt"
         self.file_deadline = 0.0
         self.file_dir = self.session
@@ -618,6 +623,7 @@ class Runner:
         self.consent_state = None
         self.adb("logcat", "-b", "crash", "-c")
         self.adb("shell", "am", "force-stop", self.package)
+        stopped = time.monotonic()
         self.adb("shell", "pm", "clear", self.package)
         if self.helper("grant-permissions") != 0:
             raise Fail("không cấp được quyền của app")
@@ -628,6 +634,12 @@ class Runner:
             self.activity = lines[-1].strip() if lines else ""
         if "/" not in self.activity:
             raise Fail(f"không tìm thấy màn hình khởi động của {self.package}")
+        if self.device_reset:
+            # Stopping an app whose Activity the reset is still rebuilding makes the system kill the next start
+            # about a second later ("Destroy timeout of remove-task", FB-20261025-02): start after that.
+            self.device_reset = False
+            self.note(f"fresh: chờ {seconds_text(self.stop_settle)} giây sau khi dừng app (máy vừa trả về gốc)")
+            time.sleep(max(0.0, min(stopped + self.stop_settle, self.file_deadline) - time.monotonic()))
         problem = self.start_app()
         if problem is None:
             return
@@ -814,6 +826,7 @@ class Runner:
         """Gives the device back as the scenario found it, within `limit` seconds in all (DEVICE_SCENARIO_RESET_LIMIT),
         at most 5 per command; commands left when the time is up are not sent. Turning the network on has 45 more
         seconds, or only what is left of `limit` without network_extra."""
+        self.device_reset = True
         end = time.monotonic() + (self.reset_limit if limit is None else limit)
         commands = [
             ["shell", "wm", "size", self.original_size or "reset"],

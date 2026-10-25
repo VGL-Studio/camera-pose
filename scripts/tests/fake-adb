@@ -2,14 +2,16 @@
 # Minimal stand-in for adb used by scripts/tests: one connected device with the app installed, unless
 # FAKE_ADB_NO_DEVICE or FAKE_ADB_NO_APP is set. `logcat -v ...` prints $FAKE_ADB_LOGCAT, then waits to be killed
 # like the real streaming logcat. `dumpsys connectivity` reports the default network $FAKE_ADB_NETWORK (default
-# "none", i.e. offline). `exec-out cat` prints $FAKE_ADB_UI (a UI dump), `find /sdcard` prints $FAKE_ADB_FILES. Every call is appended to $FAKE_ADB_CALLS when set.
+# "none", i.e. offline). `exec-out cat` prints $FAKE_ADB_UI (a UI dump), `find /sdcard` prints $FAKE_ADB_FILES.
+# Every call is appended to $FAKE_ADB_CALLS when set.
 # `dumpsys package` lists $FAKE_ADB_RUNTIME_PERMISSIONS (space-separated) as runtime permissions; `pm grant` fails
 # for the permissions in $FAKE_ADB_GRANT_FAILS.
 # UI dumps for scripts/device-scenario.py: `uiautomator dump` takes the next file of $FAKE_ADB_UI_SEQ (space-separated
 # paths; the count is kept in $FAKE_ADB_STATE_DIR/ui-seq.n, default $TMPDIR; the last file repeats) and `exec-out cat`
 # prints it. A file named *.idle-error makes the dump print "ERROR: could not get idle state." and print nothing.
 # $FAKE_ADB_HANG names a shell subcommand (for example uiautomator) that never returns. `wm size` and `wm density`
-# report a $FAKE_ADB_PHYSICAL_SIZE (default 1080x2400) screen at 420 dpi. `logcat -b crash -d` prints $FAKE_ADB_CRASH_LOG (default nothing) and returns.
+# report a $FAKE_ADB_PHYSICAL_SIZE (default 1080x2400) screen at 420 dpi.
+# `logcat -b crash -d` prints $FAKE_ADB_CRASH_LOG (default nothing) and returns.
 # The app process (plan T-048) is only simulated when $FAKE_ADB_STATE_DIR is set; without it `pidof` prints nothing.
 # With it: `am start -W` counts the starts in starts.n and leaves the process alive (file `alive`) once the count is
 # above $FAKE_ADB_DEAD_STARTS (default 0); `pm clear` and `am force-stop` kill it; `pidof` prints 4242 while it is

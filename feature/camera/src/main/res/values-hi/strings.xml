@@ -39,7 +39,7 @@
     <string name="camera_cd_thumb_failed">%1$s, इमेज लोड नहीं हुई, फिर से कोशिश करने के लिए टैप करें</string>
     <!-- Outline adjustment (plan T-015). Text table of the design. -->
     <string name="camera_adjust_title">ओवरले एडजस्ट करें</string>
-    <string name="camera_adjust_opacity">पारदर्शिता</string>
+    <string name="camera_adjust_opacity">अपारदर्शिता</string>
     <string name="camera_adjust_size">आकार</string>
     <string name="camera_adjust_flip">पलटें</string>
     <string name="camera_adjust_lock">लॉक</string>

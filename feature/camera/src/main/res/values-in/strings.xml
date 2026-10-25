@@ -39,7 +39,7 @@
     <string name="camera_cd_thumb_failed">%1$s, gambar tidak dapat dimuat, ketuk untuk mencoba lagi</string>
     <!-- Outline adjustment (plan T-015). Text table of the design. -->
     <string name="camera_adjust_title">Atur lapisan</string>
-    <string name="camera_adjust_opacity">Transparansi</string>
+    <string name="camera_adjust_opacity">Opasitas</string>
     <string name="camera_adjust_size">Ukuran</string>
     <string name="camera_adjust_flip">Balik</string>
     <string name="camera_adjust_lock">Kunci</string>

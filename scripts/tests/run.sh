@@ -1033,7 +1033,7 @@ plan_check "$plans/T-937-a.md" > /dev/null
 expect "plan-check: a ticket in step with its plan gets no warning" 0 "$(grep -c 'ticket T-937' "$work/plan-check.out")"
 
 # Rule 11 (plan T-046, L-062): every manual test row of section 4 says where it runs; an emulator row names a scenario
-# file that exists and passes `device-scenario.py check`. Only a warning, for draft and approved plans alike.
+# file that exists and passes `device-scenario.py check`. An error for a draft plan, a warning for an approved one (plan T-052).
 mkdir -p "$repo/feature/demo/src/deviceScenarios" "$repo/feature/demo/src/main/res/values"
 printf 'object DemoTags { const val TAG = "demo_tag" }\n' > "$repo/feature/demo/DemoTags.kt"
 printf '<resources>\n    <string name="demo_text">Demo</string>\n</resources>\n' > "$repo/feature/demo/src/main/res/values/strings.xml"
@@ -1049,7 +1049,7 @@ manual_rows() { # <plan> <test type cell>...: appends manual test rows to sectio
 rule11() { grep -c 'quy tắc 11' "$work/plan-check.out" || true; } # lines of rule 11 in the last plan-check output
 write_plan "$plans/T-940-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
 manual_rows "$plans/T-940-a.md" 'Kiểm tra thủ công'
-expect "plan-check: a manual row without where it runs is a warning" "pass 1 1" \
+expect "plan-check: a manual row without where it runs is an error for a draft plan" "stop 1 1" \
   "$(plan_check "$plans/T-940-a.md") $(rule11) $(grep -c 'nơi chạy' "$work/plan-check.out" || true)"
 write_plan "$plans/T-941-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$decision_v1"
 manual_rows "$plans/T-941-a.md" 'Kiểm tra thủ công'
@@ -1057,15 +1057,15 @@ expect "plan-check: a manual row of an approved plan without where it runs is a 
   "$(plan_check "$plans/T-941-a.md") $(rule11)"
 write_plan "$plans/T-942-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
 manual_rows "$plans/T-942-a.md" 'Kiểm tra thủ công (emulator: feature/demo/src/deviceScenarios/T-942-none.txt)'
-expect "plan-check: an emulator row needs a scenario file in the file list or the repository" "pass 1" \
+expect "plan-check: an emulator row needs a scenario file in the file list or the repository" "stop 1" \
   "$(plan_check "$plans/T-942-a.md") $(grep -c 'quy tắc 11.*T-942-none.txt' "$work/plan-check.out" || true)"
 write_plan "$plans/T-943-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
 manual_rows "$plans/T-943-a.md" 'Kiểm tra thủ công (emulator: feature/demo/src/deviceScenarios/T-941-bad.txt)'
-expect "plan-check: a scenario file that fails check is a warning" "pass 1" \
+expect "plan-check: a scenario file that fails check is an error for a draft plan" "stop 1" \
   "$(plan_check "$plans/T-943-a.md") $(grep -c 'quy tắc 11.*T-941-bad.txt dòng 4' "$work/plan-check.out" || true)"
 write_plan "$plans/T-944-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
 manual_rows "$plans/T-944-a.md" 'Kiểm tra thủ công (máy thật: )' 'Kiểm tra thủ công (người:)'
-expect "plan-check: máy thật and người need a reason" "pass 2" \
+expect "plan-check: máy thật and người need a reason" "stop 2" \
   "$(plan_check "$plans/T-944-a.md") $(grep -c 'quy tắc 11.*thiếu lý do' "$work/plan-check.out" || true)"
 # Control: a correct plan has no line of rule 11. The file of the first row is only in the file list, not yet in the
 # repository (a plan creates it), so only the rows that can be read are checked.
@@ -1075,6 +1075,15 @@ manual_rows "$plans/T-945-a.md" \
   'Kiểm tra thủ công (máy thật: camera thật)' 'Kiểm tra thủ công (người: đọc tài liệu)' 'Kiểm tra tự động (unit test)'
 expect "plan-check: a correct plan has no line of rule 11 (the rule does run on T-940)" "pass 0 1" \
   "$(plan_check "$plans/T-945-a.md") $(rule11) $(plan_check "$plans/T-940-a.md" > /dev/null; rule11)"
+# Plan T-052: rule 11 stops a draft plan, as an error, and only warns for an approved one, like rule 7.
+write_plan "$plans/T-949-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+manual_rows "$plans/T-949-a.md" 'Kiểm tra thủ công'
+expect "plan-check: rule 11 stops a draft plan, as an error" "stop 1 0" \
+  "$(plan_check "$plans/T-949-a.md") $(grep -c 'LỖI:.*quy tắc 11' "$work/plan-check.out" || true) $(grep -c 'CHÚ Ý:.*quy tắc 11' "$work/plan-check.out" || true)"
+write_plan "$plans/T-950-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$decision_v1"
+manual_rows "$plans/T-950-a.md" 'Kiểm tra thủ công'
+expect "plan-check: control: rule 11 only warns for an approved plan" "pass 1 0" \
+  "$(plan_check "$plans/T-950-a.md") $(grep -c 'CHÚ Ý:.*quy tắc 11' "$work/plan-check.out" || true) $(grep -c 'LỖI:.*quy tắc 11' "$work/plan-check.out" || true)"
 
 # Rule 12: a cloud session has no TMPDIR, so a bare $TMPDIR writes to / (L-071).
 # The dollar signs are plan text, not shell expansion.
@@ -1092,7 +1101,7 @@ write_plan "$plans/T-948-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Ch
 expect "plan-check: TMPDIR with a default passes" "pass 0" \
   "$(plan_check "$plans/T-948-a.md") $(grep -c 'TMPDIR' "$work/plan-check.out" || true)"
 
-# The latest run list must not get an error from rule 11 (it only warns).
+# The latest run list must not get an error from rule 11 (the plans of a run list are approved, so rule 11 only warns).
 latest_run="$(ls docs/runs/RUN-*.md | sort | tail -n 1)"
 python3 -I scripts/run-check.py "$latest_run" > "$work/run-check-latest.out" 2>&1 || true
 expect "run-check: the latest run list has no new error from rule 11" "0 yes" \
@@ -2236,6 +2245,20 @@ expect "device-scenario: on a 320x640 screen unfold picks a size within three ti
   "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt" FAKE_ADB_PHYSICAL_SIZE=320x640) $(ds_count '^shell wm size 1536x1919$' "$ds_calls") $(ds_count '^shell wm density 365$' "$ds_calls") $(ds_count '^shell wm size 1766x2208$' "$ds_calls")"
 expect "device-scenario: control: on a large screen unfold keeps 1766x2208 at 420" "0 1 1" \
   "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt") $(ds_count '^shell wm size 1766x2208$' "$ds_calls") $(ds_count '^shell wm density 420$' "$ds_calls")"
+# Plan T-052: stopping the app right after the device was given back makes the system kill the next start
+# (FB-20261025-02), so fresh of a file after a reset waits after stopping the app; the first file does not.
+ds_script settle-1.txt 'fresh'
+ds_script settle-2.txt 'fresh'
+settle_began="$(date +%s)"
+settle_code="$(ds_run "camera.xml" "$ds_files/settle-*.txt" DEVICE_SCENARIO_STOP_SETTLE=2)"
+settle_seconds=$(( $(date +%s) - settle_began ))
+expect "device-scenario: fresh after a reset waits after stopping the app, the first file does not" "0 1 0 yes" \
+  "$settle_code $(ds_count '^plan settle-2.txt note step=1 .*fresh: chờ 2 giây sau khi dừng app') $(ds_count '^plan settle-1.txt note step=1 .*fresh: chờ') $([ "$settle_seconds" -ge 2 ] && echo yes || echo no)"
+expect "device-scenario: control: a single file does not wait in fresh" "0 0 1" \
+  "$(ds_run "camera.xml" "$ds_files/settle-1.txt" DEVICE_SCENARIO_STOP_SETTLE=2) $(ds_count 'fresh: chờ') $(ds_count '^plan settle-1.txt step=1 fresh ok$')"
+ds_script settle-mid.txt 'fresh' 'fresh'
+expect "device-scenario: control: a second fresh inside one file does not wait" "0 0 2" \
+  "$(ds_run "camera.xml" "$ds_files/settle-mid.txt" DEVICE_SCENARIO_STOP_SETTLE=2) $(ds_count 'fresh: chờ') $(ds_count '^plan settle-mid.txt step=[12] fresh ok$')"
 
 # Plan T-048: notes of the runner about a late consent form or a restarted app are listed under the table.
 mkplan "$work/plan-notes" "$plan_lines

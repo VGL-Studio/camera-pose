@@ -1,7 +1,7 @@
 ---
 ticket: T-049
 title: Lệnh chạm sau `device unfold` tới được app; ba điểm còn lại của T-048
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -238,3 +238,15 @@ Lần chạy lại sau rà soát độc lập (2026-10-25, nhánh chính `f975fa
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261025-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #136, commit merge `5ce6f51`, 2026-10-25 15:40 UTC).
+- **Nhánh, PR:** `claude/T-049-cham-sau-mo-gap`, https://github.com/VGL-Studio/camera-pose/pull/136
+- **Đã làm:** đúng mục 3.1. `scripts/device-scenario.py`: `unfolded_display`, `physical_size` đọc từ `wm size`, nhánh `unfold` tắt giới thiệu đóng khung rồi đổi kích thước theo màn thật, `reset-letterbox-style` trong trả máy, câu báo số mơ hồ, `consent decline` lần hai giữ `declined`, `pidof` dùng `fullmatch`, docstring. `fake-adb`: `FAKE_ADB_PHYSICAL_SIZE`, `FAKE_ADB_PIDOF_TEXT`. `docs/ops/test-sessions.md` mục 5: ba điểm.
+- **Test viết trước:** 11 test trong khối `device-scenario` của `scripts/tests/run.sh` (commit `8e9879a`, trước commit code `47e3065`). Trên code cũ: 7 thất bại đúng lý do, giá trị khớp mục 4.1 (`'1 0'`, `'0 2 0'` hai lần, `'0 1 0'`, `'0 0 no'` hai lần, `'0 0 0 1'`); 4 đối chứng qua. Sau code: 11/11 qua, `All script tests passed`.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 5 ghi chú (ghi trong mô tả PR và báo cáo phiên): danh sách trả máy 7 lệnh x 5 giây có thể vượt hạn tổng 30 giây khi lệnh treo; lệnh đặt lại giới thiệu chạy sau mọi tệp; đoạn "Sau mỗi tệp, trình chạy trả máy về gốc" chưa nhắc cài đặt giới thiệu; cảnh báo của `adb` trước pid làm lần đọc `pidof` đó tính là chưa có tiến trình; một dòng chú thích của `fake-adb` dài hơn các dòng khác.
+- **Kết quả CI:** `scripts/check.sh` trên nhánh: QUA (1050 test JVM, 93 ảnh screenshot, test của script qua). `pr-check.yml` xanh ở lần chạy đầu (40207775115), không có vòng sửa.
+- **Lệch so với plan:** Không có. Ngoài mục 3.2: không có.
+- **Việc còn lại:** mục 6 của plan (quy tắc 11 thành lỗi khi một `device-session` có cả 3 kịch bản không `lỗi`; chú thích dòng 14 của kịch bản T-024; FB-20261024-01 cho chủ feature xem lại). Kết quả `device-session` cuối phiên ghi ở báo cáo RUN-20261025-02, mục Kiểm thử trên máy ảo.
+- **Cần người xem:** người duyệt chéo đọc diff `docs/ops/test-sessions.md` mục 5 (mục 4, dòng "Phiên làm theo tài liệu"); dòng T-024 của `device-session` cuối phiên.

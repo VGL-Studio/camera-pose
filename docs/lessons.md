@@ -685,11 +685,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-073: `token-usage.py` gán token của phiên con vào dòng Chung, số theo task thiếu phần lớn
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261025-01 (T-048).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261025-01 (T-048).
 - **Chuyện gì:** T-048 giao bước 3 đến 5 cho một phiên con làm trong worktree `../task-T-048` (L-031, L-034), và rà soát độc lập cho một phiên con khác. Transcript của cả hai phiên con ghi `cwd` là thư mục chính và `gitBranch` là nhánh của thư mục chính (nhánh mặc định của phiên), vì lệnh của chúng chỉ `cd` vào worktree trong từng lệnh shell. `scripts/token-usage.py` gán theo nhánh, nên T-048 hiện 589k (0,1 lần ước tính 9M) còn phần thật khoảng 12,4M nằm ở dòng Chung. Chạy lại khi worktree còn trong `git worktree list` cũng không đổi.
 - **Bằng chứng:** RUN-20261025-01, mục Token: `subagents/agent-*.jsonl` có 81 và 49 dòng, tất cả `('/home/user/camera-pose', 'claude/run-20261025-01-esag49')`; đếm tay 7,96M và 3,81M.
 - **Đề xuất sửa:** `scripts/token-usage.py` gán transcript phiên con theo worktree hay nhánh xuất hiện trong lệnh của nó (`cd /home/user/task-T-NNN`, `git -C ...`), hoặc theo một bảng phiên con và task mà phiên chính ghi; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên đếm tay phần phiên con.
-- **Áp dụng:** chưa có; chép bản `scripts/token-usage.py` của dự án mẫu (bài học L-071 của mẫu: dòng `Task: T-NNN`, `BRIEF_TASK`) qua một task có test. Trong lúc chờ, báo cáo phiên đếm tay phần phiên con. Tuấn nhận ngày 2026-10-25. Dự án mẫu: đã có (L-071 của mẫu); VGL-Studio/app-project-template#163.
+- **Áp dụng:** T-053 (PR này): `scripts/token-usage.py` chép phần `BRIEF_TASK`, `message_text` của dự án mẫu, gán mọi request của transcript trong `subagents/` theo dòng `Task: T-NNN` ở tin nhắn đầu; 4 test mới trong `scripts/tests/run.sh`; `docs/auto-run.md` (Giao bước 3 đến 5, bước 6, mục 4 bước 5) và `docs/ops/token-usage.md` ghi dòng `Task: T-NNN` trong lời giao việc cho phiên con. Tuấn nhận ngày 2026-10-25. Dự án mẫu: đã có (L-071 của mẫu); VGL-Studio/app-project-template#163.
 - **Kiểm chứng:**
 
 ### L-074: `auto-run.md` bảo soạn phản hồi kịch bản lỗi mức `nen-sua`, mẫu phản hồi không có mức đó

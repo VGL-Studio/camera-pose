@@ -84,7 +84,7 @@ Mỗi task đi qua 10 bước theo thứ tự. Điều kiện dừng ở mục 4
 Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho một phiên AI con, để giữ ngữ cảnh của phiên chính cho các task sau (L-031).
 
 - Phiên con làm trong worktree riêng của nhánh task: `git worktree add ../task-T-NNN claude/T-NNN-<tu-khoa>`. Thư mục chính giữ sạch, để phiên chính làm việc khác song song: chạy `check.sh` nền, chờ `main-guard`, chuẩn bị task sau, viết báo cáo. Bộ nhớ đệm Gradle ở `~/.gradle` dùng chung nên không tải lại (L-034).
-- Nội dung giao việc tối thiểu: đường dẫn plan và worktree; danh sách file của mục 3.2 là ranh giới (trừ phần nối chỗ gọi theo ADR-1003, `risk-scoring.md` mục 4), phiên con báo mọi file nối chỗ gọi; thứ tự commit (test trước, rồi code); đẩy bằng `scripts/save-branch.sh` sau mỗi commit; lệnh đẩy bị từ chối hay script trả mã 3 thì dừng ngay, chạy `scripts/save-branch.sh --bundle-only <nhánh>` và báo lại đoạn script in ra; điều kiện dừng (`risk-scoring.md` mục 4 và mục 7 của plan); báo cáo theo các dòng của nhật ký plan (Test viết trước, Lệch so với plan).
+- Nội dung giao việc tối thiểu: một dòng riêng, đúng `Task: T-NNN` (đặt ở dòng đầu của lời giao; không gạch đầu dòng, không định dạng, không thêm chữ sau), để `scripts/token-usage.py` tính token của phiên con vào task (L-073). Một lời giao cho một task: phiên con được giao tiếp việc của task khác (gửi thêm tin nhắn cho phiên con cũ) vẫn tính vào task đầu, nên task khác thì giao một phiên con mới. Lời giao rà soát độc lập ở bước 6 cũng có dòng này; đường dẫn plan và worktree; danh sách file của mục 3.2 là ranh giới (trừ phần nối chỗ gọi theo ADR-1003, `risk-scoring.md` mục 4), phiên con báo mọi file nối chỗ gọi; thứ tự commit (test trước, rồi code); đẩy bằng `scripts/save-branch.sh` sau mỗi commit; lệnh đẩy bị từ chối hay script trả mã 3 thì dừng ngay, chạy `scripts/save-branch.sh --bundle-only <nhánh>` và báo lại đoạn script in ra; điều kiện dừng (`risk-scoring.md` mục 4 và mục 7 của plan); báo cáo theo các dòng của nhật ký plan (Test viết trước, Lệch so với plan).
 - Phiên con xong: phiên chính kiểm `git diff --name-only origin/main...` khớp mục 3.2 cộng phần nối chỗ gọi mà phiên con đã báo, đọc báo cáo, rồi giao rà soát độc lập (bước 6) cho một phiên khác. Xóa worktree sau khi merge (`git worktree remove`); không xóa worktree của nhánh chưa đẩy được.
 - Không sửa file trong thư mục đang chạy `check.sh` nền: lần chạy đó kiểm một trạng thái lẫn lộn và phải chạy lại.
 
@@ -119,7 +119,7 @@ Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho
 
 ### Bước 6. Rà soát độc lập
 
-Một phiên AI riêng được khởi tạo để rà soát. Phiên này chỉ nhận plan, spec, thiết kế, ADR và phần thay đổi; không nhận quá trình làm việc của phiên viết code, để đánh giá với con mắt mới. Có phần nối chỗ gọi (ADR-1003) thì phiên rà soát nhận thêm danh sách file đó, số file và số dòng code, task đã đổi chỗ gọi và commit merge của task đó.
+Một phiên AI riêng được khởi tạo để rà soát. Phiên này chỉ nhận plan, spec, thiết kế, ADR và phần thay đổi; không nhận quá trình làm việc của phiên viết code, để đánh giá với con mắt mới. Có phần nối chỗ gọi (ADR-1003) thì phiên rà soát nhận thêm danh sách file đó, số file và số dòng code, task đã đổi chỗ gọi và commit merge của task đó. Lời giao việc cho phiên rà soát có một dòng riêng, đúng `Task: T-NNN`, như mục Giao bước 3 đến 5 (L-073).
 
 Nội dung rà soát:
 
@@ -319,6 +319,8 @@ Sau đó AI:
    5. Chạy `scripts/plan-check.py`, sửa tới khi không lỗi. Lỗi chỉ người gỡ được thì giữ lại và ghi vào mục 8.
    6. Ngay sau đó, giao một phiên rà soát độc lập (ngữ cảnh mới, chỉ đọc) cho plan này, như rà soát trước khi duyệt (`docs/ops/pre-run-review.md`). Sửa plan theo điểm chặn và điểm nên sửa một lần; điểm còn lại chép vào mục 8.
    7. Đẩy, cập nhật mô tả PR (kết quả `plan-check.py`, rà soát, chạy thử), rồi chuyển PR khỏi trạng thái nháp.
+
+   Giao việc cho phiên con (chạy thử, rà soát độc lập): lời giao có một dòng riêng, đúng `Task: T-NNN` của ticket đang soạn plan, như mục Giao bước 3 đến 5 (L-073).
 
    Giới hạn thời gian:
    - Quá 45 phút từ giờ bắt đầu thì không bắt đầu plan mới.

@@ -1,16 +1,16 @@
 ---
 ticket: T-050
 title: Chữ của camera và màn xem lại theo ngôn ngữ đã chọn
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 6                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
 token_estimate: 8M           # cỡ M (5.0M, scripts/token-usage.py estimate) cộng khoảng 60%: 83 chuỗi dịch sang 6 ngôn ngữ (12 tệp) và 12 tệp test đổi qualifiers
 blocking_points: []          # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-25
 ---
 
 # PLAN T-050: CHỮ CỦA CAMERA VÀ MÀN XEM LẠI THEO NGÔN NGỮ ĐÃ CHỌN
@@ -201,9 +201,9 @@ Không có.
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-25, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: AI viết chữ tiếng Anh theo giọng của settings và onboarding, dán bảng ba cột vào mô tả PR. Câu 2: một ảnh ReviewScreen_save-error-pt-br_small.png cùng ba test bố cục ở pt-BR. Câu 3: bản dịch vào staging, người biết tiếng duyệt trước khi phát hành production. Plan qua một rà soát độc lập (0 chặn, 2 nên sửa, đã sửa hết).
 
 ## 10. Nhật ký thực hiện
 

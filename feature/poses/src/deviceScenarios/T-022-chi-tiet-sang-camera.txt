@@ -1,5 +1,5 @@
 ticket: T-022
-criterion: Luồng thật trên máy, bước 1 đến 7 (plan T-022, mục 4)
+criterion: Luồng thật trên máy, bước 1 đến 7 (plan T-022, mục 4); bước 5: đang ở chi tiết thì mất mạng, ảnh lớn có thể đã tải
 timeout: 240
 fresh
 consent decline 30
@@ -31,7 +31,6 @@ wait id=camera_screen 15
 shot camera-with-pose
 back
 expect_no id=camera_screen
-# (5) mất mạng, mở chi tiết chưa tải ảnh lớn: hộp thoại mạng; bật mạng, Thử lại: ảnh hiện
 fresh
 consent decline 30
 wait id=camera_screen | id=onboarding_screen 60
@@ -39,8 +38,11 @@ tap_if id=onboarding_enable_camera
 need id=camera_poses 15
 tap id=camera_poses
 wait id=poses_grid 20
-network off
+# (5) đang ở chi tiết thì mất mạng: hộp thoại mạng hiện trên chi tiết; có mạng lại, "Thử lại": hộp thoại đóng, ảnh lớn hiện.
+# Ảnh lớn có thể đã tải xong trước khi tắt mạng; trường hợp ảnh lỗi vì mất mạng do unit test của T-022 kiểm.
 tap idp=poses_card_ in=poses_grid index=3
+wait id=pose_detail_screen 15
+network off
 wait id=network_dialog 30
 shot offline
 network on

@@ -685,19 +685,27 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-073: `token-usage.py` gán token của phiên con vào dòng Chung, số theo task thiếu phần lớn
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261025-01 (T-048).
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261025-01 (T-048).
 - **Chuyện gì:** T-048 giao bước 3 đến 5 cho một phiên con làm trong worktree `../task-T-048` (L-031, L-034), và rà soát độc lập cho một phiên con khác. Transcript của cả hai phiên con ghi `cwd` là thư mục chính và `gitBranch` là nhánh của thư mục chính (nhánh mặc định của phiên), vì lệnh của chúng chỉ `cd` vào worktree trong từng lệnh shell. `scripts/token-usage.py` gán theo nhánh, nên T-048 hiện 589k (0,1 lần ước tính 9M) còn phần thật khoảng 12,4M nằm ở dòng Chung. Chạy lại khi worktree còn trong `git worktree list` cũng không đổi.
 - **Bằng chứng:** RUN-20261025-01, mục Token: `subagents/agent-*.jsonl` có 81 và 49 dòng, tất cả `('/home/user/camera-pose', 'claude/run-20261025-01-esag49')`; đếm tay 7,96M và 3,81M.
 - **Đề xuất sửa:** `scripts/token-usage.py` gán transcript phiên con theo worktree hay nhánh xuất hiện trong lệnh của nó (`cd /home/user/task-T-NNN`, `git -C ...`), hoặc theo một bảng phiên con và task mà phiên chính ghi; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên đếm tay phần phiên con.
-- **Áp dụng:** chưa có.
+- **Áp dụng:** chưa có; sửa `scripts/token-usage.py` qua một ticket có test. Trong lúc chờ, báo cáo phiên đếm tay phần phiên con. Tuấn nhận ngày 2026-10-25. Dự án mẫu: issue sắp gửi.
 - **Kiểm chứng:**
 
 ### L-074: `auto-run.md` bảo soạn phản hồi kịch bản lỗi mức `nen-sua`, mẫu phản hồi không có mức đó
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261025-01.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261025-01.
 - **Chuyện gì:** `docs/auto-run.md` mục 4, bước 1 bảo mỗi dòng `lỗi` của "Kịch bản theo plan" có một phản hồi `FB-...` "mức `nen-sua`". Mẫu `docs/templates/feedback.md` chỉ có `chan`, `nang`, `nhe`, `gop-y`. Phiên phải chọn một bên; FB-20261025-01 ghi `nen-sua` theo auto-run.md, kèm chú thích.
 - **Bằng chứng:** `docs/auto-run.md` dòng 289; `docs/templates/feedback.md`, dòng `severity`; `docs/features/quality-gate/feedback/FB-20261025-01-cham-sau-device-unfold.md`.
 - **Đề xuất sửa:** thêm `nen-sua` vào danh sách mức của mẫu phản hồi (kèm định nghĩa), hoặc đổi auto-run.md sang một mức có sẵn; kiểm `scripts/status.py` đọc mức của phản hồi thế nào.
-- **Áp dụng:** chưa có.
+- **Áp dụng:** `docs/auto-run.md` mục 4, bước 1 đổi sang mức `nhe` có sẵn của mẫu phản hồi; FB-20261025-01 ghi `nhe`; mẫu `docs/templates/feedback.md` và `scripts/status.py` không đổi (PR này). Tuấn nhận ngày 2026-10-25. Dự án mẫu: issue sắp gửi.
 - **Kiểm chứng:**
 
+### L-075: plan có test chạy trên chuỗi giả mà người viết suy kết quả bằng tay, kỳ vọng sai qua 4 vòng rà soát
+
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, viết plan T-048 (PR #126).
+- **Chuyện gì:** plan T-048 có nhiều test của `scripts/device-scenario.py` chạy trên `scripts/tests/fake-adb` với chuỗi dump giả. Người viết plan đọc code rồi suy ra test nào thất bại và vì sao, nên mỗi vòng rà soát độc lập lại tìm được điểm chặn mới trong phần kỳ vọng: 4 vòng liền có điểm chặn (2, 1, 2, 2).
+- **Bằng chứng:** rà soát plan T-048 vòng 1 đến 4: `ui-seq.n` của `fake-adb` không vượt số tệp của chuỗi dump nên test giả định lần dump thứ n sai; một test qua ngay trên code cũ mà không ghi là đối chứng; công thức ngân sách giờ thiếu phần dự phòng bằng chứng; tự từ chối hộp thoại đồng ý không dump lại. Chỉ hết điểm chặn sau khi phiên viết plan chạy thật mọi test mới trên code hiện tại trong một khối tạm không commit và ghi kết quả thật vào mục 4.1. RUN-20261025-01 sau đó có đúng 29 trên 32 test thất bại đúng lý do và 3 đối chứng như plan, CI xanh ngay lần đầu.
+- **Đề xuất sửa:** test của script chạy trên chuỗi giả hay tệp mẫu (adb giả, dump giả, repo giả) được chạy thật trên code hiện tại ngay lúc viết plan; mục 4.1 ghi kết quả thật của từng test (lý do thất bại, hay "đối chứng, qua"); không suy kết quả bằng cách đọc code.
+- **Áp dụng:** `docs/CLAUDE.md` mục Khi viết plan, `docs/ops/pre-run-review.md` mục 2.2 (PR này). Tuấn nhận ngày 2026-10-25. Dự án mẫu: issue sắp gửi.
+- **Kiểm chứng:**

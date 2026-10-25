@@ -6,7 +6,7 @@ source: staging
 build: nhánh chính bb3b286 (device-session.yml, lần chạy 40179423644)
 feature: quality-gate
 ticket: T-048                # trình chạy kịch bản; kịch bản của T-024
-severity: nen-sua            # mức cho dòng `lỗi` của kịch bản (auto-run.md mục 4); mẫu phản hồi chưa có mức này
+severity: nhe
 status: new
 created: 2026-10-25
 ---

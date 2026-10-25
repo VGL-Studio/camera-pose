@@ -1938,12 +1938,12 @@ expect "device-scenario: idp= in= index= pick the second card of the grid" "0 1"
 ds_script strs.txt 'tap str=poses_chip_saved' 'tap str=poses_cd_save'
 expect "device-scenario: str= matches text and content-desc" "0 1 1" \
   "$(ds_run "grid.xml" "$ds_files/strs.txt") $(ds_count '^shell input tap 140 300$' "$ds_calls") $(ds_count '^shell input tap 325 445$' "$ds_calls")"
-ds_script selected.txt 'expect text=Đã lưu selected=true' 'expect text=Chế độ selected=true'
+ds_script selected.txt 'expect text=Saved selected=true' 'expect text=Chế độ selected=true'
 expect "device-scenario: selected=true matches selected or checked" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/selected.txt") $(ds_count 'result=đạt')"
-ds_script unselected.txt 'expect text=Tất cả selected=true'
+ds_script unselected.txt 'expect text=All selected=true'
 expect "device-scenario: selected=true does not match an unselected chip" "0 1 1" \
-  "$(ds_run "grid.xml" "$ds_files/unselected.txt") $(ds_count 'step=1 expect text=Tất cả selected=true FAIL') $(ds_count 'result=lỗi')"
+  "$(ds_run "grid.xml" "$ds_files/unselected.txt") $(ds_count 'step=1 expect text=All selected=true FAIL') $(ds_count 'result=lỗi')"
 ds_script clickable.txt 'tap text=Nhãn clickable=true'
 expect "device-scenario: clickable=true skips plain nodes" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/clickable.txt") $(ds_count '^shell input tap 250 35$' "$ds_calls")"

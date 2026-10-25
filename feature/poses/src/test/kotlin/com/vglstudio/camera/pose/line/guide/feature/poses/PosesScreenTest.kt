@@ -204,7 +204,7 @@ class PosesScreenTest {
     @Config(qualifiers = "en-w411dp-h891dp-xxhdpi")
     fun card_stepCountUsesScreenLanguage_english() {
         setScreen(ready(cards = listOf(twoLanguageCard(LocalizedList(mapOf("vi" to steps(3), "en" to steps(5)))))))
-        card("x01").assert(hasText("Một người · 5 bước"))
+        card("x01").assert(hasText("Solo · 5 steps"))
     }
 
     @Test

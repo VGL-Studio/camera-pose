@@ -38,7 +38,7 @@ import org.robolectric.annotation.GraphicsMode
 /** The network dialog on the JVM (spec network, KB-1 and KB-2; design network, text table and sizes). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class NetworkDialogTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -122,7 +122,7 @@ class NetworkDialogTest {
     }
 
     @Test
-    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
     fun smallScreen_cardFitsAndRetryVisible() {
         setDialog(stillOffline = true)
 

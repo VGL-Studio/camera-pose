@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="brand_tagline">Mọi việc vào đúng nhịp.</string>
+    <string name="network_dialog_title">Mất kết nối mạng</string>
+    <string name="network_dialog_message">App cần mạng để hoạt động. Kiểm tra kết nối Internet rồi thử lại.</string>
+    <string name="network_dialog_retry">Thử lại</string>
+    <string name="network_dialog_still_offline">Vẫn chưa có mạng</string>
+</resources>

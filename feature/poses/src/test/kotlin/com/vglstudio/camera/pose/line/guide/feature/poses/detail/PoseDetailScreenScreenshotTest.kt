@@ -45,7 +45,7 @@ import org.robolectric.annotation.GraphicsMode
 @OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class PoseDetailScreenScreenshotTest {
     @Test
     fun default_light() {
@@ -96,6 +96,15 @@ class PoseDetailScreenScreenshotTest {
     @Config(qualifiers = SHORT_SCREEN)
     fun default_small() {
         captureRoboImage("src/test/screenshots/PoseDetailScreen_default_small.png") {
+            Screen(readyState(detail = longDetail()), dark = false)
+        }
+    }
+
+    // The same in Portuguese, the longest main button and second line of the Latin-script languages (plan T-051).
+    @Test
+    @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
+    fun default_ptBr_small() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_default-pt-br_small.png") {
             Screen(readyState(detail = longDetail()), dark = false)
         }
     }
@@ -151,8 +160,8 @@ class PoseDetailScreenScreenshotTest {
     }
 
     private companion object {
-        const val UNFOLDED = "w673dp-h841dp-xxhdpi"
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val UNFOLDED = "vi-w673dp-h841dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
 
         // A fixed point of the spinner animation where its arc is clearly drawn, as in the design.
         const val SPINNER_MS = 500L

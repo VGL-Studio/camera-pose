@@ -123,7 +123,7 @@ Bộ lọc thêm: `in=<testTag>` (trong cây con của phần tử có tag đó)
 
 Lý do: chữ của chip Compose nằm trong một nút con, còn `selected` nằm ở nút cha (dump thật của T-024).
 
-**Ngoặc kép.** Giá trị có dấu cách ghi trong ngoặc kép, `wait text="Hands in Pockets" 5`: dấu cách trong ngoặc được giữ, số sau ngoặc đóng là số giây hay số lần. Giá trị `text=` hay `desc=` không có ngoặc, có dấu cách, trên một dòng kết thúc bằng một số là mơ hồ (`wait text=Page 2` là chữ "Page 2" hay chờ 2 giây?), nên là lỗi tệp. Quy tắc này cũng bắt `count text=A b 2` và `wait text=A b selected=true 5`: ghi `text="A b"`.
+**Ngoặc kép.** Giá trị có dấu cách ghi trong ngoặc kép, `wait text="Hands in Pockets" 5`: dấu cách trong ngoặc được giữ, số sau ngoặc đóng là số giây hay số lần. Mọi giá trị `text=` hay `desc=` không có ngoặc trên một dòng kết thúc bằng một số là mơ hồ, kể cả một từ (`wait text=Page 2` là chữ "Page 2" hay chờ 2 giây? `wait desc=Back 10` cũng vậy), nên là lỗi tệp: ghi giá trị trong ngoặc kép, ví dụ `wait desc="Back" 10`. Quy tắc này cũng bắt `count text=A b 2` và `wait text=A b selected=true 5`: ghi `text="A b"`.
 
 **Lệnh:**
 
@@ -138,7 +138,7 @@ Lý do: chữ của chip Compose nằm trong một nút con, còn `selected` n�
 | `expect`, `expect_no`, `count <bộ chọn> <n>` | Kiểm có, không có, hay đúng n phần tử, sau một lần dump |
 | `network off\|on` | Tắt hay bật cả Wi-Fi và dữ liệu; không tắt được thì `bỏ qua (môi trường)` |
 | `device rotate landscape\|portrait`, `device night on\|off` | Xoay màn hình, chế độ tối |
-| `device unfold`, `device fold` | Giả lập gập mở bằng đổi kích thước (673 × 841 dp, khung `_unfolded`) rồi trả về như cũ |
+| `device unfold`, `device fold` | Giả lập gập mở bằng đổi kích thước (673 × 841 dp, khung `_unfolded`) rồi trả về như cũ. Trên màn nhỏ, Android cắt kích thước ép ở 3 lần cạnh dài của màn thật (màn 320x640 cắt `1766x2208` thành `1766x1920`), nên `device unfold` dùng kích thước nhỏ hơn với cùng khung dp (`1536x1919` ở 365 dpi). `device unfold` cũng tắt hộp thoại giới thiệu đóng khung của hệ thống ("See and do more"): lần chạm đầu sau khi mở gập chỉ đóng hộp thoại này, và `uiautomator` không thấy nó (FB-20261025-01). Trả máy đặt cài đặt giới thiệu về mặc định của máy, kể cả trên máy thật mà dev đã tự đổi nó |
 | `device locale <thẻ>` | Ngôn ngữ riêng của app (Android 13 trở lên) |
 | `back`, `shot <tên>` | Phím Back; chụp màn hình |
 
@@ -146,7 +146,7 @@ Sau mỗi lệnh `device`, trình chạy đọc màn hình tới khi hai lần d
 
 **Hộp thoại đồng ý.** Hộp thoại có thể hiện sau màn chào khoảng 2 giây, sau khi `consent decline` đã thấy màn đầu của app.
 - `consent decline` thấy màn đầu mà chưa thấy hộp thoại: bước đọc màn hình sau đó gặp hộp thoại (mà không thấy phần tử nó tìm) thì tự chạm từ chối, chờ hộp thoại đóng, ghi `note ... hộp thoại đồng ý hiện muộn, đã từ chối`. Tối đa một lần mỗi `fresh`.
-- Hộp thoại hiện lại sau khi đã từ chối là `FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối`: app có thể chưa lưu lựa chọn (ADR-0013). Lỗi này, và `hộp thoại đồng ý không đóng sau khi chạm từ chối`, vẫn là `lỗi` trong bước `need`, không thành `bỏ qua (môi trường)`.
+- Hộp thoại hiện lại sau khi đã từ chối là `FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối`: app có thể chưa lưu lựa chọn (ADR-0013). Một bước `consent decline` thứ hai trong cùng `fresh` thấy hộp thoại sau khi đã từ chối cũng lỗi như vậy, không chạm lần nữa. Lỗi này, và `hộp thoại đồng ý không đóng sau khi chạm từ chối`, vẫn là `lỗi` trong bước `need`, không thành `bỏ qua (môi trường)`.
 - Tệp chưa có bước `consent decline` (hoặc vừa `fresh`) thì trình chạy không chạm hộp thoại, nên vẫn viết được kịch bản kiểm chính hộp thoại.
 - Trạng thái này không đi qua ranh giới tệp, và `fresh` đặt lại nó.
 

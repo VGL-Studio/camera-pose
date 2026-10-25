@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là FB-20261025-01 và các điểm rà soát còn lại của T-048 (báo cáo RUN-20261025-01)
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: S
 depends_on: [T-048]

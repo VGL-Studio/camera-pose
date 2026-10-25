@@ -57,13 +57,14 @@ ADR liên quan: ADR-0008 (hệ thống thiết kế), ADR-0020 (thiết kế và
 
 **Test.** Mỗi module có test chữ riêng, không dùng chung hàm giữa các module, giống `SettingsStringsTest` và `OnboardingStringsTest`. T-051 làm tương tự cho `:feature:poses` và `:core:designsystem` (mục 6).
 - `CameraStringsTest` (mới) đọc mọi chuỗi của module qua `R.string::class.java.fields`. Dự án đặt `android.nonTransitiveRClass=true`, nên `R` chỉ có chuỗi của chính module. Ba test:
-  - `english_isDefault`: ở `en` và `fr` (ngôn ngữ không có thư mục), không chuỗi nào có chữ cái tiếng Việt (biểu thức `[ăâđêôơưĂÂĐÊÔƠƯàáạảãèéẹẻẽìíịỉĩòóọỏõùúụủũỳýỵỷỹ]`).
-  - `everyReleaseLanguage_isTranslated`: ở `hi`, `pt-BR`, `es-419`, `es-MX` (đọc `values-b+es+419`), `id`, `th`, `vi`, mỗi chuỗi không rỗng. Chuỗi khác tiếng Anh, trừ 5 chuỗi `LANGUAGE_NEUTRAL` ở trên và danh sách `SAME_AS_ENGLISH`. Danh sách này ban đầu rỗng; phiên chỉ thêm cặp nào thật sự cùng chữ, ví dụ "Flash", ghi lý do trong chú thích như `SettingsStringsTest`.
+  - `english_isDefault`: ở `en` và `fr` (ngôn ngữ không có thư mục), không chuỗi nào có chữ cái tiếng Việt. Cách dò: `java.text.Normalizer.normalize(text, NFD)` rồi tìm dấu kết hợp `[\u0300-\u0323]` hoặc `[đĐ]`; cách này bắt cả chữ hai dấu (ậ, ẩ, ỡ, ở, ế, ộ, ừ…), một bảng chữ có dấu viết sẵn thì sót.
+  - `everyReleaseLanguage_isTranslated`: ở `hi`, `pt-BR`, `es-419`, `es-MX` (đọc `values-b+es+419`), `id`, `th`, `vi`, mỗi chuỗi không rỗng. Chuỗi khác tiếng Anh, trừ 5 chuỗi `LANGUAGE_NEUTRAL` ở trên và danh sách `SAME_AS_ENGLISH`. Danh sách này ban đầu rỗng. Phiên chỉ được thêm cặp (ngôn ngữ, chuỗi) mà chính từ đó đã giữ nguyên tiếng Anh trong `values-<ngôn ngữ>` của settings hay onboarding (ví dụ `es-419` "General"), ghi lý do trong chú thích như `SettingsStringsTest`, và liệt kê từng cặp trong nhật ký thực hiện.
   - `everyTranslation_keepsPlaceholders`: mỗi ngôn ngữ có đúng bộ tham số như tiếng Anh.
 - Mười hai lớp test giao diện của module được thêm `vi-` vào đầu mọi `qualifiers`, kể cả hằng `SHORT_SCREEN` và `@Config` ở từng test. `@Config` ở từng test thay hẳn `qualifiers` của lớp, nên phải đổi cả hai. Lý do của từng tệp ở mục 3.2. Đây là sửa test, chỉ được làm đúng các tệp đó. Các test này kiểm chữ tiếng Việt theo bảng chữ của thiết kế (`onNodeWithText("Chụp lại")`, mô tả "Bước trước"…), kích thước đo theo chữ tiếng Việt, và ảnh chuẩn so với ảnh thiết kế tiếng Việt. Giữ ở `vi` thì các test kiểm đúng điều cũ, ảnh chuẩn không đổi.
-- Hai test mới ở `pt-rBR`, khung thấp `w360dp-h640dp-xxhdpi`, kiểm chữ dài không đẩy nút chính ra khỏi màn:
+- Ba test mới ở `pt-rBR`, khung thấp `w360dp-h640dp-xxhdpi`, kiểm chữ dài không đẩy nút ra khỏi màn hay đè lên nhau:
   - `ReviewScreenTest.smallPortuguese_saveError_primaryButtonVisible` dùng lại `assertFitsOnShortScreen()`;
-  - `CameraScreenTest.smallPortuguese_permissionDenied_buttonVisible` tìm nút bằng `getString(R.string.camera_permission_action)`, không ghi chữ cứng.
+  - `CameraScreenTest.smallPortuguese_permissionDenied_buttonVisible` tìm nút bằng `getString(R.string.camera_permission_action)`, không ghi chữ cứng;
+  - `CameraScreenOverlayTest.smallPortuguese_adjustPanel_labelsFit`: bảng chỉnh nét viền đang mở, bốn nút "Lật", "Khóa", "Ẩn", "Đặt lại" (`AdjustAction` của `:core:designsystem`) là chỗ dễ tràn nhất. Nhãn của `AdjustAction` một dòng (`softWrap = false`, rộng không giới hạn) và đã xóa ngữ nghĩa (`clearAndSetSemantics`), nên test đo chiều rộng nhãn bằng `rememberTextMeasurer()` với `MaterialTheme.typography.labelMedium` trong cây giao diện của test, đặt nhãn giữa nút cùng tên (tìm bằng mô tả, `performScrollTo()`). Kiểm: mỗi nhãn nằm trong bảng, và hai nhãn cạnh nhau trên cùng hàng không đè nhau. Để đo được, `setScreen` của lớp nhận thêm tham số `probe: @Composable () -> Unit = {}` gọi trong `AppTheme`, không đổi các test khác.
 - Một ảnh chuẩn mới: `ReviewScreenScreenshotTest.saveError_portuguese_small` chụp `src/test/screenshots/ReviewScreen_save-error-pt-br_small.png`, `@Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")`, cùng nội dung với `saveError_small`. Đây là trạng thái nhiều chữ nhất của hai màn: thông báo lỗi, ba nút và nút chính. Tiếng Bồ Đào Nha thường dài nhất trong 7 ngôn ngữ.
 
 **Không đổi:** code Kotlin của `src/main`, cách đổi ngôn ngữ của `:app`, thiết kế, kịch bản emulator.
@@ -92,7 +93,7 @@ ADR liên quan: ADR-0008 (hệ thống thiết kế), ADR-0020 (thiết kế và
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenTest.kt` | `vi-` ở `@Config` của lớp và `SHORT_SCREEN`: test kiểm chữ tiếng Việt ("Đang mở camera…", "Mở cài đặt", mô tả "Hủy đếm ngược"). Thêm `smallPortuguese_permissionDenied_buttonVisible` |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenPoseTest.kt` | `vi-` ở lớp và `SHORT_SCREEN`: kiểm "Tất cả", "Bước trước", "Bước sau", "Ẩn thẻ bước", "Thử lại" |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenMatchTest.kt` | `vi-` ở lớp, `SHORT_SCREEN` và hai `@Config` khung mở gập: kiểm chữ gợi ý ("Nâng tay trái cao hơn"…) |
-| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenOverlayTest.kt` | `vi-` ở lớp và `SHORT_SCREEN`: kiểm mô tả "Ẩn tư thế", "Khóa lớp phủ", chữ "Đã khóa lớp phủ" |
+| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenOverlayTest.kt` | `vi-` ở lớp và `SHORT_SCREEN`: kiểm mô tả "Ẩn tư thế", "Khóa lớp phủ", chữ "Đã khóa lớp phủ". `setScreen` thêm tham số `probe`; thêm `smallPortuguese_adjustPanel_labelsFit` |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenUnfoldedTest.kt` | `vi-` ở lớp và `@Config` khung `w673dp-h891dp`: số đo bố cục mở gập lấy từ thiết kế tiếng Việt (`design/context/`), chữ khác độ dài thì kích thước nút chữ khác |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraLastPhotoTest.kt` | `vi-` ở lớp: cùng màn camera, giữ một ngôn ngữ cho mọi test giao diện của module, để thứ tự chạy test hay chữ mới không làm đổi số đo |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenScreenshotTest.kt` | `vi-` ở hai `@Config` của lớp và `SHORT_SCREEN`: ảnh chuẩn so với ảnh thiết kế tiếng Việt |
@@ -131,14 +132,14 @@ Không có.
 | Bản dịch giữ đúng tham số | Unit test (Robolectric) | `CameraStringsTest.everyTranslation_keepsPlaceholders` |
 | Tiếng Việt giữ đúng bảng chữ của thiết kế | Compose UI test và screenshot test có sẵn chạy ở `vi` | 12 lớp ở mục 3.2 qua mà không sửa gì ngoài `qualifiers`; `verifyRoborazziDebug` qua với mọi ảnh chuẩn cũ (không ghi lại ảnh nào) |
 | `values-vi` là chữ cũ chép nguyên | Lệnh kiểm ở bước 5 | `python3` so cặp tên và chữ giữa `git show origin/main:feature/camera/src/main/res/values/<tệp>` và `values-vi/<tệp>`, bỏ qua 5 chuỗi `translatable="false"`: phải trùng hết. Ghi kết quả vào nhật ký |
-| Chữ dài không đẩy nút chính ra khỏi màn thấp (L-028) | Compose UI test | `ReviewScreenTest.smallPortuguese_saveError_primaryButtonVisible`, `CameraScreenTest.smallPortuguese_permissionDenied_buttonVisible` |
+| Chữ dài không đẩy nút ra khỏi màn thấp hay đè nhau (L-028) | Compose UI test | `ReviewScreenTest.smallPortuguese_saveError_primaryButtonVisible`, `CameraScreenTest.smallPortuguese_permissionDenied_buttonVisible`, `CameraScreenOverlayTest.smallPortuguese_adjustPanel_labelsFit` |
 | Màn hình thấp ở ngôn ngữ chữ dài (L-028) | Screenshot test khung `w360dp-h640dp-xxhdpi`, `pt-rBR` | `ReviewScreen_save-error-pt-br_small.png`; phiên mở ảnh, xem chữ không bị cắt hay tràn ở nút và thông báo lỗi, ghi nhận xét vào nhật ký |
-| Đúng thiết kế | Screenshot test cùng tên với từng ảnh thiết kế, chạy ở `vi` (ảnh chuẩn không đổi); `scripts/design-compare.sh camera` ra cùng kết quả như trên nhánh chính | 18 ảnh `CameraScreen_*`, `ReviewScreen_*` của `design/screens/` |
+| Đúng thiết kế | Screenshot test cùng tên với từng ảnh thiết kế, chạy ở `vi` (ảnh chuẩn không đổi); `scripts/design-compare.sh camera` chạy sau `check.sh`; ảnh chuẩn không đổi nên `docs/features/camera/design/review/` (có trong repo, `docs/ops/design-workflow.md` mục 4) phải không đổi: `git status --short docs/features/camera/design/review/` rỗng. Có thay đổi nghĩa là một ảnh chuẩn đã đổi: không commit, dừng theo mục 7 điều 2 | 18 ảnh `CameraScreen_*`, `ReviewScreen_*` của `design/screens/` |
 | Ảnh thiết kế của feature settings | Ảnh thiết kế của ticket khác (T-025): `SettingsScreen_default_dark`, `SettingsScreen_default_light`, `SettingsScreen_theme-picker_dark`, `SettingsScreen_theme-picker_light`. Ticket này thuộc feature settings (KB-4) nhưng chỉ đổi chữ của camera; ảnh của settings không đổi | Không chạm |
 | KB-4, đổi ngôn ngữ trên máy: camera và màn xem lại hiện đúng ngôn ngữ | Kiểm tra thủ công (máy thật: camera thật) | Trên bản staging: đổi app sang English, Português, हिन्दी trong cài đặt máy (Android 13 trở lên) hay hộp chọn của app (dưới 13), mở camera, chụp, xem màn xem lại; chữ đổi theo |
 | Bản dịch đúng nghĩa, tự nhiên | Kiểm tra thủ công (người: người biết tiếng duyệt bản dịch, spec onboarding câu hỏi 1) | Người biết tiếng đọc `values-hi`, `values-pt-rBR`, `values-b+es+419`, `values-in`, `values-th` trước khi phát hành |
 
-**Thứ tự test viết trước (bước 3):** commit test gồm `CameraStringsTest`, hai test `smallPortuguese_*`, test ảnh `saveError_portuguese_small`, và phần đổi `vi-` của 12 lớp. Kết quả trên code hiện tại (mục 4.1): `english_isDefault` và `everyReleaseLanguage_isTranslated` thất bại đúng lý do; `everyTranslation_keepsPlaceholders` và hai test `smallPortuguese_*` qua ngay (đối chứng: trên code cũ mọi ngôn ngữ đều đọc `values/` tiếng Việt, nên chúng chỉ có ý nghĩa sau khi có bản dịch). 12 lớp có `vi-` vẫn qua và ảnh chuẩn khớp, chứng minh việc đổi `qualifiers` không đổi điều test kiểm. Ảnh mới chưa có ảnh chuẩn: `check.sh` ghi ở bước 5, sau khi có bản dịch.
+**Thứ tự test viết trước (bước 3):** commit test gồm `CameraStringsTest`, hai test `smallPortuguese_*`, test ảnh `saveError_portuguese_small`, và phần đổi `vi-` của 12 lớp. Kết quả trên code hiện tại (mục 4.1): `english_isDefault` và `everyReleaseLanguage_isTranslated` thất bại đúng lý do; `everyTranslation_keepsPlaceholders` và ba test `smallPortuguese_*` qua ngay (đối chứng: trên code cũ mọi ngôn ngữ đều đọc `values/` tiếng Việt, nên chúng chỉ có ý nghĩa sau khi có bản dịch). 12 lớp có `vi-` vẫn qua và ảnh chuẩn khớp, chứng minh việc đổi `qualifiers` không đổi điều test kiểm. Ảnh mới chưa có ảnh chuẩn: `check.sh` ghi ở bước 5, sau khi có bản dịch.
 
 **Ngoại lệ viết test trước:** bản dịch là tài nguyên chữ. Test chặn (`CameraStringsTest`) viết trước và thất bại trước, nhưng đúng nghĩa của từng câu dịch không kiểm tự động được; người biết tiếng duyệt (dòng cuối của bảng trên).
 
@@ -147,14 +148,14 @@ Không có.
 - **Đã chạy thử** (2026-10-25, worktree tạm từ `origin/main` `0dfd2a4`, không commit; L-075):
   - (a) `CameraStringsTest` đúng như mục 3.1, tệp tạm.
   - (b) Thêm `vi-` vào cả 25 chỗ `qualifiers`/`SHORT_SCREEN` của 12 lớp ở mục 3.2 (`sed` thay `qualifiers = "w` thành `qualifiers = "vi-w`, `SHORT_SCREEN = "w` thành `SHORT_SCREEN = "vi-w`; sau khi thay không còn chỗ nào thiếu).
-  - (c) Hai test `smallPortuguese_*` đúng như mục 3.1.
-- **Lệnh:** `./gradlew --offline :feature:camera:testDebugUnitTest --tests '*CameraStringsTest'`; `./gradlew --offline :feature:camera:verifyRoborazziDebug` với (b); `./gradlew --offline :feature:camera:testDebugUnitTest --tests '*CameraScreenTest.smallPortuguese*' --tests '*ReviewScreenTest.smallPortuguese*'`. Plan không dùng kỹ thuật mới (E là 1), nên không cần chạy `scripts/check.sh`; phiên chạy `check.sh` như mọi task.
+  - (c) Ba test `smallPortuguese_*` đúng như mục 3.1 (với tham số `probe` của `setScreen`).
+- **Lệnh:** `./gradlew --offline :feature:camera:testDebugUnitTest --tests '*CameraStringsTest'`; `./gradlew --offline :feature:camera:verifyRoborazziDebug` với (b); `./gradlew --offline :feature:camera:testDebugUnitTest --tests '*CameraScreenTest.smallPortuguese*' --tests '*ReviewScreenTest.smallPortuguese*'`, rồi `--tests '*CameraStringsTest' --tests '*CameraScreenOverlayTest.smallPortuguese*'` sau khi đổi cách dò tiếng Việt. Plan không dùng kỹ thuật mới (E là 1), nên không cần chạy `scripts/check.sh`; phiên chạy `check.sh` như mọi task.
 - **Kết quả thật:**
-  - `CameraStringsTest.english_isDefault`: **thất bại đúng lý do**, `en camera_adjust_lock is Vietnamese`.
+  - `CameraStringsTest.english_isDefault`: **thất bại đúng lý do**, `en camera_adjust_flip is Vietnamese` ("Lật", chuỗi tiếng Việt đầu tiên theo thứ tự của `R.string`; bảng chữ có dấu viết sẵn của lần chạy đầu sót chữ hai dấu nên báo muộn ở `camera_adjust_lock`, đã đổi sang cách NFD).
   - `CameraStringsTest.everyReleaseLanguage_isTranslated`: **thất bại đúng lý do**, `hi camera_adjust_flip is not translated. Actual: Lật`.
   - `CameraStringsTest.everyTranslation_keepsPlaceholders`: **đối chứng, qua**.
   - (b): `verifyRoborazziDebug` **qua**, 379 test của module, mọi ảnh chuẩn khớp, không ảnh nào đổi.
-  - `ReviewScreenTest.smallPortuguese_saveError_primaryButtonVisible`, `CameraScreenTest.smallPortuguese_permissionDenied_buttonVisible`: **đối chứng, qua** trên code cũ. Sau bước 4 hai test này đo chữ Bồ Đào Nha thật. Thất bại thì sửa bản dịch cho ngắn lại, không sửa test hay bố cục.
+  - `ReviewScreenTest.smallPortuguese_saveError_primaryButtonVisible`, `CameraScreenTest.smallPortuguese_permissionDenied_buttonVisible`, `CameraScreenOverlayTest.smallPortuguese_adjustPanel_labelsFit`: **đối chứng, qua** trên code cũ (chưa có `values-pt-rBR`, nên đo chữ tiếng Việt). Sau bước 4 hai test này đo chữ Bồ Đào Nha thật. Thất bại thì sửa bản dịch cho ngắn lại, không sửa test hay bố cục (`AdjustAction` thuộc `:core:designsystem`, ngoài mục 3.2).
 
 ## 5. Chấm rủi ro
 
@@ -182,14 +183,14 @@ Không có.
 
 ## 7. Điều kiện dừng riêng
 
-1. Một test có sẵn của `:feature:camera` ngoài 12 lớp ở mục 3.2 thất bại sau khi đổi tài nguyên, hoặc một trong 12 lớp cần sửa thêm ngoài `qualifiers`: dừng. Mục 4.1 cho thấy không cần.
+1. Một test có sẵn của `:feature:camera` ngoài 12 lớp ở mục 3.2 thất bại sau khi đổi tài nguyên, hoặc một trong 12 lớp cần sửa thêm ngoài `qualifiers` và các test mới ở mục 3.2: dừng. Mục 4.1 cho thấy không cần.
 2. `verifyRoborazziDebug` báo một ảnh chuẩn cũ lệch: dừng. Không ghi lại ảnh chuẩn cũ.
 3. Lint báo `MissingTranslation` hay `ExtraTranslation` mà không sửa được bằng cách thêm hay bỏ chuỗi trong tệp ngôn ngữ của mục 3.2: dừng. Không tắt quy tắc lint.
 
 ## 8. Câu hỏi cho người duyệt
 
 1. **Câu chữ tiếng Anh của camera và màn xem lại.** Thiết kế chỉ có bảng chữ tiếng Việt. **Đề xuất của AI:** AI viết bản tiếng Anh theo giọng của settings và onboarding, và dán bảng ba cột (tên chuỗi, tiếng Việt, tiếng Anh) vào mô tả PR để người xem sau. Bản tiếng Anh không chặn merge, sửa được ở PR sau.
-2. **Ảnh `_small` ở ngôn ngữ chữ dài.** **Đề xuất của AI:** một ảnh `ReviewScreen_save-error-pt-br_small.png` (trạng thái nhiều chữ nhất), cùng hai test bố cục ở `pt-BR`. Phương án khác: thêm `CameraScreen_permission-denied-hi_small.png` cho chữ Devanagari cao hơn (thêm một ảnh chuẩn).
+2. **Ảnh `_small` ở ngôn ngữ chữ dài.** **Đề xuất của AI:** một ảnh `ReviewScreen_save-error-pt-br_small.png` (trạng thái nhiều chữ nhất), cùng ba test bố cục ở `pt-BR`. Phương án khác: thêm `CameraScreen_permission-denied-hi_small.png` cho chữ Devanagari cao hơn (thêm một ảnh chuẩn).
 3. **Người duyệt bản dịch.** **Đề xuất của AI:** như settings và onboarding, bản dịch merge vào staging, và báo cáo phiên ghi vào "Cần người kiểm tra" trước khi phát hành production.
 
 ## 9. Quyết định duyệt

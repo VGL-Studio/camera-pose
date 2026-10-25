@@ -1,16 +1,16 @@
 ---
 ticket: T-049
 title: Lệnh chạm sau `device unfold` tới được app; ba điểm còn lại của T-048
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 7M           # cỡ S (4.4M, scripts/token-usage.py estimate) cộng khoảng 60% vì 11 test với adb giả và lần chạy thử trên emulator của T-048 (12.4M cho cỡ M)
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-25
 ---
 
 # PLAN T-049: LỆNH CHẠM SAU `device unfold` TỚI ĐƯỢC APP; BA ĐIỂM CÒN LẠI CỦA T-048
@@ -231,9 +231,9 @@ Lần chạy lại sau rà soát độc lập (2026-10-25, nhánh chính `f975fa
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-25, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: giữ cả hai phần sửa (đổi kích thước mở gập và tắt hộp thoại giới thiệu). Câu 2: trả máy đặt cài đặt giới thiệu về mặc định, ghi vào tài liệu. Câu 3: Tuấn (chủ quality-gate) đồng ý để phiên làm T-049 ghi kết luận và liên kết vào mục Phân loại của FB-20261025-01. Plan qua một rà soát độc lập (0 chặn, 3 nên sửa, 5 ghi chú, đã sửa hết).
 
 ## 10. Nhật ký thực hiện
 

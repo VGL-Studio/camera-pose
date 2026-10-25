@@ -40,7 +40,7 @@ Chạm điểm chặn 7 (CI và quy trình phiên tự chạy): `plan-check.py` 
 ## Định nghĩa hoàn thành
 
 - [ ] Plan nháp có dòng kiểm thủ công thiếu nơi chạy: `plan-check.py` thoát 1, dòng `LỖI: quy tắc 11`; plan đã duyệt chỉ có `CHÚ Ý`.
-- [ ] `fresh` của tệp sau một lần trả máy ghi `note ... fresh: chờ 3 giây sau khi dừng app` và không phải mở lại ở `device-session` đầu sau khi merge.
+- [ ] `fresh` của tệp sau một lần trả máy ghi `note ... fresh: chờ 3 giây sau khi dừng app` và không phải mở lại ở `device-session` đầu sau khi merge, hoặc phiên ghi vào báo cáo theo plan mục 3.4.
 - [ ] Có test tự động cho phần logic chính.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính.
 - [ ] Đã được nghiệm thu chéo và nghiệm thu cuối.

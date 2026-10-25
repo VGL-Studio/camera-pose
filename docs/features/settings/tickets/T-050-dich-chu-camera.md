@@ -5,12 +5,12 @@ feature: settings
 spec: features/settings/spec.md
 scenarios: [KB-4]
 owner: Nhật
-status: backlog
+status: approved
 risk: medium
 size: M
 depends_on: []
 sprint:
-plan:
+plan: features/settings/plans/T-050-dich-chu-camera.md
 created: 2026-10-25
 ---
 

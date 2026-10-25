@@ -335,7 +335,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** nhật ký plan T-014, T-021, T-016, T-025 (RUN-20261023-02), mục Test viết trước.
 - **Đề xuất sửa:** `docs/auto-run.md` bước 3: nêu "thêm bước đối chứng" làm cách mặc định khi một test không phải test chặn qua ngay; mẫu plan nhắc người viết plan rằng test kiểm giá trị mặc định thường qua trên khung và nên có sẵn bước đối chứng.
 - **Áp dụng:** app: PR #48. dự án mẫu: VGL-Studio/app-project-template#86, PR VGL-Studio/app-project-template#87 (L-055).
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261026-01: plan T-052 và T-053 ghi sẵn đối chứng (`a Task line in the main session's transcript`, `rule 11 only warns for an approved plan`, hai đối chứng `fresh`); đối chứng qua ở bước 3, test chính thất bại đúng lý do. Có hiệu quả.
 
 ### L-036: Chạy lại `main-guard` trên đúng commit bị đổ lỗi, xanh, nhưng issue `main-broken` không tự đóng
 
@@ -564,7 +564,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** báo cáo RUN-20261023-04, mục Cần người kiểm tra; PR #81.
 - **Đề xuất sửa:** `auto-run.md` bước 6: phiên sửa mọi điểm nên sửa nằm trong file của mục 3.2, có test viết trước thất bại đúng lý do, không đổi điều test của plan kiểm; chỉ để người quyết điểm mâu thuẫn với plan, spec hay test của plan. Cần sửa cùng ADR của L-058.
 - **Áp dụng:** ADR-1003 (accepted 2026-10-24); T-043, PR #91 (`docs/risk-scoring.md` mục 4, `docs/auto-run.md` bước 4, 5, 6, 10). Dự án mẫu: VGL-Studio/app-project-template#132.
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261026-01: T-050 có một điểm nên sửa (nhãn độ đậm dịch thành "độ trong suốt" ở `hi`, `id`, `th`, ngược nghĩa trên con trượt). Phiên sửa theo ADR-1003: test viết trước thất bại đúng lý do, sửa chữ, rà soát lần 2 cho phần sửa (0 chặn). T-053 có một điểm nên sửa mâu thuẫn với chữ của plan: không sửa, ghi vào báo cáo kèm phương án (L-079). Có hiệu quả.
 
 ### L-060: `run-check.py` không thấy hai plan phụ thuộc file của nhau
 
@@ -708,4 +708,40 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** rà soát plan T-048 vòng 1 đến 4: `ui-seq.n` của `fake-adb` không vượt số tệp của chuỗi dump nên test giả định lần dump thứ n sai; một test qua ngay trên code cũ mà không ghi là đối chứng; công thức ngân sách giờ thiếu phần dự phòng bằng chứng; tự từ chối hộp thoại đồng ý không dump lại. Chỉ hết điểm chặn sau khi phiên viết plan chạy thật mọi test mới trên code hiện tại trong một khối tạm không commit và ghi kết quả thật vào mục 4.1. RUN-20261025-01 sau đó có đúng 29 trên 32 test thất bại đúng lý do và 3 đối chứng như plan, CI xanh ngay lần đầu.
 - **Đề xuất sửa:** test của script chạy trên chuỗi giả hay tệp mẫu (adb giả, dump giả, repo giả) được chạy thật trên code hiện tại ngay lúc viết plan; mục 4.1 ghi kết quả thật của từng test (lý do thất bại, hay "đối chứng, qua"); không suy kết quả bằng cách đọc code.
 - **Áp dụng:** `docs/CLAUDE.md` mục Khi viết plan, `docs/ops/pre-run-review.md` mục 2.2 (PR này). Tuấn nhận ngày 2026-10-25. Dự án mẫu: VGL-Studio/app-project-template#163.
-- **Kiểm chứng:** RUN-20261025-02, T-049 (plan viết theo bài học này, mục 4.1 ghi kết quả thật của 11 test với `adb` giả). Ở bước 3, cả 11 test cho đúng giá trị mục 4.1 ghi: 7 thất bại với cùng chuỗi kết quả, 4 đối chứng qua. Bước 4 viết đúng mục 3.1 thì qua hết; không có vòng sửa test nào, rà soát độc lập 0 chặn, CI xanh ở lần chạy đầu. Có hiệu quả.
+- **Kiểm chứng:** RUN-20261025-02, T-049 (plan viết theo bài học này, mục 4.1 ghi kết quả thật của 11 test với `adb` giả). Ở bước 3, cả 11 test cho đúng giá trị mục 4.1 ghi: 7 thất bại với cùng chuỗi kết quả, 4 đối chứng qua. Bước 4 viết đúng mục 3.1 thì qua hết; không có vòng sửa test nào, rà soát độc lập 0 chặn, CI xanh ở lần chạy đầu. Có hiệu quả. RUN-20261026-01: cả 4 plan ghi kết quả thật ở mục 4.1. Ở bước 3, mọi test cho đúng kết quả đã ghi: T-053 3 thất bại, 1 đối chứng; T-052 6 thất bại (cùng chuỗi kết quả), 3 đối chứng; T-050 2 thất bại, 4 đối chứng; T-051 8 thất bại Gradle và 3 thất bại script như mục 4.1. Không có vòng sửa test nào; 4 PR xanh ở lần CI đầu. Có hiệu quả.
+
+### L-076: phiên đẩy commit test của task sau trước khi có kết quả `main-guard` của lần merge trước
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261026-01 (T-052, T-050).
+- **Chuyện gì:** `docs/auto-run.md` bước 3 bảo đẩy nhánh task ngay sau mỗi commit; bước 9 bảo trước khi đẩy commit đầu tiên của task sau phải có kết quả `main-guard` của lần merge trước. Phiên làm theo bước 3 và đẩy commit test của task sau khi `main-guard` còn chạy. Không gây hại vì `main-guard` đều xanh, nhưng nếu đỏ thì task sau đã bắt đầu trên nhánh chính hỏng.
+- **Bằng chứng:** commit test `d185cce` của T-052 đẩy lúc 17:57, `main-guard` sau T-053 xanh lúc 17:58 (lần chạy 40218650987); commit test `846cb47` của T-050 đẩy lúc 18:22, `main-guard` sau T-052 xanh lúc 18:23 (lần chạy 40220611120). T-051 thì phiên chờ `main-guard` (19:00) rồi mới đẩy, test viết sẵn cục bộ từ 18:53.
+- **Đề xuất sửa:** `docs/auto-run.md` bước 3: ghi ngoại lệ "commit đầu tiên của task sau chỉ đẩy khi đã có kết quả `main-guard` của lần merge trước (bước 9); trong lúc chờ, commit cục bộ". Có thể thêm vào `scripts/save-branch.sh` một kiểm tra: nhánh chính có `main-guard` đang chạy thì in cảnh báo.
+- **Áp dụng:** chưa có.
+- **Kiểm chứng:**
+
+### L-077: từ dịch dùng lại từ feature khác đổi nghĩa khi đi cùng con số
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261026-01 (T-050, rà soát độc lập).
+- **Chuyện gì:** plan T-050 bảo dịch "dùng lại cách gọi đã có trong settings và onboarding". Phiên lấy từ "transparency" của onboarding ("Atur transparansi... garis pose") cho nhãn con trượt `camera_adjust_opacity` ở `hi`, `id`, `th`. Ở onboarding câu không có số nên đúng; trên con trượt có phần trăm thì "Transparansi 100%" đọc thành "trong suốt hoàn toàn", ngược với nét viền đậm nhất. Test chữ của plan (đủ bản dịch, khác tiếng Anh, giữ tham số) không bắt được lỗi nghĩa này; chỉ rà soát độc lập thấy.
+- **Bằng chứng:** PR #145, rà soát độc lập lần 1 (điểm nên sửa); `OverlayGeometry.kt` (mặc định 1.0, khoảng 0.2 đến 1.0); test `CameraStringsTest.opacityLabel_isNotTransparency` (commit `f374916`) và phần sửa `b47f863`.
+- **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: plan dịch chữ liệt kê các chuỗi đi cùng con số hay phần trăm, ghi giá trị lớn nhất nghĩa là gì, và có một test chặn từ ngược nghĩa khi có rủi ro; lời giao rà soát độc lập của task dịch nhắc kiểm nghĩa của nhãn đi cùng số.
+- **Áp dụng:** chưa có.
+- **Kiểm chứng:**
+
+### L-078: plan chép code từ dự án mẫu, nhưng phiên cloud chỉ đọc được repo của app
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261026-01 (T-053).
+- **Chuyện gì:** plan T-053 bảo chép ba khối của `scripts/token-usage.py` từ dự án mẫu (commit `a76b3cd`) và có điều kiện dừng riêng khi bản của mẫu khác bản đã so. Quyền GitHub của phiên `claude --cloud` chỉ gồm repo `VGL-Studio/camera-pose`, nên phiên không đọc được repo mẫu; phiên viết code theo mô tả ở mục 3.1 của plan, không so được với bản mẫu.
+- **Bằng chứng:** phạm vi GitHub của phiên RUN-20261026-01 chỉ có `vgl-studio/camera-pose`; nhật ký plan T-053, dòng Lệch so với plan. Code vẫn đúng nhờ mục 3.1 mô tả từng khối, và rà soát độc lập không thấy lệch.
+- **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: plan chép code từ dự án mẫu dán nguyên đoạn code (hay `diff`) vào plan, hoặc ghi rõ phiên phải có quyền đọc repo mẫu; `docs/ops/from-app.md` ghi giới hạn này.
+- **Áp dụng:** chưa có.
+- **Kiểm chứng:**
+
+### L-079: dòng `Task: T-NNN` trong lời giao soạn plan làm số token soạn plan thành mẫu ước tính của task
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261026-01 (T-053, rà soát độc lập).
+- **Chuyện gì:** T-053 thêm dòng `Task: T-NNN` vào lời giao cho phiên con ở cả bước soạn plan cuối phiên (`docs/auto-run.md` mục 4, bước 5), đúng như plan. Khi đó `scripts/token-usage.py report --csv` ghi một dòng `(RUN soạn plan, T-NNN, cỡ)` chỉ có token soạn plan, và `estimate` lấy dòng đó làm mẫu cho trung vị, kéo số gợi ý `token_estimate` xuống. Phần soạn plan của phiên chính chạy trên nhánh `claude/plan-T-NNN-...`, không khớp `TASK_BRANCH`, nên lại vào dòng Chung: cách gán không nhất quán. Rà soát độc lập ghi mức nên sửa; phiên không sửa vì mâu thuẫn với chữ của plan đã duyệt.
+- **Bằng chứng:** PR #143, rà soát độc lập (điểm nên sửa); `scripts/token-usage.py`, hàm `estimate()` lấy mọi dòng có `task` và `size`.
+- **Đề xuất sửa:** bỏ dòng `Task:` khỏi lời giao soạn plan ở `docs/auto-run.md` mục 4, bước 5, hoặc dùng dạng riêng `Plan: T-NNN` mà script tính vào dòng Chung (hay một cột riêng), có test.
+- **Áp dụng:** chưa có.
+- **Kiểm chứng:**

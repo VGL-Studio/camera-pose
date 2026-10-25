@@ -15,13 +15,25 @@ Header (three lines, before any command):
   criterion: what the scenario proves
   timeout: 240              seconds for the whole file; default 180, at most 300
 
+The file name is letters, digits, '.', '_' or '-' and ends in .txt; a name that starts with T-<n>- has the same
+ticket: line. A file that breaks a rule is a file error: check exits 1, run records it and sends it no adb command.
+
 Selectors (one keyword, optional filters; several selectors separated by " | " match any of them):
   id=<testTag>  idp=<testTag prefix>  desc=<content-desc>  text=<text>  str=<name in res/values/strings.xml>
+  A value may be quoted ("Hands in Pockets"): the quotes keep its spaces, a number after them is the seconds or count.
+  An unquoted text= or desc= with a space on a line that ends in a number is ambiguous, so it is a file error.
   filters: in=<testTag> (inside that element), index=<n> (nth match, from 1), selected=true, clickable=true
+  selected=true (or checked) looks at the node itself; for a node that is not clickable also at up to two parents,
+  stopping after the first clickable one (the text of a Compose chip is a child of the selected node).
 
 Commands:
-  fresh                         clear data, grant runtime permissions, open the app
-  consent decline [seconds]     tap "Do not consent" when the ad consent form shows (ADR-0013), or see no form
+  fresh                         clear data, grant runtime permissions, open the app with am start -W and wait for its
+                                process (pidof); without one, fail when the crash buffer names the app, otherwise
+                                start it once more ("mở lại" in the note)
+  consent decline [seconds]     tap "Do not consent" when the ad consent form shows (ADR-0013) and wait until it
+                                closes, or see the first screen of the app without a form. When the form shows later,
+                                a step that reads the screen declines it once ("hiện muộn" in the note); a form that
+                                shows again after a decline is a failure, also inside need (the choice was not kept)
   wait <selector> [seconds]     wait until it shows (default 20)
   need <selector> [seconds]     like wait; when it never shows the file ends as "bỏ qua (môi trường)"
   tap <selector> | tap_if <selector>   tap the centre of the element; tap_if does nothing when it is absent
@@ -29,15 +41,27 @@ Commands:
   expect <selector> | expect_no <selector> | count <selector> <n>
   network off|on                  device rotate landscape|portrait   device night on|off
   device unfold|fold              device locale <tag>                back        shot <name>
+  After a device command the runner reads the screen until two dumps agree (DEVICE_SCENARIO_SETTLE seconds, default
+  10); a screen that does not settle is noted, not failed. The last dump of consent decline and of a device command
+  is used by the next step only when that step reads the screen.
 
 Log (<session>/scenarios.txt), per file: `plan <file> ticket=... criterion=...`, one `plan <file> step=<n> <command>
-ok|FAIL <reason>|SKIP <reason>` per step, and `plan <file> result=<result> seconds=<n>`. The first failing step also
-leaves fail.png and fail.xml in <session>/scenarios/<file without .txt>/.
+ok|FAIL <reason>|SKIP <reason>` per step, each after a `plan <file> note step=<n> t=<seconds from the start of the
+file> <details>` line (a tap names its point and element), and `plan <file> result=<result> seconds=<n>`. The first
+failing step also leaves fail.png and fail.xml in <session>/scenarios/<file without .txt>/. A runner stopped by
+SIGTERM kills its adb child, writes `plan runner_terminated` and exits 143.
 
-Deadlines: the whole run has DEVICE_SCENARIOS_BUDGET seconds (default 600); a file has min(its timeout, what is left);
-every adb call has DEVICE_SCENARIO_ADB_TIMEOUT seconds (default 30, at most what is left of the file).
+Deadlines: the whole run has DEVICE_SCENARIOS_BUDGET seconds (default 900), giving the device back included; a file
+has min(its timeout, what is left - DEVICE_SCENARIO_RESET_LIMIT (default 30) - 45 when it uses network -
+DEVICE_SCENARIO_EVIDENCE_RESERVE (default 20)); every adb call has DEVICE_SCENARIO_ADB_TIMEOUT seconds (default 30,
+at most what is left of the file). Giving the device back has DEVICE_SCENARIO_RESET_LIMIT seconds in all (5 per
+command), plus 45 to turn the network on.
 Settings: DEVICE_SCENARIOS_GLOB (files to run; default feature/*/src/deviceScenarios/*.txt
-app/src/deviceScenarios/*.txt), DEVICE_SCENARIO_POLL (seconds between two dumps, default 1).
+app/src/deviceScenarios/*.txt), DEVICE_SCENARIO_POLL (seconds between two dumps, default 1),
+DEVICE_SCENARIO_START_WAIT (limit of am start -W, default 15), DEVICE_SCENARIO_PROCESS_WAIT (seconds to wait for the
+app process, default 5), DEVICE_SCENARIO_CONSENT_CLOSE (seconds to wait for the consent form to close, default 5),
+DEVICE_SCENARIO_ROOT (repository that check reads; default this one). check does not read Kotlin files under a
+folder right after src/ whose name starts with test or androidTest.
 Messages are in Vietnamese for the team; comments are in English.
 """
 
@@ -63,7 +87,13 @@ UNFOLDED_SIZE, UNFOLDED_DENSITY = "1766x2208", "420"  # 673 x 841 dp, the frame 
 IDLE_ERROR = "could not get idle state"
 RESULT_PASSED, RESULT_FAILED, RESULT_ENV = "đạt", "lỗi", "bỏ qua (môi trường)"
 RESULT_TIME, RESULT_SYNTAX = "bỏ qua (hết thời gian)", "lỗi tệp"
-SELECTOR = re.compile(r"^(id|idp|desc|text|str)=(.+?)((?:\s+(?:in|index|selected|clickable)=\S+)*)\s*$")
+SELECTOR = re.compile(r'^(id|idp|desc|text|str)=("[^"]*"|.+?)((?:\s+(?:in|index|selected|clickable)=\S+)*)\s*$')
+QUOTED = re.compile(r'"[^"]*"')
+SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.txt")
+TICKET_NAME = re.compile(r"(T-\d+)-")
+SCREEN_STEPS = {"wait", "need", "tap", "tap_if", "scroll", "expect", "expect_no", "count"}
+CONSENT_AGAIN = "hộp thoại đồng ý hiện lại sau khi đã từ chối"
+CONSENT_OPEN = "hộp thoại đồng ý không đóng sau khi chạm từ chối"
 FILTER = re.compile(r"(in|index|selected|clickable)=(\S+)")
 TRAILING_NUMBER = re.compile(r"^(.*\S)\s+(\d+)$")
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?[sdf]")
@@ -80,6 +110,18 @@ class Fail(Exception):
 
 class Skip(Exception):
     """The environment lacks what the scenario needs; the file ends as skipped."""
+
+
+class ConsentFail(Exception):
+    """The consent form came back or did not close: a failure that need does not turn into a skip (ADR-0013)."""
+
+
+class Terminated(BaseException):
+    """SIGTERM from outside (the timeout of device-session.sh)."""
+
+
+def raise_terminated(signum, frame):
+    raise Terminated()
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -99,8 +141,28 @@ def parse_selector(text):
         for key in ("selected", "clickable"):
             if key in filters and filters[key] != "true":
                 raise ValueError(f"{key}= chỉ nhận true")
-        alternatives.append({"kind": match.group(1), "value": match.group(2).strip(), "filters": filters})
+        value = match.group(2)
+        value = value[1:-1] if QUOTED.fullmatch(value) else value.strip()
+        alternatives.append({"kind": match.group(1), "value": value, "filters": filters})
     return alternatives
+
+
+def ambiguous(rest):
+    """True when an unquoted text= or desc= value has a space: `wait text=Page 2` could mean "Page 2" or 2 seconds."""
+    for part in re.split(r"\s+\|\s+", rest.strip()):
+        match = SELECTOR.match(part)
+        if match and match.group(1) in ("text", "desc") and not match.group(2).startswith('"') \
+                and re.search(r"\s", match.group(2).strip()):
+            return True
+    return False
+
+
+def selector_and_number(rest, required=False):
+    """(alternatives, n) of `<selector> [n]`; ValueError when the number could belong to the value."""
+    text, number = split_number(rest, required)
+    if number is not None and ambiguous(rest):
+        raise ValueError("giá trị có dấu cách rồi tới một số là mơ hồ; ghi giá trị trong ngoặc kép")
+    return parse_selector(text), number
 
 
 def split_number(rest, required=False):
@@ -125,16 +187,16 @@ def parse_command(command, rest):
             raise ValueError("cú pháp: consent decline [giây]")
         return {"seconds": int(words[1]) if len(words) == 2 else 20}
     if command in ("wait", "need"):
-        text, seconds = split_number(rest)
-        return {"selector": parse_selector(text), "seconds": 20 if seconds is None else seconds}
+        selector, seconds = selector_and_number(rest)
+        return {"selector": selector, "seconds": 20 if seconds is None else seconds}
     if command in ("tap", "tap_if", "expect", "expect_no"):
         return {"selector": parse_selector(rest)}
     if command == "scroll":
-        text, times = split_number(rest)
-        return {"selector": parse_selector(text), "times": 3 if times is None else times}
+        selector, times = selector_and_number(rest)
+        return {"selector": selector, "times": 3 if times is None else times}
     if command == "count":
-        text, number = split_number(rest, required=True)
-        return {"selector": parse_selector(text), "number": number}
+        selector, number = selector_and_number(rest, required=True)
+        return {"selector": selector, "number": number}
     if command == "network":
         if rest not in ("off", "on"):
             raise ValueError("cú pháp: network off|on")
@@ -182,6 +244,12 @@ def parse_file(path):
         errors.append((1, f"timeout phải từ 1 đến {MAX_TIMEOUT} giây"))
     if not steps and not errors:
         errors.append((1, "tệp không có lệnh nào"))
+    name = Path(path).name
+    named = TICKET_NAME.match(name)
+    if not SAFE_NAME.fullmatch(name):
+        errors.insert(0, (0, "tên tệp chỉ gồm chữ, số, '.', '_', '-' và có đuôi .txt"))
+    elif named and named.group(1) != header.get("ticket", ""):
+        errors.insert(0, (0, f"tên tệp bắt đầu bằng {named.group(1)} nhưng ticket là '{header.get('ticket', '')}'"))
     return header, steps, errors
 
 
@@ -194,8 +262,16 @@ def source_files(root, name):
                 yield path
 
 
+def test_source(relative):
+    """True for a file under a folder right after src/ named test... or androidTest... (tags only tests have)."""
+    parts = relative.parts
+    return any(part == "src" and index + 2 < len(parts) and parts[index + 1].startswith(("test", "androidTest"))
+               for index, part in enumerate(parts))
+
+
 def kotlin_text(root):
-    return "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in source_files(root, "*.kt"))
+    return "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in source_files(root, "*.kt")
+                     if not test_source(path.relative_to(root)))
 
 
 def unescape_android(value):
@@ -269,9 +345,11 @@ def centre(node):
 class Screen:
     """One parsed dump."""
 
-    def __init__(self, root, strings):
+    def __init__(self, root, strings, xml=""):
         self.nodes = list(root.iter("node"))
         self.strings = strings
+        self.xml = xml
+        self.parents = {id(child): node for node in self.nodes for child in node if child.tag == "node"}
 
     @staticmethod
     def tag(node):
@@ -298,10 +376,24 @@ class Screen:
         else:
             ok = self.string_matches(value, node)
         if ok and filters.get("selected") == "true":
-            ok = node.get("selected") == "true" or node.get("checked") == "true"
+            ok = self.selected(node)
         if ok and filters.get("clickable") == "true":
             ok = node.get("clickable") == "true"
         return ok
+
+    def selected(self, node):
+        """The node is selected or checked; a node that is not clickable may get it from up to two parents, up to the
+        first clickable one (the text of a chip sits in the selected node)."""
+        chain, current = [node], node
+        if node.get("clickable") != "true":
+            for _ in range(2):
+                current = self.parents.get(id(current))
+                if current is None:
+                    break
+                chain.append(current)
+                if current.get("clickable") == "true":
+                    break
+        return any(item.get("selected") == "true" or item.get("checked") == "true" for item in chain)
 
     def inside(self, tag):
         """Nodes inside an element that has this testTag, in document order."""
@@ -330,6 +422,13 @@ class Screen:
 # ---------------------------------------------------------------------------------------------------------------
 # The device
 
+def kill_group(process):
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
 def run_process(command, timeout, binary=False, env=None):
     """(exit code, output). At the deadline the whole process group is killed, so no child keeps the pipe open."""
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL if binary else subprocess.STDOUT,
@@ -337,13 +436,23 @@ def run_process(command, timeout, binary=False, env=None):
     try:
         output, _ = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        kill_group(process)
         process.communicate()
         raise AdbTimeout(" ".join(command[:4])) from None
+    except BaseException:
+        # SIGTERM (Terminated) while waiting: the child runs in its own group, so it would outlive the runner.
+        kill_group(process)
+        process.wait()
+        raise
     return process.returncode, (output if binary else output.decode("utf-8", errors="replace"))
+
+
+def env_seconds(name, default):
+    return float(os.environ.get(name, str(default)))
+
+
+def seconds_text(value):
+    return f"{value:g}" if float(value).is_integer() else f"{value:.1f}"
 
 
 class Runner:
@@ -351,9 +460,15 @@ class Runner:
         self.session = Path(session)
         self.package = package
         self.started = time.monotonic()
-        self.budget = float(os.environ.get("DEVICE_SCENARIOS_BUDGET", "600"))
-        self.adb_timeout = float(os.environ.get("DEVICE_SCENARIO_ADB_TIMEOUT", "30"))
-        self.poll = float(os.environ.get("DEVICE_SCENARIO_POLL", "1"))
+        self.budget = env_seconds("DEVICE_SCENARIOS_BUDGET", 900)
+        self.adb_timeout = env_seconds("DEVICE_SCENARIO_ADB_TIMEOUT", 30)
+        self.poll = env_seconds("DEVICE_SCENARIO_POLL", 1)
+        self.settle = env_seconds("DEVICE_SCENARIO_SETTLE", 10)
+        self.reset_limit = env_seconds("DEVICE_SCENARIO_RESET_LIMIT", 30)
+        self.consent_close = env_seconds("DEVICE_SCENARIO_CONSENT_CLOSE", 5)
+        self.start_wait = env_seconds("DEVICE_SCENARIO_START_WAIT", 15)
+        self.process_wait = env_seconds("DEVICE_SCENARIO_PROCESS_WAIT", 5)
+        self.evidence_reserve = env_seconds("DEVICE_SCENARIO_EVIDENCE_RESERVE", 20)
         self.log_path = self.session / "scenarios.txt"
         self.file_deadline = 0.0
         self.file_dir = self.session
@@ -362,16 +477,27 @@ class Runner:
         self.strings = string_values(ROOT)
         self.original_size = self.original_density = None
         self.network_touched = False
+        self.network_used = False  # any file of the run, so the last reset turns the network on
+        self.cached_screen = None  # last dump of consent decline or device, for the next step that reads the screen
+        self.pending_screen = None  # that dump, handed to the step that runs now
+        self.consent_state = None  # None, "late" (the app showed before the form) or "declined"
+        self.notes = []
 
     def log(self, line):
         with open(self.log_path, "a", encoding="utf-8") as handle:
             handle.write(line.replace("\n", " ") + "\n")
+
+    def note(self, text):
+        self.notes.append(text)
 
     def left(self):
         return self.file_deadline - time.monotonic()
 
     def budget_left(self):
         return self.budget - (time.monotonic() - self.started)
+
+    def pause(self, end=None):
+        time.sleep(self.poll if end is None else min(self.poll, max(0.0, end - time.monotonic())))
 
     # -- adb
     def adb(self, *args, binary=False, timeout=None):
@@ -401,38 +527,83 @@ class Runner:
         except ET.ParseError:
             return None, "dump không đọc được"
         self.last_xml = text
-        return Screen(root, self.strings), None
+        return Screen(root, self.strings, text), None
 
-    def dump_ready(self, seconds=5.0):
+    def next_screen(self):
+        """The dump kept by the step before (once), or a new one."""
+        if self.pending_screen is not None:
+            screen, self.pending_screen = self.pending_screen, None
+            return screen, None
+        return self.dump()
+
+    def wait_consent_closed(self, end):
+        """Dumps until no decline button shows; the first screen without it, or None at the end."""
+        decline = parse_selector(CONSENT_DECLINE)
+        while time.monotonic() < end:
+            self.pause(end)
+            screen, _ = self.dump()  # a failed or busy dump is read again, never counted as closed
+            if screen is not None and screen.find(decline) is None:
+                return screen
+        return None
+
+    def consent_rule(self, screen, end):
+        """A screen without what the step looks for: when it is the consent form, decline it once after the app showed
+        first, or fail when it is back after a decline. Returns the screen after closing it, or None."""
+        node = screen.find(parse_selector(CONSENT_DECLINE))
+        if node is None or self.consent_state is None:
+            return None
+        if self.consent_state == "declined":
+            raise ConsentFail(CONSENT_AGAIN)
+        point = self.tap_node(node, noted=False)
+        self.note(f"hộp thoại đồng ý hiện muộn, đã từ chối (chạm {point})")
+        closed = self.wait_consent_closed(min(time.monotonic() + self.consent_close, end))
+        if closed is None:
+            raise ConsentFail(CONSENT_OPEN)
+        self.consent_state = "declined"
+        return closed
+
+    def dump_ready(self, alternatives, seconds=5.0):
         """A dump, tried again while the app is not idle (an endless animation); Fail with the reason otherwise."""
         end = min(time.monotonic() + seconds, self.file_deadline)
         while True:
-            screen, reason = self.dump()
+            screen, reason = self.next_screen()
             if screen is not None:
+                if screen.find(alternatives) is None:
+                    return self.consent_rule(screen, end) or screen
                 return screen
             if reason != IDLE_ERROR or time.monotonic() >= end:
                 raise Fail(reason)
-            time.sleep(self.poll)
+            self.pause()
 
     def wait_for(self, alternatives, seconds):
         """The first matching node; Fail with the reason of the last dump when it never shows."""
         end = min(time.monotonic() + seconds, self.file_deadline)
         while True:
-            screen, reason = self.dump()
+            screen, reason = self.next_screen()
             if screen is not None:
                 node = screen.find(alternatives)
+                if node is None:
+                    closed = self.consent_rule(screen, self.file_deadline)
+                    node = closed.find(alternatives) if closed is not None else None
                 if node is not None:
                     return node
             if time.monotonic() >= end:
                 raise Fail(reason or "không thấy phần tử")
-            time.sleep(min(self.poll, max(0.0, end - time.monotonic())))
+            self.pause(end)
 
-    def tap_node(self, node):
+    def tap_node(self, node, noted=True):
         x, y = centre(node)
         self.adb("shell", "input", "tap", str(x), str(y))
+        if noted:
+            self.note(f"tap {x},{y} {label(node)}")
+        return f"{x},{y}"
 
     # -- commands
     def step_fresh(self, arguments):
+        self.cached_screen = None
+        self.consent_state = None
+        self.adb("logcat", "-b", "crash", "-c")
+        self.adb("shell", "am", "force-stop", self.package)
         self.adb("shell", "pm", "clear", self.package)
         if self.helper("grant-permissions") != 0:
             raise Fail("không cấp được quyền của app")
@@ -443,7 +614,40 @@ class Runner:
             self.activity = lines[-1].strip() if lines else ""
         if "/" not in self.activity:
             raise Fail(f"không tìm thấy màn hình khởi động của {self.package}")
-        self.adb("shell", "am", "start", "-n", self.activity)
+        problem = self.start_app()
+        if problem is None:
+            return
+        self.note(f"fresh: lần mở 1 không có tiến trình ({problem}), mở lại")
+        _, crashes = self.adb("logcat", "-b", "crash", "-d")
+        if self.package in crashes:
+            raise Fail("app crash ở lần mở đầu")  # not started again, so a crash at start-up is not hidden
+        self.adb("shell", "am", "force-stop", self.package)
+        problem = self.start_app()
+        if problem is not None:
+            self.note(f"fresh: lần mở 2 không có tiến trình ({problem})")
+            raise Fail("app không chạy sau 2 lần mở")
+
+    def start_app(self):
+        """None when the app has a process after am start -W, otherwise why not. A start that outlives its limit
+        still counts when the process is there (an app that starts slowly but runs)."""
+        limit = min(self.start_wait, self.left())
+        if limit <= 0:
+            raise Fail("hết hạn của tệp")
+        timed_out = None
+        try:
+            self.adb("shell", "am", "start", "-W", "-n", self.activity, timeout=limit)
+        except AdbTimeout:
+            timed_out = f"am start -W hết {seconds_text(limit)} giây"
+        end = min(time.monotonic() + self.process_wait, self.file_deadline)
+        while True:
+            _, output = self.adb("shell", "pidof", self.package)
+            if re.search(r"\d", output):
+                if timed_out:
+                    self.note(f"fresh: {timed_out}, có tiến trình")
+                return None
+            if time.monotonic() >= end:
+                return timed_out or "pidof rỗng"
+            self.pause(end)
 
     def step_consent(self, arguments):
         decline, first = parse_selector(CONSENT_DECLINE), parse_selector(FIRST_SCREENS)
@@ -453,13 +657,20 @@ class Runner:
             if screen is not None:
                 node = screen.find(decline)
                 if node is not None:
-                    self.tap_node(node)
+                    self.note(f"đã chạm từ chối {self.tap_node(node, noted=False)}")
+                    closed = self.wait_consent_closed(min(time.monotonic() + self.consent_close, self.file_deadline))
+                    if closed is None:
+                        raise ConsentFail(CONSENT_OPEN)
+                    self.consent_state = "declined"
+                    self.cached_screen = closed
                     return
                 if screen.find(first) is not None:
-                    return  # no consent form on this start
+                    self.consent_state = "late"  # no form yet; a step that reads the screen declines a late one
+                    self.note("chưa thấy hộp thoại đồng ý")
+                    return
             if time.monotonic() >= end:
                 raise Fail("không thấy hộp thoại đồng ý hay màn hình đầu của app")
-            time.sleep(min(self.poll, max(0.0, end - time.monotonic())))
+            self.pause(end)
 
     def step_wait(self, arguments):
         self.wait_for(arguments["selector"], arguments["seconds"])
@@ -471,41 +682,42 @@ class Runner:
             raise Skip(f"thiếu điều kiện của môi trường ({problem})") from None
 
     def step_tap(self, arguments):
-        node = self.dump_ready().find(arguments["selector"])
+        node = self.dump_ready(arguments["selector"]).find(arguments["selector"])
         if node is None:
             raise Fail("không thấy phần tử")
         self.tap_node(node)
 
     def step_tap_if(self, arguments):
-        node = self.dump_ready().find(arguments["selector"])
+        node = self.dump_ready(arguments["selector"]).find(arguments["selector"])
         if node is not None:
             self.tap_node(node)
 
     def step_scroll(self, arguments):
-        node = self.dump_ready().find(arguments["selector"])
+        node = self.dump_ready(arguments["selector"]).find(arguments["selector"])
         if node is None:
             raise Fail("không thấy phần tử")
         x1, y1, x2, y2 = bounds_of(node)
         x = (x1 + x2) // 2
         start, end = y1 + (y2 - y1) * 4 // 5, y1 + (y2 - y1) // 5
+        self.note(f"scroll {x},{start} -> {x},{end} {label(node)}")
         for _ in range(arguments["times"]):
             self.adb("shell", "input", "swipe", str(x), str(start), str(x), str(end), "300")
 
     def step_expect(self, arguments):
-        if self.dump_ready().find(arguments["selector"]) is None:
+        if self.dump_ready(arguments["selector"]).find(arguments["selector"]) is None:
             raise Fail("không thấy phần tử")
 
     def step_expect_no(self, arguments):
-        if self.dump_ready().find(arguments["selector"]) is not None:
+        if self.dump_ready(arguments["selector"]).find(arguments["selector"]) is not None:
             raise Fail("phần tử vẫn còn")
 
     def step_count(self, arguments):
-        found = len(self.dump_ready().find_all(arguments["selector"]))
+        found = len(self.dump_ready(arguments["selector"]).find_all(arguments["selector"]))
         if found != arguments["number"]:
             raise Fail(f"có {found} phần tử, cần {arguments['number']}")
 
     def step_network(self, arguments):
-        self.network_touched = True
+        self.network_touched = self.network_used = True
         if arguments["state"] == "on":
             self.helper("network-on")
         elif self.helper("network-off") != 0:
@@ -526,6 +738,27 @@ class Runner:
             self.adb("shell", "wm", "density", self.original_density or "reset")
         else:
             self.adb("shell", "cmd", "locale", "set-app-locales", self.package, "--locales", words[1])
+        self.wait_settled()
+
+    def wait_settled(self):
+        """Dumps until two in a row are the same (the Activity was rebuilt); the last one goes to the next step."""
+        began = time.monotonic()
+        end = min(began + self.settle, self.file_deadline)
+        previous = last = None
+        while True:
+            screen, _ = self.dump()  # a failed or busy dump is read again
+            if screen is not None:
+                last = screen
+                if previous is not None and screen.xml == previous.xml:
+                    self.cached_screen = screen
+                    self.note(f"ổn định sau {time.monotonic() - began:.1f} giây")
+                    return
+            previous = screen
+            if time.monotonic() >= end:
+                self.cached_screen = last
+                self.note(f"màn hình không ổn định sau {time.monotonic() - began:.1f} giây")
+                return
+            self.pause(end)
 
     def step_back(self, arguments):
         self.adb("shell", "input", "keyevent", "4")
@@ -545,15 +778,18 @@ class Runner:
         """Remembers an overridden size or density the device had, so a scenario gives it back."""
         for what in ("size", "density"):
             try:
-                _, output = run_process(["adb", "shell", "wm", what], 10)
+                _, output = run_process(["adb", "shell", "wm", what], 5)
             except AdbTimeout:
                 continue
             override = re.search(r"Override (?:size|density): *(\S+)", output)
             if override:
                 setattr(self, f"original_{what}", override.group(1))
 
-    def reset_device(self, network=False):
-        """Gives the device back as the scenario found it. Each call has its own short limit and may fail alone."""
+    def reset_device(self, network=False, limit=None, network_extra=True):
+        """Gives the device back as the scenario found it, within `limit` seconds in all (DEVICE_SCENARIO_RESET_LIMIT),
+        at most 5 per command; commands left when the time is up are not sent. Turning the network on has 45 more
+        seconds, or only what is left of `limit` without network_extra."""
+        end = time.monotonic() + (self.reset_limit if limit is None else limit)
         commands = [
             ["shell", "wm", "size", self.original_size or "reset"],
             ["shell", "wm", "density", self.original_density or "reset"],
@@ -563,20 +799,26 @@ class Runner:
             ["shell", "cmd", "locale", "set-app-locales", self.package],  # without --locales: back to the system language
         ]
         for command in commands:
+            left = end - time.monotonic()
+            if left <= 0:
+                break
             try:
-                run_process(["adb", *command], 10)
+                run_process(["adb", *command], min(5.0, left))
             except AdbTimeout:
                 pass
         if network:
-            try:
-                run_process([str(SESSION_SCRIPT), "helper", "network-on"], 45, env=dict(os.environ, APP_PACKAGE=self.package))
-            except AdbTimeout:
-                pass
+            left = 45.0 if network_extra else end - time.monotonic()
+            if left > 0:
+                try:
+                    run_process([str(SESSION_SCRIPT), "helper", "network-on"], left,
+                                env=dict(os.environ, APP_PACKAGE=self.package))
+                except AdbTimeout:
+                    pass
 
     # -- files
     def run_file(self, path):
-        name = Path(path).name
-        self.file_dir = self.session / "scenarios" / Path(path).stem
+        name = re.sub(r"[^A-Za-z0-9._-]", "_", Path(path).name)
+        self.file_dir = self.session / "scenarios" / Path(name).stem
         try:
             header, steps, errors = parse_file(path)
         except (OSError, UnicodeDecodeError) as problem:
@@ -589,12 +831,16 @@ class Runner:
             self.log(f"plan {name} step=0 check FAIL dòng {number}: {reason}")
             self.log(f"plan {name} result={RESULT_SYNTAX} seconds=0")
             return
-        if self.budget_left() <= 0:
+        uses_network = any(command == "network" for _, command, _, _ in steps)
+        allowance = self.budget_left() - self.reset_limit - (45 if uses_network else 0) - self.evidence_reserve
+        if allowance <= 0:
             self.log(f"plan {name} result={RESULT_TIME} seconds=0")
             return
         began = time.monotonic()
-        self.file_deadline = began + min(int(header.get("timeout", DEFAULT_TIMEOUT)), self.budget_left())
+        self.file_deadline = began + min(int(header.get("timeout", DEFAULT_TIMEOUT)), allowance)
         self.last_xml = None
+        self.cached_screen = self.pending_screen = None
+        self.consent_state = None
         self.network_touched = False
         result = RESULT_PASSED
         try:
@@ -603,17 +849,25 @@ class Runner:
             pass
         for index, (_, command, rest, arguments) in enumerate(steps, start=1):
             text = f"plan {name} step={index} {command}{' ' + rest if rest else ''}"
+            at = time.monotonic() - began
+            # A kept dump is for the next step only, and only when it reads the screen; every other step drops it.
+            self.pending_screen = self.cached_screen if command in SCREEN_STEPS else None
+            self.cached_screen = None
+            self.notes = []
+            outcome, failed = f"{text} ok", False
             try:
                 getattr(self, "step_" + command)(arguments)
-                self.log(f"{text} ok")
             except Skip as skipped:
-                self.log(f"{text} SKIP {skipped}")
-                result = RESULT_ENV
-                break
-            except (AdbTimeout, Fail) as failed:
-                self.log(f"{text} FAIL {'adb_timeout' if isinstance(failed, AdbTimeout) else failed}")
+                outcome, result = f"{text} SKIP {skipped}", RESULT_ENV
+            except (AdbTimeout, Fail, ConsentFail) as problem:
+                outcome, result, failed = f"{text} FAIL {'adb_timeout' if isinstance(problem, AdbTimeout) else problem}", \
+                    RESULT_FAILED, True
+            self.pending_screen = None
+            self.log(" ".join([f"plan {name} note step={index} t={at:.1f}", "; ".join(self.notes)]).rstrip())
+            self.log(outcome)
+            if failed:
                 self.keep_evidence()
-                result = RESULT_FAILED
+            if result != RESULT_PASSED:
                 break
         self.log(f"plan {name} result={result} seconds={int(round(time.monotonic() - began))}")
         self.reset_device(network=self.network_touched)
@@ -633,8 +887,14 @@ class Runner:
         self.read_display()
         for path in files:
             self.run_file(path)
-        self.reset_device(network=True)
+        self.reset_device(network=self.network_used)
         print(f"Kịch bản theo plan: {len(files)} tệp, kết quả trong {self.log_path}")
+
+
+def label(node):
+    """resource-id, else text, else content-desc of a node, for the note of a tap (at most 40 characters)."""
+    text = Screen.tag(node) or node.get("text", "") or node.get("content-desc", "")
+    return " ".join(text.split())[:40]
 
 
 def scenario_files():
@@ -646,14 +906,29 @@ def scenario_files():
 
 def main(argv):
     if len(argv) >= 3 and argv[1] == "check":
-        messages = check_files(argv[2:])
+        root = Path(os.environ["DEVICE_SCENARIO_ROOT"]) if os.environ.get("DEVICE_SCENARIO_ROOT") else ROOT
+        messages = check_files(argv[2:], root=root)
         for message in messages:
             print(message)
         return 1 if messages else 0
     if len(argv) == 6 and argv[1] == "run" and argv[2] == "--session" and argv[4] == "--package":
         files = scenario_files()
-        if files:
-            Runner(argv[3], argv[5]).run(files)
+        if not files:
+            return 0
+        signal.signal(signal.SIGTERM, raise_terminated)
+        runner = None
+        try:
+            runner = Runner(argv[3], argv[5])
+            runner.run(files)
+        except Terminated:
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            Path(argv[3]).mkdir(parents=True, exist_ok=True)
+            with open(Path(argv[3]) / "scenarios.txt", "a", encoding="utf-8") as handle:
+                handle.write("plan runner_terminated\n")
+            if runner is not None:
+                runner.reset_device(network=runner.network_used, limit=10, network_extra=False)
+            print("Trình chạy kịch bản bị dừng (SIGTERM); đã dừng lệnh adb đang chạy.", file=sys.stderr)
+            return 143
         return 0
     print("Cách dùng: scripts/device-scenario.py check <tệp.txt>... | run --session <thư mục> --package <gói>",
           file=sys.stderr)

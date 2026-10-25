@@ -25,7 +25,7 @@ Dự án mẫu đã sửa đúng lỗi này (bài học L-071 của mẫu). Lờ
 ## Phạm vi
 
 - `scripts/token-usage.py`: chép phần `BRIEF_TASK`, `message_text` và cách đọc tin nhắn đầu của transcript trong `subagents/` từ dự án mẫu. Phần riêng của app (credit, worktree, tên repo) giữ nguyên.
-- `scripts/tests/run.sh`: hai test của mẫu, cộng một test cho lời giao dạng danh sách đoạn chữ.
+- `scripts/tests/run.sh`: hai test của mẫu, cộng một test cho lời giao dạng danh sách đoạn chữ và một đối chứng cho transcript của phiên chính.
 - `docs/auto-run.md` (giao bước 3 đến 5 cho phiên con, bước 6 rà soát độc lập, soạn plan cuối phiên) và `docs/ops/token-usage.md`: lời giao việc cho phiên con có một dòng riêng `Task: T-NNN`.
 - `docs/lessons.md`: điền mục Áp dụng của L-073.
 
@@ -43,4 +43,4 @@ Chạm điểm chặn 7 (quy trình phiên tự chạy): đổi lời giao việ
 - [ ] Mọi tiêu chí ở mục 2 của plan đạt.
 - [ ] Có test tự động cho cách gán mới.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính.
-- [ ] Báo cáo của phiên đầu tiên sau khi merge có dòng riêng cho task mà phiên con đã làm.
+- [ ] Báo cáo của phiên tự chạy kế tiếp (sau phiên có T-053) có dòng riêng cho task mà phiên con đã làm.

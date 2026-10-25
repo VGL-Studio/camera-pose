@@ -47,7 +47,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w673dp-h841dp-xxhdpi")
+@Config(qualifiers = "vi-w673dp-h841dp-xxhdpi")
 class CameraScreenUnfoldedTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -185,7 +185,7 @@ class CameraScreenUnfoldedTest {
     private fun exists(tag: String) = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
 
     @Test
-    @Config(qualifiers = "w673dp-h891dp-xxhdpi")
+    @Config(qualifiers = "vi-w673dp-h891dp-xxhdpi")
     fun switchingLayout_keepsStripScrollAndPose() {
         var width by mutableStateOf(411.dp)
         composeRule.setContent {

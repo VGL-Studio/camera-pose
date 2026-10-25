@@ -53,7 +53,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class CameraScreenPoseTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -337,7 +337,7 @@ class CameraScreenPoseTest {
     }
 
     private companion object {
-        const val SHORT_SCREEN = "w360dp-h640dp-xxhdpi"
+        const val SHORT_SCREEN = "vi-w360dp-h640dp-xxhdpi"
         val STRIP_IDS = listOf("w01", "m01", "w02", "m02", "w03")
         val IMAGE = PoseImage.Ready(ImageBitmap(1, 1))
 

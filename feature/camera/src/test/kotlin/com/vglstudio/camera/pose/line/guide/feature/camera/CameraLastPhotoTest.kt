@@ -22,7 +22,7 @@ import org.robolectric.annotation.GraphicsMode
 /** The last photo slot of the camera (spec camera, KB-6; plan T-016). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
 class CameraLastPhotoTest {
     @get:Rule
     val composeRule = createComposeRule()

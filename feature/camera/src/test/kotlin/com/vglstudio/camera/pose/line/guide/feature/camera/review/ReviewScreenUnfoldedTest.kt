@@ -34,7 +34,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w673dp-h841dp-xxhdpi")
+@Config(qualifiers = "vi-w673dp-h841dp-xxhdpi")
 class ReviewScreenUnfoldedTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -160,7 +160,7 @@ class ReviewScreenUnfoldedTest {
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w673dp-h841dp-xxhdpi")
+@Config(qualifiers = "vi-w673dp-h841dp-xxhdpi")
 class ReviewScreenUnfoldedScreenshotTest {
     @Test
     fun default_dark_unfolded() {

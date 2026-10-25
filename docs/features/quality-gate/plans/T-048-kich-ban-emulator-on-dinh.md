@@ -100,12 +100,14 @@ Mọi lệnh nằm trong hạn của tệp.
 
 **Hộp thoại đồng ý.** Mỗi tệp giữ `consent_state`: `None`, `"declined"` (đã chạm từ chối) hay `"late"` (thấy màn đầu mà chưa thấy hộp thoại).
 - **`consent decline`.**
-  - Thấy nút từ chối: chạm một lần, rồi đọc màn hình tới khi không còn nút khớp `CONSENT_DECLINE`. Thời gian chờ tối đa là `DEVICE_SCENARIO_CONSENT_CLOSE` (mặc định 5 giây), trong hạn của tệp. Không chạm lại.
+  - Thấy nút từ chối: chạm một lần, rồi đọc màn hình tới khi không còn nút khớp `CONSENT_DECLINE`. Thời gian chờ tối đa là `DEVICE_SCENARIO_CONSENT_CLOSE` (mặc định 5 giây), trong hạn của tệp; giữa hai lần đọc nghỉ `DEVICE_SCENARIO_POLL` giây. Không chạm lại. Dump lỗi hay `could not get idle state` trong lúc chờ thì đọc lại, không tính là đã đóng.
+  - Bước chỉ giữ một bản dump: bản xác nhận hộp thoại đã đóng sau lần chạm (thành `cached_screen`). Nhánh `late` (thấy màn đầu trước) và nhánh không có hộp thoại không giữ gì.
   - Hộp thoại không đóng thì `FAIL hộp thoại đồng ý không đóng sau khi chạm từ chối`.
   - Đóng rồi thì `consent_state = "declined"`.
   - Thấy màn đầu mà chưa thấy hộp thoại thì `consent_state = "late"`.
 - **Các bước đọc màn hình** (`wait_for` và `dump_ready`, nên gồm `wait`, `need`, `tap`, `tap_if`, `scroll`, `expect`, `expect_no`, `count`): nếu bản dump có nút từ chối mà không có phần tử bước đó tìm, thì:
   - `consent_state == "declined"`: `FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối`;
+  - Hai lỗi này (`hiện lại sau khi đã từ chối`, `không đóng sau khi chạm từ chối`) dùng lớp ngoại lệ riêng `ConsentFail`, không phải `Fail`. `step_need` chỉ đổi `Fail` thành `Skip`, nên trong một bước `need` các lỗi này vẫn là `lỗi`, không thành `bỏ qua (môi trường)` (T-020 dùng `need`; lỗi lưu lựa chọn đồng ý, ADR-0013, không được che);
   - `consent_state == "late"`: chạm nút một lần, chờ hộp thoại đóng như trên, ghi `note step=<n> t=<s> hộp thoại đồng ý hiện muộn, đã từ chối`, đặt `consent_state = "declined"`. Bản dump xác nhận hộp thoại đã đóng chính là màn hình tiếp theo của bước: bước tìm phần tử của nó trên bản đó trước, không dump lại ngay. Không thấy thì bước chờ tiếp như thường (dump mới mỗi `DEVICE_SCENARIO_POLL` giây). Bản đó không được giữ cho bước sau.
   - Vì trạng thái thành `"declined"`, hộp thoại hiện lần nữa trong cùng `fresh` là `FAIL ... hiện lại sau khi đã từ chối`. Vậy mỗi `fresh` có tối đa một lần tự từ chối, không cần biến đếm riêng.
   - `None` (tệp chưa có bước `consent decline`, hoặc vừa `fresh`): không chạm. Bước chạy như hiện nay và thường lỗi vì không thấy phần tử. Vì vậy kịch bản kiểm chính hộp thoại vẫn viết được.
@@ -122,7 +124,7 @@ Mọi lệnh nằm trong hạn của tệp.
 Với dump thật: chip "Tất cả" khớp ở bậc 1; chip "Đã lưu" dừng ở nút cha chạm được, không chọn, nên không khớp.
 
 **Chờ ổn định sau lệnh `device`.**
-- Sau khi gửi lệnh, đọc dump tới khi hai bản liên tiếp có chữ XML giống nhau, tối đa `DEVICE_SCENARIO_SETTLE` giây (mặc định 10), trong hạn của tệp.
+- Sau khi gửi lệnh, đọc dump tới khi hai bản liên tiếp có chữ XML giống nhau, tối đa `DEVICE_SCENARIO_SETTLE` giây (mặc định 10), trong hạn của tệp; giữa hai lần đọc nghỉ `DEVICE_SCENARIO_POLL` giây.
 - Dump lỗi `could not get idle state` thì đọc lại.
 - Bản cuối thành `cached_screen`.
 - Ghi `note ... ổn định sau <x> giây` hay `không ổn định sau <x> giây`. Không ổn định không phải lỗi: bước sau tự chờ phần tử của nó.
@@ -148,7 +150,7 @@ Với dump thật: chip "Tất cả" khớp ở bậc 1; chip "Đã lưu" dừng
 - Chữ ký `check_files(paths, root=ROOT)` không đổi, vì `plan-check.py` (quy tắc 11) gọi hàm này.
 
 **Ngân sách gồm thời gian trả máy.**
-- `reset_device` có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` (mặc định 30 giây), mỗi lệnh `min(5, phần còn lại)`. Bật lại mạng thêm tối đa 45 giây, chỉ khi tệp có lệnh `network`.
+- `reset_device` có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` (mặc định 30 giây), mỗi lệnh `min(5, phần còn lại)`. Khi phần còn lại không dương, các lệnh còn lại không được gửi (bỏ qua, không lỗi); lượt cuối cũng vậy. Bật lại mạng thêm tối đa 45 giây, chỉ khi tệp có lệnh `network`.
 - **Phần chừa của mỗi tệp còn gồm `DEVICE_SCENARIO_EVIDENCE_RESERVE` giây (mặc định 20; test đặt 0) cho bằng chứng và dấu log:** `log -t` đầu tệp 10 giây, `screencap` của `fail.png` 10 giây. Hai việc này có hạn 10 giây riêng, nằm ngoài hạn của tệp.
 - `read_display` (đầu lượt): mỗi lệnh `wm` có 5 giây, tính vào ngân sách như mọi thời gian khác (ngân sách đo từ lúc trình chạy bắt đầu).
 - Hạn của tệp là `min(timeout, ngân sách còn lại - RESET_LIMIT - (45 nếu tệp có network) - EVIDENCE_RESERVE)`. Phần còn lại không dương thì tệp ghi `bỏ qua (hết thời gian)`.
@@ -285,7 +287,11 @@ Lý do thất bại dự kiến trên code hiện tại:
 - `note`: không có dòng nào;
 - ngoặc kép: code cũ giữ dấu ngoặc trong giá trị, nên `check` qua, còn `wait` lỗi `không thấy phần tử`;
 - ngân sách: trả máy chờ 10 giây mỗi lệnh;
-- SIGTERM: tiến trình `sleep` còn sống.
+- SIGTERM: tiến trình `sleep` còn sống;
+- hộp thoại đồng ý và bản giữ: code cũ không chờ hộp thoại đóng, không tự từ chối, không giữ bản dump, nên số lần chạm, `ui-seq.n` hay lý do lỗi khác với code mới;
+- lệnh `device`: code cũ không dump sau lệnh, nên `ui-seq.n` là 0 và không có dòng `note`.
+
+Số thật của từng test trên code hiện tại nằm ở mục 4.1 (bảng "Chạy các test mới trên code hiện tại"). Giá trị mong đợi trên code mới suy ra từ mục 3.1 và không vượt giới hạn của `fake-adb`: `ui-seq.n` không lớn hơn số tệp của chuỗi, vì khi hết chuỗi `fake-adb` lặp lại tệp cuối và `ui-seq.n` đứng yên.
 
 Các dòng ghi **(đối chứng)** qua được cả trên code cũ. Chúng giữ cho phần sửa không quá tay (L-035), và không tính vào số test thất bại trước.
 
@@ -297,22 +303,23 @@ Các dòng ghi **(đối chứng)** qua được cả trên code cũ. Chúng gi�
 | App chậm mà sống không bị dừng | Test script | `device-scenario: a slow am start with a live process is not restarted`: `FAKE_ADB_HANG="am start"`, `DEVICE_SCENARIO_START_WAIT=1`, `FAKE_ADB_ALIVE_AFTER_HANG=1` (nhánh treo của `am start` tạo `alive` trước khi `exec sleep`, như app khởi động chậm mà vẫn sống): một lệnh `am start -W`, bước `ok`, `note` có `am start -W hết 1 giây`, không có lệnh `am force-stop` thứ hai |
 | Không mở được | Test script | `device-scenario: fresh fails when the app never runs`: `FAKE_ADB_DEAD_STARTS=5 DEVICE_SCENARIO_PROCESS_WAIT=0.3`: `step=1 fresh FAIL app không chạy sau 2 lần mở`, đúng hai lệnh `am start -W` |
 | Crash lần đầu không bị che | Test script | `device-scenario: fresh fails on a first-start crash instead of starting again`: `FAKE_ADB_DEAD_STARTS=1`, `DEVICE_SCENARIO_PROCESS_WAIT=0.3`, `FAKE_ADB_CRASH_LOG` là tệp `$work/ds-crash.txt` ghi bằng `printf` (không thêm fixture), có `FATAL EXCEPTION` và `Process: com.example.app.staging`: `step=1 fresh FAIL app crash ở lần mở đầu`, đúng một lệnh `am start -W` |
-| Đồng ý hiện muộn | Test script | `device-scenario: a consent form that shows after consent decline saw the app is declined once`: tệp `consent decline 5`, `wait id=onboarding_screen 10`, `expect id=onboarding_screen`; chuỗi dump `onboarding.xml consent.xml onboarding.xml`: cả tệp `đạt`, đúng một lệnh chạm tâm nút `Do not consent` (`540 1970`), có `note` "hiện muộn", `ui-seq.n` là 4. Lần theo: bước 1 dump 1 `onboarding` (`late`); bước 2 dump 2 `consent` (tự chạm), dump 3 `onboarding` xác nhận đóng và là màn của bước 2 (thấy); bước 3 dump 4 (tệp cuối lặp lại, `onboarding`) |
+| Đồng ý hiện muộn | Test script | `device-scenario: a consent form that shows after consent decline saw the app is declined once`: tệp `consent decline 5`, `wait id=onboarding_screen 10`, `expect id=camera_screen`; chuỗi dump `onboarding.xml consent.xml onboarding.xml camera.xml`: cả tệp `đạt`, đúng một lệnh chạm tâm nút `Do not consent` (`540 1970`), có `note` "hiện muộn", `ui-seq.n` là 4. Lần theo: bước 1 dump 1 `onboarding` (`late`); bước 2 dump 2 `consent` (tự chạm), dump 3 `onboarding` xác nhận đóng và là màn của bước 2 (thấy); bước 3 dump 4 `camera`. Code cũ: `đạt`, 0 lần chạm (thất bại vì số lần chạm) |
 | Chỉ một lần | Test script | `device-scenario: a second late consent form is not declined again`: chuỗi `onboarding.xml consent.xml onboarding.xml consent.xml`, tệp `consent decline 5`, `wait id=onboarding_screen 3`, `wait id=camera_screen 1`: đúng một lệnh chạm; `step=3 ... FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối`; `ui-seq.n` là 4. Lần theo: bước 1 dump 1 (`late`); bước 2 dump 2 `consent` (tự chạm, thành `declined`), dump 3 `onboarding` (thấy); bước 3 dump 4 `consent`, trạng thái `declined` thì lỗi ngay |
 | Hiện lại sau khi từ chối | Test script | `device-scenario: a consent form that shows again after decline is a failure`: chuỗi `consent.xml onboarding.xml consent.xml`, tệp `consent decline 5`, `wait id=camera_screen 3`: một lệnh chạm, `step=2 ... FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối`, `ui-seq.n` là 3. Lần theo: bước 1 dump 1 `consent` (chạm), dump 2 `onboarding` (đóng, giữ lại); bước 2 dùng bản giữ (không có camera, không có hộp thoại), dump 3 `consent`, lỗi |
 | Đối chứng: không có bước đồng ý | Test script (đối chứng) | `device-scenario: without consent decline a consent form is not tapped`: chuỗi `consent.xml`, tệp chỉ có `expect id=onboarding_screen`: không có lệnh `input tap` nào; `expect` lỗi |
 | `fresh` đặt lại cờ | Test script | `device-scenario: fresh resets the consent state`: tệp `fresh`, `consent decline 5`, `fresh`, `wait id=onboarding_screen 3`; chuỗi `consent.xml onboarding.xml consent.xml onboarding.xml`: `đạt`, một lệnh chạm, `ui-seq.n` là 4. Lần theo: bước 2 dump 1 `consent` (chạm), dump 2 `onboarding` (đóng, `declined`); bước 3 `fresh` xóa bản giữ và trạng thái; bước 4 dump 3 `consent` với trạng thái `None` (không chạm, chờ tiếp), dump 4 `onboarding` (thấy). Thiếu phần đặt lại thì bước 4 lỗi `hiện lại sau khi đã từ chối` ở dump 3 |
-| Không gì đi qua tệp | Test script | `device-scenario: nothing kept crosses into the next file`: hai tệp qua `DEVICE_SCENARIOS_GLOB` (một mẫu, `$work/ds-two/*.txt`): `a.txt` chỉ có `consent decline 5`, `b.txt` chỉ có `expect id=camera_screen`; chuỗi `consent.xml onboarding.xml camera.xml`: cả hai `đạt`, `ui-seq.n` là 3. Lần theo: `a.txt` dump 1 `consent` (chạm), dump 2 `onboarding` (giữ); trả máy không dump; `b.txt` bắt đầu bằng xóa bản giữ, dump 3 `camera` (thấy). Thiếu phần đặt lại thì `b.txt` dùng `onboarding` và lỗi |
+| Không gì đi qua tệp | Test script | `device-scenario: nothing kept crosses into the next file`: hai tệp ghi thẳng vào `$work/ds-two` bằng `printf` (không qua `ds_script`, vì `ds_script` luôn ghi vào `$ds_files`), `DEVICE_SCENARIOS_GLOB="$work/ds-two/*.txt"`: `a.txt` chỉ có `consent decline 5`, `b.txt` chỉ có `expect id=camera_screen`; chuỗi `consent.xml onboarding.xml camera.xml`: cả hai `đạt`, `ui-seq.n` là 3. Lần theo: `a.txt` dump 1 `consent` (chạm), dump 2 `onboarding` (giữ); trả máy không dump; `b.txt` bắt đầu bằng xóa bản giữ, dump 3 `camera` (thấy). Thiếu phần đặt lại thì `b.txt` dùng `onboarding` và lỗi |
 | Bản giữ hết hạn | Test script | `device-scenario: a kept screen is not used after back`: tệp `consent decline 5`, `back`, `expect id=camera_screen`; chuỗi `consent.xml onboarding.xml camera.xml`: `đạt`, `ui-seq.n` là 3 (`back` xóa bản `onboarding.xml` đã giữ, `expect` dump lại) |
-| Chờ hộp thoại đóng | Test script | `device-scenario: consent decline waits for the form to close and taps once`: chuỗi `consent.xml consent.xml consent.xml onboarding.xml`, tệp `consent decline 5`, `wait id=onboarding_screen 1`: một lệnh chạm, `đạt`, `ui-seq.n` là 4 (bản cuối dùng lại cho bước 2) |
-| Hộp thoại không đóng | Test script | `device-scenario: a consent form that does not close after the tap is a failure`: chuỗi chỉ `consent.xml`, `DEVICE_SCENARIO_CONSENT_CLOSE=1`: `step=1 ... FAIL hộp thoại đồng ý không đóng sau khi chạm từ chối`, một lệnh chạm. Đây là phần thất bại trên code cũ (code cũ trả `ok` ngay sau khi chạm) |
+| Chờ hộp thoại đóng | Test script | `device-scenario: consent decline waits for the form to close and taps once`: chuỗi `consent.xml consent.xml consent.xml onboarding.xml`, tệp `consent decline 5`, `expect id=onboarding_screen`: một lệnh chạm, `đạt`, `ui-seq.n` là 4 (bản `onboarding` cuối dùng lại cho `expect`). Code cũ: `expect` dump `consent` thứ hai, lỗi |
+| Lỗi đồng ý trong `need` | Test script | `device-scenario: a consent error inside need is a failure, not a skip`: tệp `consent decline 5`, `need id=x 3`; chuỗi `consent.xml onboarding.xml consent.xml`: `result=lỗi`, dòng `step=2 ... FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối`, `ui-seq.n` là 3. Code cũ: `result=bỏ qua (môi trường)` |
+| Hộp thoại không đóng | Test script | `device-scenario: a consent form that does not close after the tap is a failure`: tệp có sẵn `consent.txt` (`consent decline 5`), chuỗi chỉ `consent.xml`, `DEVICE_SCENARIO_CONSENT_CLOSE=1`: `step=1 ... FAIL hộp thoại đồng ý không đóng sau khi chạm từ chối`, một lệnh chạm. Đây là phần thất bại trên code cũ (code cũ trả `ok` ngay sau khi chạm) |
 | Test có sẵn của đồng ý | Test script | `consent decline taps Do not consent when shown` (chỉ kiểm mã 0 và một lệnh chạm), `waits for a late consent form`, `taps nothing when there is no form`, `fails when nothing shows` giữ nguyên, phải còn qua. `consent decline taps Do not consent when shown` (chuỗi chỉ `consent.xml`) nay chờ hộp thoại đóng 5 giây rồi `FAIL`; test chỉ kiểm mã 0 và một lệnh chạm nên vẫn qua, chỉ chậm thêm 5 giây. Plan để nguyên test đó, không truyền `DEVICE_SCENARIO_CONSENT_CLOSE`, vì sửa test có sẵn là điều kiện dừng (mục 7). Test `a passing file is reported as passed` (`ok.txt` trên `consent.xml onboarding.xml camera.xml`) cũng vậy: bản `onboarding.xml` xác nhận hộp thoại đóng được dùng lại cho `tap_if`, nên lệnh `shell input tap 540 1806` của test `tap uses the centre of the bounds` vẫn có |
 | `selected=true` theo nút cha | Test script | `device-scenario: selected=true matches a text whose parent chip is selected`: `chips.xml`, `expect str=poses_chip_all selected=true` đạt |
 | Đối chứng chip | Test script | `device-scenario: selected=true stops at the clickable parent of an unselected chip`: `chips.xml`, `expect str=poses_chip_saved selected=true` lỗi (đối chứng, qua cả trên code cũ); `chips-saved.xml` thì đạt (phần thất bại trên code cũ) |
 | Nút chạm được chỉ xét chính nó | Test script (đối chứng) | `device-scenario: a clickable node is selected only by itself`: `chips.xml`, `expect desc=deep_clickable selected=true` lỗi (cha chọn, nút không) |
 | Không quá 2 bậc | Test script (đối chứng) | `device-scenario: selected=true looks at most two parents up`: `chips.xml`, `expect text=Sâu selected=true` lỗi (ông cố chọn) |
 | `selected=true` có sẵn | Test script | Hai test có sẵn `selected=true matches selected or checked` và `does not match an unselected chip` giữ nguyên, phải còn qua |
-| Ổn định sau `device` | Test script | `device-scenario: a device command waits until two dumps agree`: tệp chỉ có `device unfold`; chuỗi `camera.xml grid.xml grid.xml`: đạt, `ui-seq.n` là 3 khi lượt xong; có `note step=1 ... ổn định`. Thêm: tệp `device unfold`, `expect id=poses_grid` trên cùng chuỗi: `ui-seq.n` vẫn là 3 (bước 2 dùng lại bản cuối) |
+| Ổn định sau `device` | Test script | `device-scenario: a device command waits until two dumps agree`: tệp chỉ có `device unfold`; chuỗi `camera.xml grid.xml grid.xml`: đạt, `ui-seq.n` là 3 khi lượt xong; có `note step=1 ... ổn định`. Thêm: tệp `device unfold`, `expect id=poses_grid` trên chuỗi `camera.xml grid.xml grid.xml camera.xml`: `đạt`, `ui-seq.n` là 3 (bước 2 dùng lại bản `grid` cuối; không dùng lại thì `expect` gặp `camera` và lỗi) |
 | Không ổn định không phải lỗi | Test script | `device-scenario: a screen that never settles is noted, not failed`: `DEVICE_SCENARIO_SETTLE=1`, chuỗi xen kẽ `camera.xml grid.xml` 100 tệp: bước 1 `ok`, `note` có `không ổn định`, `ui-seq.n` nhỏ hơn 100 (vòng chờ ổn định nghỉ `DEVICE_SCENARIO_POLL` = 0.05 giây giữa hai lần dump, nên khoảng 20 lần trong 1 giây và không chạm tệp cuối lặp lại) |
 | Dòng `note` của chạm | Test script | `device-scenario: a tap notes its coordinates and the element`: `ok.txt` có sẵn: dòng `note step=3 t=` có `540,1806` và `onboarding_enable_camera`; số dòng `^plan ok.txt step=[0-9]* .* ok$` vẫn là 6 |
 | Ghi chú lên `summary.md` | Test script | `device-session: summary lists the runner notes about consent and restarts`: `mkplan` với dòng mẫu có sẵn cộng `plan ok.txt note step=2 t=3.1 hộp thoại đồng ý hiện muộn, đã từ chối` và một dòng `note` chỉ có `t=`: `summary.md` có `Ghi chú của trình chạy:` và `- ok.txt, bước 2: hộp thoại đồng ý hiện muộn, đã từ chối`, không có dòng `t=` trơn. Đối chứng: test có sẵn `summary lists the plan scenarios` (không có `note`) không có `Ghi chú của trình chạy` |
@@ -348,6 +355,52 @@ Tiêu chí E là 2: bắt SIGTERM bằng `signal.signal` rồi `os.killpg` nhóm
     Khối shell chạy chương trình ở nền, chờ `hang.pid` bằng vòng có giới hạn, `kill -TERM`, `wait "$pid" || code=$?`, rồi kiểm mã 143, `kill -0` trên tiến trình con thất bại, và dòng `runner_terminated` có trong tệp.
   - **Lệnh:** `scripts/check.sh`.
   - **Kết quả:** `ok   - TRIAL T-048: SIGTERM kills the child 10 of 10 times`; `All script tests passed`; `Test JVM: 1050 test, 0 lỗi`; `== Cổng chất lượng: QUA` (5 phút 55 giây). Khối test tạm đã xóa (`git checkout -- scripts/tests/run.sh`) trước khi commit plan.
+- **Chạy các test mới trên code hiện tại** (rà soát lượt 4, ngày 2026-10-24, nhánh chính `e3f02b8`, macOS, bash 3.2).
+  - Mọi test mới hay đã đổi của mục 4 được viết thành một khối tạm trong `scripts/tests/run.sh` của worktree, kèm hai fixture `chips.xml`, `chips-saved.xml` đúng như mục 3.2.
+  - Khối chạy bằng `bash scripts/tests/run.sh` trên `device-scenario.py`, `device-session.sh` và `fake-adb` hiện tại. Mỗi test in mã thoát, `ui-seq.n`, số lệnh `input tap`, số lệnh `am start -W`, `pidof`, và các dòng `result=`, `FAIL`, `SKIP`, `note`.
+  - Khối và fixture đã xóa (`git checkout -- scripts/tests/run.sh`) trước khi commit. Mọi test có sẵn vẫn qua (`All script tests passed`).
+
+  Kết quả thật (mã thoát của trình chạy luôn là 0, vì `main` trả 0 cả khi một tệp lỗi):
+
+  | Test (mục 4) | Trên code hiện tại | Vì sao test thất bại trên code hiện tại |
+  | --- | --- | --- |
+  | `fresh` mở bằng `-W` | `đạt`; 0 `am start -W`, 0 `pidof` | không có `am start -W`, `pidof` |
+  | Tiến trình bị giết thì mở lại | `đạt`; 0 `am start -W` | như trên |
+  | `am start -W` treo | `step=1 fresh FAIL adb_timeout` sau 31 giây (lệnh `am start -n` treo tới hạn `adb` 30 giây) | lý do và thời gian khác (không thử lại, không có `note`) |
+  | Không mở được | `đạt` | không thấy app không chạy |
+  | Crash lần đầu không bị che | `đạt`; 0 `logcat -b crash -d` | không đọc bộ đệm crash |
+  | App chậm mà sống | `FAIL adb_timeout` sau 31 giây | bị coi là lỗi |
+  | Đồng ý hiện muộn | `đạt`, n=4, 0 lần chạm | không tự từ chối (cần 1 lần chạm) |
+  | Chỉ một lần | `step=3 FAIL không thấy phần tử`, n=4, 0 lần chạm | lý do và số lần chạm khác |
+  | Hiện lại sau khi từ chối | `step=2 FAIL không thấy phần tử`, n=3, 1 lần chạm | lý do khác (`hiện lại sau khi đã từ chối`) |
+  | Không có bước đồng ý (đối chứng) | `step=1 FAIL`, n=1, 0 lần chạm | qua cả trên code cũ |
+  | `fresh` đặt lại cờ | `đạt`, n=2, 1 lần chạm | không chờ hộp thoại đóng (n cần 4) |
+  | Bản giữ hết hạn | `step=3 expect FAIL`, n=2 | không giữ bản dump |
+  | Không gì đi qua tệp | `b.txt step=1 FAIL`, n=2 | như trên |
+  | Chờ hộp thoại đóng | `step=2 expect FAIL`, n=2 | không chờ hộp thoại đóng |
+  | Hộp thoại không đóng | `đạt`, n=1, 1 lần chạm | trả `ok` ngay sau khi chạm |
+  | Lỗi đồng ý trong `need` | `step=2 need SKIP`, `result=bỏ qua (môi trường)`, n=3 | lỗi bị đổi thành bỏ qua |
+  | `selected=true` theo nút cha | `FAIL`, n=1 | không xét nút cha |
+  | Đối chứng chip trên `chips.xml` (đối chứng) | `FAIL` | qua cả trên code cũ |
+  | Chip "Đã lưu" trên `chips-saved.xml` | `FAIL` | không xét nút cha |
+  | Nút chạm được chỉ xét chính nó (đối chứng) | `FAIL` | qua cả trên code cũ |
+  | Không quá 2 bậc (đối chứng) | `FAIL` | qua cả trên code cũ |
+  | Ổn định sau `device` | `đạt`, n=0 | không dump sau lệnh |
+  | Ổn định rồi dùng lại | `step=2 expect FAIL`, n=1 | `expect` gặp `camera` |
+  | Không ổn định không phải lỗi | `đạt`, n=0, không có `note` | không có dòng `note` |
+  | Dòng `note` của chạm (`ok.txt`) | `đạt`, n=3, 2 lần chạm, 0 dòng `note`, 6 dòng `ok`, có `input tap 540 1806` | không có dòng `note` |
+  | Ghi chú lên `summary.md` | không có `Ghi chú của trình chạy` | chưa có mục này |
+  | Ngoặc kép | `check` 0; `run`: `FAIL không thấy phần tử` (giá trị giữ dấu ngoặc) | `wait` không khớp |
+  | Số cuối dòng mơ hồ | `check` 0; `run`: `FAIL không thấy phần tử` sau 2 giây (số 2 thành số giây) | `check` không báo lỗi |
+  | `wait id=poses_grid 2` (đối chứng) | `check` 0 | qua cả trên code cũ |
+  | `check` không đọc test | `check` 1 cho cả `test_only_tag` lẫn `main_tag` | `DEVICE_SCENARIO_ROOT` chưa được đọc, nên `main_tag` cũng lỗi (cần 1 rồi 0) |
+  | Tên tệp lạ | `đạt`, có 1 lệnh `log -t`; `check` 0 | tên lạ vẫn chạy |
+  | `ticket:` khớp tên | `check` 0; `ok.txt` (đối chứng) 0 | không kiểm `ticket:` |
+  | Ngân sách gồm trả máy | `FAIL hết hạn của tệp`, cả lượt 46 giây | vượt 13 giây |
+  | SIGTERM | mã 143, không có `hang.pid`, không có `runner_terminated`; sau đó còn một tiến trình `sleep 300` mồ côi (cha là 1), đã giết bằng tay | đúng lỗi rà soát T-046 (4) |
+  | `timeout -k 30` | 0 dòng | chưa có |
+
+- **Test có sẵn `consent decline taps Do not consent when shown`:** kiểm `"0 1"` (mã thoát và một lần chạm), và trình chạy trả 0 cả khi tệp lỗi (`main`, khoảng dòng 656 đến 657). Vì vậy trên code mới test vẫn qua dù bước chờ hộp thoại đóng lỗi sau 5 giây; test không đổi.
 - **Số đo trên code hiện tại** (L-029), ngày 2026-10-24, nhánh chính `e3f02b8`. Lệnh Python tạm (không commit) nạp `scripts/device-scenario.py` và dựng `Screen` từ `fail.xml` thật của T-024 (lần chạy 40116129967):
   - `str=poses_chip_saved selected=true` trả `None`;
   - `str=poses_chip_all selected=true` cũng trả `None`, dù chip "Tất cả" đang chọn;

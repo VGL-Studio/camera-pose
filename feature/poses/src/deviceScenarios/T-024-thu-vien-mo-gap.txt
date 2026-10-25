@@ -11,6 +11,7 @@ wait id=poses_grid 20
 # lưu một thẻ để chip "Đã lưu" có nội dung
 tap str=poses_cd_save in=poses_grid index=1
 wait str=poses_cd_unsave in=poses_grid 5
+# Emulator API 34 đóng khung app khóa hướng dọc khi mở gập (2 cột, FB-20261024-01): không kiểm số cột ở đây.
 # (1) mở gập ở thư viện: 3 cột; chọn chip, gập lại: chip giữ
 device unfold
 wait id=poses_grid 10

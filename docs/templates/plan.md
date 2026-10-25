@@ -99,7 +99,7 @@ Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ c�
 | <tiêu chí cần máy thật> | Kiểm tra thủ công (máy thật: <lý do>) | <các bước dev làm khi kiểm tra bản staging> |
 | <tiêu chí cần người xem hay đọc> | Kiểm tra thủ công (người: <lý do>) | <việc người làm> |
 
-Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-062); `scripts/plan-check.py` nhắc dòng thiếu (quy tắc 11).
+Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-062); `scripts/plan-check.py` báo lỗi dòng thiếu khi plan còn `draft` (quy tắc 11).
 - `emulator`: tiêu chí chạy được trên emulator thành tệp kịch bản trong `src/deviceScenarios/` của module (`app/` cho luồng của vỏ app). Đưa tệp vào mục 3.2 và chạy `scripts/device-scenario.py check <tệp>` (cú pháp: `docs/ops/test-sessions.md`, mục 5).
 - `máy thật`: lý do thuộc một nhóm sau, hoặc "khác" kèm lời giải thích: camera thật; FPS, khung hình; Play (cài từ Play, In-App Review); Remote Config; quảng cáo thật; gập có bản lề; cử chỉ nhiều ngón; TalkBack.
 - `người`: việc không phải chạy app, như đọc tài liệu hay xem ảnh chuẩn.

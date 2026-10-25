@@ -129,7 +129,7 @@ Lý do: chữ của chip Compose nằm trong một nút con, còn `selected` n�
 
 | Lệnh | Việc |
 | --- | --- |
-| `fresh` | Dừng app, xóa dữ liệu, cấp quyền runtime, mở app bằng `am start -W` rồi chờ tiến trình của app (`pidof`). Không có tiến trình thì ghi `note`; bộ đệm crash có tên app thì `FAIL app crash ở lần mở đầu`, không thì dừng app và mở lại một lần. Vẫn không có thì `FAIL app không chạy sau 2 lần mở` |
+| `fresh` | Dừng app, xóa dữ liệu, cấp quyền runtime, mở app bằng `am start -W` rồi chờ tiến trình của app (`pidof`). Không có tiến trình thì ghi `note`; bộ đệm crash có tên app thì `FAIL app crash ở lần mở đầu`, không thì dừng app và mở lại một lần. Vẫn không có thì `FAIL app không chạy sau 2 lần mở`. Tệp đứng sau một lần trả máy thì chờ `DEVICE_SCENARIO_STOP_SETTLE` giây (mặc định 3) sau khi dừng app rồi mới mở: dừng app khi Activity còn đang dựng lại sau lần trả máy làm hệ thống giết lần mở ngay sau đó (FB-20261025-02) |
 | `consent decline [giây]` | Chạm nút từ chối của hộp thoại đồng ý quảng cáo (ADR-0013) khi nó hiện, rồi chờ hộp thoại đóng; hoặc thấy luôn màn hình đầu của app (xem Hộp thoại đồng ý, dưới) |
 | `wait <bộ chọn> [giây]` | Chờ tới khi khớp (mặc định 20 giây) |
 | `need <bộ chọn> [giây]` | Như `wait`, nhưng hết giờ thì tệp kết thúc `bỏ qua (môi trường)`. Dùng cho điều kiện mà emulator CI có thể không có (camera) |
@@ -169,12 +169,12 @@ shot detail
 ```
 
 **Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 900), tính cả thời gian trả máy về gốc. Mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp.
-- Sau mỗi tệp, trình chạy trả máy về gốc: kích thước và mật độ, xoay màn hình, chế độ tối, ngôn ngữ riêng của app, và mạng khi tệp có lệnh `network`. Việc này có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` giây (mặc định 30, mỗi lệnh tối đa 5), cộng 45 giây để bật lại mạng.
+- Sau mỗi tệp, trình chạy trả máy về gốc: kích thước và mật độ, xoay màn hình, chế độ tối, ngôn ngữ riêng của app, cài đặt giới thiệu đóng khung (`wm reset-letterbox-style`), và mạng khi tệp có lệnh `network`. Việc này có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` giây (mặc định 30, mỗi lệnh tối đa 5), cộng 45 giây để bật lại mạng.
 - Mỗi tệp có `min(timeout của tệp, thời gian còn lại - DEVICE_SCENARIO_RESET_LIMIT - 45 nếu tệp có lệnh network - DEVICE_SCENARIO_EVIDENCE_RESERVE)`. Phần chừa cuối (mặc định 20 giây) dành cho dấu log đầu tệp và `fail.png`. Còn lại không dương thì tệp `bỏ qua (hết thời gian)`.
 - Ba tệp hiện có cần tối đa khoảng 850 giây (plan T-048, mục 3.1). **Tệp mới làm tổng vượt 900 giây** thì plan của tệp đó tăng `DEVICE_SCENARIOS_BUDGET` (mặc định ở `scripts/device-scenario.py` và `scripts/device-session.sh`) cùng lúc.
 - `device-session.sh` gọi trình chạy qua `timeout -k 30` với ngân sách cộng 120 giây. Khi nhận SIGTERM, trình chạy dừng lệnh `adb` đang chạy, ghi `plan runner_terminated`, trả máy về gốc trong 10 giây và thoát mã 143. Trình chạy hỏng hay bị dừng thì `scenarios` ghi dòng `plan runner_error` và vẫn kết thúc bình thường.
 
-Các biến khác (test đặt nhỏ để chạy nhanh): `DEVICE_SCENARIO_START_WAIT` (hạn của `am start -W`, mặc định 15 giây; hết hạn mà app có tiến trình thì vẫn tính là đã mở), `DEVICE_SCENARIO_PROCESS_WAIT` (chờ tiến trình của app, mặc định 5 giây), `DEVICE_SCENARIO_CONSENT_CLOSE` (chờ hộp thoại đồng ý đóng sau khi chạm, mặc định 5 giây), `DEVICE_SCENARIO_POLL` (giữa hai lần dump, mặc định 1 giây), `DEVICE_SCENARIO_ROOT` (gốc repo mà `check` đọc, mặc định repo này).
+Các biến khác (test đặt nhỏ để chạy nhanh): `DEVICE_SCENARIO_START_WAIT` (hạn của `am start -W`, mặc định 15 giây; hết hạn mà app có tiến trình thì vẫn tính là đã mở), `DEVICE_SCENARIO_PROCESS_WAIT` (chờ tiến trình của app, mặc định 5 giây), `DEVICE_SCENARIO_CONSENT_CLOSE` (chờ hộp thoại đồng ý đóng sau khi chạm, mặc định 5 giây), `DEVICE_SCENARIO_POLL` (giữa hai lần dump, mặc định 1 giây), `DEVICE_SCENARIO_STOP_SETTLE` (`fresh` sau một lần trả máy chờ sau khi dừng app, mặc định 3 giây), `DEVICE_SCENARIO_ROOT` (gốc repo mà `check` đọc, mặc định repo này).
 
 **Cửa sổ riêng.** `testTag` chỉ thành `resource-id` trong cửa sổ có `testTagsAsResourceId`: vỏ app đặt nó ở gốc giao diện (`MainActivity`) và ở hộp thoại mạng (`NetworkDialogHost`). Hộp thoại hay popup khác (mỗi cái một cửa sổ) mà kịch bản cần tìm theo `id=` thì gắn `Modifier.exposeTestTagsForUiAutomator()` (`app/.../ui/UiAutomatorTags.kt`) ở gốc nội dung của nó, nơi mở chúng.
 

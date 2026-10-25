@@ -745,3 +745,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** bỏ dòng `Task:` khỏi lời giao soạn plan ở `docs/auto-run.md` mục 4, bước 5, hoặc dùng dạng riêng `Plan: T-NNN` mà script tính vào dòng Chung (hay một cột riêng), có test.
 - **Áp dụng:** chưa có.
 - **Kiểm chứng:**
+
+### L-080: sau task cuối, thư mục chính vẫn đứng trên nhánh task, token của việc cuối phiên tính vào task đó
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261026-01 (T-051).
+- **Chuyện gì:** `scripts/token-usage.py` gán request của phiên chính theo `gitBranch` của thư mục chính. Sau khi T-051 merge, phiên làm việc cuối phiên (chờ `main-guard`, `device-session`, staging, viết báo cáo trong worktree `../report`) mà thư mục chính vẫn đứng trên `claude/T-051-dich-chu-thu-vien`, nên phần đó tính vào T-051 thay vì dòng Chung.
+- **Bằng chứng:** RUN-20261026-01, mục Token: T-051 15.0M lúc 19:36, 27.0M lúc 20:07; phiên chuyển thư mục chính sang nhánh mặc định lúc 20:07. CSV giữ số lúc 19:36 cho T-051.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 4, bước 1: trước việc cuối phiên, chuyển thư mục chính sang nhánh báo cáo hay nhánh mặc định của phiên (`git checkout`), không để trên nhánh task đã merge. Có thể để `scripts/token-usage.py` coi request sau giờ merge của task là phần Chung.
+- **Áp dụng:** chưa có.
+- **Kiểm chứng:**

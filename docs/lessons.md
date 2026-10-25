@@ -691,3 +691,13 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/token-usage.py` gán transcript phiên con theo worktree hay nhánh xuất hiện trong lệnh của nó (`cd /home/user/task-T-NNN`, `git -C ...`), hoặc theo một bảng phiên con và task mà phiên chính ghi; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên đếm tay phần phiên con.
 - **Áp dụng:** chưa có.
 - **Kiểm chứng:**
+
+### L-074: `auto-run.md` bảo soạn phản hồi kịch bản lỗi mức `nen-sua`, mẫu phản hồi không có mức đó
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261025-01.
+- **Chuyện gì:** `docs/auto-run.md` mục 4, bước 1 bảo mỗi dòng `lỗi` của "Kịch bản theo plan" có một phản hồi `FB-...` "mức `nen-sua`". Mẫu `docs/templates/feedback.md` chỉ có `chan`, `nang`, `nhe`, `gop-y`. Phiên phải chọn một bên; FB-20261025-01 ghi `nen-sua` theo auto-run.md, kèm chú thích.
+- **Bằng chứng:** `docs/auto-run.md` dòng 289; `docs/templates/feedback.md`, dòng `severity`; `docs/features/quality-gate/feedback/FB-20261025-01-cham-sau-device-unfold.md`.
+- **Đề xuất sửa:** thêm `nen-sua` vào danh sách mức của mẫu phản hồi (kèm định nghĩa), hoặc đổi auto-run.md sang một mức có sẵn; kiểm `scripts/status.py` đọc mức của phản hồi thế nào.
+- **Áp dụng:** chưa có.
+- **Kiểm chứng:**
+

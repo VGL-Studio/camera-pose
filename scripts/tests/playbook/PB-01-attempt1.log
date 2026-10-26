@@ -1,2 +1,2 @@
-W VGL.Loading: Task STARTER_SET failed
+W VGL.Loading: Task CONTENT_FILE failed
 androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 60000 ms

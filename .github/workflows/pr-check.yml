@@ -1,5 +1,7 @@
 # Quality gate for every PR into main (ADR-0002, ADR-0010).
 # Job names (changes, build-and-test, ui-test) are checked by scripts/merge-if-green.sh: rename in both places.
+# build-and-test has two paths: a PR with code runs scripts/check.sh; a PR without code (docs only, or files outside
+# the code filter) runs only scripts/tests/run.sh, without Gradle or the Android SDK (L-040). The job is never skipped.
 # Changing this file is a high-risk plan and needs cross-review.
 name: pr-check
 
@@ -36,7 +38,7 @@ jobs:
           # ui: anything that runs in the app or changes how it is built (core modules without UI too,
           #     since a bug there can still crash the app at startup).
           # release: what can break the release build (R8) while the debug build passes: libraries, build files and
-          #     R8 rules (L-053, plan T-038).
+          #     R8 rules (L-083).
           filters: |
             code:
               - 'app/**'
@@ -48,10 +50,8 @@ jobs:
               - 'gradle.properties'
               - 'gradlew'
               - '.editorconfig'
-              - 'scripts/check.sh'
-              - 'scripts/test-summary.sh'
-              - 'scripts/tests/**'
-              - 'scripts/find-breaking-commit.sh'
+              # Every script: scripts/check.sh runs scripts/tests/run.sh, which tests them (L-073).
+              - 'scripts/**'
               - '.github/workflows/pr-check.yml'
             ui:
               - 'app/**'
@@ -80,18 +80,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Chỉ thay đổi tài liệu
-        if: needs.changes.outputs.code != 'true'
-        run: echo "PR không chạm vào code, bỏ qua build."
+      - uses: actions/checkout@v5
 
-      - if: needs.changes.outputs.code == 'true'
-        uses: actions/checkout@v5
-
-      - if: needs.changes.outputs.code == 'true'
-        uses: actions/setup-java@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
+
+      # A PR without code (docs only, or files outside the code filter) runs only the script tests, which also
+      # check the docs: lesson numbers, foundation.md, status.py, secret scan, the latest run list (L-040).
+      # No Gradle and no Android SDK here.
+      - name: Test của script và tài liệu (scripts/tests/run.sh)
+        if: needs.changes.outputs.code != 'true'
+        timeout-minutes: 10
+        run: |
+          for tool in python3 jq java; do
+            command -v "$tool" > /dev/null || { echo "::error::CI thiếu $tool để chạy scripts/tests/run.sh."; exit 1; }
+          done
+          scripts/tests/run.sh 2>&1 | tee build.log
 
       - if: needs.changes.outputs.code == 'true'
         uses: gradle/actions/setup-gradle@v4
@@ -101,8 +107,9 @@ jobs:
         run: scripts/check.sh 2>&1 | tee build.log
 
       # The quality gate builds debug only; R8 runs in the release build, so a library without its keep rules
-      # passes check.sh and fails at staging time (L-053). No secret: the fake Firebase file and no signing config
+      # passes check.sh and fails at staging time (L-083). No secret: the fake Firebase file and no signing config
       # give an unsigned APK, as on a dev machine.
+      # The full release.log is uploaded with the reports, since the PR comment keeps only part of it.
       - name: Build bản release (R8)
         id: release
         if: needs.changes.outputs.code == 'true' && needs.changes.outputs.release == 'true'
@@ -119,9 +126,11 @@ jobs:
             **/build/reports/
             **/build/outputs/roborazzi/
             **/src/test/screenshots/*.png
+            release.log
 
       - name: Bình luận lỗi vào PR
-        if: failure() && needs.changes.outputs.code == 'true'
+        # A failure before the log exists (checkout, Java) still posts the comment.
+        if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -135,18 +144,18 @@ jobs:
               echo '```'
               echo "Cuối log:"
               echo '```'
-              tail -n 40 release.log
+              tail -n 40 release.log 2>/dev/null || echo "Không có log."
               echo '```'
             else
               echo "### build-and-test thất bại"
               echo
               echo "Task thất bại và lỗi:"
               echo '```'
-              grep -E " FAILED$|^e: |Lint error|\.kt:[0-9]+:[0-9]+|error:|What went wrong" -A 6 build.log | head -n 150 || true
+              grep -E "^FAIL - | FAILED$|^e: |Lint error|\.kt:[0-9]+:[0-9]+|error:|What went wrong" -A 6 build.log | head -n 150 || true
               echo '```'
               echo "Cuối log:"
               echo '```'
-              tail -n 60 build.log
+              tail -n 60 build.log 2>/dev/null || echo "Không có log."
               echo '```'
             fi
           } > comment.md

@@ -9,6 +9,8 @@ deciders: [Nhóm phát triển, Người phụ trách sản phẩm]
 
 # ADR-0004: DÙNG ADMOB LÀM NỀN TẢNG ĐIỀU PHỐI MEDIATION, QUẢNG CÁO QUA MỘT LỚP TRUNG GIAN
 
+> **Ghi chú 2026-10-23:** ADR-0026 (duyệt 2026-10-24) thay một phần ADR này: khởi tạo SDK theo bộ PARTNER của AdsKit (init sớm khi còn đồng ý của phiên trước, quyền tạm khi UMP lỗi mạng), danh sách mạng con thành chín mạng, bỏ rào chắn "không hiện khi người dùng đang thao tác". Phần còn lại giữ nguyên. Bảng đối chiếu ở ADR-0026, mục "Thay gì".
+
 ## Bối cảnh
 
 App kiếm tiền chủ yếu bằng quảng cáo, dùng nhiều mạng như AdMob, AppLovin, Unity. Quảng cáo là nguồn doanh thu duy nhất, nên lỗi ở đây ảnh hưởng trực tiếp tới doanh thu và có thể khiến tài khoản quảng cáo bị hạn chế.
@@ -33,4 +35,4 @@ App kiếm tiền chủ yếu bằng quảng cáo, dùng nhiều mạng như AdM
 
 - **Tích cực:** đổi mạng, thêm mạng, nâng cấp SDK chỉ sửa một chỗ; người phụ trách sản phẩm tự điều chỉnh vị trí và tần suất.
 - **Phải chấp nhận:** mọi thay đổi trong `:core:ads` là rủi ro cao, cần duyệt chéo.
-- **Việc AI phải tuân thủ:** không tự thêm vị trí quảng cáo ngoài spec; không đưa mã quảng cáo thật vào code hay tài liệu; không khởi tạo SDK quảng cáo trước khi xử lý xong sự đồng ý của người dùng.
+- **Việc AI phải tuân thủ:** không tự thêm vị trí quảng cáo ngoài spec; không đưa mã quảng cáo thật vào code hay tài liệu; khởi tạo SDK quảng cáo theo luật đồng ý của `docs/ops/ads-business-rules.md`, mục 1 (ADR-0026).

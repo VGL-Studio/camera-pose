@@ -14,7 +14,7 @@ failures=0
 # until someone pushes it, so give every git command of the tests a fake one (git reads GIT_CONFIG_* as -c options).
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.url GIT_CONFIG_VALUE_0=https://github.com/o/r.git
 # A block that pushes to a real local bare repo must unset these three variables first and restore them at its end
-# (see the save-branch block), or every push goes to the fake URL and fails (L-068).
+# (see the save-branch block), or every push goes to the fake URL and fails (L-082).
 expect() {
   local name="$1" expected="$2" actual="$3"
   if [[ "$actual" == "$expected" ]]; then
@@ -70,7 +70,7 @@ expect "start of history: blame the oldest red" bbbbbb2 "$(find_breaking '{
   "ddddd04":{"parent":"bbbbbb2","states":["failure"]}}')"
 
 # main-guard-status.sh: start-run.yml and the session start only when main-guard passed on the newest commit of main
-# with code (L-055, plan T-041). Same fixture as find-breaking-commit.sh; D=ddddd04 is the head of main.
+# with code (L-076). Same fixture as find-breaking-commit.sh; D=ddddd04 is the head of main.
 main_guard_status() { # <fixture> [env...]: prints "<exit code> <output on one line>"
   rm -f "$work/mgs.json.calls"
   echo "$1" > "$work/mgs.json"
@@ -85,7 +85,7 @@ mgs="$(main_guard_status '{
   "ccccc03":{"parent":"","states":["success"]},
   "ddddd04":{"parent":"ccccc03","states":["success"]}}')"
 expect "main-guard-status: green run on the head passes" 1 "$(grep -c '^0 XANH' <<<"$mgs")"
-# RUN-20261023-03: c83777a (docs only, no run) on top of c49a682 (scripts/run-check.py, no run: GitHub sent no push).
+# App camera-pose, RUN-20261023-03: a docs-only commit (no run) on top of a code commit with no run (GitHub sent no push).
 mgs="$(main_guard_status '{
   "bbbbbb2":{"parent":"","states":["success"]},
   "ccccc03":{"parent":"bbbbbb2","files":["scripts/run-check.py"]},
@@ -111,12 +111,24 @@ expect "main-guard-status: pending run asks to wait" 1 "$(grep -c '^2 CHỜ' <<<
 # comes before the check run starts (2026-01-01T00:00:00Z in fake-gh).
 expect "main-guard-status: pending gives the creation time of the workflow run for --since" 1 \
   "$(grep -c -- '--since 2025-12-31T23:59:00Z' <<<"$mgs")"
-mgs="$(main_guard_status '{
+broken_route='"issues?state=open&labels=main-broken&per_page=10"'
+mgs="$(main_guard_status '{"routes":{'"$broken_route"':[{"number":5}]},
   "ddddd04":{"parent":"","states":["failure"]}}')"
-expect "main-guard-status: red run is refused" 1 "$(grep -c '^1 ĐỎ' <<<"$mgs")"
-mgs="$(main_guard_status '{
+expect "main-guard-status: red run with an open main-broken issue is refused" 1 "$(grep -c '^1 ĐỎ' <<<"$mgs")"
+mgs="$(main_guard_status '{"routes":{'"$broken_route"':[{"number":5}]},
   "ddddd04":{"parent":"","states":["failure"]}}' GITHUB_ACTIONS=true)"
 expect "main-guard-status: in GitHub Actions a refusal is an ::error:: line" 1 "$(grep -c '^1 ::error::ĐỎ' <<<"$mgs")"
+# The guard's job also fails on infrastructure (checkout, Java, network), and then opens no main-broken issue:
+# not a red main, so ask to run main-guard again instead of saying ĐỎ with no reason.
+mgs="$(main_guard_status '{"routes":{'"$broken_route"':[]},
+  "ddddd04":{"parent":"","states":["failure"]}}')"
+expect "main-guard-status: a failed run without main-broken is not red (code 3)" 1 \
+  "$(grep -c '^3 CHƯA KIỂM: main-guard thất bại trên ddddd04 nhưng không có issue main-broken' <<<"$mgs")"
+expect "main-guard-status: a failed run without main-broken asks to run main-guard again" 2 \
+  "$(grep -o 'Re-run all jobs\|actions/workflows/main-guard.yml/dispatches' <<<"$mgs" | wc -l | tr -d ' ')"
+mgs="$(main_guard_status '{
+  "ddddd04":{"parent":"","states":["failure"]}}')"
+expect "main-guard-status: unreadable main-broken issues stop with code 4" 1 "$(grep -c '^4 LỖI: không đọc được' <<<"$mgs")"
 mgs="$(main_guard_status '{
   "bbbbbb2":{"parent":"","states":["success"]},
   "ccccc03":{"parent":"bbbbbb2","files":["docs/b.md"]},
@@ -144,20 +156,93 @@ mgs="$(main_guard_status '{
   "ddddd04":{"parent":"ccccc03","files":["docs/a.md"]}}')"
 expect "main-guard-status: an unreadable commit stops with code 4" 1 "$(grep -c '^4 LỖI: không đọc được' <<<"$mgs")"
 # start-run.yml checks main-guard after the run-file checks and before firing the routine; main-guard.yml can be
-# run by hand for a commit that got no push event (L-054), keeping its push trigger as it was.
+# run by hand for a commit that got no push event (L-076), keeping its push trigger as it was.
 start_wf=.github/workflows/start-run.yml
 expect "start-run: main-guard step runs after the run-file checks and before the routine" "yes yes 0" \
   "$(awk '/main-broken/ && !b { b = NR } /scripts\/main-guard-status.sh/ && !s { s = NR }
-     /name: Kiểm tra môi trường staging/ { e = NR } /name: Kích hoạt routine/ { r = NR }
+     /name: Kiểm tra thiết lập staging, file R2 và DNS/ { e = NR } /name: Kích hoạt routine/ { r = NR }
      END { print ((b && s > b && s < e && e < r) ? "yes" : "no") }' "$start_wf") $(grep -qE '^  checks: read$' "$start_wf" && echo yes || echo no) $(grep -c 'continue-on-error' "$start_wf")"
 guard_wf=.github/workflows/main-guard.yml
 # Run by hand on another branch, the guard would open main-broken, push a revert or close an issue for that branch.
 expect "main-guard: has workflow_dispatch and keeps the push trigger with the same paths-ignore" "1 1 1 1 1" \
   "$(grep -cE '^  workflow_dispatch:' "$guard_wf") $(grep -cE '^  push:$' "$guard_wf") $(grep -cE "^      - 'docs/\*\*'$" "$guard_wf") $(grep -cE "^      - '\*\*/\*\.md'$" "$guard_wf") $(awk '/^  guard:$/ { g = 1; next } g && /^    if: github.ref == .refs\/heads\/main.$/ { n++ } g && /^    steps:$/ { g = 0 } END { print n + 0 }' "$guard_wf")"
 
+# pr-check.yml: a PR without code still runs scripts/tests/run.sh in build-and-test, without Gradle or the Android SDK,
+# and the job keeps its name and is never skipped, so merge-if-green.sh still requires it green (L-040).
+# Each check takes the workflow path, so it also runs on a broken copy in $work (L-055).
+pr_wf=.github/workflows/pr-check.yml
+pr_steps() { # <workflow>; prints each step of build-and-test on one line, its lines joined by tabs
+  awk '/^  build-and-test:$/ { j = 1; next }
+    j && /^  [^ ]/ { j = 0 }
+    j && /^      - / { if (s != "") print s; s = $0; next }
+    j && s != "" && /^        / { s = s "\t" $0 }
+    END { if (s != "") print s }' "$1"
+}
+pr_docs_steps() { # <workflow>; counts the steps that run scripts/tests/run.sh only when the PR changes no code
+  pr_steps "$1" | grep -F "if: needs.changes.outputs.code != 'true'" | grep -cF 'scripts/tests/run.sh 2>&1 | tee build.log' || true
+}
+pr_unconditional() { # <workflow> <uses>; "yes" when the step with that action has no if:, "missing" with no such step
+  local step
+  step="$(pr_steps "$1" | grep -F "uses: $2" || true)"
+  if [[ -z "$step" ]]; then echo missing; elif grep -q 'if:' <<<"$step"; then echo no; else echo yes; fi
+}
+pr_gradle_gated() { # <workflow>; "yes" when every step using Gradle or the Android SDK runs only for code
+  local bad tab=$'\t'
+  bad="$(pr_steps "$1" | grep -E 'setup-gradle|gradlew|scripts/check\.sh|ANDROID_HOME|android-emulator-runner' \
+    | grep -vcE "if: [^$tab]*needs\.changes\.outputs\.code == 'true'" || true)"
+  [[ "$bad" == 0 ]] && echo yes || echo no
+}
+pr_docs_step_tools() { # <workflow>; the docs-only step checks its tools and has its own timeout
+  local step
+  step="$(pr_steps "$1" | grep -F "if: needs.changes.outputs.code != 'true'" | grep -F 'scripts/tests/run.sh' || true)"
+  local t n=0
+  for t in 'command -v' python3 jq java 'timeout-minutes: 10'; do
+    grep -qF -- "$t" <<<"$step" && n=$((n + 1))
+  done
+  echo "$n"
+}
+pr_job_if() { # <workflow>; counts job-level if: lines of build-and-test
+  awk '/^  build-and-test:$/ { j = 1; next } j && /^    steps:$/ { j = 0 } j && /^    if:/ { n++ } END { print n + 0 }' "$1"
+}
+pr_failure_comment() { # <workflow>; "yes" when the failure comment runs on any failure and shows run.sh failures
+  local step tab=$'\t'
+  step="$(pr_steps "$1" | grep -F 'name: Bình luận lỗi vào PR' || true)"
+  if grep -qE "if: failure\(\)($tab|$)" <<<"$step" && grep -qF '^FAIL - ' <<<"$step"; then echo yes; else echo no; fi
+}
+pr_missing_jobs() { # <workflow>; names of merge-if-green.sh's required and skippable checks with no job in the workflow
+  local names name missing="" count=0
+  names="$(sed -n -E 's/^(REQUIRED|SKIPPABLE)_CHECKS=\((.*)\)$/\2/p' scripts/merge-if-green.sh | tr -d '"')"
+  for name in $names; do
+    count=$((count + 1))
+    grep -qE "^  $name:$" "$1" || missing="$missing $name"
+  done
+  echo "names=$count missing=${missing:- none}"
+}
+expect "pr-check: build-and-test runs scripts/tests/run.sh when the PR changes no code" 1 "$(pr_docs_steps "$pr_wf")"
+expect "pr-check: checkout and Java run for every PR" "yes yes" \
+  "$(pr_unconditional "$pr_wf" actions/checkout@v5) $(pr_unconditional "$pr_wf" actions/setup-java@v5)"
+expect "pr-check: the docs-only path of build-and-test uses no Gradle and no Android SDK" yes "$(pr_gradle_gated "$pr_wf")"
+mkdir -p "$work/prwf"
+grep -v 'uses: actions/setup-java@v5' "$pr_wf" > "$work/prwf/no-java.yml"
+expect "pr-check: the unconditional check names a step that is missing" missing \
+  "$(pr_unconditional "$work/prwf/no-java.yml" actions/setup-java@v5)"
+perl -0pe "s/- if: needs.changes.outputs.code == 'true'\n        uses: gradle\/actions\/setup-gradle/- uses: gradle\/actions\/setup-gradle/" \
+  "$pr_wf" > "$work/prwf/gradle.yml"
+expect "pr-check: the Gradle check fails on a copy whose setup-gradle runs for every PR" no "$(pr_gradle_gated "$work/prwf/gradle.yml")"
+expect "pr-check: the docs-only step checks python3, jq and java first and has its own timeout" 5 "$(pr_docs_step_tools "$pr_wf")"
+expect "pr-check: build-and-test has no job-level if" 0 "$(pr_job_if "$pr_wf")"
+awk '/^  build-and-test:$/ { j = 1 } { print } j && /^    needs: changes$/ { print "    if: needs.changes.outputs.code == '\''true'\''"; j = 0 }' \
+  "$pr_wf" > "$work/prwf/job-if.yml"
+expect "pr-check: the job-level if check fails on a copy that skips build-and-test" 1 "$(pr_job_if "$work/prwf/job-if.yml")"
+expect "pr-check: the failure comment of build-and-test also runs for docs-only PRs" yes "$(pr_failure_comment "$pr_wf")"
+expect "pr-check: every check merge-if-green.sh requires or may skip is a job of pr-check.yml" "names=3 missing= none" \
+  "$(pr_missing_jobs "$pr_wf")"
+sed 's/^  build-and-test:$/  build:/' "$pr_wf" > "$work/prwf/renamed.yml"
+expect "pr-check: the job name check names a renamed job" "names=3 missing= build-and-test" \
+  "$(pr_missing_jobs "$work/prwf/renamed.yml")"
+
 # merge-if-green.sh must reject any argument other than exactly "<PR> [--dry-run]" before doing anything.
-for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" "" \
-  "12 --update extra" "12 --updat" "12 --update --dry-run"; do
+for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" ""; do
   # shellcheck disable=SC2086
   if PATH="$work/bin:$PATH" scripts/merge-if-green.sh $args > /dev/null 2>&1; then
     expect "merge-if-green rejects '$args'" rejected accepted
@@ -173,7 +258,7 @@ merge_during_run() {
 {"routes": {
   "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "abc1234", "ref": "$head_ref"}, "title": "t", "labels": $labels},
   "issues?state=open&labels=main-broken&per_page=10": [],
-  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261015-01-report"}, {"name": "claude/RUN-20261016-01-report"}],
+  "branches?per_page=100&page=1": [{"name": "main"}, {"name": "claude/RUN-20261015-01-report"}, {"name": "claude/RUN-20261016-01-report"}],
   "contents/docs/runs/RUN-20261015-01.md?ref=claude/RUN-20261015-01-report": "---\nid: RUN-20261015-01\nstatus: finished\n---\n",
   "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: $run_status   # draft | approved | running | finished\n---\n",
   "compare/main...abc1234": {"behind_by": 2}
@@ -191,43 +276,119 @@ expect "merge-if-green ignores finished runs" 3 "$(merge_during_run claude/templ
 expect "merge-if-green refuses a PR labelled needs-human" 1 \
   "$(merge_during_run claude/fix-T-002-x finished '[{"name": "needs-human"}]')"
 expect "merge-if-green accepts other labels" 3 "$(merge_during_run claude/template-x finished '[{"name": "docs"}]')"
-expect "merge-if-green without --update does not update the branch" 0 \
-  "$(cat "$work/merge.json.writes" 2>/dev/null | grep -c update-branch || true)"
 
-# merge-if-green.sh --update (plan T-029, L-017): a branch behind main is updated by GitHub, then exit 2 ("wait for CI").
-# Every check that comes before still refuses first (L-044).
-merge_update() { # <head ref> <run status> <main-broken issues JSON> [fail_writes JSON]; prints the exit code
-  rm -f "$work/update.json.writes"
-  cat > "$work/update.json" << JSON
-{"fail_writes": ${4:-[]},
- "routes": {
+# merge-if-green.sh prints the commit it merges, warns about a very recent one, waits with --update and accepts a
+# job whose status lags behind its finished green run (app lessons L-017, L-018).
+merge_routes() { # <head ref> <compare route JSON fields> <check-runs answer> [extra routes]; writes $work/mg.json
+  cat > "$work/mg.json" << JSON
+{"routes": {
   "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "abc1234", "ref": "$1"}, "title": "t", "labels": []},
-  "issues?state=open&labels=main-broken&per_page=10": $3,
-  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
-  "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: $2\n---\n",
-  "compare/main...abc1234": {"behind_by": 2}
+  "issues?state=open&labels=main-broken&per_page=10": [],
+  "branches?per_page=100&page=1": [{"name": "main"}],
+  "compare/main...abc1234": $2,
+  "commits/abc1234/check-runs?per_page=100": $3,
+  "commits/abc1234": {"commit": {"committer": {"date": "2026-10-18T02:00:00Z"}, "message": "Sửa nút\n\nchi tiết"}},
+  "pulls/12/files?per_page=100&page=1": [{"filename": "docs/STATUS.md"}, {"filename": "docs/lessons.md"}]${4:-}
 }}
 JSON
+}
+merge_run() { # <args...>; prints the exit code, keeps the output in $work/mg.out and the writes in $work/mg.json.writes
+  rm -f "$work/mg.json.writes" "$work/mg.json.seen"
   local code=0
-  PATH="$work/bin:$PATH" FIXTURE="$work/update.json" scripts/merge-if-green.sh 12 --update > "$work/update.out" 2>&1 || code=$?
+  PATH="$work/bin:$PATH" FIXTURE="$work/mg.json" MERGE_POLL_SECONDS=0 MERGE_UPDATE_TIMEOUT_SECONDS=5 \
+    MERGE_NOW_EPOCH="${NOW_EPOCH:-1793000000}" scripts/merge-if-green.sh "$@" > "$work/mg.out" 2>&1 || code=$?
   echo "$code"
 }
-update_writes() { cat "$work/update.json.writes" 2>/dev/null | grep -c '^PUT pulls/12/update-branch$' || true; }
-expect "merge-if-green --update updates a branch behind main" 2 "$(merge_update claude/template-x finished '[]')"
-expect "merge-if-green --update asks GitHub to update the branch" 1 "$(update_writes)"
-expect "merge-if-green --update says to wait for CI" 1 "$(grep -c '^CHƯA XONG: đã cập nhật nhánh' "$work/update.out")"
-expect "merge-if-green --update refuses when GitHub cannot update" 1 \
-  "$(merge_update claude/template-x finished '[]' '["PUT pulls/12/update-branch"]')"
-expect "merge-if-green --update says GitHub could not update" 1 "$(grep -c 'không cập nhật được nhánh' "$work/update.out")"
-expect "merge-if-green --update still refuses a person's PR while a run is running" 1 \
-  "$(merge_update claude/template-x running '[]')"
-expect "merge-if-green --update does not update a refused PR" 0 "$(update_writes)"
-expect "merge-if-green --update still refuses while main is broken" 1 \
-  "$(merge_update claude/template-x finished '[{"number": 7, "body": "Nhánh chính đỏ."}]')"
-expect "merge-if-green --update does not update while main is broken" 0 "$(update_writes)"
+green_runs='{"check_runs": [
+  {"name": "changes", "status": "completed", "conclusion": "success", "started_at": "2026-10-18T02:01:00Z", "check_suite": {"id": 5}},
+  {"name": "build-and-test", "status": "completed", "conclusion": "success", "started_at": "2026-10-18T02:01:00Z", "check_suite": {"id": 5}},
+  {"name": "ui-test", "status": "completed", "conclusion": "skipped", "started_at": "2026-10-18T02:01:00Z", "check_suite": {"id": 5}}]}'
+lagging_runs="${green_runs/\"status\": \"completed\", \"conclusion\": \"success\"/\"status\": \"in_progress\", \"conclusion\": null}"
+merge_routes claude/template-x '{"behind_by": 0}' "$green_runs"
+expect "merge-if-green: a green PR is ready" 0 "$(merge_run 12 --dry-run)"
+expect "merge-if-green: names the commit it merges" 1 "$(grep -c '^Commit sẽ merge: abc1234 (.* phút trước) Sửa nút$' "$work/mg.out")"
+expect "merge-if-green: an old commit gets no warning" 0 "$(grep -c 'phút trước. Còn ai định đẩy' "$work/mg.out" || true)"
+expect "merge-if-green: a PR with docs/STATUS.md gets a warning" 1 "$(grep -c 'PR có docs/STATUS.md' "$work/mg.out")"
+# 2026-10-18T02:00:00Z is 1792288800; three minutes later.
+expect "merge-if-green: a commit pushed minutes ago gets a warning" 1 \
+  "$(NOW_EPOCH=1792288980 merge_run 12 --dry-run > /dev/null; grep -c 'mới 3 phút trước' "$work/mg.out")"
+# A docs-only PR has this shape: changes green, build-and-test runs scripts/tests/run.sh, ui-test skipped. A red or
+# skipped build-and-test is refused; the same fixture with build-and-test green is ready (L-040).
+red_docs_runs="${green_runs/\"build-and-test\", \"status\": \"completed\", \"conclusion\": \"success\"/\"build-and-test\", \"status\": \"completed\", \"conclusion\": \"failure\"}"
+skipped_docs_runs="${green_runs/\"build-and-test\", \"status\": \"completed\", \"conclusion\": \"success\"/\"build-and-test\", \"status\": \"completed\", \"conclusion\": \"skipped\"}"
+merge_routes claude/template-x '{"behind_by": 0}' "$green_runs"
+expect "merge-if-green: a docs-only PR whose build-and-test passed is ready" 0 "$(merge_run 12 --dry-run)"
+merge_routes claude/template-x '{"behind_by": 0}' "$red_docs_runs"
+expect "merge-if-green: a docs-only PR whose build-and-test failed is refused" "1 1" \
+  "$(merge_run 12 --dry-run) $(grep -c 'có kiểm tra không qua: build-and-test\.' "$work/mg.out" || true)"
+merge_routes claude/template-x '{"behind_by": 0}' "$skipped_docs_runs"
+expect "merge-if-green: a skipped build-and-test is refused" "1 1" \
+  "$(merge_run 12 --dry-run) $(grep -c "kiểm tra 'build-and-test' kết thúc với kết quả 'skipped'" "$work/mg.out" || true)"
+merge_routes claude/RUN-20261018-01-report '{"behind_by": 0}' "$green_runs"
+merge_run 12 --dry-run > /dev/null
+# The page is not in git (status-page.yml builds it on the status branch, L-066): no PR carries it, the report PR neither.
+expect "merge-if-green: the report PR with docs/STATUS.md also gets the warning" 1 "$(grep -c 'PR có docs/STATUS.md' "$work/mg.out" || true)"
+merge_routes claude/template-x '{"behind_by": 0}' "$lagging_runs" \
+  ', "actions/runs?head_sha=abc1234&per_page=50": {"workflow_runs": [{"id": 77, "check_suite_id": 5, "status": "completed", "conclusion": "success"}]}'
+expect "merge-if-green: a lagging job of a green run counts as green" 0 "$(merge_run 12 --dry-run)"
+expect "merge-if-green: says the lagging job was taken as green" 1 "$(grep -c 'lần chạy 77 chứa nó đã xong và xanh' "$work/mg.out")"
+merge_routes claude/template-x '{"behind_by": 0}' "$lagging_runs" \
+  ', "actions/runs?head_sha=abc1234&per_page=50": {"workflow_runs": [{"id": 77, "check_suite_id": 5, "status": "in_progress", "conclusion": null}]}'
+expect "merge-if-green: a job of a run still going waits" 2 "$(merge_run 12 --dry-run)"
+expect "merge-if-green: says CI has not finished on the commit" 1 "$(grep -c 'CI chưa chạy xong trên commit này' "$work/mg.out")"
+expect "merge-if-green: --update gives up when the wait runs out" 2 \
+  "$(MERGE_UPDATE_TIMEOUT_SECONDS=0 merge_run 12 --update)"
+expect "merge-if-green rejects '--update --dry-run'" 1 "$(merge_run 12 --update --dry-run)"
+# --update: the branch is behind, GitHub updates it to def5678, CI starts, turns green, then the PR is merged.
+merge_routes claude/template-x '{"behind_by": 2}' "$green_runs" ',
+  "compare/main...def5678": {"behind_by": 0},
+  "commits/def5678/check-runs?per_page=100": {"__sequence__": [{"check_runs": []}, '"$green_runs"']},
+  "commits/def5678": {"commit": {"committer": {"date": "2026-10-18T02:30:00Z"}, "message": "Merge main"}}'
+python3 -I - "$work/mg.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+first = fx["routes"]["pulls/12"]
+second = json.loads(json.dumps(first)); second["head"]["sha"] = "def5678"
+fx["routes"]["pulls/12"] = {"__sequence__": [first, second]}
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+expect "merge-if-green --update: updates, waits for CI and merges" 0 "$(merge_run 12 --update)"
+expect "merge-if-green --update: asks GitHub to update the branch, then merges" \
+  "PUT pulls/12/update-branch;PUT pulls/12/merge;DELETE git/refs/heads/claude/template-x;" \
+  "$(tr '\n' ';' < "$work/mg.json.writes")"
+expect "merge-if-green --update: merges the new commit" 1 "$(grep -c '^ĐÃ MERGE: PR #12 (t) tại commit def5678' "$work/mg.out")"
+expect "merge-if-green: without --update a branch behind main exits 3" 3 \
+  "$(python3 -I -c 'import json,sys; fx=json.load(open(sys.argv[1])); fx["routes"]["pulls/12"]=fx["routes"]["pulls/12"]["__sequence__"][0]; json.dump(fx, open(sys.argv[1], "w"))' "$work/mg.json"; merge_run 12)"
+
+# merge-if-green.sh reads every page of the branch list itself, on repos/<owner>/<repo> paths (L-092): a running
+# session whose report branch is on page 2 still blocks other PRs.
+python3 -I - "$work/merge.json" << 'PY'
+import json, sys
+fx = {"routes": {
+  "pulls/12": {"state": "open", "draft": False, "base": {"ref": "main"}, "head": {"sha": "abc1234", "ref": "claude/template-x"}, "title": "t", "labels": []},
+  "issues?state=open&labels=main-broken&per_page=10": [],
+  "branches?per_page=100&page=1": [{"name": f"claude/old-{n}"} for n in range(100)],
+  "branches?per_page=100&page=2": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
+  "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: running\n---\n",
+  "compare/main...abc1234": {"behind_by": 2}}}
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+code=0
+PATH="$work/bin:$PATH" FIXTURE="$work/merge.json" scripts/merge-if-green.sh 12 --dry-run > "$work/mg-paged.out" 2>&1 || code=$?
+expect "merge-if-green: a running session on page 2 of the branches still blocks other PRs" "1 1" \
+  "$code $(grep -c 'phiên RUN-20261016-01 đang chạy' "$work/mg-paged.out" || true)"
+
+# After the merge, a branch the script could not delete gets a warning, unless GitHub already deleted it (L-092).
+merge_routes claude/template-x '{"behind_by": 0}' "$green_runs"
+python3 -I -c 'import json,sys; fx=json.load(open(sys.argv[1])); fx["fail_writes"]=["DELETE git/refs/heads/claude/template-x"]; json.dump(fx, open(sys.argv[1], "w"))' "$work/mg.json"
+merge_run 12 > /dev/null
+expect "merge-if-green: a branch already deleted by GitHub gets no warning" 0 "$(grep -c 'không xóa được nhánh' "$work/mg.out" || true)"
+python3 -I -c 'import json,sys; fx=json.load(open(sys.argv[1])); fx["routes"]["git/ref/heads/claude/template-x"]={"ref": "x"}; json.dump(fx, open(sys.argv[1], "w"))' "$work/mg.json"
+merge_run 12 > /dev/null
+expect "merge-if-green: a branch left after a failed delete gets a warning" 1 "$(grep -c "không xóa được nhánh 'claude/template-x'" "$work/mg.out" || true)"
 
 # merge-if-green.sh notices a PR that is already on main, and a merge that GitHub answered with an error although the
-# squash commit reached main (plan T-040, L-054). Every earlier check still comes first (L-044).
+# squash commit reached main (L-080). Every earlier check still comes first (L-058).
 # The fixture is built from MIG_* variables; MIG_MAIN is the answer of "commits?sha=main", a JSON value or a
 # {"__sequence__": [...]} (one answer per read).
 mig_title_line='t (#12)'
@@ -247,17 +408,17 @@ mig_run() { # <extra arg or empty>; reads MIG_*; prints the exit code, output in
  "routes": {
   "pulls/12": {"state": "${MIG_STATE:-open}", "draft": ${MIG_DRAFT:-false}, "base": {"ref": "${MIG_BASE:-main}"}, "head": {"sha": "abc1234", "ref": "claude/template-x"}, "title": "t", "labels": ${MIG_LABELS:-[]}},
   "issues?state=open&labels=main-broken&per_page=10": ${MIG_ISSUES:-[]},
-  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
+  "branches?per_page=100&page=1": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
   "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: ${MIG_RUN:-finished}\n---\n",
   "compare/main...abc1234": {"behind_by": ${MIG_BEHIND:-0}},
   "git/commits/abc1234": {"tree": {"sha": "tree1"}},
   $main_route
   "commits/abc1234/check-runs?per_page=100": $checks,
-  "commits/abc1234": {"sha": "abc1234", "commit": {"committer": {"date": "${MIG_DATE:-2026-10-23T07:50:00Z}"}}}
+  "commits/abc1234": {"sha": "abc1234", "commit": {"committer": {"date": "${MIG_DATE:-2026-10-23T07:30:00Z}"}, "message": "t"}}
 }}
 JSON
   local code=0
-  PATH="$work/bin:$PATH" FIXTURE="$work/mig.json" MERGE_IF_GREEN_NOW=1792742400 MERGE_IF_GREEN_POLL_SECONDS=0 \
+  PATH="$work/bin:$PATH" FIXTURE="$work/mig.json" MERGE_NOW_EPOCH=1792742400 MERGE_RECHECK_SECONDS=0 MERGE_POLL_SECONDS=0 MERGE_UPDATE_TIMEOUT_SECONDS=5 \
     scripts/merge-if-green.sh 12 ${1:+"$1"} > "$work/mig.out" 2>&1 || code=$?
   echo "$code"
 }
@@ -323,75 +484,37 @@ expect "merge-if-green merges with a PUT" 1 "$(mig_writes '^PUT pulls/12/merge$'
 expect "merge-if-green does not ask for main-guard after a plain merge" 0 "$(mig_writes dispatches)"
 expect "merge-if-green reads main once before a plain merge, not after" 1 "$(mig_reads)"
 MIG_DATE=2026-10-23T07:59:00Z mig_run > /dev/null
-expect "merge-if-green still warns about a fresh commit before the merge" 1 "$(grep -c '^CHÚ Ý: commit cuối abc1234' "$work/mig.out" || true)"
+expect "merge-if-green still warns about a fresh commit before the merge" 1 "$(grep -c '^CHÚ Ý: commit cuối của nhánh' "$work/mig.out" || true)"
 mig_reset
 FIXTURE="$work/mig.json" PATH="$work/bin:$PATH" gh api repos/o/r/git/commits/zzz > "$work/fake404.out" 2> "$work/fake404.err" || fake404=$?
 expect "fake-gh answers an unknown path with 404" "1 1 0" \
   "${fake404:-0} $(grep -c 'HTTP 404' "$work/fake404.err" || true) $(grep -c Traceback "$work/fake404.err" || true)"
 
-# A check run still queued or in progress whose check suite completed with success counts as green (plan T-029, L-017).
-# A commit pushed less than 3 minutes ago gets a warning, not a refusal (L-018).
-merge_checks() { # <changes status> <suite answer> <commit date>; prints the exit code
-  local changes_conclusion=null
-  [[ "$1" == "completed" ]] && changes_conclusion='"success"'
-  cat > "$work/checks.json" << JSON
-{"routes": {
-  "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "abc1234", "ref": "claude/template-x"}, "title": "t", "labels": []},
-  "issues?state=open&labels=main-broken&per_page=10": [],
-  "branches?per_page=100": [{"name": "main"}],
-  "compare/main...abc1234": {"behind_by": 0},
-  "commits/abc1234/check-runs?per_page=100": {"check_runs": [
-    {"name": "changes", "status": "$1", "conclusion": $changes_conclusion, "started_at": "2026-10-23T08:00:00Z", "check_suite": {"id": 77}},
-    {"name": "build-and-test", "status": "completed", "conclusion": "success", "started_at": "2026-10-23T08:00:10Z", "check_suite": {"id": 77}},
-    {"name": "ui-test", "status": "completed", "conclusion": "skipped", "started_at": "2026-10-23T08:00:10Z", "check_suite": {"id": 77}}]},
-  "check-suites/77": $2,
-  "commits/abc1234": {"sha": "abc1234", "commit": {"committer": {"date": "$3"}}}
-}}
-JSON
-  local code=0
-  PATH="$work/bin:$PATH" FIXTURE="$work/checks.json" MERGE_IF_GREEN_NOW=1792742400 \
-    scripts/merge-if-green.sh 12 --dry-run > "$work/checks.out" 2>&1 || code=$?
-  echo "$code"
-}
-# MERGE_IF_GREEN_NOW=1792742400 is 2026-10-23T08:00:00Z.
-suite_ok='{"id": 77, "status": "completed", "conclusion": "success"}'
-expect "merge-if-green treats a stuck check as green when its suite succeeded" 0 \
-  "$(merge_checks in_progress "$suite_ok" 2026-10-23T07:50:00Z)"
-expect "merge-if-green says it trusted the suite" 1 "$(grep -c "^CHÚ Ý: kiểm tra 'changes'" "$work/checks.out")"
-expect "merge-if-green waits for a check whose suite is still running" 2 \
-  "$(merge_checks queued '{"id": 77, "status": "in_progress", "conclusion": null}' 2026-10-23T07:50:00Z)"
-expect "merge-if-green does not trust a failed suite" 2 \
-  "$(merge_checks in_progress '{"id": 77, "status": "completed", "conclusion": "failure"}' 2026-10-23T07:50:00Z)"
-expect "merge-if-green warns about a commit pushed a minute ago" 0 "$(merge_checks completed "$suite_ok" 2026-10-23T07:59:00Z)"
-expect "merge-if-green names the fresh commit" 1 "$(grep -c "^CHÚ Ý: commit cuối abc1234" "$work/checks.out")"
-expect "merge-if-green does not warn about an older commit" 0 "$(merge_checks completed "$suite_ok" 2026-10-23T07:50:00Z)"
-expect "merge-if-green has no warning for an older commit" 0 "$(grep -c "^CHÚ Ý" "$work/checks.out" || true)"
-
-# failure-kind.sh (ADR-1002, point 1): "tests" only when every failed Gradle task is a test task with failing tests.
+# failure-kind.sh (ADR-0025, point 1): "tests" only when every failed Gradle task is a test task with failing tests.
 failure_kind() { printf '%b' "$1" > "$work/fk.log"; scripts/failure-kind.sh "$work/fk.log"; }
 gradle_failure() { printf '* What went wrong:\\nExecution failed for task '"'"'%s'"'"'.\\n> %s\\n' "$1" "$2"; }
 expect "failure-kind: only failing unit tests -> tests" tests \
-  "$(failure_kind "$(gradle_failure :feature:camera:testDebugUnitTest 'There were failing tests. See the report at: x')")"
+  "$(failure_kind "$(gradle_failure :feature:sample:testDebugUnitTest 'There were failing tests. See the report at: x')")"
 expect "failure-kind: failing staging unit tests and verifyRoborazzi -> tests" tests \
-  "$(failure_kind "FAILURE: Build completed with 2 failures.\\n$(gradle_failure :app:testStagingDebugUnitTest 'There were failing tests.')$(gradle_failure :feature:camera:verifyRoborazziDebug 'There were failing tests.')")"
+  "$(failure_kind "FAILURE: Build completed with 2 failures.\\n$(gradle_failure :app:testStagingDebugUnitTest 'There were failing tests.')$(gradle_failure :feature:sample:verifyRoborazziDebug 'There were failing tests.')")"
 expect "failure-kind: compile error -> other" other \
   "$(failure_kind "$(gradle_failure :app:compileStagingDebugKotlin 'Compilation error. See log for more details')")"
 expect "failure-kind: lint -> other" other \
   "$(failure_kind "$(gradle_failure :app:lintStagingDebug 'Lint found errors in the project; aborting build.')")"
 expect "failure-kind: test and lint both failed -> other" other \
-  "$(failure_kind "$(gradle_failure :feature:camera:testDebugUnitTest 'There were failing tests.')$(gradle_failure :app:lintStagingDebug 'Lint found errors.')")"
+  "$(failure_kind "$(gradle_failure :feature:sample:testDebugUnitTest 'There were failing tests.')$(gradle_failure :app:lintStagingDebug 'Lint found errors.')")"
 expect "failure-kind: a test task that failed for another reason -> other" other \
-  "$(failure_kind "$(gradle_failure :feature:camera:testDebugUnitTest 'Could not start Gradle Test Executor 1.')")"
+  "$(failure_kind "$(gradle_failure :feature:sample:testDebugUnitTest 'Could not start Gradle Test Executor 1.')")"
 expect "failure-kind: no Gradle failure line -> other" other \
   "$(failure_kind "FAIL - merge-if-green rejects '12 -n'\\n1 script test(s) failed\\n")"
 expect "failure-kind: missing log -> other" other "$(scripts/failure-kind.sh "$work/no-such.log")"
 
-# failure-kind.sh --playbook looks a failure up in docs/ops/failure-playbook.md (plan T-039, L-057).
+# failure-kind.sh --playbook looks a failure up in docs/ops/failure-playbook.md (L-079).
 pb_dir=scripts/tests/playbook
 playbook() { scripts/failure-kind.sh --playbook "$@" 2> "$work/pb.err"; }
 pb_head() { playbook "$1" ${2:+"$2"} | cut -d: -f1; }
 expect "playbook: PB-01 R2 download timeout in ui-test -> chay-lai" "PB-01 chay-lai" "$(pb_head $pb_dir/PB-01.log)"
-expect "playbook: PB-01 also matches the first attempt (Task STARTER_SET failed, no Assets line)" "PB-01 chay-lai" \
+expect "playbook: PB-01 also matches the first attempt (Task failed, no Assets line)" "PB-01 chay-lai" \
   "$(pb_head $pb_dir/PB-01-attempt1.log)"
 expect "playbook: PB-02 GitHub did not start the job -> cho" "PB-02 cho" "$(pb_head $pb_dir/PB-02.log)"
 expect "playbook: PB-03 conflicting PR -> gop-nhanh" "PB-03 gop-nhanh" "$(pb_head $pb_dir/PB-03.log)"
@@ -407,7 +530,7 @@ expect "playbook: PB-11 Claude org access 403 in a subagent -> cho" "PB-11 cho" 
 expect "playbook: an unknown failure says khong-co" "khong-co" "$(pb_head $pb_dir/none.log)"
 expect "playbook: a missing log says khong-co" "khong-co" "$(pb_head "$work/no-such.log")"
 expect "playbook: a missing log exits 0" 0 "$(scripts/failure-kind.sh --playbook "$work/no-such.log" > /dev/null 2>&1; echo $?)"
-expect "playbook: the line carries the action and the source" "PB-02 cho: GitHub không cấp máy. Làm theo \`auto-run.md\` mục 4, dòng \"GitHub không chạy job\" (L-046, lần chạy 39916343646)" \
+expect "playbook: the line carries the action and the source" "PB-02 cho: GitHub không cấp máy. Làm theo \`auto-run.md\` mục 4, dòng \"GitHub không chạy job\" (L-064)" \
   "$(playbook $pb_dir/PB-02.log)"
 # Test tables for the parser: an escaped pipe is an alternative; a broken pattern is skipped and reported.
 cat > "$work/pb-table.md" <<'MD'
@@ -439,7 +562,7 @@ expect "playbook: every row has a log file and every log file a row" "$pb_rows" 
 expect "playbook: the table has at least 10 rows" yes "$([ "$(printf '%s\n' "$pb_rows" | wc -l)" -ge 10 ] && echo yes || echo no)"
 expect "failure-kind: a playbook-only log still says other" other "$(scripts/failure-kind.sh $pb_dir/PB-01.log)"
 
-# is-exact-revert.sh (ADR-1002, point 3), on a throwaway repo: A, B (the culprit), C (main).
+# is-exact-revert.sh (ADR-0025, point 3), on a throwaway repo: A, B (the culprit), C (main).
 root="$PWD"
 rev="$work/rev"
 git_t() { GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t git -C "$rev" "$@"; }
@@ -467,7 +590,7 @@ expect "is-exact-revert: a revert on an older main fails" 1 "$(is_revert old)"
 expect "is-exact-revert: the revert of another commit fails" 1 "$(is_revert other)"
 expect "is-exact-revert: leaves no worktree behind" 1 "$(git_t worktree list | wc -l | tr -d ' ')"
 
-# merge-if-green.sh lets an exact revert through while main is broken (ADR-1002, point 3), and nothing else.
+# merge-if-green.sh lets an exact revert through while main is broken (ADR-0025, point 3), and nothing else.
 # The PR head is fetched from a local bare copy standing in for GitHub (url.<path>.insteadOf).
 git clone -q --bare "$rev" "$work/origin.git"
 git -C "$work/origin.git" update-ref refs/pull/12/head "$(git_t rev-parse good)"
@@ -479,7 +602,7 @@ merge_while_broken() { # <issues JSON> [IS_EXACT_REVERT] [run status]; prints th
 {"routes": {
   "pulls/12": {"state": "open", "draft": false, "base": {"ref": "main"}, "head": {"sha": "$(git_t rev-parse good)", "ref": "revert/${culprit::7}"}, "title": "Revert", "labels": []},
   "issues?state=open&labels=main-broken&per_page=10": $1,
-  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
+  "branches?per_page=100&page=1": [{"name": "main"}, {"name": "claude/RUN-20261016-01-report"}],
   "contents/docs/runs/RUN-20261016-01.md?ref=claude/RUN-20261016-01-report": "---\nid: RUN-20261016-01\nstatus: ${3:-finished}\n---\n",
   "compare/main...$(git_t rev-parse good)": {"behind_by": 2}
 }}
@@ -534,7 +657,7 @@ expect "wait-run: the red line names ui-test" 1 \
      PATH="$work/bin:$PATH" FIXTURE="$work/wait.json" WAIT_RUN_POLL_SECONDS=0 scripts/wait-run.sh --pr 7 2>&1 | grep -c 'job: ui-test')"
 expect "wait-run: a run still going when time runs out asks to call again" "2 CHƯA" \
   "$(wait_run "$(pr_routes "$pending")" --pr 7 --timeout 1)"
-# A run GitHub never started (no runner: spending limit, billing) is not a red check: exit 4 (plan T-033, L-046).
+# A run GitHub never started (no runner: spending limit, billing) is not a red check: exit 4 (template L-064).
 # Fixture from main-guard 39916343646, attempt 1: the job has no steps, its check run carries the reason.
 unstarted='{"jobs": [{"id": 120, "name": "guard", "conclusion": "failure", "steps": []}]}'
 billing='[{"annotation_level": "failure", "message": "The job was not started because recent account payments have failed or your spending limit needs to be increased."}, {"annotation_level": "notice", "message": "The ubuntu-latest label will migrate to Ubuntu 26"}]'
@@ -559,7 +682,7 @@ expect "wait-run: an unstarted main-guard run is an infrastructure failure" "4 H
   "$(wait_run '{"routes": {"actions/workflows/main-guard.yml/runs?branch=main&per_page=20": {"workflow_runs": [{"id": 91, "created_at": "2026-10-23T07:13:10Z", "status": "completed", "conclusion": "failure", "html_url": "u"}]}, "actions/runs/91/jobs?per_page=50": '"$unstarted"', "check-runs/120/annotations": '"$billing"'}}' \
     --workflow main-guard.yml --since 2026-10-23T07:10:00Z)"
 
-# GitHub runs no pull_request workflow for a PR in conflict with main: say so at once, exit 5 (plan T-033, L-048).
+# GitHub runs no pull_request workflow for a PR in conflict with main: say so at once, exit 5 (template L-064).
 conflict_routes() { # <mergeable_state> <runs answer>
   printf '{"routes": {"pulls/7": {"head": {"sha": "abc1234"}, "mergeable_state": "%s"}, "actions/workflows/pr-check.yml/runs?head_sha=abc1234&per_page=10": %s, "actions/runs/91/jobs?per_page=50": {"jobs": []}}}' "$1" "$2"
 }
@@ -577,8 +700,8 @@ expect "wait-run: an unknown mergeable state keeps waiting" "2 CHƯA" \
 expect "wait-run: a run that exists is waited for even if the PR became dirty" "0 XANH" \
   "$(conflict_run "$(conflict_routes dirty "$green")")"
 
-# wait-run.sh --pr follows the newest commit of the PR and --sha waits for the commit just pushed (plan T-044, L-066).
-# Fixture from PR #100: e35ae86 was pushed first, eba5f98 after it; GitHub cancelled the run of e35ae86 once eba5f98
+# wait-run.sh --pr follows the newest commit of the PR and --sha waits for the commit just pushed (template L-087, from camera-pose T-044).
+# Fixture from camera-pose PR #100: e35ae86 was pushed first, eba5f98 after it; GitHub cancelled the run of e35ae86 once eba5f98
 # had a run. pulls/7 is a sequence of heads; the read at the start of the script takes the first element.
 head_at() { printf '{"head": {"sha": "%s"}, "mergeable_state": "%s"}' "$1" "${2:-clean}"; }
 cancelled='{"workflow_runs": [{"id": 90, "status": "completed", "conclusion": "cancelled", "html_url": "u"}]}'
@@ -655,7 +778,7 @@ resume_check() { # <run status> <minutes since the last commit> [extra routes JS
   last="$(python3 -c "import datetime as d; print((d.datetime(2026,10,18,3,0,tzinfo=d.timezone.utc)-d.timedelta(minutes=$2)).strftime('%Y-%m-%dT%H:%M:%SZ'))")"
   cat > "$work/resume.json" << JSON
 {"routes": {
-  "branches?per_page=100": [{"name": "main"}, {"name": "claude/RUN-20261018-01-report"}, {"name": "claude/T-007-x"}, {"name": "claude/T-099-other"}],
+  "branches?per_page=100&page=1": [{"name": "main"}, {"name": "claude/RUN-20261018-01-report"}, {"name": "claude/T-007-x"}, {"name": "claude/T-099-other"}],
   "contents/docs/runs/RUN-20261018-01.md?ref=claude/RUN-20261018-01-report": "---\nid: RUN-20261018-01\nstatus: $1\nstarted_at: 2026-10-17 22:00 UTC\n---\n\n## 1. Danh sách chạy\n\n| 1 | T-007 | demo |\n",
   "commits/claude/RUN-20261018-01-report": {"commit": {"committer": {"date": "2026-10-17T22:05:00Z"}}},
   "commits/claude/T-007-x": {"commit": {"committer": {"date": "$last"}}},
@@ -673,6 +796,16 @@ expect "resume-check: a finished session is left alone" "" "$(resume_check finis
 expect "resume-check: not while main is red" "" "$(resume_check running 120 '[{"number": 5}]')"
 expect "resume-check: not a session started more than a day ago" "" \
   "$(RESUME_MAX_HOURS=3 resume_check running 120)"
+python3 -I - "$work/resume.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+first = fx["routes"].pop("branches?per_page=100&page=1")
+fx["routes"]["branches?per_page=100&page=1"] = [{"name": f"claude/old-{n}"} for n in range(100)]
+fx["routes"]["branches?per_page=100&page=2"] = first
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+expect "resume-check: finds a report branch on page 2 of the branches" docs/runs/RUN-20261018-01.md \
+  "$(PATH="$work/bin:$PATH" FIXTURE="$work/resume.json" GITHUB_REPOSITORY=o/r RESUME_NOW=2026-10-18T03:00:00Z python3 -I scripts/resume-check.py 2> /dev/null)"
 
 # DesignCompare: an identical image differs by 0%, a design without a screenshot is reported missing.
 java_cmd="java"
@@ -760,7 +893,8 @@ release_fails_with() {
   fi
 }
 write_release_properties() {
-  printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" > "$release_dir/release.properties"
+  printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" "appsFlyerDevKey=${4-AbCdEf0123456789XyZ}" \
+    > "$release_dir/release.properties"
 }
 mkdir -p "$release_dir"
 release_fails_with "missing files" "/release/google-services.json"
@@ -769,13 +903,37 @@ write_release_properties "ca-app-pub-3940256099942544~3347511713" "" "https://cd
 release_fails_with "Google test app id" "mã thử của Google"
 write_release_properties "ca-app-pub-1234567890123456/1111111111" "" "https://cdn.example.vn/"
 release_fails_with "ad unit given as app id" "admobAppId phải có dạng"
-write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "https://cdn.example.vn/"
-release_fails_with "Google test ad unit" "mã quảng cáo thử"
+# A Google test unit given by hand is accepted (2026-10-26): the folder check goes on to the next value.
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "http://cdn.example.vn/"
+release_fails_with "a Google test ad unit given by hand passes the ad unit check" "assetsBaseUrl phải"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
+release_fails_with "missing AppsFlyer dev key" "thiếu appsFlyerDevKey"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "key with spaces"
+release_fails_with "AppsFlyer dev key with odd characters" "thiếu appsFlyerDevKey"
+expect "release.sh never prints the AppsFlyer dev key" 0 \
+  "$(write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/" "SecretKey0123456789"
+     scripts/release.sh --config "$release_dir" 2>&1 < /dev/null | grep -c 'SecretKey0123456789' || true)"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner" "https://cdn.example.vn/"
 release_fails_with "malformed ad unit entry" "mục adUnits"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/"
 release_fails_with "assets address without https" "assetsBaseUrl phải"
 release_fails_with "unknown argument" "tham số không hợp lệ" --upload
+expect "release.sh: native placements and placements with attributes need a production ad unit, gallery ones do not" \
+  "sample_bottom_banner sample_native_small home_full_screen inter_sounds list_native" \
+  "$(scripts/release.sh --list-placements scripts/tests/fixtures/release/AdPlacement.kt | tr '\n' ' ' | sed 's/ $//')"
+# Placements without a real unit get Google's test unit of their format, and are listed (decision 2026-10-26).
+expect "release.sh: placements without a real unit get the test unit of their format" \
+  "sample_bottom_banner=ca-app-pub-1/2;sample_native_small=ca-app-pub-3940256099942544/2247696110;home_full_screen=ca-app-pub-3940256099942544/1044960115;inter_sounds=ca-app-pub-3940256099942544/1033173712;list_native=ca-app-pub-3940256099942544/2247696110" \
+  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2> /dev/null)"
+expect "release.sh: lists the placements that got a test unit" 1 \
+  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2>&1 > /dev/null | grep -c 'không có doanh thu) cho vị trí: sample_native_small home_full_screen inter_sounds list_native.$')"
+expect "release.sh: every real placement has a test unit for its format" 0 \
+  "$(code=0; scripts/release.sh --fill-test-units core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt '' > /dev/null 2>&1 || code=$?; echo $code)"
+printf '%s\n' 'enum class AdPlacement(val key: String) {' '    WRAPPED(' '        "wrapped",' '        AdFormat.BANNER,' '    ),' '}' \
+  > "$work/WrappedAdPlacement.kt"
+expect "release.sh refuses a placement wrapped over several lines" "1 1" \
+  "$(code=0; out="$(scripts/release.sh --list-placements "$work/WrappedAdPlacement.kt" 2>&1)" || code=$?
+     echo "$code $(grep -c 'nhiều dòng (dòng 2)' <<< "$out")")"
 
 # new-app.sh renames the template into a new repository and leaves out the template's own files.
 # It exists only in the template repository: an app made from it has no new-app.sh, so the app skips these tests.
@@ -800,11 +958,13 @@ elif GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com GIT_COMMITTER_NAME=t
   expect "new-app.sh leaves out the from-app issue form" absent \
     "$([ -e "$new_app/.github/ISSUE_TEMPLATE/from-app.yml" ] && echo present || echo absent)"
   expect "new-app.sh starts an empty lessons log" 0 "$(grep -c '^### L-' "$new_app/docs/lessons.md" || true)"
+  expect "new-app.sh leaves out the template's run reports" 0 "$(ls "$new_app/docs/runs" | grep -c '^RUN-' || true)"
   expect "new-app.sh regenerates the progress page without the template's lessons" 0 \
     "$(grep -c 'L-0[0-9][0-9]' "$new_app/docs/STATUS.md" || true)"
   expect "new-app.sh leaves pages that match the documents" 0 \
     "$(cd "$new_app" && python3 -I scripts/status.py --check > /dev/null && python3 -I scripts/foundation.py --check > /dev/null; echo $?)"
   expect "new-app.sh commits everything" "" "$(git -C "$new_app" status --porcelain)"
+  expect "new-app.sh leaves the progress page out of git" "" "$(git -C "$new_app" ls-files docs/STATUS.md)"
 else
   expect "new-app.sh succeeds" ok failed
 fi
@@ -819,12 +979,15 @@ for args in "--package com.vglstudio.camera.pose.line.guide.notes" "--package No
 done
 
 # cloud-env-check.sh passes only when the environment was built from the current cloud-setup.sh and can run
-# the project's Gradle (plan T-036, L-056).
-fake_java() { # <version line> [lines printed before it]; writes a fake java printing them like `java -version`
+# the project's Gradle (L-075, from app lesson L-056 of camera-pose).
+fake_java() { # <Java major version> [line printed before it]; writes $work/fake-jdk/bin/java, which answers
+  # `java -XshowSettings:properties -version` like a real JDK (java-check.sh runs $JAVA_HOME/bin/java).
+  mkdir -p "$work/fake-jdk/bin"
   { printf '#!/bin/sh\n'
-    [ -n "${2:-}" ] && printf '%s\n' "$2" | while IFS= read -r line; do printf 'echo '"'"'%s'"'"' >&2\n' "$line"; done
-    printf 'echo '"'"'%s'"'"' >&2\necho "OpenJDK Runtime Environment" >&2\n' "$1"; } > "$work/bin/fake-java"
-  chmod +x "$work/bin/fake-java"
+    [ -n "${2:-}" ] && printf 'echo '"'"'%s'"'"' >&2\n' "$2"
+    printf 'echo "Property settings:" >&2\necho "    java.specification.version = %s" >&2\n' "$1"
+    printf 'echo '"'"'openjdk version "%s"'"'"' >&2\n' "$1"; } > "$work/fake-jdk/bin/java"
+  chmod +x "$work/fake-jdk/bin/java"
 }
 setup_version="$(sed -n 's/^SETUP_VERSION=\([0-9][0-9]*\)$/\1/p' scripts/cloud-setup.sh)"
 compile_sdk="$(sed -n 's/^compileSdk = "\([0-9][0-9]*\)"$/\1/p' gradle/libs.versions.toml)"
@@ -849,12 +1012,12 @@ expect "cloud-env-check.sh passes on the current version" pass "$(env_check "$se
 expect "cloud-env-check.sh stops on an older version" stop "$(env_check 1 "$work/gradle-home")"
 expect "cloud-env-check.sh stops without the mirror init script" stop \
   "$(env_check "$setup_version" "$work/no-gradle-home")"
-fake_java 'openjdk version "21.0.12.1" 2026-07-21' 'Picked up JAVA_TOOL_OPTIONS: -Dx=1'
+fake_java 21 'Picked up JAVA_TOOL_OPTIONS: -Dx=1'
 expect "cloud-env-check.sh passes with Java 21 after a Picked up line" pass \
-  "$(ENV_JAVA_CHECK=scripts/java-check.sh JAVA_CMD="$work/bin/fake-java" env_check "$setup_version" "$work/gradle-home")"
-fake_java 'openjdk version "26" 2026-03-17'
+  "$(ENV_JAVA_CHECK=scripts/java-check.sh JAVA_HOME="$work/fake-jdk" env_check "$setup_version" "$work/gradle-home")"
+fake_java 26
 expect "cloud-env-check.sh stops on Java 26 and names Java" stop \
-  "$(ENV_JAVA_CHECK=scripts/java-check.sh JAVA_CMD="$work/bin/fake-java" env_check "$setup_version" "$work/gradle-home")"
+  "$(ENV_JAVA_CHECK=scripts/java-check.sh JAVA_HOME="$work/fake-jdk" env_check "$setup_version" "$work/gradle-home")"
 expect "cloud-env-check.sh names Java 26 in the message" 1 "$(grep -c 'Java 26' "$work/env-check.out" || true)"
 expect "cloud-env-check.sh does not ask to paste the setup script for a Java problem" 0 \
   "$(grep -c 'dán lại toàn bộ scripts/cloud-setup.sh' "$work/env-check.out" || true)"
@@ -881,6 +1044,12 @@ expect "cloud-env-check.sh passes with the compileSdk platform" pass \
 env_check 1 "$work/gradle-home" > /dev/null
 expect "cloud-env-check.sh tells to paste the setup script for a setup problem" 1 \
   "$(grep -c 'dán lại toàn bộ scripts/cloud-setup.sh' "$work/env-check.out" || true)"
+# A version catalog without compileSdk must stop the check, not skip the SDK platform.
+printf '[versions]\nminSdk = "26"\n' > "$work/no-compile-sdk.toml"
+expect "cloud-env-check.sh stops when compileSdk cannot be read" stop \
+  "$(VERSIONS_TOML="$work/no-compile-sdk.toml" env_check "$setup_version" "$work/gradle-home")"
+expect "cloud-env-check.sh names compileSdk when it cannot be read" 1 \
+  "$(grep -c '^LỖI: không đọc được compileSdk' "$work/env-check.out" || true)"
 
 # plan-check.py finds, from the plan alone, what would otherwise stop a task during the night (L-020).
 repo="$work/plan-repo"
@@ -909,11 +1078,22 @@ write_plan "$plans/T-904-a.md" medium draft "$(row Sửa docs/data/values.json)"
 expect "plan-check: a reader the plan explains passes" pass "$(plan_check "$plans/T-904-a.md")"
 # A reader that appears after the plan was approved (a new script naming the file in a comment) is only a warning:
 # nobody may edit an approved plan, and the session runs plan-check again right before the task and skips plans
-# with errors, so every approved plan would be skipped (RUN-20261024-01, scripts/main-guard-status.sh).
-write_plan "$plans/T-908-a.md" medium approved "$(row Sửa docs/data/values.json)"
-expect "plan-check: a new reader of an approved plan only warns" pass "$(plan_check "$plans/T-908-a.md")"
+# with errors, so every approved plan of the list would be skipped (L-078).
+write_plan "$plans/T-950-a.md" medium approved "$(row Sửa docs/data/values.json)"
+expect "plan-check: a new reader of an approved plan only warns" pass "$(plan_check "$plans/T-950-a.md")"
 expect "plan-check: the warning names the new reader" 1 \
   "$(grep -c 'CHÚ Ý: scripts/reader.py nhắc tới docs/data/values.json' "$work/plan-check.out")"
+# A file name counts only as a whole word: setup-guide.md is not guide.md, docs/ROOT.md is not ROOT.md.
+echo 'Read docs/ROOT.md, then setup-guide.md.' > "$repo/scripts/other.sh"
+touch "$repo/ROOT.md" "$repo/docs/data/guide.md"
+write_plan "$plans/T-916-a.md" medium draft "$(row Sửa ROOT.md)"
+expect "plan-check: a root file is not docs/ROOT.md" pass "$(plan_check "$plans/T-916-a.md")"
+write_plan "$plans/T-917-a.md" medium draft "$(row Sửa docs/data/guide.md)"
+expect "plan-check: guide.md is not setup-guide.md" pass "$(plan_check "$plans/T-917-a.md")"
+echo 'Read ROOT.md and data/guide.md.' > "$repo/scripts/other.sh"
+expect "plan-check: a root file named alone is a mention" stop "$(plan_check "$plans/T-916-a.md")"
+expect "plan-check: a base name after a folder is a mention" stop "$(plan_check "$plans/T-917-a.md")"
+rm "$repo/scripts/other.sh"
 write_plan "$plans/T-905-a.md" medium draft "$(row Sửa core/x/B.kt)"
 expect "plan-check: core module needs a high-risk plan" stop "$(plan_check "$plans/T-905-a.md")"
 write_plan "$plans/T-906-a.md" high approved "$(row Sửa core/x/B.kt)"
@@ -923,20 +1103,6 @@ expect "plan-check: design image without screenshot stops" stop "$(plan_check "$
 write_plan "$plans/T-908-a.md" medium draft \
   "$(row Tạo feature/demo/src/test/screenshots/DemoScreen_main_light.png)" 'Chạy scripts/design-compare.sh demo.'
 expect "plan-check: design image with its screenshot passes" pass "$(plan_check "$plans/T-908-a.md")"
-# A plan smaller than its feature declares the design images another ticket draws; they need no screenshot here.
-# shellcheck disable=SC2016
-other='Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác (T-920): `DemoScreen_main_light`.'
-write_plan "$plans/T-916-a.md" medium draft "$(row Sửa feature/demo/A.kt)" "$other"
-expect "plan-check: a design image of another ticket passes" pass "$(plan_check "$plans/T-916-a.md")"
-# shellcheck disable=SC2016
-write_plan "$plans/T-917-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
-  'Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác (T-920): `DemoScreen_typo_light`.'
-expect "plan-check: an unknown image of another ticket stops" stop "$(plan_check "$plans/T-917-a.md")"
-expect "plan-check: names the unknown image" 1 "$(grep -c 'DemoScreen_typo_light' "$work/plan-check.out")"
-# shellcheck disable=SC2016
-write_plan "$plans/T-918-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
-  'Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác: `DemoScreen_main_light`.'
-expect "plan-check: images of another ticket without the ticket id stop" stop "$(plan_check "$plans/T-918-a.md")"
 write_plan "$plans/T-909-a.md" medium draft "$(row Tạo feature/demo/New.kt)"
 printf -- '---\nid: T-910\ndepends_on: [T-909]\n---\n' > "$repo/docs/features/demo/tickets/T-910-a.md"
 write_plan "$plans/T-910-a.md" medium draft "$(row Sửa feature/demo/New.kt)"
@@ -960,7 +1126,7 @@ printf -- '---\nticket: T-915\nstatus: draft\nrisk_level: low\ntoken_estimate: 2
   "$(row Sửa feature/demo/A.kt)" > "$plans/T-915-a.md"
 plan_check "$plans/T-915-a.md" > /dev/null
 expect "plan-check: a token estimate removes the warning" 0 "$(grep -c 'token_estimate' "$work/plan-check.out")"
-# A new technique (criterion E from 2) needs a trial run with scripts/check.sh before review (L-001, L-010).
+# A new technique (criterion E from 2) needs a trial run with scripts/check.sh before review (L-042).
 novel='| E. Độ mới của kỹ thuật | 2 | x |'
 write_plan "$plans/T-919-a.md" medium draft "$(row Sửa feature/demo/A.kt)" "$novel"
 expect "plan-check: a draft plan with a new technique and no trial run stops" stop "$(plan_check "$plans/T-919-a.md")"
@@ -990,8 +1156,22 @@ expect "plan-check: a library missing from the catalog stops" stop "$(plan_check
 expect "plan-check: names the missing library" 1 "$(grep -c 'com.squareup.okhttp3:okhttp' "$work/plan-check.out")"
 write_plan "$plans/T-927-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Dùng `androidx.core:core-ktx` (`libs.androidx.core.ktx`).'
 expect "plan-check: a library already in the catalog passes" pass "$(plan_check "$plans/T-927-a.md")"
+# A plan smaller than its feature declares the design images another ticket draws; they need no screenshot here.
+# shellcheck disable=SC2016
+write_plan "$plans/T-928-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  'Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác (T-930): `DemoScreen_main_light`.'
+expect "plan-check: a design image of another ticket passes" pass "$(plan_check "$plans/T-928-a.md")"
+# shellcheck disable=SC2016
+write_plan "$plans/T-929-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  'Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác (T-930): `DemoScreen_typo_light`.'
+expect "plan-check: an unknown image of another ticket stops" stop "$(plan_check "$plans/T-929-a.md")"
+expect "plan-check: names the unknown image" 1 "$(grep -c 'DemoScreen_typo_light' "$work/plan-check.out")"
+# shellcheck disable=SC2016
+write_plan "$plans/T-930-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+  'Chạy scripts/design-compare.sh demo. Ảnh thiết kế của ticket khác: `DemoScreen_main_light`.'
+expect "plan-check: images of another ticket without the ticket id stop" stop "$(plan_check "$plans/T-930-a.md")"
 rm "$repo/feature/demo/AndroidManifest.xml" "$repo/app/src/main/AndroidManifest.xml" "$repo/gradle/libs.versions.toml"
-# What scripts/check.sh refuses shows up in the plan (rule 9, L-013). The Kotlin quotes are plan text.
+# What scripts/check.sh refuses shows up in the plan (rule 9, L-050). The Kotlin quotes are plan text.
 # shellcheck disable=SC2016
 shot='Test gọi `captureRoboImage("src/test/screenshots/DemoNew.png")`.'
 # shellcheck disable=SC2016
@@ -1019,7 +1199,7 @@ write_plan "$plans/T-934-a.md" medium approved "$(row Sửa feature/demo/A.kt)" 
   "$refused"$'\n\n'"$decision_v1"
 expect "plan-check: an approved plan refused by check.sh only warns" pass "$(plan_check "$plans/T-934-a.md")"
 expect "plan-check: warns about the refused captureRoboImage" 1 "$(grep -c 'CHÚ Ý: plan ghi captureRoboImage' "$work/plan-check.out")"
-# The ticket's status follows the plan's (rule 10, L-019).
+# The ticket's status follows the plan's (rule 10, L-050).
 printf -- '---\nid: T-935\nstatus: planned\n---\n' > "$repo/docs/features/demo/tickets/T-935-a.md"
 write_plan "$plans/T-935-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$decision_v1"
 expect "plan-check: a ticket behind its approved plan only warns" pass "$(plan_check "$plans/T-935-a.md")"
@@ -1033,8 +1213,9 @@ write_plan "$plans/T-937-a.md" medium approved "$(row Sửa feature/demo/A.kt)" 
 plan_check "$plans/T-937-a.md" > /dev/null
 expect "plan-check: a ticket in step with its plan gets no warning" 0 "$(grep -c 'ticket T-937' "$work/plan-check.out")"
 
-# Rule 11 (plan T-046, L-062): every manual test row of section 4 says where it runs; an emulator row names a scenario
-# file that exists and passes `device-scenario.py check`. An error for a draft plan, a warning for an approved one (plan T-052).
+# Rule 11 (L-085): every manual test row of section 4 says where it runs; an emulator row names a scenario
+# file that exists and passes `device-scenario.py check`. An error for a draft plan, a warning for an approved one
+# (camera-pose T-052).
 mkdir -p "$repo/feature/demo/src/deviceScenarios" "$repo/feature/demo/src/main/res/values"
 printf 'object DemoTags { const val TAG = "demo_tag" }\n' > "$repo/feature/demo/DemoTags.kt"
 printf '<resources>\n    <string name="demo_text">Demo</string>\n</resources>\n' > "$repo/feature/demo/src/main/res/values/strings.xml"
@@ -1076,31 +1257,34 @@ manual_rows "$plans/T-945-a.md" \
   'Kiểm tra thủ công (máy thật: camera thật)' 'Kiểm tra thủ công (người: đọc tài liệu)' 'Kiểm tra tự động (unit test)'
 expect "plan-check: a correct plan has no line of rule 11 (the rule does run on T-940)" "pass 0 1" \
   "$(plan_check "$plans/T-945-a.md") $(rule11) $(plan_check "$plans/T-940-a.md" > /dev/null; rule11)"
-# Plan T-052: rule 11 stops a draft plan, as an error, and only warns for an approved one, like rule 7.
-write_plan "$plans/T-949-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
-manual_rows "$plans/T-949-a.md" 'Kiểm tra thủ công'
+# camera-pose T-052: rule 11 stops a draft plan, as an error, and only warns for an approved one, like rule 7.
+write_plan "$plans/T-951-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+manual_rows "$plans/T-951-a.md" 'Kiểm tra thủ công'
 expect "plan-check: rule 11 stops a draft plan, as an error" "stop 1 0" \
-  "$(plan_check "$plans/T-949-a.md") $(grep -c 'LỖI:.*quy tắc 11' "$work/plan-check.out" || true) $(grep -c 'CHÚ Ý:.*quy tắc 11' "$work/plan-check.out" || true)"
-write_plan "$plans/T-950-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$decision_v1"
-manual_rows "$plans/T-950-a.md" 'Kiểm tra thủ công'
+  "$(plan_check "$plans/T-951-a.md") $(grep -c 'LỖI:.*quy tắc 11' "$work/plan-check.out" || true) $(grep -c 'CHÚ Ý:.*quy tắc 11' "$work/plan-check.out" || true)"
+write_plan "$plans/T-952-a.md" medium approved "$(row Sửa feature/demo/A.kt)" "$decision_v1"
+manual_rows "$plans/T-952-a.md" 'Kiểm tra thủ công'
 expect "plan-check: control: rule 11 only warns for an approved plan" "pass 1 0" \
-  "$(plan_check "$plans/T-950-a.md") $(grep -c 'CHÚ Ý:.*quy tắc 11' "$work/plan-check.out" || true) $(grep -c 'LỖI:.*quy tắc 11' "$work/plan-check.out" || true)"
+  "$(plan_check "$plans/T-952-a.md") $(grep -c 'CHÚ Ý:.*quy tắc 11' "$work/plan-check.out" || true) $(grep -c 'LỖI:.*quy tắc 11' "$work/plan-check.out" || true)"
 
-# Rule 12: a cloud session has no TMPDIR, so a bare $TMPDIR writes to / (L-071).
-# The dollar signs are plan text, not shell expansion.
+# Rule 12 (L-088): TMPDIR is not set in a cloud session, so "$TMPDIR/x" writes to /x. A plan writes ${TMPDIR:-/tmp}.
+# The dollar signs below are plan text, not shell expansion.
 # shellcheck disable=SC2016
-write_plan "$plans/T-946-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Chép: `git show origin/main:scripts/x.sh > "$TMPDIR/x.sh"`, rồi `${TMPDIR}/x.sh`.'
-expect "plan-check: a bare TMPDIR in a draft plan stops, both spellings named" "stop 2" \
-  "$(plan_check "$plans/T-946-a.md") $(grep -c 'LỖI:.*TMPDIR.*L-071' "$work/plan-check.out" || true)"
+tmpdir_lines() { grep -c 'quy tắc 12' "$work/plan-check.out" || true; }
 # shellcheck disable=SC2016
-write_plan "$plans/T-947-a.md" high approved "$(row Sửa feature/demo/A.kt)" 'Chép vào `"$TMPDIR/x.sh"`.'
-expect "plan-check: a bare TMPDIR in an approved plan only warns" "1" \
-  "$(plan_check "$plans/T-947-a.md" > /dev/null; grep -c 'CHÚ Ý:.*TMPDIR.*L-071' "$work/plan-check.out" || true)"
-# Control: the default form passes.
+write_plan "$plans/T-946-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Chạy `git show origin/main:x.sh > "$TMPDIR/x.sh"`.'
+expect "plan-check: a draft plan with \$TMPDIR and no default stops" "stop 1" \
+  "$(plan_check "$plans/T-946-a.md") $(grep -c 'LỖI: quy tắc 12' "$work/plan-check.out" || true)"
 # shellcheck disable=SC2016
-write_plan "$plans/T-948-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Chép vào `"${TMPDIR:-/tmp}/x.sh"`.'
-expect "plan-check: TMPDIR with a default passes" "pass 0" \
-  "$(plan_check "$plans/T-948-a.md") $(grep -c 'TMPDIR' "$work/plan-check.out" || true)"
+write_plan "$plans/T-947-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Ghi vào `${TMPDIR}/out.txt`.'
+expect "plan-check: a draft plan with \${TMPDIR} and no default stops" stop "$(plan_check "$plans/T-947-a.md")"
+# shellcheck disable=SC2016
+write_plan "$plans/T-948-a.md" medium approved "$(row Sửa feature/demo/A.kt)" 'Ghi vào `$TMPDIR/out.txt`.'$'\n\n'"$decision_v1"
+expect "plan-check: an approved plan with \$TMPDIR only warns" "pass 1" \
+  "$(plan_check "$plans/T-948-a.md") $(grep -c 'CHÚ Ý: quy tắc 12' "$work/plan-check.out" || true)"
+# shellcheck disable=SC2016
+write_plan "$plans/T-949-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Ghi vào `${TMPDIR:-/tmp}/out.txt` và `$TMPDIR_OLD`.'
+expect "plan-check: \${TMPDIR:-/tmp} passes" "pass 0" "$(plan_check "$plans/T-949-a.md") $(tmpdir_lines)"
 
 # The latest run list must not get an error from rule 11 (the plans of a run list are approved, so rule 11 only warns).
 latest_run="$(ls docs/runs/RUN-*.md | sort | tail -n 1)"
@@ -1148,6 +1332,8 @@ expect "run-check: a ready list has no warning" 0 "$(grep -c 'CHÚ Ý' "$work/ru
 # The pre-run review table also sits in section 1 and names tickets; only the run table lists tasks.
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)\n\n### Kiểm tra trước khi duyệt\n\n| Mức | Ticket | Vấn đề | Xử lý |\n| --- | --- | --- | --- |\n| Chặn | T-002 | x | y |"
 expect "run-check: a review table naming a ticket is not a task" pass "$(run_check)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"'\n\n### Kiểm tra trước khi duyệt\n\n| Mức | Ticket | Vấn đề | Xử lý |\n| --- | --- | --- | --- |\n| Nên sửa | T-002 | x | y |'
+expect "run-check: the review table is not read as the list" pass "$(run_check)"
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 write_spec changed 'Đồng ý.'
 expect "run-check: a spec waiting for confirmation stops" stop "$(run_check)"
@@ -1164,8 +1350,8 @@ write_ticket T-001 ''
 write_run_plan T-002 feature/demo/A.kt '| Khác | Unit | `bTest` |'
 expect "run-check: a scenario without a test row stops" stop "$(run_check)"
 write_run_plan T-002 feature/demo/A.kt '| KB-1 | Unit | `bTest` |'
-expect "run-check: two independent plans changing one file warn" 1 "$(run_check > /dev/null; grep -c 'L-014' "$work/run-check.out")"
-# Two plans that both create one file, even dependent ones: only one may create it, the other reuses it (L-033).
+expect "run-check: two independent plans changing one file warn" 1 "$(run_check > /dev/null; grep -c 'L-045' "$work/run-check.out")"
+# Two plans that both create one file, even dependent ones: only one may create it, the other reuses it (L-054).
 write_ticket T-002 'T-001'
 write_run_plan T-001 feature/demo/New.kt '| KB-1 | Unit | `aTest` |' Tạo
 write_run_plan T-002 feature/demo/New.kt '| KB-1 | Unit | `bTest` |' Tạo
@@ -1186,17 +1372,17 @@ printf -- '---\nid: T-002\nstatus: approved\nspec:\nscenarios: [KB-1]\ndepends_o
 expect "run-check: a ticket with scenarios but no spec stops" stop "$(run_check)"
 write_ticket T-002 ''
 
-# run-check.py reads a plan's order hints and the files of other plans of the list (plan T-042, L-060).
+# run-check.py reads a plan's order hints and the files of other plans of the list (L-078).
 # write_run_plan's fifth argument goes into section 3 of the plan, the sixth is a section 6 line.
 write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-001 trước T-002.'
 write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
 write_run "$(run_row 1 T-002)$(run_row 2 T-001)"
 expect "run-check: a plan's order hint broken by the list stops" stop "$(run_check)"
 expect "run-check: the broken order hint names the pair and the lesson" 1 \
-  "$(grep -c 'T-001 trước T-002.*L-060\|L-060.*T-001 trước T-002' "$work/run-check.out" || true)"
+  "$(grep -c 'T-001 trước T-002.*L-078\|L-078.*T-001 trước T-002' "$work/run-check.out" || true)"
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 expect "run-check: a list following the order hint passes" pass "$(run_check)"
-expect "run-check: a list following the order hint has no L-060 message" 0 "$(grep -c 'L-060' "$work/run-check.out" || true)"
+expect "run-check: a list following the order hint has no L-078 message" 0 "$(grep -c 'L-078' "$work/run-check.out" || true)"
 write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
 write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |' Sửa '' '- Đề xuất thứ tự chạy: sau T-001.'
 write_run "$(run_row 1 T-002)$(run_row 2 T-001)"
@@ -1217,10 +1403,59 @@ write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- �
 expect "run-check: a quoted old hint is no hint" pass "$(run_check)"
 write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-001 trước T-002.'
 expect "run-check: the control hint in the same list still stops" stop "$(run_check)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' '- Đề xuất thứ tự chạy: T-001 trước T-002.'
 write_run "$(run_row 1 T-002)$(run_row 2 T-001)\n\nBỏ đề xuất thứ tự: T-001 trước T-002 (hai plan chỉ chung vài dòng)."
 expect "run-check: a dropped order hint with a reason passes" pass "$(run_check)"
 expect "run-check: a dropped order hint with a reason warns once" 1 "$(grep -c 'CHÚ Ý.*T-001 trước T-002' "$work/run-check.out" || true)"
+
+# The order hint parser is conservative (review of PR 141): only a hint whose subject is the plan's own task stops
+# the list; a hint about two other tasks is only a warning; negation, options and "hoặc" give no hint.
+# Each case is a sentence in the plan of T-003, with a list order that the wrong reading would break.
+write_ticket T-003 ''
+touch "$rr/feature/demo/C.kt"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
+write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
+plan3() { write_run_plan T-003 feature/demo/C.kt '| KB-1 | Unit | `cTest` |' Sửa '' "$1"; }
+plan3 '- Đề xuất thứ tự chạy: T-002 chạy sau T-001.'
+write_run "$(run_row 1 T-003)$(run_row 2 T-001)$(run_row 3 T-002)"
+expect "run-check: 'B chạy sau A' in another plan is not about this plan" pass "$(run_check)"
+expect "run-check: 'B chạy sau A' gives no pair with this plan" 0 "$(grep -c 'T-003' "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-002)$(run_row 2 T-001)$(run_row 3 T-003)"
+expect "run-check: a hint about two other plans only warns" pass "$(run_check)"
+expect "run-check: the warning reads 'B chạy sau A' as A before B" 1 \
+  "$(grep -c 'CHÚ Ý.*T-001 trước T-002' "$work/run-check.out" || true)"
+plan3 '- Đề xuất thứ tự chạy: T-001 chạy trước T-002.'
+write_run "$(run_row 1 T-002)$(run_row 2 T-003)$(run_row 3 T-001)"
+expect "run-check: 'A chạy trước B' in another plan does not stop" pass "$(run_check)"
+expect "run-check: 'A chạy trước B' is not read as this plan before B" 0 \
+  "$(grep -c 'T-003 trước T-002' "$work/run-check.out" || true)"
+expect "run-check: 'A chạy trước B' is read as A before B" 1 "$(grep -c 'CHÚ Ý.*T-001 trước T-002' "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-003)$(run_row 2 T-001)$(run_row 3 T-002)"
+plan3 '- Đề xuất thứ tự chạy: không nên chạy sau T-001.'
+expect "run-check: 'không nên chạy sau' is no hint" pass "$(run_check)"
+expect "run-check: 'không nên chạy sau' has no L-078 message" 0 "$(grep -c 'L-078' "$work/run-check.out" || true)"
+plan3 '- Đề xuất thứ tự chạy: chưa cần chạy sau T-001.'
+expect "run-check: 'chưa' is no hint" pass "$(run_check)"
+write_run "$(run_row 1 T-002)$(run_row 2 T-003)$(run_row 3 T-001)"
+plan3 '- Đề xuất thứ tự chạy: có thể sau T-001 hoặc trước T-002.'
+expect "run-check: 'có thể ... hoặc ...' is no hint" pass "$(run_check)"
+expect "run-check: 'có thể ... hoặc ...' has no L-078 message" 0 "$(grep -c 'L-078' "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-003)$(run_row 2 T-001)$(run_row 3 T-002)"
+plan3 '- Thứ Tự Chạy: sau T-001.'
+expect "run-check: the order label is read in any case" stop "$(run_check)"
+plan3 '- Đề xuất thứ tự chạy: sau T-001, T-002.'
+write_run "$(run_row 1 T-001)$(run_row 2 T-003)$(run_row 3 T-002)"
+expect "run-check: 'sau A, B' reads every task of the list" stop "$(run_check)"
+expect "run-check: 'sau A, B' names the second task" 1 "$(grep -c 'T-002 trước T-003' "$work/run-check.out" || true)"
+plan3 '- Đề xuất thứ tự chạy: sau T-001 và T-002.'
+expect "run-check: 'sau A và B' reads every task of the list" stop "$(run_check)"
+# Positive control: the same list with the plan's own task as explicit subject stops.
+plan3 '- Đề xuất thứ tự chạy: T-003 chạy sau T-002.'
+expect "run-check: a hint with this plan as subject stops" stop "$(run_check)"
+plan3 '- Đề xuất thứ tự chạy: T-003 chạy trước T-002.'
+expect "run-check: a hint with this plan as subject that the list follows passes" pass "$(run_check)"
+rm -f "$rr/docs/features/demo/tickets/T-003-x.md" "$rr/docs/features/demo/plans/T-003-x.md" "$rr/feature/demo/C.kt"
 
 # Files of other plans: a plan using a file that a later plan creates (and not in its own section 3.2).
 git init -q "$rr"
@@ -1244,17 +1479,17 @@ write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa 'Dùng 
 write_run_plan T-002 feature/demo/strings.xml '| KB-1 | Unit | `bTest` |' Tạo
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 run_check > /dev/null
-expect "run-check: a common file name is no use" 0 "$(grep -c 'L-060' "$work/run-check.out" || true)"
+expect "run-check: a common file name is no use" 0 "$(grep -c 'L-078' "$work/run-check.out" || true)"
 write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa '' 'Plan kia có thể thêm `Unfolded.kt`, không ảnh hưởng.'
 write_run_plan T-002 feature/demo/Unfolded.kt '| KB-1 | Unit | `bTest` |' Tạo
 run_check > /dev/null
-expect "run-check: a file named only in section 6 is no use" 0 "$(grep -c 'L-060' "$work/run-check.out" || true)"
+expect "run-check: a file named only in section 6 is no use" 0 "$(grep -c 'L-078' "$work/run-check.out" || true)"
 rm -rf "$rr/.git"
 write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
 write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 
-# plan-queue.py picks the tickets whose plan the session drafts at the end of a run (plan T-045, L-061).
+# plan-queue.py picks the tickets whose plan the session drafts at the end of a run (L-084).
 pq="$work/pq"
 mkdir -p "$pq/docs/features/demo/tickets" "$pq/docs/features/demo/plans"
 pq_git() { GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t git -C "$pq" "$@"; }
@@ -1290,12 +1525,17 @@ write_pq_ticket T-917 ready '' KB-1 '' '' ''
 write_pq_ticket T-918 ready features/demo/missing.md KB-1 '' '' ''
 write_pq_ticket T-919 ready '' '' '' '' ''
 write_pq_ticket T-920 ready '' '' '' '' ''
+write_pq_ticket T-921 stopped '' '' '' '' features/demo/plans/T-921-x.md
+write_pq_ticket T-922 ready '' '' T-921 '' ''
+write_pq_ticket T-923 backlog "$S" KB-1 '' '' ''
+write_pq_ticket T-924 cancelled '' '' '' '' features/demo/plans/T-924-x.md
+write_pq_ticket T-925 backlog '' '' T-924 '' ''
 touch "$pq/README"
 pq_git init -q -b main
 pq_git add -A
 pq_git commit -q -m init
 pq_git update-ref refs/remotes/origin/claude/plan-T-919-x HEAD
-pq_fixture='{"routes": {"pulls?state=open&per_page=100": [{"number": 77}], "pulls/77/files?per_page=100": [{"filename": "docs/features/demo/tickets/T-920-x.md"}]}}'
+pq_fixture='{"routes": {"pulls?state=open&per_page=100&page=1": [{"number": 77}], "pulls/77/files?per_page=100&page=1": [{"filename": "docs/features/demo/tickets/T-920-x.md"}]}}'
 echo "$pq_fixture" > "$work/pq.json"
 pq_run() { # <args...>; stdout of the script, its stderr goes to $work/pq.err
   PLAN_QUEUE_ROOT="${PQ_ROOT:-$pq}" PATH="$work/bin:$PATH" FIXTURE="${PQ_FIXTURE:-$work/pq.json}" \
@@ -1305,7 +1545,7 @@ pq_codes() { PLAN_QUEUE_ROOT="${PQ_ROOT:-$pq}" PATH="$work/bin:$PATH" FIXTURE="$
   python3 -I scripts/plan-queue.py "$@" > /dev/null 2>&1 && echo 0 || echo $?; }
 pq_ids() { pq_run "$@" | cut -f1 | tr '\n' ' ' | sed 's/ $//'; }
 all_ids="$(pq_ids --max 20)"
-expect "plan-queue: order is sprint, then ticket number" "T-901 T-910 T-902 T-911 T-912 T-903 T-908 T-913" "$all_ids"
+expect "plan-queue: order is sprint, then ticket number" "T-901 T-910 T-902 T-911 T-912 T-903 T-908 T-913 T-923" "$all_ids"
 expect "plan-queue: an approved ticket is not queued" 0 "$(grep -c 'T-909' <<< "$all_ids" || true)"
 expect "plan-queue: a ticket with a plan is not queued" 0 "$(grep -c 'T-904' <<< "$all_ids" || true)"
 expect "plan-queue: a stopped ticket is not queued" 0 "$(grep -c 'T-914' <<< "$all_ids" || true)"
@@ -1320,11 +1560,14 @@ expect "plan-queue: a missing spec file is skipped" 1 "$(pq_err 'T-918: bỏ qua
 expect "plan-queue: scenarios without spec are skipped" 1 "$(pq_err 'T-917: bỏ qua.*có kịch bản mà không có spec')"
 expect "plan-queue: a dependency without plan skips the ticket" 1 "$(pq_err 'T-907: bỏ qua, chờ T-905')"
 expect "plan-queue: a stopped dependency is skipped" 1 "$(pq_err 'T-915: bỏ qua.*T-914 đang stopped')"
+expect "plan-queue: a stopped dependency with a plan is skipped" 1 "$(pq_err 'T-922: bỏ qua.*T-921 đang stopped')"
+expect "plan-queue: a cancelled dependency with a plan is skipped" 1 "$(pq_err 'T-925: bỏ qua.*T-924 đang cancelled')"
+expect "plan-queue: a backlog ticket is queued" 1 "$(grep -c 'T-923' <<< "$all_ids" || true)"
 expect "plan-queue: a missing dependency is skipped" 1 "$(pq_err 'T-916: bỏ qua.*T-999 không có ticket')"
 expect "plan-queue: a ticket with a plan branch is skipped" 1 "$(pq_err 'T-919: bỏ qua.*đang có plan trên nhánh origin/claude/plan-T-919-x')"
 expect "plan-queue: a ticket in an open PR is skipped" 1 "$(pq_err 'T-920: bỏ qua.*đang có PR mở #77')"
 expect "plan-queue: --max limits the list" "T-901 T-910" "$(pq_ids --max 2)"
-expect "plan-queue: default is 3" "T-901 T-910 T-902" "$(pq_ids)"
+expect "plan-queue: default is 2" "T-901 T-910" "$(pq_ids)"
 expect "plan-queue: the line has the ticket path" "T-901 docs/features/demo/tickets/T-901-x.md" \
   "$(pq_run --max 1 | tr '\t' ' ')"
 expect "plan-queue: skipped tickets do not change the exit code" 0 "$(pq_codes --max 20)"
@@ -1340,9 +1583,25 @@ printf -- '---\nid: X-1\nstatus: ready\n---\n' > "$work/pq2/docs/features/demo/t
 printf -- '---\nid: T-930\nstatus: ready\n---\n' > "$work/pq2/docs/features/demo/tickets/T-930-x.md"
 expect "plan-queue: a ticket id that is not T-NNN exits 2" 2 "$(PQ_ROOT="$work/pq2" pq_codes)"
 expect "plan-queue: a gh error exits 2" 2 "$(PQ_FIXTURE="$work/pq-nogh.json" pq_codes)"
-echo '{"routes": {"pulls?state=open&per_page=100": []}}' > "$work/pq-empty.json"
+echo '{"routes": {"pulls?state=open&per_page=100&page=1": []}}' > "$work/pq-empty.json"
 expect "plan-queue: runs on the repository" 1 \
   "$([ "$(PQ_ROOT="$PWD" PQ_FIXTURE="$work/pq-empty.json" pq_codes --max 1)" != 2 ] && echo 1 || echo 0)"
+expect "plan-queue: an ssh remote names the same repo" 0 \
+  "$(GIT_CONFIG_VALUE_0=git@github.com:o/r.git pq_codes --max 1)"
+expect "plan-queue: a remote that is not GitHub exits 2 without printing it" "2 0" \
+  "$(GIT_CONFIG_VALUE_0=https://user:tok@mirror.example/o/r.git pq_codes) $(GIT_CONFIG_VALUE_0=https://user:tok@mirror.example/o/r.git pq_run > /dev/null; grep -c 'tok' "$work/pq.err" || true)"
+# Pages are read with "&page=N", not --paginate (L-092): a PR on page 2 of the open PRs still holds its ticket.
+python3 -I - "$work/pq-paged.json" << 'PY'
+import json, sys
+routes = {"pulls?state=open&per_page=100&page=1": [{"number": 1000 + n} for n in range(100)],
+          "pulls?state=open&per_page=100&page=2": [{"number": 77}],
+          "pulls/77/files?per_page=100&page=1": [{"filename": "docs/features/demo/tickets/T-920-x.md"}]}
+routes.update({f"pulls/{1000 + n}/files?per_page=100&page=1": [] for n in range(100)})
+json.dump({"routes": routes}, open(sys.argv[1], "w"))
+PY
+paged_ids="$(PQ_FIXTURE="$work/pq-paged.json" pq_ids --max 20)"
+expect "plan-queue: a PR on page 2 of the open PRs still holds its ticket" "0 1" \
+  "$(grep -c 'T-920' <<< "$paged_ids" || true) $(grep -c 'T-901' <<< "$paged_ids" || true)"
 
 # token-usage.py counts tokens per task from transcripts, one usage per request, never failing the session.
 tokens="$work/token-repo"
@@ -1371,42 +1630,23 @@ token_usage report --since '2026-10-18 00:00 UTC' --run RUN-20261018-01 --csv do
 expect "token-usage: running again (started_at form) replaces the rows of the run" 3 "$(wc -l < "$tokens/docs/metrics/t.csv" | tr -d ' ')"
 expect "token-usage: the csv keeps the estimate and the total" 1 \
   "$(grep -c '^RUN-20261018-01,2026-10-18,T-031,M,2000,2,20,200,2000,180,2400,$' "$tokens/docs/metrics/t.csv")"
-# A subagent works in a worktree by path, so its transcript keeps the main checkout's branch; a line
-# "Task: T-NNN" of its brief attributes it to the task instead (L-073).
+# A subagent working in a worktree by path carries the report branch; its brief names the task on its own line (L-071).
 mkdir -p "$work/projects-brief/p/s/subagents"
 {
-  echo '{"type":"user","message":{"role":"user","content":"Plan: x\nTask: T-031\nWorktree: ../task-T-031"}}'
-  usage_line b1 claude/RUN-20261018-01-report 2026-10-18T02:00:00Z 90
+  printf '{"type":"user","message":{"role":"user","content":"Plan: x\\nTask: T-031\\nWorktree: ../task-T-031"}}\n'
+  usage_line b1 claude/RUN-20261018-01-report 2026-10-18T01:12:00Z 90
 } > "$work/projects-brief/p/s/subagents/agent-1.jsonl"
-{
-  echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Review the run, see Task: T-031 notes"}]}}'
-  usage_line b2 claude/RUN-20261018-01-report 2026-10-18T02:01:00Z 90
+{ # Mentioning a task inside a sentence is not a task line.
+  printf '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Review the run, see Task: T-031 notes"}]}}\n'
+  usage_line b2 claude/RUN-20261018-01-report 2026-10-18T01:13:00Z 90
 } > "$work/projects-brief/p/s/subagents/agent-2.jsonl"
-usage_line b3 claude/RUN-20261018-01-report 2026-10-18T02:02:00Z 90 > "$work/projects-brief/p/s.jsonl"
+usage_line b3 claude/RUN-20261018-01-report 2026-10-18T01:14:00Z 90 > "$work/projects-brief/p/s.jsonl"
 TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-brief" python3 -I scripts/token-usage.py report \
   --since 2026-10-18T00:00:00Z > "$work/tokens-brief.out"
 expect "token-usage: a subagent whose brief has a Task line counts for that task" 1 \
   "$(grep -c '^| T-031 | M | 2k | 1k | 0.6x | 1 |' "$work/tokens-brief.out")"
 expect "token-usage: a task named in passing and the main session stay shared" 1 \
   "$(grep -c '^| Chung (ngoài task) | - | - | 2k | - | 2 |' "$work/tokens-brief.out")"
-mkdir -p "$work/projects-brief2/p/s/subagents"
-{
-  echo '{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Review only.\nTask: T-031"}]}}'
-  usage_line c1 claude/RUN-20261018-01-report 2026-10-18T02:00:00Z 90
-} > "$work/projects-brief2/p/s/subagents/agent-3.jsonl"
-TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-brief2" python3 -I scripts/token-usage.py report \
-  --since 2026-10-18T00:00:00Z > "$work/tokens-brief2.out"
-expect "token-usage: a Task line in a brief made of text parts counts for that task" "1 0" \
-  "$(grep -c '^| T-031 | M | 2k | 1k | 0.6x | 1 |' "$work/tokens-brief2.out") $(grep -c '^| Chung' "$work/tokens-brief2.out")"
-mkdir -p "$work/projects-brief3/p"
-{
-  echo '{"type":"user","message":{"role":"user","content":"Task: T-031"}}'
-  usage_line d1 claude/RUN-20261018-01-report 2026-10-18T02:00:00Z 90
-} > "$work/projects-brief3/p/s.jsonl"
-TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-brief3" python3 -I scripts/token-usage.py report \
-  --since 2026-10-18T00:00:00Z > "$work/tokens-brief3.out"
-expect "token-usage: a Task line in the main session's transcript does not count for the task" "0 1" \
-  "$(grep -c '^| T-031 |' "$work/tokens-brief3.out") $(grep -c '^| Chung (ngoài task) | - | - | 1k | - | 1 |' "$work/tokens-brief3.out")"
 expect "token-usage: no transcripts is not a failure" 0 \
   "$(TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/none" python3 -I scripts/token-usage.py report > /dev/null; echo $?)"
 expect "token-usage: estimate falls back to the starting value" 1 \
@@ -1449,6 +1689,22 @@ usage_line k1 claude/RUN-1-report 2026-10-18T02:00:00Z 90 "$work/wt-report" > "$
 expect "token-usage: a worktree of the repository is counted" 1 \
   "$(TOKEN_USAGE_ROOT="$wt_repo" python3 -I scripts/token-usage.py report --transcripts "$work/worktree.jsonl" | grep -c '^| Chung (ngoài task) | - | - | 1k | - | 1 |')"
 
+# In a git checkout, plan-check.py only searches tracked files for readers: a copy of the repository in an untracked
+# folder such as .claude/worktrees/ is not a reader of the changed file.
+grepo="$work/plan-git"
+mkdir -p "$grepo/docs/data" "$grepo/docs/features/demo/plans" "$grepo/scripts" "$grepo/.claude/worktrees/x/scripts"
+echo '{}' > "$grepo/docs/data/values.json"
+echo 'open("docs/data/values.json")' > "$grepo/.claude/worktrees/x/scripts/reader.py"
+git -C "$grepo" init -q
+git -C "$grepo" add docs/data/values.json
+write_plan "$grepo/docs/features/demo/plans/T-940-a.md" medium draft "$(row Sửa docs/data/values.json)"
+git_plan_check() { if PLAN_CHECK_ROOT="$grepo" python3 -I scripts/plan-check.py "$1" > "$work/plan-check.out" 2>&1; then echo pass; else echo stop; fi; }
+expect "plan-check: an untracked copy under .claude/worktrees is not a reader" pass \
+  "$(git_plan_check "$grepo/docs/features/demo/plans/T-940-a.md")"
+cp "$grepo/.claude/worktrees/x/scripts/reader.py" "$grepo/scripts/reader.py"
+git -C "$grepo" add scripts/reader.py
+expect "plan-check: a tracked reader still stops" stop "$(git_plan_check "$grepo/docs/features/demo/plans/T-940-a.md")"
+
 # status.py builds the progress page from the statuses in the documents.
 st="$work/status-repo/docs"
 mkdir -p "$st/features/demo/requests" "$st/features/demo/tickets" "$st/features/demo/plans" "$st/features/demo/feedback" \
@@ -1478,8 +1734,19 @@ expect "status: request shows tickets done" 1 "$(grep -c '| demo | .specified. �
 expect "status: ticket row has plan, estimate and runs" 1 \
   "$(grep -c '^| \[T-001\](features/demo/tickets/T-001-mot.md) | Một | .on-staging. | .done. (bản 2) | - | RUN-20261004-01 |$' "$page")"
 expect "status: check passes on a fresh page" 0 "$(status_page --check > /dev/null; echo $?)"
+# The lessons of an app may use "L-NNN:" and a status line with more fields; both forms are counted (L-057).
+# A lesson number used twice (two branches adding lessons at once) stops the script (L-056).
+cp "$st/lessons.md" "$work/lessons.bak"
+printf -- '# SỔ\n\n### L-001. Một bài\n\n- **Trạng thái:** proposed\n\n### L-002: Bài của app\n\n- **Trạng thái:** accepted. **Loại:** quy trình.\n' > "$st/lessons.md"
+status_page > /dev/null
+expect "status: lessons written as L-NNN: are counted" 1 "$(grep -c 'lessons.md)): 2 bài; 1 .accepted., 1 .proposed.' "$page")"
+printf -- '\n### L-002: Bài trùng số\n\n- **Trạng thái:** proposed\n' >> "$st/lessons.md"
+expect "status: a lesson number used twice stops" 1 "$(status_page > "$work/status.out" 2>&1; echo $?)"
+expect "status: names the duplicate lesson number" 1 "$(grep -c 'L-002' "$work/status.out")"
+cp "$work/lessons.bak" "$st/lessons.md"
+status_page > /dev/null
 # The progress page is not in git on main: status-page.yml builds it after each push to main and pushes it to the
-# status branch only, so PRs never conflict on it (plan T-034, L-047).
+# status branch only, so PRs never conflict on it (L-066).
 expect "status page: docs/STATUS.md is not tracked" "" "$(git ls-files docs/STATUS.md)"
 expect "status page: git ignores docs/STATUS.md" 0 "$(git check-ignore -q docs/STATUS.md; echo $?)"
 status_wf=.github/workflows/status-page.yml
@@ -1489,33 +1756,49 @@ expect "status-page.yml builds the page with status.py before pushing" yes \
   "$(awk '/python3 scripts\/status.py/ { built = 1 } /git push/ { print (built ? "yes" : "no"); exit }' "$status_wf" 2>/dev/null)"
 expect "status-page.yml runs on pushes to main that change docs" 2 \
   "$(grep -cE "^    branches: \[main\]$|^    paths: \['docs/\*\*'" "$status_wf" 2>/dev/null || true)"
+expect "status page: README links the page on the status branch, not a repository name" 1 \
+  "$(grep -c '](\.\./\.\./blob/status/docs/STATUS\.md)' README.md || true)"
 
-# Section 6 of the page, "Sẵn sàng phát hành", is built from sources already in the repo (plan T-047, L-064):
+# Section 6 of the page, "Sẵn sàng phát hành", is built from sources already in the repo (L-086):
 # AdPlacement.kt, the "Cần người kiểm tra" part of finished run reports, tickets, feedback and the origin URL.
 ad_dir="$work/status-repo/core/ads/src/main/kotlin/x"
 mkdir -p "$ad_dir" "$work/status-repo/app/src/production"
 write_ad_placement() {
-  printf -- 'enum class AdPlacement(val key: String, val format: AdFormat) {\n    POSES_BANNER("poses_banner", AdFormat.BANNER),\n    REVIEW_INTERSTITIAL("review_interstitial", AdFormat.INTERSTITIAL),\n}\n' > "$ad_dir/AdPlacement.kt"
+  printf -- 'enum class AdPlacement(\n    val key: String,\n) {\n    HOME_BANNER("home_banner", AdFormat.BANNER),\n    LIST_NATIVE("list_native", AdFormat.NATIVE_SMALL, nativeEvery = 8),\n    GALLERY_INTERSTITIAL("gallery_interstitial", AdFormat.INTERSTITIAL),\n    DONE_INTERSTITIAL("done_interstitial", AdFormat.INTERSTITIAL),\n    ;\n}\n' > "$ad_dir/AdPlacement.kt"
 }
 write_ad_placement
 printf -- 'val adUnit = "PROD-MARKER-T047"\n' > "$work/status-repo/app/src/production/ProdAds.kt"
 printf -- 'admob.app.id=PROD-MARKER-T047\n' > "$work/status-repo/release.properties"
-printf -- '\n### Cần người kiểm tra\n\n- [x] Đã xem ảnh\n  - a\n  - b\n- [ ] Kiểm FPS trên máy thật\n- [ ] Ảnh chuẩn mới: `feature/<tên>/src/test/screenshots/A.png`\n- [ ] Ảnh chuẩn screenshot mới: <màn hình, đường dẫn ảnh>\n- [ ] Test chập chờn: Không có (issue flaky không mở).\n- [ ] Ảnh chuẩn screenshot mới: không có (dừng trước bước ghi ảnh).\n- [ ] Tiêu chí kiểm tra thủ công (máy thật, người): không có\n- [ ] Kịch bản emulator lỗi hay bỏ qua: Không có\n- [ ] T-040: ghi chú, không có test cho trường hợp revert\n- [ ] Điểm rà soát mức ghi chú:\n  - x\n  - y\n\n### Task bị dừng\n\n- [ ] Không phải việc của mục kiểm\n' >> "$st/runs/RUN-20261004-01.md"
+printf -- '\n### Cần người kiểm tra\n\n- [x] Đã xem ảnh\n  - a\n  - b\n- [ ] Kiểm FPS trên máy thật\n- [ ] Ảnh chuẩn mới: `feature/<tên>/src/test/screenshots/A.png`\n- [ ] Ảnh chuẩn screenshot mới: <màn hình, đường dẫn ảnh>\n- [ ] Test chập chờn: Không có (issue flaky không mở).\n- [ ] Ảnh chuẩn screenshot mới: không có (dừng trước bước ghi ảnh).\n- [ ] Tiêu chí kiểm tra thủ công (máy thật, người): không có\n- [ ] Kịch bản emulator lỗi hay bỏ qua: Không có\n- [ ] T-040: ghi chú, không có test cho trường hợp revert\n- [ ] Mũi tên <-> và so sánh a < b, c > d\n- [ ] Dòng rất dài chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ chữ `lệnh rất dài không được cắt giữa chừng` đuôi\n- [ ] Điểm rà soát mức ghi chú:\n  - x\n  - y\n\n### Task bị dừng\n\n- [ ] Không phải việc của mục kiểm\n' >> "$st/runs/RUN-20261004-01.md"
 printf -- '---\nid: RUN-20261005-01\nstatus: running\n---\n\n### Cần người kiểm tra\n\n- [ ] Kiểm A\n' > "$st/runs/RUN-20261005-01.md"
 printf -- '---\nid: RUN-20261006-01\nstatus: finished\n---\n\n## 3. Báo cáo\n\n### Cần người kiểm tra\n\n- [ ] Kiểm B\n' > "$st/runs/RUN-20261006-01.md"
 printf -- '---\nid: RUN-20261006-02\nstatus: finished\n---\n\n### Cần người kiểm tra\n\n### Task bị dừng\n\n- [ ] Không phải việc của mục kiểm\n' > "$st/runs/RUN-20261006-02.md"
 status_page > /dev/null
 expect "status: page ends with the release readiness section" "1 5" \
   "$(grep -c '^## 6. Sẵn sàng phát hành$' "$page" || true) $(grep -c '^## [1-5]\. ' "$page" || true)"
-expect "status: release readiness lists every ad placement key" "1 1" \
-  "$(grep -c '^- .*release.md.*.poses_banner. (banner), .review_interstitial. (interstitial)' "$page" || true) $(grep -c '^- Bản production cần một mã quảng cáo thật' "$page" || true)"
+expect "status: release readiness lists every ad placement key that ships, with attributes and NATIVE_SMALL" "1 1 0" \
+  "$(grep -c '^- .*release.md.*.home_banner. (banner), .list_native. (native_small), .done_interstitial. (interstitial)\.$' "$page" || true) $(grep -c '^- Bản production cần một mã quảng cáo thật' "$page" || true) $(grep -c 'gallery_interstitial' "$page" || true)"
+cp "$ad_dir/AdPlacement.kt" "$work/AdPlacement.kt.bak"
+printf -- '    LATE_BANNER(\n        "late_banner",\n        AdFormat.BANNER,\n    ),\n' >> "$ad_dir/AdPlacement.kt"
+status_page > /dev/null
+expect "status: a placement wrapped over several lines is named, as release.sh refuses it" 1 \
+  "$(grep -c 'khai báo vị trí trên nhiều dòng' "$page" || true)"
+cp "$work/AdPlacement.kt.bak" "$ad_dir/AdPlacement.kt"
+printf -- '    SPACE_BANNER("space_banner", AdFormat.BANNER), \n    CRLF_BANNER("crlf_banner", AdFormat.BANNER),\r\n' >> "$ad_dir/AdPlacement.kt"
+status_page > /dev/null
+expect "status: a placement line release.sh skips (trailing space, CRLF) is not listed either" "0 0" \
+  "$(grep -c 'space_banner' "$page" || true) $(grep -c 'crlf_banner' "$page" || true)"
+cp "$work/AdPlacement.kt.bak" "$ad_dir/AdPlacement.kt"
 rm "$ad_dir/AdPlacement.kt"
 status_page > /dev/null
 expect "status: release readiness says when AdPlacement.kt is missing" 1 "$(grep -c 'Không tìm thấy' "$page" || true)"
 write_ad_placement
 status_page > /dev/null
-expect "status: unchecked manual checks of finished runs are listed" 4 \
+expect "status: unchecked manual checks of finished runs are listed" 6 \
   "$(grep -c '^- \[RUN-20261004-01\](runs/RUN-20261004-01.md): ' "$page" || true)"
+expect "status: <-> and a < b, c > d are not template placeholders" 1 "$(grep -c 'Mũi tên <-> và so sánh' "$page" || true)"
+expect "status: a long item is cut before a code span, not inside it" "1 0" \
+  "$(grep -c 'Dòng rất dài .*chữ\.\.\.$' "$page" || true) $(grep -c 'lệnh rất dài' "$page" || true)"
 expect "status: manual checks are Kiểm FPS, the screenshot path, T-040 and the note point" "1 1 1 1" \
   "$(grep -c 'RUN-20261004-01.md): Kiểm FPS trên máy thật' "$page" || true) $(grep -c 'RUN-20261004-01.md): Ảnh chuẩn mới' "$page" || true) $(grep -c 'RUN-20261004-01.md): T-040: ' "$page" || true) $(grep -c 'RUN-20261004-01.md): Điểm rà soát' "$page" || true)"
 expect "status: a path with <...> inside backticks is kept" 1 \
@@ -1526,7 +1809,7 @@ expect "status: children of a checked item are not counted" "0 1" \
   "$(grep 'Kiểm FPS' "$page" | grep -c 'dòng con' || true) $(grep -c 'Điểm rà soát mức ghi chú: (2 dòng con)$' "$page" || true)"
 expect "status: only the text after the first colon decides \"không có\"" 1 \
   "$(grep -c 'T-040: ghi chú, không có test cho trường hợp revert$' "$page" || true)"
-expect "status: items after the next heading and the done items are not listed" "0 0 0 4" \
+expect "status: items after the next heading and the done items are not listed" "0 0 0 6" \
   "$(grep -c 'Không phải việc' "$page" || true) $(grep -c 'Đã xem ảnh' "$page" || true) $(grep -c 'issue flaky' "$page" || true) $(grep -c '^- \[RUN-20261004-01\]' "$page" || true)"
 expect "status: the run template still has the manual check section" yes \
   "$(awk '/^### Cần người kiểm tra$/ { s = 1; next } s && /^- \[ \] / { found = 1 } END { print (found ? "yes" : "no") }' docs/templates/run.md)"
@@ -1552,6 +1835,20 @@ expect "status: without a readable remote there is a sentence and no link" "1 0"
 GIT_CONFIG_VALUE_0=https://user:tok@github.com/o/r.git status_page > /dev/null
 expect "status: a remote URL with credentials does not leak them" "1 0" \
   "$(grep -c 'https://github.com/o/r/issues' "$page" || true) $(grep -cw 'tok' "$page" || true)"
+GIT_CONFIG_VALUE_0=git@github.com:o/r.git status_page > /dev/null
+expect "status: an ssh remote gives the same link" 1 "$(grep -cF 'https://github.com/o/r/issues?q=' "$page" || true)"
+GIT_CONFIG_VALUE_0=https://mirror.example/github.com/o/r.git status_page > /dev/null
+expect "status: a remote that only has github.com in its path gives no link" "1 0" \
+  "$(grep -c 'Không đọc được repo GitHub' "$page" || true) $(grep -c 'github.com/o/r/issues' "$page" || true)"
+printf -- '---\nid: RUN-20261007-01\nstatus: finished\n---\n\n### Cần người kiểm tra\n\n- [ ] Kiểm C \xff\n' > "$st/runs/RUN-20261007-01.md"
+expect "status: a report that is not UTF-8 stops the script, as any other document does" 1 \
+  "$(status_page > /dev/null 2>&1; echo $?)"
+rm "$st/runs/RUN-20261007-01.md"
+printf -- '---\ntitle: Không spec\nspec:\nstatus: ready\n---\n' > "$st/features/demo/tickets/T-004-khong-spec.md"
+status_page > /dev/null
+expect "status: a ticket with an empty spec marks process tickets" 1 "$(grep -c 'gồm ticket quy trình' "$page" || true)"
+rm "$st/features/demo/tickets/T-004-khong-spec.md"
+status_page > /dev/null
 status_page > /dev/null
 # Nothing under app/src/production or release* is read: record every file the script opens (audit hook).
 opened="$work/status-opened.txt"
@@ -1566,21 +1863,30 @@ runpy.run_path("scripts/status.py", run_name="__main__")
 under_root="$(grep "^$work/status-repo/" "$opened" | sed "s|^$work/status-repo/||" || true)"
 under_root="$(sort -u <<<"$under_root")"
 expect "status: release readiness opens only docs and AdPlacement.kt" "0 0 1 1" \
-  "$(grep -v -e '^docs/' -e '/AdPlacement.kt$' <<<"$under_root" | grep -c . || true) $(grep -c -e 'app/src/production' -e 'release' <<<"$under_root" || true) $(grep -c '^docs/lessons.md$' <<<"$under_root" || true) $(grep -c '/AdPlacement.kt$' <<<"$under_root" || true)"
+  "$(grep -v -e '^docs/' -e '/AdPlacement.kt$' <<<"$under_root" | grep -c . || true) $(grep -v '^docs/' <<<"$under_root" | grep -c -e 'production' -e 'release' || true) $(grep -c '^docs/lessons.md$' <<<"$under_root" || true) $(grep -c '/AdPlacement.kt$' <<<"$under_root" || true)"
 no_marker="$(grep -c PROD-MARKER-T047 "$page" || true)"
 printf -- '- [ ] Dấu PROD-MARKER-T047 trong mục kiểm\n' >> "$st/runs/RUN-20261006-01.md"
 status_page > /dev/null
 expect "status: release readiness never reads production config" "0 1" \
   "$no_marker $(grep -c PROD-MARKER-T047 "$page" || true)"
-# -i.bak works on both GNU and BSD (macOS) sed; plain -i makes BSD read the script as a suffix.
-sed -i.bak 's/^- \[ \] Kiểm FPS/- [x] Kiểm FPS/' "$st/runs/RUN-20261004-01.md" && rm "$st/runs/RUN-20261004-01.md.bak"
+perl -pi -e 's/^- \[ \] Kiểm FPS/- [x] Kiểm FPS/' "$st/runs/RUN-20261004-01.md"
 status_page > /dev/null
 expect "status: a checked item leaves the page" "0 1" \
   "$(grep -c 'Kiểm FPS' "$page" || true) $(grep -c 'RUN-20261004-01.md): T-040' "$page" || true)"
 expect "status: check passes after the release readiness section" "0 1" \
   "$(status_page --check > /dev/null; echo $?) $(grep -c '^## 6. Sẵn sàng phát hành$' "$page" || true)"
+# The page also builds from this repository's own docs, so a docs-only PR with a lesson number used twice is red in
+# build-and-test, not only in status-page.yml after the merge (L-040).
+mkdir -p "$work/status-real"
+cp -R docs "$work/status-real/docs"
+expect "status: the progress page builds from this repository's docs" 0 \
+  "$(STATUS_ROOT="$work/status-real" python3 -I scripts/status.py > "$work/status-real.out" 2>&1; echo $?)"
+printf -- '\n### L-040. Trùng số\n\n- **Trạng thái:** proposed\n' >> "$work/status-real/docs/lessons.md"
+expect "status: this repository's docs with a lesson number used twice stop the page" "1 1" \
+  "$(STATUS_ROOT="$work/status-real" python3 -I scripts/status.py > "$work/status-real.out" 2>&1; echo $?) $(grep -c 'số bài học dùng hai lần: L-040' "$work/status-real.out" || true)"
 
-# status.py --sync moves each ticket's status after its plan's (L-019).
+
+# status.py --sync moves each ticket's status after its plan's (L-050).
 sy="$work/sync-repo/docs/features/demo"
 mkdir -p "$sy/tickets" "$sy/plans"
 sync_case() { # <id> <ticket status> <plan status>
@@ -1605,17 +1911,6 @@ expect "status --sync: names each change" 3 "$(grep -c ' -> ' "$work/sync.out")"
 expect "status --sync: writes the page" 0 "$(STATUS_ROOT="$work/sync-repo" python3 -I scripts/status.py --check > /dev/null; echo $?)"
 STATUS_ROOT="$work/sync-repo" python3 -I scripts/status.py --sync > "$work/sync.out"
 expect "status --sync: a second run changes nothing" 0 "$(grep -c ' -> ' "$work/sync.out")"
-# The lessons of an app may use "L-NNN:" and a status line with more fields; both forms are counted.
-# A lesson number used twice (two branches adding lessons at once) stops the script (L-042).
-cp "$st/lessons.md" "$work/lessons.bak"
-printf -- '# SỔ\n\n### L-001. Một bài\n\n- **Trạng thái:** proposed\n\n### L-002: Bài của app\n\n- **Trạng thái:** accepted. **Loại:** quy trình.\n' > "$st/lessons.md"
-status_page > /dev/null
-expect "status: lessons written as L-NNN: are counted" 1 "$(grep -c 'lessons.md)): 2 bài; 1 .accepted., 1 .proposed.' "$page")"
-printf -- '\n### L-002: Bài trùng số\n\n- **Trạng thái:** proposed\n' >> "$st/lessons.md"
-expect "status: a lesson number used twice stops" 1 "$(status_page > "$work/status.out" 2>&1; echo $?)"
-expect "status: names the duplicate lesson number" 1 "$(grep -c 'L-002' "$work/status.out")"
-cp "$work/lessons.bak" "$st/lessons.md"
-status_page > /dev/null
 
 # foundation.py builds docs/foundation.md from the rule section of the ADRs.
 fd="$work/foundation-repo/docs/adr"
@@ -1639,8 +1934,8 @@ expect "foundation: docs/foundation.md of this repo matches its ADRs" 0 \
 # secret-scan.py finds real-looking ad IDs and keys; Google test IDs and keys marked FAKE are allowed.
 scan="$work/scan"
 mkdir -p "$scan"
-printf 'banner: ca-app-pub-3940256099942544/9214589741\nkey: AIzaSyFAKE_STAGING_KEY_NOT_REAL00000000\n' > "$scan/ok.md"
-expect "secret-scan: Google test IDs and fake keys pass" 0 \
+printf 'banner: ca-app-pub-3940256099942544/9214589741\nkey: AIzaSyFAKE_STAGING_KEY_NOT_REAL00000000\napp: ca-app-pub-%s~%s\n' 0000000000000000 0000000000 > "$scan/ok.md"
+expect "secret-scan: Google test IDs, all-zero IDs and fake keys pass" 0 \
   "$(SECRET_SCAN_ROOT="$scan" python3 -I scripts/secret-scan.py > /dev/null; echo $?)"
 # Built from pieces, so this file itself holds no real-looking ID for the repository scan below.
 printf 'log: AdLoader init ca-app-pub-%s/%s ok\n' 5555555555555555 2222222222 > "$scan/report.md"
@@ -1648,6 +1943,18 @@ expect "secret-scan: a real-looking ad unit in a report fails" 1 \
   "$(SECRET_SCAN_ROOT="$scan" python3 -I scripts/secret-scan.py > /dev/null; echo $?)"
 expect "secret-scan: the finding is masked" 0 \
   "$(SECRET_SCAN_ROOT="$scan" python3 -I scripts/secret-scan.py | grep -c '2222222222' || true)"
+# An AppLovin SDK key is 86 characters; built from pieces so this file holds no key-like string (plan T-034).
+applovin_piece="Ab3dEf6hIj"
+applovin_key="$(printf "$applovin_piece%.0s" 1 2 3 4 5 6 7 8)Kl3nOp"
+mkdir -p "$work/scan-applovin" "$work/scan-applovin-fake"
+printf 'applovin.sdk.key=%s\n' "$applovin_key" > "$work/scan-applovin/strings.md"
+expect "secret-scan: an AppLovin SDK key fails" "1 0" \
+  "$(SECRET_SCAN_ROOT="$work/scan-applovin" python3 -I scripts/secret-scan.py > /dev/null; echo $?) $(
+    SECRET_SCAN_ROOT="$work/scan-applovin" python3 -I scripts/secret-scan.py | grep -c "$applovin_key" || true)"
+printf 'applovin_sdk_key: FAKE%sKl\n' "$(printf "$applovin_piece%.0s" 1 2 3 4 5 6 7 8)" \
+  > "$work/scan-applovin-fake/strings.md"
+expect "secret-scan: a fake AppLovin key passes" 0 \
+  "$(SECRET_SCAN_ROOT="$work/scan-applovin-fake" python3 -I scripts/secret-scan.py > /dev/null; echo $?)"
 expect "secret-scan: this repository has no real ad IDs or keys" 0 \
   "$(python3 -I scripts/secret-scan.py > /dev/null; echo $?)"
 
@@ -1666,140 +1973,99 @@ expect "env-canary: red opens an env-broken issue" "POST issues;" "$(canary "$wo
 expect "env-canary: red again comments on the open issue" "POST issues/7/comments;" \
   "$(canary "$work/pass.sh" "$work/fail.sh" '[{"number": 7}]')"
 expect "env-canary: old setup script is red" "POST issues;" "$(canary "$work/fail.sh" "$work/pass.sh" '[]')"
-# A gh wrapper that also records its arguments, to read the issue body the canary writes.
-mkdir -p "$work/bin-record"
-printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s/canary-gh.args"\nexec "%s/bin/gh" "$@"\n' "$work" "$work" > "$work/bin-record/gh"
-chmod +x "$work/bin-record/gh"
-rm -f "$work/canary-gh.args"
-echo '{"routes": {"issues?state=open&labels=env-broken&per_page=10": []}}' > "$work/canary.json"
-PATH="$work/bin-record:$PATH" FIXTURE="$work/canary.json" CANARY_CHECKOUT=no RETRY_WAIT_SECONDS=0 \
-  ENV_CHECK_CMD="$work/fail.sh" CHECK_CMD="$work/pass.sh" scripts/env-canary.sh > /dev/null 2>&1 || true
-expect "env-canary: env check red names cloud-env-check.sh" 1 \
-  "$(grep -c 'cloud-env-check.sh. báo lỗi' "$work/canary-gh.args" || true)"
 expect "env-canary: green closes the open issue" "POST issues/7/comments;PATCH issues/7;" \
   "$(canary "$work/pass.sh" "$work/pass.sh" '[{"number": 7}]')"
 expect "env-canary: green with nothing open changes nothing" "" "$(canary "$work/pass.sh" "$work/pass.sh" '[]')"
 
-# preflight.sh checks the staging environment on GitHub before a session (plan T-030, L-002, L-011, L-012, L-027).
-# dig, curl and firebase are replaced by fakes reading answers from $pf; secret values carry markers that must never
-# appear in the output.
-pf="$work/preflight"
-mkdir -p "$pf/curl"
-cat > "$work/bin/fake-dig" << 'SH'
-#!/usr/bin/env bash
-# Answers from $PF/dig-<server>; records its arguments.
-echo "$*" >> "$PF/dig.args"
-for a in "$@"; do case "$a" in @*) server="${a#@}" ;; esac; done
-cat "$PF/dig-$server" 2>/dev/null || true
-SH
-cat > "$work/bin/fake-curl" << 'SH'
-#!/usr/bin/env bash
-# The status code for a URL is the first line of $PF/curl/<path with / as _>, consumed one per call; default 200.
-url="${*: -1}"; key="$(sed -E 's#^https?://[^/]+/##; s#/#_#g' <<< "$url")"; f="$PF/curl/$key"
-if [[ -s "$f" ]]; then code="$(head -n 1 "$f")"; [[ "$(wc -l < "$f")" -gt 1 ]] && sed -i.bak 1d "$f"; else code=200; fi
-printf '%s' "$code"
-SH
-cat > "$work/bin/fake-firebase" << 'SH'
-#!/usr/bin/env bash
-# Prints $PF/groups.json and exits with the code in $PF/firebase-exit (default 0).
-code="$(cat "$PF/firebase-exit" 2>/dev/null || echo 0)"
-[[ "$code" == 0 ]] && cat "$PF/groups.json"
-exit "$code"
-SH
-chmod +x "$work/bin/fake-dig" "$work/bin/fake-curl" "$work/bin/fake-firebase"
-staging_client='{"client_info": {"android_client_info": {"package_name": "com.vglstudio.camera.pose.line.guide.staging"}}, "api_key": [{"current_key": "MARKER-SECRET-1"}]}'
-other_client='{"client_info": {"android_client_info": {"package_name": "com.example.other"}}, "api_key": [{"current_key": "MARKER-SECRET-1"}]}'
-google_services() { # <project_id> <client JSON>
-  printf '{"project_info": {"project_id": "%s", "project_number": "987654321"}, "client": [%s]}' "$1" "$2"
-}
-preflight_reset() { # sets up a ready environment; a test then breaks one thing
-  rm -rf "$pf"; mkdir -p "$pf/curl"
-  google_services proj-test-1 "$staging_client" > "$pf/google-services.json"
-  echo '{"type": "service_account", "private_key": "MARKER-SECRET-1"}' > "$pf/credentials.json"
-  echo '{"status": "success", "result": [{"name": "projects/987654321/groups/team", "displayName": "Team"}, {"alias": "qa"}]}' > "$pf/groups.json"
-  printf '104.21.40.144\n172.67.153.9\n' > "$pf/dig-1.1.1.1"
-  printf '104.21.40.144\n' > "$pf/dig-8.8.8.8"
-  printf '# Required files\n\nposes/catalog/v1/catalog-587b5394.json\n' > "$pf/assets.txt"
-}
-preflight() { # prints the exit code; output in $pf/out, step summary in $pf/summary
+# java-check.sh stops scripts/check.sh before Gradle when the Java is outside what the build and Gradle accept.
+java_check() { # <java.specification.version printed by the fake java>; prints the exit code
+  mkdir -p "$work/jdk-$1/bin"
+  printf '#!/usr/bin/env bash\necho "Property settings:" >&2\necho "    java.specification.version = %s" >&2\n' "$1" \
+    > "$work/jdk-$1/bin/java"
+  chmod +x "$work/jdk-$1/bin/java"
   local code=0
-  PF="$pf" GOOGLE_SERVICES_FILE="${PF_GOOGLE:-$pf/google-services.json}" \
-    DISTRIBUTION_CREDENTIALS_FILE="$pf/credentials.json" TESTER_GROUPS="${PF_GROUPS:-team}" \
-    REQUIRED_ASSETS="$pf/assets.txt" DIG_CMD="$work/bin/fake-dig" CURL_CMD="$work/bin/fake-curl" \
-    FIREBASE_CMD="$work/bin/fake-firebase" PREFLIGHT_RETRY_SECONDS=0 GITHUB_STEP_SUMMARY="$pf/summary" \
-    scripts/preflight.sh > "$pf/out" 2>&1 || code=$?
-  cat "$pf/out" >> "$work/preflight-all.out"; cat "$pf/summary" >> "$work/preflight-all.out" 2>/dev/null || true
+  JAVA_HOME="$work/jdk-$1" scripts/java-check.sh > "$work/java.out" 2>&1 || code=$?
   echo "$code"
 }
-pf_lines() { grep -c "$1" "$pf/out" || true; }
-: > "$work/preflight-all.out"
+gradle_minor="$(sed -n 's/^distributionUrl=.*gradle-[0-9]*\.\([0-9]*\).*/\1/p' gradle/wrapper/gradle-wrapper.properties)"
+expect "java-check: Java 17 passes" 0 "$(java_check 17)"
+expect "java-check: Java 11 is too old" 1 "$(java_check 11)"
+expect "java-check: names Android Studio's JDK" 1 "$(grep -c 'JDK đi kèm Android Studio' "$work/java.out")"
+if [[ "$(sed -n 's/^distributionUrl=.*gradle-\([0-9]*\)\..*/\1/p' gradle/wrapper/gradle-wrapper.properties)" == 8 && "$gradle_minor" -ge 14 ]]; then
+  expect "java-check: Java 26 is too new for Gradle 8.14" 1 "$(java_check 26)"
+fi
+expect "java-check: a missing Java stops" 1 \
+  "$(JAVA_HOME="$work/no-jdk" scripts/java-check.sh > /dev/null 2>&1; echo $?)"
 
-preflight_reset
-expect "preflight: a ready environment passes" 0 "$(preflight)"
-expect "preflight: a ready environment has one QUA line per check" 4 "$(pf_lines '^QUA: ')"
-expect "preflight: the domain is read from app/build.gradle.kts" 2 "$(grep -c 'camera-pose.vgl.io.vn' "$pf/dig.args" 2>/dev/null || true)"
-expect "preflight: existing tester groups pass" 0 "$(PF_GROUPS=team,qa preflight)"
-
-preflight_reset; google_services fake-staging-project "$staging_client" > "$pf/google-services.json"
-expect "preflight: a fake google-services is refused" 1 "$(preflight)"
-expect "preflight: says the google-services is the fake one" 1 "$(pf_lines '^LỖI: .*file cấu hình giả')"
-preflight_reset; google_services proj-test-1 "$other_client" > "$pf/google-services.json"
-expect "preflight: google-services without the staging app is refused" 1 "$(preflight)"
-expect "preflight: names the missing staging app" 1 "$(pf_lines '^LỖI: .*com.vglstudio.camera.pose.line.guide.staging')"
-preflight_reset
-expect "preflight: missing secret is refused" 1 "$(PF_GOOGLE="$pf/none.json" preflight)"
-expect "preflight: names the missing secret" 1 "$(pf_lines '^LỖI: thiếu bí mật STAGING_GOOGLE_SERVICES_JSON')"
-preflight_reset; echo 'not json MARKER-SECRET-1' > "$pf/google-services.json"
-expect "preflight: a secret that is not JSON is refused" 1 "$(preflight)"
-expect "preflight: says the secret is not JSON" 1 "$(pf_lines '^LỖI: .*không phải JSON')"
-
-preflight_reset; echo '{"result": [{"alias": "other"}]}' > "$pf/groups.json"
-expect "preflight: a missing tester group is refused" 1 "$(preflight)"
-expect "preflight: names the missing tester group" 1 "$(pf_lines '^LỖI: App Distribution chưa có nhóm team')"
-preflight_reset; echo 127 > "$pf/firebase-exit"
-expect "preflight: a groups command that cannot run only warns" 0 "$(preflight)"
-expect "preflight: warns it could not check the groups" 1 "$(pf_lines '^CHÚ Ý: không kiểm được nhóm người test')"
-
-preflight_reset; : > "$pf/dig-8.8.8.8"
-expect "preflight: a domain one public DNS cannot resolve is refused" 1 "$(preflight)"
-expect "preflight: names the DNS server and the domain" 1 "$(pf_lines '^LỖI: camera-pose.vgl.io.vn không phân giải được qua 8.8.8.8')"
-
-preflight_reset; printf 'poses/a.json\n#poses/commented.json\n\nposes/b.json\n' > "$pf/assets.txt"; echo 404 > "$pf/curl/poses_b.json"
-expect "preflight: a missing R2 file is refused" 1 "$(preflight)"
-expect "preflight: names the missing R2 file" 1 "$(pf_lines '^LỖI: poses/b.json trả 404')"
-expect "preflight: comments and blank lines of the list are skipped" 0 "$(pf_lines 'commented')"
-preflight_reset; printf '000\n200\n' > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
-expect "preflight: a connection that fails once is retried" 0 "$(preflight)"
-preflight_reset; printf '000\n000\n' > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
-expect "preflight: a connection that keeps failing is refused" 1 "$(preflight)"
-
-preflight_reset; google_services fake-staging-project "$staging_client" > "$pf/google-services.json"; echo 404 > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
-expect "preflight: reports every failing check" 2 "$(preflight > /dev/null; pf_lines '^LỖI: ')"
-expect "preflight: never prints secret values" 0 "$(grep -c 'MARKER-SECRET-1\|proj-test-1\|987654321' "$work/preflight-all.out" || true)"
-
-# java-check.sh stops check.sh before Gradle when Java cannot run the project's Gradle (L-022).
-java_check() { local code=0; JAVA_CMD="${1:-$work/bin/fake-java}" scripts/java-check.sh > "$work/java.out" 2>&1 || code=$?; echo "$code"; }
-fake_java 'openjdk version "17.0.12" 2024-07-16'
-expect "java-check: Java 17 passes" 0 "$(java_check)"
-fake_java 'openjdk version "21.0.13" 2025-10-21 LTS'
-expect "java-check: Java 21 passes" 0 "$(java_check)"
-fake_java 'openjdk version "26" 2026-03-17'
-expect "java-check: Java 26 is refused with a JAVA_HOME hint" "1 1" "$(java_check) $(grep -c 'JAVA_HOME' "$work/java.out" | tr -d ' ' | sed 's/^[1-9][0-9]*$/1/')"
-fake_java 'java version "1.8.0_392"'
-expect "java-check: Java 1.8 is refused" 1 "$(java_check)"
-expect "java-check: names Java 8" 1 "$(grep -c '^LỖI: Java 8 ' "$work/java.out" || true)"
-expect "java-check: no java is refused" 1 "$(java_check "$work/bin/no-such-java")"
-# The JVM prints "Picked up JAVA_TOOL_OPTIONS: ..." before the version when the variable is set, as in the cloud (L-049).
-fake_java 'openjdk version "21.0.12.1" 2026-07-21' 'Picked up JAVA_TOOL_OPTIONS: -Dhttps.proxyHost=proxy'
-expect "java-check: Java 21 after a Picked up JAVA_TOOL_OPTIONS line passes" "0 1" "$(java_check) $(grep -c '^Java 21: dùng được' "$work/java.out" || true)"
-fake_java 'openjdk version "17.0.12" 2024-07-16' "$(printf 'Picked up JAVA_TOOL_OPTIONS: -Da=1\nPicked up _JAVA_OPTIONS: -Db=2')"
-expect "java-check: Java 17 after two Picked up lines passes" 0 "$(java_check)"
-fake_java 'openjdk version "26" 2026-03-17' 'Picked up JAVA_TOOL_OPTIONS: -Da=1'
-expect "java-check: Java 26 after a Picked up line is refused" "1 1" "$(java_check) $(grep -c '^LỖI: Java 26 ' "$work/java.out" || true)"
-java_line="$(grep -n 'scripts/java-check.sh' scripts/check.sh | head -n 1 | cut -d: -f1 || true)"
-gradle_line="$(grep -n '"${GRADLE\[@\]}"' scripts/check.sh | head -n 1 | cut -d: -f1 || true)"
-expect "check.sh calls java-check.sh before the first Gradle call" yes \
-  "$([[ -n "$java_line" && "$java_line" -lt "$gradle_line" ]] && echo yes || echo no)"
+# setup-check.sh: required R2 files (curl -I), DNS through 1.1.1.1 and 8.8.8.8, the Firebase staging secret and the
+# tester groups. curl, dig and gcloud are replaced by small fakes driven by files in $work/setup.
+mkdir -p "$work/setup-bin" "$work/setup"
+cat > "$work/setup-bin/curl" << 'SH'
+#!/usr/bin/env bash
+# Fake curl: prints the HTTP code listed for the URL (last argument) in $SETUP_FAKE/codes, else 404.
+url="${*: -1}"
+code="$(awk -v u="$url" '$1 == u {print $2}' "$SETUP_FAKE/codes")"
+printf '%s' "${code:-404}"
+SH
+cat > "$work/setup-bin/dig" << 'SH'
+#!/usr/bin/env bash
+# Fake dig: answers an address unless the resolver (@x) is listed in $SETUP_FAKE/dns-broken.
+for arg in "$@"; do [[ "$arg" == @* ]] && resolver="${arg#@}"; done
+grep -qx "$resolver" "$SETUP_FAKE/dns-broken" 2> /dev/null || echo 104.21.40.144
+SH
+cat > "$work/setup-bin/gcloud" << 'SH'
+#!/usr/bin/env bash
+# Fake gcloud: signs in and prints a token.
+[[ "$*" == *print-access-token* ]] && echo fake-token
+exit 0
+SH
+chmod +x "$work/setup-bin/"*
+printf 'test/v1/a.txt\n# comment\n\ntest/v1/b.txt  # inline comment\n' > "$work/setup/assets.txt"
+base="https://demo.example.com/"
+groups_url="https://firebaseappdistribution.googleapis.com/v1/projects/123/groups"
+setup_check() { # <codes> [args...]; prints the exit code, keeps the output in $work/setup.out
+  printf '%b' "$1" > "$work/setup/codes"; shift
+  local code=0
+  PATH="$work/setup-bin:$PATH" SETUP_FAKE="$work/setup" SETUP_CHECK_ASSETS_LIST="$work/setup/assets.txt" \
+    SETUP_CHECK_ASSETS_BASE_URL="$base" SETUP_CHECK_PACKAGE=com.demo GITHUB_ACTIONS='' \
+    scripts/setup-check.sh "$@" > "$work/setup.out" 2>&1 || code=$?
+  echo "$code"
+}
+all_files="${base}test/v1/a.txt 200\n${base}test/v1/b.txt 200\n"
+: > "$work/setup/dns-broken"
+expect "setup-check: every file there and DNS fine passes" 0 "$(setup_check "$all_files")"
+expect "setup-check: checks each listed file" 2 "$(grep -c '^ok   - https://demo.example.com/test/v1/' "$work/setup.out")"
+expect "setup-check: a missing R2 file stops" 1 "$(setup_check "${base}test/v1/a.txt 200\n")"
+expect "setup-check: names the missing file" 1 "$(grep -c "^LỖI - ${base}test/v1/b.txt trả '404'" "$work/setup.out")"
+echo 8.8.8.8 > "$work/setup/dns-broken"
+expect "setup-check: a host 8.8.8.8 cannot resolve stops" 1 "$(setup_check "$all_files")"
+expect "setup-check: names the resolver" 1 "$(grep -c 'không phân giải được qua 8.8.8.8' "$work/setup.out")"
+: > "$work/setup/dns-broken"
+real_json='{"project_info": {"project_id": "demo-staging", "project_number": "123"}, "client": [{"client_info": {"android_client_info": {"package_name": "com.demo.staging"}}}]}'
+staging_check() { # <google-services JSON> <codes>; prints the exit code
+  GOOGLE_SERVICES="$1" DISTRIBUTION_CREDENTIALS='{"type": "service_account"}' STAGING_TESTER_GROUPS="team, qa" \
+    setup_check "$2" --staging
+}
+expect "setup-check --staging: real secret and both groups pass" 0 \
+  "$(staging_check "$real_json" "$all_files${groups_url}/team 200\n${groups_url}/qa 200\n")"
+expect "setup-check --staging: the fake google-services.json stops" 1 \
+  "$(staging_check '{"project_info": {"project_id": "fake-staging-project", "project_number": "1"}, "client": []}' \
+    "$all_files${groups_url}/team 200\n${groups_url}/qa 200\n")"
+expect "setup-check --staging: says the secret is the fake file" 1 "$(grep -c 'đang là file cấu hình giả' "$work/setup.out")"
+expect "setup-check --staging: a secret without the staging app stops" 1 \
+  "$(staging_check "${real_json/com.demo.staging/com.other.staging}" "$all_files${groups_url}/team 200\n${groups_url}/qa 200\n")"
+expect "setup-check --staging: a missing tester group stops" 1 \
+  "$(staging_check "$real_json" "$all_files${groups_url}/team 200\n")"
+expect "setup-check --staging: names the missing group" 1 "$(grep -c "chưa có nhóm người test 'qa'" "$work/setup.out")"
+expect "setup-check --staging: a group the API does not answer only warns" 0 \
+  "$(staging_check "$real_json" "$all_files${groups_url}/team 200\n${groups_url}/qa 403\n")"
+expect "setup-check --staging: never prints the secret" 0 \
+  "$(grep -c 'demo-staging\|fake-token\|service_account' "$work/setup.out" || true)"
+expect "setup-check --staging: a missing secret stops" 1 \
+  "$(GOOGLE_SERVICES='' DISTRIBUTION_CREDENTIALS='' setup_check "$all_files" --staging)"
+expect "setup-check: rejects an unknown argument" 1 "$(setup_check "$all_files" --stagin)"
+expect "setup-check: reads the staging address of this repository" 1 \
+  "$(grep -cE '"ASSETS_BASE_URL", *"\\"https://[^"]+/\\""' app/build.gradle.kts)"
 
 # device-session.sh records a test session and counts crashes and ANRs; adb is replaced by scripts/tests/fake-adb.
 cp scripts/tests/fake-adb "$work/bin/adb"
@@ -1879,9 +2145,22 @@ expect "device-session: a refused grant is recorded" 2 \
   "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null; FAKE_ADB_GRANT_FAILS=android.permission.CAMERA session /dev/null scenarios --yes > /dev/null
      grep -c '^permissions granted=POST_NOTIFICATIONS failed=CAMERA$' "$(find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail -n 1)/scenarios.txt")"
 session /dev/null stop > /dev/null
+# A staging build with a second LAUNCHER activity (the ad preview of T-014) still starts MainActivity (FB-20261024-01).
+: > "$FAKE_ADB_CALLS"
+expect "device-session: two launchers start MainActivity, not the chooser" 0 \
+  "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null
+     FAKE_ADB_LAUNCHERS="com.example.app/com.example.app.ads.AdPreviewActivity com.example.app/com.example.app.MainActivity" \
+       session /dev/null scenarios --yes)"
+expect "device-session: every scenario launch opens MainActivity" 4 \
+  "$(grep -c '^shell am start -W -n com.example.app/com.example.app.MainActivity$' "$FAKE_ADB_CALLS")"
+session /dev/null stop > /dev/null
+expect "device-session: two launchers without MainActivity are refused" 1 \
+  "$(session "$fixtures/logcat-clean.txt" start ci > /dev/null
+     FAKE_ADB_LAUNCHERS="com.example.app/.A com.example.app/.B" session /dev/null scenarios --yes)"
+session /dev/null stop > /dev/null
 unset DEVICE_SESSION_SLEEP FAKE_ADB_CALLS FAKE_ADB_RUNTIME_PERMISSIONS DEVICE_SCENARIOS_GLOB
 
-# device-scenario.py runs the scenario files of plans on a device through uiautomator dumps (plan T-046, L-062).
+# device-scenario.py runs the scenario files of plans on a device through uiautomator dumps (L-085).
 # adb is scripts/tests/fake-adb; the UI it shows comes from FAKE_ADB_UI_SEQ, one dump file per `uiautomator dump`.
 ds_fixtures=scripts/tests/fixtures/device-scenario
 ds_files="$work/ds-files"
@@ -1893,11 +2172,10 @@ ds_run() { # <dump files of the fixtures, in order> <scenario glob> [VAR=value .
   for f in $1; do seq+="$ds_fixtures/$f "; done
   rm -rf "$work/ds-session" "$work/adb-state"
   mkdir -p "$work/ds-session"
-  [[ -n "${ds_logcat:-}" ]] && cp "$ds_logcat" "$work/ds-session/logcat.txt"
   : > "$ds_calls"
   env PATH="$work/bin:$PATH" FAKE_ADB_UI_SEQ="${seq% }" FAKE_ADB_STATE_DIR="$work/adb-state" FAKE_ADB_CALLS="$ds_calls" \
     DEVICE_SCENARIOS_GLOB="$2" DEVICE_SCENARIO_POLL=0.05 DEVICE_SESSION_SLEEP=0 APP_PACKAGE=com.example.app.staging \
-    FAKE_ADB_RUNTIME_PERMISSIONS="android.permission.CAMERA" FAKE_ADB_LOGCAT_FILE="$work/ds-session/logcat.txt" "${@:3}" \
+    DEVICE_SCENARIO_CONSENT_GRACE=0.3 FAKE_ADB_RUNTIME_PERMISSIONS="android.permission.CAMERA" "${@:3}" \
     python3 -I scripts/device-scenario.py run --session "$work/ds-session" --package com.example.app.staging \
     > "$work/ds.out" 2>&1 || code=$?
   echo "$code"
@@ -1912,7 +2190,7 @@ ds_script() { # <name> <commands...>: writes a scenario file with a valid header
 }
 
 expect "device-scenario: a passing file is reported as passed" "0 1 6" \
-  "$(ds_run "consent.xml onboarding.xml camera.xml" "$ds_fixtures/scenarios/ok.txt") $(ds_count '^plan ok.txt result=đạt seconds=[0-9]*$') $(ds_count '^plan ok.txt step=[0-9]* .* ok$')"
+  "$(ds_run "consent.xml welcome.xml home.xml" "$ds_fixtures/scenarios/ok.txt") $(ds_count '^plan ok.txt result=đạt seconds=[0-9]*$') $(ds_count '^plan ok.txt step=[0-9]* .* ok$')"
 expect "device-scenario: a passing file leaves no fail.png" "1 no" \
   "$(ds_count 'result=đạt') $([[ -e "$work/ds-session/scenarios/ok/fail.png" ]] && echo yes || echo no)"
 expect "device-scenario: a passing file keeps its screenshot" yes \
@@ -1925,60 +2203,63 @@ expect "device-scenario: marks the start of each file in the log" 1 \
 ds_script consent.txt 'consent decline 5'
 expect "device-scenario: consent decline taps Do not consent when shown" "0 1" \
   "$(ds_run "consent.xml" "$ds_files/consent.txt") $(ds_count '^shell input tap 540 1970$' "$ds_calls")"
-ds_script late.txt 'consent decline 5' 'wait id=onboarding_screen 3'
+ds_script late.txt 'consent decline 5' 'wait id=welcome_screen 3'
 expect "device-scenario: consent decline waits for a late consent form" "0 1 1" \
-  "$(ds_run "blank.xml blank.xml consent.xml onboarding.xml" "$ds_files/late.txt") $(ds_count '^shell input tap 540 1970$' "$ds_calls") $(ds_count 'result=đạt')"
+  "$(ds_run "blank.xml blank.xml consent.xml welcome.xml" "$ds_files/late.txt") $(ds_count '^shell input tap 540 1970$' "$ds_calls") $(ds_count 'result=đạt')"
 expect "device-scenario: consent decline taps nothing when there is no form" "0 1 0" \
-  "$(ds_run "blank.xml onboarding.xml" "$ds_files/consent.txt") $(ds_count 'result=đạt') $(ds_count 'input tap' "$ds_calls")"
+  "$(ds_run "blank.xml welcome.xml" "$ds_files/consent.txt") $(ds_count 'result=đạt') $(ds_count 'input tap' "$ds_calls")"
+# MainActivity asks for consent asynchronously: the form may show a few seconds after the app root.
+expect "device-scenario: consent decline still declines a form that shows after the app root" "0 1 1" \
+  "$(ds_run "welcome.xml consent.xml welcome.xml" "$ds_files/consent.txt" DEVICE_SCENARIO_CONSENT_GRACE=3) $(ds_count '^shell input tap 540 1970$' "$ds_calls") $(ds_count 'result=đạt')"
 ds_script none.txt 'consent decline 1'
 expect "device-scenario: consent decline fails when nothing shows" "0 1 1" \
   "$(ds_run "blank.xml" "$ds_files/none.txt") $(ds_count 'step=1 consent decline 1 FAIL') $(ds_count 'result=lỗi')"
 
-ds_script cards.txt 'tap idp=poses_card_ in=poses_grid index=2'
+ds_script cards.txt 'tap idp=gallery_card_ in=gallery_grid index=2'
 expect "device-scenario: idp= in= index= pick the second card of the grid" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/cards.txt") $(ds_count '^shell input tap 540 600$' "$ds_calls")"
-ds_script strs.txt 'tap str=poses_chip_saved' 'tap str=poses_cd_save'
+ds_script strs.txt 'tap str=sample_increment' 'tap str=sample_title'
 expect "device-scenario: str= matches text and content-desc" "0 1 1" \
   "$(ds_run "grid.xml" "$ds_files/strs.txt") $(ds_count '^shell input tap 140 300$' "$ds_calls") $(ds_count '^shell input tap 325 445$' "$ds_calls")"
-ds_script selected.txt 'expect text=Saved selected=true' 'expect text=Chế độ selected=true'
+ds_script selected.txt 'expect text=Tap selected=true' 'expect text=Chế độ selected=true'
 expect "device-scenario: selected=true matches selected or checked" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/selected.txt") $(ds_count 'result=đạt')"
-ds_script unselected.txt 'expect text=All selected=true'
+ds_script unselected.txt 'expect text=Tất cả selected=true'
 expect "device-scenario: selected=true does not match an unselected chip" "0 1 1" \
-  "$(ds_run "grid.xml" "$ds_files/unselected.txt") $(ds_count 'step=1 expect text=All selected=true FAIL') $(ds_count 'result=lỗi')"
+  "$(ds_run "grid.xml" "$ds_files/unselected.txt") $(ds_count 'step=1 expect text=Tất cả selected=true FAIL') $(ds_count 'result=lỗi')"
 ds_script clickable.txt 'tap text=Nhãn clickable=true'
 expect "device-scenario: clickable=true skips plain nodes" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/clickable.txt") $(ds_count '^shell input tap 250 35$' "$ds_calls")"
-ds_script alternatives.txt 'wait id=missing_tag | id=poses_grid 2'
+ds_script alternatives.txt 'wait id=missing_tag | id=gallery_grid 2'
 expect "device-scenario: alternatives separated by | match any of them" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/alternatives.txt") $(ds_count 'result=đạt')"
-ds_script count3.txt 'count idp=poses_card_ in=poses_grid 3'
-ds_script count4.txt 'count idp=poses_card_ in=poses_grid 4'
+ds_script count3.txt 'count idp=gallery_card_ in=gallery_grid 3'
+ds_script count4.txt 'count idp=gallery_card_ in=gallery_grid 4'
 expect "device-scenario: count checks the number of matches" "0 1 0 1" \
-  "$(ds_run "grid.xml" "$ds_files/count3.txt") $(ds_count 'result=đạt') $(ds_run "grid.xml" "$ds_files/count4.txt" > /dev/null; ds_count 'result=đạt') $(ds_count 'step=1 count idp=poses_card_ in=poses_grid 4 FAIL')"
+  "$(ds_run "grid.xml" "$ds_files/count3.txt") $(ds_count 'result=đạt') $(ds_run "grid.xml" "$ds_files/count4.txt" > /dev/null; ds_count 'result=đạt') $(ds_count 'step=1 count idp=gallery_card_ in=gallery_grid 4 FAIL')"
 
 expect "device-scenario: the first failing step stops the file" "0 1 0 1 1 1" \
-  "$(ds_run "camera.xml" "$ds_fixtures/scenarios/fail.txt") $(ds_count '^plan fail.txt step=3 .* FAIL ') $(ds_count '^plan fail.txt step=4') $(ds_count 'result=lỗi seconds=') $( [[ -f "$work/ds-session/scenarios/fail/fail.png" ]] && echo 1) $( [[ -f "$work/ds-session/scenarios/fail/fail.xml" ]] && echo 1)"
+  "$(ds_run "home.xml" "$ds_fixtures/scenarios/fail.txt") $(ds_count '^plan fail.txt step=3 .* FAIL ') $(ds_count '^plan fail.txt step=4') $(ds_count 'result=lỗi seconds=') $( [[ -f "$work/ds-session/scenarios/fail/fail.png" ]] && echo 1) $( [[ -f "$work/ds-session/scenarios/fail/fail.xml" ]] && echo 1)"
 expect "device-scenario: need ends the file as skipped (environment)" "0 1 0 0 none" \
-  "$(ds_run "camera.xml" "$ds_fixtures/scenarios/need.txt") $(ds_count 'result=bỏ qua (môi trường) seconds=') $(ds_count '^plan need.txt step=3') $(ds_count 'FAIL') $([[ -e "$work/ds-session/scenarios/need/fail.png" ]] && echo yes || echo none)"
+  "$(ds_run "home.xml" "$ds_fixtures/scenarios/need.txt") $(ds_count 'result=bỏ qua (môi trường) seconds=') $(ds_count '^plan need.txt step=3') $(ds_count 'FAIL') $([[ -e "$work/ds-session/scenarios/need/fail.png" ]] && echo yes || echo none)"
 
-ds_script busy.txt 'wait id=camera_screen 5'
+ds_script busy.txt 'wait id=home_screen 5'
 expect "device-scenario: not idle is retried until the timeout" "0 1" \
-  "$(ds_run "busy.idle-error busy.idle-error camera.xml" "$ds_files/busy.txt") $(ds_count 'result=đạt')"
-ds_script busy-only.txt 'wait id=camera_screen 1'
+  "$(ds_run "busy.idle-error busy.idle-error home.xml" "$ds_files/busy.txt") $(ds_count 'result=đạt')"
+ds_script busy-only.txt 'wait id=home_screen 1'
 expect "device-scenario: not idle until the timeout is a failure that says so" "0 1" \
   "$(ds_run "busy.idle-error" "$ds_files/busy-only.txt") $(ds_count 'FAIL could not get idle state')"
 
 # A hanging adb: every adb call has its own deadline, the file fails, the next file runs, the whole run is short.
-printf 'ticket: T-999\ncriterion: Hang\ntimeout: 3\nwait id=camera_screen 3\n' > "$ds_files/hang-a.txt"
+printf 'ticket: T-999\ncriterion: Hang\ntimeout: 3\nwait id=home_screen 3\n' > "$ds_files/hang-a.txt"
 printf 'ticket: T-999\ncriterion: After the hang\ntimeout: 30\nback\nshot after\n' > "$ds_files/hang-b.txt"
 ds_started=$SECONDS
-ds_code="$(ds_run "camera.xml" "$ds_files/hang-*.txt" FAKE_ADB_HANG=uiautomator DEVICE_SCENARIO_ADB_TIMEOUT=1)"
+ds_code="$(ds_run "home.xml" "$ds_files/hang-*.txt" FAKE_ADB_HANG=uiautomator DEVICE_SCENARIO_ADB_TIMEOUT=1)"
 expect "device-scenario: a hanging adb fails the file within its deadline" "0 1 1 1 yes" \
   "$ds_code $(ds_count 'FAIL adb_timeout') $(ds_count '^plan hang-a.txt result=lỗi') $(ds_count '^plan hang-b.txt result=đạt') $([[ $((SECONDS - ds_started)) -lt 15 ]] && echo yes || echo no)"
 
 expect "device-scenario: files beyond the budget are skipped" "0 2 yes" \
-  "$(ds_run "camera.xml" "$ds_fixtures/scenarios/[of]*.txt" DEVICE_SCENARIOS_BUDGET=0 | head -n 1) $(ds_count 'result=bỏ qua (hết thời gian)') $([[ "$(ds_count '^shell wm size reset$' "$ds_calls")" -ge 1 ]] && echo yes || echo no)"
+  "$(ds_run "home.xml" "$ds_fixtures/scenarios/[of]*.txt" DEVICE_SCENARIOS_BUDGET=0 | head -n 1) $(ds_count 'result=bỏ qua (hết thời gian)') $([[ "$(ds_count '^shell wm size reset$' "$ds_calls")" -ge 1 ]] && echo yes || echo no)"
 
 ds_reset_calls() { # how many of the reset commands the last run sent
   local n=0 pattern
@@ -1988,38 +2269,120 @@ ds_reset_calls() { # how many of the reset commands the last run sent
   done
   echo "$n"
 }
-ds_run "camera.xml" "$ds_fixtures/scenarios/fail.txt" > /dev/null
+ds_run "home.xml" "$ds_fixtures/scenarios/fail.txt" > /dev/null
 expect "device-scenario: the device is reset after a failing file" yes "$([[ "$(ds_reset_calls)" -ge 6 ]] && echo yes || echo no)"
-ds_run "consent.xml onboarding.xml camera.xml" "$ds_fixtures/scenarios/ok.txt" > /dev/null
+ds_run "consent.xml welcome.xml home.xml" "$ds_fixtures/scenarios/ok.txt" > /dev/null
 expect "device-scenario: the device is reset after a passing file" yes "$([[ "$(ds_reset_calls)" -ge 6 ]] && echo yes || echo no)"
 ds_script rotate.txt 'device rotate landscape' 'device night on' 'device unfold' 'device locale en-US'
-ds_run "camera.xml" "$ds_files/rotate.txt" > /dev/null
+ds_run "home.xml" "$ds_files/rotate.txt" > /dev/null
 expect "device-scenario: device commands change the device and the reset undoes them" "1 1 1 1 1" \
   "$(ds_count 'user_rotation 1$' "$ds_calls") $(ds_count '^shell cmd uimode night yes$' "$ds_calls") $(ds_count '^shell wm size 1766x2208$' "$ds_calls") $(ds_count '^shell wm density 420$' "$ds_calls") $(ds_count 'set-app-locales com.example.app.staging --locales en-US' "$ds_calls")"
 
 ds_script offline.txt 'network off' 'back'
 expect "device-scenario: network off turns every radio off" "0 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/offline.txt") $(ds_count 'result=đạt') $(ds_count '^shell svc wifi disable$' "$ds_calls")"
+  "$(ds_run "home.xml" "$ds_files/offline.txt") $(ds_count 'result=đạt') $(ds_count '^shell svc wifi disable$' "$ds_calls")"
 expect "device-scenario: network off that keeps a network skips the file" "0 1 0" \
-  "$(ds_run "camera.xml" "$ds_files/offline.txt" FAKE_ADB_NETWORK=100) $(ds_count 'result=bỏ qua (môi trường)') $(ds_count 'result=đạt')"
+  "$(ds_run "home.xml" "$ds_files/offline.txt" FAKE_ADB_NETWORK=100) $(ds_count 'result=bỏ qua (môi trường)') $(ds_count 'result=đạt')"
+
+# The device is given back as it was before the run, not with fixed values.
+ds_script night.txt 'device night on'
+ds_run "home.xml" "$ds_files/night.txt" FAKE_ADB_ACCELEROMETER_ROTATION=0 FAKE_ADB_NIGHT=yes > /dev/null
+expect "device-scenario: the reset restores the rotation and night mode read before the file" "2 1 0 0" \
+  "$(ds_count 'settings put system accelerometer_rotation 0$' "$ds_calls") $(ds_count '^shell cmd uimode night yes$' "$ds_calls" | awk '{print ($1 >= 2)}') $(ds_count 'accelerometer_rotation 1$' "$ds_calls") $(ds_count '^shell cmd uimode night no$' "$ds_calls")"
+
+# network on waits until the device has a default network again; without one the file is skipped.
+ds_script offon.txt 'network off' 'network on' 'back'
+expect "device-scenario: network on that brings no network back skips the file" "0 1 0" \
+  "$(ds_run "home.xml" "$ds_files/offon.txt") $(ds_count 'step=2 network on SKIP') $(ds_count 'result=đạt')"
+expect "device-scenario: network on waits for a default network" "0 1 yes" \
+  "$(ds_run "home.xml" "$ds_files/offon.txt" FAKE_ADB_NETWORK_ON=100) $(ds_count 'result=đạt') $([[ "$(sed -n '/^shell svc wifi enable$/,$p' "$ds_calls" | grep -c 'dumpsys connectivity')" -ge 1 ]] && echo yes || echo no)"
+
+# The reset runs on every way out of a file: an internal error of the runner and SIGTERM from the outer timeout.
+ds_script broken.txt 'shot broken' 'back'
+rm -rf "$work/ds-session" "$work/adb-state"
+mkdir -p "$work/ds-session"
+: > "$work/ds-session/scenarios" # a file where the runner needs a folder: shot raises an OSError
+: > "$ds_calls"
+ds_code=0
+env PATH="$work/bin:$PATH" FAKE_ADB_UI_SEQ="$ds_fixtures/home.xml" FAKE_ADB_STATE_DIR="$work/adb-state" FAKE_ADB_CALLS="$ds_calls" \
+  DEVICE_SCENARIOS_GLOB="$ds_files/broken.txt" DEVICE_SCENARIO_POLL=0.05 DEVICE_SESSION_SLEEP=0 APP_PACKAGE=com.example.app.staging \
+  python3 -I scripts/device-scenario.py run --session "$work/ds-session" --package com.example.app.staging \
+  > "$work/ds.out" 2>&1 || ds_code=$?
+expect "device-scenario: an internal error still resets the device" "1 yes 1" \
+  "$ds_code $([[ "$(ds_reset_calls)" -ge 6 ]] && echo yes || echo no) $(ds_count '^plan broken.txt result=lỗi')"
+
+ds_script slow.txt 'wait id=never_shown 25'
+rm -rf "$work/ds-session" "$work/adb-state"
+mkdir -p "$work/ds-session"
+: > "$ds_calls"
+env PATH="$work/bin:$PATH" FAKE_ADB_UI_SEQ="$ds_fixtures/home.xml" FAKE_ADB_STATE_DIR="$work/adb-state" FAKE_ADB_CALLS="$ds_calls" \
+  DEVICE_SCENARIOS_GLOB="$ds_files/slow.txt" DEVICE_SCENARIO_POLL=0.05 DEVICE_SESSION_SLEEP=0 APP_PACKAGE=com.example.app.staging \
+  python3 -I scripts/device-scenario.py run --session "$work/ds-session" --package com.example.app.staging \
+  > "$work/ds.out" 2>&1 &
+ds_pid=$!
+for _ in $(seq 1 50); do grep -q 'uiautomator dump' "$ds_calls" 2> /dev/null && break; sleep 0.1; done
+kill -TERM "$ds_pid"
+ds_code=0
+wait "$ds_pid" || ds_code=$?
+expect "device-scenario: SIGTERM still resets the device and ends the file" "yes yes 1" \
+  "$([[ "$ds_code" -ne 0 ]] && echo yes || echo no) $([[ "$(ds_reset_calls)" -ge 6 ]] && echo yes || echo no) $(ds_count '^plan slow.txt result=lỗi')"
+
+# The reset is part of the budget: a file ends early enough for the reset to finish within DEVICE_SCENARIOS_BUDGET.
+ds_script slow-budget.txt 'wait id=never_shown 25'
+ds_run "home.xml" "$ds_files/slow-budget.txt" DEVICE_SCENARIOS_BUDGET=6 DEVICE_SCENARIO_RESET_LIMIT=4 \
+  DEVICE_SCENARIO_EVIDENCE_RESERVE=0 > /dev/null
+expect "device-scenario: the file deadline leaves room for the reset" 1 "$(ds_count '^plan slow-budget.txt result=lỗi seconds=2$')"
+
+# A quote in the file name never reaches the device shell: such a name is a file error (SAFE_NAME), no adb call.
+printf "ticket: T-999\ncriterion: Quote\ntimeout: 30\nback\n" > "$ds_files/q'x.txt"
+ds_run "home.xml" "$ds_files/q'x.txt" > /dev/null
+expect "device-scenario: a file name with a quote is a file error that sends nothing to the device shell" "1 0" \
+  "$(ds_count '^plan q_x.txt result=lỗi tệp') $(grep -c 'log -t' "$ds_calls" || true)"
 
 expect "device-scenario: check reports an unknown command with its line" "1 1" \
   "$(code=0; python3 -I scripts/device-scenario.py check "$ds_fixtures/bad.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c 'bad.txt dòng 5' "$work/ds-check.out" || true)"
 expect "device-scenario: a file with a syntax error is a file error that sends no input" "0 1 0" \
-  "$(ds_run "camera.xml" "$ds_fixtures/bad.txt") $(ds_count 'result=lỗi tệp') $(ds_count 'input' "$ds_calls")"
+  "$(ds_run "home.xml" "$ds_fixtures/bad.txt") $(ds_count 'result=lỗi tệp') $(ds_count 'input' "$ds_calls")"
 expect "device-scenario: check reports an id or str that the code does not have" "1 1 1" \
   "$(code=0; python3 -I scripts/device-scenario.py check "$ds_fixtures/bad-id.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c 'no_such_tag_zz' "$work/ds-check.out" || true) $(grep -c 'no_such_string_zz' "$work/ds-check.out" || true)"
 ds_repo_files="$(ls feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/*.txt 2> /dev/null || true)"
 # shellcheck disable=SC2086
-expect "device-scenario: the scenarios of the repository pass check" "yes 0" \
-  "$([[ "$(echo "$ds_repo_files" | grep -c .)" -ge 3 ]] && echo yes || echo no) $(code=0; python3 -I scripts/device-scenario.py check $ds_repo_files > "$work/ds-check.out" 2>&1 || code=$?; echo "$code")"
-empty_code="$(ds_run "camera.xml" "$work/no-scenarios/*.txt")"
+# The template has no scenario file of its own; an app's files are checked here as soon as it adds them.
+expect "device-scenario: the scenarios of the repository pass check" 0 \
+  "$(code=0; [[ -z "$ds_repo_files" ]] || python3 -I scripts/device-scenario.py check $ds_repo_files > "$work/ds-check.out" 2>&1 || code=$?; echo "$code")"
+# The example of docs/ops/test-sessions.md, section 5, runs on the sample feature: it must keep passing check.
+sed -n '/^ticket: T-NNN$/,/^shot landscape$/p' docs/ops/test-sessions.md | sed 's/^ticket: T-NNN$/ticket: T-001/' > "$ds_files/doc-example.txt"
+expect "device-scenario: the example of test-sessions.md passes check" "0 11" \
+  "$(code=0; python3 -I scripts/device-scenario.py check "$ds_files/doc-example.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c . "$ds_files/doc-example.txt")"
+# A testTag that only a test still names is gone from the app: check does not count test sources.
+mkdir -p "$work/ds-root/feature/x/src/test/kotlin" "$work/ds-root/feature/x/src/main/kotlin"
+printf 'val t = "only_in_test"\n' > "$work/ds-root/feature/x/src/test/kotlin/T.kt"
+printf 'val m = "in_main"\n' > "$work/ds-root/feature/x/src/main/kotlin/M.kt"
+ds_script tags.txt 'expect id=only_in_test' 'expect id=in_main'
+expect "device-scenario: check ignores tags that only test sources name" "1 0" \
+  "$(python3 -I -c 'import importlib.util, sys
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("ds", "scripts/device-scenario.py"); m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+out = m.check_files([sys.argv[1]], Path(sys.argv[2]))
+print(sum("only_in_test" in x for x in out), sum("in_main" in x for x in out))' "$ds_files/tags.txt" "$work/ds-root")"
+# The first screen of `consent decline` is the root tag of MainActivity, so it exists in the shell of the app.
+expect "device-scenario: the default first screen is the root tag of MainActivity" "1 1" \
+  "$(grep -c '"id=app_root"' scripts/device-scenario.py || true) $(grep -c 'testTag(APP_ROOT_TAG)' app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt || true)"
+ds_script first.txt 'consent decline 2'
+expect "device-scenario: DEVICE_SCENARIO_FIRST_SCREENS names another first screen" "0 1 0 1" \
+  "$(ds_run "grid.xml" "$ds_files/first.txt" DEVICE_SCENARIO_FIRST_SCREENS='id=gallery_screen') $(ds_count 'result=đạt') $(ds_run "grid.xml" "$ds_files/first.txt") $(ds_count 'result=lỗi')"
+ds_script fresh.txt 'fresh'
+expect "device-scenario: fresh opens MainActivity when the build has two LAUNCHER activities" "0 1 0" \
+  "$(ds_run "home.xml" "$ds_files/fresh.txt" FAKE_ADB_LAUNCHERS="com.example.app.staging/com.example.app.ads.AdPreviewActivity com.example.app.staging/com.example.app.MainActivity") $(ds_count '^shell am start -W -n com.example.app.staging/com.example.app.MainActivity$' "$ds_calls") $(ds_count 'resolve-activity' "$ds_calls")"
+empty_code="$(ds_run "home.xml" "$work/no-scenarios/*.txt")"
 empty_calls="$(wc -l < "$ds_calls" | tr -d ' ')"
-ds_run "consent.xml onboarding.xml camera.xml" "$ds_fixtures/scenarios/ok.txt" > /dev/null
+ds_run "consent.xml welcome.xml home.xml" "$ds_fixtures/scenarios/ok.txt" > /dev/null
 expect "device-scenario: an empty glob exits before any adb call (a file makes calls)" "0 0 yes" \
   "$(joined "$empty_code" "$empty_calls" "$([[ "$(wc -l < "$ds_calls")" -gt 0 ]] && echo yes || echo no)")"
 
-# Plan T-048: the runner after the first device-session (fresh, consent, selected, settle, note, quotes, names, budget).
+# From camera-pose T-048, T-049, T-052 (issues #163, #188): fresh, late consent, selected on a parent, settle after
+# device, notes, quotes, file names, evidence reserve, SIGTERM, unfold on small screens, stop settle.
 ds_n() { cat "$work/adb-state/ui-seq.n" 2> /dev/null || echo 0; } # dumps taken by the last ds_run
 ds_check() { # <file> [VAR=value ...]; prints the exit code of check, output in $work/ds-check.out
   local code=0
@@ -2037,63 +2400,91 @@ ds_in_order() { # <file> <pattern...>: yes when the first line of each pattern c
   echo yes
 }
 
-ds_script fresh.txt 'fresh'
 expect "device-scenario: fresh clears the app and starts it with am start -W" "0 yes 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/fresh.txt") $(ds_in_order "$ds_calls" '^shell am force-stop com.example.app.staging$' \
+  "$(ds_run "home.xml" "$ds_files/fresh.txt") $(ds_in_order "$ds_calls" '^shell am force-stop com.example.app.staging$' \
     '^shell pm clear com.example.app.staging$' '^shell am start -W -n com.example.app/.MainActivity$' \
     '^shell pidof com.example.app.staging$') $(ds_count '^plan fresh.txt step=1 fresh ok$') $(ds_count '^shell am start -W' "$ds_calls")"
 expect "device-scenario: fresh starts the app again when the first start left no process" "0 2 1 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/fresh.txt" FAKE_ADB_DEAD_STARTS=1 DEVICE_SCENARIO_PROCESS_WAIT=0.3) $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^logcat -b crash -d$' "$ds_calls") $(ds_count '^plan fresh.txt step=1 fresh ok$') $(ds_count '^plan fresh.txt note step=1 t=[0-9.]* .*pidof rỗng.*mở lại')"
+  "$(ds_run "home.xml" "$ds_files/fresh.txt" FAKE_ADB_DEAD_STARTS=1 DEVICE_SCENARIO_PROCESS_WAIT=0.3) $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^logcat -b crash -d$' "$ds_calls") $(ds_count '^plan fresh.txt step=1 fresh ok$') $(ds_count '^plan fresh.txt note step=1 t=[0-9.]* .*pidof rỗng.*mở lại')"
 printf 'ticket: T-999\ncriterion: Hang\ntimeout: 60\nfresh\n' > "$ds_files/fresh-hang.txt"
 ds_started=$SECONDS
-ds_code="$(ds_run "camera.xml" "$ds_files/fresh-hang.txt" FAKE_ADB_HANG="am start" DEVICE_SCENARIO_START_WAIT=1 DEVICE_SCENARIO_PROCESS_WAIT=0.3)"
+ds_code="$(ds_run "home.xml" "$ds_files/fresh-hang.txt" FAKE_ADB_HANG="am start" DEVICE_SCENARIO_START_WAIT=1 DEVICE_SCENARIO_PROCESS_WAIT=0.3)"
 expect "device-scenario: a hanging am start counts as no process and is retried" "0 1 2 1 yes" \
   "$ds_code $(ds_count '^plan fresh-hang.txt note step=1 .*am start -W hết 1 giây') $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh-hang.txt step=1 fresh FAIL app không chạy sau 2 lần mở$') $([[ $((SECONDS - ds_started)) -lt 15 ]] && echo yes || echo no)"
 expect "device-scenario: a slow am start with a live process is not restarted" "0 1 1 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/fresh-hang.txt" FAKE_ADB_HANG="am start" DEVICE_SCENARIO_START_WAIT=1 FAKE_ADB_ALIVE_AFTER_HANG=1) $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh-hang.txt step=1 fresh ok$') $(ds_count '^plan fresh-hang.txt note step=1 .*am start -W hết 1 giây') $(ds_count '^shell am force-stop' "$ds_calls")"
+  "$(ds_run "home.xml" "$ds_files/fresh-hang.txt" FAKE_ADB_HANG="am start" DEVICE_SCENARIO_START_WAIT=1 FAKE_ADB_ALIVE_AFTER_HANG=1) $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh-hang.txt step=1 fresh ok$') $(ds_count '^plan fresh-hang.txt note step=1 .*am start -W hết 1 giây') $(ds_count '^shell am force-stop' "$ds_calls")"
 expect "device-scenario: fresh fails when the app never runs" "0 1 2" \
-  "$(ds_run "camera.xml" "$ds_files/fresh.txt" FAKE_ADB_DEAD_STARTS=5 DEVICE_SCENARIO_PROCESS_WAIT=0.3) $(ds_count '^plan fresh.txt step=1 fresh FAIL app không chạy sau 2 lần mở$') $(ds_count '^shell am start -W' "$ds_calls")"
+  "$(ds_run "home.xml" "$ds_files/fresh.txt" FAKE_ADB_DEAD_STARTS=5 DEVICE_SCENARIO_PROCESS_WAIT=0.3) $(ds_count '^plan fresh.txt step=1 fresh FAIL app không chạy sau 2 lần mở$') $(ds_count '^shell am start -W' "$ds_calls")"
 printf '%s\n' '--------- beginning of crash' 'E AndroidRuntime: FATAL EXCEPTION: main' \
   'E AndroidRuntime: Process: com.example.app.staging, PID: 4242' > "$work/ds-crash.txt"
 expect "device-scenario: fresh fails on a first-start crash instead of starting again" "0 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/fresh.txt" FAKE_ADB_DEAD_STARTS=1 DEVICE_SCENARIO_PROCESS_WAIT=0.3 FAKE_ADB_CRASH_LOG="$work/ds-crash.txt") $(ds_count '^plan fresh.txt step=1 fresh FAIL app crash ở lần mở đầu$') $(ds_count '^shell am start -W' "$ds_calls")"
+  "$(ds_run "home.xml" "$ds_files/fresh.txt" FAKE_ADB_DEAD_STARTS=1 DEVICE_SCENARIO_PROCESS_WAIT=0.3 FAKE_ADB_CRASH_LOG="$work/ds-crash.txt") $(ds_count '^plan fresh.txt step=1 fresh FAIL app crash ở lần mở đầu$') $(ds_count '^shell am start -W' "$ds_calls")"
+expect "device-scenario: fresh does not take an adb error with digits for a process" "0 2 1" \
+  "$(ds_run "home.xml" "$ds_files/fresh.txt" FAKE_ADB_PIDOF_TEXT="error: device 'emulator-5554' not found" DEVICE_SCENARIO_PROCESS_WAIT=0.3) $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh.txt step=1 fresh FAIL app không chạy sau 2 lần mở$')"
+expect "device-scenario: control: pidof with two pids counts as a process" "0 1 1" \
+  "$(ds_run "home.xml" "$ds_files/fresh.txt" FAKE_ADB_PIDOF_TEXT="4242 4243") $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh.txt step=1 fresh ok$')"
+# Stopping the app right after the device was given back makes the system kill the next start (camera-pose
+# FB-20261025-02), so fresh of a file after a reset waits after stopping the app; the first file does not.
+ds_script settle-1.txt 'fresh'
+ds_script settle-2.txt 'fresh'
+settle_began="$(date +%s)"
+settle_code="$(ds_run "home.xml" "$ds_files/settle-*.txt" DEVICE_SCENARIO_STOP_SETTLE=2)"
+settle_seconds=$(( $(date +%s) - settle_began ))
+expect "device-scenario: fresh after a reset waits after stopping the app, the first file does not" "0 1 0 yes" \
+  "$settle_code $(ds_count '^plan settle-2.txt note step=1 .*fresh: chờ 2 giây sau khi dừng app') $(ds_count '^plan settle-1.txt note step=1 .*fresh: chờ') $([ "$settle_seconds" -ge 2 ] && echo yes || echo no)"
+ds_script settle-mid.txt 'fresh' 'fresh'
+expect "device-scenario: control: a second fresh inside one file does not wait" "0 0 2" \
+  "$(ds_run "home.xml" "$ds_files/settle-mid.txt" DEVICE_SCENARIO_STOP_SETTLE=2) $(ds_count 'fresh: chờ') $(ds_count '^plan settle-mid.txt step=[12] fresh ok$')"
 
-ds_script consent-late.txt 'consent decline 5' 'wait id=onboarding_screen 10' 'expect id=camera_screen'
+# A form later than the grace of consent decline: the next step that reads the screen declines it once. The grace is
+# 0 here, so consent decline ends on the first screen of the app.
+ds_late() { ds_run "$1" "$2" DEVICE_SCENARIO_CONSENT_GRACE=0 "${@:3}"; }
+ds_script consent-late.txt 'consent decline 5' 'wait id=welcome_screen 10' 'expect id=home_screen'
 expect "device-scenario: a consent form that shows after consent decline saw the app is declined once" "0 1 1 1 4" \
-  "$(ds_run "onboarding.xml consent.xml onboarding.xml camera.xml" "$ds_files/consent-late.txt") $(ds_count '^plan consent-late.txt result=đạt') $(ds_count '^shell input tap 540 1970$' "$ds_calls") $(ds_count '^plan consent-late.txt note step=2 t=[0-9.]* hộp thoại đồng ý hiện muộn, đã từ chối') $(ds_n)"
-ds_script consent-twice.txt 'consent decline 5' 'wait id=onboarding_screen 3' 'wait id=camera_screen 1'
+  "$(ds_late "welcome.xml consent.xml welcome.xml home.xml" "$ds_files/consent-late.txt") $(ds_count '^plan consent-late.txt result=đạt') $(ds_count '^shell input tap 540 1970$' "$ds_calls") $(ds_count '^plan consent-late.txt note step=2 t=[0-9.]* hộp thoại đồng ý hiện muộn, đã từ chối') $(ds_n)"
+ds_script consent-twice.txt 'consent decline 5' 'wait id=welcome_screen 3' 'wait id=home_screen 1'
 expect "device-scenario: a second late consent form is not declined again" "0 1 1 4" \
-  "$(ds_run "onboarding.xml consent.xml onboarding.xml consent.xml" "$ds_files/consent-twice.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-twice.txt step=3 wait id=camera_screen 1 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$') $(ds_n)"
-ds_script consent-again.txt 'consent decline 5' 'wait id=camera_screen 3'
+  "$(ds_late "welcome.xml consent.xml welcome.xml consent.xml" "$ds_files/consent-twice.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-twice.txt step=3 wait id=home_screen 1 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$') $(ds_n)"
+ds_script consent-again.txt 'consent decline 5' 'wait id=home_screen 3'
 expect "device-scenario: a consent form that shows again after decline is a failure" "0 1 1 3" \
-  "$(ds_run "consent.xml onboarding.xml consent.xml" "$ds_files/consent-again.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-again.txt step=2 wait id=camera_screen 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$') $(ds_n)"
-ds_script consent-none.txt 'expect id=onboarding_screen'
+  "$(ds_late "consent.xml welcome.xml consent.xml" "$ds_files/consent-again.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-again.txt step=2 wait id=home_screen 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$') $(ds_n)"
+ds_script consent-none.txt 'expect id=welcome_screen'
 expect "device-scenario: without consent decline a consent form is not tapped" "0 0 1" \
-  "$(ds_run "consent.xml" "$ds_files/consent-none.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-none.txt step=1 expect id=onboarding_screen FAIL')"
-ds_script consent-fresh.txt 'fresh' 'consent decline 5' 'fresh' 'wait id=onboarding_screen 3'
+  "$(ds_late "consent.xml" "$ds_files/consent-none.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-none.txt step=1 expect id=welcome_screen FAIL')"
+ds_script consent-fresh.txt 'fresh' 'consent decline 5' 'fresh' 'wait id=welcome_screen 3'
 expect "device-scenario: fresh resets the consent state" "0 1 1 4" \
-  "$(ds_run "consent.xml onboarding.xml consent.xml onboarding.xml" "$ds_files/consent-fresh.txt") $(ds_count '^plan consent-fresh.txt result=đạt') $(ds_count 'input tap' "$ds_calls") $(ds_n)"
+  "$(ds_late "consent.xml welcome.xml consent.xml welcome.xml" "$ds_files/consent-fresh.txt") $(ds_count '^plan consent-fresh.txt result=đạt') $(ds_count 'input tap' "$ds_calls") $(ds_n)"
 mkdir -p "$work/ds-two"
 printf 'ticket: T-999\ncriterion: A\ntimeout: 30\nconsent decline 5\n' > "$work/ds-two/a.txt"
-printf 'ticket: T-999\ncriterion: B\ntimeout: 30\nexpect id=camera_screen\n' > "$work/ds-two/b.txt"
+printf 'ticket: T-999\ncriterion: B\ntimeout: 30\nexpect id=home_screen\n' > "$work/ds-two/b.txt"
 expect "device-scenario: nothing kept crosses into the next file" "0 1 1 3" \
-  "$(ds_run "consent.xml onboarding.xml camera.xml" "$work/ds-two/*.txt") $(ds_count '^plan a.txt result=đạt') $(ds_count '^plan b.txt result=đạt') $(ds_n)"
-ds_script consent-back.txt 'consent decline 5' 'back' 'expect id=camera_screen'
+  "$(ds_late "consent.xml welcome.xml home.xml" "$work/ds-two/*.txt") $(ds_count '^plan a.txt result=đạt') $(ds_count '^plan b.txt result=đạt') $(ds_n)"
+ds_script consent-back.txt 'consent decline 5' 'back' 'expect id=home_screen'
 expect "device-scenario: a kept screen is not used after back" "0 1 3" \
-  "$(ds_run "consent.xml onboarding.xml camera.xml" "$ds_files/consent-back.txt") $(ds_count '^plan consent-back.txt result=đạt') $(ds_n)"
-ds_script consent-close.txt 'consent decline 5' 'expect id=onboarding_screen'
+  "$(ds_late "consent.xml welcome.xml home.xml" "$ds_files/consent-back.txt") $(ds_count '^plan consent-back.txt result=đạt') $(ds_n)"
+ds_script consent-close.txt 'consent decline 5' 'expect id=welcome_screen'
 expect "device-scenario: consent decline waits for the form to close and taps once" "0 1 1 4" \
-  "$(ds_run "consent.xml consent.xml consent.xml onboarding.xml" "$ds_files/consent-close.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-close.txt result=đạt') $(ds_n)"
+  "$(ds_late "consent.xml consent.xml consent.xml welcome.xml" "$ds_files/consent-close.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-close.txt result=đạt') $(ds_n)"
 ds_script consent-need.txt 'consent decline 5' 'need id=x 3'
 expect "device-scenario: a consent error inside need is a failure, not a skip" "0 1 1 3" \
-  "$(ds_run "consent.xml onboarding.xml consent.xml" "$ds_files/consent-need.txt") $(ds_count '^plan consent-need.txt result=lỗi ') $(ds_count '^plan consent-need.txt step=2 need id=x 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$') $(ds_n)"
+  "$(ds_late "consent.xml welcome.xml consent.xml" "$ds_files/consent-need.txt") $(ds_count '^plan consent-need.txt result=lỗi ') $(ds_count '^plan consent-need.txt step=2 need id=x 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$') $(ds_n)"
 expect "device-scenario: a consent form that does not close after the tap is a failure" "0 1 1" \
-  "$(ds_run "consent.xml" "$ds_files/consent.txt" DEVICE_SCENARIO_CONSENT_CLOSE=1) $(ds_count '^plan consent.txt step=1 consent decline 5 FAIL hộp thoại đồng ý không đóng sau khi chạm từ chối$') $(ds_count 'input tap' "$ds_calls")"
+  "$(ds_late "consent.xml" "$ds_files/consent.txt" DEVICE_SCENARIO_CONSENT_CLOSE=1) $(ds_count '^plan consent.txt step=1 consent decline 5 FAIL hộp thoại đồng ý không đóng sau khi chạm từ chối$') $(ds_count 'input tap' "$ds_calls")"
+ds_script consent-second-form.txt 'consent decline 5' 'consent decline 5'
+expect "device-scenario: a second consent decline that sees the form again after a decline fails, tapping once" "0 1 1" \
+  "$(ds_late "consent.xml welcome.xml consent.xml welcome.xml" "$ds_files/consent-second-form.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-form.txt step=2 consent decline 5 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$')"
+ds_script consent-second-keep.txt 'consent decline 5' 'consent decline 5' 'wait id=home_screen 3'
+expect "device-scenario: a second consent decline without a form keeps the decline, a form after it is a failure" "0 1 1" \
+  "$(ds_late "consent.xml welcome.xml welcome.xml consent.xml" "$ds_files/consent-second-keep.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-keep.txt step=3 wait id=home_screen 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$')"
+ds_script consent-second-none.txt 'consent decline 5' 'consent decline 5' 'expect id=welcome_screen'
+expect "device-scenario: control: a second consent decline without a form passes" "0 1 1" \
+  "$(ds_late "consent.xml welcome.xml welcome.xml" "$ds_files/consent-second-none.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-none.txt result=đạt')"
 
-ds_script chip-all.txt 'expect str=poses_chip_all selected=true'
+# selected=true of a Compose chip: the text is a child of the selected node (fixtures from a real dump of the app).
+ds_script chip-all.txt 'expect text=All selected=true'
 expect "device-scenario: selected=true matches a text whose parent chip is selected" "0 1" \
   "$(ds_run "chips.xml" "$ds_files/chip-all.txt") $(ds_count '^plan chip-all.txt result=đạt')"
-ds_script chip-saved.txt 'expect str=poses_chip_saved selected=true'
+ds_script chip-saved.txt 'expect text=Saved selected=true'
 expect "device-scenario: selected=true stops at the clickable parent of an unselected chip" "0 1 0 1" \
   "$(ds_run "chips.xml" "$ds_files/chip-saved.txt") $(ds_count '^plan chip-saved.txt result=lỗi ') $(ds_run "chips-saved.xml" "$ds_files/chip-saved.txt") $(ds_count '^plan chip-saved.txt result=đạt')"
 ds_script chip-deep.txt 'expect desc=deep_clickable selected=true'
@@ -2104,53 +2495,62 @@ expect "device-scenario: selected=true looks at most two parents up" "0 1" \
   "$(ds_run "chips.xml" "$ds_files/chip-far.txt") $(ds_count '^plan chip-far.txt step=1 expect text=Sâu selected=true FAIL')"
 
 ds_script unfold.txt 'device unfold'
-ds_script unfold-grid.txt 'device unfold' 'expect id=poses_grid'
+ds_script unfold-grid.txt 'device unfold' 'expect id=gallery_grid'
 expect "device-scenario: a device command waits until two dumps agree" "0 1 3 1 0 0 1 3" \
-  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold.txt") $(ds_count '^plan unfold.txt result=đạt') $(ds_n) $(ds_count '^plan unfold.txt note step=1 t=[0-9.]* .*ổn định sau') $(ds_count 'không ổn định') $(ds_run "camera.xml grid.xml grid.xml camera.xml" "$ds_files/unfold-grid.txt") $(ds_count '^plan unfold-grid.txt result=đạt') $(ds_n)"
+  "$(ds_run "home.xml grid.xml grid.xml" "$ds_files/unfold.txt") $(ds_count '^plan unfold.txt result=đạt') $(ds_n) $(ds_count '^plan unfold.txt note step=1 t=[0-9.]* .*ổn định sau') $(ds_count 'không ổn định') $(ds_run "home.xml grid.xml grid.xml home.xml" "$ds_files/unfold-grid.txt") $(ds_count '^plan unfold-grid.txt result=đạt') $(ds_n)"
 ds_alternating=""
-for _ in $(seq 1 50); do ds_alternating+="camera.xml grid.xml "; done
+for _ in $(seq 1 50); do ds_alternating+="home.xml grid.xml "; done
 expect "device-scenario: a screen that never settles is noted, not failed" "0 1 1 yes" \
   "$(ds_run "$ds_alternating" "$ds_files/unfold.txt" DEVICE_SCENARIO_SETTLE=1) $(ds_count '^plan unfold.txt step=1 device unfold ok$') $(ds_count '^plan unfold.txt note step=1 t=[0-9.]* .*không ổn định') $([[ "$(ds_n)" -lt 100 ]] && echo yes || echo no)"
 expect "device-scenario: a tap notes its coordinates and the element" "0 1 6" \
-  "$(ds_run "consent.xml onboarding.xml camera.xml" "$ds_fixtures/scenarios/ok.txt") $(ds_count '^plan ok.txt note step=3 t=[0-9]*\.[0-9] .*540,1806.*onboarding_enable_camera') $(ds_count '^plan ok.txt step=[0-9]* .* ok$')"
+  "$(ds_run "consent.xml welcome.xml home.xml" "$ds_fixtures/scenarios/ok.txt") $(ds_count '^plan ok.txt note step=3 t=[0-9]*\.[0-9] .*540,1806.*welcome_continue') $(ds_count '^plan ok.txt step=[0-9]* .* ok$')"
+expect "device-scenario: device unfold turns the letterbox education off before it changes the size" "0 1 yes" \
+  "$(ds_run "home.xml grid.xml grid.xml" "$ds_files/unfold.txt") $(ds_count '^shell wm set-letterbox-style --isEducationEnabled false$' "$ds_calls") $(ds_in_order "$ds_calls" '^shell wm set-letterbox-style --isEducationEnabled false$' '^shell wm size 1766x2208$')"
+expect "device-scenario: the reset after the file and at the end turns the letterbox education back to the default" "0 2 yes" \
+  "$(ds_run "home.xml grid.xml grid.xml" "$ds_files/unfold.txt") $(ds_count '^shell wm reset-letterbox-style isEducationEnabled$' "$ds_calls") $(ds_in_order "$ds_calls" '^shell wm size 1766x2208$' '^shell wm reset-letterbox-style isEducationEnabled$')"
+expect "device-scenario: on a 320x640 screen unfold picks a size within three times the screen, 673 x 841 dp" "0 1 1 0" \
+  "$(ds_run "home.xml grid.xml grid.xml" "$ds_files/unfold.txt" FAKE_ADB_PHYSICAL_SIZE=320x640) $(ds_count '^shell wm size 1536x1919$' "$ds_calls") $(ds_count '^shell wm density 365$' "$ds_calls") $(ds_count '^shell wm size 1766x2208$' "$ds_calls")"
+expect "device-scenario: control: on a large screen unfold keeps 1766x2208 at 420" "0 1 1" \
+  "$(ds_run "home.xml grid.xml grid.xml" "$ds_files/unfold.txt") $(ds_count '^shell wm size 1766x2208$' "$ds_calls") $(ds_count '^shell wm density 420$' "$ds_calls")"
 
 ds_script quoted.txt 'wait text="Hands in Pockets" 3'
 expect "device-scenario: a quoted value keeps its spaces and the number after it is the timeout" "0 1 0" \
   "$(ds_run "chips.xml" "$ds_files/quoted.txt") $(ds_count '^plan quoted.txt result=đạt') $(ds_check "$ds_files/quoted.txt")"
 ds_script page.txt 'wait text=Page 2'
-ds_script grid-wait.txt 'wait id=poses_grid 2'
+ds_script grid-wait.txt 'wait id=gallery_grid 2'
+mkdir -p "$work/ds-grid-root/feature/x/src/main"
+printf 'val g = "gallery_grid"\n' > "$work/ds-grid-root/feature/x/src/main/G.kt"
 ds_page_check="$(ds_check "$ds_files/page.txt")"
 ds_page_line="$(grep -c 'page.txt dòng 4: .*ngoặc kép' "$work/ds-check.out" || true)"
 expect "device-scenario: a text with spaces followed by a number is a file error" "1 1 0 1 0 0" \
-  "$ds_page_check $ds_page_line $(ds_run "chips.xml" "$ds_files/page.txt") $(ds_count '^plan page.txt result=lỗi tệp') $(ds_count 'input' "$ds_calls") $(ds_check "$ds_files/grid-wait.txt")"
-mkdir -p "$work/ds-root/feature/x/src/main" "$work/ds-root/feature/x/src/test"
-printf 'val a = "main_tag"\n' > "$work/ds-root/feature/x/src/main/A.kt"
-printf 'val b = "test_only_tag"\n' > "$work/ds-root/feature/x/src/test/B.kt"
-ds_script root-test.txt 'expect id=test_only_tag'
-ds_script root-main.txt 'expect id=main_tag'
-expect "device-scenario: check ignores tags that only tests have" "1 0" \
-  "$(ds_check "$ds_files/root-test.txt" DEVICE_SCENARIO_ROOT="$work/ds-root") $(ds_check "$ds_files/root-main.txt" DEVICE_SCENARIO_ROOT="$work/ds-root")"
+  "$ds_page_check $ds_page_line $(ds_run "chips.xml" "$ds_files/page.txt") $(ds_count '^plan page.txt result=lỗi tệp') $(ds_count 'input' "$ds_calls") $(ds_check "$ds_files/grid-wait.txt" DEVICE_SCENARIO_ROOT="$work/ds-grid-root")"
+ds_script one-word.txt 'wait desc=Back 10'
+expect "device-scenario: an unquoted one-word desc= on a line that ends in a number is ambiguous, the message says so" "1 1" \
+  "$(ds_check "$ds_files/one-word.txt") $(ds_count 'one-word.txt dòng 4: .*kể cả một từ.*ngoặc kép' "$work/ds-check.out")"
+ds_script one-word-quoted.txt 'wait desc="Back" 10'
+expect "device-scenario: control: the quoted one-word value passes check" 0 "$(ds_check "$ds_files/one-word-quoted.txt")"
 mkdir -p "$work/ds-names"
 printf 'ticket: T-999\ncriterion: Test\ntimeout: 30\nback\n' > "$work/ds-names/a b|c.txt"
 expect "device-scenario: a file name with odd characters is a file error and sends no adb command" "0 1 1 0 1" \
-  "$(ds_run "camera.xml" "$work/ds-names/*.txt") $(ds_count '^plan a_b_c.txt step=0 check FAIL .*tên tệp') $(ds_count '^plan a_b_c.txt result=lỗi tệp') $(ds_count 'log -t' "$ds_calls") $(ds_check "$work/ds-names/a b|c.txt")"
+  "$(ds_run "home.xml" "$work/ds-names/*.txt") $(ds_count '^plan a_b_c.txt step=0 check FAIL .*tên tệp') $(ds_count '^plan a_b_c.txt result=lỗi tệp') $(ds_count 'log -t' "$ds_calls") $(ds_check "$work/ds-names/a b|c.txt")"
 printf 'ticket: T-902\ncriterion: Test\ntimeout: 30\nback\n' > "$ds_files/T-901-x.txt"
-expect "device-scenario: a T-NNN file whose ticket differs is a file error" "1 0" \
-  "$(ds_check "$ds_files/T-901-x.txt") $(ds_check "$ds_fixtures/scenarios/ok.txt")"
+printf 'ticket: T-901\ncriterion: Test\ntimeout: 30\nback\n' > "$ds_files/T-901-y.txt"
+expect "device-scenario: a T-NNN file whose ticket differs is a file error" "1 1 0 0" \
+  "$(ds_check "$ds_files/T-901-x.txt") $(grep -c 'tên tệp bắt đầu bằng T-901' "$work/ds-check.out" || true) $(ds_check "$ds_files/T-901-y.txt") $(grep -c 'tên tệp' "$work/ds-check.out" || true)"
 
-printf 'ticket: T-999\ncriterion: Budget\ntimeout: 300\nwait id=absent 30\n' > "$ds_files/budget.txt"
-ds_started=$SECONDS
-ds_code="$(ds_run "blank.xml" "$ds_files/budget.txt" FAKE_ADB_HANG=settings DEVICE_SCENARIO_RESET_LIMIT=2 \
-  DEVICE_SCENARIO_EVIDENCE_RESERVE=0 DEVICE_SCENARIOS_BUDGET=6)"
-expect "device-scenario: the reset time is taken from the budget" "0 1 yes" \
-  "$ds_code $(ds_count '^plan budget.txt result=lỗi ') $([[ $((SECONDS - ds_started)) -lt 13 ]] && echo yes || echo no)"
+# The reset and the evidence (log marker, fail.png) are taken from the budget before the file starts.
+ds_script reserve.txt 'wait id=never_shown 25'
+ds_run "home.xml" "$ds_files/reserve.txt" DEVICE_SCENARIOS_BUDGET=9 DEVICE_SCENARIO_RESET_LIMIT=4 DEVICE_SCENARIO_EVIDENCE_RESERVE=3 > /dev/null
+expect "device-scenario: the file deadline also leaves room for the evidence" 1 "$(ds_count '^plan reserve.txt result=lỗi seconds=2$')"
+expect "device-scenario: a budget that only covers the reset and the evidence skips the file" 1 \
+  "$(ds_run "home.xml" "$ds_files/reserve.txt" DEVICE_SCENARIOS_BUDGET=6 DEVICE_SCENARIO_RESET_LIMIT=4 DEVICE_SCENARIO_EVIDENCE_RESERVE=3 > /dev/null; ds_count '^plan reserve.txt result=bỏ qua (hết thời gian)')"
 
-# SIGTERM from outside (timeout of device-session.sh) must not leave the adb child running (no pgrep -f, L-067).
+# SIGTERM from outside (timeout of device-session.sh) must not leave the adb child running (no pgrep -f).
 ds_script term.txt 'wait id=x 90'
 rm -rf "$work/adb-term" "$work/ds-term"
 mkdir -p "$work/ds-term"
 env PATH="$work/bin:$PATH" FAKE_ADB_STATE_DIR="$work/adb-term" FAKE_ADB_HANG=uiautomator DEVICE_SCENARIO_ADB_TIMEOUT=100 \
-  DEVICE_SCENARIOS_GLOB="$ds_files/term.txt" DEVICE_SESSION_SLEEP=0 \
+  DEVICE_SCENARIOS_GLOB="$ds_files/term.txt" DEVICE_SESSION_SLEEP=0 APP_PACKAGE=com.example.app.staging \
   python3 -I scripts/device-scenario.py run --session "$work/ds-term" --package com.example.app.staging \
   > "$work/ds-term.out" 2>&1 &
 ds_term_pid=$!
@@ -2165,6 +2565,29 @@ ds_term_child="$(cat "$work/adb-term/hang.pid" 2> /dev/null || true)"
 expect "device-scenario: a terminated runner kills its adb child and says so" "143 1 dead" \
   "$ds_term_code $(ds_count '^plan runner_terminated' "$work/ds-term/scenarios.txt") $(if [[ -z "$ds_term_child" ]]; then echo nopid; elif kill -0 "$ds_term_child" 2> /dev/null; then echo alive; else echo dead; fi)"
 [[ -n "$ds_term_child" ]] && kill -9 "$ds_term_child" 2> /dev/null || true
+# SIGTERM while the reset after a file runs: the run still gives the device back (size, density, network) before 143.
+ds_script term-reset.txt 'device unfold'
+rm -rf "$work/adb-term2" "$work/ds-term2"
+mkdir -p "$work/ds-term2"
+: > "$work/ds-term2-calls.txt"
+env PATH="$work/bin:$PATH" FAKE_ADB_STATE_DIR="$work/adb-term2" FAKE_ADB_HANG="wm size reset" FAKE_ADB_HANG_ONCE=1 \
+  FAKE_ADB_UI_SEQ="$ds_fixtures/home.xml" FAKE_ADB_CALLS="$work/ds-term2-calls.txt" FAKE_ADB_NETWORK_ON=100 \
+  DEVICE_SCENARIOS_GLOB="$ds_files/term-reset.txt" DEVICE_SCENARIO_POLL=0.05 DEVICE_SESSION_SLEEP=0 \
+  APP_PACKAGE=com.example.app.staging \
+  python3 -I scripts/device-scenario.py run --session "$work/ds-term2" --package com.example.app.staging \
+  > "$work/ds-term2.out" 2>&1 &
+ds_term_pid=$!
+for _ in $(seq 1 100); do
+  [[ -s "$work/adb-term2/hang.pid" ]] && break
+  sleep 0.1
+done
+kill -TERM "$ds_term_pid" 2> /dev/null || true
+ds_term_code=0
+wait "$ds_term_pid" || ds_term_code=$?
+ds_term_child="$(cat "$work/adb-term2/hang.pid" 2> /dev/null || true)"
+[[ -n "$ds_term_child" ]] && kill -9 "$ds_term_child" 2> /dev/null || true
+expect "device-scenario: SIGTERM during the reset after a file still gives the device back" "143 2 1 yes" \
+  "$ds_term_code $(ds_count '^shell wm size reset$' "$work/ds-term2-calls.txt") $(ds_count '^shell wm density reset$' "$work/ds-term2-calls.txt") $([[ "$(ds_count '^shell svc wifi enable$' "$work/ds-term2-calls.txt")" -ge 1 ]] && echo yes || echo no)"
 
 # device-session.sh runs the plan scenarios after the standard ones and shows the result (plan T-046).
 export DEVICE_SESSION_SLEEP=0 FAKE_ADB_CALLS="$work/adb-calls.txt" DEVICE_SCENARIO_POLL=0.05 FAKE_ADB_STATE_DIR="$work/adb-state-session" \
@@ -2173,7 +2596,7 @@ newest_session() { find "$work/sessions" -maxdepth 1 -name "TS-*" | sort | tail 
 rm -rf "$work/adb-state-session"
 session "$fixtures/logcat-clean.txt" start ci > /dev/null
 plan_code="$(DEVICE_SCENARIOS_GLOB="$ds_fixtures/scenarios/ok.txt" \
-  FAKE_ADB_UI_SEQ="$ds_fixtures/consent.xml $ds_fixtures/onboarding.xml $ds_fixtures/camera.xml" session /dev/null scenarios --yes)"
+  FAKE_ADB_UI_SEQ="$ds_fixtures/consent.xml $ds_fixtures/welcome.xml $ds_fixtures/home.xml" session /dev/null scenarios --yes)"
 plan_session="$(newest_session)"
 monkey_line="$(grep -n '^monkey ' "$plan_session/scenarios.txt" | head -n 1 | cut -d: -f1 || true)"
 plan_line="$(grep -n '^plan ok.txt' "$plan_session/scenarios.txt" | head -n 1 | cut -d: -f1 || true)"
@@ -2185,10 +2608,11 @@ expect "device-session: the summary shows the plan scenario that ran" 1 \
 
 expect "device-session: helper network-off reuses the scenario function" "0 1" \
   "$(joined "$(session /dev/null helper network-off)" "$(FAKE_ADB_NETWORK=100 session /dev/null helper network-off)")"
-helper_on="$(session /dev/null helper network-on)"
+helper_on="$(FAKE_ADB_NETWORK=100 session /dev/null helper network-on)"
+helper_on_none="$(DEVICE_SESSION_SLEEP=0 session /dev/null helper network-on)"
 helper_grant="$(session /dev/null helper grant-permissions)"
-expect "device-session: helper network-on and grant-permissions" "0 0 1" \
-  "$(joined "$helper_on" "$helper_grant" "$(grep -c '^granted=CAMERA$' "$work/session.out" || true)")"
+expect "device-session: helper network-on (waits for a default network) and grant-permissions" "0 1 0 1" \
+  "$(joined "$helper_on" "$helper_on_none" "$helper_grant" "$(grep -c '^granted=CAMERA$' "$work/session.out" || true)")"
 usage_code="$(session /dev/null)"
 expect "device-session: Usage lists helper" "2 yes" \
   "$(joined "$usage_code" "$(grep -q 'helper' "$work/session.out" && echo yes || echo no)")"
@@ -2218,94 +2642,7 @@ expect "device-session: summary lists the plan scenarios" "0 1 1 1 1" \
     "$(cell '| ok.txt | T-900 | Mẫu đạt | đạt |  | 12 | 0 / 0 |')" \
     "$(cell '| fail.txt | T-901 | Mẫu lỗi | lỗi | 2: expect id=x | 3 | 0 / 0 |')" \
     "$(cell '| need.txt | T-902 | Mẫu thiếu | bỏ qua (môi trường) |  | 2 | 0 / 0 |')")"
-# Plan T-049: the ambiguous-number rule says it covers one word, a second consent decline after a decline, pidof only
-# counts pids, and device unfold turns the letterbox education off and fits the size to a small screen.
-ds_script one-word.txt 'wait desc=Back 10'
-expect "device-scenario: an unquoted one-word desc= on a line that ends in a number is ambiguous, the message says so" "1 1" \
-  "$(ds_check "$ds_files/one-word.txt") $(ds_count 'one-word.txt dòng 4: .*kể cả một từ.*ngoặc kép' "$work/ds-check.out")"
-ds_script one-word-quoted.txt 'wait desc="Back" 10'
-expect "device-scenario: control: the quoted one-word value passes check" 0 "$(ds_check "$ds_files/one-word-quoted.txt")"
-ds_script consent-second-form.txt 'consent decline 5' 'consent decline 5'
-expect "device-scenario: a second consent decline that sees the form again after a decline fails, tapping once" "0 1 1" \
-  "$(ds_run "consent.xml onboarding.xml consent.xml onboarding.xml" "$ds_files/consent-second-form.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-form.txt step=2 consent decline 5 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$')"
-ds_script consent-second-keep.txt 'consent decline 5' 'consent decline 5' 'wait id=camera_screen 3'
-expect "device-scenario: a second consent decline without a form keeps the decline, a form after it is a failure" "0 1 1" \
-  "$(ds_run "consent.xml onboarding.xml onboarding.xml consent.xml" "$ds_files/consent-second-keep.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-keep.txt step=3 wait id=camera_screen 3 FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối$')"
-ds_script consent-second-none.txt 'consent decline 5' 'consent decline 5' 'expect id=onboarding_screen'
-expect "device-scenario: control: a second consent decline without a form passes" "0 1 1" \
-  "$(ds_run "consent.xml onboarding.xml onboarding.xml" "$ds_files/consent-second-none.txt") $(ds_count 'input tap' "$ds_calls") $(ds_count '^plan consent-second-none.txt result=đạt')"
-expect "device-scenario: fresh does not take an adb error with digits for a process" "0 2 1" \
-  "$(ds_run "camera.xml" "$ds_files/fresh.txt" FAKE_ADB_PIDOF_TEXT="error: device 'emulator-5554' not found" DEVICE_SCENARIO_PROCESS_WAIT=0.3) $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh.txt step=1 fresh FAIL app không chạy sau 2 lần mở$')"
-expect "device-scenario: control: pidof with two pids counts as a process" "0 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/fresh.txt" FAKE_ADB_PIDOF_TEXT="4242 4243") $(ds_count '^shell am start -W' "$ds_calls") $(ds_count '^plan fresh.txt step=1 fresh ok$')"
-ds_script unfold-edu.txt 'device unfold'
-expect "device-scenario: device unfold turns the letterbox education off before it changes the size" "0 1 yes" \
-  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt") $(ds_count '^shell wm set-letterbox-style --isEducationEnabled false$' "$ds_calls") $(ds_in_order "$ds_calls" '^shell wm set-letterbox-style --isEducationEnabled false$' '^shell wm size 1766x2208$')"
-expect "device-scenario: the reset after the file and at the end turns the letterbox education back to the default" "0 2 yes" \
-  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt") $(ds_count '^shell wm reset-letterbox-style isEducationEnabled$' "$ds_calls") $(ds_in_order "$ds_calls" '^shell wm size 1766x2208$' '^shell wm reset-letterbox-style isEducationEnabled$')"
-expect "device-scenario: on a 320x640 screen unfold picks a size within three times the screen, 673 x 841 dp" "0 1 1 0" \
-  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt" FAKE_ADB_PHYSICAL_SIZE=320x640) $(ds_count '^shell wm size 1536x1919$' "$ds_calls") $(ds_count '^shell wm density 365$' "$ds_calls") $(ds_count '^shell wm size 1766x2208$' "$ds_calls")"
-expect "device-scenario: control: on a large screen unfold keeps 1766x2208 at 420" "0 1 1" \
-  "$(ds_run "camera.xml grid.xml grid.xml" "$ds_files/unfold-edu.txt") $(ds_count '^shell wm size 1766x2208$' "$ds_calls") $(ds_count '^shell wm density 420$' "$ds_calls")"
-# Plan T-052: stopping the app right after the device was given back makes the system kill the next start
-# (FB-20261025-02), so fresh of a file after a reset waits after stopping the app; the first file does not.
-ds_script settle-1.txt 'fresh'
-ds_script settle-2.txt 'fresh'
-settle_began="$(date +%s)"
-settle_code="$(ds_run "camera.xml" "$ds_files/settle-*.txt" DEVICE_SCENARIO_STOP_SETTLE=2)"
-settle_seconds=$(( $(date +%s) - settle_began ))
-expect "device-scenario: fresh after a reset waits after stopping the app, the first file does not" "0 1 0 yes" \
-  "$settle_code $(ds_count '^plan settle-2.txt note step=1 .*fresh: chờ 2 giây sau khi dừng app') $(ds_count '^plan settle-1.txt note step=1 .*fresh: chờ') $([ "$settle_seconds" -ge 2 ] && echo yes || echo no)"
-expect "device-scenario: control: a single file does not wait in fresh" "0 0 1" \
-  "$(ds_run "camera.xml" "$ds_files/settle-1.txt" DEVICE_SCENARIO_STOP_SETTLE=2) $(ds_count 'fresh: chờ') $(ds_count '^plan settle-1.txt step=1 fresh ok$')"
-ds_script settle-mid.txt 'fresh' 'fresh'
-expect "device-scenario: control: a second fresh inside one file does not wait" "0 0 2" \
-  "$(ds_run "camera.xml" "$ds_files/settle-mid.txt" DEVICE_SCENARIO_STOP_SETTLE=2) $(ds_count 'fresh: chờ') $(ds_count '^plan settle-mid.txt step=[12] fresh ok$')"
-
-# Plan T-054: the system kills the app when Google Play services dies (FB-20261025-03): the runner reads logcat.txt
-# of the session after the marker of the run (fake-adb writes the marker, then FAKE_ADB_KILL_LINE) and runs the file
-# once more; killed again, or without the time of a second run, the file is skipped.
-ds_kill_line() { # <process of the app>: the line of the system killing it with Google Play services
-  echo "10-25 19:53:18.629   598   631 I ActivityManager: Killing 9002:$1/u0a192 (adj 0): depends on provider com.google.android.gms/.fonts.provider.FontsProvider in dying proc com.google.android.gms.persistent"
-}
-ds_script killed.txt 'fresh'
-ds_kill_app="$(ds_kill_line com.example.app.staging)"
-expect "device-scenario: an app killed with Google Play services runs the file again, and the second run counts" "0 1 1 0 2 1" \
-  "$(ds_run "camera.xml" "$ds_files/killed.txt" FAKE_ADB_KILL_LINE="$ds_kill_app" FAKE_ADB_DEAD_STARTS=2 DEVICE_SCENARIO_PROCESS_WAIT=0.1) $(ds_count '^plan killed.txt step=1 fresh RETRY app bị hệ thống giết theo Google Play services') $(ds_count '^plan killed.txt result=đạt') $(ds_count ' FAIL') $(ds_count "scenario=plan file=killed.txt" "$ds_calls") $(ds_count '^plan killed.txt note step=1 .*chạy lại tệp từ đầu, mở lại app')"
-expect "device-scenario: an app killed in both runs ends as skipped (environment)" "0 1 1 1 0" \
-  "$(ds_run "camera.xml" "$ds_files/killed.txt" FAKE_ADB_KILL_LINE="$ds_kill_app" FAKE_ADB_DEAD_STARTS=9 DEVICE_SCENARIO_PROCESS_WAIT=0.1) $(ds_count '^plan killed.txt step=1 fresh RETRY ') $(ds_count '^plan killed.txt step=1 fresh SKIP app bị hệ thống giết theo Google Play services') $(ds_count '^plan killed.txt result=bỏ qua (môi trường)') $(ds_count ' FAIL')"
-expect "device-scenario: a process of the app (package:name) killed with Google Play services counts too" "0 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/killed.txt" FAKE_ADB_KILL_LINE="$(ds_kill_line com.example.app.staging:remote)" FAKE_ADB_DEAD_STARTS=2 DEVICE_SCENARIO_PROCESS_WAIT=0.1) $(ds_count '^plan killed.txt step=1 fresh RETRY ') $(ds_count '^plan killed.txt result=đạt')"
-expect "device-scenario: the kill of the first run does not count in the second run" "0 1 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/killed.txt" FAKE_ADB_KILL_LINE="$ds_kill_app" FAKE_ADB_KILL_ONCE=1 FAKE_ADB_DEAD_STARTS=9 DEVICE_SCENARIO_PROCESS_WAIT=0.1) $(ds_count '^plan killed.txt step=1 fresh RETRY ') $(ds_count '^plan killed.txt step=1 fresh FAIL app không chạy sau 2 lần mở') $(ds_count '^plan killed.txt result=lỗi')"
-ds_kill_line com.example.app.staging > "$work/ds-logcat-before.txt"
-expect "device-scenario: control: a kill before the marker of the file or of another app is a plain failure" "0 1 0 1 1" \
-  "$(ds_logcat="$work/ds-logcat-before.txt" ds_run "camera.xml" "$ds_files/killed.txt" FAKE_ADB_KILL_LINE="$(ds_kill_line com.other.app)" FAKE_ADB_DEAD_STARTS=9 DEVICE_SCENARIO_PROCESS_WAIT=0.1) $(ds_count '^plan killed.txt step=1 fresh FAIL app không chạy sau 2 lần mở') $(ds_count 'RETRY') $(ds_count '^plan killed.txt result=lỗi') $(ds_count "scenario=plan file=killed.txt" "$ds_calls")"
-expect "device-scenario: a killed app without time for its resets and evidence is skipped at once" "0 1 0 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/killed.txt" FAKE_ADB_KILL_LINE="$ds_kill_app" FAKE_ADB_DEAD_STARTS=9 DEVICE_SCENARIO_PROCESS_WAIT=0.1 DEVICE_SCENARIOS_BUDGET=60 DEVICE_SCENARIO_RESET_LIMIT=25 DEVICE_SCENARIO_EVIDENCE_RESERVE=20) $(ds_count '^plan killed.txt step=1 fresh SKIP app bị hệ thống giết theo Google Play services.*không còn thời gian chạy lại') $(ds_count 'RETRY') $(ds_count '^plan killed.txt result=bỏ qua (môi trường)') $(ds_count "scenario=plan file=killed.txt" "$ds_calls")"
-expect "device-scenario: a killed app is not run again when what is left is less than the first run took" "0 1 0 1" \
-  "$(ds_run "camera.xml" "$ds_files/killed.txt" FAKE_ADB_KILL_LINE="$ds_kill_app" FAKE_ADB_DEAD_STARTS=9 DEVICE_SCENARIO_PROCESS_WAIT=1 DEVICE_SCENARIOS_BUDGET=12 DEVICE_SCENARIO_RESET_LIMIT=0 DEVICE_SCENARIO_EVIDENCE_RESERVE=0) $(ds_count '^plan killed.txt step=1 fresh SKIP .*không còn thời gian chạy lại') $(ds_count 'RETRY') $(ds_count '^plan killed.txt result=bỏ qua (môi trường)')"
-# Plan T-054: str= reads res/values (English), so fresh sets the language of the app to English from Android 13; below
-# 13 a device in another language is skipped (environment).
-ds_script lang.txt 'fresh'
-expect "device-scenario: fresh sets the language of the app to English before it starts the app" "0 1 yes" \
-  "$(ds_run "camera.xml" "$ds_files/lang.txt") $(ds_count '^shell cmd locale set-app-locales com.example.app.staging --locales en$' "$ds_calls") $(ds_in_order "$ds_calls" '^shell pm clear' '^shell cmd locale set-app-locales com.example.app.staging --locales en$' '^shell am start -W')"
-expect "device-scenario: below Android 13 a device in another language is skipped (environment)" "0 1 1 0" \
-  "$(ds_run "camera.xml" "$ds_files/lang.txt" FAKE_ADB_SDK=30 FAKE_ADB_LOCALE=vi-VN) $(ds_count '^plan lang.txt step=1 fresh SKIP máy để ngôn ngữ vi-VN') $(ds_count '^plan lang.txt result=bỏ qua (môi trường)') $(ds_count '^shell am start -W' "$ds_calls")"
-expect "device-scenario: control: below Android 13 a device in English runs without setting the language" "0 1 0" \
-  "$(ds_run "camera.xml" "$ds_files/lang.txt" FAKE_ADB_SDK=30 FAKE_ADB_LOCALE=en-US) $(ds_count '^plan lang.txt result=đạt') $(ds_count 'set-app-locales com.example.app.staging --locales en$' "$ds_calls")"
-expect "device-scenario: a device that refuses to set the language of the app is skipped (environment)" "0 1 1" \
-  "$(ds_run "camera.xml" "$ds_files/lang.txt" FAKE_ADB_LOCALE_FAILS=1) $(ds_count '^plan lang.txt step=1 fresh SKIP không đặt được ngôn ngữ tiếng Anh cho app') $(ds_count '^plan lang.txt result=bỏ qua (môi trường)')"
-# Plan T-054 (review notes of T-052): the note gives the real wait, and a device command before fresh also waits.
-printf 'ticket: T-999\ncriterion: Test\ntimeout: 3\nfresh\n' > "$ds_files/settle-short-a.txt"
-cp "$ds_files/settle-short-a.txt" "$ds_files/settle-short-b.txt"
-expect "device-scenario: the note of fresh gives the real wait when the file ends first" "1 0" \
-  "$(ds_run "camera.xml" "$ds_files/settle-short-*.txt" DEVICE_SCENARIO_STOP_SETTLE=10 > /dev/null; ds_count '^plan settle-short-b.txt note step=1 .*fresh: chờ [0-3]\(\.[0-9]\)\{0,1\} giây sau khi dừng app') $(ds_count 'fresh: chờ 10 giây')"
-ds_script devfresh.txt 'device night on' 'fresh'
-expect "device-scenario: fresh after a device command in the same file waits after stopping the app" "0 1" \
-  "$(ds_run "camera.xml" "$ds_files/devfresh.txt" DEVICE_SCENARIO_STOP_SETTLE=2) $(ds_count '^plan devfresh.txt note step=2 .*fresh: chờ 2 giây sau khi dừng app')"
-
-# Plan T-048: notes of the runner about a late consent form or a restarted app are listed under the table.
+# Notes of the runner about a late consent form or a restarted app are listed under the table (camera-pose T-048).
 mkplan "$work/plan-notes" "$plan_lines
 plan ok.txt note step=1 t=0.4
 plan ok.txt note step=2 t=3.1 hộp thoại đồng ý hiện muộn, đã từ chối" "$(cat "$fixtures/logcat-clean.txt")"
@@ -2315,18 +2652,6 @@ expect "device-session: summary lists the runner notes about consent and restart
   "$(joined "$notes_code" "$(notes_cell 'Ghi chú của trình chạy:')" \
     "$(notes_cell '- ok.txt, bước 2: hộp thoại đồng ý hiện muộn, đã từ chối')" "$(notes_cell '- ok.txt, bước 1')" \
     "$(cell 'Ghi chú của trình chạy')")"
-# Plan T-054: a file run again after the system killed the app: the table has the second result and no failing step,
-# and the note of the run again is listed (it says "mở lại").
-mkplan "$work/plan-retry" 'plan killed.txt ticket=T-022 criterion=Mẫu
-plan killed.txt note step=2 t=30.1 app bị hệ thống giết theo Google Play services (com.google.android.gms.persistent) (logcat.txt); chạy lại tệp từ đầu, mở lại app
-plan killed.txt step=2 consent decline 30 RETRY app bị hệ thống giết theo Google Play services (com.google.android.gms.persistent)
-plan killed.txt note step=1 t=0.1
-plan killed.txt step=1 fresh ok
-plan killed.txt result=đạt seconds=95' "$(cat "$fixtures/logcat-clean.txt")"
-retry_code="$(session /dev/null summary "$work/plan-retry" com.example.app.staging)"
-expect "device-session: control: a file run again shows its second result, no failing step, and the note" "0 1 1" \
-  "$retry_code $(grep -cF '| killed.txt | T-022 | Mẫu | đạt |  | 95 |' "$work/plan-retry/summary.md" || true) $(grep -cF -- '- killed.txt, bước 2: app bị hệ thống giết theo Google Play services' "$work/plan-retry/summary.md" || true)"
-expect "device-session: the runner is called with timeout -k" 1 "$(grep -c 'timeout -k 30' scripts/device-session.sh || true)"
 mkplan "$work/plan-pipe" 'plan ok.txt ticket=T-900 criterion=a | b
 plan ok.txt result=đạt seconds=1' "$(cat "$fixtures/logcat-clean.txt")"
 session /dev/null summary "$work/plan-pipe" com.example.app.staging > /dev/null
@@ -2424,9 +2749,9 @@ expect "app-explore: newfiles lists only files added since the first check" "/sd
 expect "app-explore: the tree shows sizes in dp" 1 \
   "$(AX_DENSITY=440 python3 -I scripts/app-explore/tree.py "$ax_fixtures/ads.xml" | grep -c 'btn_capture' )"
 
-# save-branch.sh pushes a task branch, retries network errors, and bundles the branch when the push fails (plan T-037, L-051).
+# save-branch.sh pushes a task branch, retries network errors, and bundles the branch when the push fails (L-081).
 # A bare repository stands in for GitHub; its pre-receive hook makes the push fail in the way a test needs.
-# The header of this file points every origin at a fake GitHub URL; this block needs the real bare repository.
+# The header of this file points every origin at a fake GitHub URL; this block needs the real bare repository (L-082).
 sb_git_config=("$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0")
 unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
 sb_root="$PWD"
@@ -2525,6 +2850,18 @@ expect "save-branch: refuses a branch outside claude/" 2 "$(sb_run main)"
 expect "save-branch: a branch outside claude/is never pushed" 0 "$(sb_calls_count)"
 expect "save-branch: refuses a branch that does not exist" 2 "$(sb_run claude/T-000-none)"
 export GIT_CONFIG_COUNT="${sb_git_config[0]}" GIT_CONFIG_KEY_0="${sb_git_config[1]}" GIT_CONFIG_VALUE_0="${sb_git_config[2]}"
+
+# In-place sed without a backup suffix is GNU only: BSD sed on macOS stops with "invalid command code" (L-088).
+# Scripts write `sed -i.bak ... && rm -f file.bak`, or use perl or python. The pattern is built from two
+# parts so this file does not match itself.
+gnu_sed_in_place() { # <dir>: prints the lines that edit in place with sed and no suffix
+  grep -rnE "$(printf '%s' 'se')"'d( +-[A-Za-z]+)* +-[A-Za-z]*i([[:space:]]|['"'"'"]|$)' "$1" \
+    --include='*.sh' --include='*.py' --include='*.bash' 2> /dev/null || true
+}
+mkdir -p "$work/sed-guard"
+printf '#!/bin/bash\n%s -i "s/a/b/" f\nsed -i.bak "s/a/b/" f && rm -f f.bak\nsed -n 1p f\n' "se""d" > "$work/sed-guard/bad.sh"
+expect "sed guard: finds in-place sed without a suffix in a sample" 1 "$(gnu_sed_in_place "$work/sed-guard" | grep -c .)"
+expect "sed guard: no script edits in place with sed and no suffix" "" "$(gnu_sed_in_place scripts)"
 
 if [[ "$failures" -gt 0 ]]; then
   echo "$failures script test(s) failed"

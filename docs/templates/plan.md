@@ -82,8 +82,8 @@ Test được viết TRƯỚC code và phải thất bại đúng lý do trướ
 Mỗi dòng dưới đây phải đủ cụ thể để viết được test ngay từ plan.
 Plan sửa lỗi: ghi số đo thật trên code hiện tại (chạy test tạm, không commit) và lý do thất bại đã thấy, không đoán.
 Khung test tái hiện được lỗi gốc: cùng chiều rộng, chiều cao như nơi phát hiện (L-029).
-Test kiểm giá trị mặc định thường qua trên khung rỗng: ghi sẵn bước đối chứng (ghi rồi đọc lại, dữ liệu đúng cạnh dữ liệu sai) (L-035).
-Nút chữ trên nền khác màu: có test đo màu chữ của nút trên ảnh vẽ ra, không chỉ dựa vào ảnh chuẩn (L-032).
+Test kiểm giá trị mặc định thường qua trên khung rỗng: ghi sẵn bước đối chứng (ghi rồi đọc lại, dữ liệu đúng cạnh dữ liệu sai) (L-055).
+Nút chữ trên nền khác màu: có test đo màu chữ của nút trên ảnh vẽ ra, không chỉ dựa vào ảnh chuẩn (L-053).
 Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ có giới hạn, không khẳng định màn hình thoáng qua (CLAUDE.md, bước 10).
 -->
 
@@ -99,19 +99,17 @@ Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ c�
 | <tiêu chí cần máy thật> | Kiểm tra thủ công (máy thật: <lý do>) | <các bước dev làm khi kiểm tra bản staging> |
 | <tiêu chí cần người xem hay đọc> | Kiểm tra thủ công (người: <lý do>) | <việc người làm> |
 
-Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-062); `scripts/plan-check.py` báo lỗi dòng thiếu khi plan còn `draft` (quy tắc 11).
+Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-check.py` báo lỗi dòng thiếu khi plan còn `draft` (quy tắc 11).
 - `emulator`: tiêu chí chạy được trên emulator thành tệp kịch bản trong `src/deviceScenarios/` của module (`app/` cho luồng của vỏ app). Đưa tệp vào mục 3.2 và chạy `scripts/device-scenario.py check <tệp>` (cú pháp: `docs/ops/test-sessions.md`, mục 5).
 - `máy thật`: lý do thuộc một nhóm sau, hoặc "khác" kèm lời giải thích: camera thật; FPS, khung hình; Play (cài từ Play, In-App Review); Remote Config; quảng cáo thật; gập có bản lề; cử chỉ nhiều ngón; TalkBack.
 - `người`: việc không phải chạy app, như đọc tài liệu hay xem ảnh chuẩn.
-
-Việc plan này giao cho ticket khác (ghi "để T-NNN làm") chỉ hợp lệ khi plan của ticket đó đã ghi nhận việc ấy; chưa có plan thì ghi vào mục 8 để người duyệt quyết (L-014).
 
 **Ngoại lệ viết test trước:** <phần thay đổi không thể viết test trước, ví dụ chỉ đổi chuỗi văn bản hoặc tài nguyên, kèm lý do. Ghi "Không có" nếu không có. Người duyệt phải đồng ý với ngoại lệ.>
 
 ### 4.1. Chạy thử
 
 <!--
-Bắt buộc khi tiêu chí E ở mục 5 từ 2 trở lên: kỹ thuật hay thư viện lần đầu dùng trong dự án (L-001, L-010).
+Bắt buộc khi tiêu chí E ở mục 5 từ 2 trở lên: kỹ thuật hay thư viện lần đầu dùng trong dự án (L-042).
 Chạy thử bằng một test tạm không commit, bằng đúng lệnh phiên dùng (`scripts/check.sh`) trên nhánh có code liên quan, trước khi duyệt.
 Robolectric không mô phỏng cửa sổ chồng nhau: phần trợ năng và chạm qua cửa sổ thêm bước kiểm tra thủ công.
 Ghi "Không cần (E dưới 2)" nếu không áp dụng. scripts/plan-check.py báo lỗi khi plan draft có E từ 2 mà thiếu mục này.
@@ -142,7 +140,7 @@ Ghi "Không cần (E dưới 2)" nếu không áp dụng. scripts/plan-check.py 
 
 ## 7. Điều kiện dừng riêng
 
-<Ngoài các điều kiện dừng chung trong risk-scoring.md, những tình huống riêng của task này khiến AI phải dừng. Ghi "Không có" nếu không có.>
+<Ngoài các điều kiện dừng chung trong risk-scoring.md, những tình huống riêng của task này khiến AI phải dừng. Ghi "Không có" nếu không có. Không ghi điều kiện dừng chỉ vì một file hay test nằm ngoài mục 3.2: phiên sửa tiếp phần đó theo ADR-0029. Ghi hành vi hay phạm vi cần giữ, ví dụ "bảng khóa sinh tự động đổi thì dừng".>
 
 ## 8. Câu hỏi cho người duyệt
 

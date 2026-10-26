@@ -42,5 +42,5 @@ build-logic/convention/bin/
 # Test sessions recorded by scripts/device-session.sh: raw device logs stay on the machine (docs/ops/test-sessions.md)
 /test-sessions/
 
-# Progress page: built by scripts/status.py; the readable copy is on the status branch (status-page.yml, plan T-034)
+# Progress page: built by scripts/status.py; the readable copy is on the status branch (status-page.yml, L-066)
 docs/STATUS.md

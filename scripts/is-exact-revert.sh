@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks with git alone that a commit is exactly the revert of the blamed commit, made on the latest main
-# (ADR-1002, point 3). scripts/merge-if-green.sh calls it while a main-broken issue is open: the branch name
+# (ADR-0025, point 3). scripts/merge-if-green.sh calls it while a main-broken issue is open: the branch name
 # proves nothing, the content does.
 #
 # Usage:   scripts/is-exact-revert.sh <culprit sha> <head sha> <base ref>

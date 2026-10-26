@@ -47,27 +47,25 @@ Thêm hai quy tắc:
 
 Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không tự xoay xở, khi gặp một trong các tình huống sau:
 
-1. Cần sửa file không nằm trong danh sách file của plan (trừ phần nối chỗ gọi theo ADR-1003, dưới).
-2. Cần thêm thư viện, quyền truy cập hoặc bất kỳ điểm chặn nào ở mục 1 mà plan chưa nêu. Để ít gặp điều kiện này, quyền và thư viện được quyết lúc lập plan (`docs/CLAUDE.md`, mục Khi viết plan; mục 3.3 của mẫu plan; `scripts/plan-check.py`, quy tắc 8).
+1. Cần sửa file trong mục "Không được làm" của `CLAUDE.md` (`.github/`, `scripts/check.sh`, `scripts/merge-if-green.sh`, `scripts/release.sh`, `build-logic/`, `gradle/libs.versions.toml`, cấu hình production) mà plan chưa nêu. File khác ngoài danh sách của plan thì không dừng: sửa tiếp theo ADR-0029 (dưới).
+2. Cần thêm thư viện, quyền truy cập hoặc chạm điểm chặn 1 tới 6, 8, 9 ở mục 1 mà plan chưa nêu. Điểm chặn 7 (module core, cấu hình build, quy trình) không làm dừng với phần ngoài mục 3.2 theo ADR-0029, trừ file của điều kiện 1. Để ít gặp điều kiện này, quyền và thư viện được quyết lúc lập plan (`docs/CLAUDE.md`, mục Khi viết plan; mục 3.3 của mẫu plan; `scripts/plan-check.py`, quy tắc 8).
 3. Phát hiện spec, thiết kế hoặc ADR mâu thuẫn với plan hoặc với nhau.
 4. Test vẫn thất bại sau 3 lần sửa liên tiếp cho cùng một lỗi.
-5. Muốn làm cho test qua bằng cách sửa hoặc xóa test của người khác, hạ tiêu chí kiểm tra, hoặc bỏ qua quy tắc lint.
+5. Muốn làm cho test qua bằng cách xóa test hay câu khẳng định, nới phép so sánh, thêm `@Ignore`, đổi điều test cũ kiểm về hành vi đã có, hạ tiêu chí kiểm tra, hoặc bỏ qua quy tắc lint. Cập nhật dữ liệu của test cũ chỉ vì dữ liệu đó chưa có phần plan thêm thì không phải dừng (ADR-0029, quyết định 2).
 6. Phần việc thực tế lớn hơn rõ rệt so với ước lượng trong ticket.
 7. Bất kỳ thao tác nào chạm tới cấu hình production: mã quảng cáo thật, project Firebase production, bucket R2 production, khóa ký ứng dụng.
 8. Cần thay đổi điều mà test viết trước đang kiểm tra để code qua được.
 9. Phiên rà soát độc lập và phiên viết code hiểu spec khác nhau.
 
-**Không phải dừng: nối chỗ gọi mà task khác cùng danh sách đổi (ADR-1003).** AI được sửa một file không có trong danh sách file của plan khi đủ mọi điều kiện sau; vượt bất kỳ điều kiện nào thì dừng theo điều kiện 1:
+**Không phải dừng: phần ngoài mục 3.2 cần cho task (ADR-0029).** AI sửa tiếp một file hay test không có trong danh sách file của plan, rồi merge như mọi task, khi phần sửa cần để thay đổi của plan chạy đúng và các test sẵn có vẫn qua: nối chỗ gọi, cập nhật dữ liệu của test cũ theo dòng enum, khóa hay tham số mà plan thêm, sửa ví dụ trong chú thích. Không giới hạn số file, số dòng hay module. Vẫn dừng khi gặp điều kiện 1 (file "Không được làm"), 2, 3, 4, 6, 7, 8 hay 9.
 
-- File đó được tạo hay đổi, sau khi plan được duyệt, bởi một task khác của cùng danh sách chạy đã merge trong phiên này hay phiên trước. Task đang làm được chuyển sang từ một danh sách chạy trước thì task đã merge của danh sách đó cũng tính là cùng danh sách; nhật ký ghi mã danh sách chạy của task đã đổi chỗ gọi.
-- Phần sửa chỉ nối chỗ gọi: truyền tham số mới, gọi hàm mới, đổi tên theo thay đổi của chính plan, ở các file gọi thứ mà plan đổi; không thêm hành vi nào chưa ghi trong plan đang chạy hay plan đã tạo file đó.
-- File không thuộc điểm chặn ở mục 1: không thuộc `.github/`, `scripts/`, `build-logic/`, `gradle/`, file `*.gradle.kts`; không phải `AndroidManifest.xml`, `consumer-rules.pro`, `proguard-rules.pro`; không phải file của `:core:ads`, `:core:analytics`, ảnh chuẩn của module khác.
-- Có test viết trước cho phần nối, thất bại đúng lý do, commit trước code như bước 3 của `auto-run.md`.
-- Phần sửa nhỏ: tổng cộng không quá 3 file thêm và 40 dòng code cho mỗi task. Đếm bằng `git diff --numstat origin/main...HEAD -- <các file ngoài mục 3.2>`, cộng dòng thêm và dòng xóa, không tính file test (`src/test/`, `src/androidTest/`, `scripts/tests/`). Mô tả PR ghi lệnh đó và kết quả; rà soát độc lập kiểm số này.
+- Test cũ đỏ chỉ vì dữ liệu của nó chưa có phần plan thêm: cập nhật dữ liệu, test vẫn kiểm phần mới như phần cũ.
+- Test cũ đỏ vì hành vi cũ bị hỏng: sửa code, không sửa test. Không thể vừa đúng plan vừa giữ hành vi đó thì dừng theo điều kiện 3.
+- Ảnh chuẩn screenshot ngoài mục 3.2 lệch: dừng, vì `CLAUDE.md` chỉ cho cập nhật ảnh chuẩn khi plan cho phép.
+- Điều kiện dừng riêng ở mục 7 của plan vẫn áp dụng.
+- Ghi vào nhật ký plan (file, vì sao cần, loại), mô tả PR (mục "Ngoài mục 3.2", kèm `git diff --stat origin/main...HEAD -- <các file đó>`) và báo cáo phiên (một dòng `- [ ]` ở mục Cần người kiểm tra). Rà soát độc lập xét riêng phần này; vi phạm ADR-0029 là mức chặn (`auto-run.md`, bước 6).
 
-Phần nối được ghi vào nhật ký của plan (file, lý do, task đã đổi chỗ gọi, test) và mô tả PR (mục "Ngoài mục 3.2"); rà soát độc lập xét riêng phần này, không đúng là nối chỗ gọi thì báo mức chặn (`auto-run.md`, bước 6).
-
-**Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2 (cộng phần nối chỗ gọi theo ADR-1003, như với phương án chính), giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
+**Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2 (cộng phần ngoài mục 3.2 theo ADR-0029, như với phương án chính), giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
 
 Khi dừng, AI làm ba việc:
 
@@ -85,7 +83,7 @@ Khi bắt đầu làm việc lại, nhóm trả lời câu hỏi "vì sao plan c
 | 2026-10-14 | Phiên bản đầu tiên | Thiết lập quy trình |
 | 2026-10-15 | Mục 4: bài học chung ghi vào sổ bài học, retro quyết định sửa gì | Có vòng cải tiến khép kín sau mỗi phiên |
 | 2026-10-17 | Mục 3: ngoại lệ duyệt chéo khi nhóm chỉ có một dev | Retro RUN-20261016-02: nhóm hiện có một dev, plan rủi ro cao không có người duyệt chéo khác |
-| 2026-10-22 | Mục 4, điều kiện 2: quyền và thư viện quyết lúc lập plan | Tránh dừng task vì quyền hay thư viện chỉ lộ ra trong phiên (L-007, plan T-016 phiên bản 1; L-041) |
-| 2026-10-22 | Mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng | Ba lần dừng của T-007, T-011 đều vì kỹ thuật của plan không chạy, trong khi cách thay đã rõ từ lúc viết plan (L-039) |
-| 2026-10-24 | Mục 4, điều kiện 1: nối chỗ gọi mà task khác cùng danh sách đổi không phải dừng, trong giới hạn của ADR-1003 | T-017 phải sửa `CameraUnfolded.kt` mà T-020 tạo, ngoài mục 3.2 (L-058, PR #81) |
-| 2026-10-24 | Mục 4, nối chỗ gọi: cách đếm 3 file và 40 dòng (`git diff --numstat`, không tính test); "cùng danh sách" tính cả task đã merge ở danh sách trước khi task được chuyển sang | Phần bổ sung chữ của ADR-1003, Nhật và Tuấn nhận ở rà soát trước RUN-20261024-01 |
+| 2026-10-22 | Mục 4, điều kiện 2: quyền và thư viện quyết lúc lập plan | Tránh dừng task vì quyền hay thư viện chỉ lộ ra trong phiên, từ app camera-pose (L-046) |
+| 2026-10-22 | Mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng | Ở app camera-pose, ba lần dừng task đều vì kỹ thuật của plan không chạy, trong khi cách thay đã rõ từ lúc viết plan (L-041) |
+| 2026-10-24 | Mục 4, điều kiện 1: nối chỗ gọi mà task khác cùng danh sách đổi không phải dừng, trong giới hạn của ADR-0028 (đếm 3 file và 40 dòng bằng `git diff --numstat`, không tính test; "cùng danh sách" tính cả task đã merge ở danh sách trước khi task được chuyển sang) | Ở app camera-pose, một task phải nối chỗ gọi trong file mà task khác cùng danh sách vừa tạo, ngoài mục 3.2 (L-077) |
+| 2026-10-25 | Mục 4, điều kiện 1 và 5, đoạn "Không phải dừng": phần ngoài mục 3.2 cần cho task thì sửa tiếp, merge, báo sau, không giới hạn số file hay module; chỉ file "Không được làm" của `CLAUDE.md` còn làm dừng theo điều kiện 1; test cũ được cập nhật dữ liệu theo phần plan thêm (ADR-0029, thay ADR-0028) | 3 trên 4 lần dừng gần nhất vì mục 3.2 thiếu file hay test (T-014, T-024 hai lần); người quyết không dựng thử lúc soạn plan |

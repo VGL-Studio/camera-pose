@@ -24,7 +24,8 @@ cd "$(dirname "$0")/.."
 in_ci() { [ -n "${GITHUB_ACTIONS:-}" ]; }
 GRADLE=(./gradlew --no-daemon --console=plain)
 
-# Java that cannot run the project's Gradle fails here with a clear hint, before the script tests and Gradle (L-022).
+# A Java that Gradle cannot run on stops Gradle with an unreadable error; say which Java to use instead.
+echo "== Java"
 scripts/java-check.sh
 
 echo "== Script tests"
@@ -40,18 +41,23 @@ fi
 screenshot_tasks=()
 added=()
 missing=()
-for dir in core/*/ feature/*/; do
+# :app has product flavors, so its Roborazzi tasks carry the staging variant (recordRoborazziStagingDebug).
+for dir in app/ core/*/ feature/*/; do
   dir="${dir%/}"
+  variant="Debug"; [ "${dir}" = "app" ] && variant="StagingDebug"
   [ -f "${dir}/build.gradle.kts" ] || continue
-  [ -d "${dir}/src/test" ] || continue
+  # Test source sets: src/test, and variant ones such as src/testStaging of :app (staging-only screens).
+  test_dirs=()
+  for test_dir in "${dir}"/src/test "${dir}"/src/test[A-Z]*; do [ -d "${test_dir}" ] && test_dirs+=("${test_dir}"); done
+  [ "${#test_dirs[@]}" -gt 0 ] || continue
   # grep exits 1 when nothing matches; under pipefail that must not stop the script.
-  calls="$({ grep -rho 'captureRoboImage(' "${dir}/src/test" || true; } | wc -l | tr -d ' ')"
+  calls="$({ grep -rho 'captureRoboImage(' "${test_dirs[@]}" || true; } | wc -l | tr -d ' ')"
   [ "${calls}" -gt 0 ] || continue
   module=":${dir//\//:}"
 
-  expected="$({ grep -rhoE 'captureRoboImage\("src/test/screenshots/[^"]+\.png"' "${dir}/src/test" || true; } \
+  expected="$({ grep -rhoE 'captureRoboImage\("src/test/screenshots/[^"]+\.png"' "${test_dirs[@]}" || true; } \
     | sed -E 's/^captureRoboImage\("//; s/"$//' | sort -u)"
-  named="$({ grep -rhoE 'captureRoboImage\("src/test/screenshots/[^"]+\.png"' "${dir}/src/test" || true; } | wc -l | tr -d ' ')"
+  named="$({ grep -rhoE 'captureRoboImage\("src/test/screenshots/[^"]+\.png"' "${test_dirs[@]}" || true; } | wc -l | tr -d ' ')"
   if [ "${named}" -ne "${calls}" ]; then
     echo "::error::${module}: mọi captureRoboImage phải ghi rõ đường dẫn \"src/test/screenshots/<Tên>.png\" (ADR-0011)."
     exit 1
@@ -64,18 +70,18 @@ for dir in core/*/ feature/*/; do
   done <<< "${expected}"
 
   if [ "${#module_missing[@]}" -eq 0 ]; then
-    screenshot_tasks+=("${module}:verifyRoborazziDebug")
+    screenshot_tasks+=("${module}:verifyRoborazzi${variant}")
   elif in_ci; then
     missing+=("${module_missing[@]}")
   else
     # Keep a copy of the existing reference images, record the module, then put the copies back.
     backup="$(mktemp -d)"
     cp -p "${dir}"/src/test/screenshots/*.png "${backup}/" 2> /dev/null || true
-    "${GRADLE[@]}" "${module}:recordRoborazziDebug"
+    "${GRADLE[@]}" "${module}:recordRoborazzi${variant}"
     cp -p "${backup}"/*.png "${dir}/src/test/screenshots/" 2> /dev/null || true
     rm -rf "${backup}"
     added+=("${module_missing[@]}")
-    screenshot_tasks+=("${module}:verifyRoborazziDebug")
+    screenshot_tasks+=("${module}:verifyRoborazzi${variant}")
   fi
 done
 

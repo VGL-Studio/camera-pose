@@ -21,13 +21,13 @@ AI không làm các bước trong tài liệu này. Mọi bước có bí mật 
 
 ## 1. Chuẩn bị máy dev
 
-1. Cài Android Studio. Dùng JDK đi kèm (JDK 17 trở lên):
-   - macOS: `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`
+1. Cài Android Studio. Dùng JDK đi kèm, không dùng Java cài riêng trên máy: Java quá mới (ví dụ Java 26) làm Gradle dừng ngay với lỗi chỉ ghi số phiên bản. `scripts/check.sh` kiểm Java trước khi gọi Gradle (`scripts/java-check.sh`, khoảng phiên bản đọc từ `build-logic` và phiên bản Gradle) và in lệnh đặt `JAVA_HOME` khi không hợp:
+   - macOS: `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`, ghi vào `~/.zshrc` để mọi terminal dùng.
    - Mở Android Studio một lần để cài Android SDK. Đặt `export ANDROID_HOME=$HOME/Library/Android/sdk` (macOS) hoặc `$HOME/Android/Sdk` (Linux).
 2. Cài `git`, `gh` (GitHub CLI), `jq`, `python3`. Trên macOS: `brew install gh jq`.
 3. Đăng nhập GitHub CLI: `gh auth login`, chọn GitHub.com, HTTPS, đăng nhập bằng trình duyệt. `scripts/merge-if-green.sh` dùng phiên đăng nhập này.
 
-Kiểm tra: trong thư mục repo, `scripts/check.sh` in `== Cổng chất lượng: QUA`. Java của máy không chạy được Gradle của dự án thì `check.sh` dừng ngay ở dòng đầu, nói phiên bản và cách đặt `JAVA_HOME` (`scripts/java-check.sh`).
+Kiểm tra: trong thư mục repo, `scripts/check.sh` in `== Cổng chất lượng: QUA`.
 
 Lưu ý: test trên emulator (`app/src/androidTest`) chạy trong CI trên API 34. Trên emulator API 37 đã gặp lỗi `InputManager.getInstance` của bản Espresso hiện tại; muốn chạy trên máy thì dùng emulator API 34.
 
@@ -38,7 +38,7 @@ Lưu ý: test trên emulator (`app/src/androidTest`) chạy trong CI trên API 3
 3. Đẩy lên: `git remote add origin git@github.com:<tổ chức>/<repo>.git`, rồi `git push -u origin main`.
 4. Trong **Settings > Actions > General** của repo, kiểm tra Actions được phép chạy.
 
-Kiểm tra: tab **Actions** có workflow `main-guard` chạy cho commit đầu tiên và xanh. Nhãn `main-broken` được workflow tự tạo khi cần, không phải tạo tay.
+Kiểm tra: tab **Actions** có workflow `main-guard` chạy cho commit đầu tiên và xanh. Nhãn `main-broken` và `flaky` được workflow tự tạo khi cần, không phải tạo tay.
 
 Quy tắc: mọi PR vào `main` chỉ merge bằng `scripts/merge-if-green.sh <số PR>`, cả người lẫn AI (ADR-0010). Gói GitHub Free không chặn nút merge, nên đây là quy ước nhóm phải giữ.
 
@@ -47,11 +47,11 @@ Quy tắc: mọi PR vào `main` chỉ merge bằng `scripts/merge-if-green.sh <s
 App đọc file tĩnh từ một địa chỉ https công khai (ADR-0006, ADR-0015).
 
 1. Trên Cloudflare, mục **R2**, tạo bucket cho app (hoặc dùng bucket chung của nhóm với một thư mục riêng cho app).
-2. Trong **Settings** của bucket, mục **Public access**, nối một tên miền riêng (**Custom Domains**, ví dụ `<app>-staging.vgl.io.vn`). Không dùng địa chỉ `r2.dev` cho app thật.
-3. Tải file lên theo đường dẫn có phiên bản, ví dụ `test/v1/hello.txt`. Không bao giờ ghi đè một file đã đưa lên; nội dung đổi thì dùng đường dẫn mới.
+2. Trong **Settings** của bucket, mục **Public access**, nối một tên miền riêng (**Custom Domains**, ví dụ `<app>-staging.vgl.io.vn`). Không dùng địa chỉ `r2.dev` cho app thật. Chọn tên miền thuộc vùng có DNSSEC ổn định: nếu bước kiểm DNSSEC của vùng lỗi, DNS công cộng như 1.1.1.1 và 8.8.8.8 từ chối trả lời, và điện thoại dùng các DNS đó không tải được file, trong khi máy dev và emulator trên GitHub vẫn tải được (L-059).
+3. Tải lên mọi file trong `docs/ops/required-assets.txt` theo đúng đường dẫn, ví dụ `test/v1/hello.txt` mà màn hình loading của dự án mẫu tải. Thiếu file này thì PR có code đầu tiên đỏ ở test emulator. Không bao giờ ghi đè một file đã đưa lên; nội dung đổi thì dùng đường dẫn mới.
 4. Địa chỉ gốc (kết thúc bằng `/`) chính là tham số `--staging-assets-url` của script tạo app, nằm trong `app/build.gradle.kts`.
 
-Kiểm tra: `curl -I https://<địa chỉ gốc>/test/v1/hello.txt` trả `200`. Kiểm thêm tên miền phân giải được qua cả DNS công cộng: `dig @1.1.1.1 <tên miền>` và `dig @8.8.8.8 <tên miền>` đều trả địa chỉ, không trả `SERVFAIL`. Vùng tên miền mà DNSSEC không qua được bước kiểm của các DNS này thì máy người dùng không tải được file, dù máy chạy CI vẫn tải được; chọn tên miền thuộc vùng có DNSSEC ổn định (L-027).
+Kiểm tra: `scripts/setup-check.sh` in `== Thiết lập: QUA`. Script kiểm mọi file trong `docs/ops/required-assets.txt` trả `200` (`curl -I`) và tên miền phân giải được qua 1.1.1.1 và 8.8.8.8. Chạy trên máy dev, không chạy trong môi trường `claude --cloud` (proxy chặn R2).
 
 Khóa truy cập R2 không đưa vào repo hay GitHub. Bucket production làm tương tự khi phát hành (phần 8).
 
@@ -62,13 +62,13 @@ Làm theo `docs/ops/staging-and-runs.md`, mục 1.1. Tóm tắt:
 1. Tạo project Firebase riêng cho staging, thêm app Android `<applicationId>.staging`, tải `google-services.json`. Không chép file này vào repo; app đã có file giả để build (ADR-0012).
 2. **Release & Monitor > App Distribution > Get started**, tạo nhóm người test `team`, mời thành viên.
 3. Tạo tài khoản dịch vụ có vai trò **Firebase App Distribution Admin** và khóa JSON (các bước chi tiết ở mục 1.1).
-4. Remote Config của project staging: thêm khóa khi cần, ví dụ `ads_<vị trí>_enabled = true` để thấy quảng cáo thử trên bản staging (vị trí mặc định tắt, ADR-0014). Cờ tính năng đang làm thì đã bật sẵn cho staging trong code, không cần thêm.
+4. Remote Config của project staging: thêm khóa khi cần, ví dụ `is_show_<vị trí> = true` hay `show_open_ads = true` để thấy quảng cáo thử trên bản staging (mặc định tắt; tên khóa ở `docs/ops/ads-business-rules.md`, mục 10). Cờ tính năng đang làm thì đã bật sẵn cho staging trong code, không cần thêm.
 
 ## 5. Khóa ký staging, bí mật GitHub, chạy `staging`
 
 Làm theo `docs/ops/staging-and-runs.md`, mục 1.2 đến 1.4: tạo khóa ký staging, thêm 5 bí mật, chạy **Actions > staging** trên `main`.
 
-Kiểm tra: workflow `staging` xanh, người trong nhóm `team` nhận email mời cài bản staging. Sau đó chạy **Actions > preflight > Run workflow** một lần, phải xanh (`docs/ops/staging-and-runs.md`, mục 2.8).
+Kiểm tra: workflow `staging` xanh, người trong nhóm `team` nhận email mời cài bản staging.
 
 ## 6. Routine Claude Code
 
@@ -84,6 +84,8 @@ Làm theo `docs/ops/staging-and-runs.md`, mục 2.1 và 2.2: cài Claude GitHub 
 Kiểm tra: bấm **Run now** trên routine. Khi chưa có danh sách chạy `approved`, phiên chỉ kiểm tra đầu phiên rồi kết thúc và báo lý do. Phiên đó phải chạy được `scripts/check.sh`.
 
 Sau đó tạo routine kiểm tra môi trường hằng ngày và hai bí mật của nó (`docs/ops/staging-and-runs.md`, mục 2.4), chạy thử workflow `env-canary`.
+
+Bước cuối của thiết lập: workflow `env-canary` xanh ở cả hai job. Job `setup-check` chạy `scripts/setup-check.sh --staging` trên máy của GitHub: file R2 bắt buộc, DNS qua 1.1.1.1 và 8.8.8.8, bí mật `STAGING_GOOGLE_SERVICES_JSON` không phải file giả và có app `<applicationId>.staging`, các nhóm trong `STAGING_TESTER_GROUPS` (mặc định `team`) có trên App Distribution. `start-run` chạy lại đúng kiểm tra này trước mỗi phiên và không bắt đầu phiên khi còn lỗi.
 
 ## 6b. Hệ thống thiết kế trên công cụ thiết kế
 
@@ -110,13 +112,17 @@ Khi có bản đầu tiên lên Google Play: `docs/ops/release.md` (khóa upload
 | Dấu hiệu | Nguyên nhân | Xử lý |
 | --- | --- | --- |
 | Phiên tự chạy kết thúc vì Gradle nhận 429 từ `repo.maven.apache.org` | Môi trường cloud dùng setup script cũ, chưa có mirror | Dán lại `scripts/cloud-setup.sh` vào môi trường (phần 6), lập danh sách chạy mới |
-| Báo cáo ghi "Java của môi trường không chạy được Gradle của dự án" | `scripts/cloud-env-check.sh` chạy `scripts/java-check.sh` và thấy Java ngoài khoảng Gradle hỗ trợ, hoặc dòng `Picked up` của `JAVA_TOOL_OPTIONS` làm sai việc đọc phiên bản | Xem `JAVA_TOOL_OPTIONS` và JDK của môi trường cloud, đối chiếu với `scripts/cloud-setup.sh`; thông báo gốc của `java-check.sh` nằm trong báo cáo |
+| Báo cáo ghi "Java của môi trường không chạy được Gradle của dự án" | `scripts/cloud-env-check.sh` chạy `scripts/java-check.sh` và thấy Java ngoài khoảng Gradle hỗ trợ | Xem `JAVA_TOOL_OPTIONS` và JDK của môi trường cloud, đối chiếu với `scripts/cloud-setup.sh`; thông báo gốc của `java-check.sh` nằm trong báo cáo |
 | Báo cáo ghi "Gradle wrapper không khởi động được" | `./gradlew --version` lỗi hoặc quá 300 giây: không tải được bản phân phối Gradle qua proxy, hoặc JVM lỗi vì biến môi trường | Đọc 5 dòng cuối trong thông báo; kiểm tra proxy và `JAVA_TOOL_OPTIONS` của môi trường |
 | Phiên nhận 429 từ `repo1.maven.org` khi chạy test Robolectric | Môi trường dùng setup script cũ, chưa có mirror cho Robolectric | Dán lại `scripts/cloud-setup.sh` vào môi trường (phần 6) |
 | Phiên kết thúc ngay đầu phiên, báo cáo ghi "Môi trường cloud báo lỗi ở kiểm tra đầu phiên" kèm dòng "môi trường dựng từ setup script phiên bản ..." | `scripts/cloud-env-check.sh` thấy số phiên bản setup script của môi trường khác nhánh chính | Dán lại `scripts/cloud-setup.sh` vào môi trường (phần 6), lập danh sách chạy mới |
 | Gradle báo `Could not find ...kotlin-stdlib...` khi build `build-logic`, chỉ tìm ở `plugins.gradle.org` | Setup script phiên bản 1: mirror chưa phủ thư viện tải qua plugin portal | Dán lại `scripts/cloud-setup.sh` (phiên bản 2 trở lên) |
 | `start-run` báo môi trường cloud đang lỗi (issue `env-broken`) | Kiểm tra môi trường hằng ngày đỏ | Đọc log trong issue, sửa (thường là dán lại `scripts/cloud-setup.sh`), chạy lại workflow `env-canary` |
 | Gradle báo "SDK location not found" trong môi trường cloud | Setup script phiên bản 2 trở xuống, và lệnh chạy từ shell không đọc `~/.bashrc` | Dán lại `scripts/cloud-setup.sh` (phiên bản 3 trở lên ghi `sdk.dir` vào `local.properties`) |
+| `scripts/check.sh` dừng ở bước `== Java`, báo Java quá mới hoặc quá cũ | Máy dùng Java cài riêng thay vì JDK của Android Studio; Gradle chỉ chạy trên một khoảng phiên bản Java | Đặt `JAVA_HOME` theo lệnh script in ra (phần 1) |
+| `start-run` báo "Thiết lập chưa đủ cho một phiên", hoặc có issue `setup-broken` | `scripts/setup-check.sh --staging` thấy lỗi: thiếu file R2, DNS công cộng không phân giải được tên miền, bí mật Firebase là file giả hoặc thiếu app staging, chưa tạo nhóm người test | Sửa theo từng dòng `LỖI` (phần 3, phần 4), chạy lại workflow `env-canary`; lần xanh tự đóng issue |
+| `merge-if-green.sh` trả mã 3, báo nhánh chậm so với `main` | Có PR khác vừa merge | `scripts/merge-if-green.sh <số PR> --update`: tự cập nhật nhánh, chờ CI rồi merge |
+| Mọi PR tài liệu xung đột ở `docs/STATUS.md` | PR commit trang tiến độ (ví dụ `git add -f`) | Bỏ file khỏi PR (`git rm --cached docs/STATUS.md`); trang không có trong git, `status-page.yml` sinh nó trên nhánh `status` (`docs/CLAUDE.md`, mục Trang tiến độ) |
 | `merge-if-green.sh` báo PR mang nhãn `needs-human` | PR do phiên tự chạy soạn sẵn khi task dừng | Xem PR, sửa nếu cần, gỡ nhãn, đổi sang sẵn sàng rồi merge |
 | `merge-if-green.sh` báo "phiên ... đang chạy" | Có phiên tự chạy đang chạy; chỉ PR của phiên đó được merge | Chờ phiên kết thúc |
 | Phiên làm việc trên nhánh `claude/<tên ngẫu nhiên>` | Prompt routine thiếu dòng "Nhánh" | Chép lại prompt ở `docs/ops/staging-and-runs.md`, mục 2.1 |

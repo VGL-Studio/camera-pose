@@ -35,3 +35,7 @@ ADR-0012 quyết định đọc ngay giá trị Remote Config đã kích hoạt 
 - **Tích cực:** khi cờ `feature_loading_enabled` bật, mọi màn hình sau loading có cấu hình mới nhất ngay từ đầu.
 - **Phải chấp nhận:** khi cờ bật, người dùng không mở được app nếu không có mạng; mỗi lần mở app là một lần tải Remote Config. Cờ mặc định tắt, nên bản production chỉ chịu hệ quả này khi người phụ trách bật cờ.
 - **Việc AI phải tuân thủ:** chỉ màn hình loading dùng `RemoteConfigRefresher`. Màn hình khác muốn chờ Remote Config cần spec và ADR riêng.
+
+## Ghi chú 2026-10-25 (T-024)
+
+Spec quảng cáo (`features/ads/spec.md`, KB-13, câu hỏi 12) đặt quảng cáo mở app ở màn loading. Khi khóa quảng cáo mở app của lần mở này bật (`show_open_ads_first_open` ở lần mở đầu sau khi cài, `show_open_ads` ở các lần sau), màn loading chờ thêm theo bộ PARTNER sau khi chuẩn bị xong và đủ 2 giây: đồng ý quảng cáo có kết quả trong 10 giây, SDK quảng cáo sẵn sàng trong 35 giây, quảng cáo nạp xong trong 40 giây, cả ba tính từ lúc mở app. Quảng cáo về kịp thì hiện, đóng rồi mới vào màn chính. Khóa tắt thì màn loading giữ giới hạn chờ của ADR này, không chờ quảng cáo. Ghi chú này không đổi quyết định hay việc AI phải tuân thủ ở trên.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pushes a task branch so it does not live only on the temporary cloud machine, and bundles it when the push
-# fails (plan T-037, L-051).
+# fails (L-081).
 #
 # Usage:   scripts/save-branch.sh <branch>                push (retrying network errors); bundle if that fails
 #          scripts/save-branch.sh --bundle-only <branch>  bundle only, no push (the environment refused the push call)

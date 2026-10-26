@@ -1,13 +1,13 @@
-# Guards the main branch (ADR-0010, ADR-1002): re-runs the JVM quality gate for every commit pushed to main.
+# Guards the main branch (ADR-0010, ADR-0025): re-runs the JVM quality gate for every commit pushed to main.
 # - Every commit gets its own run (no concurrency group), so no commit is skipped.
 # - Only test tasks failed (scripts/failure-kind.sh): run the gate once more on the same commit. Green the
-#   second time: the commit counts as green and a `flaky` issue records the test (ADR-1002, point 1).
+#   second time: the commit counts as green and a `flaky` issue records the test (ADR-0025, point 1).
 # - Red run: scripts/find-breaking-commit.sh finds the commit that actually broke main. If no
 #   main-broken issue is open, open one blaming that commit and push a revert/<sha> branch for it;
 #   otherwise only add a comment. Infrastructure failures (checkout, Java, network) are not "red".
 # - Green run: close open main-broken issues when this commit contains the blamed commit, or is that very
-#   commit run again (an older commit finishing late must not close a newer breakage; ADR-1002, point 2).
-# - Run by hand (workflow_dispatch) for a commit that got no push event (L-054): same steps on the head of main.
+#   commit run again (an older commit finishing late must not close a newer breakage; ADR-0025, point 2).
+# - Run by hand (workflow_dispatch) for a commit that got no push event (L-076): same steps on the head of main.
 # Changing this file is a high-risk plan; cross-review required.
 name: main-guard
 
@@ -89,7 +89,7 @@ jobs:
           tests="$(grep -E ' FAILED$' first.log | sed -E 's/ FAILED$//' | sort -u || true)"
           first_test="$(head -n 1 <<< "${tests}")"
           {
-            echo "Test thất bại ở lần chạy đầu của main-guard trên commit ${GITHUB_SHA}, rồi qua khi chạy lại trên cùng commit (ADR-1002)."
+            echo "Test thất bại ở lần chạy đầu của main-guard trên commit ${GITHUB_SHA}, rồi qua khi chạy lại trên cùng commit (ADR-0025)."
             echo "Lần chạy: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo
             echo "Test thất bại:"
@@ -139,7 +139,7 @@ jobs:
             echo "Nhánh chính không qua cổng chất lượng. Commit gây lỗi: ${culprit}."
             echo "Lần kiểm tra phát hiện: ${GITHUB_SHA}."
             echo
-            echo "Khi issue này còn mở, \`scripts/merge-if-green.sh\` chỉ cho qua PR đúng là bản revert của commit gây lỗi (ADR-1002)."
+            echo "Khi issue này còn mở, \`scripts/merge-if-green.sh\` chỉ cho qua PR đúng là bản revert của commit gây lỗi (ADR-0025)."
             echo "Phiên tự chạy chỉ revert commit merge của chính phiên; commit khác thì người phụ trách quyết định revert hay sửa tiếp (bản sửa: đóng issue này rồi mới merge)."
             echo "Issue tự đóng khi một lần chạy main-guard xanh trên commit chứa bản sửa, hoặc chạy lại xanh trên chính commit này."
             echo
@@ -172,7 +172,7 @@ jobs:
               continue
             fi
             # Close only if this green commit contains the blamed commit (the fix landed after it), or is that
-            # very commit run again (ADR-1002, point 2). behind or diverged: an older or unrelated commit.
+            # very commit run again (ADR-0025, point 2). behind or diverged: an older or unrelated commit.
             status="$(gh api "repos/${{ github.repository }}/compare/${culprit}...${GITHUB_SHA}" --jq .status)"
             if [ "${status}" = "ahead" ] || [ "${status}" = "identical" ]; then
               gh issue close "${number}" --comment "Nhánh chính xanh trở lại tại commit ${GITHUB_SHA}."

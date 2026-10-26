@@ -1,1 +1,1 @@
-LỖI: Java 26 không chạy được Gradle 8.14.3 của dự án (cần 17 tới 24).
+LỖI: Java 26 quá mới (/usr/bin/java). Gradle 8.14.3 chỉ chạy trên Java 17 đến 24.

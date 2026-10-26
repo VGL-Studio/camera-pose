@@ -4,20 +4,20 @@
 Usage: scripts/status.py [--check | --sync]
   (no option)  rewrite docs/STATUS.md
   --check      exit 1 when docs/STATUS.md is not what the documents say now (nothing is written)
-  --sync       first move each ticket's status after its plan's (L-019), then rewrite docs/STATUS.md:
+  --sync       first move each ticket's status after its plan's (L-050), then rewrite docs/STATUS.md:
                plan approved -> ticket approved when the ticket is backlog, ready, planned or stopped
                (a stopped task whose new plan version is approved goes back to approved, auto-run.md, section 3);
                plan stopped -> ticket stopped unless the ticket is already stopped, cancelled or past the session.
                The person who approves or stops the plan runs it; the script only follows that decision.
 
 Every status comes from the front matter of requests, specs, tickets, plans, feedback, ADRs and run lists, and from
-the "Trạng thái" lines of docs/lessons.md. Section 6 (release readiness, plan T-047) also reads the placement keys of
+the "Trạng thái" lines of docs/lessons.md. Section 6 (release readiness, L-086) also reads the placement keys of
 core/ads AdPlacement.kt, the unchecked "Cần người kiểm tra" items of finished run reports and the owner/repo of the
 origin remote. It never opens production config, scripts/release.sh or the release folder, and never uses the network.
 Nobody edits STATUS.md by hand: change the document, then run the script.
 The page has no date or time, so running it twice on the same documents gives the same file.
 The page is not in git on main (.gitignore): .github/workflows/status-page.yml runs this script after each push to
-main and pushes the page to the `status` branch (plan T-034, L-047). Run it locally to preview the page.
+main and pushes the page to the `status` branch (L-066). Run it locally to preview the page.
 STATUS_ROOT overrides the repository root (tests). The page is in Vietnamese for the team.
 """
 
@@ -129,7 +129,7 @@ def lessons():
     found = []
     for block in re.split(r"^### ", path.read_text(), flags=re.M)[1:]:
         title = block.splitlines()[0]
-        # "L-001. Title" (template) or "L-001: Title" (apps); the status may be followed by ". **Loại:** ...".
+        # "L-001. Title" (template) or "L-001: Title" (some apps); the status may be followed by ". **Loại:** ..." (L-057).
         heading = re.match(r"(L-\d+)[.:]\s*(.*)", title)
         status = re.search(r"^- \*\*Trạng thái:\*\*\s*([a-z]+)", block, re.M)
         if heading:
@@ -139,7 +139,7 @@ def lessons():
 
 
 def duplicate_lessons(all_lessons):
-    """Lesson numbers used more than once, as when two branches add lessons at the same time (L-042)."""
+    """Lesson numbers used more than once, as when two branches add lessons at the same time (L-056)."""
     seen, twice = set(), []
     for lesson in all_lessons:
         if lesson["id"] in seen and lesson["id"] not in twice:
@@ -163,11 +163,17 @@ def ad_placements():
     if not paths:
         return [], "Không tìm thấy `AdPlacement.kt`."
     try:
-        text = paths[0].read_text()
+        # Bytes, not read_text(): universal newlines would turn a CRLF line into one that release.sh skips.
+        text = paths[0].read_bytes().decode()
     except (OSError, UnicodeDecodeError):
         return [], "Không đọc được `AdPlacement.kt`."
-    found = [{"key": m.group(2), "format": m.group(3).lower()} for m in
-             re.finditer(r'^\s+([A-Z_]+)\("([a-z0-9_]+)",\s*AdFormat\.([A-Z]+)\)', text, re.M)]
+    # Same one-line rule as scripts/release.sh (which this script never opens): NAME("key", AdFormat.X[, attributes]),
+    # formats with underscores; gallery_ keys belong to the staging-only ad gallery and need no production ad unit.
+    found = [{"key": m.group(1), "format": m.group(2).lower()} for m in
+             re.finditer(r'^\s*[A-Z0-9_]+\("([a-z0-9_]+)", AdFormat\.([A-Z_]+)(?:, .*)?\),?$', text, re.M)
+             if not m.group(1).startswith("gallery_")]
+    if re.search(r"^\s*[A-Z][A-Z0-9_]*\($", text, re.M):
+        return found, "`AdPlacement.kt` khai báo vị trí trên nhiều dòng; `scripts/release.sh` sẽ từ chối, viết mỗi vị trí trên một dòng."
     return found, "" if found else "Không đọc được khóa nào trong `AdPlacement.kt`."
 
 
@@ -187,22 +193,22 @@ def shorten(text, limit=160):
 
 
 def is_not_a_task(text):
-    """True for a line that is no task: the text after the first colon starts with 'không có', or it is a template."""
+    """True for a line that is no task: the text after the first colon starts with 'không có', or it is a template.
+
+    A template placeholder is <word...> outside backticks; `<->` or `a < b, c > d` are not placeholders."""
     after = text.split(":", 1)[-1].strip().lower()
-    return after.startswith("không có") or bool(re.search(r"<[^<>]+>", re.sub(r"`[^`]*`", "", text)))
+    return after.startswith("không có") or bool(re.search(r"<\w[^<>]*>", re.sub(r"`[^`]*`", "", text)))
 
 
 def manual_checks():
-    """(items, unreadable): the '- [ ]' items of the "Cần người kiểm tra" part of each finished run report."""
-    found, unreadable = [], []
+    """The '- [ ]' items of the "Cần người kiểm tra" part of each finished run report.
+
+    A report that is not UTF-8 already stops runs() before this section, like every other document."""
+    found = []
     for path in sorted(DOCS.glob("runs/RUN-*.md"), reverse=True):
-        try:
-            if front_matter(path).get("status") != "finished":
-                continue
-            lines = path.read_text().splitlines()
-        except (OSError, UnicodeDecodeError):
-            unreadable.append(path.name)
+        if front_matter(path).get("status") != "finished":
             continue
+        lines = path.read_text().splitlines()
         start = next((i for i, line in enumerate(lines) if line.strip() == "### Cần người kiểm tra"), None)
         if start is None:
             continue
@@ -219,7 +225,7 @@ def manual_checks():
                 item["children"] += 1
             else:
                 item = None
-    return found, unreadable
+    return found
 
 
 def issue_links():
@@ -229,7 +235,8 @@ def issue_links():
                                 capture_output=True, text=True, check=False, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return None
-    match = re.search(r"github\.com[:/]([\w.-]+)/([\w.-]+?)(?:\.git)?/?$", result.stdout.strip())
+    match = re.search(r"^(?:https?://(?:[^@/\s]+@)?|ssh://git@|git@)github\.com[:/]([\w.-]+)/([\w.-]+?)(?:\.git)?/?$",
+                      result.stdout.strip())
     if result.returncode != 0 or not match:
         return None
     base = f"https://github.com/{match.group(1)}/{match.group(2)}/issues?q=is%3Aissue+is%3Aopen"
@@ -343,7 +350,7 @@ def render():
 
 
 def release_readiness(all_features):
-    """Section 6: what is still open before the production build, from documents in the repo only (plan T-047)."""
+    """Section 6: what is still open before the production build, from documents in the repo only (L-086)."""
     out = ["## 6. Sẵn sàng phát hành", "",
            "<!-- Chỉ từ tài liệu trong repo. Mã quảng cáo thật, cấu hình production và tình trạng trên Google Play",
            "không nằm trong repo: người phát hành kiểm theo docs/ops/release.md. -->", "", "### Quảng cáo", ""]
@@ -352,19 +359,18 @@ def release_readiness(all_features):
         keys = ", ".join(f"`{p['key']}` ({p['format']})" for p in placements)
         out.append("- Bản production cần một mã quảng cáo thật cho mỗi khóa dưới đây (docs/ops/release.md, mục 1.2): "
                    f"{keys}.")
-    else:
+    if problem:
         out.append(problem)
     out += ["", "### Kiểm thủ công chưa đánh dấu", ""]
-    checks, unreadable = manual_checks()
+    checks = manual_checks()
     if checks:
         phases = len({c["run"] for c in checks})
         out += [f"{len(checks)} mục trong {phases} phiên. Người kiểm xong thì đánh dấu [x] trong báo cáo phiên."]
         for c in checks:
             extra = f" ({c['children']} dòng con)" if c["children"] else ""
-            out.append(f"- [{c['run']}](runs/{c['path'].name}): {cell(shorten(c['text']))}{extra}")
+            out.append(f"- [{c['run']}](runs/{c['path'].name}): {shorten(c['text'])}{extra}")
     else:
         out.append("Không có.")
-    out += [f"Không đọc được `{name}`." for name in unreadable]
     out += ["", "### Ticket chưa lên staging", ""]
     lines, total, process = [], 0, False
     for f in all_features:
@@ -431,7 +437,8 @@ def main(argv):
         if OUTPUT.is_file() and OUTPUT.read_text() == page:
             print("docs/STATUS.md khớp với tài liệu.")
             return 0
-        print("docs/STATUS.md chưa khớp với tài liệu. Chạy scripts/status.py để sinh lại trang.")
+        print("docs/STATUS.md chưa khớp với tài liệu. Chạy scripts/status.py để sinh lại trang; trang không có trong git, "
+              "status-page.yml sinh nó trên nhánh status (docs/CLAUDE.md, mục Trang tiến độ).")
         return 1
     OUTPUT.write_text(page)
     print("Đã ghi docs/STATUS.md.")

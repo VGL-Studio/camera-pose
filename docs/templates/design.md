@@ -58,7 +58,7 @@ Bản mẫu là ý đồ thiết kế. AI viết lại bằng Compose theo hệ 
 
 ## 5. Vị trí quảng cáo
 
-<Trùng với mục Quảng cáo trong spec. Đánh dấu vị trí trên ảnh màn hình. Vùng quảng cáo phải tách bạch với nội dung và không sát nút bấm. Ghi "Không có" nếu không có.>
+<Trùng với mục Quảng cáo trong spec. Đánh dấu vị trí trên ảnh màn hình, dùng component native của hệ thống thiết kế. Theo docs/ops/ads-guide.md, mục 4: vùng quảng cáo có ranh giới nhìn thấy được, cách phần tử bấm được của app ít nhất 16 dp, CTA khác nút chính của app, giữ chỗ khi đang tải. Ghi "Không có" nếu không có.>
 
 ## 6. Chuyển sang Compose
 

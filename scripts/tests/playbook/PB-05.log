@@ -1,2 +1,1 @@
-LỖI: không đọc được phiên bản Java từ 'Picked up JAVA_TOOL_OPTIONS: -Dhttps.proxyHost=127.0.0.1'. Gradle 8.14.3 của dự án cần Java 17 tới 24.
-Đặt JAVA_HOME tới JDK của Android Studio rồi chạy lại, ví dụ:
+LỖI: không đọc được phiên bản của java.

@@ -759,7 +759,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 - **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261026-02.
 - **Chuyện gì:** bốn plan của RUN-20261026-02 nâng `token_estimate` lên gần gấp đôi số của `scripts/token-usage.py estimate`, theo hai task cỡ M của RUN-20261026-01 (15.0M, 19.7M). Thực tế cả bốn task dùng 0,4 đến 0,7 lần ước tính; T-057 lệch 2,5 lần.
-- **Bằng chứng:** RUN-20261026-02, mục Token: T-054 5.5M/10M, T-055 7.1M/10M, T-057 6.0M/15M, T-056 9.0M/18M (đã gồm phiên con theo L-073; việc cuối phiên vào dòng Chung theo L-080).
+- **Bằng chứng:** RUN-20261026-02, mục Token: T-054 5.5M/10M, T-055 7.1M/10M (đếm đủ: phiên chính làm trên nhánh task, rà soát là phiên con có `Task:`), T-057 6.0M/15M, T-056 9.0M/18M (thiếu phần phiên chính, L-083).
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan, dòng `token_estimate`: lấy số của `scripts/token-usage.py estimate` (nay có mẫu đã gồm phiên con), chỉ chỉnh khi task khác thường và ghi lý do; không nâng theo một hai task của một phiên.
 - **Áp dụng:**
 - **Kiểm chứng:**
@@ -770,5 +770,14 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** rà soát độc lập T-054 có một điểm nên sửa: nhánh `if len(starts) < attempt` của `killed_by` không có test riêng. ADR-1003 bắt sửa điểm nên sửa khi có test viết trước thất bại đúng lý do; test cho code đã đúng không thể thất bại trước, nên phiên phải đoán. Phiên chọn không sửa và ghi vào báo cáo.
 - **Bằng chứng:** nhật ký plan T-054 (RUN-20261026-02); PR #158, mục Rà soát độc lập.
 - **Đề xuất sửa:** `docs/auto-run.md` bước 6, dòng Nên sửa: điểm chỉ thêm test cho hành vi đã đúng thì thêm khi test nằm trong file của mục 3.2 và thất bại khi tạm bỏ dòng code đó (đột biến, như đối chứng của L-035), ghi kết quả đột biến vào nhật ký; không thì ghi vào báo cáo.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-083: phiên con giữ nhánh task trong worktree, request của phiên chính cho task đó tính vào dòng Chung
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261026-02 (T-057, T-056).
+- **Chuyện gì:** khi giao bước 3 đến 5 cho phiên con trong worktree của nhánh task (auto-run.md, mục Giao bước 3 đến 5), thư mục chính không mở được cùng nhánh đó nên đứng ở `origin/main` tách rời. `scripts/token-usage.py` gán request của phiên chính theo nhánh của thư mục chính, nên phần phiên chính làm cho task (đọc plan, mở PR, chờ CI, merge, nhật ký) tính vào dòng Chung.
+- **Bằng chứng:** RUN-20261026-02, mục Token: dòng T-056 có đúng 66 request, bằng 55 của phiên con bước 3 đến 5 cộng 11 của phiên rà soát; T-057 50 = 39 + 11; Chung 22.4M.
+- **Đề xuất sửa:** `scripts/token-usage.py`: request của phiên chính trên HEAD tách rời tính vào task có nhánh được tạo gần nhất trước đó mà chưa merge (theo giờ tạo nhánh và giờ merge), hoặc phiên chính ghi task đang làm vào một tệp trạng thái mà script đọc; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên ghi rõ dòng nào thiếu phần phiên chính.
 - **Áp dụng:**
 - **Kiểm chứng:**

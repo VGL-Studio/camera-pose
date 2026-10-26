@@ -51,7 +51,7 @@ Hộp thoại mất mạng thuộc gói `network`.
 | Camera, chưa chọn tư thế | Lời nhắc | Chọn một tư thế ở dải bên dưới | `labelLarge` |
 | Camera, đã khóa | Lời nhắc | Đã khóa lớp phủ | `labelLarge` |
 | Camera, bảng chỉnh | Tiêu đề | Chỉnh lớp phủ | `titleMedium` |
-| Camera, bảng chỉnh | Thanh trượt | Độ mờ, 70%; Cỡ, 100% (`%1$d%%`) | `labelLarge` |
+| Camera, bảng chỉnh | Thanh trượt | Độ đậm, 70%; Cỡ, 100% (`%1$d%%`) | `labelLarge` |
 | Camera, bảng chỉnh | Nút | Lật; Khóa; Ẩn; Đặt lại | `labelMedium` |
 | Camera, chấm điểm | Điểm, lời nhắc | 68; Nâng tay trái cao hơn (lời nhắc sinh theo khớp lệch nhiều nhất) | `titleSmall`, `labelLarge` |
 | Camera, đạt điểm | Điểm, lời nhắc | 92; Đúng dáng rồi, bấm chụp! | `titleSmall`, `labelLarge` |

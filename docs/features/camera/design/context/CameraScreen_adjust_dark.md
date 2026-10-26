@@ -6,7 +6,7 @@ Sinh bởi `scripts/figma-export.py`. Không sửa tay; thiết kế đổi thì
 
 - Link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=16-230
 - Frame: `16:230`, giao diện tối
-- Ngày lấy: 2026-10-22
+- Ngày lấy: 2026-10-25
 
 ## 2. Giá trị dùng
 
@@ -15,6 +15,9 @@ nào trùng; plan quyết định làm tròn về token gần nhất hay thêm t
 
 | Loại | Giá trị | Token |
 | --- | --- | --- |
+| instance ghi đè component | AdjustPanel | màu nền |
+| instance ghi đè component | GridOverlay | màu nền |
+| instance ghi đè component | Slider | màu nền |
 | khoảng cách | 16 | md |
 | khoảng cách | 4 | xs |
 | khoảng cách | 8 | sm |
@@ -52,7 +55,7 @@ Toạ độ và cỡ tính theo dp, gốc là góc trên trái của khung. Th�
         - Text "icon", vị trí 359,44, cỡ 24 x 24, chữ "settings", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
   - Frame "Preview 3:4", vị trí 0,92, cỡ 411 x 548, nền #1E1E1E (surface, surfaceContainer, camera/surface)
     - Rectangle "camera-feed (ảnh tạm)", vị trí 0,92, cỡ 411 x 548, nền #1E1E1E (surface, surfaceContainer, camera/surface)
-    - Instance "GridOverlay", vị trí 0,92, cỡ 411 x 548
+    - Instance "GridOverlay", vị trí 0,92, cỡ 411 x 548, CHÚ Ý: ghi đè màu nền của component gốc
       - Rectangle "line v1", vị trí 137,92, cỡ 1 x 548, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
       - Rectangle "line v2", vị trí 274,92, cỡ 1 x 548, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
       - Rectangle "line h1", vị trí 0,275, cỡ 411 x 1, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
@@ -77,19 +80,19 @@ Toạ độ và cỡ tính theo dp, gốc là góc trên trái của khung. Th�
         - Text "icon", vị trí 359,366, cỡ 24 x 24, chữ "lock_open", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
       - Instance "CameraIconButton", vị trí 347,410, cỡ 48 x 48, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
         - Text "icon", vị trí 359,422, cỡ 24 x 24, chữ "visibility", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
-    - Instance "AdjustPanel", vị trí 16,344, cỡ 379 x 280, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 24, xếp dọc, cách nhau 16 (md), lề trên/phải/dưới/trái 16 (md)/16 (md)/16 (md)/16 (md), căn MIN/MIN
+    - Instance "AdjustPanel", vị trí 16,344, cỡ 379 x 280, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, CHÚ Ý: ghi đè màu nền của component gốc, bo góc 24, xếp dọc, cách nhau 16 (md), lề trên/phải/dưới/trái 16 (md)/16 (md)/16 (md)/16 (md), căn MIN/MIN
       - Frame "header", vị trí 34,362, cỡ 343 x 24, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn SPACE_BETWEEN/CENTER
         - Text "Chỉnh lớp phủ", vị trí 34,362, cỡ 107 x 24, chữ "Chỉnh lớp phủ", kiểu titleMedium (16/24, đậm 600), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
         - Text "icon", vị trí 353,362, cỡ 24 x 24, chữ "close", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
-      - Instance "Slider", vị trí 34,402, cỡ 343 x 52, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
+      - Instance "Slider", vị trí 34,402, cỡ 343 x 52, CHÚ Ý: ghi đè màu nền của component gốc, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
         - Frame "header", vị trí 34,402, cỡ 343 x 20, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn SPACE_BETWEEN/MIN
-          - Text "label", vị trí 34,402, cỡ 44 x 20, chữ "Độ mờ", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
+          - Text "label", vị trí 34,402, cỡ 52 x 20, chữ "Độ đậm", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
           - Text "value", vị trí 347,402, cỡ 30 x 20, chữ "70%", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
         - Frame "track", vị trí 34,426, cỡ 343 x 28
           - Rectangle "inactive", vị trí 34,436, cỡ 343 x 8, nền #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant), bo góc 999
           - Rectangle "active", vị trí 34,436, cỡ 240 x 8, nền #FFC83D (secondaryContainer, shadowSticker, category/men), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 1.0, bo góc 999
           - Ellipse "thumb", vị trí 262,428, cỡ 24 x 24, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0
-      - Instance "Slider", vị trí 34,470, cỡ 343 x 52, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
+      - Instance "Slider", vị trí 34,470, cỡ 343 x 52, CHÚ Ý: ghi đè màu nền của component gốc, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
         - Frame "header", vị trí 34,470, cỡ 343 x 20, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn SPACE_BETWEEN/MIN
           - Text "label", vị trí 34,470, cỡ 19 x 20, chữ "Cỡ", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)
           - Text "value", vị trí 340,470, cỡ 37 x 20, chữ "100%", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl)

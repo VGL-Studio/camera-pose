@@ -80,7 +80,7 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi kéo một ngón trên khung xem trước thì nét viền di chuyển theo ngón tay.
 - [ ] Khi chụm hoặc mở hai ngón thì nét viền nhỏ lại hoặc to lên, trong khoảng 40% đến 160%.
-- [ ] Khi bấm nút chỉnh thì bảng chỉnh hiện trên khung xem trước, có thanh trượt "Độ mờ" (20% đến 100%) và "Cỡ" (40% đến 160%), và bốn nút Lật, Khóa, Ẩn, Đặt lại; nút chỉnh chuyển sang trạng thái đang bật. Bấm dấu đóng hoặc bấm lại nút chỉnh thì bảng đóng.
+- [ ] Khi bấm nút chỉnh thì bảng chỉnh hiện trên khung xem trước, có thanh trượt "Độ đậm" (20% đến 100%, 100% là nét đậm nhất) và "Cỡ" (40% đến 160%), và bốn nút Lật, Khóa, Ẩn, Đặt lại; nút chỉnh chuyển sang trạng thái đang bật. Bấm dấu đóng hoặc bấm lại nút chỉnh thì bảng đóng.
 - [ ] Khi bấm Lật thì nét viền lật ngang.
 - [ ] Khi bấm Khóa thì kéo và chụm không còn làm đổi nét viền; nút khóa chuyển sang trạng thái đang bật; nút chỉnh và nút lật mờ đi; một lời nhắc ngắn "Đã khóa lớp phủ" hiện trên khung xem trước. Bấm lại thì mở khóa.
 - [ ] Khi bấm Ẩn (hoặc nút hiện tư thế ở cột công cụ) thì nét viền ẩn; bấm lại thì hiện. Nút hiện tư thế ở trạng thái đang bật khi nét viền đang hiện.
@@ -215,7 +215,7 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | --- | --- | --- |
 | Tư thế đang dùng | Mở lại app vẫn là tư thế đó | Đến khi người dùng xóa dữ liệu app |
 | Tư thế đã dùng gần đây, kèm thời điểm dùng | Xếp dải tư thế và thư viện (đã lưu, gần đây, còn lại) | Đến khi người dùng xóa dữ liệu app |
-| Độ mờ, cỡ, lật, khóa, ẩn của nét viền; thẻ bước ẩn hay hiện | Giữ lựa chọn giữa các lần dùng | Đến khi người dùng xóa dữ liệu app |
+| Độ đậm, cỡ, lật, khóa, ẩn của nét viền; thẻ bước ẩn hay hiện | Giữ lựa chọn giữa các lần dùng | Đến khi người dùng xóa dữ liệu app |
 | Hẹn giờ, lưới, flash, camera trước sau | Giữ lựa chọn giữa các lần dùng | Đến khi người dùng xóa dữ liệu app |
 | Số ảnh đã lưu, ngày gọi hộp đánh giá gần nhất | Điều kiện hỏi đánh giá | Đến khi người dùng xóa dữ liệu app |
 | Mốc quảng cáo của phiên (số ảnh đã lưu trong phiên, lần hiện quảng cáo gần nhất) | Giới hạn quảng cáo | Trong bộ nhớ, hết khi app đóng; không lưu xuống máy |
@@ -317,3 +317,4 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | 2026-10-23 | AI | Ghi quyết định của Tuấn ở plan T-017, T-018, T-019: bỏ tiêu chí dung lượng APK (KB-5, câu 12); phiên của giới hạn quảng cáo là một lần chạy của app, mốc quảng cáo không lưu xuống máy (mục 5, mục 6, câu 13); chỉ hỏi đánh giá khi lần xem lại đó đã lưu ảnh (KB-10, câu 14). Tuấn xác nhận lại ngày 2026-10-23 |
 | 2026-10-26 | AI | Đề xuất theo FB-20261024-01 (plan T-056): màn lớn (cạnh ngắn từ 600 dp) không khóa dọc, app dùng cả màn hình theo hướng của máy; điện thoại vẫn khóa dọc (mục 2, KB-11 thêm hai tiêu chí, câu 7 phần bổ sung, câu 15). Chờ người phụ trách sản phẩm xác nhận |
 | 2026-10-26 | Tuấn | Xác nhận phần đổi của plan T-056 (mục 2, KB-11, câu 7 phần bổ sung, câu 15). Chuyển lại `confirmed` |
+| 2026-10-26 | Tuấn | Đổi nhãn của thanh trượt độ đậm nét viền thành "Độ đậm" (KB-3, bảng dữ liệu lưu trên máy), vì nhãn cũ đọc ngược nghĩa khi đi cùng phần trăm (L-077, plan T-055); thiết kế Figma sửa cùng lúc. Không đổi hành vi. Giữ `confirmed` |

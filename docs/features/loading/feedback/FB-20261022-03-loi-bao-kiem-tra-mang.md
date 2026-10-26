@@ -7,7 +7,7 @@ build: 0.1.0-staging.3
 feature: loading
 ticket: T-008
 severity: gop-y
-status: new
+status: planned
 created: 2026-10-22
 ---
 
@@ -42,3 +42,6 @@ Không có.
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 Đề xuất của AI: góp ý mới, cần đổi spec loading (thêm lời báo thứ hai và chữ dịch cho 7 ngôn ngữ). Ưu tiên thấp hơn FB-20261022-02.
+
+- **Xử lý:** Tuấn đưa vào phiên sau ngày 2026-10-26: ticket T-057, plan `features/loading/plans/T-057-loi-bao-may-chu.md`; đổi spec loading (KB-2, câu hỏi 11), chờ xác nhận lại.
+- **Liên kết:** FB-20261022-02 (máy chủ file không tới được), TS-20261022-02.

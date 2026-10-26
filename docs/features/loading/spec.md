@@ -1,6 +1,6 @@
 ---
 feature: loading
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -67,6 +67,9 @@ Người dùng cài app và mở lần đầu khi không có mạng.
 Tiêu chí chấp nhận:
 
 - [ ] Khi một phần việc không xong được thì màn hình loading báo lỗi gồm tiêu đề "Không thể tải dữ liệu" và lời hướng dẫn dễ hiểu; nhãn của thanh tiến trình đổi thành "Tiến độ đã dừng", thanh tiến trình và phần trăm chuyển màu báo lỗi, giữ ở mức đã đạt; có nút "Thử lại". App không vào màn hình chính.
+- [ ] Khi một phần việc không xong được mà máy không có mạng, hoặc có mạng nhưng hệ thống chưa xác nhận mạng đó vào được Internet (Wi-Fi chưa đăng nhập, mạng không ra Internet), thì lời hướng dẫn là "Kết nối đang gián đoạn. Vui lòng kiểm tra mạng và thử lại để tiếp tục." (câu hỏi 11).
+- [ ] Khi một phần việc không xong được mà hệ thống xác nhận máy đang vào được Internet (máy chủ không trả lời, trả lỗi hay hết 15 giây) thì lời hướng dẫn là "Máy chủ chưa phản hồi. Vui lòng thử lại sau ít phút."; tiêu đề, nhãn, thanh tiến trình và nút "Thử lại" như trên (câu hỏi 11, FB-20261022-03).
+- [ ] Khi bấm "Thử lại" mà phần việc lại không xong thì lời hướng dẫn chọn lại theo trạng thái mạng lúc đó.
 - [ ] Khi bấm "Thử lại" thì app chỉ làm lại những phần việc chưa xong, thanh tiến trình tiếp tục từ chỗ đã đạt.
 - [ ] Khi có mạng trở lại và bấm "Thử lại" thì app chuẩn bị xong và vào màn hình chính.
 - [ ] Khi tải cấu hình, tải catalog hay tải một file của bộ khởi đầu không có phản hồi sau 15 giây thì app coi phần việc đó là không xong được và báo lỗi như trên (câu hỏi 3; đổi từ 10 giây cho cấu hình, ADR-1001).
@@ -156,6 +159,10 @@ Không có. Màn hình loading không hiện quảng cáo.
    - Đề xuất của AI: hiện "Camera Pose: Lines and Guides" (`app_name` của app này); tên dài nên xuống hai dòng, căn giữa, như thiết kế.
    - Trả lời: Đồng ý với đề xuất của AI.
 
+11. **Máy có mạng mà vẫn không tải được thì báo gì (FB-20261022-03)?** Hiện màn loading luôn bảo kiểm tra mạng. Ở phiên thử TS-20261022-02 máy có mạng nhưng máy chủ file không tới được; người thử bấm "Thử lại" 4 lần trong 5 giây rồi bỏ.
+   - Đề xuất của AI: hai lời hướng dẫn. Hệ thống xác nhận máy vào được Internet (mạng đã được kiểm, `validated`) thì báo "Máy chủ chưa phản hồi. Vui lòng thử lại sau ít phút."; còn lại giữ lời cũ. Mạng có mà hệ thống chưa xác nhận (Wi-Fi cần đăng nhập) vẫn là "kiểm tra mạng", vì đó là lời đúng cho trường hợp này. Áp dụng cho cả ba phần việc (cấu hình, catalog, bộ khởi đầu). Không đổi sự kiện phân tích. Chữ 7 ngôn ngữ ở plan T-057, mục 3.1.
+   - Trả lời:
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -166,3 +173,4 @@ Không có. Màn hình loading không hiện quảng cáo.
 | 2026-10-16 | AI | Nhận thiết kế Figma theo quyết định của anh Nhật: thêm logo, tên app, khẩu hiệu, chân trang, tiêu đề lỗi, nhãn tiến trình (phạm vi, KB-1, KB-2, mục 4); thêm câu hỏi 6, 7. Chuyển sang `changed`, chờ xác nhận lại |
 | 2026-10-21 | AI | Áp dụng cho Camera Pose: thay ba file mẫu bằng catalog và bộ tư thế khởi đầu (phạm vi, KB-1, KB-3, mục 6, mục 7); chuyển sang màn chào hoặc camera; nhận diện và thiết kế theo hướng Sticker (mục 4); thêm câu hỏi 8 đến 10. Chuyển sang `changed`, chờ xác nhận lại |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: chờ tối đa 15 giây cho mỗi thứ cần tải (KB-2); viết ADR-1001 vì ADR-0018 của dự án mẫu ghi 10 giây cho cấu hình |
+| 2026-10-26 | AI | Theo FB-20261022-03 (Tuấn đưa vào phiên sau): thêm lời hướng dẫn thứ hai khi máy có mạng mà máy chủ không trả lời (KB-2), câu hỏi 11. Chuyển sang `changed`, chờ xác nhận lại |

@@ -7,7 +7,7 @@ build: bản staging trên máy thật của Tuấn (chưa ghi số phiên bản
 feature: camera
 ticket: T-061
 severity: nang
-status: planned
+status: fixed
 created: 2026-10-26
 ---
 
@@ -46,4 +46,5 @@ Không có.
   - Hủy đếm: chạm bất kỳ chỗ nào trong khung xem trước (trừ nút zoom), nút hủy, đổi camera, rời màn (thư viện, cài đặt, ô ảnh vừa chụp).
   - Vẫn dùng được: zoom.
   - Spec camera KB-6 và thiết kế `CameraScreen_countdown_dark` đổi theo.
+- **Kết quả sau khi sửa:** đã sửa ở T-061 (PR #173), có trong bản 0.1.0-staging.12 (RUN-20261026-03). Tuấn thử trên máy thật theo mục Cần người kiểm tra của báo cáo phiên: đạt. Tuấn chuyển `fixed` ngày 2026-10-26.
 - **Liên kết:** [T-061](../tickets/T-061-khoa-nut-khi-dem-nguoc.md), [plan T-061](../plans/T-061-khoa-nut-khi-dem-nguoc.md)

@@ -6,6 +6,7 @@
     <string name="loading_status_failed">Tiến độ đã dừng</string>
     <string name="loading_error_title">Không thể tải dữ liệu</string>
     <string name="loading_error">Kết nối đang gián đoạn. Vui lòng kiểm tra mạng và thử lại để tiếp tục.</string>
+    <string name="loading_error_server">Máy chủ chưa phản hồi. Vui lòng thử lại sau ít phút.</string>
     <string name="loading_retry">Thử lại</string>
     <string name="loading_footer">Ảnh chỉ lưu trên máy của bạn</string>
 </resources>

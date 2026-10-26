@@ -33,7 +33,8 @@ private val BadgeOffsetY = (-9).dp
 /**
  * Category chip of the sticker style (sticker.md, section 4): 36 high, sticker border. Selected: yellow with a
  * [SelectedBadge]; the badge is drawn outside the chip, so leave 9 dp above and 8 dp right of it. Screen readers hear
- * the label as a selected or unselected tab; the touch target is 48 dp high.
+ * the label as a selected or unselected tab; the touch target is 48 dp high. [enabled] false: not selectable, read as
+ * disabled; the caller fades it (plan T-061).
  */
 @Composable
 fun StickerChip(
@@ -41,7 +42,7 @@ fun StickerChip(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    @Suppress("UNUSED_PARAMETER") enabled: Boolean = true,
+    enabled: Boolean = true,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Radius.chip)
@@ -51,6 +52,7 @@ fun StickerChip(
             .height(ChipHeight)
             .selectable(
                 selected = selected,
+                enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null,
                 role = Role.Tab,

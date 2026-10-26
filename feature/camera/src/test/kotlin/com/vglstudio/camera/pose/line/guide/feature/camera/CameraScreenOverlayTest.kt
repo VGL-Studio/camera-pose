@@ -94,6 +94,7 @@ class CameraScreenOverlayTest {
         onToggleLock = { calls += "lock" },
         onToggleHidden = { calls += "hidden" },
         onResetOverlay = { calls += "reset" },
+        onHideSteps = { calls += "hide" },
     )
 
     private var cameraState by mutableStateOf<CameraUiState>(READY)
@@ -188,6 +189,20 @@ class CameraScreenOverlayTest {
         composeRule.waitForIdle()
         assertTrue("transforms $transforms", transforms.isEmpty())
         assertTrue("calls $calls", calls.isEmpty())
+    }
+
+    @Test
+    fun tapOnStepCard_doesNotMoveOutline() {
+        setScreen()
+        composeRule.waitForIdle()
+        transforms.clear()
+        calls.clear()
+        composeRule.onNodeWithText("Step 2", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+        assertTrue("transforms $transforms", transforms.isEmpty())
+        assertTrue("calls $calls", "end" !in calls)
+        // Control: the tap reached the card, which hides it (plan T-059), and nothing else.
+        assertEquals(listOf("hide"), calls)
     }
 
     @Test

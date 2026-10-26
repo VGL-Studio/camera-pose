@@ -26,6 +26,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraScreenScreenshotTest.Companion.DEFAULT
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraScreenScreenshotTest.Companion.LOCKED
+import com.vglstudio.camera.pose.line.guide.feature.camera.CameraScreenScreenshotTest.Companion.STEP_TEXT
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraScreenScreenshotTest.Companion.samplePoses
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseThumbItem
@@ -57,6 +58,7 @@ class CameraScreenUnfoldedTest {
     private val actions = PoseActions(
         onCategorySelect = { calls += "category $it" },
         onPoseSelect = { calls += "pose $it" },
+        onHideSteps = { calls += "hide" },
     )
 
     @Composable
@@ -158,6 +160,15 @@ class CameraScreenUnfoldedTest {
         composeRule.onNodeWithText("Nam").performClick()
         composeRule.onNodeWithTag(CameraTestTags.pose("p3")).performClick()
         assertEquals(listOf("shutter", "flip", "lastPhoto", "zoom 2.0", "category men", "pose p3"), calls)
+    }
+
+    @Test
+    fun tapStepText_hides() {
+        composeRule.setContent { Screen() }
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithText(STEP_TEXT, useUnmergedTree = true).performClick()
+        assertEquals(listOf("hide"), calls)
     }
 
     @Test

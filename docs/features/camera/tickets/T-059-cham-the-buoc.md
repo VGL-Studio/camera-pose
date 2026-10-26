@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-2]
 owner: Nhật
-status: draft
+status: approved
 risk: low
 size: S
 depends_on: [T-014]
 sprint:
-plan:
+plan: features/camera/plans/T-059-cham-the-buoc.md
 created: 2026-10-26
 ---
 

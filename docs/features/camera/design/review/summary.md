@@ -1,7 +1,7 @@
 | Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |
 | --- | --- | --- |
 | CameraScreen_adjust_dark | 7.3% | `CameraScreen_adjust_dark_compare.png` |
-| CameraScreen_countdown_dark | 6.0% | `CameraScreen_countdown_dark_compare.png` |
+| CameraScreen_countdown_dark | 5.7% | `CameraScreen_countdown_dark_compare.png` |
 | CameraScreen_default_dark | 6.7% | `CameraScreen_default_dark_compare.png` |
 | CameraScreen_default_dark_unfolded | 5.4% | `CameraScreen_default_dark_unfolded_compare.png` |
 | CameraScreen_error_dark | 4.1% | `CameraScreen_error_dark_compare.png` |

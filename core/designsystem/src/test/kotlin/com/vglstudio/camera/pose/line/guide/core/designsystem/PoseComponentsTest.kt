@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -25,6 +26,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -117,6 +119,31 @@ class PoseComponentsTest {
         composeRule.onNodeWithText("Tất cả").assertIsSelected()
         composeRule.onNodeWithText("Nữ").assertIsNotSelected().performClick()
         assertEquals(1, clicks)
+    }
+
+    // Disabled while the camera counts down (plan T-061): read as disabled, a tap does nothing.
+    @Test
+    fun stickerChip_disabled_notSelectable() {
+        var disabledClicks = 0
+        var enabledClicks = 0
+        composeRule.setContent {
+            AppTheme(darkTheme = true) {
+                Column(Modifier.padding(24.dp)) {
+                    StickerChip(label = "Nữ", selected = false, onClick = { disabledClicks++ }, enabled = false)
+                    StickerChip(
+                        label = "Nam",
+                        selected = false,
+                        onClick = { enabledClicks++ },
+                        modifier = Modifier.padding(top = 24.dp),
+                    )
+                }
+            }
+        }
+        composeRule.onNodeWithText("Nữ").assertIsNotEnabled().performTouchInput { click() }
+        assertEquals(0, disabledClicks)
+        // Control: the same chip enabled (the default) answers the tap once.
+        composeRule.onNodeWithText("Nam").assertIsEnabled().performTouchInput { click() }
+        assertEquals(1, enabledClicks)
     }
 
     // SelectedBadge
@@ -225,6 +252,37 @@ class PoseComponentsTest {
         composeRule.onNodeWithContentDescription("Pose w01").assertIsSelected()
         composeRule.onNodeWithContentDescription("Pose w02").assertIsNotSelected().performClick()
         assertEquals(1, clicks)
+    }
+
+    @Test
+    fun poseThumb_disabled_notSelectable() {
+        var disabledClicks = 0
+        var enabledClicks = 0
+        composeRule.setContent {
+            AppTheme(darkTheme = true) {
+                Column(Modifier.padding(24.dp)) {
+                    PoseThumb(
+                        image = null,
+                        selected = false,
+                        onClick = { disabledClicks++ },
+                        contentDescription = "Pose w01",
+                        enabled = false,
+                    )
+                    PoseThumb(
+                        image = null,
+                        selected = false,
+                        onClick = { enabledClicks++ },
+                        contentDescription = "Pose w02",
+                        modifier = Modifier.padding(top = 24.dp),
+                    )
+                }
+            }
+        }
+        composeRule.onNodeWithContentDescription("Pose w01").assertIsNotEnabled().performTouchInput { click() }
+        assertEquals(0, disabledClicks)
+        // Control: the same cell enabled (the default) answers the tap once.
+        composeRule.onNodeWithContentDescription("Pose w02").assertIsEnabled().performTouchInput { click() }
+        assertEquals(1, enabledClicks)
     }
 
     // StepCard

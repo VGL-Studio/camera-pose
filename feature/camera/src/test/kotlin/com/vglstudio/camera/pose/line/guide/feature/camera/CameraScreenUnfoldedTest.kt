@@ -9,15 +9,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.percentOffset
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -66,17 +70,19 @@ class CameraScreenUnfoldedTest {
         poseState: PoseUiState = samplePoses(),
         lastPhoto: ImageBitmap? = null,
         onLastPhotoClick: (() -> Unit)? = { calls += "lastPhoto" },
+        uiState: CameraUiState = DEFAULT,
+        onCancelCountdown: (CountdownCancelReason) -> Unit = {},
     ) {
         AppTheme(darkTheme = true) {
             CameraScreen(
-                uiState = DEFAULT,
+                uiState = uiState,
                 onFlashClick = {},
                 onTimerClick = {},
                 onGridClick = {},
                 onFlipClick = { calls += "flip" },
                 onZoomSelect = { calls += "zoom $it" },
                 onShutterClick = { calls += "shutter" },
-                onCancelCountdown = {},
+                onCancelCountdown = onCancelCountdown,
                 onRetry = {},
                 onOpenAppSettings = {},
                 onOpenPoses = { calls += "poses" },
@@ -181,6 +187,24 @@ class CameraScreenUnfoldedTest {
         assertNear("tools right gap", 16f, preview.right - tools.right, 2f)
         val hint = bounds(CameraTestTags.LOCK_HINT)
         assertNear("hint bottom gap", 16f, preview.bottom - hint.bottom, 2f)
+    }
+
+    // KB-6 (plan T-061): while counting down the same buttons are locked, a tap on the frame stops the count and the
+    // zoom in the right column still works.
+    @Test
+    fun counting_locksAndTapCancels() {
+        composeRule.setContent {
+            Screen(uiState = DEFAULT.copy(countdown = 3), onCancelCountdown = { calls += "cancel $it" })
+        }
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithTag(CameraTestTags.FLASH).assertIsNotEnabled()
+        composeRule.onNodeWithText("Nữ").assertIsNotEnabled()
+        composeRule.onNodeWithTag(CameraTestTags.PREVIEW).performTouchInput { click(percentOffset(0.2f, 0.7f)) }
+        composeRule.waitForIdle()
+        assertTrue("calls $calls", "cancel PREVIEW" in calls)
+        composeRule.onNodeWithText("2").performClick()
+        assertTrue("calls $calls", "zoom 2.0" in calls)
     }
 
     private fun manyPoses(): PoseUiState.Ready {

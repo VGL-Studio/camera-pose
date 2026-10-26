@@ -22,10 +22,16 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.R
 
 /**
  * The four tools beside the frame, top to bottom: adjust, mirror, lock, show or hide the outline (spec camera, KB-3).
- * While locked, adjust and mirror are dimmed and cannot be pressed.
+ * While locked, adjust and mirror are dimmed and cannot be pressed. Not [enabled] (while counting down, KB-6): all four
+ * are; each button fades itself, so the column has no alpha of its own.
  */
 @Composable
-internal fun OverlayToolColumn(overlay: OverlayState, actions: PoseActions, modifier: Modifier = Modifier) {
+internal fun OverlayToolColumn(
+    overlay: OverlayState,
+    actions: PoseActions,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
     val settings = overlay.settings
     Column(
         modifier = modifier.testTag(CameraTestTags.OVERLAY_TOOLS),
@@ -37,7 +43,7 @@ internal fun OverlayToolColumn(overlay: OverlayState, actions: PoseActions, modi
             contentDescription = stringResource(R.string.camera_cd_adjust),
             modifier = Modifier.testTag(CameraTestTags.TOOL_ADJUST),
             active = overlay.panelOpen,
-            enabled = !settings.locked,
+            enabled = enabled && !settings.locked,
         )
         CameraIconButton(
             icon = painterResource(R.drawable.ic_camera_mirror),
@@ -45,7 +51,7 @@ internal fun OverlayToolColumn(overlay: OverlayState, actions: PoseActions, modi
             contentDescription = stringResource(R.string.camera_cd_mirror),
             modifier = Modifier.testTag(CameraTestTags.TOOL_MIRROR),
             active = settings.mirrored,
-            enabled = !settings.locked,
+            enabled = enabled && !settings.locked,
         )
         CameraIconButton(
             icon = painterResource(if (settings.locked) R.drawable.ic_camera_lock else R.drawable.ic_camera_lock_open),
@@ -55,6 +61,7 @@ internal fun OverlayToolColumn(overlay: OverlayState, actions: PoseActions, modi
             ),
             modifier = Modifier.testTag(CameraTestTags.TOOL_LOCK),
             active = settings.locked,
+            enabled = enabled,
         )
         CameraIconButton(
             icon = painterResource(
@@ -66,6 +73,7 @@ internal fun OverlayToolColumn(overlay: OverlayState, actions: PoseActions, modi
             ),
             modifier = Modifier.testTag(CameraTestTags.TOOL_VISIBILITY),
             active = !settings.hidden,
+            enabled = enabled,
         )
     }
 }

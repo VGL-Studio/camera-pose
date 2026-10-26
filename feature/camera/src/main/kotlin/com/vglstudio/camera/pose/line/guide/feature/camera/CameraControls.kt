@@ -4,6 +4,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -22,12 +24,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -64,7 +69,8 @@ private const val DISABLED_ALPHA = 0.38f
 
 /**
  * Library on the left; on the right flash, timer, grid (camera ready only) and settings. [topPadding] is the space
- * above the bar: under the status bar on a phone, less on an unfolded one (plan T-020).
+ * above the bar: under the status bar on a phone, less on an unfolded one (plan T-020). While counting down, flash,
+ * timer and grid are faded and locked; the library and the settings are not (spec camera, KB-6).
  */
 @Composable
 internal fun CameraTopBar(
@@ -97,21 +103,23 @@ internal fun CameraTopBar(
         Spacer(modifier = Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             if (ready != null) {
+                val locked = ready.countdown != null
                 CameraIconButton(
                     icon = painterResource(flashIcon(ready.flash)),
                     onClick = onFlashClick,
                     contentDescription = stringResource(flashDescription(ready.flash)),
                     modifier = Modifier.testTag(CameraTestTags.FLASH),
-                    enabled = ready.flashAvailable,
+                    enabled = ready.flashAvailable && !locked,
                     toggleable = false,
                 )
-                TimerButton(timer = ready.timer, onClick = onTimerClick)
+                TimerButton(timer = ready.timer, onClick = onTimerClick, enabled = !locked)
                 CameraIconButton(
                     icon = painterResource(R.drawable.ic_camera_grid_on),
                     onClick = onGridClick,
                     contentDescription = stringResource(R.string.camera_cd_grid),
                     modifier = Modifier.testTag(CameraTestTags.GRID_BUTTON),
                     active = ready.gridVisible,
+                    enabled = !locked,
                 )
             }
             if (onOpenSettings != null) {
@@ -129,7 +137,7 @@ internal fun CameraTopBar(
 
 /** Off: the timer icon. On: yellow with "3s" or "10s". */
 @Composable
-private fun TimerButton(timer: TimerSetting, onClick: () -> Unit) {
+private fun TimerButton(timer: TimerSetting, onClick: () -> Unit, enabled: Boolean) {
     val description = stringResource(
         when (timer) {
             TimerSetting.OFF -> R.string.camera_cd_timer_off
@@ -144,6 +152,7 @@ private fun TimerButton(timer: TimerSetting, onClick: () -> Unit) {
             onClick = onClick,
             contentDescription = description,
             modifier = modifier,
+            enabled = enabled,
         )
     } else {
         CameraIconButton(
@@ -152,13 +161,15 @@ private fun TimerButton(timer: TimerSetting, onClick: () -> Unit) {
             contentDescription = description,
             modifier = modifier,
             active = true,
+            enabled = enabled,
         )
     }
 }
 
 /**
  * What the 3:4 frame shows in each state. [poseOverlay] (outline, step card, tools) is drawn only when the camera is
- * ready. [zoomVisible] is false while the adjust panel covers the foot of the frame.
+ * ready. [zoomVisible] is false while the adjust panel covers the foot of the frame. While counting down, a tap on the
+ * frame anywhere but the zoom calls [onCountdownTap] (spec camera, KB-6).
  */
 @Composable
 internal fun PreviewContent(
@@ -169,6 +180,7 @@ internal fun PreviewContent(
     preview: @Composable (Modifier) -> Unit,
     poseOverlay: @Composable BoxScope.() -> Unit = {},
     zoomVisible: Boolean = true,
+    onCountdownTap: () -> Unit = {},
 ) {
     when (uiState) {
         CameraUiState.Starting -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -205,6 +217,7 @@ internal fun PreviewContent(
             preview = preview,
             poseOverlay = poseOverlay,
             zoomVisible = zoomVisible,
+            onCountdownTap = onCountdownTap,
         )
     }
 }
@@ -216,12 +229,23 @@ private fun ReadyPreview(
     preview: @Composable (Modifier) -> Unit,
     poseOverlay: @Composable BoxScope.() -> Unit = {},
     zoomVisible: Boolean = true,
+    onCountdownTap: () -> Unit = {},
 ) {
+    val currentOnCountdownTap by rememberUpdatedState(onCountdownTap)
     Box(modifier = Modifier.fillMaxSize()) {
         preview(Modifier.fillMaxSize())
         if (ready.gridVisible) GridOverlay(modifier = Modifier.testTag(CameraTestTags.GRID))
         // Above the grid, below the zoom and the countdown.
         poseOverlay()
+        if (ready.countdown != null) {
+            // Over the outline, the step card and the tools, under the zoom (plan T-061).
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(CameraTestTags.COUNTDOWN_TAP)
+                    .countdownTapArea { currentOnCountdownTap() },
+            )
+        }
         if (zoomVisible) {
             CameraZoom(
                 ready = ready,
@@ -240,6 +264,27 @@ private fun ReadyPreview(
                 CountdownBadge(seconds = countdown)
             }
         }
+    }
+}
+
+/**
+ * Takes every touch on the frame while counting down, so nothing under it (outline, step card, tools) reacts. A tap,
+ * one finger that stays within the touch slop, calls [onTap]; a drag or a pinch does nothing (spec camera, KB-6).
+ */
+private fun Modifier.countdownTapArea(onTap: () -> Unit): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        down.consume()
+        var tap = true
+        do {
+            val event = awaitPointerEvent()
+            event.changes.forEach { it.consume() }
+            val moved = event.changes.any {
+                it.id == down.id && (it.position - down.position).getDistance() > viewConfiguration.touchSlop
+            }
+            if (event.changes.size > 1 || moved) tap = false
+        } while (event.changes.any { it.pressed })
+        if (tap) onTap()
     }
 }
 

@@ -131,6 +131,8 @@ class CameraViewModel @Inject constructor(
 
     fun onFlashClick() {
         val ready = state.value as? CameraUiState.Ready ?: return
+        // Locked while counting down (spec camera, KB-6), in case a call gets past the screen.
+        if (ready.countdown != null) return
         if (!ready.flashAvailable) return
         val flash = ready.flash.next()
         controller.setFlash(flash)
@@ -141,6 +143,7 @@ class CameraViewModel @Inject constructor(
 
     fun onTimerClick() {
         val ready = state.value as? CameraUiState.Ready ?: return
+        if (ready.countdown != null) return
         val timer = ready.timer.next()
         updateTools { it.copy(timer = timer) }
         state.value = ready.copy(timer = timer)
@@ -149,6 +152,7 @@ class CameraViewModel @Inject constructor(
 
     fun onGridClick() {
         val ready = state.value as? CameraUiState.Ready ?: return
+        if (ready.countdown != null) return
         val visible = !ready.gridVisible
         updateTools { it.copy(gridVisible = visible) }
         state.value = ready.copy(gridVisible = visible)
@@ -194,7 +198,9 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    fun onCancelCountdown() = cancelCountdown(reason = "user")
+    fun onCancelCountdown(reason: CountdownCancelReason = CountdownCancelReason.BUTTON) {
+        cancelCountdown(reason = reason.logName)
+    }
 
     override fun onCleared() {
         controller.release()

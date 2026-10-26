@@ -3,7 +3,7 @@ package com.vglstudio.camera.pose.line.guide.feature.camera.pose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -35,10 +35,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -210,8 +207,9 @@ internal fun BoxScope.PoseOverlay(
 }
 
 /**
- * The step card across the top of the frame. Dragging it up by more than 24 dp hides it once per drag; screen reader
- * users get the same as the "Ẩn thẻ bước" action, since they cannot swipe (plan T-014, question 11).
+ * The step card across the top of the frame. A tap anywhere on it but the arrows hides it, and so does dragging it up
+ * by more than 24 dp past the touch slop, once per drag; a screen reader reads the tap as "Ẩn thẻ bước" (spec camera,
+ * KB-2; plan T-059). The drag detector takes drags in both directions, so a sideways drag cancels the tap.
  */
 @Composable
 private fun HideableStepCard(
@@ -233,14 +231,14 @@ private fun HideableStepCard(
             .pointerInput(hideDistance) {
                 var dragged = 0f
                 var hidden = false
-                detectVerticalDragGestures(
+                detectDragGestures(
                     onDragStart = {
                         dragged = 0f
                         hidden = false
                     },
-                    onVerticalDrag = { change, amount ->
+                    onDrag = { change, amount ->
                         change.consume()
-                        dragged += amount
+                        dragged += amount.y
                         if (!hidden && dragged < -hideDistance) {
                             hidden = true
                             currentOnHide()
@@ -248,14 +246,12 @@ private fun HideableStepCard(
                     },
                 )
             }
-            .semantics {
-                customActions = listOf(
-                    CustomAccessibilityAction(hideLabel) {
-                        currentOnHide()
-                        true
-                    },
-                )
-            },
+            .clickable(
+                interactionSource = null,
+                indication = null,
+                onClickLabel = hideLabel,
+                onClick = { currentOnHide() },
+            ),
         trailing = trailing,
     )
 }

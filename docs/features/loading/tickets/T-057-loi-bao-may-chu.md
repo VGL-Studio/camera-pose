@@ -3,7 +3,7 @@ id: T-057
 title: Màn loading báo "máy chủ chưa phản hồi" khi máy có mạng mà vẫn không tải được
 feature: loading
 spec: features/loading/spec.md
-scenarios: [KB-2, KB-3]
+scenarios: [KB-2, KB-5]
 owner: Nhật
 status: planned
 risk: medium
@@ -36,7 +36,7 @@ Hiện màn loading luôn bảo "Kết nối đang gián đoạn. Vui lòng ki�
 
 ## Rủi ro sơ bộ
 
-Trung bình: chỉ trong `:feature:loading`, không chạm module core, không thêm quyền (`ACCESS_NETWORK_STATE` đã có). Cần đổi spec loading (KB-2) và người phụ trách sản phẩm xác nhận lại trước khi duyệt plan.
+Trung bình: chỉ trong `:feature:loading`, không chạm module core, không thêm quyền (`ACCESS_NETWORK_STATE` đã có). Cần đổi spec loading (KB-2, kịch bản mới KB-5) và người phụ trách sản phẩm xác nhận lại trước khi duyệt plan.
 
 ## Định nghĩa hoàn thành
 

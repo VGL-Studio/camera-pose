@@ -76,6 +76,7 @@ Mỗi task đi qua 10 bước theo thứ tự. Điều kiện dừng ở mục 4
 - Test nào qua ngay khi chưa có code là test không kiểm tra gì, phải viết lại, trừ test chặn mà plan nêu là qua ngay. Cách mặc định: thêm một bước đối chứng trước khi khẳng định (ghi rồi đọc lại, đặt dữ liệu đúng cạnh dữ liệu sai), rồi chạy lại để thấy test thất bại đúng lý do. Ghi số test được viết chặt như vậy vào nhật ký (L-035).
 - Commit test riêng, trước commit code, để lịch sử cho thấy test có trước.
 - Đẩy nhánh của task lên ngay sau mỗi commit, ở bước này và bước 4, không đợi tới bước 7, bằng `scripts/save-branch.sh <nhánh>` (thử lại khi lỗi mạng; không đẩy được thì giữ nhánh thành bundle và trả mã 3, xem "Khi không đẩy được" sau bước 7). Hết hạn mức thì phiên dừng ngay, không kịp làm gì thêm; phần chưa đẩy lên là phần mất. Commit trên nhánh cũng là dấu hiệu phiên còn sống cho `resume-run.yml`.
+- Ngoại lệ: commit đầu tiên của task sau chỉ đẩy khi đã có kết quả `main-guard` của lần merge trước (bước 9). Trong lúc chờ, commit cục bộ và làm tiếp; có kết quả xanh, không có issue `main-broken`, thì đẩy ngay (L-076).
 - Chỉ được bỏ qua bước này với phần thay đổi nằm trong mục ngoại lệ đã được người duyệt đồng ý trong plan.
 - Screenshot test cho màn hình mới: mỗi lệnh `captureRoboImage` ghi rõ đường dẫn ảnh, dạng `"src/test/screenshots/<Ten>.png"`. Chạy cục bộ, `scripts/check.sh` tự ghi ảnh chuẩn cho những ảnh còn thiếu và giữ nguyên ảnh đã có. Commit ảnh chuẩn cùng PR (CI báo lỗi cho từng ảnh thiếu) và đánh dấu trong báo cáo để người xem. Ảnh chuẩn của màn hình cũ chỉ được cập nhật khi plan nêu rõ.
 
@@ -129,6 +130,7 @@ Nội dung rà soát:
 - Có chạm vào phần ngoài phạm vi plan không. Phần ngoài mục 3.2 chỉ được giữ khi đúng là nối chỗ gọi mà task khác cùng danh sách đổi, trong giới hạn của ADR-1003 (`risk-scoring.md`, mục 4); nếu không, mức chặn.
 - Có cấu hình production, khóa bí mật, mã quảng cáo thật trong thay đổi không.
 - Code có theo đúng mẫu đã có trong dự án không.
+- Task dịch chữ: nghĩa của từng nhãn đi cùng con số hay phần trăm có đúng chiều không (giá trị lớn nhất nghĩa là gì), kể cả từ lấy lại từ feature khác. Test chữ chỉ kiểm đủ bản dịch và tham số, không kiểm nghĩa (L-077).
 - Feature có thiết kế: giao diện có đúng thiết kế không. Xem từng ảnh ghép trong `design/review/` theo mục 7 của mẫu thiết kế; chữ sai, thiếu trạng thái, sai thứ tự hay vai trò màu là mức chặn; lệch nhỏ về khoảng cách là mức ghi chú. Tỷ lệ điểm ảnh khác chỉ để tham khảo.
 
 Kết quả rà soát chia ba mức:
@@ -282,6 +284,7 @@ Muốn dừng hẳn một phiên đang chờ (ví dụ để merge việc gấp)
 
 Sau đó AI:
 
+0. Chuyển thư mục chính khỏi nhánh task vừa merge, trước mọi việc cuối phiên: `git checkout --detach origin/main` (thư mục chính đã sạch vì phiên con làm trong worktree). `scripts/token-usage.py` gán request của phiên chính theo nhánh của thư mục chính; để trên nhánh task thì token của `device-session`, staging và báo cáo tính vào task đó (L-080).
 1. Nếu trong phiên có ít nhất một task được merge, chạy kịch bản chuẩn trên emulator trước khi phát (`docs/ops/test-sessions.md`, mục 4; `docs/ops/staging-and-runs.md`, mục 2.5):
    - Ghi giờ hiện tại (UTC), khởi động `device-session.yml` trên nhánh chính (`reason` là mã phiên), rồi chờ bằng `scripts/wait-run.sh --workflow device-session.yml --since <giờ vừa ghi>` ở chế độ nền (khoảng 12 phút). **Trong lúc chờ, làm bước 2.** Xong thì tải artifact `device-session`.
    - Không tải được artifact (thường do mạng của môi trường chặn nơi lưu artifact, L-030): đọc bản tóm tắt trong cuối log của job, ghi vào báo cáo "chưa phân tích được" kèm lỗi tải, và vẫn quyết định phát hay không theo crash và ANR của bản tóm tắt. Người tải artifact và nhờ AI phân tích sau, trong phiên có người theo dõi.
@@ -320,7 +323,7 @@ Sau đó AI:
    6. Ngay sau đó, giao một phiên rà soát độc lập (ngữ cảnh mới, chỉ đọc) cho plan này, như rà soát trước khi duyệt (`docs/ops/pre-run-review.md`). Sửa plan theo điểm chặn và điểm nên sửa một lần; điểm còn lại chép vào mục 8.
    7. Đẩy, cập nhật mô tả PR (kết quả `plan-check.py`, rà soát, chạy thử), rồi chuyển PR khỏi trạng thái nháp.
 
-   Giao việc cho phiên con (chạy thử, rà soát độc lập): lời giao có một dòng riêng, đúng `Task: T-NNN` của ticket đang soạn plan, như mục Giao bước 3 đến 5 (L-073).
+   Giao việc cho phiên con (chạy thử, rà soát độc lập): lời giao **không** có dòng `Task: T-NNN`. Token soạn plan vào dòng Chung, như phần của phiên chính trên nhánh `claude/plan-T-NNN-...`; có dòng đó thì `scripts/token-usage.py` ghi một dòng chỉ có token soạn plan vào CSV, và `estimate` lấy nó làm mẫu ước tính của task (L-079).
 
    Giới hạn thời gian:
    - Quá 45 phút từ giờ bắt đầu thì không bắt đầu plan mới.

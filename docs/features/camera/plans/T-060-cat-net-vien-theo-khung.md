@@ -17,7 +17,7 @@ approved_at:
 
 ## 1. Tóm tắt
 
-Trên bố cục điện thoại, lớp nét viền (đã dời, phóng, lật) không bị cắt theo khung xem trước. Vì vậy ở cỡ 160% hay khi kéo ra mép, nét viền đè lên thanh trên, hàng nhóm, dải tư thế và hàng nút chụp (FB-20261026-03). Task này cắt riêng lớp nét viền theo khung (`clipToBounds()` đặt trước `graphicsLayer` trong `PoseOverlay`), không cắt cả khung, vì cột công cụ ở trường hợp 4 của T-015 được cố ý tràn 16 dp khỏi đáy khung. Hai test điểm ảnh mới đã thất bại trên code hiện tại (độ sáng 255 ở thanh trên, giữa hàng nhóm và dải tư thế, ở hàng nút chụp). Với cách sửa tạm, cả hai qua và 27 ảnh chuẩn của `:feature:camera` không đổi.
+Trên bố cục điện thoại, lớp nét viền (đã dời, phóng, lật) không bị cắt theo khung xem trước. Vì vậy ở cỡ 160% hay khi kéo ra mép, nét viền đè lên thanh trên, hàng nhóm, dải tư thế và hàng nút chụp (FB-20261026-03). Task này cắt riêng lớp nét viền theo khung (`clipToBounds()` đặt trước `graphicsLayer` trong `PoseOverlay`), không cắt cả khung, vì cột công cụ ở trường hợp 4 của T-015 được cố ý tràn 16 dp khỏi đáy khung. Plan cố ý thu hẹp dòng Phạm vi ban đầu của ticket (cắt cả khung) thành chỉ cắt lớp nét viền, và ticket đã sửa theo. Hai test điểm ảnh mới đã thất bại trên code hiện tại (độ sáng 255 ở thanh trên, giữa hàng nhóm và dải tư thế, ở hàng nút chụp). Với cách sửa tạm, cả hai qua và 27 ảnh chuẩn của `:feature:camera` không đổi.
 
 ## 2. Hiểu yêu cầu
 
@@ -180,7 +180,7 @@ Plan sửa lỗi đo được (L-029), nên đã chạy hai test trên code hi�
 - **Kết quả:**
   - **Code hiện tại:** 2 test thất bại đúng lý do.
     - `outline_largestAndMovedUp_notDrawnOverTopBar`: `inTopBar=255 inFrame=255`, "outline is drawn over the top bar: 255".
-    - `outline_largestAndMovedDown_notDrawnOverPickerOrCaptureRow`: `betweenRows=255 captureRow=255 inFrame=255`, "outline is drawn between chips and strip: 255".
+    - `outline_largestAndMovedDown_notDrawnOverPickerOrCaptureRow`: `betweenRows=255 captureRow=255 inFrame=255`, "outline is drawn between chips and strip: 255". Test dừng ở khẳng định đầu tiên (`betweenRows`); số `captureRow=255` đọc từ một dòng in tạm lúc chạy thử, không có trong mã test ở mục 4.
   - **Cách sửa tạm** (`clipToBounds()` trước `graphicsLayer`): `inTopBar=10 inFrame=255`; `betweenRows=10 captureRow=10 inFrame=255`. Cả hai qua. Toàn bộ test của `:feature:camera` qua. Roborazzi `total=27, changed=0, unchanged=27`.
   - Chưa chạy `scripts/check.sh` đầy đủ. Kỹ thuật không mới (E = 0), nên không bắt buộc.
 
@@ -194,7 +194,7 @@ Plan sửa lỗi đo được (L-029), nên đã chạy hai test trên code hi�
 | B. Độ rõ của yêu cầu | 0 | Spec đã xác nhận lại ngày 2026-10-26 với tiêu chí mới ở KB-3; thiết kế đặt nét viền trong khung |
 | C. Khả năng kiểm chứng tự động | 0 | Tiêu chí có test điểm ảnh; ảnh chuẩn có sẵn giữ cho phần còn lại không đổi |
 | D. Ảnh hưởng chéo | 1 | `PoseOverlay` dùng ở cả bố cục điện thoại và bố cục mở gập; T-059 và T-061 cũng sửa `PoseOverlay.kt` (mục 6) |
-| E. Độ mới của kỹ thuật | 0 | `clipToBounds`/`clip` đã dùng trong dự án (`CameraUnfolded.kt:117`) |
+| E. Độ mới của kỹ thuật | 0 | `clip` (cùng gói với `clipToBounds`) đã dùng ở `CameraUnfolded.kt:117`; đã chạy thử ở mục 4.1 |
 | **Tổng** | 2 | **Mức: Thấp** |
 
 ## 6. Ảnh hưởng chéo
@@ -209,7 +209,7 @@ Plan sửa lỗi đo được (L-029), nên đã chạy hai test trên code hi�
 ## 7. Điều kiện dừng riêng
 
 1. `verifyRoborazziDebug` báo bất kỳ ảnh chuẩn nào đổi: dừng. Plan không cho ghi lại ảnh nào.
-2. Cách sửa làm thất bại một test có sẵn của cột công cụ hay bảng chỉnh (`small_*`, `toolColumn_*`): dừng, vì lớp cắt đã lan ra ngoài lớp nét viền.
+2. Cách sửa làm thất bại một test có sẵn của cột công cụ hay bảng chỉnh (`small_*`, `toolColumn_*`) hoặc của `CameraScreenMatchTest` (cỡ ngữ nghĩa của nét viền có thể bị cắt khi tràn khung): dừng, vì lớp cắt đã lan ra ngoài lớp nét viền hay đổi hành vi đã có.
 
 ## 8. Câu hỏi cho người duyệt
 

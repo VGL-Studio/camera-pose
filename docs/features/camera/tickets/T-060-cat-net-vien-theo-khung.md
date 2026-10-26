@@ -22,7 +22,7 @@ Trên điện thoại, nét viền phóng to hay kéo ra mép thì vẽ tràn ra
 
 ## Phạm vi
 
-- Khung xem trước của bố cục điện thoại cắt nội dung theo khung.
+- Chỉ lớp nét viền (cả quầng tối) bị cắt theo khung xem trước, ở mọi bố cục; các thành phần khác trong khung không bị cắt (cột công cụ ở cách 4 của T-015 được tràn khỏi đáy khung).
 - Test chặn: ảnh vẽ ra có nét viền ở cỡ 160% và lệch tối đa, điểm ảnh ở thanh trên và hàng nút chụp không mang màu nét viền; screenshot test mới nếu plan thấy cần.
 
 **Không bao gồm:** đổi giới hạn cỡ hay giới hạn kéo.

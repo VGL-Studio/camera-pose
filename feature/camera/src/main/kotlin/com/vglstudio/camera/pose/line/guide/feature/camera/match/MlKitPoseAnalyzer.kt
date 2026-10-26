@@ -11,6 +11,8 @@ import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.Lens
+import java.util.Collections
+import java.util.IdentityHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.channels.BufferOverflow
@@ -20,7 +22,9 @@ import kotlinx.coroutines.flow.SharedFlow
 /**
  * Thin layer over ML Kit pose detection, checked on devices (plan T-017, section 4): it copies what ML Kit returns into
  * [RawLandmark]s and hands them to [toBodyPose]. Frames are dropped at once while not [active]. The detector is made
- * on the first activation and closed when the camera is released.
+ * on the first activation. Two camera screens can live at once during a screen change (FB-20261026-01), so it keeps
+ * the set of owners that want detection, compared by identity: it runs while any owner wants it and closes only when
+ * the last owner releases it, whatever the order of the calls (plan T-058).
  */
 @Singleton
 internal class MlKitPoseAnalyzer @Inject constructor(private val logger: AppLogger) :
@@ -43,14 +47,21 @@ internal class MlKitPoseAnalyzer @Inject constructor(private val logger: AppLogg
 
     private var detector: PoseDetector? = null
 
+    // The owners that want detection now; guarded by this.
+    private val owners: MutableSet<Any> = Collections.newSetFromMap(IdentityHashMap())
+
     @Volatile
     private var framesInWindow = 0
     private var windowStart = 0L
     private var lastFailureLog = 0L
 
+    /** Whether detection runs now: someone wants it and the detector is open. For the tests. */
+    internal val running: Boolean get() = synchronized(this) { active && detector != null }
+
     @Synchronized
-    override fun setActive(active: Boolean) {
-        this.active = active
+    override fun setActive(owner: Any, active: Boolean) {
+        if (active) owners += owner else owners -= owner
+        this.active = owners.isNotEmpty()
         if (active && detector == null) {
             detector = PoseDetection.getClient(
                 PoseDetectorOptions.Builder().setDetectorMode(PoseDetectorOptions.STREAM_MODE).build(),
@@ -109,9 +120,10 @@ internal class MlKitPoseAnalyzer @Inject constructor(private val logger: AppLogg
         windowStart = 0L
     }
 
-    /** Called when the camera is released for good. */
     @Synchronized
-    fun release() {
+    override fun release(owner: Any) {
+        owners -= owner
+        if (owners.isNotEmpty()) return
         active = false
         detector?.close()
         detector = null

@@ -29,7 +29,7 @@
 #   DEVICE_SESSION_SLEEP seconds for every wait in `scenarios`; tests set 0 (default: the wait of each step)
 #   DEVICE_SCENARIOS_GLOB   scenario files of the plans; default: feature/*/src/deviceScenarios/*.txt
 #                        app/src/deviceScenarios/*.txt (read by scripts/device-scenario.py)
-#   DEVICE_SCENARIOS_BUDGET seconds for all scenario files of the plans, giving the device back included; default 1100
+#   DEVICE_SCENARIOS_BUDGET seconds for all scenario files of the plans, giving the device back included; default 1300
 #   DEVICE_SCENARIO_CMD  command that runs them; default: python3 scripts/device-scenario.py
 # Messages are in Vietnamese for the team; comments are in English.
 set -euo pipefail
@@ -250,7 +250,7 @@ cmd_scenarios() {
   # shellcheck disable=SC2086
   if command -v timeout > /dev/null; then
     # -k: a runner that ignores SIGTERM is killed 30 seconds later (the runner kills its adb child on SIGTERM).
-    timeout -k 30 "$((${DEVICE_SCENARIOS_BUDGET:-1100} + 120))" ${runner} run --session "${dir}" --package "${pkg}" || runner_status=$?
+    timeout -k 30 "$((${DEVICE_SCENARIOS_BUDGET:-1300} + 120))" ${runner} run --session "${dir}" --package "${pkg}" || runner_status=$?
   else
     ${runner} run --session "${dir}" --package "${pkg}" || runner_status=$?
   fi

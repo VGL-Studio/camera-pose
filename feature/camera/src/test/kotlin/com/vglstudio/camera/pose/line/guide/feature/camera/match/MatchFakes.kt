@@ -23,11 +23,22 @@ internal class FakePoseFrameSource : PoseFrameSource {
     /** Every call of [setActive], in order. */
     val activeCalls = mutableListOf<Boolean>()
 
+    /** The owner of every call of [setActive], in the same order as [activeCalls]. */
+    val activeOwners = mutableListOf<Any>()
+
+    /** The owner of every call of [release], in order. */
+    val releasedBy = mutableListOf<Any>()
+
     /** The last value given to [setActive]; false before any call. */
     val active: Boolean get() = activeCalls.lastOrNull() ?: false
 
-    override fun setActive(active: Boolean) {
+    override fun setActive(owner: Any, active: Boolean) {
+        activeOwners += owner
         activeCalls += active
+    }
+
+    override fun release(owner: Any) {
+        releasedBy += owner
     }
 
     /** Whether anyone collects the frames now; a frame sent while nobody does is lost, as with the real source. */

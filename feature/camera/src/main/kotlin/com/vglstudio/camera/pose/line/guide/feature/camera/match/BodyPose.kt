@@ -15,6 +15,12 @@ data class BodyPose(val landmarks: Map<Int, BodyLandmark>, val mirrored: Boolean
 interface PoseFrameSource {
     val frames: SharedFlow<BodyPose?>
 
-    /** Runs detection only while active; otherwise each frame is closed at once. */
-    fun setActive(active: Boolean)
+    /**
+     * Whether [owner] wants detection to run. Detection runs while any owner wants it; otherwise each frame is closed
+     * at once. Owners are compared by identity.
+     */
+    fun setActive(owner: Any, active: Boolean)
+
+    /** [owner] does not use the source any more; the detector closes when no owner is left (FB-20261026-01). */
+    fun release(owner: Any)
 }

@@ -1,16 +1,16 @@
 ---
 ticket: T-056
 title: Màn lớn theo hướng của máy, điện thoại khóa dọc
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 13               # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 18M          # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: []          # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-26
 ---
 
 # PLAN T-056: MÀN LỚN THEO HƯỚNG CỦA MÁY, ĐIỆN THOẠI KHÓA DỌC
@@ -302,9 +302,9 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-062); `scripts/plan-chec
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-26, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
 
 ## 10. Nhật ký thực hiện
 

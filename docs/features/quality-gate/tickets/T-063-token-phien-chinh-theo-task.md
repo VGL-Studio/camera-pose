@@ -24,10 +24,10 @@ Ticket này thêm lệnh `scripts/token-usage.py mark T-NNN` (task bắt đầu)
 
 ## Phạm vi
 
-- `scripts/token-usage.py`: lệnh con `mark`; `report` đọc lệnh `mark` trong transcript của phiên chính và gán theo nó.
-- `scripts/tests/run.sh`: 7 test mới trong khối `token-usage`.
-- `docs/auto-run.md` (bước 1 của task, bước 10, mục 4 bước 0) và `docs/ops/token-usage.md`: phiên chính chạy `mark T-NNN` khi bắt đầu task và `mark chung` khi task có kết quả cuối.
-- `docs/lessons.md`: L-083 sang `applied`.
+- `scripts/token-usage.py`: lệnh con `mark`; `report` đọc lệnh `mark` trong transcript của phiên chính và gán theo nó; dấu mốc trước `--since` không tính.
+- `scripts/tests/run.sh`: 9 test mới trong khối `token-usage`.
+- `docs/auto-run.md` (bước 1 của task, Giao bước 3 đến 5, bước 10, mục 4 bước 0, Tiếp tục phiên bước 5) và `docs/ops/token-usage.md`: phiên chính chạy `mark T-NNN` khi bắt đầu hay chuyển sang một task, `mark chung` khi không còn task nào đang làm.
+- `docs/lessons.md`: L-083 sang `applied`, thay dòng Áp dụng hiện có.
 
 **Không bao gồm:**
 
@@ -43,4 +43,4 @@ Chạm điểm chặn 7 (quy trình phiên tự chạy): thêm một lệnh phi�
 - [ ] Mọi tiêu chí ở mục 2 của plan đạt.
 - [ ] Có test tự động cho cách gán mới.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính.
-- [ ] Báo cáo của phiên tự chạy kế tiếp: dòng của task có phần phiên chính, dòng Chung nhỏ hơn rõ so với RUN-20261026-03 (33.2M).
+- [ ] Báo cáo của phiên tự chạy kế tiếp: mỗi task có phiên con có số request lớn hơn tổng request của phiên con và phiên rà soát (plan mục 4, dòng kiểm tra thủ công).

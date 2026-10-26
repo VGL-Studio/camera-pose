@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -40,6 +41,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseUiState
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.SelectedPose
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.StripScroll
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -250,22 +252,86 @@ class CameraScreenPoseTest {
     @Test
     fun smallDragUp_doesNotHide() {
         setScreen()
+        composeRule.waitForIdle()
+        calls.clear()
+        // Past the touch slop, so it is a drag and not a tap (plan T-059), but short of the hide distance after it.
         composeRule.onNodeWithTag(CameraTestTags.STEP_CARD).performTouchInput {
+            val distance = viewConfiguration.touchSlop + 4.dp.toPx()
+            assertTrue("drag $distance px is under 24 dp", distance < 24.dp.toPx())
             down(center)
-            moveBy(Offset(0f, -10.dp.toPx()))
+            repeat(4) { moveBy(Offset(0f, -distance / 4)) }
             up()
         }
         assertEquals(0, calls.count { it == "hide" })
     }
 
     @Test
-    fun stepCard_hasHideAccessibilityAction() {
+    fun stepCard_hasHideClickLabel() {
         setScreen()
-        val actions = composeRule.onNodeWithTag(CameraTestTags.STEP_CARD).fetchSemanticsNode()
-            .config[SemanticsActions.CustomActions]
-        val hide = actions.first { it.label == "Ẩn thẻ bước" }
-        composeRule.runOnIdle { hide.action() }
-        assertEquals(1, calls.count { it == "hide" })
+        composeRule.waitForIdle()
+        calls.clear()
+        val config = composeRule.onNodeWithTag(CameraTestTags.STEP_CARD).fetchSemanticsNode().config
+        val click = config.getOrNull(SemanticsActions.OnClick)
+        assertEquals("Ẩn thẻ bước", click?.label)
+        assertNull(config.getOrNull(SemanticsActions.CustomActions))
+        composeRule.runOnIdle { click?.action?.invoke() }
+        assertEquals(listOf("hide"), calls)
+        // The arrows stay apart from the card for a screen reader.
+        composeRule.onNodeWithContentDescription("Bước sau").assertExists()
+    }
+
+    // KB-2: a tap on the card outside the arrows hides it (plan T-059)
+
+    @Test
+    fun tapStepText_hides() {
+        setScreen()
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithText("Step 2", useUnmergedTree = true).performClick()
+        assertEquals(listOf("hide"), calls)
+    }
+
+    @Test
+    fun tapStepBadge_hides() {
+        setScreen()
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithText("2/4", useUnmergedTree = true).performClick()
+        assertEquals(listOf("hide"), calls)
+    }
+
+    @Test
+    fun tapEnabledArrow_movesStep_doesNotHide() {
+        setScreen()
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithContentDescription("Bước sau").performClick()
+        assertEquals(listOf("next"), calls)
+    }
+
+    @Test
+    fun tapDisabledArrow_doesNothing() {
+        setScreen(pose = poseReady(selected = selected(stepIndex = 3)))
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithContentDescription("Bước sau").performClick()
+        assertEquals(emptyList<String>(), calls)
+    }
+
+    @Test
+    fun sidewaysDragOnStepCard_doesNotHide() {
+        setScreen()
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithText("Step 2", useUnmergedTree = true).performTouchInput {
+            down(center)
+            repeat(8) { moveBy(Offset(5.dp.toPx(), 0f)) }
+            up()
+        }
+        assertEquals(emptyList<String>(), calls)
+        // Control: a tap at the same place does hide, so the drag above reached the card.
+        composeRule.onNodeWithText("Step 2", useUnmergedTree = true).performClick()
+        assertEquals(listOf("hide"), calls)
     }
 
     @Test
@@ -287,6 +353,16 @@ class CameraScreenPoseTest {
         composeRule.onNodeWithText("Thử lại").performClick()
         assertEquals(1, calls.count { it == "retryOutline" })
         assertTrue(!exists(CameraTestTags.OUTLINE))
+    }
+
+    @Test
+    fun outlineFailed_tapCard_hides_retryOnlyRetries() {
+        setScreen(pose = poseReady(selected = selected(outline = PoseImage.Failed)))
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithText("Thử lại").performClick()
+        composeRule.onNodeWithText("Chưa tải được nét viền", useUnmergedTree = true).performClick()
+        assertEquals(listOf("retryOutline", "hide"), calls)
     }
 
     @Test

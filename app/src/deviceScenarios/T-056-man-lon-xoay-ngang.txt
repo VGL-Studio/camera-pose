@@ -1,0 +1,25 @@
+ticket: T-056
+criterion: Màn lớn theo hướng của máy, điện thoại khóa dọc (plan T-056, mục 4, kiểm tra thủ công 1), bằng wm size thay cho gập thật
+timeout: 180
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+need id=camera_poses 15
+tap id=camera_poses
+wait id=poses_grid 20
+# (1) điện thoại xoay ngang: app vẫn dọc (ảnh phone-landscape cao hơn rộng)
+device rotate landscape
+wait id=poses_grid 10
+shot phone-landscape
+# (2) mở gập khi đang xoay ngang: app dựng lại hai lần (kích thước, rồi hướng); xoay lần nữa để chờ ổn định.
+# Đạt: ảnh unfolded-landscape rộng hơn cao, app kín màn, 3 cột, không có dải đen.
+device unfold
+device rotate landscape
+wait id=poses_grid 10
+shot unfolded-landscape
+# (3) gập lại khi vẫn xoay ngang: app trở về dọc, giữ màn thư viện; app dựng lại hai lần, xoay lần nữa để chờ ổn định
+device fold
+device rotate landscape
+wait id=poses_grid 10
+shot folded-landscape

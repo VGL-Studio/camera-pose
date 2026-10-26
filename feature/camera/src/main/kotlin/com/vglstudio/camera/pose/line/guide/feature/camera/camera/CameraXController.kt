@@ -75,7 +75,8 @@ internal class CameraXController @Inject constructor(
     private var analysisExecutor: ExecutorService? = null
     private var shutterSound: MediaActionSound? = null
 
-    // The app is locked to portrait, so the photo rotation follows how the phone is held.
+    // The photo rotation follows how the device is held, from the sensor's angle to the device's natural orientation.
+    // Right for every orientation of the screen: portrait on a phone, any on a large screen (plan T-056).
     private val orientationListener = object : OrientationEventListener(context) {
         override fun onOrientationChanged(orientation: Int) {
             if (orientation == ORIENTATION_UNKNOWN) return

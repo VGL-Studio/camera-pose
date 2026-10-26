@@ -1,0 +1,134 @@
+---
+ticket: T-062
+title: Emulator của `device-session` có camera sau giả, để kịch bản camera chạy được trên CI
+status: draft                # draft | approved | stopped | done
+version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
+risk_level: high             # low | medium | high
+token_estimate: 5.5M         # cỡ S, số gợi ý của scripts/token-usage.py estimate (L-081)
+blocking_points: [ci]
+run_order:                   # AI điền sau họp đánh giá rủi ro
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
+---
+
+# PLAN T-062: EMULATOR CỦA `DEVICE-SESSION` CÓ CAMERA SAU GIẢ, ĐỂ KỊCH BẢN CAMERA CHẠY ĐƯỢC TRÊN CI
+
+## 1. Tóm tắt
+
+Bước "Kịch bản chuẩn trên emulator" của `.github/workflows/device-session.yml` đổi `-camera-back none` thành `-camera-back emulated`. Emulator API 34 khi đó có một camera sau giả (cảnh giả do emulator vẽ), app mở được camera, nên hai tệp `T-020-camera-mo-gap.txt` và `T-058-chup-tu-chi-tiet.txt` chạy thật thay vì `bỏ qua (môi trường)` ở bước `need id=camera_grid_button`. Kiểm chứng: lần `device-session` chạy thử trên nhánh tạm với đúng thay đổi này (mục 4.1), và lần `device-session` cuối phiên sau khi merge.
+
+## 2. Hiểu yêu cầu
+
+Ticket không có spec nghiệp vụ; yêu cầu là mục Đề xuất cho buổi họp tiếp theo của báo cáo RUN-20261026-03 (đề xuất 3), câu hỏi 2 của plan T-058, Tuấn chọn làm ngày 2026-10-26.
+
+| Kịch bản | Tiêu chí chấp nhận | Cách hiểu của AI |
+| --- | --- | --- |
+| Kịch bản camera chạy trên CI | Khi `device-session` chạy trên nhánh chính thì `T-058-chup-tu-chi-tiet.txt` và `T-020-camera-mo-gap.txt` có kết quả `đạt` (hay `lỗi` có bước lỗi), không còn `bỏ qua (môi trường)` ở bước `need id=camera_grid_button` | Camera giả đủ cho hai tệp: cả hai chỉ cần camera mở được và chụp được, không cần nhận dạng dáng người (T-058 dừng ở `review_screen`; T-020 không chụp) |
+| Log của phiên sạch hơn | Khi `device-session` chạy thì `app-log.txt` không còn dòng `VGL.Camera` "Camera could not open" | 125 dòng lỗi ở RUN-20261026-03 đều do không có camera |
+| Không làm hỏng phần khác | Khi `device-session` chạy thì kịch bản chuẩn, monkey và các tệp khác (T-022, T-024, T-056) giữ kết quả như trước; không thêm crash hay ANR | Monkey có thể vào màn camera nhiều hơn khi camera mở được; crash ở đó là lỗi thật của app |
+
+Thiết kế tham chiếu: Không có thiết kế riêng (CI, docs/ops/design-workflow.md).
+
+ADR liên quan: ADR-0010 (cổng chất lượng), ADR-0012 (cấu hình staging trong `device-session.yml`).
+
+## 3. Giải pháp
+
+### 3.1. Cách làm
+
+**`.github/workflows/device-session.yml`**, bước "Kịch bản chuẩn trên emulator" (dòng 105): `emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back emulated`. Không đổi gì khác: `api-level: 34`, `target: google_apis`, `arch: x86_64`, điều kiện `if: github.ref == 'refs/heads/main'`, `timeout-minutes: 50`. Thêm một dòng chú thích tiếng Anh trên dòng đó: `# An emulated back camera (a generated scene, no person) lets the camera scenarios run (T-062).`
+
+`-camera-back emulated` là camera giả của emulator: ảnh xem trước là một cảnh do emulator tự vẽ, không có người, nên bộ nhận dạng dáng không ra điểm khớp. Không dùng `virtualscene` (cảnh 3D, cần dựng bằng GPU; emulator CI chạy `swiftshader_indirect`) và `webcam0` (không có webcam trên runner).
+
+**`feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt`**, dòng 2: bỏ đoạn "; cần camera sau, emulator CI bỏ qua". Nội dung bước giữ nguyên.
+
+**`docs/ops/test-sessions.md`**, mục 4, sau đoạn đầu (dòng 71): một câu: "Emulator có camera sau giả (`-camera-back emulated`, T-062): màn camera mở và chụp được, ảnh xem trước là cảnh giả không có người, nên tiêu chí cần nhận dạng dáng (điểm khớp, lời nhắc) vẫn kiểm trên máy thật." Bảng lệnh mục 5, dòng `need`: "(camera)" thành "(camera trên máy không có camera, mạng)".
+
+**Đề xuất về dự án mẫu:** `device-session.yml` và `pr-check.yml` đến từ dự án mẫu (`-camera-back none` có từ commit khởi tạo `7762576`). Mô tả PR của task ghi đề xuất này theo `docs/ops/from-app.md`; người mở issue ở dự án mẫu.
+
+Nơi khác đọc `device-session.yml` (`grep -rn "device-session" scripts/ .github/ docs/CLAUDE.md CLAUDE.md`): `scripts/wait-run.sh` chờ theo tên file; phiên khởi động workflow bằng `gh api .../dispatches` (`docs/auto-run.md`, mục 4) với input `reason`; `scripts/device-session.sh` không đọc tham số của emulator. Plan không đổi tên workflow, job, input hay artifact.
+
+### 3.2. Danh sách file
+
+| Thao tác | Đường dẫn | Nội dung thay đổi |
+| --- | --- | --- |
+| Sửa | `.github/workflows/device-session.yml` | `-camera-back emulated` và một dòng chú thích (mục 3.1) |
+| Sửa | `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt` | Dòng `criterion:` bỏ "cần camera sau, emulator CI bỏ qua" |
+| Sửa | `docs/ops/test-sessions.md` | Mục 4: một câu về camera giả; mục 5, dòng `need` |
+| Sửa | `docs/features/quality-gate/tickets/T-062-camera-gia-tren-emulator-ci.md` | Trạng thái theo phiên |
+
+### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
+
+- Cờ tính năng: Không có
+- Quảng cáo: Không chạm
+- Sự kiện phân tích: Không chạm
+- File R2: Không chạm
+- **Quyền truy cập:** Không thêm. Quyền `CAMERA` đã có; `scenarios --yes` cấp sẵn quyền runtime. Workflow giữ `permissions: contents: read` và các bí mật staging như cũ
+- **Thư viện và SDK:** Không thêm
+
+### 3.4. Phương án dự phòng
+
+- **Điểm chưa chắc:** monkey (1500 sự kiện) vào màn camera có camera thật mở được, có thể làm app crash hay ANR mà trước đây không lộ ra (lỗi thật của app, nhưng chặn phát staging của phiên).
+- **Điều kiện chuyển:** `device-session` cuối phiên đỏ vì crash hay ANR trong màn camera, và lần chạy thử ở mục 4.1 đã xanh.
+- **Cách làm thay:** không có trong phiên: đây là lỗi thật của app, phiên ghi phát hiện và đề xuất ticket sửa theo `docs/auto-run.md` mục 4 (không phát staging khi có crash). Không quay lại `-camera-back none` để làm xanh.
+
+## 4. Kiểm thử
+
+| Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
+| --- | --- | --- |
+| Kịch bản camera chạy trên CI | Kiểm tra thủ công (emulator: `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt`, `feature/camera/src/deviceScenarios/T-020-camera-mo-gap.txt`) | `device-session` cuối phiên: bảng "Kịch bản theo plan" có hai tệp với kết quả khác `bỏ qua (môi trường)`; đã chạy thử trước khi duyệt (mục 4.1) |
+| Log sạch hơn | Kiểm tra thủ công (emulator: `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt`) | `device-session` cuối phiên: `grep -c "Camera could not open" app-log.txt` bằng 0 |
+| Không làm hỏng phần khác | Kiểm tra thủ công (emulator: `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt`, `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`, `app/src/deviceScenarios/T-056-man-lon-xoay-ngang.txt`) | `device-session` cuối phiên: ba tệp vẫn `đạt`, crash 0, ANR 0 |
+| Tệp kịch bản đúng cú pháp | Script có sẵn | `scripts/device-scenario.py check feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt` |
+| Chỉ đổi một tham số | Đọc lại | `git diff origin/main -- .github/` chỉ có dòng `emulator-options` và dòng chú thích |
+
+**Ngoại lệ viết test trước:** toàn bộ phần đổi là một tham số của workflow GitHub Actions, một dòng `criterion:` và tài liệu; không có test tự động trên máy, và tệp kịch bản không "thất bại trước" được. Kiểm bằng lần chạy thật trước khi duyệt (mục 4.1) và `device-session` cuối phiên.
+
+### 4.1. Chạy thử
+
+- **Đã chạy thử:** ngày 2026-10-26, nhánh tạm `trial/T-062` (từ nhánh chính `3f19ec6`, commit tạm không merge): `-camera-back emulated` như mục 3.1, và điều kiện `if:` của job cho thêm `refs/heads/trial/T-062` để chạy được ngoài nhánh chính (chỉ ở nhánh tạm, không có trong plan). Lệnh: `gh workflow run device-session.yml --ref trial/T-062 -f reason="Chạy thử plan T-062: -camera-back emulated"`, lần chạy 40350378524 (15:32 đến 15:56 UTC), xanh; phiên `TS-20261026-03` trong artifact.
+- **Lệnh:** `scripts/check.sh` không áp dụng: plan không đổi code, test hay tài nguyên nào mà `check.sh` kiểm; workflow và tệp kịch bản chỉ chạy ở `device-session`, nên lần chạy thử là chính workflow đó trên CI, đúng lệnh phiên dùng cuối phiên.
+- **Kết quả: chưa kết luận được về camera.** Emulator khởi động bình thường với `-camera-back emulated` (crash 0, ANR 0, monkey 1500 sự kiện, khởi động nguội 4555, 4194, 3174 ms). Nhưng cả 5 tệp kịch bản `lỗi` ở bước 3 (`wait id=onboarding_screen | id=camera_screen 60`), kể cả T-022, T-024, T-056 vốn `đạt` ở RUN-20261026-03: app đứng ở màn loading "Unable to load data, Our server isn't responding right now" (`fail.png`). Nguyên nhân không phải camera: `app-log.txt` có 35 lần `W VGL.Assets: Could not download poses/catalog/v3/catalog-c2e0ce0d.json (reason=NOT_FOUND, status=404)` và `W VGL.Loading: Task CATALOG not done (cause=SERVER)`. App mặc định đọc `poses/catalog/v1/catalog-587b5394.json` (`PosesSettings.kt` dòng 7), nên đường dẫn v3 đến từ khóa Remote Config `poses_catalog_path` của staging, mà file đó chưa có trên R2. `device-session` của RUN-20261026-03 (14:13 đến 14:36 UTC, cùng code app) không gặp lỗi này, nên giá trị đổi sau 14:36. Không có dòng `VGL.Camera` nào vì app không tới màn camera; số 0 của "Camera could not open" vì vậy không có nghĩa.
+- **Cần làm trước khi duyệt:** người sửa `poses_catalog_path` của staging (hoặc tải file v3 lên R2), rồi chạy lại đúng lệnh trên với nhánh `trial/T-062` (còn trên remote), ghi kết quả hai tệp T-020, T-058 vào đây. Xong thì xóa nhánh `trial/T-062`.
+
+## 5. Chấm rủi ro
+
+**Điểm chặn bị chạm:** điểm 7 (CI): `.github/workflows/device-session.yml`.
+
+| Tiêu chí | Điểm (0 đến 3) | Lý do |
+| --- | --- | --- |
+| A. Phạm vi thay đổi | 0 | Một tham số của workflow, một dòng của tệp kịch bản, hai câu tài liệu |
+| B. Độ rõ của yêu cầu | 0 | Hai tệp hết `bỏ qua (môi trường)`; Tuấn đã chọn |
+| C. Khả năng kiểm chứng tự động | 1 | Chỉ kiểm được bằng lần chạy `device-session` thật, không có test trên máy; đã chạy thử (mục 4.1) |
+| D. Ảnh hưởng chéo | 1 | Mọi phiên sau chạy kịch bản và monkey với camera mở được; crash thật trong màn camera sẽ chặn phát staging |
+| E. Độ mới của kỹ thuật | 2 | Lần đầu dùng camera giả của emulator trong dự án; đã chạy thử trên CI |
+| **Tổng** | 4 | **Mức: Cao** (điểm chặn 7) |
+
+## 6. Ảnh hưởng chéo
+
+- File hoặc thành phần dùng chung bị chạm: `.github/workflows/device-session.yml` (chạy cuối mọi phiên); `docs/ops/test-sessions.md`.
+- Task khác trong sprint có thể xung đột: không có plan nào khác đang sửa các file này.
+- Đề xuất thứ tự chạy: chạy được ở bất kỳ vị trí nào; tốt nhất trước các task camera, để `device-session` cuối phiên kiểm luôn kịch bản camera của chúng.
+
+## 7. Điều kiện dừng riêng
+
+- Cần đổi gì khác trong `.github/` (API của emulator, `target`, `timeout-minutes`, điều kiện `if`): dừng, viết plan phiên bản 2.
+
+## 8. Câu hỏi cho người duyệt
+
+1. `pr-check.yml` (job `ui-test`) cũng chạy `-camera-back none`. Có đổi luôn không? Đề xuất: không, giữ ngoài plan này. Test `app/src/androidTest` (ví dụ `AppLaunchTest`, `PhotoSaveDeviceTest`) viết theo emulator không có camera; đổi có thể làm chúng đổi kết quả, và `ui-test` chạy trên mọi PR. Nếu cần, làm ticket riêng.
+2. Đề xuất về dự án mẫu: chỉ ghi vào mô tả PR, người mở issue ở `VGL-Studio/app-project-template` sau khi `device-session` cuối phiên xanh. Đề xuất: đồng ý.
+3. Lần chạy thử chưa kết luận được vì catalog v3 trên staging trả 404 (mục 4.1). Đề xuất: người sửa `poses_catalog_path` của staging trước, AI chạy lại lần thử rồi mới duyệt; không duyệt khi chưa có kết quả hai tệp camera.
+
+## 9. Quyết định duyệt
+
+<!-- Người duyệt điền. AI không điền mục này. -->
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+
+## 10. Nhật ký thực hiện
+
+<!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->

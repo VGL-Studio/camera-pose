@@ -27,10 +27,12 @@ Selectors (one keyword, optional filters; several selectors separated by " | " m
   stopping after the first clickable one (the text of a Compose chip is a child of the selected node).
 
 Commands:
-  fresh                         clear data, grant runtime permissions, open the app with am start -W and wait for its
-                                process (pidof); without one, fail when the crash buffer names the app, otherwise
-                                start it once more ("mở lại" in the note); after the device was given back it
-                                waits DEVICE_SCENARIO_STOP_SETTLE seconds (default 3) after stopping the app
+  fresh                         clear data, grant runtime permissions, set the language of the app to en (Android
+                                13 and later; below 13 a device in another language skips the file), open the app
+                                with am start -W and wait for its process (pidof); without one, fail when the crash
+                                buffer names the app, otherwise start it once more ("mở lại" in the note); after the
+                                device was given back or changed by a device command it waits
+                                DEVICE_SCENARIO_STOP_SETTLE seconds (default 3) after stopping the app
   consent decline [seconds]     tap "Do not consent" when the ad consent form shows (ADR-0013) and wait until it
                                 closes, or see the first screen of the app without a form. When the form shows later,
                                 a step that reads the screen declines it once ("hiện muộn" in the note); a form that
@@ -48,10 +50,15 @@ Commands:
   is used by the next step only when that step reads the screen.
 
 Log (<session>/scenarios.txt), per file: `plan <file> ticket=... criterion=...`, one `plan <file> step=<n> <command>
-ok|FAIL <reason>|SKIP <reason>` per step, each after a `plan <file> note step=<n> t=<seconds from the start of the
+ok|FAIL <reason>|SKIP <reason>|RETRY <reason>` per step, each after a `plan <file> note step=<n> t=<seconds from the start of the
 file> <details>` line (a tap names its point and element), and `plan <file> result=<result> seconds=<n>`. The first
 failing step also leaves fail.png and fail.xml in <session>/scenarios/<file without .txt>/. A runner stopped by
 SIGTERM kills its adb child, writes `plan runner_terminated` and exits 143.
+A step that fails while logcat.txt of the session shows the system killing the app with a dying process (`Killing
+<pid>:<package>/... depends on provider ... in dying proc ...`, after the marker of the file) is RETRY: the device is
+given back and the file runs once more, its result is the one of the second run and the first evidence is fail-1.png
+and fail-1.xml; killed again, or without time for a second run, the step is SKIP and the file skipped
+(FB-20261025-03).
 
 Deadlines: the whole run has DEVICE_SCENARIOS_BUDGET seconds (default 900), giving the device back included; a file
 has min(its timeout, what is left - DEVICE_SCENARIO_RESET_LIMIT (default 30) - 45 when it uses network -
@@ -62,7 +69,8 @@ Settings: DEVICE_SCENARIOS_GLOB (files to run; default feature/*/src/deviceScena
 app/src/deviceScenarios/*.txt), DEVICE_SCENARIO_POLL (seconds between two dumps, default 1),
 DEVICE_SCENARIO_START_WAIT (limit of am start -W, default 15), DEVICE_SCENARIO_PROCESS_WAIT (seconds to wait for the
 app process, default 5), DEVICE_SCENARIO_CONSENT_CLOSE (seconds to wait for the consent form to close, default 5),
-DEVICE_SCENARIO_STOP_SETTLE (seconds fresh waits after stopping the app when the device was given back, default 3),
+DEVICE_SCENARIO_STOP_SETTLE (seconds fresh waits after stopping the app when the device was given back or changed by
+a device command, default 3),
 DEVICE_SCENARIO_ROOT (repository that check reads; default this one). check does not read Kotlin files under a
 folder right after src/ whose name starts with test or androidTest.
 Messages are in Vietnamese for the team; comments are in English.
@@ -90,6 +98,8 @@ UNFOLDED_SIZE, UNFOLDED_DENSITY = "1766x2208", "420"  # 673 x 841 dp, the frame 
 IDLE_ERROR = "could not get idle state"
 RESULT_PASSED, RESULT_FAILED, RESULT_ENV = "đạt", "lỗi", "bỏ qua (môi trường)"
 RESULT_TIME, RESULT_SYNTAX = "bỏ qua (hết thời gian)", "lỗi tệp"
+RETRY = "chạy lại"  # not a result in the log: the first run of a file whose app the system killed
+EVIDENCE_SHOT = 10  # seconds keep_evidence may take for fail.png
 SELECTOR = re.compile(r'^(id|idp|desc|text|str)=("[^"]*"|.+?)((?:\s+(?:in|index|selected|clickable)=\S+)*)\s*$')
 QUOTED = re.compile(r'"[^"]*"')
 SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.txt")
@@ -101,6 +111,8 @@ FILTER = re.compile(r"(in|index|selected|clickable)=(\S+)")
 TRAILING_NUMBER = re.compile(r"^(.*\S)\s+(\d+)$")
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?[sdf]")
 LOCALE_TAG = re.compile(r"[A-Za-z]{2,3}(-[A-Za-z0-9]+)*")
+SCENARIO_LANGUAGE = "en"  # str= reads res/values, which is English in every module (T-050, T-051)
+KILLED_WITH = re.compile(r"Killing \d+:(?P<package>[^/\s]+)/\S+ .*depends on provider \S+ in dying proc (?P<proc>\S+)")
 
 
 def unfolded_display(physical):
@@ -440,8 +452,8 @@ class Screen:
 def kill_group(process):
     try:
         os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
+    except (ProcessLookupError, PermissionError):
+        pass  # macOS answers EPERM for a group whose leader is a zombie: nothing is left to kill
 
 
 def run_process(command, timeout, binary=False, env=None):
@@ -485,8 +497,10 @@ class Runner:
         self.process_wait = env_seconds("DEVICE_SCENARIO_PROCESS_WAIT", 5)
         self.evidence_reserve = env_seconds("DEVICE_SCENARIO_EVIDENCE_RESERVE", 20)
         self.stop_settle = env_seconds("DEVICE_SCENARIO_STOP_SETTLE", 3)
-        # The device was given back since the last fresh, so fresh waits after stopping the app.
+        # The device was given back (or changed by a device command) since the last fresh, so fresh waits after
+        # stopping the app.
         self.device_reset = False
+        self.sdk = None  # API level of the device, read once at the start of the run
         self.log_path = self.session / "scenarios.txt"
         self.file_deadline = 0.0
         self.file_dir = self.session
@@ -634,12 +648,15 @@ class Runner:
             self.activity = lines[-1].strip() if lines else ""
         if "/" not in self.activity:
             raise Fail(f"không tìm thấy màn hình khởi động của {self.package}")
+        self.set_language()
         if self.device_reset:
             # Stopping an app whose Activity the reset is still rebuilding makes the system kill the next start
             # about a second later ("Destroy timeout of remove-task", FB-20261025-02): start after that.
             self.device_reset = False
-            self.note(f"fresh: chờ {seconds_text(self.stop_settle)} giây sau khi dừng app (máy vừa trả về gốc)")
-            time.sleep(max(0.0, min(stopped + self.stop_settle, self.file_deadline) - time.monotonic()))
+            # The shorter of the two, not (stopped + settle) - stopped, which can be 1.9999 and print as "2.0".
+            wait = max(0.0, min(self.stop_settle, self.file_deadline - stopped))
+            self.note(f"fresh: chờ {seconds_text(wait)} giây sau khi dừng app (máy vừa trả về gốc)")
+            time.sleep(max(0.0, stopped + wait - time.monotonic()))
         problem = self.start_app()
         if problem is None:
             return
@@ -652,6 +669,23 @@ class Runner:
         if problem is not None:
             self.note(f"fresh: lần mở 2 không có tiến trình ({problem})")
             raise Fail("app không chạy sau 2 lần mở")
+
+    def set_language(self):
+        """The app shows English, the language str= reads: from Android 13 its own language is set; below 13 the
+        language of the device must be English, otherwise the file is skipped (plan T-054)."""
+        if self.sdk is not None and self.sdk < 33:
+            _, output = self.adb("shell", "getprop", "persist.sys.locale")
+            if not output.strip():  # a device never set to another language keeps its factory one
+                _, output = self.adb("shell", "getprop", "ro.product.locale")
+            language = output.strip() or "?"
+            if not language.lower().startswith(SCENARIO_LANGUAGE):
+                raise Skip(f"máy để ngôn ngữ {language}; dưới Android 13 trình chạy không đặt được ngôn ngữ của app, "
+                           "đặt máy về tiếng Anh")
+            return
+        code, output = self.adb("shell", "cmd", "locale", "set-app-locales", self.package, "--locales",
+                                SCENARIO_LANGUAGE)
+        if code != 0 or re.search(r"Exception|Error|Unknown", output):
+            raise Skip(f"không đặt được ngôn ngữ tiếng Anh cho app ({(output.strip().splitlines() or [str(code)])[0]})")
 
     def start_app(self):
         """None when the app has a process after am start -W, otherwise why not. A start that outlives its limit
@@ -754,6 +788,7 @@ class Runner:
             raise Skip("không tắt được mạng (máy vẫn có mạng mặc định)")
 
     def step_device(self, arguments):
+        self.device_reset = True  # a fresh later in the file stops an app whose Activity was rebuilt, like after a reset
         words = arguments["words"]
         if words[0] == "rotate":
             self.adb("shell", "settings", "put", "system", "accelerometer_rotation", "0")
@@ -871,12 +906,29 @@ class Runner:
             self.log(f"plan {name} result={RESULT_SYNTAX} seconds=0")
             return
         uses_network = any(command == "network" for _, command, _, _ in steps)
-        allowance = self.budget_left() - self.reset_limit - (45 if uses_network else 0) - self.evidence_reserve
-        if allowance <= 0:
-            self.log(f"plan {name} result={RESULT_TIME} seconds=0")
-            return
+        first_began, attempt = time.monotonic(), 1
+        while True:
+            allowance = self.budget_left() - self.reset_limit - (45 if uses_network else 0) - self.evidence_reserve
+            if attempt > 1 and allowance < min(self.timeout_of(header), first_run):
+                self.log(f"plan {name} step=0 retry SKIP app bị hệ thống giết; không còn thời gian chạy lại")
+                allowance = 0.0
+            if allowance <= 0:
+                result = RESULT_TIME if attempt == 1 else RESULT_ENV
+                self.log(f"plan {name} result={result} seconds={int(round(time.monotonic() - first_began))}")
+                return
+            result = self.attempt_file(name, header, steps, allowance, attempt, uses_network)
+            first_run = time.monotonic() - first_began
+            self.reset_device(network=self.network_touched)
+            if result != RETRY:
+                self.log(f"plan {name} result={result} seconds={int(round(time.monotonic() - first_began))}")
+                return
+            attempt += 1
+
+    def attempt_file(self, name, header, steps, allowance, attempt, uses_network):
+        """The result of one run of the steps; RETRY when the system killed the app on the first run and there is
+        time to run the file once more (FB-20261025-03)."""
         began = time.monotonic()
-        self.file_deadline = began + min(int(header.get("timeout", DEFAULT_TIMEOUT)), allowance)
+        self.file_deadline = began + min(self.timeout_of(header), allowance)
         self.last_xml = None
         self.cached_screen = self.pending_screen = None
         self.consent_state = None
@@ -901,29 +953,69 @@ class Runner:
             except (AdbTimeout, Fail, ConsentFail) as problem:
                 outcome, result, failed = f"{text} FAIL {'adb_timeout' if isinstance(problem, AdbTimeout) else problem}", \
                     RESULT_FAILED, True
+                killer = self.killed_by(name, attempt)
+                if killer is not None:
+                    reason = f"app bị hệ thống giết theo {killer}"
+                    # A second run that has only a few seconds would end as a failure of its own: run again only
+                    # when there is the time this run took (at most the timeout of the file), its evidence, and two
+                    # returns of the device (network included).
+                    needed = min(self.timeout_of(header), time.monotonic() - began) + EVIDENCE_SHOT \
+                        + self.evidence_reserve + 2 * (self.reset_limit + (45 if uses_network else 0))
+                    if attempt == 1 and self.budget_left() >= needed:
+                        outcome, result = f"{text} RETRY {reason}", RETRY
+                        self.note(f"{reason} (logcat.txt); chạy lại tệp từ đầu, mở lại app")
+                    else:
+                        why = "" if attempt > 1 else "; không còn thời gian chạy lại"
+                        outcome, result = f"{text} SKIP {reason}{why}", RESULT_ENV
             self.pending_screen = None
             self.log(" ".join([f"plan {name} note step={index} t={at:.1f}", "; ".join(self.notes)]).rstrip())
             self.log(outcome)
             if failed:
-                self.keep_evidence()
+                self.keep_evidence("fail-1" if result == RETRY else "fail")
             if result != RESULT_PASSED:
                 break
-        self.log(f"plan {name} result={result} seconds={int(round(time.monotonic() - began))}")
-        self.reset_device(network=self.network_touched)
+        return result
 
-    def keep_evidence(self):
-        """fail.xml (the last dump) and fail.png of the first failing step."""
+    def timeout_of(self, header):
+        return int(header.get("timeout", DEFAULT_TIMEOUT))
+
+    def killed_by(self, name, attempt=1):
+        """Who the system killed the app (or one of its processes, <package>:<name>) with, from logcat.txt of the
+        session after the marker of this run of the file: "Google Play services (<process>)" or the dying process;
+        None without such a line, or while logcat.txt does not have the marker of this run yet."""
+        try:
+            lines = (self.session / "logcat.txt").read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            return None
+        marker = f"scenario=plan file={name}"
+        starts = [number for number, line in enumerate(lines) if marker in line]
+        if len(starts) < attempt:
+            return None  # the marker of this run is not written yet: a kill after an older marker is not this run
+        for line in lines[starts[-1] + 1:]:
+            found = KILLED_WITH.search(line)
+            if found and found.group("package").split(":")[0] == self.package:
+                proc = found.group("proc")
+                return f"Google Play services ({proc})" if proc.startswith("com.google.android.gms") else proc
+        return None
+
+    def keep_evidence(self, stem="fail"):
+        """<stem>.xml (the last dump) and <stem>.png of the first failing step (fail-1 for a run that is run again)."""
         if self.last_xml:
             self.file_dir.mkdir(parents=True, exist_ok=True)
-            (self.file_dir / "fail.xml").write_text(self.last_xml, encoding="utf-8")
+            (self.file_dir / f"{stem}.xml").write_text(self.last_xml, encoding="utf-8")
         try:
-            self.save_screenshot("fail.png", timeout=10)
+            self.save_screenshot(f"{stem}.png", timeout=10)
         except (AdbTimeout, Fail, OSError):
             pass
 
     def run(self, files):
         self.session.mkdir(parents=True, exist_ok=True)
         self.read_display()
+        try:
+            _, output = run_process(["adb", "shell", "getprop", "ro.build.version.sdk"], 5)
+            self.sdk = int(output.strip())
+        except (AdbTimeout, ValueError):
+            self.sdk = None  # unknown: fresh tries to set the language of the app
         for path in files:
             self.run_file(path)
         self.reset_device(network=self.network_used)

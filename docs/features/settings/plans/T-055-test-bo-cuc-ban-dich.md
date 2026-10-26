@@ -3,8 +3,8 @@ ticket: T-055
 title: Bố cục và nghĩa của bản dịch ở bảng chỉnh nét viền và nút chụp; "Độ mờ" thành "Độ đậm"
 status: draft                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
-risk_score: 4                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
-risk_level: low              # low | medium | high
+risk_score: 5                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
+risk_level: medium           # low | medium | high
 token_estimate: 10M          # cỡ S (5.8M, scripts/token-usage.py estimate) cộng khoảng 70%: RUN-20261026-01 cho task S thật 8.1M và 11.4M khi đã tính phiên con (L-073); hai module, ghi lại hai ảnh chuẩn, design-compare
 blocking_points: []          # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
@@ -27,7 +27,7 @@ Chạy thử trên code hiện tại (mục 4.1): test tiếng Indonesia bắt �
 
 ## 2. Hiểu yêu cầu
 
-Ticket xử lý các kịch bản sau:
+Ticket xử lý các kịch bản sau, gồm cả camera KB-3 (chữ của con trượt):
 
 | Kịch bản | Tiêu chí chấp nhận | Cách hiểu của AI |
 | --- | --- | --- |
@@ -49,8 +49,15 @@ ADR liên quan: ADR-0008, ADR-0020 (thiết kế và screenshot test).
 ### 3.1. Cách làm
 
 **Test nhãn con trượt** (`CameraStringsTest.opacityLabel_isNotTransparency`, đổi):
-- Danh sách `TRANSPARENCY` đổi tên thành `OPPOSITE_WORDS` (từ ngược nghĩa trên con trượt), thêm `"vi" to "mờ"` và `"vi" to "trong suốt"`. Các cặp cũ giữ nguyên.
-- Cách dò: ngôn ngữ có dấu cách giữa các từ giữ cách so cả từ hiện có (`(?<![\p{L}\p{M}])` đứng trước, để "अपारदर्शिता" của tiếng Hindi không khớp "पारदर्शिता"). Tiếng Thái (`th`) so ở mọi vị trí, vì tiếng Thái viết liền các từ.
+- Danh sách `TRANSPARENCY` đổi tên thành `OPPOSITE_WORDS` (từ ngược nghĩa trên con trượt), dò theo gốc từ để bắt cả danh từ lẫn tính từ:
+  - `en` "transparen" (transparency, transparent);
+  - `hi` "पारदर्शिता";
+  - `pt-BR` "transparência", "transparente";
+  - `es-419` "transparencia", "transparente";
+  - `id` "transparan" (transparan, transparansi);
+  - `th` "โปร่ง" (gốc của "โปร่งใส", "โปร่งแสง");
+  - `vi` "mờ", "trong suốt".
+- Cách dò: ngôn ngữ có dấu cách giữa các từ so từ đầu một từ (`(?<![\p{L}\p{M}])` đứng trước, không chặn phía sau), để "अपारदर्शिता" của tiếng Hindi không khớp "पारदर्शिता". Tiếng Thái (`th`) so ở mọi vị trí, vì tiếng Thái viết liền các từ. Bản dịch hiện có ("Opacity", "अपारदर्शिता", "Opacidade", "Opacidad", "Opasitas", "ความทึบ") không bị bắt nhầm (mục 4.1).
 - Chú thích của test nêu lý do và plan T-055.
 
 **Test bố cục bảng chỉnh** (`CameraScreenOverlayTest`):
@@ -70,7 +77,7 @@ ADR liên quan: ADR-0008, ADR-0020 (thiết kế và screenshot test).
 
 **Tài nguyên chữ** (bước 4):
 - `feature/camera/src/main/res/values-vi/strings.xml`: `camera_adjust_opacity` từ "Độ mờ" thành "Độ đậm".
-- `feature/camera/src/main/res/values-in/strings.xml`: `camera_adjust_hide` từ "Sembunyikan" thành "Sembunyi". Đo ở mục 4.1: "Sembunyi" nằm ở 206,2 đến 263,8 dp, cách "Kunci" 10 dp và mép bảng (275 dp) 11 dp. Câu hỏi cho người biết tiếng ở mục 8.
+- `feature/camera/src/main/res/values-in/strings.xml`: `camera_adjust_hide` từ "Sembunyikan" thành "Sembunyi". Đo ở mục 4.1: "Sembunyi" nằm ở 206,2 đến 263,8 dp, cách "Kunci" 10 dp và mép bảng (275 dp) 11 dp. Câu hỏi cho người biết tiếng ở mục 8, câu 1.
 - Không đổi `values/` và các ngôn ngữ khác.
 
 **Ảnh chuẩn** (bước 4): đúng hai ảnh lệch vì "Độ đậm", mỗi ảnh 1375 điểm ảnh (mục 4.1). Plan cho phép ghi lại đúng hai ảnh này:
@@ -149,7 +156,7 @@ Bước 4 sửa hai chuỗi, ghi hai ảnh chuẩn như mục 3.1, rồi chạy 
 **Test chặn qua ngay** (có đối chứng ở mục 4.1, L-035):
 - `smallSpanish_*`, `smallHindi_*`, `smallThai_*` và `smallPortuguese_*` (cũ): nhãn hiện có vừa bảng; chúng chặn bản dịch sau này làm tràn.
 - `smallScreen_portuguese_buttonOneLine`: chữ hiện có một dòng. Đối chứng: thay chữ nút bằng chuỗi dài hơn thì test thất bại.
-- Phần tiếng Thái của `opacityLabel_isNotTransparency`: "ความทึบ" hiện có không chứa từ ngược nghĩa. Đối chứng: "ปรับความโปร่งใส" làm test mới thất bại, test cũ thì qua.
+- Phần các ngôn ngữ khác `vi` của `opacityLabel_isNotTransparency`: bản dịch hiện có không chứa từ ngược nghĩa. Đối chứng: "ปรับความโปร่งใส", "Transparansi", "Transparente" làm test mới thất bại; test cũ không bắt được chữ tiếng Thái.
 
 **Ngoại lệ viết test trước:** Không có. Đổi hai chuỗi có test thất bại trước; hai ảnh chuẩn ghi lại theo plan.
 
@@ -167,9 +174,11 @@ Bước 4 sửa hai chuỗi, ghi hai ảnh chuẩn như mục 3.1, rồi chạy 
     - `smallHindi_*`: पलटें 114,7 đến 135,3; लॉक 170,0 đến 190,0; छिपाएं 221,2 đến 248,8; रीसेट 114,0 đến 136,0.
     - `smallThai_*`: พลิก 113,3 đến 136,7; ล็อก 169,0 đến 191,0; ซ่อน 223,7 đến 246,3; รีเซ็ต 112,3 đến 137,7.
   - `smallScreen_portuguese_buttonOneLine`: **test chặn, qua**, `lineCount` bằng 1. Đối chứng: chữ nút tạm là "Fotografar agora mesmo com esta pose escolhida" thì thất bại, `lines expected:<1> but was:<2>`.
-  - **Phần tiếng Thái** (tạm đặt `values-th` là "ปรับความโปร่งใส"):
-    - test mới **thất bại**, `th camera_adjust_opacity reads the other way round: ปรับความโปร่งใส`;
-    - test cũ trên `origin/main` **qua** (không bắt được), đúng như ghi chú rà soát.
+  - **Danh sách từ theo gốc** (chạy lại sau rà soát, 2026-10-26; `OPPOSITE_WORDS` đúng như mục 3.1):
+    - trên code hiện tại: **thất bại đúng lý do**, `vi camera_adjust_opacity reads the other way round: Độ mờ`. Các ngôn ngữ xếp trước `vi` đều qua, nên bản dịch hiện có ("Opacity", "अपारदर्शिता", "Opacidade", "Opacidad", "Opasitas", "ความทึบ") không bị bắt nhầm;
+    - tạm đổi `values-vi` thành "Độ đậm": **qua** (không bắt nhầm "Độ đậm");
+    - đối chứng, mỗi lần đổi tạm một tệp (cùng `values-vi` "Độ đậm"): `values-th` "ปรับความโปร่งใส" thất bại `th camera_adjust_opacity reads the other way round: ปรับความโปร่งใส`; `values-in` "Transparansi" thất bại `id ... Transparansi`; `values-pt-rBR` "Transparente" thất bại `pt-BR ... Transparente`.
+    - Test cũ trên `origin/main` với `values-th` "ปรับความโปร่งใส" **qua** (không bắt được), đúng như ghi chú rà soát.
 - **Kết quả sau khi đổi tạm tài nguyên như bước 4** (`values-vi` "Độ đậm", `values-in` "Sembunyi"):
   - Mọi test mới và test đổi đều qua. "Sembunyi" 206,2 đến 263,8 dp.
   - `verifyRoborazziDebug` của `:feature:camera`: 388 test, đúng 2 thất bại vì ảnh lệch, `CameraScreen_adjust_dark.png` và `CameraScreen_adjust_small.png`, mỗi ảnh 1375 điểm ảnh. Mọi ảnh khác 0 điểm ảnh khác.
@@ -180,12 +189,12 @@ Bước 4 sửa hai chuỗi, ghi hai ảnh chuẩn như mục 3.1, rồi chạy 
 
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
-| A. Phạm vi thay đổi | 1 | Hai chuỗi, ba tệp test, hai ảnh chuẩn; không đổi code `src/main` |
+| A. Phạm vi thay đổi | 2 | Hai module (`:feature:camera`: hai chuỗi, hai tệp test, hai ảnh chuẩn; `:feature:poses`: một tệp test); không đổi code `src/main` |
 | B. Độ rõ của yêu cầu | 1 | Bốn điểm rõ; chữ "Sembunyi" do AI chọn, người biết tiếng duyệt sau |
 | C. Khả năng kiểm chứng tự động | 1 | Bố cục, nghĩa ngược và chữ có test; ảnh chuẩn ghi lại cần người xem |
 | D. Ảnh hưởng chéo | 1 | Phụ thuộc PR thiết kế (Figma, `design/screens/`, spec camera) merge trước phiên |
 | E. Độ mới của kỹ thuật | 0 | Lặp lại cách đo của T-050; `GetTextLayoutResult` là API ngữ nghĩa có sẵn, đã chạy thử |
-| **Tổng** | **4** | **Mức: Thấp** |
+| **Tổng** | **5** | **Mức: Trung bình** |
 
 ## 6. Ảnh hưởng chéo
 
@@ -193,17 +202,18 @@ Bước 4 sửa hai chuỗi, ghi hai ảnh chuẩn như mục 3.1, rồi chạy 
 - **Task khác có thể xung đột:**
   - PR thiết kế của phiên có người theo dõi (Figma, `figma-export.py camera`, `design/README.md`, spec camera KB-3) phải merge trước. Nó sửa `docs/features/camera/design/screens/` và `context/`; T-055 chỉ sinh lại `design/review/`.
   - Các plan khác của phiên sau (trình chạy kịch bản, khóa hướng dọc, lời báo máy chủ): chưa thấy chung tệp tại lúc viết. Plan khóa hướng dọc có thể đổi `CameraUnfoldedScreenshotTest` hay ảnh `_unfolded`; T-055 không đổi ảnh `_unfolded` nào. `run-check.py` kiểm khi lập danh sách.
-- **Đề xuất thứ tự chạy:** độc lập, chạy lúc nào cũng được sau khi PR thiết kế đã merge. Phiên có thay đổi app nên `device-session` cuối phiên chạy; kịch bản không dùng hai chuỗi này.
+- **Điều kiện trước phiên (dev kiểm trước khi duyệt danh sách chạy, như L-005):** PR thiết kế đã merge; spec camera ở `confirmed`; `grep -c 'Độ đậm'` lớn hơn 0 ở `docs/features/camera/design/README.md`, `docs/features/camera/design/context/CameraScreen_adjust_dark.md` và `docs/features/camera/spec.md`; và `! grep -q 'Độ mờ' docs/features/camera/spec.md docs/features/camera/design/README.md docs/features/camera/design/context/CameraScreen_adjust_dark.md` thoát 0. Danh sách chạy ghi kết quả ở mục Kiểm tra trước khi duyệt. Chưa đạt thì không đưa T-055 vào danh sách.
+- **Đề xuất thứ tự chạy:** độc lập, chạy lúc nào cũng được sau khi điều kiện trên đạt. Phiên có thay đổi app nên `device-session` cuối phiên chạy; kịch bản không dùng hai chuỗi này.
 
 ## 7. Điều kiện dừng riêng
 
-1. Trước bước 3, PR thiết kế chưa merge: `grep -c 'Độ đậm' docs/features/camera/design/README.md docs/features/camera/design/context/CameraScreen_adjust_dark.md docs/features/camera/spec.md` có tệp ra 0, hoặc spec camera không ở `confirmed`. Dừng, không làm task.
+1. Lưới an toàn cho điều kiện trước phiên ở mục 6: trước bước 3, `grep -c 'Độ đậm' docs/features/camera/design/README.md docs/features/camera/design/context/CameraScreen_adjust_dark.md docs/features/camera/spec.md` có tệp ra 0, hoặc `grep -l 'Độ mờ'` trên ba tệp đó có kết quả, hoặc spec camera không ở `confirmed`. Dừng, không làm task.
 2. Sau khi đổi `values-vi`, `verifyRoborazziDebug` báo ảnh chuẩn nào khác hai ảnh ở mục 3.2 lệch: dừng. Không ghi lại ảnh khác.
 3. Một test bố cục mới vẫn thất bại sau bước 4 vì một nhãn khác "Sembunyikan": dừng, ghi số đo. Không đổi bản dịch ngoài hai chuỗi của mục 3.2, không sửa test hay `AdjustAction`.
 
 ## 8. Câu hỏi cho người duyệt
 
-1. **Nhãn "Ẩn" tiếng Indonesia.** "Sembunyikan" đè lên "Kunci" trên màn thấp (mục 4.1). **Đề xuất của AI:** "Sembunyi" (ngắn hơn, vẫn hiểu là "ẩn"), người biết tiếng duyệt trước khi phát hành. Phương án khác: giữ "Sembunyikan" và đổi `AdjustAction` để nhãn dài tự xuống dòng hay co chữ (sửa `:core:designsystem`, ảnh hưởng mọi nút của bảng, ticket riêng).
+1. **Nhãn "Ẩn" tiếng Indonesia.** "Sembunyikan" đè lên "Kunci" trên màn thấp (mục 4.1). **Đề xuất của AI:** "Sembunyi" (ngắn hơn, vẫn hiểu là "ẩn"), người biết tiếng duyệt trước khi phát hành. Mô tả cho trình đọc màn hình `camera_cd_hide_*` tiếng Indonesia vẫn là "Sembunyikan ..." (không hiện trên màn, không đổi trong T-055); người biết tiếng xem có cần thống nhất không. Phương án khác: giữ "Sembunyikan" và đổi `AdjustAction` để nhãn dài tự xuống dòng hay co chữ (sửa `:core:designsystem`, ảnh hưởng mọi nút của bảng, ticket riêng).
 2. **"Try again" tiếng Bồ Đào Nha chưa thống nhất:** camera "Tentar de novo", poses "Tentar novamente", settings "Tente de novo". **Đề xuất của AI:** không đổi trong T-055; người biết tiếng chọn một cách khi duyệt bản dịch, sửa bằng PR riêng.
 3. **Nhãn mẫu "Độ mờ" trong `AdjustPanelTest` của `:core:designsystem`.** Đó là chữ mẫu truyền vào thành phần, không phải chữ của app. **Đề xuất của AI:** giữ nguyên, để T-055 không chạm `:core:designsystem`.
 4. **Câu chữ spec camera KB-3 và bảng lưu trữ** ("Độ mờ, cỡ, lật…", dòng 216). **Đề xuất của AI:** PR thiết kế trước phiên đổi cả hai chỗ thành "Độ đậm" và chuyển spec camera sang `changed`; người xác nhận lại `confirmed` trước khi duyệt danh sách chạy.

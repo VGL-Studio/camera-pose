@@ -6,7 +6,7 @@ spec: features/settings/spec.md
 scenarios: [KB-4]
 owner: Nhật
 status: planned
-risk: low
+risk: medium
 size: S
 depends_on: []
 sprint:
@@ -41,7 +41,7 @@ Rà soát độc lập của T-050 và T-051 (RUN-20261026-01) để lại bốn
 
 ## Rủi ro sơ bộ
 
-Chỉ đổi hai chuỗi và test của hai module feature, cùng hai ảnh chuẩn. Phụ thuộc PR thiết kế: chưa merge thì ảnh so sánh thiết kế lệch chữ và spec camera còn ghi "Độ mờ".
+Chỉ đổi hai chuỗi và test của hai module feature, cùng hai ảnh chuẩn (plan chấm 5, trung bình, vì chạm hai module). Phụ thuộc PR thiết kế: chưa merge thì ảnh so sánh thiết kế lệch chữ và spec camera còn ghi "Độ mờ".
 
 ## Định nghĩa hoàn thành
 

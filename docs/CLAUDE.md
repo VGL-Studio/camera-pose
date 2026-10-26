@@ -91,6 +91,8 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Hàm phụ trợ nằm trong file test mà cũng phải đổi (ví dụ danh sách mà test so sánh): ghi rõ phần nào vào commit test của bước 3, phần nào vào commit code của bước 4, để test viết trước thất bại đúng lý do (L-025).
 - Lệnh trong plan ghi tệp tạm vào `${TMPDIR:-/tmp}`, không ghi `$TMPDIR` trần, vì môi trường cloud không đặt biến này; lệnh chờ không bắt đầu bằng `sleep` (L-071; `scripts/plan-check.py`, quy tắc 12).
 - Test của script chạy trên chuỗi giả hay tệp mẫu (adb giả, dump giả, repo giả) thì chạy thật trên code hiện tại ngay lúc viết plan, trong một khối tạm không commit, và ghi kết quả thật của từng test vào mục 4.1 (lý do thất bại, hay "đối chứng, qua"); không suy kết quả bằng cách đọc code (L-075).
+- Plan dịch chữ hiển thị: liệt kê các chuỗi đi cùng con số hay phần trăm (con trượt, nhãn đo), ghi giá trị lớn nhất nghĩa là gì, và thêm một test chặn từ ngược nghĩa khi có rủi ro (ví dụ "độ đậm" dịch thành "độ trong suốt"). Từ lấy lại từ feature khác có thể đổi nghĩa khi đi cùng số (L-077).
+- Plan chép code từ dự án mẫu: dán nguyên đoạn code (hay `diff`) vào mục 3.1, kèm commit nguồn. Phiên `claude --cloud` chỉ có quyền đọc repo của app, không đọc được repo mẫu (L-078).
 - Viết xong thì chạy `scripts/plan-check.py <plan>`, sửa hết lỗi trước khi đưa người duyệt, dán kết quả vào mô tả PR. Phiên tự chạy chạy lại script này ngay trước task và bỏ qua plan có lỗi.
 - Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`.
 

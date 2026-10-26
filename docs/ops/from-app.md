@@ -19,6 +19,8 @@ Quy tắc khi sửa các phần trên ở app (`CLAUDE.md`, mục Không đượ
 - Thay đổi chỉ app cần: ghi lý do trong PR, không cần mở issue.
 - Quyết định kỹ thuật: ADR có `origin: template` không sửa ở app. App muốn khác thì viết ADR riêng (mã từ 1001, `supersedes` ghi ADR bị thay cho app này); nếu có ích chung thì mở issue (mục 2) để dự án mẫu sửa hay thay ADR gốc.
 
+Phiên tự chạy (`claude --cloud`, routine) chỉ có quyền GitHub với repo của app, không đọc được repo mẫu. Plan chép code từ dự án mẫu về app dán nguyên đoạn code hay `diff` vào plan, không để phiên tự đọc repo mẫu (L-078).
+
 ## 2. Ở app: mở issue về dự án mẫu
 
 Người dự retro (hoặc AI trong phiên có người theo dõi, theo yêu cầu của người) mở issue trong repo dự án mẫu:

@@ -1,12 +1,12 @@
 ---
 id: ADR-1003
 title: Phiên tự chạy được nối chỗ gọi mà task khác cùng danh sách đổi, và phải tự sửa điểm nên sửa trong phạm vi plan, đều có test viết trước
-status: accepted             # proposed | accepted | superseded
+status: superseded           # proposed | accepted | superseded
 origin: app                  # template: ADR của dự án mẫu (mã dưới 1000) | app: ADR riêng của app (mã từ 1001)
 date: 2026-10-24
 deciders: [Nhật, Tuấn]
 supersedes:                  # không thay ADR nào; đổi điều kiện dừng 1 của docs/risk-scoring.md (mục 4) và dòng "Nên sửa" của docs/auto-run.md (bước 6)
-superseded_by:
+superseded_by: ADR-0029        # dự án mẫu, nhận khi đồng bộ đợt 1 (ADR-0030); quyết định 3 của ADR-0029 giữ điểm 3 của phần bổ sung
 ---
 
 # ADR-1003: PHIÊN TỰ CHẠY ĐƯỢC NỐI CHỖ GỌI MÀ TASK KHÁC CÙNG DANH SÁCH ĐỔI, VÀ PHẢI TỰ SỬA ĐIỂM NÊN SỬA TRONG PHẠM VI PLAN, ĐỀU CÓ TEST VIẾT TRƯỚC

@@ -1,6 +1,6 @@
 ---
 feature: loading
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -169,7 +169,7 @@ Không có. Màn hình loading không hiện quảng cáo.
 
 11. **Máy có mạng mà vẫn không tải được thì báo gì (FB-20261022-03)?** Hiện màn loading luôn bảo kiểm tra mạng. Ở phiên thử TS-20261022-02 máy có mạng nhưng máy chủ file không tới được; người thử bấm "Thử lại" 4 lần trong 5 giây rồi bỏ.
    - Đề xuất của AI: hai lời hướng dẫn. Khi hệ thống của điện thoại đã kiểm và xác nhận máy vào được Internet mà phần việc vẫn không xong, báo "Máy chủ chưa phản hồi. Vui lòng thử lại sau ít phút." (KB-5); còn lại giữ lời cũ (KB-2). Máy nối Wi-Fi mà chưa đăng nhập, hay mạng không ra Internet, vẫn nhận lời "kiểm tra mạng", vì đó là lời đúng cho trường hợp này. Áp dụng cho cả ba phần việc (cấu hình, catalog, bộ khởi đầu). Không đổi sự kiện phân tích. Chữ 7 ngôn ngữ ở plan T-057, mục 3.1.
-   - Trả lời:
+   - Trả lời: Tuấn, 2026-10-26: đồng ý đề xuất; không dựng frame Figma mới, giữ hành vi nút "Thử lại".
 
 ## 10. Lịch sử
 
@@ -182,3 +182,4 @@ Không có. Màn hình loading không hiện quảng cáo.
 | 2026-10-21 | AI | Áp dụng cho Camera Pose: thay ba file mẫu bằng catalog và bộ tư thế khởi đầu (phạm vi, KB-1, KB-3, mục 6, mục 7); chuyển sang màn chào hoặc camera; nhận diện và thiết kế theo hướng Sticker (mục 4); thêm câu hỏi 8 đến 10. Chuyển sang `changed`, chờ xác nhận lại |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: chờ tối đa 15 giây cho mỗi thứ cần tải (KB-2); viết ADR-1001 vì ADR-0018 của dự án mẫu ghi 10 giây cho cấu hình |
 | 2026-10-26 | AI | Theo FB-20261022-03 (Tuấn đưa vào phiên sau): thêm kịch bản KB-5 (máy có mạng mà không tải được, lời hướng dẫn thứ hai), một dòng trong KB-2 trỏ sang KB-5, câu hỏi 11. Chuyển sang `changed`, chờ xác nhận lại |
+| 2026-10-26 | Tuấn | Xác nhận KB-5, câu hỏi 11 và chữ 7 ngôn ngữ của plan T-057. Chuyển lại `confirmed` |

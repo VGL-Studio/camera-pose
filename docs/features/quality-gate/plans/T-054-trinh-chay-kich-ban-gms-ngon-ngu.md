@@ -1,16 +1,16 @@
 ---
 ticket: T-054
 title: Trình chạy kịch bản chạy lại tệp khi app bị giết theo Google Play services, đặt app về tiếng Anh, ghi đúng thời gian chờ của `fresh`
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 10M          # cỡ S (5.8M, scripts/token-usage.py estimate); nâng theo RUN-20261026-01, nơi task S có cả phiên con đo được 8.1M và 11.4M (L-073)
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-26
 ---
 
 # PLAN T-054: TRÌNH CHẠY KỊCH BẢN CHẠY LẠI TỆP KHI APP BỊ GIẾT THEO GOOGLE PLAY SERVICES, ĐẶT APP VỀ TIẾNG ANH, GHI ĐÚNG THỜI GIAN CHỜ CỦA `fresh`
@@ -563,9 +563,9 @@ Không chạy thử trên emulator (mục 3.4). Lần kiểm thật là `device-
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** <Duyệt / Duyệt kèm điều kiện / Yêu cầu sửa / Từ chối>
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, khi risk_level là high>
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-26, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8.
 
 ## 10. Nhật ký thực hiện
 

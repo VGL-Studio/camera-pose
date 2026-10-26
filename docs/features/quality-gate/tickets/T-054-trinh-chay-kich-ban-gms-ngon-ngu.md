@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là FB-20261025-03 và mục Đề xuất của báo cáo RUN-20261026-01
 scenarios: []
 owner: Tuấn
-status: planned
+status: approved
 risk: high
 size: S
 depends_on: [T-052]

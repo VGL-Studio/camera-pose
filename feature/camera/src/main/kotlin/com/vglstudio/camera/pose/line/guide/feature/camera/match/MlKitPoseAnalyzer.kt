@@ -48,8 +48,11 @@ internal class MlKitPoseAnalyzer @Inject constructor(private val logger: AppLogg
     private var windowStart = 0L
     private var lastFailureLog = 0L
 
+    /** Whether detection runs now: someone wants it and the detector is open. For the tests. */
+    internal val running: Boolean get() = synchronized(this) { active && detector != null }
+
     @Synchronized
-    override fun setActive(active: Boolean) {
+    override fun setActive(owner: Any, active: Boolean) {
         this.active = active
         if (active && detector == null) {
             detector = PoseDetection.getClient(
@@ -108,6 +111,8 @@ internal class MlKitPoseAnalyzer @Inject constructor(private val logger: AppLogg
         framesInWindow = 0
         windowStart = 0L
     }
+
+    override fun release(owner: Any) = release()
 
     /** Called when the camera is released for good. */
     @Synchronized

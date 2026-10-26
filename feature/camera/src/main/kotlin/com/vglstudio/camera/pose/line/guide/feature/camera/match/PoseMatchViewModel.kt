@@ -67,7 +67,7 @@ class PoseMatchViewModel @Inject constructor(
         resetRun()
         setState(MatchUiState.Off)
         val reason = conditions.inactiveReason()
-        frameSource.setActive(reason == null)
+        frameSource.setActive(this, reason == null)
         if (reason != null) {
             logger.info(LOG_TAG, "Pose matching off: $reason")
             return
@@ -157,7 +157,7 @@ class PoseMatchViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        frameSource.setActive(false)
+        frameSource.release(this)
     }
 
     private data class Conditions(val flag: Boolean, val pose: Pose?, val outline: OutlineView) {

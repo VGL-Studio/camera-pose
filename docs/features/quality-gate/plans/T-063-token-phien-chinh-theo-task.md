@@ -1,7 +1,7 @@
 ---
 ticket: T-063
 title: Token của phiên chính khi làm task trên HEAD tách rời tính vào đúng task (lệnh `token-usage.py mark`)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -10,7 +10,7 @@ blocking_points: [process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Nhật               # người duyệt
 cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at:
+approved_at: 2026-10-26
 ---
 
 # PLAN T-063: TOKEN CỦA PHIÊN CHÍNH KHI LÀM TASK TÍNH VÀO ĐÚNG TASK
@@ -406,9 +406,9 @@ expect "token-usage: mark with a name that is not T-NNN or chung exits 2 and say
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-26, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: dùng lệnh `mark`, không suy từ bảng Dòng thời gian. Câu 2: việc chung và task chồng nhau lúc đang đánh dấu một task tính vào task đó (mục Giới hạn). Câu 3: giữ rủi ro cao, duyệt chéo.
 
 ## 10. Nhật ký thực hiện
 

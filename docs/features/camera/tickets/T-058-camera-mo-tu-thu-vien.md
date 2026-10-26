@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-1, KB-5, KB-6]
 owner: Nhật
-status: draft
+status: approved
 risk: high
 size: M
 depends_on: [T-017, T-022]
 sprint:
-plan:
+plan: features/camera/plans/T-058-camera-mo-tu-thu-vien.md
 created: 2026-10-26
 ---
 

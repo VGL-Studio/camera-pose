@@ -7,6 +7,7 @@ import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
+import com.vglstudio.camera.pose.line.guide.feature.loading.data.InternetCheck
 import com.vglstudio.camera.pose.line.guide.feature.loading.data.PreparationRepository
 import com.vglstudio.camera.pose.line.guide.feature.loading.data.PreparationTask
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,6 +43,7 @@ class LoadingViewModel @Inject constructor(
     private val logger: AppLogger,
     private val featureFlags: FeatureFlags,
     private val clock: LoadingClock,
+    private val internet: InternetCheck,
 ) : ViewModel() {
     private val state = MutableStateFlow<LoadingUiState>(LoadingUiState.InProgress(0f))
     val uiState: StateFlow<LoadingUiState> = state.asStateFlow()

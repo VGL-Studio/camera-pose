@@ -7,7 +7,7 @@ build: bản staging trên máy thật của Tuấn (chưa ghi số phiên bản
 feature: camera
 ticket: T-060
 severity: nang
-status: planned
+status: fixed
 created: 2026-10-26
 ---
 

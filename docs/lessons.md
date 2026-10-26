@@ -781,3 +781,21 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/token-usage.py`: request của phiên chính trên HEAD tách rời tính vào task có nhánh được tạo gần nhất trước đó mà chưa merge (theo giờ tạo nhánh và giờ merge), hoặc phiên chính ghi task đang làm vào một tệp trạng thái mà script đọc; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên ghi rõ dòng nào thiếu phần phiên chính.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-084: phiên con dừng giữa chừng vì lỗi API, phiên `claude --cloud` không tự tiếp tục
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261026-03 (T-059).
+- **Chuyện gì:** phiên con làm bước 3 của T-059 dừng vì lỗi API `oauth_org_not_allowed` (HTTP 403: tổ chức tắt quyền dùng gói Claude cho Claude Code), tiến trình phiên chính khởi động lại. Phiên mở bằng `claude --cloud` nên không tự tiếp tục (L-008); người nhắn "Tiếp tục" sau khoảng 2 giờ 30 phút. Phần test phiên con đã viết còn nguyên trong worktree (chưa commit, chưa đẩy); phiên chính chạy test, thấy đúng mục 4 của plan, commit và làm tiếp. Tài liệu chỉ nói tới hết hạn mức, không nói phiên con chết giữa chừng thì làm gì.
+- **Bằng chứng:** thông báo lỗi của phiên con (request id `req_011CgQhvfc2tZWzDZDAjMrn6`); commit cuối trước khi dừng 10:37 (nhánh báo cáo 0f3f6b8), tiếp tục 13:10; commit test T-059 94a69fe lúc 13:12; RUN-20261026-03, mục Tiếp tục.
+- **Đề xuất sửa:** `docs/auto-run.md`, mục Giao bước 3 đến 5: phiên con kết thúc vì lỗi API (không có báo cáo) thì phiên chính đọc `git status`, `git log` của worktree, chạy test của phần đã viết, đối chiếu mục 4 của plan, rồi tự làm tiếp hoặc giao phiên con mới tiếp từ phần đã có; không tính là task dừng. Thêm dòng `oauth_org_not_allowed` vào bảng tra lỗi (hạ tầng). Phiên qua đêm ưu tiên routine (L-008).
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-085: thiết kế xuất lại mà không sinh lại `design/review/`, task khác thấy ảnh so sánh đổi ngoài mục 3.2
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261026-03 (T-060).
+- **Chuyện gì:** `scripts/design-compare.sh camera` ở bước 5 của T-060 đổi `CameraScreen_countdown_dark_compare.png` và `summary.md` (6.0% thành 9.6%), không do T-060: PR thiết kế #167 xuất lại ảnh đếm ngược mà không sinh lại `design/review/`. Hai file nằm ngoài mục 3.2; tài liệu không nói làm gì, phiên phải đoán: không commit, ghi vào mô tả PR. T-061 sau đó sinh lại đúng theo plan.
+- **Bằng chứng:** PR #171, mục Tóm tắt; nhật ký plan T-060, dòng Lệch so với plan.
+- **Đề xuất sửa:** `docs/ops/design-workflow.md`: PR xuất lại ảnh thiết kế chạy `scripts/design-compare.sh <feature>` và commit `design/review/` cùng PR. `docs/auto-run.md` bước 5: ảnh so sánh đổi mà ảnh chuẩn của task không đổi và `design/review/` không có trong mục 3.2 thì không commit, ghi vào mô tả PR.
+- **Áp dụng:**
+- **Kiểm chứng:**

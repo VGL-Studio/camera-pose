@@ -1,7 +1,7 @@
 ---
 ticket: T-058
 title: Camera mở từ "Chụp với tư thế này" chạy và chụp được
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 10               # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -227,3 +227,15 @@ Bộ giả trong `CameraXControllerTest`: `mockk<ProcessCameraProvider>(relaxed 
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-03, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #170, commit merge bd0a864, 2026-10-26 10:13 UTC).
+- **Nhánh, PR:** `claude/T-058-camera-mo-tu-thu-vien`, https://github.com/VGL-Studio/camera-pose/pull/170. Commit: `66091d1` (test), `653c071` (code), `db65bc5` (kịch bản, ngân sách).
+- **Đã làm:** `CameraXController` chỉ gỡ use case của mình (`boundUseCases`, `unbindOwn`), không còn `unbindAll()`; nhánh `IllegalArgumentException` gỡ đúng ba use case vừa thử; `close()` lần hai không làm gì; `release()` không đóng bộ nhận dạng. `PoseFrameSource.setActive(owner, active)`, `release(owner)`; `MlKitPoseAnalyzer` giữ tập người bật (`IdentityHashMap`), đóng bộ nhận dạng khi tập rỗng; xóa `release()` không tham số. `PoseMatchViewModel` truyền chính nó, `onCleared()` gọi `release(this)`. Kịch bản `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt` (`device-scenario.py check` mã 0). Ngân sách kịch bản 1300 giây ở `scripts/device-scenario.py`, `scripts/device-session.sh`, `docs/ops/test-sessions.md` mục 5. Bước 3 đến 5 giao cho phiên con trong worktree `../task-T-058` (L-031).
+- **Test viết trước:** 16 test. 9 thất bại đúng lý do trên khung của ngoại lệ 4: `releaseOfStaleController_keepsUseCasesOfTheNewOneBound_flagOff`, `_flagOn` ("the stale controller unbound the use cases of the new one"), `analysisNotSupported_bindsPreviewAndCapture_keepsOthers` (use case của bộ kia bị `unbindAll()` gỡ), `releaseAfterClose_emitsNoFrame` (`[null, null]` thay vì `[null]`), `releaseByStaleOwner_keepsDetectorOfActiveOwner`, `staleActivatesLast_releaseByStale_keepsRunning` (`PoseDetector.close()` bị gọi), `setInactiveByOneOwner_keepsRunningForTheOther` (`running` sai), `twoMatchViewModels_clearOfStale_keepsMatching_staleCreatedFirst`, `_newCreatedFirst` ("the stale screen turned off the matching of the new one"). 7 test đối chứng qua ngay đúng như plan nêu. Viết chặt lại (L-035): 0.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 7 ghi chú: (1) bộ điều khiển trong `CameraXControllerTest` không `release()` sau test (luồng phân tích còn sống, chưa ảnh hưởng); (2) stub `zoomState` ghi lồng trong `answers` của `every` khác; (3) chưa có biến thể "A còn gắn, B mở, A `release()`" (code đúng, test sẽ qua ngay); (4) khung ở commit test cho `release(owner)` đóng bộ nhận dạng, lệch nhẹ "giữ hành vi cũ" ở `onCleared` (commit code ngay sau thay); (5) `MlKitPoseAnalyzer.analyze` dùng `detector` ngoài khóa (có từ trước, hiếm hơn sau task); (6) CameraX thật chỉ kiểm được trên máy thật; (7) hai dòng chú thích dài hơn 120 ký tự (`ktlintCheck` vẫn qua).
+- **Kết quả CI:** `pr-check` lần chạy 40304274996 xanh: `build-and-test` (build, ktlint, unit test, screenshot test, lint, staging) 10:02 đến 10:12, `ui-test` (emulator) 10:02 đến 10:11. Cục bộ `scripts/check.sh`: 1136 test JVM, 0 lỗi (`:feature:camera` 414), 97 ảnh không đổi. Một vòng CI.
+- **Lệch so với plan:** Không có. Phương án dự phòng 3.4 không dùng (`mockkStatic` chạy được trong `check.sh`); không tạo `CameraProviderSource.kt`, không sửa `CameraControllerModule.kt`. Không có file nối chỗ gọi ngoài mục 3.2.
+- **Việc còn lại:** FB-20261026-01 giữ `planned`: lỗi chỉ chứng minh đã hết khi chạy trên máy có camera sau; người chuyển sang `fixed` sau khi kiểm.
+- **Cần người xem:** chạy `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt` trên máy thật (`scripts/device-session.sh scenarios --yes`), tệp `đạt`, `review.png` là màn xem lại; trên bản staging, cờ `pose_matching` bật, mở camera từ "Chụp với tư thế này" ở một tư thế có điểm khớp: điểm và lời nhắc hiện, log có "Pose matching on" và không có "Camera unbound" ngay sau "Camera ready" (plan mục 4, KB-5).

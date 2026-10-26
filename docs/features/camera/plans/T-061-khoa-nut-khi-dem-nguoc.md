@@ -1,7 +1,7 @@
 ---
 ticket: T-061
 title: Khóa nút và dừng đếm khi đang đếm ngược
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -237,3 +237,15 @@ Mọi test giao diện mới: `@GraphicsMode(GraphicsMode.Mode.NATIVE)`, `@Confi
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-03, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #173, commit merge ed7f18d, 2026-10-26 14:12 UTC).
+- **Nhánh, PR:** `claude/T-061-khoa-nut-dem-nguoc`, https://github.com/VGL-Studio/camera-pose/pull/173. Commit: `c6b5da1` (test và khung), `c5a786c` (code, hai ảnh chuẩn), `88e78de` (`design/review/`).
+- **Đã làm:** theo mục 3.1, bước 1 đến 8, nhánh "T-059 theo phương án chính" ở bước 4 (`clickable(enabled = enabled, ...)`); 19 file của mục 3.2 cộng `design/review/` (`CameraScreen_countdown_dark_compare.png`, `summary.md`). Ghi lại `CameraScreen_countdown_dark.png`, `CameraScreen_countdown_small.png` (plan cho phép); trước khi ghi, `verifyRoborazziDebug` của `:feature:camera`, `:core:designsystem`, `:feature:poses` chỉ lệch đúng hai tệp này. Bước 3 đến 5 giao phiên con trong worktree `../task-T-061` (L-031).
+- **Test viết trước:** 22 test mới, 1 test sửa (`countdown_showsNumber_andShutterCancels`, đúng phần mục 4 cho phép). 18 thất bại ở phần kiểm tra, đúng lý do (nút khóa còn bật; kéo, chụm ra `transform`, `gestureEnd`; chạm khung `[]`; chạm thẻ `[hide]`; chạm nét viền rồi cột công cụ `[togglePanel]`; bảng chỉnh không đóng; rời màn `[poses, settings, lastPhoto]`; flash độ sáng 255; ViewModel đổi flash khi đang đếm; log "user" thay vì "preview"). 4 qua ngay đúng như plan: `countdown_zoomStillChanges`, `countdown_flipCancelsAndSwitches`, `countdown_flipCancelsThenFlips`, `counting_zoomStillWorks`; test sửa qua ngay như plan. Viết chặt lại (L-035): 0.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 8 ghi chú: (1) `counting_closesOpenPanel` dựng không đếm rồi chuyển sang đếm (điều kiểm không đổi, giống dòng chạy thật hơn); (2) test ghi thêm `onOverlayGestureEnd` (chặt hơn); (3) điểm đo chip, ô cách mép trái 6 dp và thân `onCancelCountdown` dạng khối không đổi điều kiểm; (4) `CameraScreenUnfoldedTest.counting_locksAndTapCancels` dùng `in calls`, chưa chứng minh zoom ở cột phải không gửi thêm `cancel` (zoom ngoài khung, rủi ro thấp; sửa thì qua ngay nên không đủ điều kiện nên sửa); (5) `CameraTestTags.COUNTDOWN_TAP` chưa test nào dùng; (6) chặn chạm dựa vào cách Compose giao chạm cho anh em trên cùng, bộ nhận kéo bên dưới vẫn còn (dự phòng 3.4 chưa cần), kiểm thủ công trên máy thật; (7) `leave()` tạo lambda mỗi lần vẽ lại; (8) ảnh `_small`: thẻ bước 3 dòng, mũi tên "<" dưới vòng số (bố cục màn thấp có sẵn).
+- **Kết quả CI:** `pr-check` lần chạy 40335161637 xanh (`ui-test` 13:57 đến 14:08, `build-and-test` 13:57 đến 14:12), một vòng. Cục bộ `scripts/check.sh`: 1168 test JVM, 0 lỗi (`:feature:camera` 444, `:core:designsystem` 116), 97 ảnh. `scripts/design-compare.sh camera`: `CameraScreen_countdown_dark` 5,7% (trước 6,0% với thiết kế cũ, 9,6% với thiết kế mới trước task); ảnh khác không đổi.
+- **Lệch so với plan:** bốn lệch nhỏ không đổi điều test kiểm, ghi ở rà soát (1) đến (3): thân `onCancelCountdown` dạng khối vì ktlint; ghi thêm `onOverlayGestureEnd`; điểm đo chip, ô cách mép trái 6 dp (tránh chữ, hình); `counting_closesOpenPanel` dựng không đếm trước. Phương án dự phòng 3.4 không dùng. Không có file nối chỗ gọi ngoài mục 3.2.
+- **Việc còn lại:** Không có.
+- **Cần người xem:** hai ảnh chuẩn mới `feature/camera/src/test/screenshots/CameraScreen_countdown_dark.png`, `CameraScreen_countdown_small.png` và ảnh so sánh `docs/features/camera/design/review/CameraScreen_countdown_dark_compare.png`; kiểm tra thủ công trên máy thật (plan mục 4): hẹn giờ 10 giây, các nút mờ và bấm không có gì, kéo nét viền không di chuyển, chạm khung dừng, bấm thư viện khi còn 1 giây dừng rồi mở thư viện, zoom vẫn đổi; TalkBack đọc "đã tắt", "Hủy đếm ngược" dừng.

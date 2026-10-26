@@ -7,7 +7,7 @@ build: bản staging trên máy thật của Tuấn (chưa ghi số phiên bản
 feature: camera
 ticket: T-058
 severity: chan
-status: triaged
+status: planned
 created: 2026-10-26
 ---
 
@@ -48,4 +48,4 @@ Không có.
   - Chọn ở dải chỉ đổi tư thế đang dùng, không tạo màn mới, nên không gặp.
   - Log xác nhận được trên máy (`adb logcat -v threadtime | grep ' VGL\.'`): "Camera ready" của màn mới, rồi "Camera unbound" mà không có "Camera closed" trước đó; bấm chụp thì "Capture failed".
   - Chưa có test nào bấm chụp sau khi đi từ thư viện: `PoseDetailEntryTest` chỉ kiểm ngăn xếp, kịch bản `T-022-chi-tiet-sang-camera.txt` dừng khi `camera_screen` hiện.
-- **Liên kết:** [T-058](../tickets/T-058-camera-mo-tu-thu-vien.md)
+- **Liên kết:** [T-058](../tickets/T-058-camera-mo-tu-thu-vien.md), [plan T-058](../plans/T-058-camera-mo-tu-thu-vien.md)

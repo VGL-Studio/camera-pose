@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -28,6 +29,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -356,6 +359,18 @@ class PoseDetailScreenTest {
         val button = composeRule.onNodeWithText("Fotografar com esta pose").getUnclippedBoundsInRoot()
         assertTrue("button $button inside the screen $root", button.top >= root.top && button.bottom <= root.bottom)
         assertTrue("button $button inside the screen $root", button.left >= root.left && button.right <= root.right)
+    }
+
+    // The Portuguese main button stays on one line on the short screen (review note of T-051; plan T-055): a button
+    // that wraps still fits the screen, so the line count of its text is read.
+    @Test
+    @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
+    fun smallScreen_portuguese_buttonOneLine() {
+        setScreen(ready(detail = detail(steps = FIVE_STEPS, mistakes = listOf(MISTAKE, LONG_MISTAKE))))
+        val layouts = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithText("Fotografar com esta pose", useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertEquals("lines", 1, layouts.single().lineCount)
     }
 
     @Test

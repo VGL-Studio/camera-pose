@@ -39,7 +39,7 @@
     <string name="camera_cd_thumb_failed">%1$s, chưa tải được ảnh, chạm để thử lại</string>
     <!-- Outline adjustment (plan T-015). Text table of the design. -->
     <string name="camera_adjust_title">Chỉnh lớp phủ</string>
-    <string name="camera_adjust_opacity">Độ mờ</string>
+    <string name="camera_adjust_opacity">Độ đậm</string>
     <string name="camera_adjust_size">Cỡ</string>
     <string name="camera_adjust_flip">Lật</string>
     <string name="camera_adjust_lock">Khóa</string>

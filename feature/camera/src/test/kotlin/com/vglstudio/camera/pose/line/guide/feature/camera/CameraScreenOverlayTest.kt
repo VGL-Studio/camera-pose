@@ -390,7 +390,7 @@ class CameraScreenOverlayTest {
     fun panel_showsSlidersAndActions_andHidesZoom() {
         setScreen(OverlayState(settings = OverlaySettings(opacity = 0.7f), panelOpen = true))
         assertTrue(exists(CameraTestTags.ADJUST_PANEL))
-        listOf("Chỉnh lớp phủ", "Độ mờ", "70%", "Cỡ", "100%").forEach { assertTrue("$it", textExists(it)) }
+        listOf("Chỉnh lớp phủ", "Độ đậm", "70%", "Cỡ", "100%").forEach { assertTrue("$it", textExists(it)) }
         // The four actions: the label is drawn under each button, and the button is named after it.
         listOf("Lật", "Khóa", "Ẩn", "Đặt lại").forEach {
             assertTrue(it, textExists(it))
@@ -487,7 +487,26 @@ class CameraScreenOverlayTest {
     // around the middle of the button of the same name.
     @Test
     @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
-    fun smallPortuguese_adjustPanel_labelsFit() {
+    fun smallPortuguese_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    // The other release languages on the short screen (plan T-055): Indonesian "Sembunyikan" overlapped "Kunci".
+    @Test
+    @Config(qualifiers = "b+es+419-w360dp-h640dp-xxhdpi")
+    fun smallSpanish_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    @Test
+    @Config(qualifiers = "in-w360dp-h640dp-xxhdpi")
+    fun smallIndonesian_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    @Test
+    @Config(qualifiers = "hi-w360dp-h640dp-xxhdpi")
+    fun smallHindi_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    @Test
+    @Config(qualifiers = "th-w360dp-h640dp-xxhdpi")
+    fun smallThai_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    private fun assertAdjustLabelsFit() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val labels = listOf(
             R.string.camera_adjust_flip,

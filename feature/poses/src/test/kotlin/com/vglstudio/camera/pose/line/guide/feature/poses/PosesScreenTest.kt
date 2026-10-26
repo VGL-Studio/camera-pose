@@ -262,6 +262,20 @@ class PosesScreenTest {
         cards.take(3).forEach { assertEquals("card width of $it", 203f, it.width.value, 1f) }
     }
 
+    // A large screen in landscape follows the device (spec poses, KB-7; spec camera, KB-11; plan T-056).
+    @Test
+    @Config(qualifiers = "vi-w841dp-h673dp-land-xxhdpi")
+    fun landscape_hasThreeColumns() {
+        setScreen(ready(cards = manyCards()))
+        val cards = listOf("p01", "p02", "p03", "p04").map { card(it).getUnclippedBoundsInRoot() }
+        val (first, second, third, fourth) = cards
+        assertEquals(first.top, second.top)
+        assertEquals(first.top, third.top)
+        assertTrue("cards go to the right: $cards", first.left < second.left && second.left < third.left)
+        assertTrue("fourth card under the first: $cards", fourth.top > first.bottom)
+        assertEquals(first.left, fourth.left)
+    }
+
     @Test
     @Config(qualifiers = UNFOLDED)
     fun wideLoading_hasThreeColumns() {

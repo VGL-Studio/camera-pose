@@ -282,6 +282,25 @@ class SettingsScreenTest {
         assertTrue("card $card in screen $screen", card.left >= screen.left && card.right <= screen.right)
     }
 
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056). The second frame is the first
+    // minus the system bars.
+    @Test
+    @Config(qualifiers = "vi-w960dp-h600dp-land-xxhdpi")
+    fun landscape_versionRowReachable_w960h600() = assertVersionRowReachable()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_versionRowReachable_w960h520() = assertVersionRowReachable()
+
+    private fun assertVersionRowReachable() {
+        setScreen()
+        val versionRow = composeRule.onNode(hasText("Phiên bản") and hasText("1.0.0"))
+        versionRow.performScrollTo().assertIsDisplayed()
+        val screen = composeRule.onNodeWithTag(SettingsTestTags.SCREEN).getUnclippedBoundsInRoot()
+        val row = versionRow.getUnclippedBoundsInRoot()
+        assertTrue("version row bottom ${row.bottom} inside the screen ${screen.bottom}", row.bottom <= screen.bottom)
+    }
+
     private fun hasAnyAncestorTag(tag: String) = hasAnyAncestor(hasTestTag(tag))
 
     private fun density(): Float = composeRule.density.density

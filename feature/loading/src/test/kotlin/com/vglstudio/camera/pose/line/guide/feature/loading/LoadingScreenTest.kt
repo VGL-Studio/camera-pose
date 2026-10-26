@@ -385,6 +385,29 @@ class LoadingScreenTest {
         assertTrue("footer top $footerTop overlaps retry bottom $retryBottom", footerTop >= retryBottom)
     }
 
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056). The second frame is the first
+    // minus the system bars.
+    @Test
+    @Config(qualifiers = "vi-w960dp-h600dp-land-xxhdpi")
+    fun landscape_retryReachable_w960h600() = assertRetryReachableInLandscape()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_retryReachable_w960h520() = assertRetryReachableInLandscape()
+
+    private fun assertRetryReachableInLandscape() {
+        composeRule.setContent {
+            AppTheme {
+                LoadingScreen(uiState = LoadingUiState.Failed(0.68f), appName = APP_NAME, onRetry = {})
+            }
+        }
+        val retry = composeRule.onNodeWithTag(LoadingTestTags.RETRY)
+        retry.performScrollTo().assertIsDisplayed()
+        val screenBottom = composeRule.onNodeWithTag(LoadingTestTags.SCREEN).getUnclippedBoundsInRoot().bottom
+        val retryBottom = retry.getUnclippedBoundsInRoot().bottom
+        assertTrue("retry bottom $retryBottom is below screen bottom $screenBottom", retryBottom <= screenBottom)
+    }
+
     private fun assertDp(what: String, expected: Float, actual: Dp) {
         assertEquals(what, expected, actual.value, DESIGN_TOLERANCE_DP)
     }

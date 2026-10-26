@@ -80,8 +80,9 @@ class LoadingViewModel @Inject constructor(
     private suspend fun runPending() {
         for (task in PreparationTask.entries.filter { it !in doneTasks }) {
             if (!runSafely(task)) {
-                logger.warn(LOG_TAG, "Task $task not done, waiting for retry")
-                state.value = LoadingUiState.Failed(progress())
+                val cause = failureCause()
+                logger.warn(LOG_TAG, "Task $task not done (cause=$cause), waiting for retry")
+                state.value = LoadingUiState.Failed(progress(), cause)
                 return
             }
             doneTasks += task
@@ -102,6 +103,21 @@ class LoadingViewModel @Inject constructor(
         )
         logger.info(LOG_TAG, "Loading finished in $durationMillis ms after $retryCount retries")
         state.value = LoadingUiState.Finished
+    }
+
+    /**
+     * Read at each failure, never remembered: with the Internet confirmed by the system the server did not answer,
+     * otherwise the network is the likely reason. Reading the network state may fail (for example a missing
+     * permission); the network guidance is then the safe answer (plan T-057).
+     */
+    private fun failureCause(): LoadingFailure {
+        val validated = try {
+            internet.isInternetValidated()
+        } catch (e: RuntimeException) {
+            logger.warn(LOG_TAG, "Could not read the network state", e)
+            false
+        }
+        return if (validated) LoadingFailure.SERVER else LoadingFailure.OFFLINE
     }
 
     /** An unexpected error in one task is a failed task, not a crash of the whole app. */

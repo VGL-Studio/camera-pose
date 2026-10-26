@@ -8,7 +8,7 @@
     <string name="loading_error_title">Unable to load data</string>
     <string name="loading_percent" translatable="false">%1$d%%</string>
     <string name="loading_error">The connection was interrupted. Check your network and try again to continue.</string>
-    <string name="loading_error_server">Server guidance pending</string>
+    <string name="loading_error_server">Our server isn\'t responding right now. Please try again in a few minutes.</string>
     <string name="loading_retry">Try again</string>
     <string name="loading_footer">Your photos stay on your device</string>
 </resources>

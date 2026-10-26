@@ -12,9 +12,17 @@ fun interface InternetCheck {
 internal class AndroidInternetCheck(context: Context) : InternetCheck {
     private val manager = context.getSystemService(ConnectivityManager::class.java)
 
-    // Skeleton of the tests-first step: not implemented yet.
-    override fun isInternetValidated(): Boolean = false
+    override fun isInternetValidated(): Boolean =
+        manager.getNetworkCapabilities(manager.activeNetwork).isValidatedInternet()
 }
 
-/** Skeleton of the tests-first step: not implemented yet. */
-internal fun NetworkCapabilities?.isValidatedInternet(): Boolean = false
+/**
+ * True when the network can reach the Internet and the system has checked that it does. VALIDATED is needed: a
+ * Wi-Fi network behind a sign-in page, or one without a way out, has INTERNET but not VALIDATED, and there "check
+ * your network" is the right guidance. Unlike AndroidConnectivitySource of :core:network (INTERNET only, plan T-011,
+ * question 1) on purpose: the offline dialog must not show by mistake, while here the safe mistake is the old
+ * network guidance.
+ */
+internal fun NetworkCapabilities?.isValidatedInternet(): Boolean = this != null &&
+    hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+    hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)

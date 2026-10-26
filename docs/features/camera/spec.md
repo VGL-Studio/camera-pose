@@ -34,7 +34,7 @@ confirmed: 2026-10-23
 - Quảng cáo toàn màn hình khi rời màn xem lại sau khi đã lưu ảnh (mức B).
 - Hỏi đánh giá app trong app sau khi người dùng đã lưu đủ ảnh (bản đề xuất, câu 12.8).
 - Điện thoại màn hình gập, khi mở ra: khung xem trước giữ 3:4, nút chụp và công cụ dời sang cột bên.
-- Điện thoại khóa chiều dọc ở mọi màn của app; máy gập khi mở ra dùng bố cục mở gập (câu hỏi 7).
+- Điện thoại khóa chiều dọc ở mọi màn của app. Màn lớn (cạnh ngắn từ 600 dp: máy gập khi mở ra, máy tính bảng) không khóa hướng: app dùng cả màn hình theo hướng của máy, với bố cục mở gập (câu hỏi 7, phần bổ sung; câu hỏi 15).
 
 **Ngoài phạm vi lần này:**
 
@@ -184,6 +184,8 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi máy gập mở ra thì camera giữ khung 3:4 bên trái, nút chụp, đổi camera, ô ảnh vừa chụp và zoom dời sang cột bên phải; màn xem lại đặt ảnh bên trái, các nút bên phải, đúng thiết kế `_unfolded`.
 - [ ] Khi gập lại thì camera và màn xem lại dùng bố cục điện thoại, giữ tư thế và các lựa chọn.
+- [ ] Khi app mở trên màn lớn (cạnh ngắn từ 600 dp: máy gập khi mở ra, máy tính bảng) thì app dùng cả màn hình, không bị hệ thống đóng khung với hai dải đen, kể cả khi màn nằm ngang; xoay máy thì app xoay theo, mọi màn vẫn đủ nút chính trong màn hình.
+- [ ] Khi gập lại (cạnh ngắn dưới 600 dp) thì app trở về chiều dọc dù máy đang nằm ngang.
 
 ## 4. Giao diện
 
@@ -275,6 +277,8 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 7. **Khóa màn hình ở chiều dọc?**
    - Đề xuất của AI: điện thoại khóa chiều dọc ở camera và màn xem lại, như mọi app mẫu; máy gập khi mở ra dùng bố cục `_unfolded`. Các màn khác của app cũng khóa dọc để đơn giản.
    - Trả lời: Đồng ý với đề xuất của AI.
+   - **Bổ sung 2026-10-26 (FB-20261024-01, plan T-056):** khóa dọc trên màn lớn làm Android 12L đến 15 đóng khung app (hai dải đen) khi màn nằm ngang, ví dụ màn trong nằm ngang của máy gập hay máy tính bảng; từ Android 16 hệ thống bỏ qua khóa này trên màn từ 600 dp. Đề xuất của AI: chỉ khóa dọc khi cạnh ngắn của màn dưới 600 dp; màn lớn theo hướng của máy (mục 2, KB-11).
+   - Trả lời (bổ sung): Tuấn, 2026-10-26: đồng ý đề xuất.
 8. **Dữ liệu tư thế dùng chung đặt ở đâu?** Camera và thư viện đều cần danh sách tư thế, ảnh, nét viền, danh sách đã lưu; feature không được phụ thuộc nhau (ADR-0001).
    - Đề xuất của AI: module core mới của app `:core:poses` (bản đề xuất, mục 5). Thêm module core là thay đổi rủi ro cao, cần plan duyệt chéo.
    - Trả lời: Đồng ý với đề xuất của AI.
@@ -297,6 +301,9 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 14. **Rời màn xem lại mà lần đó không lưu ảnh có hỏi đánh giá không?** (plan T-019, câu 1).
    - Đề xuất của AI: chỉ hỏi khi lần xem lại đó đã lưu ảnh.
    - Trả lời: Đồng ý với đề xuất của AI.
+15. **Camera khi màn lớn nằm ngang** (plan T-056, câu 1). Khung xem trước giữ 3:4 dọc; khi màn nằm ngang, luồng camera là 4:3 ngang nên khung chỉ hiện phần giữa, còn ảnh chụp ra rộng hơn phần đã thấy; nét viền và điểm khớp tính theo cả ảnh phân tích nên lệch so với người trong khung. Android 16 trên màn lớn đã như vậy, vì không khóa được hướng ở đó.
+   - Đề xuất của AI: chấp nhận ở T-056, vì bố cục mở gập khi nằm ngang vẫn đủ nút trong màn hình (số đo ở plan T-056, mục 4.1); làm "ảnh chụp, nét viền và điểm khớp đúng phần đã thấy" (`ViewPort` của CameraX) ở một ticket riêng, cần chạy thử trên máy có camera.
+   - Trả lời: Tuấn, 2026-10-26: chấp nhận tạm ở T-056; ảnh, nét viền và điểm khớp đúng phần đã thấy làm ở ticket ViewPort riêng.
 
 ## 10. Lịch sử
 
@@ -308,3 +315,5 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | 2026-10-22 | AI | Ghi quyết định của Nhật sau RUN-20261022-01: nút đổi camera mờ đi khi camera chưa sẵn sàng (đang mở, chưa có quyền, lỗi), thiết kế sửa theo; không ghi `camera_permission_result` khi quyền đã bị từ chối vĩnh viễn và hộp hỏi không hiện (KB-7, mục 6). Tuấn xác nhận lại ngày 2026-10-23 |
 | 2026-10-22 | AI | Ghi quyết định của Nhật ở plan T-016 (câu 1, phương án A): Android 9 trở xuống hỏi quyền lưu tệp vào bộ nhớ máy ở lần lưu đầu; thêm tiêu chí từ chối, từ chối và không hỏi lại, quyền của app (mục 2, KB-6, mục 4, mục 6); câu hỏi 10 (chữ thông báo, việc của dev trên Play Console) và 11 (sự kiện). Tuấn xác nhận lại ngày 2026-10-23 |
 | 2026-10-23 | AI | Ghi quyết định của Tuấn ở plan T-017, T-018, T-019: bỏ tiêu chí dung lượng APK (KB-5, câu 12); phiên của giới hạn quảng cáo là một lần chạy của app, mốc quảng cáo không lưu xuống máy (mục 5, mục 6, câu 13); chỉ hỏi đánh giá khi lần xem lại đó đã lưu ảnh (KB-10, câu 14). Tuấn xác nhận lại ngày 2026-10-23 |
+| 2026-10-26 | AI | Đề xuất theo FB-20261024-01 (plan T-056): màn lớn (cạnh ngắn từ 600 dp) không khóa dọc, app dùng cả màn hình theo hướng của máy; điện thoại vẫn khóa dọc (mục 2, KB-11 thêm hai tiêu chí, câu 7 phần bổ sung, câu 15). Chờ người phụ trách sản phẩm xác nhận |
+| 2026-10-26 | Tuấn | Xác nhận phần đổi của plan T-056 (mục 2, KB-11, câu 7 phần bổ sung, câu 15). Chuyển lại `confirmed` |

@@ -43,7 +43,7 @@
     <string name="camera_adjust_size">Ukuran</string>
     <string name="camera_adjust_flip">Balik</string>
     <string name="camera_adjust_lock">Kunci</string>
-    <string name="camera_adjust_hide">Sembunyikan</string>
+    <string name="camera_adjust_hide">Sembunyi</string>
     <string name="camera_adjust_reset">Atur ulang</string>
     <string name="camera_locked_hint">Lapisan terkunci</string>
     <!-- Proposed by the plan (question 8). -->

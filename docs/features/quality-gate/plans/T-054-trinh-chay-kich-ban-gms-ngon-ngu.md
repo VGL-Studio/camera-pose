@@ -33,7 +33,7 @@ Ticket không có spec nghiệp vụ. Yêu cầu là FB-20261025-03 (mục Phân
 | Lỗi hay đề xuất | Tiêu chí chấp nhận | Cách hiểu của AI (bằng chứng) |
 | --- | --- | --- |
 | FB-20261025-03: T-022 lỗi ở bước 2 vì Google Play services chết và hệ thống giết app | Bước lỗi của lần chạy đầu mà `logcat.txt` có dòng giết app theo tiến trình đang chết, sau dấu `scenario=plan file=<tệp>` cuối cùng: dòng bước ghi `RETRY app bị hệ thống giết theo Google Play services (<tiến trình>)`, `note` ghi `...; chạy lại tệp từ đầu, mở lại app`, bằng chứng của lần đầu là `fail-1.png`, `fail-1.xml`; trình chạy trả máy, ghi lại dấu của tệp và chạy lại tệp; dòng `result=` duy nhất của tệp là kết quả của lần chạy lại, `seconds=` tính cả hai lần. Lần chạy lại cũng bị giết: `SKIP app bị hệ thống giết theo ...`, `result=bỏ qua (môi trường)`. Không đủ thời gian chạy lại: `SKIP ...; không còn thời gian chạy lại`, `result=bỏ qua (môi trường)`. Dòng giết trước dấu của tệp, hay của gói khác: lỗi như cũ | Dòng thật trong `logcat.txt` của lần chạy 40226750845: `ActivityManager: Killing 9002:com.vglstudio.camera.pose.line.guide.staging/u0a192 (adj 0): depends on provider com.google.android.gms/.fonts.provider.FontsProvider in dying proc com.google.android.gms.persistent`. `device-session.sh` ghi logcat của cả phiên vào `<thư mục phiên>/logcat.txt` (dòng 142, `adb logcat -b all -v threadtime`) và gọi trình chạy với cùng thư mục (`--session "${dir}"`, dòng 252), nên trình chạy đọc được tệp đó lúc chạy, không cần lệnh `adb logcat` mới. Dấu `scenario=plan file=<tệp>` do trình chạy ghi bằng `log -t VGL.Session` ở đầu mỗi lần chạy, nên dòng sau dấu cuối cùng là của lần chạy đang làm |
-| Báo cáo RUN-20261026-01, đề xuất 3: trình chạy đặt rõ ngôn ngữ tiếng Anh | Mỗi `fresh`, sau `pm clear` và cấp quyền, trước `am start -W`: `adb shell cmd locale set-app-locales <gói> --locales en`. Lệnh thoát khác 0 hay in `Exception`, `Error`, `Unknown`: `SKIP không đặt được ngôn ngữ tiếng Anh cho app (<dòng đầu>)`. API dưới 33: không gửi lệnh đó; `getprop persist.sys.locale` không bắt đầu bằng `en` thì `SKIP máy để ngôn ngữ <giá trị>; dưới Android 13 trình chạy không đặt được ngôn ngữ của app, đặt máy về tiếng Anh` | `string_values` chỉ đọc `res/values/strings.xml`. `cmd locale set-app-locales` có từ Android 13 (API 33) và đã chạy được trên emulator CI: lệnh `device locale en-US` của T-022 dùng đúng lệnh này và đạt ở TS-20261025-02. Thẻ `en` trùng `app/src/main/res/xml/locales_config.xml` (`<locale android:name="en" />`). Trả máy sau mỗi tệp đã gửi `set-app-locales <gói>` không có `--locales` (về ngôn ngữ của máy), nên máy thật không giữ tiếng Anh sau lượt. Dưới Android 13, app chọn ngôn ngữ bằng hộp chọn trong app lưu ở DataStore (spec settings, KB-4); `pm clear` xóa nó nên app theo ngôn ngữ của máy; đổi ngôn ngữ của máy cần quyền mà `adb shell` không có nếu không root |
+| Báo cáo RUN-20261026-01, đề xuất 3: trình chạy đặt rõ ngôn ngữ tiếng Anh | Mỗi `fresh`, sau `pm clear` và cấp quyền, trước `am start -W`: `adb shell cmd locale set-app-locales <gói> --locales en`. Lệnh thoát khác 0 hay in `Exception`, `Error`, `Unknown`: `SKIP không đặt được ngôn ngữ tiếng Anh cho app (<dòng đầu>)`. API dưới 33: không gửi lệnh đó; `getprop persist.sys.locale` (rỗng thì `getprop ro.product.locale`, ngôn ngữ xuất xưởng của máy chưa từng đổi) không bắt đầu bằng `en` thì `SKIP máy để ngôn ngữ <giá trị>; dưới Android 13 trình chạy không đặt được ngôn ngữ của app, đặt máy về tiếng Anh` | `string_values` chỉ đọc `res/values/strings.xml`. `cmd locale set-app-locales` có từ Android 13 (API 33) và đã chạy được trên emulator CI: lệnh `device locale en-US` của T-022 dùng đúng lệnh này và đạt ở TS-20261025-02. Thẻ `en` trùng `app/src/main/res/xml/locales_config.xml` (`<locale android:name="en" />`). Trả máy sau mỗi tệp đã gửi `set-app-locales <gói>` không có `--locales` (về ngôn ngữ của máy), nên máy thật không giữ tiếng Anh sau lượt. Dưới Android 13, app chọn ngôn ngữ bằng hộp chọn trong app lưu ở DataStore (spec settings, KB-4); `pm clear` xóa nó nên app theo ngôn ngữ của máy; đổi ngôn ngữ của máy cần quyền mà `adb shell` không có nếu không root |
 | Ghi chú rà soát T-052: dòng `note` luôn ghi "chờ 3 giây" | `note` ghi `min(lúc dừng app + DEVICE_SCENARIO_STOP_SETTLE, hạn của tệp) - lúc dừng app`, định dạng `seconds_text` (số nguyên không có phần lẻ, còn lại một chữ số lẻ) | Code hiện tại: `self.note(f"fresh: chờ {seconds_text(self.stop_settle)} ...")` rồi `time.sleep(max(0.0, min(stopped + self.stop_settle, self.file_deadline) - time.monotonic()))` |
 | Ghi chú rà soát T-052: tệp có `device ...` rồi `fresh` không chờ | `step_device` đặt `self.device_reset = True` | Plan T-052 mục 2: `Destroy timeout of remove-task` chỉ thấy khi dừng app lúc Activity còn đang dựng lại sau lần trả máy; lệnh `device` (kích thước, xoay, chế độ tối, ngôn ngữ) dựng lại Activity như vậy. Ba kịch bản hiện có không có `fresh` sau lệnh `device` (T-022 có `fresh` ở dòng 34, lệnh `device` ở dòng 52, 56), nên không đổi thời gian của chúng |
 
@@ -60,7 +60,7 @@ Bản cài thử dưới đây đã chạy với khối test của mục 4 (mụ
 
 ```diff
 diff --git a/scripts/device-scenario.py b/scripts/device-scenario.py
-index ea04bdf..e740fe6 100755
+index ea04bdf..65215b0 100755
 --- a/scripts/device-scenario.py
 +++ b/scripts/device-scenario.py
 @@ -90,6 +90,7 @@ UNFOLDED_SIZE, UNFOLDED_DENSITY = "1766x2208", "420"  # 673 x 841 dp, the frame
@@ -109,7 +109,7 @@ index ea04bdf..e740fe6 100755
          problem = self.start_app()
          if problem is None:
              return
-@@ -653,6 +660,21 @@ class Runner:
+@@ -653,6 +660,23 @@ class Runner:
              self.note(f"fresh: lần mở 2 không có tiến trình ({problem})")
              raise Fail("app không chạy sau 2 lần mở")
  
@@ -118,6 +118,8 @@ index ea04bdf..e740fe6 100755
 +        language of the device must be English, otherwise the file is skipped (plan T-054)."""
 +        if self.sdk is not None and self.sdk < 33:
 +            _, output = self.adb("shell", "getprop", "persist.sys.locale")
++            if not output.strip():  # a device never set to another language keeps its factory one
++                _, output = self.adb("shell", "getprop", "ro.product.locale")
 +            language = output.strip() or "?"
 +            if not language.lower().startswith(SCENARIO_LANGUAGE):
 +                raise Skip(f"máy để ngôn ngữ {language}; dưới Android 13 trình chạy không đặt được ngôn ngữ của app, "
@@ -131,7 +133,7 @@ index ea04bdf..e740fe6 100755
      def start_app(self):
          """None when the app has a process after am start -W, otherwise why not. A start that outlives its limit
          still counts when the process is there (an app that starts slowly but runs)."""
-@@ -754,6 +776,7 @@ class Runner:
+@@ -754,6 +778,7 @@ class Runner:
              raise Skip("không tắt được mạng (máy vẫn có mạng mặc định)")
  
      def step_device(self, arguments):
@@ -139,7 +141,7 @@ index ea04bdf..e740fe6 100755
          words = arguments["words"]
          if words[0] == "rotate":
              self.adb("shell", "settings", "put", "system", "accelerometer_rotation", "0")
-@@ -871,10 +894,23 @@ class Runner:
+@@ -871,10 +896,23 @@ class Runner:
              self.log(f"plan {name} result={RESULT_SYNTAX} seconds=0")
              return
          uses_network = any(command == "network" for _, command, _, _ in steps)
@@ -167,7 +169,7 @@ index ea04bdf..e740fe6 100755
          began = time.monotonic()
          self.file_deadline = began + min(int(header.get("timeout", DEFAULT_TIMEOUT)), allowance)
          self.last_xml = None
-@@ -901,29 +937,63 @@ class Runner:
+@@ -901,29 +939,63 @@ class Runner:
              except (AdbTimeout, Fail, ConsentFail) as problem:
                  outcome, result, failed = f"{text} FAIL {'adb_timeout' if isinstance(problem, AdbTimeout) else problem}", \
                      RESULT_FAILED, True
@@ -452,7 +454,7 @@ Tiêu chí E là 1: đọc `logcat.txt` của phiên trong lúc chạy và lện
 
 Tổng: 660 test, 652 `ok` (gồm 3 đối chứng mới), 8 `FAIL` (8 test mới), đúng lý do, không `FAIL` nào khác.
 
-**Bản cài thử** (không commit, đã trả về): `scripts/device-scenario.py` như `diff` ở mục 3.1 (không gồm docstring). Kết quả: toàn bộ `scripts/tests/run.sh`: 660 test, 660 `ok`, `All script tests passed`, 2 phút 48 giây. Lần cài thử trước đó có 1 `FAIL` ở test `note` ghi thời gian thật: thời gian chờ thật là 2,96 giây, in thành `3.0`, nằm ngoài mẫu `[0-2]`; mẫu đã nới thành `[0-3]` (khối ở mục 4), trên code hiện tại test vẫn thất bại vì `note` ghi `chờ 10 giây`.
+**Bản cài thử** (không commit, đã trả về): `scripts/device-scenario.py` như `diff` ở mục 3.1 (không gồm docstring). Kết quả: toàn bộ `scripts/tests/run.sh`: 660 test, 660 `ok`, `All script tests passed` (2 phút 48 giây; chạy lại sau khi thêm lần đọc `ro.product.locale`: 660 `ok`, 3 phút 37 giây). Lần cài thử trước đó có 1 `FAIL` ở test `note` ghi thời gian thật: thời gian chờ thật là 2,96 giây, in thành `3.0`, nằm ngoài mẫu `[0-2]`; mẫu đã nới thành `[0-3]` (khối ở mục 4), trên code hiện tại test vẫn thất bại vì `note` ghi `chờ 10 giây`.
 
 Không chạy thử trên emulator (mục 3.4). Lần kiểm thật là `device-session` cuối phiên (mục 4, dòng kiểm thủ công).
 

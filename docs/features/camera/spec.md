@@ -184,7 +184,7 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi máy gập mở ra thì camera giữ khung 3:4 bên trái, nút chụp, đổi camera, ô ảnh vừa chụp và zoom dời sang cột bên phải; màn xem lại đặt ảnh bên trái, các nút bên phải, đúng thiết kế `_unfolded`.
 - [ ] Khi gập lại thì camera và màn xem lại dùng bố cục điện thoại, giữ tư thế và các lựa chọn.
-- [ ] Khi app mở trên màn lớn (cạnh ngắn từ 600 dp) thì app dùng cả màn hình, không bị hệ thống đóng khung với hai dải đen, kể cả khi màn nằm ngang; xoay máy thì app xoay theo, mọi màn vẫn đủ nút chính trong màn hình.
+- [ ] Khi app mở trên màn lớn (cạnh ngắn từ 600 dp: máy gập khi mở ra, máy tính bảng) thì app dùng cả màn hình, không bị hệ thống đóng khung với hai dải đen, kể cả khi màn nằm ngang; xoay máy thì app xoay theo, mọi màn vẫn đủ nút chính trong màn hình.
 - [ ] Khi gập lại (cạnh ngắn dưới 600 dp) thì app trở về chiều dọc dù máy đang nằm ngang.
 
 ## 4. Giao diện
@@ -301,8 +301,8 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 14. **Rời màn xem lại mà lần đó không lưu ảnh có hỏi đánh giá không?** (plan T-019, câu 1).
    - Đề xuất của AI: chỉ hỏi khi lần xem lại đó đã lưu ảnh.
    - Trả lời: Đồng ý với đề xuất của AI.
-15. **Camera khi màn lớn nằm ngang** (plan T-056, câu 1). Khung xem trước giữ 3:4 dọc; khi màn nằm ngang, luồng camera là 4:3 ngang nên khung chỉ hiện phần giữa, còn ảnh chụp ra rộng hơn phần đã thấy. Android 16 trên màn lớn đã như vậy, vì không khóa được hướng ở đó.
-   - Đề xuất của AI: chấp nhận ở T-056, vì bố cục mở gập khi nằm ngang vẫn đủ nút trong màn hình (số đo ở plan T-056, mục 4.1); làm "ảnh chụp đúng phần đã thấy" (`ViewPort` của CameraX) ở một ticket riêng, cần chạy thử trên máy có camera.
+15. **Camera khi màn lớn nằm ngang** (plan T-056, câu 1). Khung xem trước giữ 3:4 dọc; khi màn nằm ngang, luồng camera là 4:3 ngang nên khung chỉ hiện phần giữa, còn ảnh chụp ra rộng hơn phần đã thấy; nét viền và điểm khớp tính theo cả ảnh phân tích nên lệch so với người trong khung. Android 16 trên màn lớn đã như vậy, vì không khóa được hướng ở đó.
+   - Đề xuất của AI: chấp nhận ở T-056, vì bố cục mở gập khi nằm ngang vẫn đủ nút trong màn hình (số đo ở plan T-056, mục 4.1); làm "ảnh chụp, nét viền và điểm khớp đúng phần đã thấy" (`ViewPort` của CameraX) ở một ticket riêng, cần chạy thử trên máy có camera.
    - Trả lời: chờ người phụ trách sản phẩm.
 
 ## 10. Lịch sử

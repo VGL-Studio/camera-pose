@@ -7,7 +7,7 @@ build: bản staging trên máy thật của Tuấn (chưa ghi số phiên bản
 feature: camera
 ticket: T-059
 severity: nang
-status: planned
+status: fixed
 created: 2026-10-26
 ---
 
@@ -41,4 +41,5 @@ Không có.
 - **Loại:** thay đổi yêu cầu. Code đúng spec KB-2 ("Khi vuốt thẻ bước lên thì thẻ ẩn"), nhưng cách duy nhất để ẩn là vuốt lên quá 24 dp (`PoseOverlay.kt:58`, `229-246`), thẻ không có chỗ nào để chạm. Trên màn thấp 360 x 640, thẻ có thể che khoảng 47% khung xem trước (plan T-015).
 - **Xử lý:** sửa ở phiên tự chạy kế tiếp (T-059). Tuấn chọn ngày 2026-10-26: không thêm nút thu gọn; chạm vào thẻ (ngoài hai mũi tên) thì thẻ thu gọn thành nút "Bước", chạm nút "Bước" thì thẻ mở lại; giữ cách vuốt lên. Spec camera KB-2 và câu hỏi 2 đổi theo.
 - **Lý do:** vuốt không có dấu hiệu nào trên màn hình nên người dùng không biết; chạm là thao tác ai cũng thử.
+- **Kết quả sau khi sửa:** đã sửa ở T-059 (PR #172), có trong bản 0.1.0-staging.12 (RUN-20261026-03). Tuấn thử trên máy thật theo mục Cần người kiểm tra của báo cáo phiên: đạt. Tuấn chuyển `fixed` ngày 2026-10-26.
 - **Liên kết:** [T-059](../tickets/T-059-cham-the-buoc.md), [plan T-059](../plans/T-059-cham-the-buoc.md)

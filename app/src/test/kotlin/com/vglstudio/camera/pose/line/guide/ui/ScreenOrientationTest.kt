@@ -29,8 +29,7 @@ class ScreenOrientationTest {
     private val unspecified = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private val undefined = Configuration.SMALLEST_SCREEN_WIDTH_DP_UNDEFINED
 
-    private fun activity(): ComponentActivity =
-        Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
+    private fun activity(): ComponentActivity = Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
 
     @Test
     fun phone_isPortrait() {

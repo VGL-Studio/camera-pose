@@ -1,7 +1,7 @@
 ---
 ticket: T-054
 title: Trình chạy kịch bản chạy lại tệp khi app bị giết theo Google Play services, đặt app về tiếng Anh, ghi đúng thời gian chờ của `fresh`
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -570,3 +570,15 @@ Không chạy thử trên emulator (mục 3.4). Lần kiểm thật là `device-
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #158, commit merge `86c5fa6`, 2026-10-26 04:17 UTC).
+- **Nhánh, PR:** `claude/T-054-trinh-chay-kich-ban`, https://github.com/VGL-Studio/camera-pose/pull/158.
+- **Đã làm:** `scripts/device-scenario.py` đúng `diff` của mục 3.1 cộng docstring; khối test của mục 4 chép nguyên vào `scripts/tests/run.sh` và `scripts/tests/fake-adb`; `docs/ops/test-sessions.md` mục 5 và `docs/auto-run.md` mục 4, bước 1 theo mục 3.1, 3.2. Hai `diff` của plan áp được thẳng lên nhánh chính `bc9eed0` (`git apply`).
+- **Test viết trước:** 14 test mới (commit `9113007`). Trên code cũ: 11 test thất bại đúng lý do, đúng từng giá trị ở mục 4.1 (ví dụ `expected '0 1 1 0 2 1', got '0 0 0 1 1 0'`); 3 test đối chứng qua. Không test nào phải viết chặt thêm. Sau code: `All script tests passed`.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa, 5 ghi chú. Nên sửa: nhánh `if len(starts) < attempt` (dấu của lần chạy này chưa vào `logcat.txt`) không có test riêng; không sửa, vì code đã đúng nên không có test thất bại trước (ADR-1003) và test cần thêm biến cho `fake-adb`, ghi vào báo cáo để làm ticket sau. Ghi chú: `first_run` tính cả thời gian chụp `fail-1.png` nên chặn thời gian đầu lần chạy lại khắt khe hơn câu ở mục 3.1 (kết quả vẫn `bỏ qua (môi trường)`); mọi "dying proc" tính là môi trường kể cả tiến trình phụ của chính app; dấu so theo chuỗi con (đúng với một lần gọi trình chạy); đoạn "Các biến khác" của `docs/ops/test-sessions.md` chưa nhắc lệnh `device` (ngoài mục 3.1); vài dòng docstring dài hơn 120 ký tự.
+- **Kết quả CI:** `scripts/check.sh` cục bộ QUA (1064 test JVM, 0 lỗi; test script qua). `pr-check` xanh ở vòng đầu (lần chạy 40267912070).
+- **Lệch so với plan:** Không có.
+- **Việc còn lại:** hai dòng kiểm thủ công emulator (T-022 chạy lại khi Google Play services chết; `fresh` đặt tiếng Anh ở T-024) đọc ở `device-session` cuối phiên; dòng máy thật để tiếng Việt chờ người.
+- **Cần người xem:** điểm nên sửa của rà soát (test cho nhánh dấu chưa ghi); người duyệt chéo đọc diff `docs/ops/test-sessions.md` mục 5.

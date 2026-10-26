@@ -1,7 +1,7 @@
 ---
 ticket: T-057
 title: Màn loading báo "máy chủ chưa phản hồi" khi máy có mạng mà vẫn không tải được
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 7                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
@@ -219,3 +219,16 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-062); `scripts/plan-chec
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #160, commit merge `7468578`, 2026-10-26 05:09 UTC).
+- **Nhánh, PR:** `claude/T-057-loi-bao-may-chu`, https://github.com/VGL-Studio/camera-pose/pull/160.
+- **Đã làm:** bước 3 đến 5 do một phiên con làm trong worktree riêng (auto-run.md, mục Giao bước 3 đến 5). Mục 3.1 đủ 7 điểm: `LoadingFailure`, `InternetCheck.kt`, `@Provides`, `failureCause()` và log `cause=`, lời hướng dẫn theo `cause` và preview, `loading_error_server` ở 7 ngôn ngữ đúng bảng, hai ảnh chuẩn mới do `scripts/check.sh` ghi (không dùng `recordRoborazziDebug`).
+- **Test viết trước:** commit `6f33fc3`, khung rỗng đúng đoạn cuối mục 3.1 (chữ giữ chỗ `Server guidance pending`). 78 test của module, đúng 18 thất bại đúng lý do như mục 4.1 (a) (ví dụ `expected:<Failed(progress=0.0, cause=SERVER)> but was:<Failed(progress=0.0, cause=OFFLINE)>`; 7 test màn thấp không thấy lời máy chủ); đối chứng (`failureWithoutValidatedInternet_showsOfflineCause`, ba test "không xác nhận" của `InternetCheckTest`, `failedOffline_showsNetworkGuidance_notServerGuidance`) và test chặn `serverGuidance_doesNotAskToCheckTheNetwork` qua. Không test nào phải sửa. Sau code (`6e80d99`): 78 qua.
+- **Ảnh chuẩn mới:** `LoadingScreen_failed-server_light.png`, `LoadingScreen_failed-server_small.png` (`630a7a0`); đã mở: lời đủ hai dòng ("...sau ít / phút.", mục 8 câu 8 đã chấp nhận), nút "Thử lại" và chân trang không bị cắt hay chồng. Không ảnh chuẩn cũ nào đổi.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 4 ghi chú: tiếng Thái "ในอีกสักครู่" yếu hơn "sau ít phút" (đề xuất "ในอีกไม่กี่นาที" khi người biết tiếng duyệt); `NETWORK_WORDS` chỉ chặn một từ mỗi ngôn ngữ; dòng bảng chữ ở `design/README.md` còn ghi "chờ duyệt cùng spec, câu hỏi 11" dù spec đã `confirmed`; đọc mạng đồng bộ trên luồng chính, chỉ khi lỗi.
+- **Kết quả CI:** `scripts/check.sh` QUA (1092 test JVM, 0 lỗi, 97 ảnh). `scripts/design-compare.sh loading` không đổi (2,7%, 1,6%). `pr-check` xanh vòng đầu (lần chạy 40271831802).
+- **Lệch so với plan:** Không có. Commit test và commit code được đẩy cùng một lần, sau khi `main-guard` của T-055 xanh (L-076).
+- **Việc còn lại:** kiểm thủ công trên máy thật (DNS chặn tên miền R2 staging); người biết tiếng duyệt 5 bản dịch.
+- **Cần người xem:** hai ảnh chuẩn mới; bản dịch tiếng Thái.

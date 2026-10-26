@@ -1,7 +1,7 @@
 ---
 ticket: T-055
 title: Bố cục và nghĩa của bản dịch ở bảng chỉnh nét viền và nút chụp; "Độ mờ" thành "Độ đậm"
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 5                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
@@ -229,3 +229,16 @@ Bước 4 sửa hai chuỗi, ghi hai ảnh chuẩn như mục 3.1, rồi chạy 
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #159, commit merge `5ac7019`, 2026-10-26 04:42 UTC).
+- **Nhánh, PR:** `claude/T-055-ban-dich-bo-cuc`, https://github.com/VGL-Studio/camera-pose/pull/159.
+- **Đã làm:** điều kiện dừng 1 kiểm trước bước 3: "Độ đậm" có ở ba tệp (1, 1, 3), không còn "Độ mờ", spec camera `confirmed`. Test như mục 3.1; `values-vi` "Độ đậm", `values-in` "Sembunyi"; ghi lại hai ảnh chuẩn `CameraScreen_adjust_dark.png`, `CameraScreen_adjust_small.png`; `scripts/design-compare.sh camera` sinh lại `CameraScreen_adjust_dark_compare.png` (tỷ lệ giữ 7,3%, `summary.md` không đổi).
+- **Test viết trước:** commit `8f90f46`, 12 test được chạy. Đúng ba test thất bại đúng lý do như mục 4.1: `opacityLabel_isNotTransparency` (`vi camera_adjust_opacity reads the other way round: Độ mờ`), `smallIndonesian_adjustPanel_labelsFit` (`Kunci 163.83333..196.16667 overlaps Sembunyikan 195.83333..274.16666`), `panel_showsSlidersAndActions_andHidesZoom` (`AssertionError: Độ đậm`). Các test chặn (`smallSpanish_*`, `smallHindi_*`, `smallThai_*`, `smallPortuguese_*`, `smallScreen_portuguese_buttonOneLine`) qua ngay như plan nêu; đối chứng của chúng đã chạy lúc viết plan (mục 4.1), phiên không chạy lại.
+- **Ảnh chuẩn:** sau khi đổi `values-vi`, `verifyRoborazziDebug` của `:feature:camera` báo đúng hai ảnh lệch (`adjust_dark`, `adjust_small`), không ảnh nào khác; `recordRoborazziDebug` rồi `git status` chỉ có hai ảnh đó. Đã mở cả hai: "Độ đậm" đủ chữ, không đè "70%". Ảnh `_small` cắt hàng nút ở đáy bảng do bảng cuộn, giống ảnh cũ.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 5 ghi chú: gốc tiếng Hindi `पारदर्शिता` chỉ bắt danh từ (đề xuất `पारदर्श`); test không chuẩn hóa NFC trước khi so; "Sembunyi" lệch với mô tả trình đọc màn hình "Sembunyikan ..." và cần người biết tiếng; ảnh `_small` cắt hàng nút (có sẵn); test `hi`, `th` đo bằng font của Robolectric.
+- **Kết quả CI:** `scripts/check.sh` cục bộ QUA (1069 test JVM, 0 lỗi). `pr-check` xanh vòng đầu (lần chạy 40269563892).
+- **Lệch so với plan:** Không có.
+- **Việc còn lại:** kiểm thủ công trên máy thật ("Độ đậm", "Sembunyi"); người biết tiếng Indonesia duyệt "Sembunyi".
+- **Cần người xem:** hai ảnh chuẩn ghi lại; "Sembunyi"; nên thêm tiếng Hindi và tiếng Thái vào lần thử máy thật.

@@ -457,6 +457,20 @@ class PoseDetailScreenTest {
         assertTrue("last mistake ${last.bottom} above bar ${after.top}", last.bottom.value <= after.top.value + 0.5f)
     }
 
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056): the bar with "Chụp" stays at the
+    // bottom of the window, right of the image.
+    @Test
+    @Config(qualifiers = "vi-w841dp-h673dp-land-xxhdpi")
+    fun landscape_bottomBarVisible() {
+        setScreen(ready(detail = longDetail()), width = { 841.dp })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val image = composeRule.onNodeWithTag(PoseDetailTestTags.IMAGE).getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        assertEquals("bar at the bottom of the window", root.bottom.value, bar.bottom.value, 0.5f)
+        assertTrue("bar top ${bar.top} not above the image top ${image.top}", bar.top >= image.top)
+        assertTrue("image ${image.right} left of the bar ${bar.left}", image.right <= bar.left)
+    }
+
     @Test
     @Config(qualifiers = UNFOLDED)
     fun wide_banner_belowBottomBar_inRightColumn() {

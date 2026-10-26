@@ -208,6 +208,48 @@ class CameraScreenUnfoldedTest {
 
     private fun isPhoneLayout(): Boolean = bounds(CameraTestTags.SHUTTER).top >= bounds(CameraTestTags.STRIP).bottom
 
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056): every control stays inside the
+    // window and the frame keeps 3:4. The last two frames are the first two minus the system bars.
+    private fun assertControlsInsideWindow() {
+        composeRule.setContent { Screen() }
+        val root = bounds(CameraTestTags.SCREEN)
+        val tags = listOf(
+            CameraTestTags.PREVIEW,
+            CameraTestTags.FLIP,
+            CameraTestTags.SHUTTER,
+            CameraTestTags.LAST_PHOTO,
+            CameraTestTags.ZOOM,
+            CameraTestTags.CHIPS,
+            CameraTestTags.STRIP,
+            CameraTestTags.POSES,
+            CameraTestTags.SETTINGS,
+        )
+        tags.forEach { tag ->
+            val box = bounds(tag)
+            assertTrue("$tag bottom ${box.bottom} inside the window ${root.bottom}", box.bottom <= root.bottom)
+            assertTrue("$tag right ${box.right} inside the window ${root.right}", box.right <= root.right)
+        }
+        val preview = bounds(CameraTestTags.PREVIEW)
+        val ratio = preview.height.value / preview.width.value
+        assertTrue("preview height / width $ratio is 3:4", abs(ratio - 4f / 3f) <= 0.02f)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w841dp-h673dp-land-xxhdpi")
+    fun landscape_controlsInsideWindow_w841h673() = assertControlsInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h600dp-land-xxhdpi")
+    fun landscape_controlsInsideWindow_w960h600() = assertControlsInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w841dp-h593dp-land-xxhdpi")
+    fun landscape_controlsInsideWindow_w841h593() = assertControlsInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_controlsInsideWindow_w960h520() = assertControlsInsideWindow()
+
     @Test
     fun stateRestoration_keepsStripScroll() {
         val tester = StateRestorationTester(composeRule)

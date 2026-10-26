@@ -12,7 +12,7 @@ App Camera Pose: Lines and Guides, tạo từ dự án mẫu của nhóm ngày 2
 
 | Muốn biết | Đọc |
 | --- | --- |
-| Tiến độ: yêu cầu, ticket, phiên chạy, việc chờ người | [docs/STATUS.md trên nhánh status](https://github.com/VGL-Studio/camera-pose/blob/status/docs/STATUS.md) |
+| Tiến độ: yêu cầu, ticket, phiên chạy, việc chờ người | [docs/STATUS.md trên nhánh status](../../blob/status/docs/STATUS.md) |
 | Quy trình làm việc, cấu trúc tài liệu | [docs/README.md](docs/README.md) |
 | Phiên AI tự chạy | [docs/auto-run.md](docs/auto-run.md) |
 | Thang điểm rủi ro, điều kiện dừng | [docs/risk-scoring.md](docs/risk-scoring.md) |

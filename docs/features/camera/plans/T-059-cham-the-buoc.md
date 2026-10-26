@@ -1,7 +1,7 @@
 ---
 ticket: T-059
 title: Chạm thẻ bước để thu gọn
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 5                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
@@ -174,3 +174,15 @@ Ticket ghi rủi ro sơ bộ thấp; chấm theo plan ra trung bình vì tiêu c
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-03, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #172, commit merge b9708ed, 2026-10-26 13:36 UTC).
+- **Nhánh, PR:** `claude/T-059-cham-the-buoc`, https://github.com/VGL-Studio/camera-pose/pull/172. Commit: `94a69fe` (test), `b31b3e7` (code), `018bf68` (bỏ import `semantics` thừa, ktlint).
+- **Đã làm:** `HideableStepCard`: `detectDragGestures` (cộng `amount.y`) thay `detectVerticalDragGestures`; `clickable(interactionSource = null, indication = null, onClickLabel = hideLabel, onClick = { currentOnHide() })` thay hành động riêng; bỏ import thừa; KDoc. Test: 6 test mới và 2 test sửa ở `CameraScreenPoseTest`, 1 test ở `CameraScreenOverlayTest` (thêm `onHideSteps` vào `actions`), 1 test ở `CameraScreenUnfoldedTest` (thêm `onHideSteps`). Phiên con viết test thì dừng vì lỗi API 403 (mục Tiếp tục của báo cáo phiên); phiên chính chạy, commit phần test đó và làm tiếp bước 3 đến 5 trong worktree `../task-T-059`.
+- **Test viết trước:** 10 test mới hoặc sửa. 7 thất bại đúng lý do: `tapStepText_hides` (điện thoại và mở gập), `tapStepBadge_hides`, `tapOnStepCard_doesNotMoveOutline`, `sidewaysDragOnStepCard_doesNotHide` (ở bước đối chứng chạm) đều `expected:<[hide]> but was:<[]>`; `outlineFailed_tapCard_hides_retryOnlyRetries` `[retryOutline]`; `stepCard_hasHideClickLabel` nhãn `null`. 3 qua ngay đúng như plan (đối chứng): `tapEnabledArrow_movesStep_doesNotHide`, `tapDisabledArrow_doesNothing`, `smallDragUp_doesNotHide`. Viết chặt lại (L-035): 2, thêm bước đối chứng "chạm cùng chỗ thì ẩn" vào `sidewaysDragOnStepCard_doesNotHide` và "chạm tới thẻ, chỉ có `hide`" vào `tapOnStepCard_doesNotMoveOutline`.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 5 ghi chú: (1) `onNodeWithContentDescription("Bước sau").assertExists()` chưa chứng minh mũi tên là node riêng (code đúng); (2) chưa có test chạm phần trống của thẻ (có ở kiểm tra thủ công); (3) TalkBack và chạm hai lần nhanh kiểm trên máy thật; (4) chạm thẻ khi đang đếm ngược giờ ẩn thẻ, T-061 xử lý; (5) mũi tên mờ không chuyển chạm xuống thẻ dựa vào `clickable(enabled = false)` của Compose, có test chặn.
+- **Kết quả CI:** `pr-check` lần chạy 40330604227 xanh (`build-and-test`, `ui-test` 13:26 đến 13:35), một vòng. Cục bộ `scripts/check.sh` lần 1 đỏ ở `:feature:camera:ktlintMainSourceSetCheck` (import `semantics` thừa sau khi bỏ hành động riêng), sửa một lần; lần 2 qua: 1146 test JVM, 0 lỗi, 97 ảnh không đổi.
+- **Lệch so với plan:** Không có. Phương án dự phòng 3.4 không dùng.
+- **Việc còn lại:** Không có.
+- **Cần người xem:** kiểm tra thủ công trên máy thật (plan mục 4, dòng cuối): chạm chữ bước ẩn thẻ; chạm mũi tên chỉ chuyển bước; kéo ngang không ẩn; chạm hai lần nhanh (lần hai có rơi vào nút "Bước" không); chạm hụt giữa hai mũi tên; TalkBack đọc "nhấn đúp để Ẩn thẻ bước".

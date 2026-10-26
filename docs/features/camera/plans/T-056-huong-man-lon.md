@@ -1,7 +1,7 @@
 ---
 ticket: T-056
 title: Màn lớn theo hướng của máy, điện thoại khóa dọc
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 13               # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -309,3 +309,15 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-062); `scripts/plan-chec
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #161, commit merge `0939acf`, 2026-10-26 05:43 UTC).
+- **Nhánh, PR:** `claude/T-056-huong-man-lon`, https://github.com/VGL-Studio/camera-pose/pull/161.
+- **Đã làm:** bước 3 đến 5 do một phiên con làm trong worktree riêng. `ScreenOrientation.kt` trùng từng ký tự với mục 3.1; `MainActivity` gọi `applyScreenOrientation(logger)` ngay sau `super.onCreate`; chú thích `CameraXController`; tệp kịch bản `app/src/deviceScenarios/T-056-man-lon-xoay-ngang.txt` đúng khối của mục 3.1 (`scripts/device-scenario.py check` qua); ngân sách 900 thành 1100 ở `scripts/device-scenario.py` (hai chỗ), `scripts/device-session.sh` (hai chỗ), `docs/ops/test-sessions.md` mục 5 (hai câu), giữ phần T-054 thêm. Manifest không đổi; phương án dự phòng 3.4 không dùng.
+- **Test viết trước:** commit `3cab4d8`, 28 test mới. `ScreenOrientationTest`: đúng 10 thất bại đúng lý do như mục 4 (`expected:<-1> but was:<1>` ở năm test, `expected:<1> but was:<-1>` ở `foldedAgain_...`, `expected:<700> but was:<0>`, `expected:<486> but was:<0>`, `letterboxedActivity_...` qua bước đối chứng rồi `expected:<673> but was:<0>`, log rỗng); `phone_isPortrait` và `manifest_keepsPortrait_...` qua. 16 test chặn bố cục qua ngay (ngoại lệ 6 của plan). Sau code (`aa83625`): 12 qua. `d536492`: ktlint gộp một dòng `private fun activity()` của test, không đổi điều kiểm.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú: nguồn tấm màn có thể đọc lệch trên máy cho chọn độ phân giải (an toàn với điện thoại thường, nên đọc log `Orientation` trên một điện thoại độ phân giải cao khi thử máy thật); test log viết cứng `window 0` (Robolectric trả 0 x 0); nguồn `maximumWindowMetrics` chỉ kiểm trên emulator và máy thật.
+- **Kết quả CI:** `scripts/check.sh` QUA (1120 test JVM, 0 lỗi, 97 ảnh không đổi; test script 665 ok) sau một lần lỗi ktlint. `design-compare` camera, poses không đổi. `pr-check` xanh vòng đầu (lần chạy 40274765070).
+- **Lệch so với plan:** Không có. Commit test và code đẩy cùng lần, sau khi `main-guard` của T-057 xanh (L-076).
+- **Việc còn lại:** kịch bản T-056 đọc ở `device-session` cuối phiên; kiểm thủ công trên máy gập hay máy tính bảng thật (mục 4, hai dòng máy thật).
+- **Cần người xem:** kết quả kịch bản T-056 (mục Kiểm thử trên máy ảo của báo cáo phiên); thử trên máy thật trước khi phát hành.

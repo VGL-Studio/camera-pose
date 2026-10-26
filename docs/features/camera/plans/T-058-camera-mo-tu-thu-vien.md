@@ -1,16 +1,16 @@
 ---
 ticket: T-058
 title: Camera mở từ "Chụp với tư thế này" chạy và chụp được
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 10               # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9M           # tổng token dự kiến, ví dụ 20M; số gợi ý: scripts/token-usage.py estimate (docs/ops/token-usage.md)
 blocking_points: []          # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-26
 ---
 
 # PLAN T-058: CAMERA MỞ TỪ "CHỤP VỚI TƯ THẾ NÀY" CHẠY VÀ CHỤP ĐƯỢC
@@ -220,9 +220,9 @@ Bộ giả trong `CameraXControllerTest`: `mockk<ProcessCameraProvider>(relaxed 
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-26, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: không đổi điều hướng, sửa gốc là đủ. Câu 2, 3: chấp nhận bỏ qua (môi trường) trên emulator CI, nâng ngân sách kịch bản lên 1300 giây.
 
 ## 10. Nhật ký thực hiện
 

@@ -1,7 +1,7 @@
 ---
 ticket: T-060
 title: Nét viền không vẽ ra ngoài khung xem trước
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 2                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: low              # low | medium | high
@@ -229,3 +229,15 @@ Plan sửa lỗi đo được (L-029), nên đã chạy hai test trên code hi�
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261026-03, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #171, commit merge 79d8240, 2026-10-26 10:36 UTC).
+- **Nhánh, PR:** `claude/T-060-cat-net-vien`, https://github.com/VGL-Studio/camera-pose/pull/171. Commit: `57ac88e` (test), `34090d6` (code).
+- **Đã làm:** `PoseOverlay.kt`: `clipToBounds()` trước `graphicsLayer` của lớp nét viền, import, chú thích trong code và một câu trong KDoc của `PoseOverlay` (KDoc ngắt dòng lại để không dòng nào quá 120 ký tự). `CameraScreenOverlayTest.kt`: hai test, `FULL_IMAGE`, `boundsOf`, `windowBitmap`, `lumaAt(bitmap, x, y)`, đúng mã ở mục 4. Phiên chính làm trực tiếp (task nhỏ), trong worktree `../task-T-060`.
+- **Test viết trước:** 2 test, cả hai thất bại đúng lý do trên code cũ: "outline is drawn over the top bar: 255", "outline is drawn between chips and strip: 255" (như mục 4.1). Viết chặt lại (L-035): 0.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 7 ghi chú: thứ tự cắt đúng ý plan; con khác của khung (thẻ bước, cột công cụ tràn khung) không bị cắt; test giống mã plan, có điểm đối chứng; `boundsInWindow` của node `OUTLINE` giờ bị cắt khi nét viền tràn khung (test hiện có không đo trường hợp đó, test sau này cần nhớ); KDoc ngắt dòng lại có thể xung đột nhỏ với T-059, T-061; chỉ 2 file trong mục 3.2; không bí mật.
+- **Kết quả CI:** `pr-check` lần chạy 40307391344 xanh (`build-and-test` 10:26 đến 10:35, `ui-test` 10:26 đến 10:34), một vòng. Cục bộ `scripts/check.sh`: 1138 test JVM, 0 lỗi (`:feature:camera` 416), 97 ảnh không đổi.
+- **Lệch so với plan:** Không có. `scripts/design-compare.sh camera`: mọi màn không đổi, riêng `CameraScreen_countdown_dark` 6.0% thành 9.6% vì thiết kế đếm ngược đã xuất lại ở PR #167 (T-061 ghi lại ảnh chuẩn); không commit `design/review/` (ngoài mục 3.2, không do task này).
+- **Việc còn lại:** Không có.
+- **Cần người xem:** trên bản staging, mở hai ngón tới 160%, kéo nét viền sát mép trên rồi mép dưới: nét viền dừng ở mép khung (plan mục 4, máy thật).

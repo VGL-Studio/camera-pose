@@ -1,16 +1,16 @@
 ---
 ticket: T-061
 title: Khóa nút và dừng đếm khi đang đếm ngược
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 7.5M         # cỡ M, scripts/token-usage.py estimate (7.5M); không nâng tay (L-081)
 blocking_points: [core]      # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-26
 ---
 
 # PLAN T-061: KHÓA NÚT VÀ DỪNG ĐẾM KHI ĐANG ĐẾM NGƯỢC
@@ -230,9 +230,9 @@ Mọi test giao diện mới: `@GraphicsMode(GraphicsMode.Mode.NATIVE)`, `@Confi
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-26, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: kéo, chụm không dừng đếm. Câu 2: không làm mờ nút "Bước". Câu 3: thêm `enabled` cho `StickerChip`, `PoseThumb`.
 
 ## 10. Nhật ký thực hiện
 

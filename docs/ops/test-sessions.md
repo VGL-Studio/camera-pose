@@ -168,10 +168,10 @@ wait id=pose_detail_screen 15
 shot detail
 ```
 
-**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 1100), tính cả thời gian trả máy về gốc. Mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp.
+**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 1300), tính cả thời gian trả máy về gốc. Mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp.
 - Sau mỗi tệp, trình chạy trả máy về gốc: kích thước và mật độ, xoay màn hình, chế độ tối, ngôn ngữ riêng của app, cài đặt giới thiệu đóng khung (`wm reset-letterbox-style`), và mạng khi tệp có lệnh `network`. Việc này có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` giây (mặc định 30, mỗi lệnh tối đa 5), cộng 45 giây để bật lại mạng.
 - Mỗi tệp có `min(timeout của tệp, thời gian còn lại - DEVICE_SCENARIO_RESET_LIMIT - 45 nếu tệp có lệnh network - DEVICE_SCENARIO_EVIDENCE_RESERVE)`. Phần chừa cuối (mặc định 20 giây) dành cho dấu log đầu tệp và `fail.png`. Còn lại không dương thì tệp `bỏ qua (hết thời gian)`.
-- Bốn tệp hiện có cần tối đa khoảng 1080 giây (plan T-056, mục 3.1). **Tệp mới làm tổng vượt 1100 giây** thì plan của tệp đó tăng `DEVICE_SCENARIOS_BUDGET` (mặc định ở `scripts/device-scenario.py` và `scripts/device-session.sh`) cùng lúc.
+- Năm tệp hiện có cần tối đa khoảng 1250 giây (plan T-058, mục 3.1). **Tệp mới làm tổng vượt 1300 giây** thì plan của tệp đó tăng `DEVICE_SCENARIOS_BUDGET` (mặc định ở `scripts/device-scenario.py` và `scripts/device-session.sh`) cùng lúc.
 - `device-session.sh` gọi trình chạy qua `timeout -k 30` với ngân sách cộng 120 giây. Khi nhận SIGTERM, trình chạy dừng lệnh `adb` đang chạy, ghi `plan runner_terminated`, trả máy về gốc trong 10 giây và thoát mã 143. Trình chạy hỏng hay bị dừng thì `scenarios` ghi dòng `plan runner_error` và vẫn kết thúc bình thường.
 - **App bị hệ thống giết theo tiến trình khác** (FB-20261025-03): bước lỗi mà `logcat.txt` có `Killing ...: depends on provider ... in dying proc ...` của app sau dấu của tệp ghi `RETRY`; trình chạy chạy lại tệp một lần. Lần chạy lại cũng bị giết, hay không còn thời gian, thì `SKIP` và `bỏ qua (môi trường)`. Thường gặp trên emulator: Google Play services tự cập nhật hay khởi động lại, và Android giết mọi app đang giữ provider phông chữ của nó. Máy chạy kịch bản dưới Android 13 phải để tiếng Anh.
 

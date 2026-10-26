@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-23
+confirmed: 2026-10-26
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -71,7 +71,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi có tư thế thì thẻ bước hiện ở đầu khung xem trước, ghi bước hiện tại trên tổng số bước (ví dụ "2/4") và nội dung bước.
 - [ ] Khi chạm mũi tên sau hoặc trước thì thẻ chuyển sang bước kế hoặc bước trước; ở bước đầu và bước cuối, mũi tên tương ứng mờ đi và không làm gì.
 - [ ] Khi đổi tư thế thì thẻ bước quay về bước 1.
-- [ ] Khi vuốt thẻ bước lên thì thẻ ẩn và một nút nhỏ "Bước" hiện ở góc trên khung xem trước; bấm nút này thì thẻ hiện lại (câu hỏi 2).
+- [ ] Khi chạm vào thẻ bước, ở bất kỳ chỗ nào ngoài hai mũi tên, hoặc vuốt thẻ lên, thì thẻ ẩn và một nút nhỏ "Bước" hiện ở góc trên khung xem trước; bấm nút này thì thẻ hiện lại (câu hỏi 2).
 - [ ] Khi thẻ bước đang ẩn thì nó ẩn cho tới khi người dùng hiện lại, kể cả khi đổi tư thế hay mở lại app.
 
 ### KB-3. Chỉnh nét viền
@@ -84,13 +84,14 @@ Tiêu chí chấp nhận:
 - [ ] Khi bấm Lật thì nét viền lật ngang.
 - [ ] Khi bấm Khóa thì kéo và chụm không còn làm đổi nét viền; nút khóa chuyển sang trạng thái đang bật; nút chỉnh và nút lật mờ đi; một lời nhắc ngắn "Đã khóa lớp phủ" hiện trên khung xem trước. Bấm lại thì mở khóa.
 - [ ] Khi bấm Ẩn (hoặc nút hiện tư thế ở cột công cụ) thì nét viền ẩn; bấm lại thì hiện. Nút hiện tư thế ở trạng thái đang bật khi nét viền đang hiện.
-- [ ] Khi bấm Đặt lại thì nét viền về giữa khung, cỡ 100%, độ mờ mặc định, không lật.
-- [ ] Khi đổi sang tư thế khác thì độ mờ, cỡ, lật, khóa, ẩn giữ như trước; vị trí kéo cũng giữ.
+- [ ] Khi bấm Đặt lại thì nét viền về giữa khung, cỡ 100%, độ đậm mặc định, không lật.
+- [ ] Khi đổi sang tư thế khác thì độ đậm, cỡ, lật, khóa, ẩn giữ như trước; vị trí kéo cũng giữ.
 - [ ] Mỗi lần người dùng chỉnh xong một thao tác thì app ghi `overlay_adjusted` một lần (không ghi liên tục trong lúc kéo).
 
 Trường hợp đặc biệt:
 
 - [ ] Khi kéo nét viền ra sát mép thì luôn còn ít nhất một phần nét viền trong khung, để người dùng kéo lại được.
+- [ ] Khi nét viền to hơn khung hay bị kéo ra một phần ngoài khung thì phần ngoài khung không được vẽ: nét viền không đè lên thanh trên, hàng nhóm, dải tư thế hay hàng nút chụp (FB-20261026-03).
 
 ### KB-4. Dùng công cụ chụp
 
@@ -126,6 +127,8 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi bấm nút chụp mà hẹn giờ tắt thì app chụp ngay (có âm chụp nếu bật trong Cài đặt), ghi `photo_captured`, mở màn xem lại với ảnh vừa chụp, không có nét viền.
 - [ ] Khi bấm nút chụp mà hẹn giờ bật thì số đếm ngược hiện to giữa khung xem trước, nút chụp đổi thành nút hủy; hết giờ thì chụp như trên; bấm nút hủy thì dừng đếm, không chụp.
+- [ ] Khi đang đếm ngược thì flash, lưới, hẹn giờ, hàng nhóm và dải tư thế mờ đi và không phản hồi; cột công cụ nét viền và mũi tên thẻ bước mờ đi; bảng chỉnh đang mở thì đóng; kéo và chụm không đổi nét viền. Zoom vẫn dùng được (câu hỏi 16).
+- [ ] Khi đang đếm ngược mà chạm vào khung xem trước (ở bất kỳ chỗ nào ngoài nút zoom), đổi camera, hay rời màn camera (thư viện, cài đặt, ô ảnh vừa chụp) thì đếm dừng, không chụp; đổi camera và rời màn vẫn làm tiếp việc của nút.
 - [ ] Khi bấm "Lưu vào thư viện" thì nút hiện "Đang lưu…", các nút khác mờ đi; lưu xong ảnh có trong thư viện máy, ở thư mục ảnh riêng của app; app ghi `photo_saved`.
 - [ ] Khi bấm "Chụp lại" sau khi đã lưu ảnh thì app quay về camera.
 - [ ] Khi rời màn xem lại mà chưa lưu ảnh (bằng "Chụp lại", "Tư thế tiếp" hay nút quay lại) thì hộp thoại "Bỏ ảnh này?" hiện, ghi rằng ảnh chưa được lưu vào thư viện, có hai nút "Bỏ ảnh" và "Lưu ảnh" (câu hỏi 6). Bấm "Bỏ ảnh" thì làm tiếp việc người dùng vừa chọn, ảnh không được lưu; bấm "Lưu ảnh" thì lưu như trên rồi làm tiếp; chạm ra ngoài hay bấm quay lại thì đóng hộp thoại, vẫn ở màn xem lại.
@@ -262,6 +265,7 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 2. **Ẩn hiện thẻ bước bằng cách nào?** Bài học 10 cần thẻ bước bật tắt được, nhưng thiết kế chưa có nút riêng.
    - Đề xuất của AI: vuốt thẻ bước lên để ẩn; khi ẩn, một nút nhỏ "Bước" hiện ở góc trên khung để hiện lại. Cần thêm vào thiết kế.
    - Trả lời: Đồng ý với đề xuất của AI.
+   - **Bổ sung 2026-10-26 (FB-20261026-02, ticket T-059):** dùng trên máy thật thấy vuốt khó tìm, thẻ che khung xem trước. Tuấn chọn: không thêm nút thu gọn; chạm vào thẻ (ngoài hai mũi tên) cũng ẩn thẻ, vẫn giữ vuốt lên.
 3. **Flash có những chế độ nào?**
    - Đề xuất của AI: tắt, bật, tự động; mặc định tắt.
    - Trả lời: Đồng ý với đề xuất của AI.
@@ -304,6 +308,9 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 15. **Camera khi màn lớn nằm ngang** (plan T-056, câu 1). Khung xem trước giữ 3:4 dọc; khi màn nằm ngang, luồng camera là 4:3 ngang nên khung chỉ hiện phần giữa, còn ảnh chụp ra rộng hơn phần đã thấy; nét viền và điểm khớp tính theo cả ảnh phân tích nên lệch so với người trong khung. Android 16 trên màn lớn đã như vậy, vì không khóa được hướng ở đó.
    - Đề xuất của AI: chấp nhận ở T-056, vì bố cục mở gập khi nằm ngang vẫn đủ nút trong màn hình (số đo ở plan T-056, mục 4.1); làm "ảnh chụp, nét viền và điểm khớp đúng phần đã thấy" (`ViewPort` của CameraX) ở một ticket riêng, cần chạy thử trên máy có camera.
    - Trả lời: Tuấn, 2026-10-26: chấp nhận tạm ở T-056; ảnh, nét viền và điểm khớp đúng phần đã thấy làm ở ticket ViewPort riêng.
+16. **Các nút khác khi đang đếm ngược** (FB-20261026-04, ticket T-061). KB-6 chỉ nói nút chụp thành nút hủy; mọi nút khác vẫn bấm được và đổi được ảnh sắp chụp.
+   - Đề xuất của AI: như các app camera phổ biến, khóa các nút đổi ảnh sắp chụp (flash, lưới, hẹn giờ, tư thế, nét viền); chạm khung xem trước, đổi camera hay rời màn thì dừng đếm; zoom vẫn dùng được.
+   - Trả lời: Tuấn, 2026-10-26: đồng ý đề xuất.
 
 ## 10. Lịch sử
 
@@ -318,3 +325,5 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | 2026-10-26 | AI | Đề xuất theo FB-20261024-01 (plan T-056): màn lớn (cạnh ngắn từ 600 dp) không khóa dọc, app dùng cả màn hình theo hướng của máy; điện thoại vẫn khóa dọc (mục 2, KB-11 thêm hai tiêu chí, câu 7 phần bổ sung, câu 15). Chờ người phụ trách sản phẩm xác nhận |
 | 2026-10-26 | Tuấn | Xác nhận phần đổi của plan T-056 (mục 2, KB-11, câu 7 phần bổ sung, câu 15). Chuyển lại `confirmed` |
 | 2026-10-26 | Tuấn | Đổi nhãn của thanh trượt độ đậm nét viền thành "Độ đậm" (KB-3, bảng dữ liệu lưu trên máy), vì nhãn cũ đọc ngược nghĩa khi đi cùng phần trăm (L-077, plan T-055); thiết kế Figma sửa cùng lúc. Không đổi hành vi. Giữ `confirmed` |
+| 2026-10-26 | AI | Đề xuất theo phản hồi dùng trên máy thật của Tuấn: chạm thẻ bước để ẩn (KB-2, câu hỏi 2 phần bổ sung, FB-20261026-02); nét viền không vẽ ra ngoài khung (KB-3, FB-20261026-03); khóa nút và dừng đếm khi đang đếm ngược (KB-6, câu hỏi 16, FB-20261026-04); KB-3 sửa chữ "độ mờ" còn sót thành "độ đậm". Chờ người phụ trách sản phẩm xác nhận |
+| 2026-10-26 | Tuấn | Xác nhận phần đổi theo FB-20261026-02 đến -04 (KB-2, KB-3, KB-6, câu hỏi 2 phần bổ sung, câu hỏi 16). Chuyển lại `confirmed` |

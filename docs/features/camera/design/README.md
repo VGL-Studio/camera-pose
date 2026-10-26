@@ -78,14 +78,14 @@ Dấu ba chấm là một ký tự (`…`).
 | Khung xem trước | `Box` tỷ lệ 3:4, rộng hết | `camera/surface` khi chờ hình | | Đỉnh ở 92, cao 548 |
 | Lưới | `GridOverlay` | `camera/onCamera`, độ mờ 18% | | Chia ba, nét 1 |
 | Nét viền | Ảnh `outline.webp` của tư thế, tô `camera/overlayStroke`, quầng `camera/scrim` mờ 6 | Đạt điểm: `success` | | Mặc định rộng khoảng một nửa khung, căn giữa |
-| Thẻ bước | `StepCard` | `camera/control`, `camera/onControl`; số bước `secondaryContainer` | `labelLarge`, `bodyMedium` | Rộng khung trừ 2 x `Spacing.md`, cách mép `Spacing.md`, bo `card`; mũi tên vùng chạm 40 x 48 |
+| Thẻ bước | `StepCard` | `camera/control`, `camera/onControl`; số bước `secondaryContainer` | `labelLarge`, `bodyMedium` | Rộng khung trừ 2 x `Spacing.md`, cách mép `Spacing.md`, bo `card`; mũi tên vùng chạm 40 x 48; chạm thẻ ngoài mũi tên thì thẻ ẩn, như vuốt lên (spec KB-2, FB-20261026-02) |
 | Nút "Bước" | `Row` icon `format_list_numbered` và chữ | `camera/control`, `camera/onControl` | `labelLarge` | Cao 48, bo `full`, chỗ của thẻ bước |
 | Cột công cụ nét viền | `CameraIconButton` chỉnh, lật, khóa, hiện tư thế | Như thanh trên | | Cách mép phải `Spacing.md`, đỉnh ở 150 trong khung |
 | Zoom | `ZoomControl` | Nền `camera/scrim` 45%; mức đang chọn `secondaryContainer` | `labelLarge` | Mỗi nút 40; cách đáy khung `Spacing.md`, căn giữa |
 | Bảng chỉnh | `AdjustPanel`, hai `Slider`, bốn nút tròn 48 | `camera/control`, `camera/onControl`; phần đã chạy của thanh `secondaryContainer` | | Cách mép `Spacing.md`, bo `sheet` |
 | Lời nhắc trên khung | `Row` icon và chữ | `camera/control`, `camera/onControl` | `labelLarge` | Bo `full` |
 | Điểm khớp | `MatchHint` | Đang chấm: vòng điểm `secondaryContainer`. Đạt: nền `successContainer` | `titleSmall`, `labelLarge` | Đặt trên nút zoom, cách `Spacing.md` |
-| Đếm ngược | Lớp mờ và vòng số | Lớp mờ `camera/scrim` 35%; vòng `secondaryContainer` | `displayLarge` | Vòng 128, giữa khung |
+| Đếm ngược | Lớp mờ và vòng số | Lớp mờ `camera/scrim` 35%; vòng `secondaryContainer` | `displayLarge` | Vòng 128, giữa khung. Trong lúc đếm, flash, lưới, hẹn giờ, hàng nhóm, dải tư thế, cột công cụ nét viền và mũi tên thẻ bước mờ 38%; nút zoom, nút đổi camera, nút hủy giữ nguyên (spec KB-6, FB-20261026-04) |
 | Trạng thái chờ, lỗi, chưa có quyền | `CircularProgressIndicator` hoặc `StateMessage` | `onSurface` trên nền tối | | Giữa khung |
 | Hàng chip | `StickerChip` cuộn ngang | Đang chọn `secondaryContainer` và `SelectedBadge` | `labelLarge` | Đỉnh ở 656, cách nhau `Spacing.sm` |
 | Dải tư thế | `PoseThumb` cuộn ngang | Đang chọn viền `secondaryContainer` 3 và `SelectedBadge` | | Ô 64, đỉnh ở 708, cách nhau `Spacing.sm` |

@@ -92,7 +92,7 @@ scripts/device-session.sh stop
 scripts/device-scenario.py check <tệp>...      # không cần máy: cú pháp, testTag và chuỗi có thật
 ```
 
-Kết quả nằm trong thư mục phiên: `scenarios.txt` (mỗi bước một dòng `plan <tệp> step=<n> <lệnh> ok|FAIL|SKIP`, cuối tệp `result=` và `seconds=`), `scenarios/<tên tệp bỏ .txt>/<tên>.png` (lệnh `shot`), và `fail.png`, `fail.xml` của bước lỗi đầu tiên. `summary.md` in bảng "Kịch bản theo plan": tệp, ticket, tiêu chí, kết quả (`đạt`, `lỗi`, `bỏ qua (môi trường)`, `bỏ qua (hết thời gian)`, `lỗi tệp`), bước lỗi, số giây, số crash và ANR trong tệp.
+Kết quả nằm trong thư mục phiên: `scenarios.txt` (mỗi bước một dòng `plan <tệp> step=<n> <lệnh> ok|FAIL|SKIP|RETRY`, cuối tệp `result=` và `seconds=`), `scenarios/<tên tệp bỏ .txt>/<tên>.png` (lệnh `shot`), và `fail.png`, `fail.xml` của bước lỗi đầu tiên; tệp được chạy lại (app bị hệ thống giết, đoạn Hạn chót) có thêm `fail-1.png`, `fail-1.xml` của lần chạy đầu. `summary.md` in bảng "Kịch bản theo plan": tệp, ticket, tiêu chí, kết quả (`đạt`, `lỗi`, `bỏ qua (môi trường)`, `bỏ qua (hết thời gian)`, `lỗi tệp`), bước lỗi, số giây, số crash và ANR trong tệp.
 
 **Dòng `note`.** Ngay trước dòng `step=` của mỗi bước, trình chạy ghi `plan <tệp> note step=<n> t=<giây từ đầu tệp> <chi tiết>`, để biết bước chạm vào đâu, lúc nào:
 - `tap`, `tap_if` (khi có chạm), `scroll` ghi tọa độ và nhãn của nút (`resource-id`, không có thì chữ, rồi `content-desc`, tối đa 40 ký tự);
@@ -129,7 +129,7 @@ Lý do: chữ của chip Compose nằm trong một nút con, còn `selected` n�
 
 | Lệnh | Việc |
 | --- | --- |
-| `fresh` | Dừng app, xóa dữ liệu, cấp quyền runtime, mở app bằng `am start -W` rồi chờ tiến trình của app (`pidof`). Không có tiến trình thì ghi `note`; bộ đệm crash có tên app thì `FAIL app crash ở lần mở đầu`, không thì dừng app và mở lại một lần. Vẫn không có thì `FAIL app không chạy sau 2 lần mở`. Tệp đứng sau một lần trả máy thì chờ `DEVICE_SCENARIO_STOP_SETTLE` giây (mặc định 3) sau khi dừng app rồi mới mở: dừng app khi Activity còn đang dựng lại sau lần trả máy làm hệ thống giết lần mở ngay sau đó (FB-20261025-02) |
+| `fresh` | Dừng app, xóa dữ liệu, cấp quyền runtime, mở app bằng `am start -W` rồi chờ tiến trình của app (`pidof`). Không có tiến trình thì ghi `note`; bộ đệm crash có tên app thì `FAIL app crash ở lần mở đầu`, không thì dừng app và mở lại một lần. Vẫn không có thì `FAIL app không chạy sau 2 lần mở`. Tệp đứng sau một lần trả máy thì chờ `DEVICE_SCENARIO_STOP_SETTLE` giây (mặc định 3) sau khi dừng app rồi mới mở: dừng app khi Activity còn đang dựng lại sau lần trả máy làm hệ thống giết lần mở ngay sau đó (FB-20261025-02). Cũng chờ sau khi dừng app khi tệp đã có lệnh `device` trước đó. Trước khi mở, đặt ngôn ngữ riêng của app là tiếng Anh (`en`), vì `str=` đọc `res/values/` (tiếng Anh); dưới Android 13 máy phải để tiếng Anh, không thì tệp `bỏ qua (môi trường)` |
 | `consent decline [giây]` | Chạm nút từ chối của hộp thoại đồng ý quảng cáo (ADR-0013) khi nó hiện, rồi chờ hộp thoại đóng; hoặc thấy luôn màn hình đầu của app (xem Hộp thoại đồng ý, dưới) |
 | `wait <bộ chọn> [giây]` | Chờ tới khi khớp (mặc định 20 giây) |
 | `need <bộ chọn> [giây]` | Như `wait`, nhưng hết giờ thì tệp kết thúc `bỏ qua (môi trường)`. Dùng cho điều kiện mà emulator CI có thể không có (camera) |
@@ -139,7 +139,7 @@ Lý do: chữ của chip Compose nằm trong một nút con, còn `selected` n�
 | `network off\|on` | Tắt hay bật cả Wi-Fi và dữ liệu; không tắt được thì `bỏ qua (môi trường)` |
 | `device rotate landscape\|portrait`, `device night on\|off` | Xoay màn hình, chế độ tối |
 | `device unfold`, `device fold` | Giả lập gập mở bằng đổi kích thước (673 × 841 dp, khung `_unfolded`) rồi trả về như cũ. Trên màn nhỏ, Android cắt kích thước ép ở 3 lần cạnh dài của màn thật (màn 320x640 cắt `1766x2208` thành `1766x1920`), nên `device unfold` dùng kích thước nhỏ hơn với cùng khung dp (`1536x1919` ở 365 dpi). `device unfold` cũng tắt hộp thoại giới thiệu đóng khung của hệ thống ("See and do more"): lần chạm đầu sau khi mở gập chỉ đóng hộp thoại này, và `uiautomator` không thấy nó (FB-20261025-01). Trả máy đặt cài đặt giới thiệu về mặc định của máy, kể cả trên máy thật mà dev đã tự đổi nó |
-| `device locale <thẻ>` | Ngôn ngữ riêng của app (Android 13 trở lên) |
+| `device locale <thẻ>` | Ngôn ngữ riêng của app (Android 13 trở lên). Mỗi `fresh` đặt lại `en` |
 | `back`, `shot <tên>` | Phím Back; chụp màn hình |
 
 Sau mỗi lệnh `device`, trình chạy đọc màn hình tới khi hai lần dump liên tiếp giống nhau, tối đa `DEVICE_SCENARIO_SETTLE` giây (mặc định 10), vì đổi kích thước hay mật độ làm Activity dựng lại. Không ổn định thì chỉ ghi `note ... không ổn định`, không phải lỗi: bước sau tự chờ phần tử của nó. Bản dump cuối của lệnh `device` và của `consent decline` được dùng lại cho bước ngay sau, chỉ khi bước đó đọc màn hình (`wait`, `need`, `tap`, `tap_if`, `scroll`, `expect`, `expect_no`, `count`); mọi bước khác bỏ bản đó.
@@ -168,11 +168,12 @@ wait id=pose_detail_screen 15
 shot detail
 ```
 
-**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 900), tính cả thời gian trả máy về gốc. Mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp.
+**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 1100), tính cả thời gian trả máy về gốc. Mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp.
 - Sau mỗi tệp, trình chạy trả máy về gốc: kích thước và mật độ, xoay màn hình, chế độ tối, ngôn ngữ riêng của app, cài đặt giới thiệu đóng khung (`wm reset-letterbox-style`), và mạng khi tệp có lệnh `network`. Việc này có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` giây (mặc định 30, mỗi lệnh tối đa 5), cộng 45 giây để bật lại mạng.
 - Mỗi tệp có `min(timeout của tệp, thời gian còn lại - DEVICE_SCENARIO_RESET_LIMIT - 45 nếu tệp có lệnh network - DEVICE_SCENARIO_EVIDENCE_RESERVE)`. Phần chừa cuối (mặc định 20 giây) dành cho dấu log đầu tệp và `fail.png`. Còn lại không dương thì tệp `bỏ qua (hết thời gian)`.
-- Ba tệp hiện có cần tối đa khoảng 850 giây (plan T-048, mục 3.1). **Tệp mới làm tổng vượt 900 giây** thì plan của tệp đó tăng `DEVICE_SCENARIOS_BUDGET` (mặc định ở `scripts/device-scenario.py` và `scripts/device-session.sh`) cùng lúc.
+- Bốn tệp hiện có cần tối đa khoảng 1080 giây (plan T-056, mục 3.1). **Tệp mới làm tổng vượt 1100 giây** thì plan của tệp đó tăng `DEVICE_SCENARIOS_BUDGET` (mặc định ở `scripts/device-scenario.py` và `scripts/device-session.sh`) cùng lúc.
 - `device-session.sh` gọi trình chạy qua `timeout -k 30` với ngân sách cộng 120 giây. Khi nhận SIGTERM, trình chạy dừng lệnh `adb` đang chạy, ghi `plan runner_terminated`, trả máy về gốc trong 10 giây và thoát mã 143. Trình chạy hỏng hay bị dừng thì `scenarios` ghi dòng `plan runner_error` và vẫn kết thúc bình thường.
+- **App bị hệ thống giết theo tiến trình khác** (FB-20261025-03): bước lỗi mà `logcat.txt` có `Killing ...: depends on provider ... in dying proc ...` của app sau dấu của tệp ghi `RETRY`; trình chạy chạy lại tệp một lần. Lần chạy lại cũng bị giết, hay không còn thời gian, thì `SKIP` và `bỏ qua (môi trường)`. Thường gặp trên emulator: Google Play services tự cập nhật hay khởi động lại, và Android giết mọi app đang giữ provider phông chữ của nó. Máy chạy kịch bản dưới Android 13 phải để tiếng Anh.
 
 Các biến khác (test đặt nhỏ để chạy nhanh): `DEVICE_SCENARIO_START_WAIT` (hạn của `am start -W`, mặc định 15 giây; hết hạn mà app có tiến trình thì vẫn tính là đã mở), `DEVICE_SCENARIO_PROCESS_WAIT` (chờ tiến trình của app, mặc định 5 giây), `DEVICE_SCENARIO_CONSENT_CLOSE` (chờ hộp thoại đồng ý đóng sau khi chạm, mặc định 5 giây), `DEVICE_SCENARIO_POLL` (giữa hai lần dump, mặc định 1 giây), `DEVICE_SCENARIO_STOP_SETTLE` (`fresh` sau một lần trả máy chờ sau khi dừng app, mặc định 3 giây), `DEVICE_SCENARIO_ROOT` (gốc repo mà `check` đọc, mặc định repo này).
 

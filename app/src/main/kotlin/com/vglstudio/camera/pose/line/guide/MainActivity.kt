@@ -23,6 +23,7 @@ import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.data.ThemeMode
 import com.vglstudio.camera.pose.line.guide.core.data.UserPreferences
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
+import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.core.network.NetworkDialogController
 import com.vglstudio.camera.pose.line.guide.core.review.InAppReview
 import com.vglstudio.camera.pose.line.guide.core.review.LocalInAppReview
@@ -34,6 +35,7 @@ import com.vglstudio.camera.pose.line.guide.settings.isDark
 import com.vglstudio.camera.pose.line.guide.settings.languageToApply
 import com.vglstudio.camera.pose.line.guide.settings.readStoredLanguage
 import com.vglstudio.camera.pose.line.guide.settings.withAppLanguage
+import com.vglstudio.camera.pose.line.guide.ui.applyScreenOrientation
 import com.vglstudio.camera.pose.line.guide.ui.exposeTestTagsForUiAutomator
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -64,6 +66,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var userPreferences: UserPreferences
 
+    @Inject
+    lateinit var logger: AppLogger
+
     // Below Android 13 the language chosen in the app is applied here, before anything reads a resource (spec
     // settings, KB-4). From Android 13 the system applies it and nothing is read.
     override fun attachBaseContext(newBase: Context) {
@@ -73,6 +78,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Portrait on a phone, the device's orientation on a large screen (FB-20261024-01, plan T-056).
+        applyScreenOrientation(logger)
         enableEdgeToEdge()
         // Shows the consent form when required; the ads SDK starts only after it (ADR-0004).
         ads.gatherConsent(this)

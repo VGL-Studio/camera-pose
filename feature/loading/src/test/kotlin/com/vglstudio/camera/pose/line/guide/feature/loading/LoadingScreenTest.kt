@@ -104,6 +104,54 @@ class LoadingScreenTest {
     }
 
     @Test
+    fun failedServer_showsServerGuidance_notNetworkGuidance() {
+        composeRule.setContent {
+            AppTheme {
+                LoadingScreen(
+                    uiState = LoadingUiState.Failed(0.68f, LoadingFailure.SERVER),
+                    appName = APP_NAME,
+                    onRetry = {},
+                )
+            }
+        }
+        composeRule.onNodeWithText(string(R.string.loading_error_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.loading_error_server)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.loading_error)).assertDoesNotExist()
+        composeRule.onNodeWithTag(LoadingTestTags.RETRY).assertIsDisplayed()
+    }
+
+    @Test
+    fun failedOffline_showsNetworkGuidance_notServerGuidance() {
+        composeRule.setContent {
+            AppTheme {
+                LoadingScreen(
+                    uiState = LoadingUiState.Failed(0.68f, LoadingFailure.OFFLINE),
+                    appName = APP_NAME,
+                    onRetry = {},
+                )
+            }
+        }
+        composeRule.onNodeWithText(string(R.string.loading_error)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.loading_error_server)).assertDoesNotExist()
+    }
+
+    @Test
+    fun appName_staysInPlace_whenFailedServer() {
+        var uiState: LoadingUiState by mutableStateOf(LoadingUiState.InProgress(0.68f))
+        composeRule.setContent {
+            AppTheme { LoadingScreen(uiState = uiState, appName = APP_NAME, onRetry = {}) }
+        }
+        val topInProgress = composeRule.onNodeWithTag(LoadingTestTags.APP_NAME).getBoundsInRoot().top
+
+        uiState = LoadingUiState.Failed(0.68f, LoadingFailure.SERVER)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(string(R.string.loading_error_server)).assertIsDisplayed()
+        val topFailed = composeRule.onNodeWithTag(LoadingTestTags.APP_NAME).getBoundsInRoot().top
+
+        assertEquals(topInProgress, topFailed)
+    }
+
+    @Test
     fun retryButton_isAtLeast48dpHigh() {
         composeRule.setContent {
             AppTheme {
@@ -241,13 +289,48 @@ class LoadingScreenTest {
     @Config(qualifiers = "th-$SHORT_SCREEN")
     fun failed_onShortScreen_retryReachable_th() = assertRetryReachableOnShortScreen()
 
-    private fun assertRetryReachableOnShortScreen() {
+    // The server guidance is a second, longer line in every language: the same checks hold with it (plan T-057).
+    @Test
+    @Config(qualifiers = SHORT_SCREEN)
+    fun failedServer_onShortScreen_retryReachable_en() = assertRetryReachableOnShortScreen(LoadingFailure.SERVER)
+
+    @Test
+    @Config(qualifiers = "vi-$SHORT_SCREEN")
+    fun failedServer_onShortScreen_retryReachable_vi() = assertRetryReachableOnShortScreen(LoadingFailure.SERVER)
+
+    @Test
+    @Config(qualifiers = "hi-$SHORT_SCREEN")
+    fun failedServer_onShortScreen_retryReachable_hi() = assertRetryReachableOnShortScreen(LoadingFailure.SERVER)
+
+    @Test
+    @Config(qualifiers = "pt-rBR-$SHORT_SCREEN")
+    fun failedServer_onShortScreen_retryReachable_ptBR() = assertRetryReachableOnShortScreen(LoadingFailure.SERVER)
+
+    @Test
+    @Config(qualifiers = "b+es+419-$SHORT_SCREEN")
+    fun failedServer_onShortScreen_retryReachable_es419() = assertRetryReachableOnShortScreen(LoadingFailure.SERVER)
+
+    @Test
+    @Config(qualifiers = "in-$SHORT_SCREEN")
+    fun failedServer_onShortScreen_retryReachable_in() = assertRetryReachableOnShortScreen(LoadingFailure.SERVER)
+
+    @Test
+    @Config(qualifiers = "th-$SHORT_SCREEN")
+    fun failedServer_onShortScreen_retryReachable_th() = assertRetryReachableOnShortScreen(LoadingFailure.SERVER)
+
+    private fun assertRetryReachableOnShortScreen(cause: LoadingFailure = LoadingFailure.OFFLINE) {
         var retries = 0
         composeRule.setContent {
             AppTheme {
-                LoadingScreen(uiState = LoadingUiState.Failed(0.68f), appName = APP_NAME, onRetry = { retries++ })
+                LoadingScreen(
+                    uiState = LoadingUiState.Failed(0.68f, cause),
+                    appName = APP_NAME,
+                    onRetry = { retries++ },
+                )
             }
         }
+        val guidance = if (cause == LoadingFailure.SERVER) R.string.loading_error_server else R.string.loading_error
+        composeRule.onNodeWithText(string(guidance)).assertExists()
         val retry = composeRule.onNodeWithTag(LoadingTestTags.RETRY)
         // Unclipped bounds: a button cut by the scroll viewport must fail, not report its visible part only.
         retry.performScrollTo().assertIsDisplayed()
@@ -300,6 +383,29 @@ class LoadingScreenTest {
         val retryBottom = composeRule.onNodeWithTag(LoadingTestTags.RETRY).getUnclippedBoundsInRoot().bottom
         val footerTop = footer.getUnclippedBoundsInRoot().top
         assertTrue("footer top $footerTop overlaps retry bottom $retryBottom", footerTop >= retryBottom)
+    }
+
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056). The second frame is the first
+    // minus the system bars.
+    @Test
+    @Config(qualifiers = "vi-w960dp-h600dp-land-xxhdpi")
+    fun landscape_retryReachable_w960h600() = assertRetryReachableInLandscape()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_retryReachable_w960h520() = assertRetryReachableInLandscape()
+
+    private fun assertRetryReachableInLandscape() {
+        composeRule.setContent {
+            AppTheme {
+                LoadingScreen(uiState = LoadingUiState.Failed(0.68f), appName = APP_NAME, onRetry = {})
+            }
+        }
+        val retry = composeRule.onNodeWithTag(LoadingTestTags.RETRY)
+        retry.performScrollTo().assertIsDisplayed()
+        val screenBottom = composeRule.onNodeWithTag(LoadingTestTags.SCREEN).getUnclippedBoundsInRoot().bottom
+        val retryBottom = retry.getUnclippedBoundsInRoot().bottom
+        assertTrue("retry bottom $retryBottom is below screen bottom $screenBottom", retryBottom <= screenBottom)
     }
 
     private fun assertDp(what: String, expected: Float, actual: Dp) {

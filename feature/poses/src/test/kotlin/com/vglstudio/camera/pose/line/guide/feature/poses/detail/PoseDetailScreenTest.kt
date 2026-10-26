@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -28,6 +29,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -358,6 +361,18 @@ class PoseDetailScreenTest {
         assertTrue("button $button inside the screen $root", button.left >= root.left && button.right <= root.right)
     }
 
+    // The Portuguese main button stays on one line on the short screen (review note of T-051; plan T-055): a button
+    // that wraps still fits the screen, so the line count of its text is read.
+    @Test
+    @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
+    fun smallScreen_portuguese_buttonOneLine() {
+        setScreen(ready(detail = detail(steps = FIVE_STEPS, mistakes = listOf(MISTAKE, LONG_MISTAKE))))
+        val layouts = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithText("Fotografar com esta pose", useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertEquals("lines", 1, layouts.single().lineCount)
+    }
+
     @Test
     @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
     fun smallScreen_withBanner_buttonFullyVisible() {
@@ -440,6 +455,20 @@ class PoseDetailScreenTest {
         assertEquals("bar does not move", barBounds.top.value, after.top.value, 0.5f)
         assertTrue("bar inside the screen", after.bottom <= root.bottom)
         assertTrue("last mistake ${last.bottom} above bar ${after.top}", last.bottom.value <= after.top.value + 0.5f)
+    }
+
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056): the bar with "Chụp" stays at the
+    // bottom of the window, right of the image.
+    @Test
+    @Config(qualifiers = "vi-w841dp-h673dp-land-xxhdpi")
+    fun landscape_bottomBarVisible() {
+        setScreen(ready(detail = longDetail()), width = { 841.dp })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val image = composeRule.onNodeWithTag(PoseDetailTestTags.IMAGE).getUnclippedBoundsInRoot()
+        val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        assertEquals("bar at the bottom of the window", root.bottom.value, bar.bottom.value, 0.5f)
+        assertTrue("bar top ${bar.top} not above the image top ${image.top}", bar.top >= image.top)
+        assertTrue("image ${image.right} left of the bar ${bar.left}", image.right <= bar.left)
     }
 
     @Test

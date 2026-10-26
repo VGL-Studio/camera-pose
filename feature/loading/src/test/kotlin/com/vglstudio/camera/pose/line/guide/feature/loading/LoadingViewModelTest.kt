@@ -9,6 +9,7 @@ import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import com.vglstudio.camera.pose.line.guide.feature.loading.LoadingUiState.Failed
 import com.vglstudio.camera.pose.line.guide.feature.loading.LoadingUiState.Finished
 import com.vglstudio.camera.pose.line.guide.feature.loading.LoadingUiState.InProgress
+import com.vglstudio.camera.pose.line.guide.feature.loading.data.InternetCheck
 import com.vglstudio.camera.pose.line.guide.feature.loading.data.PreparationRepository
 import com.vglstudio.camera.pose.line.guide.feature.loading.data.PreparationTask
 import kotlinx.coroutines.CompletableDeferred
@@ -35,6 +36,7 @@ class LoadingViewModelTest {
     private val repository = FakePreparationRepository()
     private val analytics = FakeAnalytics()
     private val logger = RecordingAppLogger()
+    private val internet = FakeInternetCheck()
 
     private fun TestScope.viewModel(flagOn: Boolean = true) = LoadingViewModel(
         repository = repository,
@@ -42,6 +44,7 @@ class LoadingViewModelTest {
         logger = logger,
         featureFlags = FakeFeatureFlags(flagOn),
         clock = { testScheduler.currentTime },
+        internet = internet,
     )
 
     private fun completedEvent(durationMs: Long, retryCount: Int) = AnalyticsEvent(
@@ -325,6 +328,63 @@ class LoadingViewModelTest {
     }
 
     @Test
+    fun failureWithValidatedInternet_showsServerCause() = runTest {
+        internet.validated = true
+        val viewModel = viewModel()
+        repository.complete(PreparationTask.REMOTE_CONFIG, false)
+        assertEquals(Failed(0f, LoadingFailure.SERVER), viewModel.uiState.value)
+    }
+
+    @Test
+    fun failureWithoutValidatedInternet_showsOfflineCause() = runTest {
+        internet.validated = false
+        val viewModel = viewModel()
+        repository.complete(PreparationTask.REMOTE_CONFIG, true)
+        repository.complete(PreparationTask.CATALOG, false)
+        assertEquals(Failed(0.1f, LoadingFailure.OFFLINE), viewModel.uiState.value)
+    }
+
+    @Test
+    fun causeIsCheckedAgain_atEachFailure() = runTest {
+        val viewModel = viewModel()
+        repository.complete(PreparationTask.REMOTE_CONFIG, false)
+        assertEquals(Failed(0f, LoadingFailure.OFFLINE), viewModel.uiState.value)
+
+        internet.validated = true
+        viewModel.onRetry()
+        repository.complete(PreparationTask.REMOTE_CONFIG, false)
+        assertEquals(Failed(0f, LoadingFailure.SERVER), viewModel.uiState.value)
+
+        internet.validated = false
+        viewModel.onRetry()
+        repository.complete(PreparationTask.REMOTE_CONFIG, false)
+        assertEquals(Failed(0f, LoadingFailure.OFFLINE), viewModel.uiState.value)
+    }
+
+    @Test
+    fun internetCheckThrows_showsOfflineCause_andLogsIt() = runTest {
+        internet.error = SecurityException("no network state permission")
+        val viewModel = viewModel()
+        repository.complete(PreparationTask.REMOTE_CONFIG, false)
+        assertEquals(Failed(0f, LoadingFailure.OFFLINE), viewModel.uiState.value)
+        assertTrue(logger.entries.any { it.level == LogLevel.WARN && "cause=OFFLINE" in it.message })
+        assertTrue(logger.entries.any { it.level == LogLevel.WARN && it.error is SecurityException })
+    }
+
+    @Test
+    fun failureLog_namesTheCause() = runTest {
+        internet.validated = true
+        viewModel()
+        repository.complete(PreparationTask.REMOTE_CONFIG, true)
+        repository.complete(PreparationTask.CATALOG, false)
+        assertTrue(
+            logger.entries.any { entry ->
+                entry.level == LogLevel.WARN && "CATALOG" in entry.message && "cause=SERVER" in entry.message
+            },
+        )
+    }
+
+    @Test
     fun flagOff_finishesAtOnce_withoutRunningTasksOrEvent() = runTest {
         val viewModel = viewModel(flagOn = false)
         assertEquals(Finished, viewModel.uiState.value)
@@ -378,6 +438,17 @@ private class FakeAnalytics : Analytics {
 
     override fun log(event: AnalyticsEvent) {
         events += event
+    }
+}
+
+/** Answers [validated], or throws [error] when it is set (for example a missing permission). */
+private class FakeInternetCheck : InternetCheck {
+    var validated = false
+    var error: RuntimeException? = null
+
+    override fun isInternetValidated(): Boolean {
+        error?.let { throw it }
+        return validated
     }
 }
 

@@ -6,6 +6,7 @@
     <string name="loading_status_failed">प्रगति रुक गई</string>
     <string name="loading_error_title">डेटा लोड नहीं हो सका</string>
     <string name="loading_error">कनेक्शन टूट गया है। कृपया अपना नेटवर्क जाँचें और जारी रखने के लिए फिर से कोशिश करें।</string>
+    <string name="loading_error_server">हमारा सर्वर अभी जवाब नहीं दे रहा है। कृपया कुछ मिनट बाद फिर से कोशिश करें।</string>
     <string name="loading_retry">फिर से कोशिश करें</string>
     <string name="loading_footer">आपकी फ़ोटो सिर्फ़ आपके डिवाइस पर रहती हैं</string>
 </resources>

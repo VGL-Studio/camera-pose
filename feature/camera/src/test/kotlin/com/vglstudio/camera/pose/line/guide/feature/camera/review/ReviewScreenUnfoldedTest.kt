@@ -147,6 +147,45 @@ class ReviewScreenUnfoldedTest {
 
     private fun inDialog(text: String) = hasText(text) and hasAnyAncestor(hasTestTag(ReviewTestTags.DISCARD_DIALOG))
 
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056): every action and "Lưu ảnh" stay
+    // inside the window and the photo keeps 3:4. The last two frames are the first two minus the system bars.
+    private fun assertSaveInsideWindow() {
+        setScreen(Ready(PATH, SaveStatus.NOT_SAVED))
+        val root = bounds(ReviewTestTags.SCREEN)
+        val tags = listOf(
+            ReviewTestTags.PHOTO,
+            ReviewTestTags.RETAKE,
+            ReviewTestTags.SHARE,
+            ReviewTestTags.NEXT_POSE,
+            ReviewTestTags.SAVE,
+            ReviewTestTags.CLOSE,
+        )
+        tags.forEach { tag ->
+            val box = bounds(tag)
+            assertTrue("$tag bottom ${box.bottom} inside the window ${root.bottom}", box.bottom <= root.bottom)
+            assertTrue("$tag right ${box.right} inside the window ${root.right}", box.right <= root.right)
+        }
+        val photo = bounds(ReviewTestTags.PHOTO)
+        val ratio = photo.height.value / photo.width.value
+        assertTrue("photo height / width $ratio is 3:4", abs(ratio - 4f / 3f) <= 0.02f)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w841dp-h673dp-land-xxhdpi")
+    fun landscape_saveInsideWindow_w841h673() = assertSaveInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h600dp-land-xxhdpi")
+    fun landscape_saveInsideWindow_w960h600() = assertSaveInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w841dp-h593dp-land-xxhdpi")
+    fun landscape_saveInsideWindow_w841h593() = assertSaveInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_saveInsideWindow_w960h520() = assertSaveInsideWindow()
+
     private companion object {
         const val PATH = "/cache/captures/capture_1.jpg"
     }

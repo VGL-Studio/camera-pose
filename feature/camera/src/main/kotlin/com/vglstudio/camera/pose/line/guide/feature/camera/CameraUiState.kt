@@ -26,6 +26,9 @@ sealed interface CameraUiState {
     ) : CameraUiState
 }
 
+/** Why a running countdown stops, for the log (ADR-0019). */
+enum class CountdownCancelReason(val logName: String) { BUTTON("user"), PREVIEW("preview"), LEAVE("leave") }
+
 /** One-off events for the route: ask the system for the permission, or open the review screen. */
 sealed interface CameraEvent {
     data object RequestPermission : CameraEvent

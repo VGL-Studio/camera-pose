@@ -181,7 +181,9 @@ internal fun CameraRoute(
  * (T-017): its hint on the frame, and the green outline and shutter ring when the pose matches. Tested on the JVM and by
  * screenshots, without [preview], so the frame shows the camera surface colour. Layout from design/context/
  * (411 x 891): top bar at 32, the 3:4 preview below it (with the pose overlay when the camera is ready), the chip row
- * and pose strip, and the capture row.
+ * and pose strip, and the capture row. While counting down (spec camera, KB-6; plan T-061) the buttons that change the
+ * photo are locked, an open adjust panel closes, a tap on the frame stops the count ([CountdownCancelReason.PREVIEW]),
+ * and the library, the settings and the last photo stop it ([CountdownCancelReason.LEAVE]) before they open.
  */
 @Composable
 internal fun CameraScreen(
@@ -192,7 +194,7 @@ internal fun CameraScreen(
     onFlipClick: () -> Unit,
     onZoomSelect: (Float) -> Unit,
     onShutterClick: () -> Unit,
-    onCancelCountdown: () -> Unit,
+    onCancelCountdown: (CountdownCancelReason) -> Unit,
     onRetry: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenPoses: (() -> Unit)?,
@@ -208,6 +210,21 @@ internal fun CameraScreen(
     // The scroll positions live above the choice of layout, so they survive a change of layout (plan T-020).
     val chipsState = rememberLazyListState()
     val stripState = rememberLazyListState()
+    val counting = (uiState as? CameraUiState.Ready)?.countdown != null
+    LaunchedEffect(counting) {
+        if (counting && (poseState as? PoseUiState.Ready)?.overlay?.panelOpen == true) poseActions.onClosePanel()
+    }
+    // Leaving the screen stops the count at once: ON_STOP comes only after the transition, and the count may end
+    // during it.
+    fun leave(open: (() -> Unit)?): (() -> Unit)? = open?.let {
+        {
+            if (counting) onCancelCountdown(CountdownCancelReason.LEAVE)
+            it()
+        }
+    }
+    val openPoses = leave(onOpenPoses)
+    val openSettings = leave(onOpenSettings)
+    val lastPhotoClick = leave(onLastPhotoClick)
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         if (isUnfolded(maxWidth)) {
             CameraUnfoldedLayout(
@@ -221,13 +238,13 @@ internal fun CameraScreen(
                 onCancelCountdown = onCancelCountdown,
                 onRetry = onRetry,
                 onOpenAppSettings = onOpenAppSettings,
-                onOpenPoses = onOpenPoses,
-                onOpenSettings = onOpenSettings,
+                onOpenPoses = openPoses,
+                onOpenSettings = openSettings,
                 preview = preview,
                 poseState = poseState,
                 poseActions = poseActions,
                 lastPhoto = lastPhoto,
-                onLastPhotoClick = onLastPhotoClick,
+                onLastPhotoClick = lastPhotoClick,
                 chipsState = chipsState,
                 stripState = stripState,
                 matchState = matchState,
@@ -244,13 +261,13 @@ internal fun CameraScreen(
                 onCancelCountdown = onCancelCountdown,
                 onRetry = onRetry,
                 onOpenAppSettings = onOpenAppSettings,
-                onOpenPoses = onOpenPoses,
-                onOpenSettings = onOpenSettings,
+                onOpenPoses = openPoses,
+                onOpenSettings = openSettings,
                 preview = preview,
                 poseState = poseState,
                 poseActions = poseActions,
                 lastPhoto = lastPhoto,
-                onLastPhotoClick = onLastPhotoClick,
+                onLastPhotoClick = lastPhotoClick,
                 chipsState = chipsState,
                 stripState = stripState,
                 matchState = matchState,
@@ -269,7 +286,7 @@ internal fun CameraPhoneLayout(
     onFlipClick: () -> Unit,
     onZoomSelect: (Float) -> Unit,
     onShutterClick: () -> Unit,
-    onCancelCountdown: () -> Unit,
+    onCancelCountdown: (CountdownCancelReason) -> Unit,
     onRetry: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenPoses: (() -> Unit)?,
@@ -285,6 +302,7 @@ internal fun CameraPhoneLayout(
 ) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready
+    val counting = ready?.countdown != null
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -335,9 +353,11 @@ internal fun CameraPhoneLayout(
                             },
                             onStepBottomChange = { stepBottom = it },
                             matchState = matchState,
+                            locked = counting,
                         )
                     },
                     zoomVisible = overlay?.panelOpen != true,
+                    onCountdownTap = { onCancelCountdown(CountdownCancelReason.PREVIEW) },
                 )
             }
             if (tools != null && placement.outsideFrame) {
@@ -345,16 +365,23 @@ internal fun CameraPhoneLayout(
                     overlay = tools,
                     actions = poseActions,
                     modifier = Modifier.align(Alignment.TopStart).offset(x = placement.x.dp, y = placement.y.dp),
+                    enabled = !counting,
                 )
             }
         }
         // Chip row and pose strip: 16 + 36 + 16 + 64.
-        PosePicker(state = poseState, actions = poseActions, chipsState = chipsState, stripState = stripState)
+        PosePicker(
+            state = poseState,
+            actions = poseActions,
+            chipsState = chipsState,
+            stripState = stripState,
+            enabled = !counting,
+        )
         Spacer(modifier = Modifier.height(Spacing.sm + Spacing.xs))
         CaptureRow(
             ready = ready,
             onShutterClick = onShutterClick,
-            onCancelCountdown = onCancelCountdown,
+            onCancelCountdown = { onCancelCountdown(CountdownCancelReason.BUTTON) },
             onFlipClick = onFlipClick,
             lastPhoto = lastPhoto,
             onLastPhotoClick = onLastPhotoClick,
@@ -375,6 +402,7 @@ internal object CameraTestTags {
     const val GRID = "camera_grid"
     const val ZOOM = "camera_zoom"
     const val COUNTDOWN = "camera_countdown"
+    const val COUNTDOWN_TAP = "camera_countdown_tap"
     const val SHUTTER = "camera_shutter"
     const val LAST_PHOTO = "camera_last_photo"
     const val FLIP = "camera_flip"

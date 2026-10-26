@@ -65,7 +65,9 @@ private val SMALL_ICON_SIZE = 20.dp
  * [hintBottomPadding] is the space under the lock hint: above the zoom control, which is why it is the caller's.
  * [onStepBottomChange] tells where the step card ends, for the place of the tool column. [matchState] (plan T-017)
  * turns the outline green when the pose matches and shows the matching hint in the place of the lock hint, which wins
- * while it shows; the adjust panel covers that place, so it hides it too.
+ * while it shows; the adjust panel covers that place, so it hides it too. [locked] (while counting down, KB-6): the step
+ * arrows, the tool column and the hiding of the step card are disabled; the camera screen puts a layer over all of it
+ * that takes the touches (plan T-061).
  */
 @Composable
 internal fun BoxScope.PoseOverlay(
@@ -75,6 +77,7 @@ internal fun BoxScope.PoseOverlay(
     toolsOffset: DpOffset? = null,
     onStepBottomChange: (Dp) -> Unit = {},
     matchState: MatchUiState = MatchUiState.Off,
+    locked: Boolean = false,
 ) {
     if (state !is PoseUiState.Ready) return
     val selected = state.selected
@@ -146,6 +149,7 @@ internal fun BoxScope.PoseOverlay(
             badge = null,
             onHide = actions.onHideSteps,
             modifier = topStart,
+            enabled = !locked,
         ) {
             TextButton(onClick = actions.onRetryOutline) {
                 Text(text = stringResource(R.string.camera_outline_retry))
@@ -158,12 +162,13 @@ internal fun BoxScope.PoseOverlay(
                 badge = stringResource(R.string.camera_step_count, index + 1, selected.steps.size),
                 onHide = actions.onHideSteps,
                 modifier = topStart,
+                enabled = !locked,
             ) {
                 StepCardArrows(
                     onPrevious = actions.onPreviousStep,
                     onNext = actions.onNextStep,
-                    previousEnabled = index > 0,
-                    nextEnabled = index < selected.steps.lastIndex,
+                    previousEnabled = index > 0 && !locked,
+                    nextEnabled = index < selected.steps.lastIndex && !locked,
                     previousDescription = stringResource(R.string.camera_cd_step_previous),
                     nextDescription = stringResource(R.string.camera_cd_step_next),
                 )
@@ -175,6 +180,7 @@ internal fun BoxScope.PoseOverlay(
             overlay = overlay,
             actions = actions,
             modifier = Modifier.align(Alignment.TopStart).offset(x = toolsOffset.x, y = toolsOffset.y),
+            enabled = !locked,
         )
     }
     if (overlay.panelOpen) {
@@ -209,7 +215,8 @@ internal fun BoxScope.PoseOverlay(
 /**
  * The step card across the top of the frame. A tap anywhere on it but the arrows hides it, and so does dragging it up
  * by more than 24 dp past the touch slop, once per drag; a screen reader reads the tap as "Ẩn thẻ bước" (spec camera,
- * KB-2; plan T-059). The drag detector takes drags in both directions, so a sideways drag cancels the tap.
+ * KB-2; plan T-059). The drag detector takes drags in both directions, so a sideways drag cancels the tap. Not
+ * [enabled] (while counting down): the tap does not hide it, and a screen reader cannot either (plan T-061).
  */
 @Composable
 private fun HideableStepCard(
@@ -217,6 +224,7 @@ private fun HideableStepCard(
     badge: String?,
     onHide: () -> Unit,
     modifier: Modifier,
+    enabled: Boolean = true,
     trailing: @Composable RowScope.() -> Unit,
 ) {
     val currentOnHide by rememberUpdatedState(onHide)
@@ -247,6 +255,7 @@ private fun HideableStepCard(
                 )
             }
             .clickable(
+                enabled = enabled,
                 interactionSource = null,
                 indication = null,
                 onClickLabel = hideLabel,

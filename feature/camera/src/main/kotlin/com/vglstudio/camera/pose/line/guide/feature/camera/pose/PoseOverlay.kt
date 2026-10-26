@@ -26,6 +26,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
@@ -63,10 +64,11 @@ private val SMALL_ICON_SIZE = 20.dp
  * What the pose part draws on the 3:4 frame when the camera is ready (spec camera, KB-1 to KB-3), bottom to top: the
  * drag and pinch area, the outline (moved, scaled, mirrored and faded as adjusted), the step card (or the "Bước"
  * button when it is hidden), the tool column when [toolsOffset] puts it in the frame, the adjust panel and the lock
- * hint. Without a pose it draws the hint to pick one. [hintBottomPadding] is the space under the lock hint: above the
- * zoom control, which is why it is the caller's. [onStepBottomChange] tells where the step card ends, for the place of
- * the tool column. [matchState] (plan T-017) turns the outline green when the pose matches and shows the matching hint
- * in the place of the lock hint, which wins while it shows; the adjust panel covers that place, so it hides it too.
+ * hint. The outline is clipped to the frame (plan T-060). Without a pose it draws the hint to pick one.
+ * [hintBottomPadding] is the space under the lock hint: above the zoom control, which is why it is the caller's.
+ * [onStepBottomChange] tells where the step card ends, for the place of the tool column. [matchState] (plan T-017)
+ * turns the outline green when the pose matches and shows the matching hint in the place of the lock hint, which wins
+ * while it shows; the adjust panel covers that place, so it hides it too.
  */
 @Composable
 internal fun BoxScope.PoseOverlay(
@@ -104,8 +106,10 @@ internal fun BoxScope.PoseOverlay(
     )
     if (outline is PoseImage.Ready && !overlay.settings.hidden) {
         // The layer is the whole frame, so the offsets are parts of the frame and the scale is about its centre.
+        // Clipped to the unmoved frame before the transform, so a moved or enlarged outline never draws over the bars
+        // around the frame (FB-20261026-03); only this layer is clipped, the tool column may still overflow the frame.
         Box(
-            modifier = Modifier.matchParentSize().graphicsLayer {
+            modifier = Modifier.matchParentSize().clipToBounds().graphicsLayer {
                 translationX = overlay.offsetX * size.width
                 translationY = overlay.offsetY * size.height
                 scaleX = overlay.settings.scale * if (overlay.settings.mirrored) -1f else 1f

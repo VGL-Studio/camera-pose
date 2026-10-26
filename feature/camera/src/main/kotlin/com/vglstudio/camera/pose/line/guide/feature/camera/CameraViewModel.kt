@@ -194,7 +194,10 @@ class CameraViewModel @Inject constructor(
         }
     }
 
-    fun onCancelCountdown() = cancelCountdown(reason = "user")
+    @Suppress("UNUSED_PARAMETER")
+    fun onCancelCountdown(reason: CountdownCancelReason = CountdownCancelReason.BUTTON) {
+        cancelCountdown(reason = "user")
+    }
 
     override fun onCleared() {
         controller.release()

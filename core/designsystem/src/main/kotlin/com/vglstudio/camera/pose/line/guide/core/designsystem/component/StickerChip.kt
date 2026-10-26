@@ -36,7 +36,13 @@ private val BadgeOffsetY = (-9).dp
  * the label as a selected or unselected tab; the touch target is 48 dp high.
  */
 @Composable
-fun StickerChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun StickerChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    @Suppress("UNUSED_PARAMETER") enabled: Boolean = true,
+) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Radius.chip)
     val interactionSource = remember { MutableInteractionSource() }

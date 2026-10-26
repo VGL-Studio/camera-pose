@@ -192,7 +192,7 @@ internal fun CameraScreen(
     onFlipClick: () -> Unit,
     onZoomSelect: (Float) -> Unit,
     onShutterClick: () -> Unit,
-    onCancelCountdown: () -> Unit,
+    onCancelCountdown: (CountdownCancelReason) -> Unit,
     onRetry: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenPoses: (() -> Unit)?,
@@ -269,7 +269,7 @@ internal fun CameraPhoneLayout(
     onFlipClick: () -> Unit,
     onZoomSelect: (Float) -> Unit,
     onShutterClick: () -> Unit,
-    onCancelCountdown: () -> Unit,
+    onCancelCountdown: (CountdownCancelReason) -> Unit,
     onRetry: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenPoses: (() -> Unit)?,
@@ -354,7 +354,7 @@ internal fun CameraPhoneLayout(
         CaptureRow(
             ready = ready,
             onShutterClick = onShutterClick,
-            onCancelCountdown = onCancelCountdown,
+            onCancelCountdown = { onCancelCountdown(CountdownCancelReason.BUTTON) },
             onFlipClick = onFlipClick,
             lastPhoto = lastPhoto,
             onLastPhotoClick = onLastPhotoClick,
@@ -375,6 +375,7 @@ internal object CameraTestTags {
     const val GRID = "camera_grid"
     const val ZOOM = "camera_zoom"
     const val COUNTDOWN = "camera_countdown"
+    const val COUNTDOWN_TAP = "camera_countdown_tap"
     const val SHUTTER = "camera_shutter"
     const val LAST_PHOTO = "camera_last_photo"
     const val FLIP = "camera_flip"

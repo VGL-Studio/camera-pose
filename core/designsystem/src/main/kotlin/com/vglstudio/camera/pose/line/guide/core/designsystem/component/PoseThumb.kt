@@ -52,6 +52,7 @@ fun PoseThumb(
     contentDescription: String,
     modifier: Modifier = Modifier,
     failed: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") enabled: Boolean = true,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Radius.thumb)

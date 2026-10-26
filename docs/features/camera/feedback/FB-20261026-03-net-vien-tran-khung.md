@@ -7,7 +7,7 @@ build: bản staging trên máy thật của Tuấn (chưa ghi số phiên bản
 feature: camera
 ticket: T-060
 severity: nang
-status: triaged
+status: planned
 created: 2026-10-26
 ---
 
@@ -42,4 +42,4 @@ Không có.
   - Đúng spec: cỡ 40% đến 160% (KB-3), và được kéo một phần ra ngoài khung miễn còn một phần trong khung (KB-3, trường hợp đặc biệt). Ở 160%, hộp nét viền cao 640 dp trong khung 548 dp, nên phần thừa là có.
   - Lỗi: trên điện thoại, khung xem trước không cắt phần vẽ ra ngoài (`CameraScreen.kt:313-318`, `PoseOverlay.kt:108-114` dùng `graphicsLayer` không cắt). Nét viền vẽ đè lên thanh trên và lộ qua phần nền trong suốt của hàng chip, dải tư thế, hàng nút chụp. Bố cục mở gập có cắt (`CameraUnfolded.kt:117`); thiết kế đặt nét viền trong "Khung xem trước"; ảnh chụp không có nét viền nên phần ngoài khung chỉ gây hiểu lầm.
 - **Xử lý:** sửa ở phiên tự chạy kế tiếp (T-060). Tuấn chọn ngày 2026-10-26: cắt theo khung xem trước, giữ giới hạn cỡ và kéo như spec. Không đổi spec hay Figma.
-- **Liên kết:** [T-060](../tickets/T-060-cat-net-vien-theo-khung.md)
+- **Liên kết:** [T-060](../tickets/T-060-cat-net-vien-theo-khung.md), [plan T-060](../plans/T-060-cat-net-vien-theo-khung.md)

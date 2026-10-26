@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-3]
 owner: Nhật
-status: draft
+status: planned
 risk: low
 size: S
 depends_on: [T-015]
 sprint:
-plan:
+plan: features/camera/plans/T-060-cat-net-vien-theo-khung.md
 created: 2026-10-26
 ---
 

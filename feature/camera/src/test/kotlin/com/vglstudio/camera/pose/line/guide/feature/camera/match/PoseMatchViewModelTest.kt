@@ -1,5 +1,8 @@
 package com.vglstudio.camera.pose.line.guide.feature.camera.match
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import com.vglstudio.camera.pose.line.guide.core.logging.LogLevel
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
@@ -14,6 +17,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseFixtures
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -399,6 +403,43 @@ class PoseMatchViewModelTest {
         assertTrue(viewModel.uiState.value is Scoring)
         send(headAndShouldersOnly)
         assertEquals(NoPerson, viewModel.uiState.value)
+    }
+
+    // Owner (FB-20261026-01, plan T-058): two camera screens can live at once, each turns detection on and off for itself
+
+    @Test
+    fun setActive_passesItself() {
+        val viewModel = runningViewModel()
+        activePose.setOutline(OutlineView(visible = false))
+        activePose.setOutline(OutlineView(visible = true))
+
+        // On, off, on: every call carries the view model itself.
+        assertEquals(listOf(true, false, true), source.activeCalls)
+        assertEquals(3, source.activeOwners.size)
+        assertTrue(source.activeOwners.all { it === viewModel })
+        assertTrue(source.releasedBy.isEmpty())
+    }
+
+    @Test
+    fun cleared_releasesWithItself() {
+        activePose.set(poseWithKeypoints())
+        val store = ViewModelStore()
+        val created = viewModel()
+        val viewModel = ViewModelProvider(
+            store,
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T = created as T
+            },
+        )[PoseMatchViewModel::class.java]
+        assertEquals(listOf(true), source.activeCalls)
+
+        store.clear()
+
+        assertEquals(1, source.releasedBy.size)
+        assertSame(viewModel, source.releasedBy.single())
+        // Released, not turned off: an extra setActive(false) would turn off the detection of another screen.
+        assertEquals(listOf(true), source.activeCalls)
     }
 
     // Log

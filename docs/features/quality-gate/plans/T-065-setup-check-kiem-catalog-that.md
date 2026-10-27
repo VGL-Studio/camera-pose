@@ -17,9 +17,9 @@ approved_at:
 
 ## 1. Tóm tắt
 
-Thêm phần kiểm catalog tư thế vào kiểm tra thiết lập `scripts/setup-check.sh` (mỗi sáng ở job `setup-check` của `env-canary.yml`, trước mỗi phiên ở `start-run.yml`). Phần riêng của app nằm ở file mới `scripts/setup-check-app.sh`, được `setup-check.sh` gọi ở cuối: kiểm catalog mặc định của app và, với `--staging`, mọi giá trị của khóa `poses_catalog_path` trên Remote Config staging (đọc bằng `firebase-tools remoteconfig:get`, tài khoản chỉ đọc, bí mật `STAGING_REMOTE_CONFIG_CREDENTIALS` đã có). Mỗi catalog phải trả 200, đọc được, không đòi app mới hơn, và ảnh nhỏ cùng nét viền của mọi tư thế `starter` phải trả 200. `setup-check.sh` của dự án mẫu thêm ba điều chung: hỏi lại một lần khi `000`, `429`, `5xx`; với file trả 404 hay 403, hỏi lại kèm tham số chống bộ nhớ đệm để báo "CDN còn giữ câu trả lời cũ, xóa bộ nhớ đệm của URL này"; gọi file kiểm của app nếu repo có. Để R2 tăng từ 1 lên khoảng 110 lệnh mỗi lần không làm phiên dừng vô cớ: `env-canary` kiểm lại sau 90 giây trước khi mở issue, `start-run` xanh thì đóng issue `setup-broken` cũ, R2 không trả lời 3 file liền thì dừng phần catalog. Code và 75 test mới đã chạy thật trên code hiện tại (68 thất bại đúng lý do, 7 đối chứng qua), trên bản cài thử (qua hết; `scripts/tests/run.sh` 804 ok; `scripts/check.sh` qua) và với 34 đột biến; workflow chạy thử thật hai lần trên nhánh tạm (mục 4.1).
+Thêm phần kiểm catalog tư thế vào kiểm tra thiết lập `scripts/setup-check.sh` (mỗi sáng ở job `setup-check` của `env-canary.yml`, trước mỗi phiên ở `start-run.yml`). Phần riêng của app nằm ở file mới `scripts/setup-check-app.sh`, được `setup-check.sh` gọi ở cuối: kiểm catalog mặc định của app và, với `--staging`, mọi giá trị của khóa `poses_catalog_path` trên Remote Config staging (đọc bằng `firebase-tools remoteconfig:get`, tài khoản chỉ đọc, bí mật `STAGING_REMOTE_CONFIG_CREDENTIALS` đã có). Mỗi catalog phải trả 200, đọc được, không đòi app mới hơn, và ảnh nhỏ cùng nét viền của mọi tư thế `starter` phải trả 200. `setup-check.sh` của dự án mẫu thêm ba điều chung: hỏi lại một lần khi `000`, `429`, `5xx`; với file trả 404 hay 403, hỏi lại kèm tham số chống bộ nhớ đệm để báo "CDN còn giữ câu trả lời cũ, xóa bộ nhớ đệm của URL này"; gọi file kiểm của app nếu repo có. Để R2 tăng từ 1 lên khoảng 110 lệnh mỗi lần không làm phiên dừng vô cớ: `env-canary` kiểm lại sau 90 giây trước khi mở issue, `start-run` xanh thì đóng issue `setup-broken` cũ, R2 không trả lời được 3 file liền thì dừng phần catalog, phần catalog có ngân sách thời gian. Lệnh `npx firebase-tools` chạy không có token GitHub bên cạnh. Code và 81 test mới đã chạy thật trên code hiện tại (73 thất bại đúng lý do, 8 đối chứng qua), trên bản cài thử (qua hết; `scripts/tests/run.sh` 810 ok; `scripts/check.sh` qua) và với 40 đột biến; workflow chạy thử thật ba lần trên nhánh tạm (mục 4.1).
 
-**Phiên bản 2.** Phiên bản 1 (PR #180, không merge, chưa duyệt, đã đóng) sửa `scripts/preflight.sh`; PR #179 (đồng bộ dự án mẫu, đợt 1) đã gỡ `preflight` và thay bằng `setup-check` của dự án mẫu, nên plan viết lại trên cấu trúc mới, giữ mọi điều đã chứng minh ở bản 1 (lệnh `remoteconfig:get -o`, lỗi của công cụ ra stdout, các mức `LỖI` và `CHÚ Ý`, mọi loại giá trị của khóa, hai vòng rà soát độc lập), thêm phần catalog mặc định cùng gợi ý CDN theo sự cố ngày 2026-10-27, và sửa theo rà soát độc lập của bản 2 (2 chặn, 8 nên sửa). Cách tiếp tục: làm lại từ đầu trên nhánh mới (bản 1 không có code nào trên nhánh chính).
+**Phiên bản 2.** Phiên bản 1 (PR #180, không merge, chưa duyệt, đã đóng) sửa `scripts/preflight.sh`; PR #179 (đồng bộ dự án mẫu, đợt 1) đã gỡ `preflight` và thay bằng `setup-check` của dự án mẫu, nên plan viết lại trên cấu trúc mới, giữ mọi điều đã chứng minh ở bản 1 (lệnh `remoteconfig:get -o`, lỗi của công cụ ra stdout, các mức `LỖI` và `CHÚ Ý`, mọi loại giá trị của khóa, hai vòng rà soát độc lập), thêm phần catalog mặc định cùng gợi ý CDN theo sự cố ngày 2026-10-27, và sửa theo hai vòng rà soát độc lập của bản 2 (vòng 1: 2 chặn, 8 nên sửa; vòng 2: 0 chặn, 3 nên sửa). Cách tiếp tục: làm lại từ đầu trên nhánh mới (bản 1 không có code nào trên nhánh chính).
 
 ## 2. Hiểu yêu cầu
 
@@ -36,7 +36,7 @@ Không có spec nghiệp vụ. Yêu cầu là hai sự cố:
 | Catalog dùng được | Catalog không phải JSON có `poses`: `LỖI`; `minAppSchema` lớn hơn `APP_SCHEMA`: `LỖI` khi catalog mặc định hay giá trị mặc định của khóa dùng nó, chỉ `CHÚ Ý` khi chỉ giá trị theo điều kiện dùng nó. Một phần tử của `poses` hay `preview` không phải object không che các file khởi đầu khác; catalog trả 200 mà đọc không được thì tải lại một lần | Giá trị theo điều kiện có thể nhắm đúng bản app mới hơn |
 | CDN giữ 404 cũ | Khi một file (file bắt buộc, catalog hay file khởi đầu) trả 404 hay 403 mà hỏi lại kèm `?setup-check-nocache=<số>` thì trả 200, dòng `LỖI` có thêm câu "File đã có trên R2 nhưng CDN còn giữ câu trả lời cũ cho đúng địa chỉ này: xóa bộ nhớ đệm của URL này (Cloudflare: Caching, Configuration, Custom Purge) ...". File thật sự thiếu, hay mã khác (503) thì không có câu này | Đúng chẩn đoán đã làm bằng tay ngày 27. Vẫn là `LỖI`: app trên máy nhận đúng câu trả lời 404 đó |
 | Báo rõ khi thiếu quyền | Biến `REMOTE_CONFIG_CREDENTIALS` có nhưng rỗng (bí mật chưa tạo) thì `LỖI - thiếu bí mật STAGING_REMOTE_CONFIG_CREDENTIALS ...`; lỗi của công cụ có `HTTP Error: 403`, `PERMISSION_DENIED` hay `missing the following required permissions` (đọc cả stdout và stderr) thì `LỖI - ... (cần vai trò Firebase Remote Config Viewer, hoặc API Remote Config chưa bật)` | Việc người làm một lần. Không khớp `403` trần |
-| Không chặn phiên vì lỗi tạm hay lỗi đồng bộ | Biến không được workflow truyền (lần đồng bộ dự án mẫu bỏ mất dòng): chỉ `CHÚ Ý`. Công cụ lỗi vì lý do khác, quá 120 giây (`timeout`, mã 124), ghi ra tệp không phải JSON, hay bí mật Firebase không có mã project: chỉ `CHÚ Ý`, catalog mặc định vẫn được kiểm. R2 trả `000`, `429`, `5xx` một lần thì hỏi lại một lần. R2 không trả lời 3 file liền thì một dòng `LỖI - R2 không trả lời ...` và phần catalog dừng. `env-canary` đỏ thì kiểm lại sau 90 giây trước khi mở issue; `start-run` xanh thì đóng issue `setup-broken` đang mở | Đỏ ở `start-run.yml` thì phiên không bắt đầu; issue `setup-broken` còn mở thì phiên mở bằng `claude --cloud` dừng ở kiểm tra đầu phiên (`docs/auto-run.md`, mục 2). Một lần lỗi mạng không được chặn cả ngày; R2 treo không được làm job hết 10 phút (khoảng 110 file, mỗi file tới 40 giây) |
+| Không chặn phiên vì lỗi tạm hay lỗi đồng bộ | Biến không được workflow truyền (lần đồng bộ dự án mẫu bỏ mất dòng): chỉ `CHÚ Ý`. Công cụ lỗi vì lý do khác, quá 120 giây (`timeout`, mã 124), ghi ra tệp không phải JSON, hay bí mật Firebase không có mã project: chỉ `CHÚ Ý`, catalog mặc định vẫn được kiểm. R2 trả `000`, `429`, `5xx` một lần thì hỏi lại một lần. R2 không trả lời được (`000`, `429` hay `5xx` sau lần hỏi lại) 3 file liền thì một dòng `LỖI - R2 không trả lời được ...` và phần catalog dừng; file trả lời được ở giữa đặt lại bộ đếm. Phần catalog quá ngân sách (mặc định 240 giây, gồm đọc Remote Config) thì dừng với `CHÚ Ý`. `env-canary` đỏ thì kiểm lại sau 90 giây trước khi mở issue; `start-run` xanh thì đóng issue `setup-broken` đang mở | Đỏ ở `start-run.yml` thì phiên không bắt đầu; issue `setup-broken` còn mở thì phiên mở bằng `claude --cloud` dừng ở kiểm tra đầu phiên (`docs/auto-run.md`, mục 2). Một lần lỗi mạng không được chặn cả ngày; R2 treo hay lỗi không được làm job hết giờ (khoảng 110 file, mỗi file tới 45 giây; mục 3.4, điểm 2) |
 | Không lộ bí mật | Mã project, nội dung file khóa và lỗi của công cụ không bao giờ in ra | Lỗi của `firebase-tools` ghi vào tệp tạm trong thư mục tạm của `setup-check.sh`, chỉ dùng làm điều kiện |
 | Thử được, không tốn hạn mức | `SETUP_CHECK_EXTRA_CATALOG=<đường dẫn>` thêm một đường dẫn kiểm như giá trị mặc định của khóa (chỉ cho lần chạy thử). Chạy tay `env-canary` với ô `setup_only` chỉ chạy job `setup-check`, không kích hoạt routine | Chạy tay `env-canary` không có ô này còn kích hoạt routine `env-canary` (tốn hạn mức) |
 | Người biết phải làm gì | `docs/ops/staging-and-runs.md`: tải catalog và file của nó lên R2 trước rồi mới đổi khóa (kể cả giá trị theo điều kiện chưa bật); đổi xong thì chạy lại **env-canary** với **setup_only**; CDN giữ 404 cũ thì xóa bộ nhớ đệm | Lần chạy buổi sáng không thấy thay đổi buổi chiều |
@@ -162,7 +162,7 @@ index 5154c2c..d1d0df9 100755
 # Remote Config is read with firebase-tools and the STAGING_REMOTE_CONFIG_CREDENTIALS service account (read-only
 # role), given in the environment variable REMOTE_CONFIG_CREDENTIALS. Secret values are never printed.
 # Tests replace: SETUP_CHECK_POSES_SETTINGS, SETUP_CHECK_CATALOG_PARSER, SETUP_CHECK_FIREBASE_CMD,
-# SETUP_CHECK_RC_TIMEOUT; SETUP_CHECK_EXTRA_CATALOG adds one more catalog path checked like a default value of the
+# SETUP_CHECK_RC_TIMEOUT, SETUP_CHECK_CATALOG_SECONDS; SETUP_CHECK_EXTRA_CATALOG adds one more catalog path checked like a default value of the
 # key (red-path trial only).
 
 echo "== Catalog tư thế và bộ khởi đầu"
@@ -178,10 +178,14 @@ rc_timeout="${SETUP_CHECK_RC_TIMEOUT:-120}"
 # One line per catalog path and where it comes from: "app" (DEFAULT_CATALOG_PATH), "default" (default value of the
 # key) or "conditional" (a conditional value). A path only conditional values use may target a newer app.
 sources="$work/catalog-sources"
-# After 3 files in a row without any answer, R2 is taken as down: the catalog part stops, so a hung R2 cannot use up
-# the job's time (about 110 files, up to 40 seconds each with the retry).
+# After 3 files in a row without a usable answer (000, 429 or 5xx after the retry), R2 is taken as down: the catalog
+# part stops, so a hung or failing R2 cannot use up the job's time (about 110 files, up to 45 seconds each with the
+# retry). The whole part also stops after a time budget (default 240 seconds, Remote Config included), with a note:
+# a slow R2 must not block every session.
 r2_silent=0
 r2_down=""
+catalog_budget="${SETUP_CHECK_CATALOG_SECONDS:-240}"
+catalog_start=$SECONDS
 
 # Same rule as AssetPath.isValid of :core:assets: relative segments, and a version folder or a versioned file name.
 valid_asset_path() {
@@ -206,14 +210,20 @@ catalog_values() { # <template file>
       end' "$1"
 }
 
-# Asks R2 for a URL like http_status and sets $code; counts files in a row without any answer (000 or nothing).
+# Asks R2 for a URL like http_status and sets $code; counts files in a row without a usable answer (000, nothing, 429
+# or 5xx after the retry); stops the part when the time budget is used up.
 r2_get() { # <url> [curl options]
+  if [ -z "$r2_down" ] && [ $((SECONDS - catalog_start)) -ge "$catalog_budget" ]; then
+    r2_down=yes
+    note "phần kiểm catalog quá ${catalog_budget} giây (R2 chậm); dừng, các file còn lại chưa được kiểm. Chạy lại sau ít phút."
+  fi
+  if [ -n "$r2_down" ]; then code=""; return 0; fi
   code="$(http_status "$@")"
-  if [ -z "$code" ] || [ "$code" = "000" ]; then
+  if [[ -z "$code" || "$code" == "000" || "$code" == "429" || "$code" == 5?? ]]; then
     r2_silent=$((r2_silent + 1))
-    if [ "$r2_silent" -ge 3 ] && [ -z "$r2_down" ]; then
+    if [ "$r2_silent" -ge 3 ]; then
       r2_down=yes
-      problem "R2 không trả lời ${base_url} (3 file liền không kết nối được); dừng phần kiểm catalog. Chạy lại sau ít phút; còn lỗi thì kiểm R2 và tên miền."
+      problem "R2 không trả lời được ${base_url} (3 file liền không kết nối được, 429 hay 5xx); dừng phần kiểm catalog. Chạy lại sau ít phút; còn lỗi thì kiểm R2 và tên miền."
     fi
   else
     r2_silent=0
@@ -290,7 +300,11 @@ check_catalog() { # <path> <where> <strict>
     r2_get "${base_url}${path}" -o "$catalog"
     [ -z "$r2_down" ] || return 0
   fi
-  if [ "$code" != "200" ] || ! jq -e '.poses | type == "array"' "$catalog" > /dev/null 2>&1; then
+  if [ "$code" != "200" ]; then
+    problem "$where $path trả '${code:-không kết nối được}' ở lần tải lại, cần 200: app dừng ở màn tải.$(cdn_hint "${base_url}${path}" "$code")"
+    return
+  fi
+  if ! jq -e '.poses | type == "array"' "$catalog" > /dev/null 2>&1; then
     problem "$where $path không phải catalog đọc được (JSON, có danh sách poses)."
     return
   fi
@@ -345,12 +359,13 @@ fi
 **Workflow** (`.github/workflows/env-canary.yml`, `.github/workflows/start-run.yml`):
 
 - Hai workflow đưa bí mật vào biến `REMOTE_CONFIG_CREDENTIALS`, như hai bí mật có sẵn (`setup-check.sh` ghi nó vào tệp trong thư mục tạm `umask 077` và xóa khi xong). Chú thích đầu file nêu bí mật và điều kiểm mới.
-- `env-canary.yml`: ô `setup_only` (boolean) cho chạy tay; job `fire` có `if: ${{ !inputs.setup_only }}` (lịch buổi sáng không có ô nên vẫn chạy). Job `setup-check` đỏ thì kiểm lại một lần sau 90 giây rồi mới mở issue; `timeout-minutes` từ 5 lên 10 (lần thử: 83 giây một lần, 226 giây khi đỏ và kiểm lại).
-- `start-run.yml`: quyền `issues: write`; kiểm tra xanh thì đóng mọi issue `setup-broken` đang mở (bình luận rồi đóng, như `env-canary`); `timeout-minutes` từ 5 lên 10.
+- Không có token GitHub cạnh `npx firebase-tools` (mục 3.3): `actions/checkout` với `persist-credentials: false`, và script chạy bằng `env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging`. `setup-check.sh` không cần token GitHub.
+- `env-canary.yml`: ô `setup_only` (boolean) cho chạy tay; job `fire` có `if: ${{ !inputs.setup_only }}` (lịch buổi sáng không có ô nên vẫn chạy). Job `setup-check` đỏ thì kiểm lại một lần sau 90 giây rồi mới mở issue; `timeout-minutes` từ 5 lên 15: một lần chạy tốt nhất khoảng 85 giây, xấu nhất khoảng 300 giây (`remoteconfig:get` tới 130 giây, phần catalog dừng ở 240 giây hay sau 3 file không trả lời được), hai lần cộng 90 giây là khoảng 690 giây.
+- `start-run.yml`: quyền `issues: write`; bước riêng "Đóng issue setup-broken cũ" ngay sau bước kiểm tra (vẫn trước "Kích hoạt routine", chỉ chạy khi kiểm tra xanh) đóng mọi issue `setup-broken` đang mở (bình luận rồi đóng; không đóng được thì chỉ `::warning::`); `timeout-minutes` từ 5 lên 10 (một lần chạy, xấu nhất khoảng 300 giây).
 
 ```diff
 diff --git a/.github/workflows/env-canary.yml b/.github/workflows/env-canary.yml
-index e197f01..6445247 100644
+index e197f01..b725921 100644
 --- a/.github/workflows/env-canary.yml
 +++ b/.github/workflows/env-canary.yml
 @@ -5,7 +5,10 @@
@@ -377,7 +392,7 @@ index e197f01..6445247 100644
  
  concurrency:
    group: env-canary
-@@ -29,13 +37,18 @@ permissions:
+@@ -29,29 +37,48 @@ permissions:
  jobs:
    # Checks on a GitHub runner, every morning, what the cloud environment cannot see: the required files on R2,
    # the DNS of the static file host through 1.1.1.1 and 8.8.8.8, the Firebase staging secret and the tester
@@ -392,13 +407,21 @@ index e197f01..6445247 100644
    setup-check:
      runs-on: ubuntu-latest
 -    timeout-minutes: 5
-+    # 10, not 5: the pose catalog check of scripts/setup-check-app.sh downloads firebase-tools (up to 2 minutes for
-+    # remoteconfig:get) and asks R2 for every starter file of each catalog.
-+    timeout-minutes: 10
++    # 15, not 5: the pose catalog check of scripts/setup-check-app.sh downloads firebase-tools (up to 2 minutes for
++    # remoteconfig:get) and asks R2 for every starter file of each catalog, and a red result is checked twice with
++    # 90 seconds between (worst case about 10 minutes; plan T-065).
++    timeout-minutes: 15
      permissions:
        contents: read
        issues: write
-@@ -47,11 +60,20 @@ jobs:
+     steps:
+       - uses: actions/checkout@v5
++        with:
++          # No token in .git/config: scripts/setup-check.sh runs npx firebase-tools (plan T-065).
++          persist-credentials: false
+ 
+       - name: Kiểm tra thiết lập staging, file R2 và DNS
+         env:
            GH_TOKEN: ${{ github.token }}
            GOOGLE_SERVICES: ${{ secrets.STAGING_GOOGLE_SERVICES_JSON }}
            DISTRIBUTION_CREDENTIALS: ${{ secrets.STAGING_APP_DISTRIBUTION_CREDENTIALS }}
@@ -407,19 +430,21 @@ index e197f01..6445247 100644
            STAGING_TESTER_GROUPS: ${{ vars.STAGING_TESTER_GROUPS || 'team' }}
          run: |
            result=0
-           scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
+-          scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
++          # No GitHub token next to npx firebase-tools (third-party packages): this job writes issues (plan T-065).
++          env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
            cat "${RUNNER_TEMP}/setup-check.log"
 +          if [ "${result}" != "0" ]; then
 +            echo "Kiểm tra đỏ; kiểm lại một lần sau 90 giây (lỗi tạm của R2 hay mạng)."
 +            sleep 90
 +            result=0
-+            scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
++            env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
 +            cat "${RUNNER_TEMP}/setup-check.log"
 +          fi
            label="setup-broken"
            open_issues="$(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=${label}&per_page=10" --jq '[.[].number] | join(" ")')"
            commit="${GITHUB_SHA::7}"
-@@ -81,6 +103,7 @@ jobs:
+@@ -81,6 +108,7 @@ jobs:
            exit 1
  
    fire:
@@ -428,7 +453,7 @@ index e197f01..6445247 100644
      timeout-minutes: 5
      steps:
 diff --git a/.github/workflows/start-run.yml b/.github/workflows/start-run.yml
-index 61f285c..4b62aa4 100644
+index 61f285c..49f4e2a 100644
 --- a/.github/workflows/start-run.yml
 +++ b/.github/workflows/start-run.yml
 @@ -4,7 +4,9 @@
@@ -452,7 +477,7 @@ index 61f285c..4b62aa4 100644
    checks: read
    # main-guard-status.sh reads when a pending main-guard run was created (Actions API); without it the time is unknown.
    actions: read
-@@ -37,7 +40,8 @@ jobs:
+@@ -37,9 +40,13 @@ jobs:
    start:
      if: github.ref == 'refs/heads/main'
      runs-on: ubuntu-latest
@@ -461,30 +486,44 @@ index 61f285c..4b62aa4 100644
 +    timeout-minutes: 10
      steps:
        - uses: actions/checkout@v5
++        with:
++          # No token in .git/config: scripts/setup-check.sh runs npx firebase-tools (plan T-065).
++          persist-credentials: false
  
-@@ -90,12 +94,22 @@ jobs:
+       - name: Kiểm tra trước khi bắt đầu phiên
+         env:
+@@ -90,13 +97,30 @@ jobs:
          env:
            GOOGLE_SERVICES: ${{ secrets.STAGING_GOOGLE_SERVICES_JSON }}
            DISTRIBUTION_CREDENTIALS: ${{ secrets.STAGING_APP_DISTRIBUTION_CREDENTIALS }}
 +          # Read-only Remote Config staging account: the pose catalog the key points to (scripts/setup-check-app.sh).
 +          REMOTE_CONFIG_CREDENTIALS: ${{ secrets.STAGING_REMOTE_CONFIG_CREDENTIALS }}
            STAGING_TESTER_GROUPS: ${{ vars.STAGING_TESTER_GROUPS || 'team' }}
-+          GH_TOKEN: ${{ github.token }}
          run: |
-           if ! scripts/setup-check.sh --staging; then
+-          if ! scripts/setup-check.sh --staging; then
++          # No GitHub token next to npx firebase-tools (third-party packages): this job may write issues (plan T-065).
++          if ! env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging; then
              echo "::error::Thiết lập chưa đủ cho một phiên: phiên sẽ dừng ở cuối (bản staging) hoặc ở test emulator đầu tiên. Sửa các lỗi trên (docs/ops/staging-and-runs.md, docs/ops/setup-new-app.md) rồi bắt đầu lại."
              exit 1
            fi
-+          # Green: an open setup-broken issue is old (the problem is gone, or it was an R2 hiccup); close it, as the
-+          # morning check of env-canary.yml would (plan T-065).
-+          for number in $(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=setup-broken&per_page=10" --jq '.[].number'); do
-+            gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/comments" -X POST \
-+              -f body="Kiểm tra thiết lập của start-run xanh trên \`${GITHUB_SHA::7}\`. Đóng mục này." > /dev/null
-+            gh api "repos/${GITHUB_REPOSITORY}/issues/${number}" -X PATCH -f state=closed > /dev/null
-+          done
  
++      # The check above is green: an open setup-broken issue is old (the problem is gone, or it was an R2 hiccup);
++      # close it, as the morning check of env-canary.yml would, so a session opened with claude --cloud after it does
++      # not stop on it (plan T-065). A failure to close only warns.
++      - name: Đóng issue setup-broken cũ
++        env:
++          GH_TOKEN: ${{ github.token }}
++        run: |
++          for number in $(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=setup-broken&per_page=10" --jq '.[].number' || true); do
++            { gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/comments" -X POST \
++                -f body="Kiểm tra thiết lập của start-run xanh trên \`${GITHUB_SHA::7}\`. Đóng mục này." > /dev/null &&
++              gh api "repos/${GITHUB_REPOSITORY}/issues/${number}" -X PATCH -f state=closed > /dev/null; } ||
++              echo "::warning::không đóng được issue ${number}"
++          done
++
        - name: Kích hoạt routine
          env:
+           FIRE_URL: ${{ secrets.ROUTINE_FIRE_URL }}
 ```
 
 **Tài liệu** (`docs/ops/staging-and-runs.md` mục 1.1 bước 6, 1.3, 2.3, 2.4; `CLAUDE.md` mục Lệnh; `docs/template-sync.txt`, đúng chữ):
@@ -555,10 +594,10 @@ index 634609d..333b320 100644
  Khi có issue `env-broken`: đọc log trong issue. Thường là môi trường chưa dán setup script mới (dán lại theo mục 2.1); lỗi khác thì sửa nguyên nhân. Sau đó chạy lại **env-canary** bằng tay; lần chạy xanh tự đóng issue.
  
 diff --git a/docs/template-sync.txt b/docs/template-sync.txt
-index 9687064..c016095 100644
+index 9687064..82a8776 100644
 --- a/docs/template-sync.txt
 +++ b/docs/template-sync.txt
-@@ -12,3 +12,15 @@ hold=gradle.properties 0eaeadbc2b04a94c81d9877aec4681b05a11587a
+@@ -12,3 +12,16 @@ hold=gradle.properties 0eaeadbc2b04a94c81d9877aec4681b05a11587a
  # which the app does not have yet (ADR-1004). Take them with core/ads in a later sync, through an approved plan.
  hold=scripts/release.sh 0eaeadbc2b04a94c81d9877aec4681b05a11587a
  hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
@@ -568,9 +607,10 @@ index 9687064..c016095 100644
 +#     the end (SETUP_CHECK_APP_CHECKS);
 +#   scripts/tests/run.sh: SETUP_CHECK_APP_CHECKS=none in setup_check(), and the block "camera-pose only (plan T-065)";
 +#   .github/workflows/env-canary.yml: input setup_only and the if of job fire, REMOTE_CONFIG_CREDENTIALS, the second
-+#     check after 90 seconds, timeout-minutes 10 of job setup-check;
-+#   .github/workflows/start-run.yml: REMOTE_CONFIG_CREDENTIALS, issues: write and closing setup-broken when green,
-+#     timeout-minutes 10;
++#     check after 90 seconds, persist-credentials: false and env -u GH_TOKEN around the script,
++#     timeout-minutes 15 of job setup-check;
++#   .github/workflows/start-run.yml: REMOTE_CONFIG_CREDENTIALS, persist-credentials: false and env -u GH_TOKEN around
++#     the script, issues: write and the step that closes setup-broken when green, timeout-minutes 10;
 +#   docs/ops/staging-and-runs.md: sections 1.1 step 6, 1.3, 2.3, 2.4 (catalog).
 +# scripts/setup-check-app.sh is the app's own file; a sync does not touch it. Without the REMOTE_CONFIG_CREDENTIALS
 +# line the check only warns (the catalog of the key is not read); with the line and no secret it fails.
@@ -578,6 +618,7 @@ index 9687064..c016095 100644
 
 **Sau khi merge** (phiên làm task): chạy job `setup-check` trên nhánh chính một lần bằng đúng cách phiên gọi workflow (L-063): `gh api -X POST "repos/{owner}/{repo}/actions/workflows/env-canary.yml/dispatches" -f ref=main -f 'inputs[setup_only]=true'`, chờ bằng `scripts/wait-run.sh --workflow env-canary.yml --since <giờ>`. Với `setup_only`, job `fire` không chạy (không có ô này thì job `fire` chỉ bỏ qua khi nhánh báo cáo của phiên có danh sách chạy `running`).
 - Xanh: ghi vào nhật ký.
+- Bước đóng `setup-broken` của `start-run.yml` chạy thật lần đầu ở lần bắt đầu phiên kế tiếp bằng `start-run` (phiên không tự chạy `start-run`, vì nó kích hoạt một phiên mới); ghi vào Cần người kiểm tra: lần đầu có issue `setup-broken` mở mà `start-run` xanh, xem issue có bình luận và được đóng.
 - Đỏ vì catalog hay file thật hỏng (dòng `LỖI - khóa poses_catalog_path trỏ tới catalog ...`, `LỖI - catalog mặc định ...`, `LỖI - file khởi đầu ...`, có hay không câu CDN): giữ issue `setup-broken`, ghi vào Cần người kiểm tra của báo cáo; đó là việc của người.
 - Đỏ vì `000`, `429`, `5xx` hay `R2 không trả lời` còn lại sau lần kiểm lại: chạy lại một lần sau vài phút; xanh thì issue tự đóng; ghi vào nhật ký.
 - Đỏ vì chính phần mới (thiếu bí mật dù bí mật có, lỗi quyền dù vai trò đúng, hay phân loại sai): hoàn tác bằng một PR thường, không phải đường `main-broken` (nhánh chính không đỏ): nhánh `claude/T-065-revert` từ nhánh chính, `git revert -m 1 <commit merge của task>`, đẩy bằng `scripts/save-branch.sh`, mở PR, chờ CI, `scripts/merge-if-green.sh`; rồi chạy lại job `setup-check` như trên để issue tự đóng; ghi lý do vào nhật ký và báo cáo.
@@ -588,9 +629,9 @@ index 9687064..c016095 100644
 | --- | --- | --- |
 | Tạo | `scripts/setup-check-app.sh` | Phần kiểm catalog tư thế của app (mục 3.1) |
 | Sửa | `scripts/setup-check.sh` | `http_status`, `cdn_hint`, gọi `scripts/setup-check-app.sh`, chú thích đầu file (mục 3.1) |
-| Sửa | `scripts/tests/run.sh` | Khối `setup-check`: `SETUP_CHECK_APP_CHECKS=none` trong hàm `setup_check` của test có sẵn; khối mới "camera-pose only (plan T-065)" với các fake `curl`, `dig`, `gcloud`, `firebase` và 75 test (một test chỉ chạy khi máy có `timeout`) |
-| Sửa | `.github/workflows/env-canary.yml` | Ô `setup_only`, `if` của job `fire`, biến `REMOTE_CONFIG_CREDENTIALS`, kiểm lại sau 90 giây, `timeout-minutes: 10` của job `setup-check`, chú thích |
-| Sửa | `.github/workflows/start-run.yml` | `issues: write`, biến `REMOTE_CONFIG_CREDENTIALS`, đóng `setup-broken` khi xanh, `timeout-minutes: 10`, chú thích |
+| Sửa | `scripts/tests/run.sh` | Khối `setup-check`: `SETUP_CHECK_APP_CHECKS=none` trong hàm `setup_check` của test có sẵn; khối mới "camera-pose only (plan T-065)" với các fake `curl`, `dig`, `gcloud`, `firebase` và 81 test (một test chỉ chạy khi máy có `timeout`) |
+| Sửa | `.github/workflows/env-canary.yml` | Ô `setup_only`, `if` của job `fire`, biến `REMOTE_CONFIG_CREDENTIALS`, `persist-credentials: false`, `env -u GH_TOKEN` quanh script, kiểm lại sau 90 giây, `timeout-minutes: 15` của job `setup-check`, chú thích |
+| Sửa | `.github/workflows/start-run.yml` | `issues: write`, biến `REMOTE_CONFIG_CREDENTIALS`, `persist-credentials: false`, `env -u GH_TOKEN` quanh script, bước mới đóng `setup-broken` khi xanh, `timeout-minutes: 10`, chú thích |
 | Sửa | `docs/ops/staging-and-runs.md` | Mục 1.1, 1.3, 2.3, 2.4 (mục 3.1) |
 | Sửa | `CLAUDE.md` | Dòng `setup-check.sh` ở mục Lệnh |
 | Sửa | `docs/template-sync.txt` | Các thay đổi của plan này mà lần đồng bộ sau phải giữ (chú thích) |
@@ -600,7 +641,7 @@ index 9687064..c016095 100644
 L-020, các file nhắc tới file mà plan sửa (`git grep -n 'setup-check'`, `env-canary.yml`, `start-run.yml`):
 
 - `scripts/setup-check.sh` được `env-canary.yml`, `start-run.yml`, `scripts/tests/run.sh` (cả ba trong plan) gọi và được nhắc trong `docs/auto-run.md`, `docs/ops/setup-new-app.md`, `docs/ops/staging-and-runs.md`, `docs/CLAUDE.md`, `CLAUDE.md`, `docs/ops/required-assets.txt`. Cách gọi, mã thoát và dạng dòng (`ok   - `, `LỖI - `/`::error::`, `CHÚ Ý - `/`::warning::`, `== `) giữ nguyên, nên bước ghi issue của `env-canary.yml` (lọc `^(::error::|::warning::|ok   - )`) và các tài liệu không phải đổi; `docs/auto-run.md` mục 2 đọc nhãn `setup-broken`, không đổi. `setup-new-app.md` (của dự án mẫu) không nhắc catalog: file kiểm của app chỉ có ở app.
-- `.github/workflows/env-canary.yml`, `start-run.yml` được nhắc trong chú thích và thông báo của `scripts/env-canary.sh`, `scripts/main-guard-status.sh`, `.github/workflows/resume-run.yml` và tài liệu; plan chỉ thêm một biến môi trường và đổi `timeout-minutes`, không đổi tên workflow, job, đầu vào hay bước, nên các file đó không bị ảnh hưởng.
+- `.github/workflows/env-canary.yml`, `start-run.yml` được nhắc trong chú thích và thông báo của `scripts/env-canary.sh`, `scripts/main-guard-status.sh`, `.github/workflows/resume-run.yml` và tài liệu; plan thêm một biến môi trường, đổi `timeout-minutes`, thêm ô `setup_only` (mặc định `false`), điều kiện `if` của job `fire` (lịch buổi sáng vẫn chạy) và một bước mới của `start-run.yml` (đóng `setup-broken`); không đổi tên workflow, job hay đầu vào có sẵn. `scripts/env-canary.sh` và `resume-run.yml` không gọi `env-canary.yml` theo đầu vào, `main-guard-status.sh` không đọc các bước, nên các file đó không bị ảnh hưởng.
 - `scripts/tests/run.sh` được `scripts/check.sh` chạy và `.github/workflows/pr-check.yml` nhắc tới (bộ lọc đường dẫn và bước chạy test của script); plan chỉ sửa khối `setup-check` và thêm một khối, không đổi tên hay cách chạy, nên `pr-check.yml` không bị ảnh hưởng.
 - `docs/ops/staging-and-runs.md` được nhắc theo số mục trong thông báo hay chú thích của `.github/workflows/device-session.yml`, `.github/workflows/staging.yml`, `scripts/cloud-env-check.sh` và nhiều tài liệu; plan chỉ thêm bước, dòng và đoạn vào mục 1.1, 1.3, 2.3, 2.4, không đổi số hay tên mục, nên các file đó không bị ảnh hưởng.
 - `CLAUDE.md` được nhắc trong chú thích của `app/src/androidTest/kotlin/com/vglstudio/camera/pose/line/guide/AppLaunchTest.kt` và `app/src/androidTest/kotlin/com/vglstudio/camera/pose/line/guide/SettingsNavigationTest.kt` (bước 10, quy tắc test trên emulator); plan chỉ sửa một dòng ở mục Lệnh, không đổi quy tắc test, nên hai test đó không bị ảnh hưởng.
@@ -615,12 +656,12 @@ L-020, các file nhắc tới file mà plan sửa (`git grep -n 'setup-check'`, 
 - Sự kiện phân tích: Không chạm
 - File R2: chỉ đọc (`HEAD`, `GET`); không đổi cách đặt tên hay đường dẫn. Tham số `?setup-check-nocache=` chỉ để hỏi lại, không ghi gì
 - **Quyền truy cập:** Không thêm (không đổi app). Workflow: `start-run.yml` từ `issues: read` lên `issues: write` (đóng `setup-broken`)
-- **Thư viện và SDK:** Không thêm vào app. Trên máy của GitHub: `firebase-tools@15.32.1` qua `npx` (cùng phiên bản bản 1 đã chạy thử thật và `preflight.sh` cũ đã dùng), `jq`, `curl`, `timeout` có sẵn trên runner Ubuntu
+- **Thư viện và SDK:** Không thêm vào app. Trên máy của GitHub: `firebase-tools@15.32.1` qua `npx` (cùng phiên bản bản 1 đã chạy thử thật và `preflight.sh` cũ đã dùng), `jq`, `curl`, `timeout` có sẵn trên runner Ubuntu. `npx` kéo cả gói phụ thuộc không ghim phiên bản; job có `issues: write` (một gói lạ có token thì đóng được cả issue `main-broken`), nên token GitHub không ở cạnh lệnh đó: `persist-credentials: false` (không có token trong `.git/config`) và `env -u GH_TOKEN -u GITHUB_TOKEN` quanh script; việc đóng issue ở bước riêng (lần thử 3: "token in env" rỗng, "token in git config: no")
 
 ### 3.4. Phương án dự phòng
 
 - **Điểm chưa chắc 1:** chữ thật của lỗi khi tài khoản thiếu vai trò. Lần thử ở bản 1 (project không tồn tại) cho `Error: Failed to get Firebase Remote Config template for project <id>.` ở stdout, không khớp mẫu `LỖI`. Nếu lỗi thiếu vai trò cũng có dạng đó thì tài khoản mất vai trò sau này chỉ ra `CHÚ Ý` (catalog mặc định vẫn được kiểm, phần Remote Config tắt lặng lẽ). Không có cách chuyển trong phiên; câu hỏi 6.
-- **Điểm chưa chắc 2:** R2 chậm (trả lời nhưng chậm) làm job vượt 10 phút: bước ghi issue không chạy, `start-run` không bắt đầu phiên. R2 không trả lời đã được chặn (3 file liền thì dừng). **Điều kiện chuyển:** lần chạy `env-canary` sau khi merge có job `setup-check` hết giờ. **Cách làm thay:** không đổi trong phiên; plan phiên bản 3 có người duyệt thêm giới hạn tổng thời gian cho phần catalog hay `curl --parallel`. Tiêu chí và test của mục 4 giữ nguyên.
+- **Điểm chưa chắc 2:** thời gian xấu nhất. Đã chặn: R2 không trả lời được 3 file liền thì dừng (khoảng 135 giây), phần catalog quá 240 giây thì dừng với `CHÚ Ý`; một lần chạy xấu nhất khoảng 300 giây (kiểm tra của mẫu, `remoteconfig:get` tới 130 giây, phần catalog), nên `start-run` (một lần) dưới 10 phút, `env-canary` (hai lần và 90 giây, khoảng 690 giây) dưới 15 phút. **Điều kiện chuyển:** lần chạy sau khi merge có job hết giờ. **Cách làm thay:** không đổi trong phiên; plan phiên bản 3 có người duyệt giảm ngân sách hay dùng `curl --parallel`. Tiêu chí và test của mục 4 giữ nguyên.
 - **Điểm chưa chắc 3:** một CDN khác Cloudflare có thể coi tham số là cùng một địa chỉ (không bỏ qua bộ nhớ đệm): khi đó không có câu CDN, dòng `LỖI` vẫn đúng như hôm nay. Không cần làm thay.
 
 ## 4. Kiểm thử
@@ -630,9 +671,9 @@ Mọi test nằm trong `scripts/tests/run.sh`, chạy bằng `scripts/check.sh`.
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
 | Catalog mặc định | Test script | `the default catalog and its starter files pass`, `only the starter files are checked`, `a missing starter file of the default catalog stops`, `names the missing starter file`, `a default catalog that answers 404 stops`, `a catalog without starter poses warns`, `without --staging Remote Config is not read` (đối chứng) |
-| CDN giữ 404 cũ | Test script | `a starter file the CDN still answers 404 for stops`, `says the CDN keeps an old answer`, `a required file the CDN still answers 404 for names the cache`, `a 503 gets no CDN hint`, `a file really missing gets no CDN hint` (đối chứng) |
-| Catalog dùng được | Test script | `a catalog that is not JSON stops`, `a catalog cut short is downloaded once more`, `a catalog for a newer app stops`, `the default value pointing to a catalog for a newer app stops`, `a conditional-only catalog for a newer app only warns`, `a pose that is not an object does not hide the starter files`, `a preview that is not an object checks the outline only`, `no ok line for a catalog with a missing starter file` (đối chứng) |
-| Lỗi tạm và R2 treo | Test script | `a 503 that passes on the retry is not a failure`, `a 429 that passes on the retry is not a failure`, `a 429 seen twice counts`, `a required file that fails to connect once is asked again`, `R2 that stops answering ends the catalog part with one line` (một dòng `LỖI - R2 không trả lời`, chỉ 3 file được hỏi) |
+| CDN giữ 404 cũ | Test script | `a starter file the CDN still answers 404 for stops`, `says the CDN keeps an old answer`, `a 403 the CDN keeps gets the CDN hint`, `a required file the CDN still answers 404 for names the cache`, `a 503 gets no CDN hint`, `a file really missing gets no CDN hint` (đối chứng) |
+| Catalog dùng được | Test script | `a catalog that is not JSON stops`, `a catalog cut short is downloaded once more`, `a catalog that answers 404 when downloaded again reports the 404`, `a catalog for a newer app stops`, `the default value pointing to a catalog for a newer app stops`, `a conditional-only catalog for a newer app only warns`, `a pose that is not an object does not hide the starter files`, `a preview that is not an object checks the outline only`, `no ok line for a catalog with a missing starter file` (đối chứng) |
+| Lỗi tạm và R2 treo | Test script | `a 503 that passes on the retry is not a failure`, `a 502 that passes on the retry is not a failure`, `a 429 that passes on the retry is not a failure`, `a 429 seen twice counts`, `a required file that fails to connect once is asked again`, `R2 that stops answering ends the catalog part with one line` (một dòng `LỖI - R2 không trả lời`, chỉ 3 file được hỏi), `5xx in a row also stops the catalog part`, `files that answer between silent ones do not count as R2 down` (`000`, `200`, `000`, `200`, `000`: không dừng, cả 5 file được hỏi), `the catalog part stops with a note when its time is up` |
 | Sự cố ngày 26, mọi loại giá trị | Test script | `a Remote Config catalog that answers 404 stops`, `names the key and the missing catalog`, `a conditional value that answers 404 stops`, `a rollout value that answers 404 stops`, `a key inside a parameter group is read`, `a Remote Config catalog that exists passes` (đối chứng), `the key's catalog and the default catalog are both downloaded once` |
 | Như app | Test script | `no parameter means the default catalog only, without a note`, `useInAppDefault points the key to the default catalog, without a note`, `an invalid value warns and the key falls back to the default catalog, as the app does`, `a personalization value warns`, `no readable value warns and checks the default catalog`, `a path used by two values is checked once` |
 | Thiếu bí mật, thiếu biến, thiếu vai trò, công cụ lỗi | Test script | `a missing Remote Config secret stops` (biến rỗng), `a workflow that does not pass the Remote Config variable only warns` (biến không có), `without the secret the default catalog is still checked`, `a Remote Config account without the role stops`, `a missing permissions error printed on stdout stops`, `a transient error with 403 inside a number only warns`, `a Remote Config command that cannot run only warns and checks the default catalog` (chữ lỗi thật của bản 1), `a Remote Config command that hits the time limit only warns`, `a Remote Config command that hangs is stopped and only warns` (khi máy có `timeout`), `a template that is not JSON only warns`, `a Firebase secret without project id only warns for Remote Config` |
@@ -651,7 +692,7 @@ Test thêm vào `scripts/tests/run.sh` (đã chạy, mục 4.1):
 
 ```diff
 diff --git a/scripts/tests/run.sh b/scripts/tests/run.sh
-index 14c21b9..f930dad 100755
+index 14c21b9..d56ffa5 100755
 --- a/scripts/tests/run.sh
 +++ b/scripts/tests/run.sh
 @@ -2003,7 +2003,7 @@ setup_check() { # <codes> [args...]; prints the exit code, keeps the output in $
@@ -663,7 +704,7 @@ index 14c21b9..f930dad 100755
      scripts/setup-check.sh "$@" > "$work/setup.out" 2>&1 || code=$?
    echo "$code"
  }
-@@ -2043,6 +2043,241 @@ expect "setup-check: rejects an unknown argument" 1 "$(setup_check "$all_files"
+@@ -2043,6 +2043,263 @@ expect "setup-check: rejects an unknown argument" 1 "$(setup_check "$all_files"
  expect "setup-check: reads the staging address of this repository" 1 \
    "$(grep -cE '"ASSETS_BASE_URL", *"\\"https://[^"]+/\\""' app/build.gradle.kts)"
  
@@ -891,6 +932,28 @@ index 14c21b9..f930dad 100755
 +printf '{"id": "z", "starter": false}]}' >> "$sca/body/$v1key"
 +expect "setup-check app: R2 that stops answering ends the catalog part with one line" "1 1 3" \
 +  "$(sca_check) $(sca_lines '^LỖI - R2 không trả lời') $(sca_calls '^HEAD .*/p[0-9]/outline.webp$' | awk '{print $1 / 2}')"
++sca_starters() { # <n>: a default catalog with n starter poses p1..pn, outline only
++  local i
++  printf '{"schema": 1, "minAppSchema": 1, "poses": [' > "$sca/body/$v1key"
++  for i in $(seq 1 "$1"); do printf '{"id": "p%s", "starter": true, "outline": "poses/img/v1/p%s/outline.webp"},' "$i" "$i" >> "$sca/body/$v1key"; done
++  printf '{"id": "z", "starter": false}]}' >> "$sca/body/$v1key"
++}
++sca_reset; sca_starters 5; for i in 1 3 5; do echo 000 > "$sca/codes/poses_img_v1_p${i}_outline.webp"; done
++expect "setup-check app: files that answer between silent ones do not count as R2 down" "1 0 5" \
++  "$(sca_check) $(sca_lines 'R2 không trả lời') $(sca_calls '^HEAD .*/p[0-9]/outline.webp$' | awk '{print $1 - 3}')"
++sca_reset; sca_starters 4; for i in 1 2 3 4; do echo 503 > "$sca/codes/poses_img_v1_p${i}_outline.webp"; done
++expect "setup-check app: 5xx in a row also stops the catalog part" "1 1 3" \
++  "$(sca_check) $(sca_lines '^LỖI - R2 không trả lời được') $(sca_calls '^HEAD .*/p[0-9]/outline.webp$' | awk '{print $1 / 2}')"
++sca_reset; echo 403 > "$sca/codes/poses_img_v1_w01_outline.webp"; echo 200 > "$sca/nocache/poses_img_v1_w01_outline.webp"
++expect "setup-check app: a 403 the CDN keeps gets the CDN hint" "1 1" "$(sca_check) $(sca_lines '^LỖI - file khởi đầu .*CDN còn giữ câu trả lời cũ')"
++sca_reset; printf '502\n200\n' > "$sca/codes/poses_img_v1_w01_outline.webp"
++expect "setup-check app: a 502 that passes on the retry is not a failure" 0 "$(sca_check)"
++sca_reset
++expect "setup-check app: the catalog part stops with a note when its time is up" "0 1 0" \
++  "$(SETUP_CHECK_CATALOG_SECONDS=0 sca_check) $(sca_lines '^CHÚ Ý - phần kiểm catalog quá 0 giây') $(sca_calls "^GET .*/$v1\$")"
++sca_reset; printf '200\n200\n404\n' > "$sca/codes/$v1key"; echo '{"poses": ' > "$sca/body/$v1key"
++expect "setup-check app: a catalog that answers 404 when downloaded again reports the 404" "1 1" \
++  "$(sca_check) $(sca_lines "^LỖI - catalog mặc định của app $v1 trả '404' ở lần tải lại")"
 +expect "setup-check app: never prints secret values" 0 "$(grep -c 'RC-MARKER-1\|demo-staging\|fake-token' "$work/sca-all.out" || true)"
 +printf 'problem "app check ran"\n' > "$work/sca-hook.sh"
 +expect "setup-check: sources the app checks file and counts its problems" "1 1" \
@@ -911,11 +974,11 @@ index 14c21b9..f930dad 100755
 
 - **Đã chạy thử:** 2026-10-27, worktree `wt-t065v2` từ nhánh chính `1fc049e` (sau PR #179), bản cài thử ở mục 3.1 và test ở mục 4 (không commit trên nhánh plan). Chạy lại toàn bộ sau rà soát độc lập của bản 2.
 - **Khối test riêng** (`scripts/tests/sc-block.sh`, tệp tạm đã xóa: dòng 1 đến 26 của `run.sh` cộng khối từ "# setup-check.sh: required R2 files" tới trước "# device-session.sh records"), chạy không có và có lệnh `timeout` (máy viết plan là macOS, không có `timeout`; lần có `timeout` dùng một lệnh tạm bằng `perl` trong `PATH`, nhận cả `-k`, chỉ để chạy test treo).
-  - **Code hiện tại** (`setup-check.sh` của nhánh chính, chưa có `setup-check-app.sh`; test mới): 24 qua, 68 thất bại. 17 test cũ của `setup-check` qua. Thất bại đúng lý do: phần catalog không chạy (`expected '0 1', got '0 0'`, `expected '1', got '0'`, `expected '1 1', got '0 0'`, `expected '1 1 3', got '0 0 0'`); `rc.args` không có (`expected '1', got ''`); 21 test quy tắc đường dẫn (`valid_asset_path: command not found`, mã 127); `a required file that fails to connect once is asked again` (`expected '0 2', got '1 1'`: chưa hỏi lại); `a 429 that passes on the retry is not a failure` (`expected '0', got '1'`); `sources the app checks file` (`expected '1 1', got '0 0'`). 7 đối chứng qua: `without --staging Remote Config is not read`, `no ok line for a catalog with a missing starter file`, `a file really missing gets no CDN hint`, `a 503 that passes on the retry is not a failure` (code cũ không kiểm file khởi đầu; bắt đột biến 8), `a 429 seen twice counts`, `a Remote Config catalog that exists passes`, `never prints secret values`.
-  - **Bản cài thử:** có `timeout` 92 qua, không `timeout` 91 qua (test treo bỏ qua), `failures=0`.
-- **Toàn bộ `scripts/tests/run.sh`** trên bản cài thử (JDK 21): 804 ok, mã 0 (730 trước đó, cộng 74 test mới chạy được trên macOS).
+  - **Code hiện tại** (`setup-check.sh` của nhánh chính, chưa có `setup-check-app.sh`; test mới): 25 qua, 73 thất bại. 17 test cũ của `setup-check` qua. Thất bại đúng lý do: phần catalog không chạy (`expected '0 1', got '0 0'`, `expected '1', got '0'`, `expected '1 1', got '0 0'`, `expected '1 1 3', got '0 0 0'`, `expected '1 0 5', got '0 0 0'`); `rc.args` không có (`expected '1', got ''`); 21 test quy tắc đường dẫn (`valid_asset_path: command not found`, mã 127); `a required file that fails to connect once is asked again` (`expected '0 2', got '1 1'`: chưa hỏi lại); `a 429 that passes on the retry is not a failure` (`expected '0', got '1'`); `sources the app checks file` (`expected '1 1', got '0 0'`). 8 đối chứng qua: `without --staging Remote Config is not read`, `no ok line for a catalog with a missing starter file`, `a file really missing gets no CDN hint`, `a 503 that passes on the retry is not a failure` và `a 502 that passes on the retry is not a failure` (code cũ không kiểm file khởi đầu; bắt đột biến 8 và 38), `a 429 seen twice counts`, `a Remote Config catalog that exists passes`, `never prints secret values`.
+  - **Bản cài thử:** có `timeout` 98 qua, không `timeout` 97 qua (test treo bỏ qua), `failures=0`.
+- **Toàn bộ `scripts/tests/run.sh`** trên bản cài thử (JDK 21): 810 ok, mã 0 (730 trước đó, cộng 80 test mới chạy được trên macOS).
 - **`scripts/check.sh`** trên bản cài thử: qua, mã 0 (`== Cổng chất lượng: QUA`; 1168 test JVM, 0 lỗi; 97 ảnh screenshot; test của script trong đó).
-- **Đột biến** (mỗi lần sửa một chỗ của bản cài thử, chạy lại khối có `timeout`); cả 34 bị bắt:
+- **Đột biến** (mỗi lần sửa một chỗ của bản cài thử, chạy lại khối có `timeout`); cả 40 bị bắt (số thất bại đo lại sau vòng rà soát 2):
 
 | # | Đột biến | Test thất bại |
 | --- | --- | --- |
@@ -926,7 +989,7 @@ index 14c21b9..f930dad 100755
 | 5 | Bỏ kiểm `minAppSchema` | 3 |
 | 6 | Kiểm mọi tư thế, không chỉ `starter` | 3 |
 | 7 | Mẫu khớp `403` trần | 1 |
-| 8 | Không hỏi lại `5xx`, `429` | 2 |
+| 8 | Không hỏi lại `5xx`, `429` | 4 |
 | 9 | Không hỏi lại `429` | 1 |
 | 10 | Bỏ kiểm template là object JSON | 1 |
 | 11 | In `ok` khi có file khởi đầu hỏng | 1 |
@@ -941,25 +1004,32 @@ index 14c21b9..f930dad 100755
 | 20 | Biến không truyền coi là thiếu bí mật | 1 |
 | 21 | `remoteconfig:get` dùng nhầm bí mật App Distribution | 1 |
 | 22 | Không gộp đường dẫn trùng (`sort -u`) | 4 |
-| 23 | Không tải lại catalog bị cắt | 1 |
-| 24 | Không kiểm catalog mặc định | 20 |
+| 23 | Không tải lại catalog bị cắt | 2 |
+| 24 | Không kiểm catalog mặc định | 25 |
 | 25 | Giá trị theo điều kiện cũng chặt (`minAppSchema`) | 1 |
 | 26 | Giá trị mặc định của khóa không chặt | 1 |
-| 27 | Bỏ câu CDN ở file khởi đầu | 1 |
+| 27 | Bỏ câu CDN ở file khởi đầu | 2 |
 | 28 | Bỏ câu CDN ở file bắt buộc | 1 |
 | 29 | Câu CDN cho mọi mã (không chỉ 404, 403) | 1 |
-| 30 | `setup-check.sh` không gọi file kiểm của app | 44 |
+| 30 | `setup-check.sh` không gọi file kiểm của app | 49 |
 | 31 | Đọc Remote Config trong `( ... )` (bộ đếm lỗi mất) | 3 |
-| 32 | Không dừng khi R2 không trả lời | 1 |
+| 32 | Không dừng khi R2 không trả lời được | 2 |
 | 33 | Đọc `.preview.small` không qua `objects` (rà soát: M23) | 1 |
 | 34 | Không báo catalog không có tư thế `starter` | 1 |
+| 35 | Bỏ `r2_silent=0` khi file trả lời được (rà soát vòng 2: B) | 1 |
+| 36 | `429`, `5xx` không tính vào R2 không trả lời được | 1 |
+| 37 | Bỏ ngân sách thời gian của phần catalog | 1 |
+| 38 | Không hỏi lại `5xx` (chỉ `000`, `429`; rà soát vòng 2: F) | 3 |
+| 39 | Câu CDN chỉ cho 404 (rà soát vòng 2: C) | 1 |
+| 40 | Lần tải lại trả 404 báo là catalog hỏng | 1 |
 
-- **Workflow, chạy thử thật** (không có issue `setup-broken` nào mở, không có phiên nào chạy hay sắp bắt đầu). Nhánh tạm từ `1fc049e` với code của mục 3.1 và một workflow tạm chạy khi đẩy nhánh đó, hai job `green` và `red` chạy đúng lệnh của bước trong job `setup-check` (cùng ba bí mật), chỉ in các dòng kiểm, không mở hay đóng issue nào. Không chạy thử bằng `env-canary.yml` vì trước task này chạy tay workflow đó còn kích hoạt routine `env-canary` và mở, đóng issue thật; phần ghi issue không đổi. Sau mỗi lần thử, nhánh tạm đã xóa và workflow tạm đã tắt (`trial-t065`, `trial-t065b`: `disabled_manually`; Tuấn có thể bỏ qua hay xóa lịch sử của chúng trong Actions).
+- **Workflow, chạy thử thật** (không có issue `setup-broken` nào mở, không có phiên nào chạy hay sắp bắt đầu). Nhánh tạm từ `1fc049e` với code của mục 3.1 và một workflow tạm chạy khi đẩy nhánh đó, hai job `green` và `red` chạy đúng lệnh của bước trong job `setup-check` (cùng ba bí mật), chỉ in các dòng kiểm, không mở hay đóng issue nào. Không chạy thử bằng `env-canary.yml` vì trước task này chạy tay workflow đó còn kích hoạt routine `env-canary` và mở, đóng issue thật; phần ghi issue không đổi. Sau mỗi lần thử, nhánh tạm đã xóa và workflow tạm đã tắt (`trial-t065`, `trial-t065b`, `trial-t065c`: `disabled_manually`; Tuấn có thể bỏ qua hay xóa lịch sử của chúng trong Actions).
   - **Lần 1** (bản trước rà soát, 02:55 UTC, lần chạy 40441226351): đường xanh mã 0, 81 giây; đường đỏ mã 1, 79 giây.
   - **Lần 2** (bản này, 03:30 UTC, lần chạy 40444507136; bước giống bước mới của `env-canary`, có kiểm lại sau 90 giây):
     - **Đường xanh:** mã 0, 83 giây, chạy một lần. `ok   - catalog mặc định của app poses/catalog/v1/catalog-587b5394.json và 8 file khởi đầu trả 200`; `ok   - khóa poses_catalog_path trỏ tới catalog poses/catalog/v3/catalog-512aa695.json và 100 file khởi đầu trả 200`; `== Thiết lập: QUA`. Giá trị khóa đọc từ Remote Config thật.
     - **Đường đỏ** (`SETUP_CHECK_EXTRA_CATALOG=poses/catalog/v9/catalog-00000000.json`): lần một `##[error]khóa poses_catalog_path trỏ tới catalog poses/catalog/v9/catalog-00000000.json trả '404', cần 200: app dừng ở màn tải. ...` (không có câu CDN: file thật sự không có), `== Thiết lập còn 1 lỗi.`; rồi "Kiểm tra đỏ; kiểm lại một lần sau 90 giây", lần hai cùng kết quả; mã 1, 226 giây cả bước, trong giới hạn 10 phút.
     - Không có `firebase-debug.log` ở cả hai job.
+  - **Lần 3** (sau rà soát vòng 2, 04:00 UTC, lần chạy 40447240480; checkout `persist-credentials: false`, script chạy bằng `env -u GH_TOKEN -u GITHUB_TOKEN`, như bước mới của `env-canary`): đường xanh, mã 0, 85 giây, cùng hai dòng `ok   - ...` của catalog như lần 2; trong `env -u` không có token ("token in env" rỗng), `.git/config` không có token ("token in git config: no"); `npx firebase-tools` vẫn đọc được Remote Config.
   - **Tham số chống bộ nhớ đệm trên Cloudflare thật:** `HEAD .../borrowed/poses/img/v1/w01/outline.webp?setup-check-nocache=<số>` trả 200 với `cf-cache-status: DYNAMIC` (không qua bộ nhớ đệm); ngày 27 trước khi xóa bộ nhớ đệm, cùng file hỏi kèm tham số trả 200 (`MISS`) trong khi địa chỉ thường trả 404 (`HIT`). Câu CDN chưa gặp lại trên R2 thật vì hiện không có file nào bị giữ 404.
 - **Chưa kiểm được:** chữ thật của lỗi thiếu vai trò (mục 3.4, điểm 1; câu hỏi 6); bước đóng `setup-broken` của `start-run.yml` (chỉ chạy khi bắt đầu phiên thật bằng `start-run`).
 
@@ -971,7 +1041,7 @@ index 14c21b9..f930dad 100755
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 2 | Một script mới, một script của dự án mẫu, hai workflow, test, ba tài liệu |
 | B. Độ rõ của yêu cầu | 1 | Hai sự cố rõ; còn câu hỏi 6 không đổi cách làm chính |
-| C. Khả năng kiểm chứng tự động | 1 | Script có 75 test và 34 đột biến; chỉ phần workflow (kiểm lại, đóng issue) và `remoteconfig:get` thật kiểm bằng lần chạy tay |
+| C. Khả năng kiểm chứng tự động | 1 | Script có 81 test và 40 đột biến; chỉ phần workflow (kiểm lại, đóng issue) và `remoteconfig:get` thật kiểm bằng lần chạy tay |
 | D. Ảnh hưởng chéo | 3 | `setup-check` quyết định phiên có bắt đầu không (`start-run`, nhãn `setup-broken`); sửa file của dự án mẫu mà lần đồng bộ sau phải giữ |
 | E. Độ mới của kỹ thuật | 1 | `remoteconfig:get` đã chạy thật ở bản 1 và hai lần thử này; móc file kiểm của app chỉ là một lệnh `.` |
 | **Tổng** | 8 | **Mức: Cao** (điểm chặn 7) |
@@ -981,6 +1051,7 @@ index 14c21b9..f930dad 100755
 - File hoặc thành phần dùng chung bị chạm: `scripts/setup-check.sh` (của dự án mẫu), `env-canary.yml`, `start-run.yml`; `scripts/tests/run.sh` (khối `setup-check` và khối mới); `docs/template-sync.txt`.
 - Task khác trong sprint có thể xung đột: T-063 (`scripts/tests/run.sh`, khối `token-usage`, khác khối; plan T-063 cần phiên bản 2 sau PR #179), T-062 (`device-session.yml`, khác file), T-064 (không chung file).
 - Lần đồng bộ dự án mẫu sau: giữ các thay đổi ghi ở `docs/template-sync.txt` khi gộp, cho tới khi dự án mẫu nhận đề xuất (mục 3.1).
+- Chạy cùng lúc: `env-canary` đang chờ 90 giây trước lần kiểm lại trong khi `start-run` bắt đầu một phiên. `start-run` tự kiểm và đóng issue cũ; `env-canary` có thể mở issue sau đó nếu lần kiểm lại vẫn đỏ, và phiên `claude --cloud` mở sau đó sẽ dừng ở kiểm tra đầu phiên. Chấp nhận: hai kiểm tra cùng lúc mà khác kết quả nghĩa là R2 đang chập chờn; issue mở đúng là việc của người.
 - Đề xuất thứ tự chạy: độc lập, chạy được bất kỳ lúc nào; đặt sau T-062, T-063.
 
 ## 7. Điều kiện dừng riêng
@@ -992,7 +1063,7 @@ index 14c21b9..f930dad 100755
 
 1. Phần riêng của app nằm ở file mới `scripts/setup-check-app.sh`; `setup-check.sh` của dự án mẫu chỉ thêm móc gọi nó, hỏi lại và câu CDN (đề xuất về dự án mẫu, danh sách giữ khi đồng bộ ở `docs/template-sync.txt`). **AI đề xuất: đồng ý**, để lần đồng bộ sau không đè phần của app và dự án mẫu nhận được phần chung.
 2. Catalog mặc định luôn được kiểm, kể cả khi khóa trên Remote Config trỏ catalog khác và không có `--staging`. **AI đề xuất: đồng ý**: bản staging của CI và máy chưa có giá trị Remote Config dùng nó (sự cố ngày 27); thêm khoảng 9 lệnh.
-3. `start-run.yml` xanh thì đóng issue `setup-broken` đang mở (cần `issues: write`), để phiên mở bằng `claude --cloud` sau đó không dừng vì một issue cũ (thay cho câu "phiên tự chạy lại kiểm tra" của bản 1). **AI đề xuất: đồng ý.**
+3. `start-run.yml` xanh thì đóng issue `setup-broken` đang mở (cần `issues: write`, ở bước riêng không có `npx`), để phiên mở bằng `claude --cloud` sau đó không dừng vì một issue cũ (thay cho câu "phiên tự chạy lại kiểm tra" của bản 1). Giá phải trả: Cloudflare giữ bộ nhớ đệm theo từng trung tâm dữ liệu, nên máy của `start-run` có thể nhận 200 trong khi máy của `env-canary` (và một phần người dùng) vẫn nhận 404 cũ; khi đó `start-run` đóng một sự cố thật, và lần chạy `env-canary` sáng hôm sau mở lại. **AI đề xuất: đồng ý**: phiên không dừng vì issue cũ quan trọng hơn, và sự cố thật vẫn hiện lại trong một ngày.
 4. Catalog hay file khởi đầu hỏng là `LỖI` (chặn phiên ở `start-run`, mở `setup-broken` sau lần kiểm lại 90 giây). **AI đề xuất: `LỖI`**: người sửa trong vài phút, còn phiên chạy với catalog hỏng thì `ui-test` của mọi task đỏ (ngày 27) hay `device-session` hỏng mọi kịch bản.
 5. Ghi chú: `CHÚ Ý` của phần Remote Config lặp lại nhiều ngày (công cụ hỏng lâu) không mở issue; nếu thấy cần, một ticket sau có thể biến `CHÚ Ý` lặp lại quá 3 ngày thành issue.
 6. Lỗi thiếu vai trò có thể chỉ ra `CHÚ Ý` (mục 3.4, điểm 1): giữ như plan, hay coi mọi lỗi `Failed to get Firebase Remote Config template` khi bí mật có mặt là `LỖI`? **AI đề xuất: giữ như plan**: coi là `LỖI` thì một lỗi mạng tạm của công cụ cũng chặn phiên cả ngày; catalog mặc định vẫn được kiểm. **Đề xuất Tuấn thử một lần trước khi duyệt:** gỡ vai trò Firebase Remote Config Viewer của `remote-config-reader`, báo AI chạy lại lần thử trên nhánh tạm, xem dòng ra `LỖI` hay `CHÚ Ý`, rồi gán lại vai trò; ra `CHÚ Ý` thì AI thêm chữ lỗi thật vào mẫu trước khi duyệt.

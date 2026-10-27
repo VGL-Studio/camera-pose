@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là đề xuất 3b, 4b sau RUN-20261027-01 (Tuấn chọn ngày 2026-10-27), bài học L-084, L-086
 scenarios: []
 owner: Tuấn
-status: planned
+status: approved
 risk: high
 size: M
 depends_on: []

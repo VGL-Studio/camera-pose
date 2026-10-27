@@ -357,7 +357,10 @@ internal fun CaptureRow(
     }
 }
 
-/** Switches between the back and the front camera; faded and disabled until the camera is ready. */
+/**
+ * Switches between the back and the front camera; faded and disabled until the camera is ready, or when the device
+ * has one camera (T-064).
+ */
 @Composable
 internal fun FlipCameraButton(ready: CameraUiState.Ready?, onFlipClick: () -> Unit) {
     CameraIconButton(
@@ -365,7 +368,7 @@ internal fun FlipCameraButton(ready: CameraUiState.Ready?, onFlipClick: () -> Un
         onClick = onFlipClick,
         contentDescription = stringResource(R.string.camera_cd_flip),
         modifier = Modifier.testTag(CameraTestTags.FLIP),
-        enabled = ready != null,
+        enabled = ready?.canFlip == true,
         toggleable = false,
     )
 }

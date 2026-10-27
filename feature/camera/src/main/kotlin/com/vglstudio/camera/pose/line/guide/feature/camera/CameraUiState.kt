@@ -23,6 +23,7 @@ sealed interface CameraUiState {
         val zoom: Float,
         val countdown: Int? = null,
         val capturing: Boolean = false,
+        val canFlip: Boolean = true,
     ) : CameraUiState
 }
 

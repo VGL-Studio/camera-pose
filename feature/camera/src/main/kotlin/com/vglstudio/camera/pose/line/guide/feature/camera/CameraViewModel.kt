@@ -164,6 +164,8 @@ class CameraViewModel @Inject constructor(
         val ready = state.value as? CameraUiState.Ready ?: return
         // A photo being taken keeps its camera: switching would reopen the camera under it.
         if (ready.capturing) return
+        // One camera: the button is disabled; a tap that slips through changes nothing (spec camera, KB-4, T-064).
+        if (!ready.canFlip) return
         cancelCountdown(reason = "flip")
         // From the tools, not the state: the state keeps the old lens while the new camera opens.
         val lens = (tools?.lens ?: ready.lens).next()
@@ -211,8 +213,12 @@ class CameraViewModel @Inject constructor(
         if (!keepReady || state.value !is CameraUiState.Ready) state.value = CameraUiState.Starting
         openJob = viewModelScope.launch {
             val tools = loadTools()
+            // A saved lens the device lacks opens the one it has; the setting stays (spec camera, KB-4, T-064).
+            val lenses = controller.availableLenses()
+            val lens = if (lenses.isEmpty() || tools.lens in lenses) tools.lens else lenses.first()
+            if (lenses.size == 1) logger.info(LOG_TAG, "Only one camera: ${lens.name.lowercase()}")
             val capabilities = try {
-                controller.open(tools.lens, tools.flash)
+                controller.open(lens, tools.flash)
             } catch (e: CameraOpenException) {
                 logger.error(LOG_TAG, "Camera could not open", e)
                 state.value = CameraUiState.Error
@@ -223,11 +229,12 @@ class CameraViewModel @Inject constructor(
                 flashAvailable = capabilities.hasFlash,
                 timer = tools.timer,
                 gridVisible = tools.gridVisible,
-                lens = tools.lens,
+                lens = lens,
                 zoomLevels = ZOOM_LEVELS.filter { it in capabilities.minZoomRatio..capabilities.maxZoomRatio },
                 zoom = 1f,
+                canFlip = lenses.isEmpty() || lenses.size > 1,
             )
-            logger.info(LOG_TAG, "Camera ready: ${tools.lens.name.lowercase()}, flash ${capabilities.hasFlash}")
+            logger.info(LOG_TAG, "Camera ready: ${lens.name.lowercase()}, flash ${capabilities.hasFlash}")
         }
     }
 

@@ -177,6 +177,23 @@ internal class CameraXController @Inject constructor(
         boundUseCases = emptyList()
     }
 
+    override suspend fun availableLenses(): Set<Lens> = withContext(Dispatchers.Main) {
+        try {
+            val provider = ProcessCameraProvider.awaitInstance(context).also { provider = it }
+            lensesOf { lens ->
+                provider.hasCamera(
+                    if (lens == Lens.BACK) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA,
+                )
+            }
+        } catch (e: CancellationException) {
+            if (!currentCoroutineContext().isActive) throw e
+            emptySet()
+        } catch (e: Exception) {
+            // Unknown: the open says whether the lens is there.
+            emptySet()
+        }
+    }
+
     override fun setFlash(mode: FlashMode) {
         imageCapture?.flashMode = mode.toCameraX()
     }

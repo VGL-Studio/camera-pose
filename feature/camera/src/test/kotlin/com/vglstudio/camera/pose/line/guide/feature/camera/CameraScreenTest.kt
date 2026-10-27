@@ -217,6 +217,14 @@ class CameraScreenTest {
         assertEquals(listOf("flip"), calls)
     }
 
+    // KB-4 (plan T-064): one camera, the flip button is faded and does nothing.
+    @Test
+    fun flip_cannotFlip_disabled() {
+        setScreen(READY.copy(canFlip = false))
+        composeRule.onNodeWithTag(CameraTestTags.FLIP).assertIsNotEnabled().performClick()
+        assertEquals(emptyList<String>(), calls)
+    }
+
     @Test
     fun countdown_showsNumber_andShutterCancels() {
         setScreen(READY.copy(timer = TimerSetting.THREE, countdown = 3))

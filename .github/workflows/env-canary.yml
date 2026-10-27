@@ -5,6 +5,7 @@
 #   ENV_CANARY_FIRE_URL    fire URL of the env-canary routine's API trigger
 #   ENV_CANARY_FIRE_TOKEN  bearer token of that trigger; it can only start that one routine
 # Not fired while an auto-run session is running: the canary would compete with it for the same usage limit.
+# A second job, setup-check, checks the staging setup, R2 files and DNS on the GitHub runner (see below).
 # Changing this file is a high-risk plan; cross-review required.
 name: env-canary
 
@@ -26,6 +27,59 @@ permissions:
   contents: read
 
 jobs:
+  # Checks on a GitHub runner, every morning, what the cloud environment cannot see: the required files on R2,
+  # the DNS of the static file host through 1.1.1.1 and 8.8.8.8, the Firebase staging secret and the tester
+  # groups (scripts/setup-check.sh; app lessons L-002, L-011, L-012, L-027 of camera-pose). Red opens an issue
+  # labelled setup-broken, or comments on the open one; green closes it. A separate label from env-broken,
+  # because scripts/env-canary.sh closes env-broken issues when the cloud environment is green.
+  # Runs even during an auto-run session: it costs no Claude usage.
+  setup-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Kiểm tra thiết lập staging, file R2 và DNS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOOGLE_SERVICES: ${{ secrets.STAGING_GOOGLE_SERVICES_JSON }}
+          DISTRIBUTION_CREDENTIALS: ${{ secrets.STAGING_APP_DISTRIBUTION_CREDENTIALS }}
+          STAGING_TESTER_GROUPS: ${{ vars.STAGING_TESTER_GROUPS || 'team' }}
+        run: |
+          result=0
+          scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
+          cat "${RUNNER_TEMP}/setup-check.log"
+          label="setup-broken"
+          open_issues="$(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=${label}&per_page=10" --jq '[.[].number] | join(" ")')"
+          commit="${GITHUB_SHA::7}"
+          if [ "${result}" = "0" ]; then
+            for number in ${open_issues}; do
+              gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/comments" -X POST \
+                -f body="Kiểm tra thiết lập hằng ngày xanh lại trên \`${commit}\`. Đóng mục này." > /dev/null
+              gh api "repos/${GITHUB_REPOSITORY}/issues/${number}" -X PATCH -f state=closed > /dev/null
+            done
+            exit 0
+          fi
+          # Only the check lines go into the issue; the script never prints secret values.
+          lines="$( { grep -E '^(::error::|::warning::|ok   - )' "${RUNNER_TEMP}/setup-check.log" || true; } \
+            | sed 's/^::error::/LỖI - /; s/^::warning::/CHÚ Ý - /')"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          # The backticks below are Markdown for the issue, inside a single-quoted format.
+          # shellcheck disable=SC2016
+          body="$(printf 'Kiểm tra thiết lập hằng ngày (`scripts/setup-check.sh --staging`) đỏ trên `%s`. Phiên tự chạy bắt đầu bằng `start-run.yml` sẽ bị từ chối cho tới khi sửa xong.\n\nNgười cần làm: sửa theo từng dòng LỖI (docs/ops/staging-and-runs.md, docs/ops/setup-new-app.md), rồi chạy lại workflow `env-canary`. Lần chạy xanh tự đóng mục này.\n\nLần chạy: %s\n\n```text\n%s\n```\n' \
+            "${commit}" "${run_url}" "${lines}")"
+          if [ -z "${open_issues}" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/issues" -X POST -f title="Thiết lập staging, file R2 hoặc DNS đang lỗi" \
+              -f body="${body}" -f "labels[]=${label}" > /dev/null
+          else
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${open_issues%% *}/comments" -X POST -f body="${body}" > /dev/null
+          fi
+          echo "::error::Thiết lập staging, file R2 hoặc DNS đang lỗi; đã ghi vào issue ${label}."
+          exit 1
+
   fire:
     runs-on: ubuntu-latest
     timeout-minutes: 5

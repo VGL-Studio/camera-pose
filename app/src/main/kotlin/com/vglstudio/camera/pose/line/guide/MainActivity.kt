@@ -16,6 +16,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsController
 import com.vglstudio.camera.pose.line.guide.core.ads.LocalAdsController
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
@@ -35,6 +36,7 @@ import com.vglstudio.camera.pose.line.guide.settings.isDark
 import com.vglstudio.camera.pose.line.guide.settings.languageToApply
 import com.vglstudio.camera.pose.line.guide.settings.readStoredLanguage
 import com.vglstudio.camera.pose.line.guide.settings.withAppLanguage
+import com.vglstudio.camera.pose.line.guide.ui.APP_ROOT_TAG
 import com.vglstudio.camera.pose.line.guide.ui.applyScreenOrientation
 import com.vglstudio.camera.pose.line.guide.ui.exposeTestTagsForUiAutomator
 import dagger.hilt.android.AndroidEntryPoint
@@ -103,7 +105,7 @@ class MainActivity : ComponentActivity() {
                 AppTheme(darkTheme = darkTheme) {
                     // The surface fills the whole window, including the area behind the system bars,
                     // so those areas take the theme background in both light and dark mode.
-                    Surface(modifier = Modifier.fillMaxSize().exposeTestTagsForUiAutomator()) {
+                    Surface(modifier = Modifier.fillMaxSize().exposeTestTagsForUiAutomator().testTag(APP_ROOT_TAG)) {
                         val networkDialogState by networkDialog.state.collectAsState()
                         // Followed, not read once: the library button shows and hides with the remote value (ADR-0003).
                         val posesEnabled by featureFlags.enabled(FeatureFlag.POSES).collectAsState(initial = false)

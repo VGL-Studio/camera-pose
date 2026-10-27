@@ -10,6 +10,8 @@ amends: ADR-0002
 
 # ADR-0010: CỔNG CHẤT LƯỢNG MỀM TRÊN GITHUB FREE, MERGE CHỈ QUA SCRIPT KIỂM TRA
 
+> Ghi chú 2026-10-23: [ADR-0025](0025-main-self-healing.md) thay một phần mục 2 (chạy lại test hỏng một lần, đóng issue khi chạy lại xanh trên chính commit bị đổ lỗi, merge bản revert được kiểm bằng nội dung, phiên tự revert commit merge của chính phiên). Các quy tắc còn lại của ADR-0010 giữ nguyên.
+
 ## Bối cảnh
 
 ADR-0002 quyết định chỉ merge vào nhánh chính khi qua cổng chất lượng, và nhánh chính được bảo vệ. Tổ chức đang dùng gói GitHub Free, với repo private thì GitHub không cho bật bảo vệ nhánh, ruleset hay kiểm tra bắt buộc. Nhóm quyết định giữ gói Free. Vì vậy phải bảo đảm nguyên tắc của ADR-0002 bằng cách khác. Gói Free cũng giới hạn số phút GitHub Actions cho repo private, nên CI phải tiết kiệm.
@@ -56,4 +58,4 @@ AI không được merge bằng bất kỳ cách nào khác, kể cả nút merg
 
 - **Tích cực:** giữ được nguyên tắc chỉ merge khi CI xanh mà không tốn thêm chi phí; quyết định merge nằm trong một script có thể đọc và kiểm tra, không phụ thuộc vào cách AI diễn giải.
 - **Phải chấp nhận:** GitHub không chặn ở mức hệ thống, nên một lần merge sai vẫn có thể xảy ra và chỉ được phát hiện sau đó bởi `main-guard.yml`. Khi nhóm mở rộng hoặc có app đang kinh doanh, nên xem lại việc nâng lên gói trả phí.
-- **Việc AI phải tuân thủ:** chỉ merge bằng `scripts/merge-if-green.sh`; không sửa script này, các workflow trong `.github/` hay nội dung kiểm tra của cổng chất lượng, trừ khi đó chính là plan rủi ro cao đã được duyệt chéo; thấy nhãn `main-broken` thì dừng phiên.
+- **Việc AI phải tuân thủ:** chỉ merge bằng `scripts/merge-if-green.sh`; không sửa script này, các workflow trong `.github/` hay nội dung kiểm tra của cổng chất lượng, trừ khi đó chính là plan rủi ro cao đã được duyệt chéo; thấy nhãn `main-broken` thì dừng phiên, trừ trường hợp phiên tự revert commit merge của chính phiên theo ADR-0025.

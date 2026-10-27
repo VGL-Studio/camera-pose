@@ -86,7 +86,7 @@ echo 'export FIGMA_TOKEN=<token>' >> ~/.zshrc   # rồi mở lại terminal và 
 
 Script đọc token từ biến môi trường và không bao giờ in ra. Lộ token thì thu hồi ở cùng trang trong Figma.
 
-PR xuất lại ảnh của feature đã có ảnh chuẩn screenshot thì chạy `scripts/design-compare.sh <feature>` sau khi xuất, và commit `design/review/` cùng PR. Không thì task sau của feature thấy ảnh so sánh đổi mà không do mình, ngoài mục 3.2 của plan (L-085).
+PR xuất lại ảnh của feature đã có ảnh chuẩn screenshot thì chạy `scripts/design-compare.sh <feature>` sau khi xuất, và commit `design/review/` cùng PR. Không thì task sau của feature thấy ảnh so sánh đổi mà không do mình, ngoài mục 3.2 của plan (camera-pose L-085).
 
 **Figma MCP (gói Professional trở lên):** dùng thêm khi cần đọc sâu hơn, ví dụ tên biến của Figma (`get_variable_defs`) hay Code Connect. Gói Starter chỉ có vài lượt gọi MCP mỗi tháng; gói Professional có 200 lượt mỗi ngày. Cách tay khi không có token: chọn frame, Export setting **PNG, 3x**, **Export**.
 

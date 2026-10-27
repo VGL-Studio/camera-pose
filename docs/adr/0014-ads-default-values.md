@@ -9,6 +9,8 @@ deciders: [Nhóm phát triển, Người phụ trách sản phẩm]
 
 # ADR-0014: GIÁ TRỊ MẶC ĐỊNH CỦA THAM SỐ QUẢNG CÁO, THAY BẢNG MẶC ĐỊNH TRONG ADR-0013
 
+> **Ghi chú 2026-10-23:** ADR-0026 thay bảng giá trị mặc định của ADR này bằng bảng khóa theo tên AdsKit (`docs/ops/ads-business-rules.md`, mục 10): mọi định dạng và vị trí mặc định tắt, `ads_interval` 45 giây. Khóa cá nhân hóa ở vùng có luật bị bỏ (spec ads, câu hỏi 8). Ý "vị trí mới mặc định tắt" giữ nguyên.
+
 ## Bối cảnh
 
 ADR-0013 khai báo ba tham số quảng cáo qua Remote Config, kèm giá trị mặc định do AI đề xuất. Giá trị mặc định là giá trị app dùng khi chưa nhận được Remote Config: lần mở đầu không có mạng, lấy cấu hình bị lỗi, hoặc project Firebase của app chưa khai báo khóa. Đây là quyết định kinh doanh, nên người phụ trách sản phẩm chốt lại.
@@ -43,4 +45,4 @@ Phần còn lại của ADR-0013 giữ nguyên.
   - Mỗi app mới phải bật từng vị trí trên Remote Config của project Firebase production trước khi phát hành, nếu không app không có quảng cáo. Danh sách việc trước khi phát hành phải có bước này.
   - Bản staging đang build bằng file cấu hình Firebase giả (ADR-0012) nên không nhận được Remote Config, và không hiện quảng cáo. Khi có project Firebase staging thật, nhóm bật vị trí trên Remote Config của project đó để thử quảng cáo.
   - Hộp thoại đồng ý trên AdMob của mỗi app phải được kiểm tra trước khi phát hành, vì cá nhân hóa bật sẵn với người đã đồng ý.
-- **Việc AI phải tuân thủ:** không đổi các giá trị mặc định này khi không có quyết định mới của người phụ trách sản phẩm; vị trí mới vẫn mặc định tắt.
+- **Việc AI phải tuân thủ:** vị trí mới mặc định tắt; giá trị mặc định của khóa quảng cáo theo bảng khóa của `docs/ops/ads-business-rules.md`, mục 10 (ADR-0026), chỉ đổi khi người phụ trách sản phẩm quyết.

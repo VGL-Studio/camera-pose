@@ -1,44 +1,82 @@
 #!/usr/bin/env bash
-# Stops scripts/check.sh before Gradle when Java cannot run the project's Gradle (L-022).
-# Gradle 8.14.3 runs on Java 17 to 24; CI uses 17. Change the range below when Gradle is upgraded.
-# JAVA_CMD replaces the java command in tests.
-# Changing this file changes the quality gate: high-risk plan, cross-review required.
+# Checks, before Gradle starts, that the Java which ./gradlew will use can run this build (app lesson L-022 of
+# camera-pose, template lesson L-059). A Java that is too new makes Gradle stop with an error that only says
+# its version number ("26"), which tells the developer nothing.
+#
+# Bounds come from the build configuration, so they follow the project when it is upgraded:
+#   lower: the highest JavaVersion.VERSION_<n> in build-logic (the build compiles for that Java);
+#   upper: the newest Java that the Gradle version of gradle/wrapper/gradle-wrapper.properties can run on
+#          (https://docs.gradle.org/current/userguide/compatibility.html). A Gradle newer than the table has
+#          no upper bound here; Gradle reports it itself.
+# Like ./gradlew, uses $JAVA_HOME/bin/java when JAVA_HOME is set, otherwise java from PATH.
+# Exit 0 fits, 1 does not fit or no Java found. Called by scripts/check.sh.
+# Messages are in Vietnamese for the team; comments are in English.
+set -euo pipefail
+cd "$(dirname "$0")/.."
 
-set -uo pipefail
+wrapper="gradle/wrapper/gradle-wrapper.properties"
+min_java="$({ grep -rhoE 'JavaVersion\.VERSION_[0-9]+' build-logic --include='*.kts' --include='*.kt' || true; } \
+  | sed 's/.*_//' | sort -n | tail -n 1)"
+min_java="${min_java:-17}"
+gradle_version="$(sed -n 's/^distributionUrl=.*gradle-\([0-9][0-9.]*\)-.*$/\1/p' "$wrapper" 2> /dev/null || true)"
 
-MIN_JAVA=17
-MAX_JAVA=24
-GRADLE_VERSION="8.14.3"
-
-java_cmd="${JAVA_CMD:-${JAVA_HOME:+$JAVA_HOME/bin/}java}"
-hint() {
-  echo "Đặt JAVA_HOME tới JDK của Android Studio rồi chạy lại, ví dụ:"
-  echo "  macOS: export JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\""
-  echo "  Linux: export JAVA_HOME=\"\$HOME/android-studio/jbr\""
-  echo "(docs/ops/setup-new-app.md, mục 1)"
+# Newest Java that each Gradle version runs on; empty when this table does not know the version.
+max_java_for_gradle() {
+  local major minor
+  major="${1%%.*}"
+  minor="$(echo "$1" | cut -d. -f2)"
+  case "$major" in
+    8)
+      if [ "$minor" -ge 14 ]; then echo 24
+      elif [ "$minor" -ge 10 ]; then echo 23
+      elif [ "$minor" -ge 8 ]; then echo 22
+      elif [ "$minor" -ge 5 ]; then echo 21
+      else echo 20
+      fi ;;
+    9) if [ "$minor" -ge 1 ]; then echo ""; else echo 24; fi ;;
+    *) echo "" ;;
+  esac
 }
-refuse() {
-  [[ -n "${GITHUB_ACTIONS:-}" ]] && echo "::error::$1"
-  echo "LỖI: $1"
-  hint
+max_java=""
+[ -z "$gradle_version" ] || max_java="$(max_java_for_gradle "$gradle_version")"
+
+java_cmd="java"
+[ -z "${JAVA_HOME:-}" ] || java_cmd="${JAVA_HOME}/bin/java"
+
+studio_hint() {
+  local mac="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+  echo "Dùng JDK đi kèm Android Studio (docs/ops/setup-new-app.md, phần 1):" >&2
+  if [ -d "$mac" ]; then
+    echo "  export JAVA_HOME=\"$mac\"" >&2
+  else
+    echo "  macOS: export JAVA_HOME=\"$mac\"" >&2
+    echo "  Linux: export JAVA_HOME=\"\$HOME/android-studio/jbr\" (thư mục cài Android Studio)" >&2
+  fi
+}
+
+if ! command -v "$java_cmd" > /dev/null 2>&1; then
+  echo "LỖI: không tìm thấy Java ($java_cmd). Dự án cần Java ${min_java}${max_java:+ đến $max_java}." >&2
+  studio_hint
   exit 1
-}
+fi
 
-if ! output="$("$java_cmd" -version 2>&1)" || [[ -z "$output" ]]; then
-  refuse "không chạy được java ($java_cmd). Gradle $GRADLE_VERSION của dự án cần Java $MIN_JAVA tới $MAX_JAVA."
+# java.specification.version is "17", "21", ... (or "1.8" for Java 8).
+spec="$("$java_cmd" -XshowSettings:properties -version 2>&1 | sed -n 's/^ *java\.specification\.version = //p' | head -n 1)"
+version="${spec#1.}"
+if ! [[ "$version" =~ ^[0-9]+$ ]]; then
+  echo "LỖI: không đọc được phiên bản của $java_cmd." >&2
+  studio_hint
+  exit 1
 fi
-# The JVM prints "Picked up JAVA_TOOL_OPTIONS: ..." before the version when such a variable is set (L-049).
-version_line="$(grep -m1 ' version "' <<< "$output" || head -n 1 <<< "$output")"
-version="$(sed -nE 's/.*version "([0-9][0-9._]*)".*/\1/p' <<< "$version_line")"
-major="${version%%.*}"
-# Java 8 and older print "1.8.0_392".
-if [[ "$major" == "1" ]]; then
-  major="$(cut -d. -f2 <<< "$version")"
+
+if [ "$version" -lt "$min_java" ]; then
+  echo "LỖI: Java $version quá cũ ($java_cmd). Dự án build cho Java $min_java (build-logic), cần Java $min_java trở lên." >&2
+  studio_hint
+  exit 1
 fi
-if ! [[ "$major" =~ ^[0-9]+$ ]]; then
-  refuse "không đọc được phiên bản Java từ '$version_line'. Gradle $GRADLE_VERSION của dự án cần Java $MIN_JAVA tới $MAX_JAVA."
+if [ -n "$max_java" ] && [ "$version" -gt "$max_java" ]; then
+  echo "LỖI: Java $version quá mới ($java_cmd). Gradle $gradle_version chỉ chạy trên Java $min_java đến $max_java." >&2
+  studio_hint
+  exit 1
 fi
-if (( major < MIN_JAVA || major > MAX_JAVA )); then
-  refuse "Java $major không chạy được Gradle $GRADLE_VERSION của dự án (cần $MIN_JAVA tới $MAX_JAVA)."
-fi
-echo "Java $major: dùng được với Gradle $GRADLE_VERSION."
+echo "Java $version ($java_cmd): hợp với Gradle ${gradle_version:-?}, cần Java ${min_java}${max_java:+ đến $max_java}."

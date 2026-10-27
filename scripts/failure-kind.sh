@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tells what made scripts/check.sh fail, from its log (ADR-1002, point 1).
+# Tells what made scripts/check.sh fail, from its log (ADR-0025, point 1).
 #
 # Usage:   scripts/failure-kind.sh <build.log>
 # Prints:  tests  every failed Gradle task is a test task (*UnitTest, verifyRoborazzi*) and the log
@@ -10,7 +10,7 @@
 #
 # Usage:   scripts/failure-kind.sh --playbook <log> [<table>]
 # Prints:  one line "PB-NN <kind>: <what to do> (<source>)" for the first row of docs/ops/failure-playbook.md
-#          (or <table>) whose pattern matches the log, or "khong-co: ..." when no row matches (T-039, L-057).
+#          (or <table>) whose pattern matches the log, or "khong-co: ..." when no row matches (L-079).
 #          A pattern grep -E rejects is skipped and reported as "LỖI BẢNG" on stderr. Always exits 0.
 # Changing this file changes the quality gate: high-risk plan, cross-review required.
 
@@ -59,7 +59,7 @@ if [ -z "${log}" ] || [ ! -f "${log}" ]; then
   exit 0
 fi
 
-# ':feature:camera:testDebugUnitTest' -> testDebugUnitTest, one per failed task.
+# ':feature:sample:testDebugUnitTest' -> testDebugUnitTest, one per failed task.
 tasks="$(sed -nE "s/^Execution failed for task '([^']+)'\.$/\1/p" "${log}" | sed -E 's/.*://' | sort -u)"
 if [ -z "${tasks}" ] || ! grep -q 'There were failing tests' "${log}"; then
   echo other

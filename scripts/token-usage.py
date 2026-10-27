@@ -7,10 +7,9 @@ Usage:
   scripts/token-usage.py credit --run RUN-ID --usd AMOUNT [--csv FILE]
 
 report: reads every transcript (subagents included) of this repository, keeps one usage per API request,
-  attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...)
-  or, for a subagent transcript, by a `Task: T-NNN` line of its first user message, and prints a Markdown
-  table with the plan's estimate next to the actual count. With --run and --csv it also writes the rows
-  of that run into the CSV, replacing rows of the same run so it can run again.
+  attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...),
+  and prints a Markdown table with the plan's estimate next to the actual count. With --run and --csv it also
+  writes the rows of that run into the CSV, replacing rows of the same run so it can run again.
 estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan, and the cloud
   session credit spent per million tokens over the runs that recorded it.
 credit: records the cloud session credit (US dollars) a run opened with `claude --cloud` spent, read by a person
@@ -50,8 +49,8 @@ DEFAULT_ESTIMATES = {"S": 5_000_000, "M": 15_000_000, "L": 30_000_000}
 MIN_SAMPLES = 5
 SIZE_ORDER = {"S": 0, "M": 1, "L": 2}
 TASK_BRANCH = re.compile(r"^claude/(?:fix-)?(T-\d+)(?:-|$)")
-# A subagent works in a worktree by path, so its transcript keeps the main checkout's branch. The main session
-# writes a line "Task: T-NNN" in its brief, and every request of that subagent transcript counts for the task (L-073).
+# A subagent brief names its task on a line of its own (auto-run.md, L-071): the subagent runs in the task worktree by
+# path, so its transcript still carries the report branch of the main session.
 BRIEF_TASK = re.compile(r"^Task: (T-\d+)\s*$", re.M)
 
 
@@ -154,8 +153,7 @@ def repo_matcher():
 
 
 def message_text(message):
-    """The text of a transcript message: content is a string or a list of parts."""
-    content = (message or {}).get("content") if isinstance(message, dict) else None
+    content = message.get("content") if isinstance(message, dict) else message
     if isinstance(content, str):
         return content
     if isinstance(content, list):

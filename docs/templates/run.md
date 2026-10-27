@@ -70,9 +70,10 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 - [ ] Ảnh so sánh với thiết kế: <feature, `docs/features/<feature>/design/review/`, nhận xét của rà soát độc lập>
 - [ ] Tiêu chí kiểm tra thủ công (máy thật, người): <ticket, tiêu chí, các bước>
 - [ ] Kịch bản emulator lỗi hay bỏ qua: <tệp, kết quả, bước lỗi, phản hồi FB-...>, hoặc "Không có"
+- [ ] Phần ngoài mục 3.2 đã merge (ADR-0029): <ticket, file, vì sao cần, PR>, hoặc "Không có"
 - [ ] Điểm rà soát mức ghi chú: <ticket, nội dung>
-- [ ] Test chập chờn: <issue `flaky` đang mở, tên test>, hoặc "Không có" (ADR-1002)
-- [ ] Task bị revert: <ticket, issue `main-broken`, PR revert>, hoặc "Không có" (ADR-1002)
+- [ ] Test chập chờn: <issue `flaky` đang mở, tên test>, hoặc "Không có" (ADR-0025)
+- [ ] Task bị revert: <ticket, issue `main-broken`, PR revert>, hoặc "Không có" (ADR-0025)
 
 ### Task bị dừng
 
@@ -173,10 +174,10 @@ Task lệch ước tính từ 2 lần trở lên: <task, lý do có thể; hoặ
 
 | Ticket | PR plan | Rủi ro | `plan-check.py` | Rà soát độc lập | Chạy thử |
 | --- | --- | --- | --- | --- | --- |
-| T-NNN | #<số> | <thấp / trung bình / cao, "cần duyệt chéo" với plan rủi ro cao> | qua / lỗi | <số chặn, số nên sửa; hoặc "chưa rà soát"> | <đã chạy / chưa chạy (lý do)> |
+| T-NNN | #<số> | <thấp / trung bình / cao, "cần duyệt chéo" với plan rủi ro cao> | qua / lỗi | <số chặn, số nên sửa; hoặc "chưa rà soát"> | <đã chạy / chưa chạy xong (lý do)> |
 
 Câu hỏi cho người:
 
 1. <T-NNN: nguyên văn câu hỏi ở mục 8 của plan, kèm phương án AI đề xuất>
 
-Dừng vì giới hạn: <plan nào chưa xong và vì sao, hoặc "Không có">
+Dừng vì giới hạn: <plan nào chưa xong và vì sao (45 phút mỗi plan, token), hoặc "Không có">

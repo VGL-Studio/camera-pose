@@ -1,12 +1,12 @@
 ---
 id: ADR-1002
 title: Nhánh chính tự hồi phục khi đỏ: chạy lại test hỏng một lần, tự đóng issue khi chạy lại xanh, merge bản revert được kiểm bằng nội dung
-status: accepted
+status: superseded
 origin: app
 date: 2026-10-22
 deciders: [Nhật, Tuấn]
 supersedes: ADR-0010
-superseded_by:
+superseded_by: ADR-0025        # dự án mẫu, cùng nội dung, nhận khi đồng bộ đợt 1 (ADR-0030)
 ---
 
 # ADR-1002: NHÁNH CHÍNH TỰ HỒI PHỤC KHI ĐỎ

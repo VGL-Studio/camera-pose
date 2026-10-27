@@ -19,7 +19,7 @@ Quy tắc khi sửa các phần trên ở app (`CLAUDE.md`, mục Không đượ
 - Thay đổi chỉ app cần: ghi lý do trong PR, không cần mở issue.
 - Quyết định kỹ thuật: ADR có `origin: template` không sửa ở app. App muốn khác thì viết ADR riêng (mã từ 1001, `supersedes` ghi ADR bị thay cho app này); nếu có ích chung thì mở issue (mục 2) để dự án mẫu sửa hay thay ADR gốc.
 
-Phiên tự chạy (`claude --cloud`, routine) chỉ có quyền GitHub với repo của app, không đọc được repo mẫu. Plan chép code từ dự án mẫu về app dán nguyên đoạn code hay `diff` vào plan, không để phiên tự đọc repo mẫu (L-078).
+Phiên tự chạy của app (`claude --cloud`, routine) chỉ có quyền GitHub với repo của app, không đọc được repo mẫu. Plan của app chép code từ dự án mẫu dán nguyên đoạn code hay `diff` vào plan, không để phiên tự đọc repo mẫu (L-101).
 
 ## 2. Ở app: mở issue về dự án mẫu
 
@@ -41,6 +41,7 @@ Người phụ trách dự án mẫu (hiện là anh Nhật):
    - Tổng quát hóa: bỏ tên app, tên gói, giá trị cấu hình riêng; giữ đúng quy tắc của dự án mẫu.
    - Cải tiến chạm vào file bị cấm sửa (`CLAUDE.md`, mục Không được làm) thì ghi rõ trong mô tả PR như mọi thay đổi khác.
    - Kiểm chứng trong dự án mẫu (`scripts/check.sh`, test của script, chạy thử nếu cần).
+   - Plan cần đọc code của app thì ghi lệnh `gh api` (PR dạng diff, hay file theo commit), không ghi `gh pr diff`: phiên tự chạy ở cloud không chạy được `gh pr` (`auto-run.md`, bước 7, L-063).
 4. PR merge thì bài học chuyển `applied`, đóng issue kèm số PR.
 
 ## 4. Các app đã tạo trước đó

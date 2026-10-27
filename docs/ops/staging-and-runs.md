@@ -75,7 +75,7 @@ Sau đó chuyển `google-services.json`, file khóa và `staging.keystore` ra k
 
    Mỗi khi `scripts/cloud-setup.sh` thay đổi trên nhánh chính, mở lại môi trường (biểu tượng cài đặt cạnh tên môi trường), dán lại toàn bộ nội dung mới vào Setup script và lưu. Môi trường được dựng lại từ script ở phiên kế tiếp.
 
-   Script có số phiên bản (`SETUP_VERSION`), tăng mỗi lần sửa. Đầu mỗi phiên, `scripts/cloud-env-check.sh` so số này với số mà môi trường đã chạy; khác nhau thì phiên kết thúc ngay và báo cáo ghi rõ cần dán lại, thay vì mất nửa giờ chờ lỗi tải. Script cũng kiểm Java có chạy được Gradle của dự án (`scripts/java-check.sh`), Gradle wrapper có khởi động được (`./gradlew --version`, giới hạn 300 giây) và SDK có nền tảng `compileSdk` (T-036, L-056). Kiểm tra nhanh sau khi dán: mở một phiên mới với môi trường này, chạy `scripts/cloud-env-check.sh`; kết quả là một dòng nêu phiên bản setup script, Java, Gradle wrapper và SDK chạy được.
+   Script có số phiên bản (`SETUP_VERSION`), tăng mỗi lần sửa. Đầu mỗi phiên, `scripts/cloud-env-check.sh` so số này với số mà môi trường đã chạy; khác nhau thì phiên kết thúc ngay và báo cáo ghi rõ cần dán lại, thay vì mất nửa giờ chờ lỗi tải. Script cũng kiểm Java có chạy được Gradle của dự án (`scripts/java-check.sh`), Gradle wrapper có khởi động được (`./gradlew --version`, giới hạn 300 giây) và SDK có nền tảng `compileSdk` (L-075). Kiểm tra nhanh sau khi dán: mở một phiên mới với môi trường này, chạy `scripts/cloud-env-check.sh`; kết quả là một dòng nêu phiên bản setup script, Java, Gradle wrapper và SDK chạy được.
 3. Trên https://claude.ai/code/routines, bấm **New routine**: chọn repo này, môi trường vừa tạo, trigger **API** (không đặt lịch), model **Opus 5.5** (chọn ở ô model trong khung prompt). Ở mục **Connectors**, gỡ hết các connector; phiên tự chạy không cần connector nào.
 4. Prompt của routine (chép nguyên văn):
 
@@ -109,8 +109,8 @@ Mã này chỉ kích hoạt được đúng routine đó, không đọc được
 
 1. Danh sách chạy `docs/runs/RUN-YYYYMMDD-NN.md` có trạng thái `approved` đã được merge vào nhánh chính.
 2. **Actions > start-run > Run workflow**, nhánh `main`, nhập đường dẫn danh sách chạy.
-3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`, T-041). Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
-4. Bị từ chối vì `main-guard` chưa chạy (`CHƯA KIỂM`, thường vì GitHub không phát sự kiện push sau một lần merge, L-054): **Actions > main-guard > Run workflow** trên `main` (hoặc lệnh mà thông báo in ra), chờ xanh, rồi chạy lại `start-run`. Đang chạy (`CHỜ`): chờ xong rồi chạy lại.
+3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`, L-076). Workflow cũng chạy `scripts/setup-check.sh --staging` trên máy của GitHub và từ chối khi: bí mật `STAGING_GOOGLE_SERVICES_JSON` thiếu, là file giả (`fake-staging-project`) hay không có app `<applicationId>.staging`; một nhóm trong `STAGING_TESTER_GROUPS` (mặc định `team`) chưa có trên App Distribution; một file trong `docs/ops/required-assets.txt` không trả `200`; tên miền file tĩnh không phân giải được qua 1.1.1.1 hay 8.8.8.8. Các lỗi này trước đây chỉ lộ ra ở cuối phiên, khi phát bản staging (L-059). Nhóm người test được kiểm bằng API của App Distribution với tài khoản dịch vụ ở mục 1.1; API không trả lời (ví dụ thiếu quyền) thì chỉ báo chú ý. Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
+4. Bị từ chối vì `main-guard` chưa chạy hay chưa có kết quả (`CHƯA KIỂM`, thường vì GitHub không phát sự kiện push sau một lần merge; cũng báo khi lần chạy thất bại mà không có issue `main-broken`, tức lỗi hạ tầng): **Actions > main-guard > Run workflow** trên `main`, **Re-run all jobs** trên lần chạy thất bại, hoặc lệnh mà thông báo in ra,, chờ xanh, rồi chạy lại `start-run`. Đang chạy (`CHỜ`): chờ xong rồi chạy lại.
 
 Lưu ý:
 
@@ -134,6 +134,8 @@ Thiết lập một lần:
 2. Mở trigger **API** của routine này, **Generate token**, thêm hai bí mật: `gh secret set ENV_CANARY_FIRE_URL` và `gh secret set ENV_CANARY_FIRE_TOKEN`.
 3. Chạy thử: **Actions > env-canary > Run workflow**. Mở phiên trong đường dẫn ở phần tóm tắt, xem script báo xanh.
 
+Cùng workflow có job thứ hai, `setup-check`, chạy `scripts/setup-check.sh --staging` trên máy của GitHub (không tốn hạn mức Claude, chạy cả khi có phiên đang chạy): file R2 bắt buộc, DNS, bí mật Firebase staging và nhóm người test, như `start-run` (mục 2.3). Đỏ thì mở issue `setup-broken` (hoặc thêm bình luận vào issue đang mở), xanh thì tự đóng. Nhãn riêng vì `scripts/env-canary.sh` đóng mọi issue `env-broken` khi môi trường cloud xanh.
+
 Khi có issue `env-broken`: đọc log trong issue. Thường là môi trường chưa dán setup script mới (dán lại theo mục 2.1); lỗi khác thì sửa nguyên nhân. Sau đó chạy lại **env-canary** bằng tay; lần chạy xanh tự đóng issue.
 
 ### 2.5. Kịch bản trên emulator trước khi phát (`device-session.yml`)
@@ -150,7 +152,7 @@ Không cần thiết lập thêm: workflow dùng hai bí mật `ROUTINE_FIRE_URL
 
 ### 2.7. Mở phiên bằng `claude --cloud` khi còn cloud session credits
 
-Routine không dùng được cloud session credits: phiên của routine luôn tính vào hạn mức của tài khoản. Phiên mở bằng `claude --cloud` từ terminal thì trừ vào credit trước (L-020 của camera-pose, [bài hỗ trợ của Anthropic](https://support.claude.com/en/articles/17152539-cloud-sessions-bonus-credit-promotion)). Khi tài khoản còn credit, nhất là khi hạn mức tuần sắp hết, mở phiên tự chạy theo cách này. Còn lại thì dùng `start-run.yml` (mục 2.3): chỉ phiên của routine được `resume-run.yml` tự tiếp tục (`docs/auto-run.md`, mục 1, L-008).
+Routine không dùng được cloud session credits: phiên của routine luôn tính vào hạn mức của tài khoản. Phiên mở bằng `claude --cloud` từ terminal thì trừ vào credit trước (L-020 của camera-pose, [bài hỗ trợ của Anthropic](https://support.claude.com/en/articles/17152539-cloud-sessions-bonus-credit-promotion)). Khi tài khoản còn credit, nhất là khi hạn mức tuần sắp hết, mở phiên tự chạy theo cách này. Còn lại thì dùng `start-run.yml` (mục 2.3): chỉ phiên của routine được `resume-run.yml` tự tiếp tục (`docs/auto-run.md`, mục 1, L-044).
 
 **Trước khi mở.** Không có `start-run.yml` nên người tự làm các kiểm tra của workflow đó:
 
@@ -187,21 +189,6 @@ scripts/token-usage.py credit --run RUN-YYYYMMDD-NN --usd 10
 ```
 
 Lệnh chỉ sửa dòng Chung của phiên; commit file CSV trong PR báo cáo nếu PR còn mở, hoặc trong một PR tài liệu sau đó. `scripts/token-usage.py estimate` in thêm số USD trung bình cho mỗi 1M token, để ước tính một danh sách chạy tốn bao nhiêu credit.
-
-### 2.8. Kiểm tra môi trường trước phiên (`preflight.yml`)
-
-Bí mật staging sai, nhóm người test chưa có, file R2 thiếu hay tên miền file tĩnh không phân giải được từng chỉ lộ ra khi phiên đã chạy (L-002, L-011, L-012, L-027). Mỗi sáng 07:45 (giờ Việt Nam), workflow `preflight` chạy `scripts/preflight.sh` trên GitHub, nơi gọi được R2:
-
-- bí mật `STAGING_GOOGLE_SERVICES_JSON` là JSON, không phải file giả của repo, và có app `.staging`;
-- App Distribution có mọi nhóm trong biến `STAGING_TESTER_GROUPS` (mặc định `team`); lệnh `firebase-tools` không chạy được thì chỉ ghi `CHÚ Ý`;
-- tên miền của `ASSETS_BASE_URL` (bản staging, `app/build.gradle.kts`) phân giải được qua 1.1.1.1 và 8.8.8.8;
-- mỗi file trong `scripts/required-assets.txt` trả `200`.
-
-Script không bao giờ in giá trị của bí mật, chỉ in đúng hay sai kèm tên điều kiện. Đỏ thì mở issue `setup-broken` (hay bình luận vào issue đang mở); `start-run.yml` không bắt đầu phiên khi issue này còn mở, và tự chạy lại cùng script ngay trước khi kích hoạt routine. Xanh thì tự đóng issue. Nhãn riêng, không dùng `env-broken`, vì `env-canary` đóng mọi issue `env-broken` khi môi trường cloud xanh.
-
-- **Thêm file bắt buộc:** plan thêm file R2 mà app cần có thì thêm đường dẫn (tương đối, dưới địa chỉ gốc staging) vào `scripts/required-assets.txt` trong cùng PR.
-- **Chạy tay:** **Actions > preflight > Run workflow**. Ô `extra_asset` thêm một đường dẫn cho lần chạy đó, chỉ để kiểm đường đỏ của workflow; để trống khi chạy thật.
-- **Khi có issue `setup-broken`:** sửa theo các dòng `LỖI` trong issue (thêm lại bí mật, tạo nhóm người test, tải file lên R2, sửa DNS theo `docs/ops/setup-new-app.md`, mục 3), rồi chạy lại **preflight**.
 
 ## 3. Việc còn phải kiểm chứng
 

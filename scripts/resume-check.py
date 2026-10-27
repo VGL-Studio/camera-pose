@@ -43,6 +43,18 @@ def api(path, raw=False):
     return result.stdout if raw else json.loads(result.stdout or "null")
 
 
+def api_all(path):
+    """Every item of a list endpoint, page by page with "&page=N" (the first page alone misses branches past 100,
+    L-092). The path must already end in "per_page=100"."""
+    items = []
+    for page in range(1, 51):
+        batch = api(f"{path}&page={page}") or []
+        items.extend(batch)
+        if len(batch) < 100:
+            break
+    return items
+
+
 def repository():
     if os.environ.get("GITHUB_REPOSITORY"):
         return os.environ["GITHUB_REPOSITORY"]
@@ -78,7 +90,7 @@ def last_commit(branch):
 
 def main():
     now = moment(os.environ["RESUME_NOW"]) if os.environ.get("RESUME_NOW") else datetime.now(timezone.utc)
-    branches = [b["name"] for b in api("branches?per_page=100")]
+    branches = [b["name"] for b in api_all("branches?per_page=100")]
     for branch in sorted(branches):
         match = REPORT_BRANCH.match(branch)
         if not match:

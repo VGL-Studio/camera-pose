@@ -15,8 +15,8 @@
 #               (the failed jobs are named)
 #             2 still not finished when the time ran out: call again
 #             3 wrong arguments or the PR cannot be read
-#             4 GitHub never started the failed jobs (no runner: spending limit, billing): not a code failure (L-046)
-#             5 (--pr) no run, and the PR conflicts with main: GitHub runs no pull_request workflow for it (L-048)
+#             4 GitHub never started the failed jobs (no runner: spending limit, billing): not a code failure (L-064)
+#             5 (--pr) no run, and the PR conflicts with main: GitHub runs no pull_request workflow for it (L-064)
 # Prints one line at the end. Uses only the REST API through `gh api` (gh pr is blocked in the cloud environment).
 # WAIT_RUN_POLL_SECONDS (default 30) and WAIT_RUN_TIMEOUT_SECONDS override the waits (tests); so does
 # WAIT_RUN_CANCEL_RECHECKS (default 3), how many rounds the head is read again after its run shows "cancelled".
@@ -92,7 +92,7 @@ seen_want=0 cancelled_sha="" rechecks=0 max_rechecks="${WAIT_RUN_CANCEL_RECHECKS
 while :; do
   rechecking=0 waiting_for_push=0
   if [ -n "$pr" ]; then
-    # The head can move while we wait (a push, merge-if-green.sh --update): follow it (L-066).
+    # The head can move while we wait (a push, merge-if-green.sh --update): follow it (L-087).
     read_head
     if [ -n "$want" ]; then
       if [[ "$sha" == "$want"* ]]; then
@@ -120,11 +120,11 @@ while :; do
     [ "$rechecks" -lt "$max_rechecks" ] || break # the head stayed: a real cancel
     rechecks=$((rechecks + 1)) rechecking=1
   fi
-  # No run yet for a PR that conflicts with main: none will come until the conflict is solved (L-048).
+  # No run yet for a PR that conflicts with main: none will come until the conflict is solved (L-064).
   # "unknown" means GitHub has not computed it yet: keep waiting. Not while waiting for --sha: the state read
   # belongs to the previous commit.
   if [ -z "$run" ] && [ -n "$pr" ] && [ "$waiting_for_push" = 0 ] && [ "$state" = "dirty" ]; then
-    echo "XUNG ĐỘT: PR #$pr xung đột với nhánh chính, GitHub không chạy pr-check cho PR này. Gộp nhánh chính vào nhánh (git merge origin/main), sửa xung đột, đẩy, rồi gọi lại (L-048)."
+    echo "XUNG ĐỘT: PR #$pr xung đột với nhánh chính, GitHub không chạy pr-check cho PR này. Gộp nhánh chính vào nhánh (git merge origin/main), sửa xung đột, đẩy, rồi gọi lại (L-064)."
     exit 5
   fi
   if [ "$(date +%s)" -ge "$deadline" ]; then
@@ -154,7 +154,7 @@ jobs="$(gh api "repos/$repo/actions/runs/$id/jobs?per_page=50" 2> /dev/null || t
 failed="$(jq -r '[.jobs[]? | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out") | .name] | join(", ")' \
   <<< "$jobs" 2> /dev/null || true)"
 # A job GitHub never started (no runner: spending limit, billing) has no steps. Only when every failed job is such a
-# job is the run "infrastructure": one failed job that ran may be the code (L-046). A job without the "steps" key
+# job is the run "infrastructure": one failed job that ran may be the code (L-064). A job without the "steps" key
 # (unknown) does not count as unstarted.
 unstarted="$(jq -r '[.jobs[]? | select(.conclusion == "failure")] as $f
   | if ($f | length) > 0 and ($f | all(.steps? == [])) then ($f | map(.id | tostring) | join(" ")) else "" end' \
@@ -162,7 +162,7 @@ unstarted="$(jq -r '[.jobs[]? | select(.conclusion == "failure")] as $f
 if [ -n "$unstarted" ]; then
   reason="$(gh api "repos/$repo/check-runs/${unstarted%% *}/annotations" \
     --jq '[.[] | select(.annotation_level == "failure") | .message] | first // empty' 2> /dev/null || true)"
-  echo "HẠ TẦNG: GitHub không chạy job ${failed:-không rõ} của $what, lần chạy $id: ${reason:-GitHub không ghi lý do}. Không phải lỗi của code: không sửa code, không revert; người kiểm hạn mức GitHub Actions (Billing & plans), phiên làm theo docs/auto-run.md, mục 4 (L-046). $url"
+  echo "HẠ TẦNG: GitHub không chạy job ${failed:-không rõ} của $what, lần chạy $id: ${reason:-GitHub không ghi lý do}. Không phải lỗi của code: không sửa code, không revert; người kiểm hạn mức GitHub Actions (Billing & plans), phiên làm theo docs/auto-run.md, mục 4 (L-064). $url"
   exit 4
 fi
 echo "ĐỎ ($conclusion): $what, lần chạy $id; job: ${failed:-không rõ}. $url"

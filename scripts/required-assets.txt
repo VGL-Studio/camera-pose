@@ -1,4 +1,0 @@
-# Files on R2 that the app needs before any session can pass ui-test, one path per line, relative to the staging
-# ASSETS_BASE_URL in app/build.gradle.kts. scripts/preflight.sh checks each answers 200 (plan T-030, L-011).
-# A plan that adds a file the app requires adds its path here (docs/CLAUDE.md, Khi viết plan).
-poses/catalog/v1/catalog-587b5394.json

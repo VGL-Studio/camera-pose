@@ -26,7 +26,7 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 
 - không tự thêm vị trí quảng cáo ngoài spec
 - không đưa mã quảng cáo thật vào code hay tài liệu
-- không khởi tạo SDK quảng cáo trước khi xử lý xong sự đồng ý của người dùng
+- khởi tạo SDK quảng cáo theo luật đồng ý của `docs/ops/ads-business-rules.md`, mục 1 (ADR-0026)
 
 ### [ADR-0005](adr/0005-no-child-audience.md): Không nhắm tới trẻ em
 
@@ -62,7 +62,7 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 
 - chỉ merge bằng `scripts/merge-if-green.sh`
 - không sửa script này, các workflow trong `.github/` hay nội dung kiểm tra của cổng chất lượng, trừ khi đó chính là plan rủi ro cao đã được duyệt chéo
-- thấy nhãn `main-broken` thì dừng phiên
+- thấy nhãn `main-broken` thì dừng phiên, trừ trường hợp phiên tự revert commit merge của chính phiên theo ADR-0025
 
 ### [ADR-0011](adr/0011-toolchain-and-code-checks.md): Bộ công cụ build và kiểm tra code của dự án mẫu
 
@@ -78,15 +78,16 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 
 ### [ADR-0013](adr/0013-ads-consent-and-guardrails.md): Quảng cáo AdMob chỉ khởi động sau hộp thoại đồng ý UMP, mã quảng cáo production đưa vào lúc build phát hành
 
-- feature chỉ dùng `AdSlot`, `rememberShowInterstitial` và `PrivacyOptionsButton`
+- feature chỉ dùng composable và hàm của `:core:ads` và `PrivacyOptionsButton`
 - không gọi `AdsController` hay SDK quảng cáo từ feature
 - không viết mã quảng cáo thật vào code, tài liệu hay tham số build trong repo
-- gọi quảng cáo toàn màn hình chỉ ở điểm dừng tự nhiên, không bao giờ lúc mở hay đóng app
+- feature chỉ gọi quảng cáo toàn màn hình ở hành động của người dùng
+- quảng cáo lúc mở app và khi quay lại app do `:core:ads` và vỏ app làm theo `docs/ops/ads-business-rules.md` (ADR-0026)
 
 ### [ADR-0014](adr/0014-ads-default-values.md): Giá trị mặc định của tham số quảng cáo, thay bảng mặc định trong ADR-0013
 
-- không đổi các giá trị mặc định này khi không có quyết định mới của người phụ trách sản phẩm
-- vị trí mới vẫn mặc định tắt
+- vị trí mới mặc định tắt
+- giá trị mặc định của khóa quảng cáo theo bảng khóa của `docs/ops/ads-business-rules.md`, mục 10 (ADR-0026), chỉ đổi khi người phụ trách sản phẩm quyết
 
 ### [ADR-0015](adr/0015-r2-assets-module.md): Module `:core:assets` tải file tĩnh từ R2 một lần, giữ trên máy, đường dẫn bắt buộc có phiên bản
 
@@ -116,6 +117,66 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không gọi `android.util.Log` trong feature
 - khi test emulator đỏ, đọc bước "Chi tiết test trên emulator" trước khi sửa
 
+### [ADR-0023](adr/0023-remote-config-conventions.md): Khóa Remote Config phẳng, có kiểu, khai báo một chỗ trong code, sinh bảng khóa và file mẫu; staging có giá trị cục bộ
+
+- đặt tên khóa theo quy ước của ADR này (khóa quảng cáo theo ADR-0026 nếu ADR đó được duyệt)
+- không dùng khối JSON làm cấu hình
+- khai báo khóa mới kèm kiểu, mặc định an toàn và mô tả ở module sở hữu, rồi sinh lại bảng khóa trong cùng PR
+- không đổi tên hay đổi kiểu một khóa đã phát hành
+- không đổi giá trị trên Firebase (việc của người)
+
+### [ADR-0024](adr/0024-network-required.md): App chỉ dùng được khi có Internet; mất mạng thì app chặn bằng một popup chung có nút thử lại
+
+- không làm chế độ ngoại tuyến trong feature
+- feature không tự đọc trạng thái mạng của hệ thống, mất mạng do `:app` xử lý bằng popup chung
+- lỗi máy chủ trả về vẫn báo trong `UiState` kèm thử lại
+- spec mới không ghi tiêu chí "dùng được khi không có mạng"
+
+### [ADR-0025](adr/0025-main-self-healing.md): Nhánh chính tự hồi phục khi đỏ: chạy lại test hỏng một lần, tự đóng issue khi chạy lại xanh, merge bản revert được kiểm bằng nội dung
+
+- `main-guard` chạy lại `check.sh` một lần khi chỉ có test thất bại và ghi issue `flaky` nếu lần chạy lại xanh
+- khi `main-broken` mở, chỉ merge PR mà `scripts/is-exact-revert.sh` xác nhận là bản revert đúng của commit gây lỗi
+- không sửa hay cập nhật nhánh `revert/` trước khi merge
+- phiên chỉ revert commit merge của chính phiên, theo `docs/auto-run.md` mục Khi nhánh chính đỏ vì task của phiên
+- AI vẫn không đóng, sửa hay bình luận để gỡ issue `main-broken`
+- chép issue `flaky` đang mở vào báo cáo phiên
+- các quy tắc khác của ADR-0010 vẫn áp dụng
+
+### [ADR-0026](adr/0026-ads-follow-adskit-partner.md): Hành vi kinh doanh của quảng cáo theo bộ PARTNER của AdsKit, cách làm kỹ thuật theo cấu trúc của dự án mẫu
+
+- hành vi quảng cáo theo `docs/ops/ads-business-rules.md` (bộ PARTNER của AdsKit), không theo trí nhớ về AdsKit hay về ADR-0022
+- không chép code AdsKit và không chép khóa nào từ AdsKit
+- luật thuần của quảng cáo tách thành hàm có unit test với đồng hồ giả, đo thời gian bằng đồng hồ đơn điệu
+- khóa Remote Config quảng cáo dùng đúng tên trong bảng khóa của `ads-business-rules.md`, khóa mới cùng kiểu đặt tên và ghi rõ là tên do ta đặt
+- vị trí mới khai báo theo mô hình chung (mã, định dạng, nhóm giãn cách) với khóa suy ra theo mẫu, không thêm cờ, hàm hay composable mang tên tính năng của một app vào `:core:ads`
+- không ghi `ad_impression` từ app, doanh thu theo vị trí ghi bằng `ad_impression_placement`
+- giữ các quy tắc ở mục 10 của ADR-0026 kể cả khi spec yêu cầu khác, gặp yêu cầu như vậy thì ghi thành câu hỏi
+- không thêm vị trí, định dạng hay sự kiện ngoài spec đã duyệt
+
+### [ADR-0027](adr/0027-appsflyer.md): Dùng AppsFlyer trong :core:analytics cho doanh thu quảng cáo và phễu quảng cáo, khóa dev đưa vào lúc build, staging không gửi
+
+- chỉ gọi SDK AppsFlyer trong `:core:analytics`
+- không viết khóa dev AppsFlyer vào code, tài liệu, tham số build hay file trong repo
+- không gửi `af_revenue`, doanh thu quảng cáo chỉ qua `af_ad_revenue` bằng hàm ghi sự kiện thường
+- build không có khóa thì không khởi động AppsFlyer
+- không thêm sự kiện AppsFlyer ngoài `ads-business-rules.md` mục 8.3 và spec đã duyệt
+- mỗi sự kiện AppsFlyer đi qua công tắc từ xa của nó
+- không gửi dữ liệu cá nhân hay chữ người dùng nhập sang AppsFlyer
+
+### [ADR-0029](adr/0029-lech-pham-vi-lam-tiep-va-merge.md): Phiên tự chạy sửa tiếp phần ngoài plan cần cho task, merge rồi báo sau, thay vì dừng task
+
+- phần ngoài mục 3.2 cần để thay đổi của plan chạy đúng thì sửa tiếp và merge, không dừng task, không giới hạn số file hay module
+- vẫn dừng khi phải sửa file trong mục "Không được làm" của `CLAUDE.md`, khi phần ngoài plan thêm thư viện, quyền hay chạm điểm chặn 1 tới 6, 8, 9 của `risk-scoring.md` mà plan chưa nêu, hay khi gặp điều kiện dừng 3, 4, 6, 7, 8, 9
+- test cũ đỏ chỉ vì dữ liệu chưa có phần plan thêm thì cập nhật dữ liệu đó và vẫn kiểm dữ liệu mới
+- test cũ đỏ vì hành vi cũ bị hỏng thì sửa code, không sửa test
+- không xóa test hay câu khẳng định, không nới phép so sánh, không thêm `@Ignore`
+- ảnh chuẩn screenshot ngoài mục 3.2 lệch thì dừng
+- điều kiện dừng riêng ở mục 7 của plan vẫn áp dụng
+- ở bước 3 chạy test JVM của mọi module với `--continue` khi test viết trước đã biên dịch được
+- mỗi phần ngoài mục 3.2 ghi vào nhật ký plan, mô tả PR (mục "Ngoài mục 3.2" kèm `git diff --stat`) và một dòng `- [ ]` ở mục Cần người kiểm tra của báo cáo phiên
+- rà soát độc lập xét riêng phần đó, vi phạm là mức chặn
+- ở bước 6 phải sửa điểm nên sửa có test viết trước, giới hạn 3 lần sửa mỗi điểm và 2 vòng rà soát lại mỗi task
+
 ## Quyết định riêng của app
 
 ### [ADR-1001](adr/1001-loading-timeout-15s.md): Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config
@@ -123,23 +184,15 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - ở app này, màn loading chờ tối đa 15 giây cho cấu hình, catalog và từng file của bộ khởi đầu
 - các quy tắc khác của ADR-0018 vẫn áp dụng
 
-### [ADR-1002](adr/1002-main-tu-hoi-phuc.md): Nhánh chính tự hồi phục khi đỏ: chạy lại test hỏng một lần, tự đóng issue khi chạy lại xanh, merge bản revert được kiểm bằng nội dung
+### [ADR-1004](adr/1004-chua-ap-dung-quang-cao-adskit.md): App chưa áp dụng quảng cáo theo AdsKit và AppsFlyer cho tới đợt đồng bộ core, trong lúc đó giữ quy tắc quảng cáo cũ
 
-- ở app này, `main-guard` chạy lại `check.sh` một lần khi chỉ có test thất bại và ghi issue `flaky` nếu lần chạy lại xanh
-- khi `main-broken` mở, chỉ merge PR mà `scripts/is-exact-revert.sh` xác nhận là bản revert đúng của commit bị đổ lỗi
-- phiên chỉ revert commit merge của chính phiên
-- AI vẫn không đóng, sửa hay bình luận để gỡ issue `main-broken`
-- các quy tắc khác của ADR-0010 vẫn áp dụng
-
-### [ADR-1003](adr/1003-mo-rong-pham-vi-co-kiem-soat.md): Phiên tự chạy được nối chỗ gọi mà task khác cùng danh sách đổi, và phải tự sửa điểm nên sửa trong phạm vi plan, đều có test viết trước
-
-- chỉ áp dụng khi `docs/risk-scoring.md` (mục 4) và `docs/auto-run.md` (bước 6) đã dẫn tới ADR này (T-043)
-- ở app này, phiên được sửa file ngoài mục 3.2 chỉ để nối chỗ gọi mà task khác của cùng danh sách đã tạo hay đổi sau khi plan được duyệt
-- phần nối có test viết trước, tối đa 3 file và 40 dòng code mỗi task, không chạm file của điểm chặn ở mục 1 của `risk-scoring.md`
-- ở bước 6, phiên phải sửa điểm nên sửa nằm trong file được phép, có test viết trước thất bại đúng lý do, không đổi điều test của plan kiểm
-- điểm nên sửa mâu thuẫn với plan, spec hay test của plan thì ghi vào báo cáo kèm phương án, không tự sửa
-- mỗi phần ngoài mục 3.2 và mỗi lần sửa theo rà soát được ghi vào nhật ký plan và mô tả PR, và được rà soát độc lập xét riêng
-- mọi điều kiện dừng khác của `risk-scoring.md` vẫn áp dụng
+- chưa áp dụng ADR-0026, ADR-0027, các vế mà ghi chú ngày 2026-10-23 đổi trong ADR-0004, ADR-0013, ADR-0014, và vế "sinh lại bảng khóa" của ADR-0023, cho tới khi `core/ads` được đồng bộ qua plan đã duyệt
+- không khởi tạo SDK quảng cáo trước khi xử lý xong sự đồng ý của người dùng
+- feature chỉ dùng `AdSlot`, `rememberShowInterstitial` và `PrivacyOptionsButton`
+- gọi quảng cáo toàn màn hình chỉ ở điểm dừng tự nhiên, không bao giờ lúc mở hay đóng app
+- khóa quảng cáo dạng `ads_<vị trí>_enabled`, vị trí mới mặc định tắt
+- khai báo khóa Remote Config mới như các khóa hiện có trong `:core:config` cho tới khi app có `AppRemoteKeys`
+- không thêm AppsFlyer khi chưa có plan đồng bộ `core` được duyệt
 
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 

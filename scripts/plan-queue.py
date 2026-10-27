@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Picks the tickets whose plan the session drafts at the end of a run (plan T-045, L-061).
+"""Picks the tickets whose plan the session drafts at the end of a run (L-084).
 
-Usage: scripts/plan-queue.py [--max N]      (N defaults to 3)
+Usage: scripts/plan-queue.py [--max N]      (N defaults to 2)
 
-A ticket is picked when it is `ready`, has no `plan:`, and
+A ticket is picked when it is `backlog` or `ready`, has no `plan:`, and
   - its spec (when it has one) exists, is confirmed and has no unanswered question; a ticket with scenarios needs a spec;
-  - every `depends_on` ticket is merged, has a plan, or was picked earlier in the same pass;
+  - every `depends_on` ticket exists, is not stopped or cancelled, and is merged, has a plan,
+    or was picked earlier in the same pass;
   - no remote branch `origin/claude/plan-T-NNN[-...]` and no open pull request already holds a plan for it.
 Order: `sprint` (a number before a word before empty), then the ticket number.
 
 stdout: at most N lines `T-NNN<TAB><ticket path>`. stderr: one line per ticket skipped, with the reason.
 Exit 0 when the documents were read (also for an empty list); 2 when a document, a `git` or a `gh` call failed.
-Reads at most 100 open pull requests and 100 files per pull request (no paging). Writes no file. The session runs `git fetch origin` before calling it.
+Reads every open pull request and its files (gh api, page by page). Writes no file.
+The session runs `git fetch origin` before calling it.
 PLAN_QUEUE_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
 
@@ -27,6 +29,8 @@ ROOT = Path(os.environ.get("PLAN_QUEUE_ROOT", Path(__file__).resolve().parent.pa
 DOCS = ROOT / "docs"
 MERGED = {"on-staging", "accepted", "released"}
 DEAD = {"stopped", "cancelled"}
+# `backlog` is the status a new ticket gets; `ready` is optional, set by a dev who wants to mark it.
+OPEN = {"backlog", "ready"}
 
 
 def load_run_check():
@@ -69,6 +73,19 @@ def read_tickets(run_check):
     return tickets
 
 
+def api_all(path):
+    """Every item of a list endpoint. Pages are read with "&page=N" on the repos/<owner>/<repo> path: `gh api
+    --paginate` follows GitHub's Link header, which names the repository by numeric id, and the proxy of a cloud
+    session refuses such paths (L-092). The path must already end in "per_page=100"."""
+    items = []
+    for page in range(1, 51):
+        batch = json.loads(run(["gh", "api", f"{path}&page={page}"]) or "[]")
+        items.extend(batch)
+        if len(batch) < 100:
+            break
+    return items
+
+
 def plan_branches():
     out = run(["git", "-C", str(ROOT), "for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/claude/"])
     return out.split()
@@ -76,15 +93,15 @@ def plan_branches():
 
 def open_pr_files():
     url = run(["git", "-C", str(ROOT), "config", "--get", "remote.origin.url"]).strip()
-    repo = re.sub(r"\.git$", "", re.sub(r"^(git@github\.com:|https://github\.com/)", "", url))
-    if not re.fullmatch(r"[^/]+/[^/]+", repo):
-        fail(f"không xác định được repo từ remote: {url}")
-    pulls = json.loads(run(["gh", "api", f"repos/{repo}/pulls?state=open&per_page=100"]) or "[]")
+    # https (with or without credentials) or ssh; only owner/repo is kept, so credentials never reach a message.
+    match = re.match(r"^(?:https?://(?:[^@/\s]+@)?|ssh://git@|git@)github\.com[:/]([\w.-]+)/([\w.-]+?)(?:\.git)?/?$", url)
+    if not match:
+        fail("không xác định được repo GitHub từ remote.origin.url.")
+    repo = f"{match.group(1)}/{match.group(2)}"
     files = {}
-    for pull in pulls:
+    for pull in api_all(f"repos/{repo}/pulls?state=open&per_page=100"):
         number = pull["number"]
-        names = run(["gh", "api", f"repos/{repo}/pulls/{number}/files?per_page=100", "--jq", ".[].filename"])
-        files[number] = names.split()
+        files[int(number)] = [f["filename"] for f in api_all(f"repos/{repo}/pulls/{number}/files?per_page=100")]
     return files
 
 
@@ -106,10 +123,11 @@ def dependency_problem(ticket, tickets, chosen):
         other = tickets.get(dep)
         if other is None:
             return f"phụ thuộc {dep} không có ticket"
-        if other["status"] in MERGED or other.get("plan"):
-            continue
+        # A dead ticket blocks even when it has a plan: that plan will not be carried out.
         if other["status"] in DEAD:
             return f"phụ thuộc {dep} đang {other['status']}"
+        if other["status"] in MERGED or other.get("plan"):
+            continue
         return f"chờ {dep} ({other['status']}, chưa có plan)"
     return ""
 
@@ -126,7 +144,7 @@ def spec_problem(ticket):
 
 
 def main(argv):
-    limit = 3
+    limit = 2
     if argv:
         if len(argv) != 2 or argv[0] != "--max" or not argv[1].isdigit():
             print("Cách dùng: scripts/plan-queue.py [--max N]", file=sys.stderr)
@@ -135,7 +153,7 @@ def main(argv):
     tickets = read_tickets(run_check)
     branches = plan_branches()
     pr_files = open_pr_files()
-    candidates = [t for t in tickets.values() if t["status"] == "ready" and not t.get("plan")]
+    candidates = [t for t in tickets.values() if t["status"] in OPEN and not t.get("plan")]
     candidates.sort(key=lambda t: (sprint_key(t.get("sprint", "")), int(t["id"].split("-")[1])))
     chosen = []
     for ticket in candidates:

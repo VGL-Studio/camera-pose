@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Says whether main-guard passed on the newest commit of main that it has to check (L-055, plan T-041).
+# Says whether main-guard passed on the newest commit of main that it has to check (L-076).
 #
 # Usage:  scripts/main-guard-status.sh [<sha>]     (default: origin/main after a fetch)
 # Walks the first-parent history back from <sha> and stops at the first commit that has a main-guard run or
 # changes code (main-guard ignores docs-only commits, paths-ignore of main-guard.yml):
 #   0  green run                      XANH
-#   1  red run                        ĐỎ
+#   1  red run, with an open main-broken issue                                               ĐỎ
 #   2  run still going                CHỜ (with the time the workflow run was created, for wait-run.sh --since)
-#   3  code but no run (no push event from GitHub, L-054), a run that ended without a verdict (cancelled,
-#      timed out, ...), or no run within MAX_DEPTH commits                                   CHƯA KIỂM
+#   3  code but no run (no push event from GitHub after a merge, app lesson L-054 of camera-pose), a run that ended without a verdict (cancelled,
+#      timed out, ...), a red run with no open main-broken issue (the guard opens one for a red build, never for an
+#      infrastructure failure: checkout, Java, network), or no run within MAX_DEPTH commits   CHƯA KIỂM
 #   4  GitHub did not answer (unknown commit, network), or a wrong argument                  LỖI
 # A commit is skipped as docs-only only when GitHub lists its files, all of them docs, and it has one parent.
 # start-run.yml calls it before firing the routine; the session calls it at its start (docs/auto-run.md, section 2).
@@ -58,6 +59,11 @@ created_at() {
   gh api "repos/$REPO/actions/workflows/main-guard.yml/runs?head_sha=$1&per_page=1" --jq '.workflow_runs[0].created_at // empty'
 }
 
+# How many main-broken issues are open (the guard opens one, or comments on the open one, for every red build).
+open_broken() {
+  gh api "repos/$REPO/issues?state=open&labels=main-broken&per_page=10" --jq 'length'
+}
+
 parent_of() {
   gh api "repos/$REPO/commits/$1" --jq '.parents[0].sha // empty'
 }
@@ -67,7 +73,7 @@ say() { # <message>: an annotation inside GitHub Actions, plain text elsewhere
 }
 
 unreadable() { # <sha>
-  say "LỖI: không đọc được commit ${1:0:7} hay lần chạy main-guard của nó từ GitHub. Kiểm tra mạng và quyền đọc (checks: read), rồi chạy lại."
+  say "LỖI: không đọc được commit ${1:0:7}, lần chạy main-guard của nó hay issue main-broken từ GitHub. Kiểm tra mạng và quyền đọc (checks: read, issues: read), rồi chạy lại."
   exit 4
 }
 
@@ -82,7 +88,14 @@ while [[ -n "$current" && "$depth" -lt "$MAX_DEPTH" ]]; do
   short="${current:0:7}"
   case "$state" in
     success) say "XANH: main-guard qua trên $short."; exit 0 ;;
-    failure) say "ĐỎ: main-guard không qua trên $short. Không bắt đầu phiên khi nhánh chính đỏ."; exit 1 ;;
+    failure)
+      broken="$(open_broken 2>/dev/null)" && [[ "$broken" =~ ^[0-9]+$ ]] || unreadable "$current"
+      if [[ "$broken" != "0" ]]; then
+        say "ĐỎ: main-guard không qua trên $short. Không bắt đầu phiên khi nhánh chính đỏ."
+        exit 1
+      fi
+      say "CHƯA KIỂM: main-guard thất bại trên $short nhưng không có issue main-broken đang mở, nên đây là lỗi hạ tầng (checkout, Java, mạng), không phải code đỏ. Bấm Re-run all jobs trên lần chạy đó, hoặc: $HOW_TO_RUN"
+      exit 3 ;;
     pending)
       created="$(created_at "$current" 2>/dev/null)" || created=""
       say "CHỜ: main-guard đang chạy trên $short (lần chạy tạo lúc ${created:-không rõ}). Chờ xong rồi kích hoạt lại; phiên chờ bằng scripts/wait-run.sh --workflow main-guard.yml --since ${created:-<giờ tạo lần chạy>}."
@@ -97,7 +110,7 @@ while [[ -n "$current" && "$depth" -lt "$MAX_DEPTH" ]]; do
     unreadable "$current"
   read -r code_files all_files parents <<<"$shape"
   if [[ "$code_files" != "0" || "$all_files" == "0" || "${parents:-0}" -gt 1 ]]; then
-    say "CHƯA KIỂM: $short có thay đổi code nhưng main-guard chưa chạy (GitHub có thể đã không phát sự kiện push, L-054). $HOW_TO_RUN"
+    say "CHƯA KIỂM: $short có thay đổi code nhưng main-guard chưa chạy (GitHub có thể đã không phát sự kiện push). $HOW_TO_RUN"
     exit 3
   fi
   current="$(parent_of "$current" 2>/dev/null)" || unreadable "$current"

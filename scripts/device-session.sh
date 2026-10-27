@@ -14,7 +14,7 @@
 #                                              --ask-permissions keeps the permission prompts (to test that flow).
 #   scripts/device-session.sh stop             stop recording, collect device data, write summary.md
 #   scripts/device-session.sh summary <dir>    (re)write summary.md of a session folder; no device needed
-#   scripts/device-session.sh helper network-off|network-on|grant-permissions
+#   scripts/device-session.sh helper network-off|network-on|grant-permissions|launcher-activity
 #                                              functions of the scenarios, called by scripts/device-scenario.py
 # Exit codes: 0 done (summary: no blocking signal), 1 error or blocking signal (crash, ANR), 2 usage.
 #
@@ -81,10 +81,18 @@ network_off() {
   return 1
 }
 
+# Turns every radio back on, then waits (bounded) until the device has a default network again, so the next step
+# does not start offline. Returns 1 when no default network shows within the wait.
 network_on() {
+  local i
   adb shell cmd connectivity airplane-mode disable > /dev/null 2>&1 || true
   adb shell svc wifi enable > /dev/null 2>&1 || true
   adb shell svc data enable > /dev/null 2>&1 || true
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    [[ "$(default_network)" != "none" ]] && return 0
+    pause 1
+  done
+  return 1
 }
 
 # Writes a line into the device log, so the analysis can split the log by step.
@@ -180,6 +188,19 @@ cmd_reset() {
   echo "Đã xóa dữ liệu của ${pkg}, như vừa cài. Mở app để thử lần mở đầu."
 }
 
+# Prints the activity the scenarios start. A staging build may have several LAUNCHER activities (for example the ad
+# preview screen of T-014); `resolve-activity` then returns the system chooser, so the app's MainActivity is picked.
+launcher_activity() {
+  local all main
+  all="$(adb shell cmd package query-activities --brief -a android.intent.action.MAIN \
+    -c android.intent.category.LAUNCHER "$1" | tr -d '\r' | sed -nE 's#^[[:space:]]*([^[:space:]=]+/[^[:space:]]+)$#\1#p')"
+  main="$(grep -E '[./]MainActivity$' <<<"${all}" | head -n 1 || true)"
+  if [[ -z "${main}" && -n "${all}" && "$(wc -l <<<"${all}" | tr -d ' ')" -eq 1 ]]; then
+    main="${all}"
+  fi
+  echo "${main}"
+}
+
 cmd_scenarios() {
   [[ "${1:-}" == "--yes" ]] || fail "kịch bản sẽ xóa dữ liệu của app và bật, tắt chế độ máy bay. Chạy lại với --yes nếu đồng ý."
   local ask_permissions=0
@@ -193,8 +214,8 @@ cmd_scenarios() {
   local dir pkg activity i out
   dir="$(sed -n 1p "${STATE_FILE}")"
   pkg="$(sed -n 3p "${STATE_FILE}")"
-  activity="$(adb shell cmd package resolve-activity --brief -c android.intent.category.LAUNCHER "${pkg}" | tail -n 1 | tr -d '\r')"
-  [[ "${activity}" == */* ]] || fail "không tìm thấy màn hình khởi động của ${pkg}."
+  activity="$(launcher_activity "${pkg}")"
+  [[ "${activity}" == */* ]] || fail "không tìm thấy màn hình khởi động của ${pkg} (cần đúng một activity LAUNCHER, hoặc một activity tên MainActivity)."
   : > "${dir}/scenarios.txt"
   # Clearing the data also revokes runtime permissions, so they are granted again after every clear.
   clear_data() {
@@ -235,7 +256,7 @@ cmd_scenarios() {
     echo "offline_first_launch network=still_on skipped" >> "${dir}/scenarios.txt"
     echo "CHÚ Ý: tắt mạng không được (máy vẫn có mạng mặc định $(default_network)); bỏ qua kịch bản mất mạng." >&2
   fi
-  network_on
+  network_on || echo "CHÚ Ý: bật lại mạng nhưng máy chưa có mạng mặc định; các bước sau có thể chạy khi mất mạng." >&2
   pause 10
 
   # 3. Random taps and swipes inside the app, with a fixed seed so a crash can be reproduced.
@@ -249,7 +270,9 @@ cmd_scenarios() {
   local runner_status=0 runner="${DEVICE_SCENARIO_CMD:-python3 scripts/device-scenario.py}"
   # shellcheck disable=SC2086
   if command -v timeout > /dev/null; then
-    # -k: a runner that ignores SIGTERM is killed 30 seconds later (the runner kills its adb child on SIGTERM).
+    # The runner keeps its per-file resets inside DEVICE_SCENARIOS_BUDGET; the 120 seconds cover its last reset
+    # (DEVICE_SCENARIO_RESET_LIMIT, default 60). On SIGTERM it resets within 25 seconds, inside the -k 30 window;
+    # a runner that ignores SIGTERM (an adb child stuck in the kernel) is killed 30 seconds later.
     timeout -k 30 "$((${DEVICE_SCENARIOS_BUDGET:-1300} + 120))" ${runner} run --session "${dir}" --package "${pkg}" || runner_status=$?
   else
     ${runner} run --session "${dir}" --package "${pkg}" || runner_status=$?
@@ -269,6 +292,7 @@ cmd_helper() {
     network-off) network_off ;;
     network-on) network_on ;;
     grant-permissions) grant_permissions "$(app_package)" ;;
+    launcher-activity) launcher_activity "$(app_package)" ;;
     *) usage ;;
   esac
 }

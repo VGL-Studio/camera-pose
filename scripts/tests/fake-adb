@@ -5,23 +5,27 @@
 # "none", i.e. offline). `exec-out cat` prints $FAKE_ADB_UI (a UI dump), `find /sdcard` prints $FAKE_ADB_FILES.
 # Every call is appended to $FAKE_ADB_CALLS when set.
 # `dumpsys package` lists $FAKE_ADB_RUNTIME_PERMISSIONS (space-separated) as runtime permissions; `pm grant` fails
-# for the permissions in $FAKE_ADB_GRANT_FAILS.
+# for the permissions in $FAKE_ADB_GRANT_FAILS. `query-activities` lists the LAUNCHER activities in $FAKE_ADB_LAUNCHERS
+# (space-separated; default: one MainActivity).
 # UI dumps for scripts/device-scenario.py: `uiautomator dump` takes the next file of $FAKE_ADB_UI_SEQ (space-separated
 # paths; the count is kept in $FAKE_ADB_STATE_DIR/ui-seq.n, default $TMPDIR; the last file repeats) and `exec-out cat`
 # prints it. A file named *.idle-error makes the dump print "ERROR: could not get idle state." and print nothing.
 # $FAKE_ADB_HANG names a shell subcommand (for example uiautomator) that never returns. `wm size` and `wm density`
-# report a $FAKE_ADB_PHYSICAL_SIZE (default 1080x2400) screen at 420 dpi.
+# report a $FAKE_ADB_PHYSICAL_SIZE (default 1080x2400) screen at 420 dpi. `settings get system
+# accelerometer_rotation|user_rotation` print $FAKE_ADB_ACCELEROMETER_ROTATION (default 1) and $FAKE_ADB_USER_ROTATION (default 0); `cmd uimode night` prints
+# $FAKE_ADB_NIGHT (default no). With $FAKE_ADB_NETWORK_ON set, `svc wifi enable` makes `dumpsys connectivity` report
+# that network and `svc wifi disable` takes it away again (state in $FAKE_ADB_STATE_DIR).
 # `logcat -b crash -d` prints $FAKE_ADB_CRASH_LOG (default nothing) and returns.
 # `getprop ro.build.version.sdk` prints $FAKE_ADB_SDK (default 34), `getprop persist.sys.locale` $FAKE_ADB_LOCALE
-# (default en-US); `cmd locale set-app-locales ... --locales` fails when $FAKE_ADB_LOCALE_FAILS is set (plan T-054).
+# (default en-US); `cmd locale set-app-locales ... --locales` fails when $FAKE_ADB_LOCALE_FAILS is set (camera-pose T-054).
 # `log -t <tag> <text>` appends a logcat line to $FAKE_ADB_LOGCAT_FILE when set, then $FAKE_ADB_KILL_LINE when set
 # (with FAKE_ADB_KILL_ONCE=1 only after the first line, counted in $FAKE_ADB_STATE_DIR/kills.n).
-# The app process (plan T-048) is only simulated when $FAKE_ADB_STATE_DIR is set; without it `pidof` prints nothing.
+# The app process (camera-pose T-048) is only simulated when $FAKE_ADB_STATE_DIR is set; without it `pidof` prints nothing.
 # With it: `am start -W` counts the starts in starts.n and leaves the process alive (file `alive`) once the count is
 # above $FAKE_ADB_DEAD_STARTS (default 0); `pm clear` and `am force-stop` kill it; `pidof` prints 4242 while it is
 # alive; a hanging subcommand writes its pid to hang.pid and, with FAKE_ADB_ALIVE_AFTER_HANG=1, leaves the process
 # alive first (an app that starts slowly but runs). When $FAKE_ADB_PIDOF_TEXT is set, `pidof` prints it and returns 0
-# (plan T-049: an adb error with digits, or several pids).
+# (camera-pose T-049: an adb error with digits, or several pids).
 [[ -n "${FAKE_ADB_CALLS:-}" ]] && echo "$*" >> "${FAKE_ADB_CALLS}"
 case "$1" in
   get-state) [[ -n "${FAKE_ADB_NO_DEVICE:-}" ]] && exit 1; echo device ;;
@@ -32,7 +36,9 @@ case "$1" in
     exec sleep 300 ;;
   shell)
     shift
-    if [[ -n "${FAKE_ADB_HANG:-}" && "$*" == "${FAKE_ADB_HANG}"* ]]; then
+    # With FAKE_ADB_HANG_ONCE=1 only the first matching call hangs (hang.pid exists afterwards).
+    if [[ -n "${FAKE_ADB_HANG:-}" && "$*" == "${FAKE_ADB_HANG}"* && \
+      ! ( "${FAKE_ADB_HANG_ONCE:-}" == 1 && -s "${FAKE_ADB_STATE_DIR:-/nonexistent}/hang.pid" ) ]]; then
       if [[ -n "${FAKE_ADB_STATE_DIR:-}" ]]; then
         mkdir -p "${FAKE_ADB_STATE_DIR}"
         echo "$$" > "${FAKE_ADB_STATE_DIR}/hang.pid"
@@ -88,8 +94,25 @@ case "$1" in
       "dumpsys gfxinfo"*) printf 'Total frames rendered: 400\nJanky frames: 3 (0.75%%)\n' ;;
       "dumpsys meminfo"*) echo "        TOTAL PSS:    51234" ;;
       "find /sdcard"*) cat "${FAKE_ADB_FILES:-/dev/null}" ;;
-      "dumpsys connectivity"*) echo "Active default network: ${FAKE_ADB_NETWORK:-none}" ;;
-      "cmd package resolve-activity"*) echo "com.example.app/.MainActivity" ;;
+      "dumpsys connectivity"*)
+        network="${FAKE_ADB_NETWORK:-none}"
+        if [[ -n "${FAKE_ADB_NETWORK_ON:-}" && -f "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/network-on" ]]; then
+          network="${FAKE_ADB_NETWORK_ON}"
+        fi
+        echo "Active default network: ${network}" ;;
+      "svc wifi enable")
+        if [[ -n "${FAKE_ADB_NETWORK_ON:-}" ]]; then
+          mkdir -p "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}"
+          : > "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/network-on"
+        fi ;;
+      "svc wifi disable") rm -f "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/network-on" ;;
+      "settings get system accelerometer_rotation") echo "${FAKE_ADB_ACCELEROMETER_ROTATION:-1}" ;;
+      "settings get system user_rotation") echo "${FAKE_ADB_USER_ROTATION:-0}" ;;
+      "cmd uimode night") echo "Night mode: ${FAKE_ADB_NIGHT:-no}" ;;
+      "cmd package query-activities"*)
+        for a in ${FAKE_ADB_LAUNCHERS:-com.example.app/.MainActivity}; do
+          printf '  Activity #0:\r\n    priority=0 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=false\r\n    %s\r\n' "$a"
+        done ;;
       "am start -W"*)
         if [[ -n "${FAKE_ADB_STATE_DIR:-}" ]]; then
           mkdir -p "${FAKE_ADB_STATE_DIR}"

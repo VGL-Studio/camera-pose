@@ -3,5 +3,5 @@ criterion: Mẫu thiếu môi trường
 timeout: 30
 # need does not match at step 2
 back
-need id=camera_missing 1
+need id=sensor_missing 1
 shot never

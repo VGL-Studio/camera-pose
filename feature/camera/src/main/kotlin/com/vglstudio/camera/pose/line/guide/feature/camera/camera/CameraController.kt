@@ -14,6 +14,9 @@ interface CameraController {
     /** Binds preview and capture for [lens]. Throws [CameraOpenException]. */
     suspend fun open(lens: Lens, flash: FlashMode): CameraCapabilities
 
+    /** The lenses this device has; empty when the camera system cannot say (spec camera, KB-4, T-064). */
+    suspend fun availableLenses(): Set<Lens> = Lens.entries.toSet()
+
     fun setFlash(mode: FlashMode)
 
     fun setZoom(ratio: Float)

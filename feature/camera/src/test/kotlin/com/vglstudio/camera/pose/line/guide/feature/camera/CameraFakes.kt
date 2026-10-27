@@ -29,6 +29,10 @@ internal class FakeCameraController : CameraController {
     var captureCount = 0
     var capabilities = CameraCapabilities(hasFlash = true, minZoomRatio = 1f, maxZoomRatio = 8f)
     var openError: Throwable? = null
+    var lenses: Set<Lens> = Lens.entries.toSet()
+
+    override suspend fun availableLenses(): Set<Lens> = lenses
+
     var captureError: Throwable? = null
 
     /** When set, open waits for it, so a test can tap during an open. */

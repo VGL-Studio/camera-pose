@@ -57,7 +57,7 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 
 ### Nhánh chưa đẩy
 
-<Không có. Hoặc chép đoạn "Nhánh chưa đẩy" mà `scripts/save-branch.sh` in ra: nhánh, mã commit, đường dẫn bundle, lệnh lấy lại (auto-run.md, bước 7).>
+<Không có. Hoặc chép đoạn "Nhánh chưa đẩy" mà `scripts/save-branch.sh` in ra: nhánh, mã commit, đường dẫn bundle, lệnh lấy lại từ bundle, và dòng "Patch trên nhánh báo cáo" kèm lệnh lấy lại (khi GitHub từ chối vì quyền `workflow`), hay dòng ghi chú vì sao không có patch (auto-run.md, bước 7).>
 
 ### Kết quả từng task
 

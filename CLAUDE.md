@@ -43,7 +43,8 @@ Quy tắc phụ thuộc (ADR-0001, kiểm tra tự động bằng `checkModuleDe
 - Kiểm tra cả danh sách chạy trước khi duyệt (spec đã chốt, phụ thuộc, kịch bản có test, plan cùng sửa một file): `scripts/run-check.py docs/runs/RUN-YYYYMMDD-NN.md` (`docs/ops/pre-run-review.md`).
 - Chờ một workflow GitHub Actions xong trong một lệnh: `scripts/wait-run.sh --pr <số> [--sha <commit>]` hoặc `--workflow <file.yml> --since <giờ UTC>` (`docs/auto-run.md`, bước 8).
 - Tra một lỗi của CI hay script trong bảng tra lỗi đã biết: `scripts/failure-kind.sh --playbook <log>` (`docs/ops/failure-playbook.md`, `docs/auto-run.md` bước 8).
-- Đẩy nhánh task, thử lại khi lỗi mạng, giữ thành bundle khi không đẩy được: `scripts/save-branch.sh <nhánh>` (`docs/auto-run.md`, bước 3 và 7).
+- Đẩy nhánh task, thử lại khi lỗi mạng, giữ thành bundle khi không đẩy được: `scripts/save-branch.sh <nhánh>` (`docs/auto-run.md`, bước 3 và 7); GitHub từ chối vì quyền `workflow` thì còn ghi patch lên nhánh báo cáo cho người xem (T-068).
+- Xem phiên tự chạy nào đứng im (danh sách `running`, không có commit 60 phút): `scripts/run-watchdog.py`; `run-watchdog.yml` chạy nó mỗi 30 phút và mở issue `session-stalled` (T-068).
 - Thử ở đầu phiên có plan sửa `.github/workflows/` xem phiên đẩy được thay đổi workflow không: `scripts/push-probe.sh RUN-YYYYMMDD-NN` (`docs/ops/session-capabilities.md`, `docs/auto-run.md` mục 2).
 - Chọn ticket cho hàng chờ plan cuối phiên: `scripts/plan-queue.py [--max N]` (`docs/auto-run.md`, mục 4).
 - Đếm token AI theo task của một phiên: `scripts/token-usage.py report --since <giờ bắt đầu>`; số gợi ý cho `token_estimate` của plan: `scripts/token-usage.py estimate` (`docs/ops/token-usage.md`).

@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-26
+confirmed: 2026-10-27
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -101,6 +101,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi bấm nút hẹn giờ thì hẹn giờ đổi lần lượt: tắt, 3 giây, 10 giây; khi bật, nút ở trạng thái đang bật và hiện số giây ("3s", "10s").
 - [ ] Khi bấm nút lưới thì lưới chia ba hiện hoặc ẩn trên khung xem trước; nút ở trạng thái đang bật khi lưới hiện.
 - [ ] Khi bấm nút đổi camera thì camera đổi giữa trước và sau; nét viền và tư thế giữ nguyên.
+- [ ] Khi máy chỉ có một camera thì nút đổi camera mờ đi, không bấm được; camera mở bằng camera máy có, kể cả khi lần trước đã chọn camera kia (FB-20261027-01, câu hỏi 17).
 - [ ] Khi máy có ống kính góc rộng thì nút zoom có 0.5x, 1x, 2x; không có thì chỉ có 1x và 2x. Mức đang chọn có nền màu nhấn.
 - [ ] Khi mở lại app thì hẹn giờ, lưới, flash, camera trước sau giữ như lần trước; zoom về 1x.
 
@@ -311,6 +312,9 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 16. **Các nút khác khi đang đếm ngược** (FB-20261026-04, ticket T-061). KB-6 chỉ nói nút chụp thành nút hủy; mọi nút khác vẫn bấm được và đổi được ảnh sắp chụp.
    - Đề xuất của AI: như các app camera phổ biến, khóa các nút đổi ảnh sắp chụp (flash, lưới, hẹn giờ, tư thế, nét viền); chạm khung xem trước, đổi camera hay rời màn thì dừng đếm; zoom vẫn dùng được.
    - Trả lời: Tuấn, 2026-10-26: đồng ý đề xuất.
+17. **Nút đổi camera khi máy chỉ có một camera** (FB-20261027-01, ticket T-064). KB-4 chỉ nói bấm thì đổi giữa trước và sau; máy một camera bấm vào thì camera báo lỗi và lỗi còn sau khi mở lại app, vì lựa chọn đã lưu.
+   - Đề xuất của AI: nút mờ đi, không bấm được, như khi camera chưa sẵn sàng (trạng thái đã có trong thiết kế), không ẩn, để bố cục không đổi; camera mở bằng camera máy có; lựa chọn đã lưu giữ nguyên.
+   - Trả lời: Tuấn đồng ý đề xuất ngày 2026-10-27: nút mờ đi, không bấm được; camera mở bằng camera máy có; lựa chọn đã lưu giữ nguyên.
 
 ## 10. Lịch sử
 
@@ -323,7 +327,9 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | 2026-10-22 | AI | Ghi quyết định của Nhật ở plan T-016 (câu 1, phương án A): Android 9 trở xuống hỏi quyền lưu tệp vào bộ nhớ máy ở lần lưu đầu; thêm tiêu chí từ chối, từ chối và không hỏi lại, quyền của app (mục 2, KB-6, mục 4, mục 6); câu hỏi 10 (chữ thông báo, việc của dev trên Play Console) và 11 (sự kiện). Tuấn xác nhận lại ngày 2026-10-23 |
 | 2026-10-23 | AI | Ghi quyết định của Tuấn ở plan T-017, T-018, T-019: bỏ tiêu chí dung lượng APK (KB-5, câu 12); phiên của giới hạn quảng cáo là một lần chạy của app, mốc quảng cáo không lưu xuống máy (mục 5, mục 6, câu 13); chỉ hỏi đánh giá khi lần xem lại đó đã lưu ảnh (KB-10, câu 14). Tuấn xác nhận lại ngày 2026-10-23 |
 | 2026-10-26 | AI | Đề xuất theo FB-20261024-01 (plan T-056): màn lớn (cạnh ngắn từ 600 dp) không khóa dọc, app dùng cả màn hình theo hướng của máy; điện thoại vẫn khóa dọc (mục 2, KB-11 thêm hai tiêu chí, câu 7 phần bổ sung, câu 15). Chờ người phụ trách sản phẩm xác nhận |
+| 2026-10-27 | Tuấn | Xác nhận phần đổi theo FB-20261027-01 (KB-4, câu hỏi 17): nút đổi camera mờ đi khi máy chỉ có một camera. Chuyển lại `confirmed` |
 | 2026-10-26 | Tuấn | Xác nhận phần đổi của plan T-056 (mục 2, KB-11, câu 7 phần bổ sung, câu 15). Chuyển lại `confirmed` |
 | 2026-10-26 | Tuấn | Đổi nhãn của thanh trượt độ đậm nét viền thành "Độ đậm" (KB-3, bảng dữ liệu lưu trên máy), vì nhãn cũ đọc ngược nghĩa khi đi cùng phần trăm (L-077, plan T-055); thiết kế Figma sửa cùng lúc. Không đổi hành vi. Giữ `confirmed` |
 | 2026-10-26 | AI | Đề xuất theo phản hồi dùng trên máy thật của Tuấn: chạm thẻ bước để ẩn (KB-2, câu hỏi 2 phần bổ sung, FB-20261026-02); nét viền không vẽ ra ngoài khung (KB-3, FB-20261026-03); khóa nút và dừng đếm khi đang đếm ngược (KB-6, câu hỏi 16, FB-20261026-04); KB-3 sửa chữ "độ mờ" còn sót thành "độ đậm". Chờ người phụ trách sản phẩm xác nhận |
 | 2026-10-26 | Tuấn | Xác nhận phần đổi theo FB-20261026-02 đến -04 (KB-2, KB-3, KB-6, câu hỏi 2 phần bổ sung, câu hỏi 16). Chuyển lại `confirmed` |
+| 2026-10-27 | AI | Đề xuất theo FB-20261027-01 (plan T-064): máy chỉ có một camera thì nút đổi camera mờ đi, camera mở bằng camera máy có (KB-4, câu hỏi 17). Chờ người phụ trách sản phẩm xác nhận |

@@ -132,3 +132,4 @@ jobs:
           fi
           session_url="$(jq -r '.claude_code_session_url // empty' response.json)"
           echo "Kiểm tra môi trường đã bắt đầu: ${session_url:-API không trả về đường dẫn}" >> "${GITHUB_STEP_SUMMARY}"
+# probe: workflow push permission check

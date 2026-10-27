@@ -21,6 +21,7 @@ Phiên tự chạy dừng hay merge sai thường vì những lỗi đã nằm s
 | Hai plan cùng ghi Tạo một file, kể cả khi phụ thuộc nhau (L-054) | Chú ý |
 | Danh sách xếp ngược dòng "Đề xuất thứ tự chạy" ở mục 6 của một plan ("A trước B", "sau A", "nhóm ...: A, B, C", "A, rồi B"; không tính chữ trong ngoặc kép, "trước hay sau", câu "... thì ...", câu "không cần") (L-078) | Lỗi |
 | Plan nhắc một file mà plan khác trong danh sách tạo, không có file đó ở mục 3.2 của mình và không phụ thuộc plan kia: lỗi khi đứng trước, chú ý (kèm file sẽ thiếu nếu plan kia dừng) khi đứng sau (L-078) | Lỗi hoặc chú ý |
+| Plan có hàng ở bảng file của mục 3.2 cần một khả năng mà cách mở phiên (`open_with`) không có, theo `docs/ops/session-capabilities.md`: lỗi khi ô ghi `không`, chú ý khi ghi `thử` (phiên thử ở đầu phiên); `open_with` trống hay sai mà có plan cần khả năng: chú ý; mẫu của bảng viết sai: chú ý (camera-pose L-086) | Lỗi hoặc chú ý |
 
 Muốn giữ thứ tự ngược với một đề xuất của plan (ví dụ hai task chỉ chung vài dòng), ghi vào danh sách chạy một dòng `Bỏ đề xuất thứ tự: A trước B` kèm lý do, trong mục Lý do của thứ tự chạy; lỗi khi đó thành chú ý. Lỗi phải sửa trước khi đưa danh sách cho dev. Mỗi dòng chú ý được xem ở lớp thứ hai và ghi kết luận.
 
@@ -28,7 +29,7 @@ Muốn giữ thứ tự ngược với một đề xuất của plan (ví dụ h
 
 Một phiên AI riêng làm việc này, ví dụ một agent con, với ngữ cảnh mới. Phiên này chỉ nhận: danh sách chạy, kết quả `run-check.py`, các plan, ticket, spec, thiết kế và ADR liên quan, cùng nội dung hiện tại của các file trong mục 3.2 của mỗi plan. Phiên không nhận quá trình viết plan, để không mang theo giả định của người viết, giống bước 6 của `docs/auto-run.md`.
 
-Nội dung giao việc tối thiểu: "Rà soát danh sách chạy `<đường dẫn>` theo `docs/ops/pre-run-review.md`, mục 2. Chỉ đọc, không sửa file. Trả về bảng kết quả theo mục 3."
+Nội dung giao việc tối thiểu: "Rà soát danh sách chạy `<đường dẫn>` theo `docs/ops/pre-run-review.md`, mục 2. Chỉ đọc, không sửa file. Trả về bảng kết quả theo mục 3. Trả lời câu hỏi về cách mở phiên ở mục 2.3 cho từng plan."
 
 ### 2.1. Mâu thuẫn
 
@@ -57,6 +58,7 @@ Nội dung giao việc tối thiểu: "Rà soát danh sách chạy `<đường d
 
 ### 2.3. Chạy được trong phiên
 
+- **Cách mở phiên (bắt buộc, trả lời cho từng plan):** với `open_with` của danh sách, phiên làm được mọi bước của plan không: đẩy file (`.github/workflows/` cần quyền `workflow`), mạng (R2 hay máy chủ ngoài qua proxy bị 403), bí mật (chỉ có trong GitHub Actions), công cụ (emulator chỉ có trong CI), đọc repo khác, tự tiếp tục khi hết hạn mức. Đối chiếu `docs/ops/session-capabilities.md`, cả với bước không có đường dẫn ở mục 3.2 (lệnh, workflow phải chạy, file phải đọc). Bước không làm được mà plan không có cách thay ở mục 3.4 là mức chặn (camera-pose L-086).
 - Kỹ thuật lần đầu dùng (tiêu chí E từ 2) đã chạy thử bằng `scripts/check.sh`, ghi ở mục 4.1 (L-042).
 - Điểm còn chưa chắc có phương án dự phòng ở mục 3.4 với điều kiện chuyển cụ thể (L-041).
 - Plan không dùng cách mà `scripts/check.sh` từ chối (L-042).

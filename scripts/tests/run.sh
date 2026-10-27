@@ -1672,6 +1672,84 @@ plan3 '- Đề xuất thứ tự chạy: T-003 chạy trước T-002.'
 expect "run-check: a hint with this plan as subject that the list follows passes" pass "$(run_check)"
 rm -f "$rr/docs/features/demo/tickets/T-003-x.md" "$rr/docs/features/demo/plans/T-003-x.md" "$rr/feature/demo/C.kt"
 
+# Rule 8: what the way of opening the session can do (L-086 of camera-pose).
+mkdir -p "$rr/docs/ops" "$rr/.github/workflows"
+touch "$rr/.github/workflows/ci.yml"
+cap_table() { # <cloud> <routine> <local>: the value of workflow-push for each way of opening
+  printf -- '# x\n\n| `workflow-push` | `^docs/` | không | không | không | outside the markers |\n\n<!-- capabilities:start -->\n| Khả năng | Mẫu đường dẫn ở mục 3.2 | cloud | routine | local | Ghi chú |\n| --- | --- | --- | --- | --- | --- |\n| `workflow-push` | `^\\.github/workflows/` | %s | %s | %s | x |\n| `r2-network` | - | không | không | có | x |\n<!-- capabilities:end -->\n\n| Khả năng | Mẫu | cloud | routine | local | Ghi chú |\n| --- | --- | --- | --- | --- | --- |\n| `workflow-push` | `^docs/` | không | không | không | another table after the markers |\n' \
+    "$1" "$2" "$3" > "$rr/docs/ops/session-capabilities.md"
+}
+open_with() { # <value>: sets open_with in the front matter of the run list written by write_run
+  perl -0pi -e "s/^status: draft\n/status: draft\nopen_with: $1\n/m" "$rr/docs/runs/RUN-1.md"
+}
+high_risk() { # <id>: a plan that touches .github/ is high risk with a cross reviewer (risk-scoring.md, mục 1)
+  perl -0pi -e 's/^risk_level: medium\n/risk_level: high\nblocking_points: [ci]\ncross_reviewer: B\n/m' "$rr/docs/features/demo/plans/$1-x.md"
+}
+write_ticket T-004 ''
+write_run_plan T-004 .github/workflows/ci.yml '| KB-1 | Unit | `cTest` |'
+high_risk T-004
+cap_table thử thử có
+write_run "$(run_row 1 T-001)$(run_row 2 T-004)"
+open_with cloud
+expect "run-check: a workflow plan in a cloud session that must probe passes" pass "$(run_check)"
+expect "run-check: ... and warns that the session probes at its start" 1 \
+  "$(grep -c "CHÚ Ý: T-004 cần 'workflow-push' (\`.github/workflows/ci.yml\` ở mục 3.2): phiên mở bằng cloud phải thử ở đầu phiên" "$work/run-check.out" || true)"
+cap_table không thử có
+expect "run-check: a workflow plan in a session that cannot push workflows stops" stop "$(run_check)"
+expect "run-check: the error names the task, the capability, the path and the way of opening" 1 \
+  "$(grep -c "LỖI: T-004 cần 'workflow-push' (\`.github/workflows/ci.yml\` ở mục 3.2) mà phiên mở bằng cloud không có" "$work/run-check.out" || true)"
+expect "run-check: a plan without a workflow path gets no capability message" 0 "$(grep -c 'T-001 cần' "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-004)"
+open_with local
+expect "run-check: the same plan in a local session passes" pass "$(run_check)"
+expect "run-check: a local session that can push workflows says nothing about it" 0 "$(grep -c 'workflow-push' "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-004)"
+open_with cloud
+expect "run-check: RUN_CHECK_OPEN_WITH overrides open_with" pass "$(RUN_CHECK_OPEN_WITH=local run_check)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-004)"
+expect "run-check: a list without open_with whose plan needs a capability passes" pass "$(run_check)"
+expect "run-check: ... and warns that open_with is missing" 1 "$(grep -c "CHÚ Ý: danh sách chưa ghi open_with.*nhận ''.*T-004" "$work/run-check.out" || true)"
+open_with clould
+expect "run-check: an unknown open_with is read as missing" 1 "$(run_check > /dev/null; grep -c "chưa ghi open_with.*nhận 'clould'" "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+expect "run-check: a list without open_with and without such plans has no open_with message" 0 \
+  "$(run_check > /dev/null; grep -c 'open_with' "$work/run-check.out" || true)"
+write_run_plan T-002 .github/workflows/ci.yml '| KB-1 | Unit | `bTest` |'
+high_risk T-002
+write_run "$(run_row 1 T-002)$(run_row 2 T-004)"
+open_with cloud
+expect "run-check: every plan that needs the missing capability is an error" 2 "$(run_check > /dev/null; grep -c "LỖI: T-00[24] cần 'workflow-push'" "$work/run-check.out" || true)"
+write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa 'Cách làm: xem `.github/workflows/ci.yml`, không sửa.'
+write_run "$(run_row 1 T-001)"
+open_with cloud
+expect "run-check: a workflow path only in the prose of a plan needs nothing" "pass 0" "$(run_check) $(grep -c 'workflow-push' "$work/run-check.out" || true)"
+printf -- '<!-- capabilities:start -->\n| Khả năng | Mẫu đường dẫn ở mục 3.2 | local | routine | cloud |\n| --- | --- | --- | --- | --- |\n| `workflow-push` | `^\\.github/workflows/` | có | có | không |\n| `broken` | `(` | có | có | có |\n<!-- capabilities:end -->\n' > "$rr/docs/ops/session-capabilities.md"
+write_run "$(run_row 1 T-004)"
+open_with cloud
+expect "run-check: columns are read by their header" stop "$(run_check)"
+expect "run-check: a pattern that does not compile is a warning" 1 "$(grep -c "CHÚ Ý: docs/ops/session-capabilities.md: mẫu của 'broken' không đọc được" "$work/run-check.out" || true)"
+write_run "$(run_row 1 T-004)"
+open_with local
+expect "run-check: the same reordered table lets a local session pass" pass "$(run_check)"
+cap_table không thử có
+touch "$rr/docs/x.md"
+write_run_plan T-001 docs/x.md '| KB-1 | Unit | `aTest` |'
+write_run "$(run_row 1 T-001)"
+open_with cloud
+expect "run-check: a row outside the markers and a row without a pattern are not checked" pass "$(run_check)"
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
+cp docs/ops/session-capabilities.md "$rr/docs/ops/session-capabilities.md" 2> /dev/null || rm -f "$rr/docs/ops/session-capabilities.md"
+write_run "$(run_row 1 T-004)"
+open_with cloud
+expect "run-check: the table of the repository asks a cloud session to probe workflow pushes" 1 \
+  "$(run_check > /dev/null; grep -c "CHÚ Ý: T-004 cần 'workflow-push'.*cloud phải thử" "$work/run-check.out" || true)"
+rm -f "$rr/docs/ops/session-capabilities.md"
+write_run "$(run_row 1 T-004)"
+open_with cloud
+expect "run-check: without the table no capability is checked" "pass 0" "$(run_check) $(grep -c 'workflow-push' "$work/run-check.out" || true)"
+rm -rf "$rr/docs/x.md" "$rr/docs/features/demo/tickets/T-004-x.md" "$rr/docs/features/demo/plans/T-004-x.md" "$rr/.github" "$rr/docs/ops"
+
 # Files of other plans: a plan using a file that a later plan creates (and not in its own section 3.2).
 git init -q "$rr"
 mkdir -p "$rr/feature/other"
@@ -3207,6 +3285,125 @@ expect "save-branch: refuses a branch outside claude/" 2 "$(sb_run main)"
 expect "save-branch: a branch outside claude/is never pushed" 0 "$(sb_calls_count)"
 expect "save-branch: refuses a branch that does not exist" 2 "$(sb_run claude/T-000-none)"
 export GIT_CONFIG_COUNT="${sb_git_config[0]}" GIT_CONFIG_KEY_0="${sb_git_config[1]}" GIT_CONFIG_VALUE_0="${sb_git_config[2]}"
+
+# push-probe.sh tells at the start of a session whether it may push a change to .github/workflows/ (L-086 of
+# camera-pose). A bare repository stands in for GitHub; its pre-receive hook answers as GitHub does.
+# The probe branch never runs a workflow: every workflow of the repository that runs on push runs on main only.
+push_on_other_branches() { # <dir>: prints the workflows of <dir> with a push trigger not limited to main
+  python3 -I - "$1" <<'PY'
+import glob, re, sys
+for f in sorted(glob.glob(sys.argv[1] + "/*.yml")):
+    text = open(f, encoding="utf-8").read()
+    on = re.search(r"^on:\n((?:[ #].*\n|\n)*)", text, re.M)
+    push = re.search(r"^  push:\n((?:    .*\n)*)", on.group(1) if on else "", re.M)
+    if push and "branches: [main]" not in push.group(1):
+        print(f.rsplit("/", 1)[-1])
+PY
+}
+mkdir -p "$work/pp-wf"
+printf 'on:\n  push:\n    paths: [x]\n' > "$work/pp-wf/bad.yml"
+printf 'on:\n  push:\n    branches: [main]\n  workflow_dispatch:\n' > "$work/pp-wf/good.yml"
+expect "push-probe: the trigger check finds a push trigger for every branch" bad.yml "$(push_on_other_branches "$work/pp-wf")"
+expect "push-probe: no workflow of the repository runs on a push to another branch than main" "" "$(push_on_other_branches .github/workflows)"
+pp_git_config=("$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0")
+unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+pp_root="$PWD"
+pp_origin="$work/pp-origin.git"
+pp_clone="$work/pp-clone"
+git init -q --bare "$pp_origin"
+git init -q -b main "$pp_clone"
+git -C "$pp_clone" config user.email t@example.com
+git -C "$pp_clone" config user.name t
+mkdir -p "$pp_clone/.github/workflows"
+printf 'on:\n  push:\n    branches: [main]\n' > "$pp_clone/.github/workflows/a.yml"
+printf 'on:\n  workflow_dispatch:\n' > "$pp_clone/.github/workflows/b.yml"
+printf 'x\n' > "$pp_clone/README.md"
+git -C "$pp_clone" add -A
+git -C "$pp_clone" commit -q -m base
+git -C "$pp_clone" remote add origin "$pp_origin"
+git -C "$pp_clone" push -q origin main
+git -C "$pp_clone" fetch -q origin
+git -C "$pp_clone" checkout -q -b claude/T-999-task
+# The playbook row of T-067 (PB-13, kind bo-qua-loai) in a table of its own, so the block does not depend on the
+# real table; one test below reads the real table.
+pp_table="$work/pp-playbook.md"
+printf '%s\n' '<!-- playbook:start -->' '| Mã | Mẫu | Thấy ở | Loại | Việc phải làm | Nguồn |' '| --- | --- | --- | --- | --- | --- |' \
+  '| PB-13 | `refusing to allow an? [A-Za-z ]+ to create or update workflow` | lệnh đẩy | `bo-qua-loai` | bỏ qua loại task | L-086 |' \
+  '<!-- playbook:end -->' > "$pp_table"
+pp_hook="$pp_origin/hooks/pre-receive"
+pp_files="$work/pp-pushed.files"
+pp_calls="$work/pp-hook.calls"
+pp_hook_mode() { # record | nodelete | scope | app | other | network | flaky
+  rm -f "$pp_files" "$pp_calls" "$pp_calls.count"
+  local refuse='echo x >> "'"$pp_calls"'"'
+  case "$1" in
+    record) printf '#!/bin/sh\n%s\nwhile read old new ref; do [ "$new" = 0000000000000000000000000000000000000000 ] || git diff-tree --no-commit-id --name-only -r "$new" >> "%s"; done\nexit 0\n' "$refuse" "$pp_files" > "$pp_hook" ;;
+    nodelete) printf '#!/bin/sh\n%s\nwhile read old new ref; do if [ "$new" = 0000000000000000000000000000000000000000 ]; then echo "deletion refused" >&2; exit 1; fi; done\nexit 0\n' "$refuse" > "$pp_hook" ;;
+    scope) printf '#!/bin/sh\n%s\necho %s >&2\nexit 1\n' "$refuse" "'refusing to allow an OAuth App to create or update workflow \`.github/workflows/b.yml\` without \`workflow\` scope'" > "$pp_hook" ;;
+    app) printf '#!/bin/sh\n%s\necho %s >&2\nexit 1\n' "$refuse" "'refusing to allow a GitHub App to create or update workflow \`.github/workflows/b.yml\` without \`workflows\` permission'" > "$pp_hook" ;;
+    other) printf '#!/bin/sh\n%s\necho "protected branch hook declined" >&2\necho "line two" >&2\necho "line three" >&2\necho "line four" >&2\nexit 1\n' "$refuse" > "$pp_hook" ;;
+    network) printf '#!/bin/sh\n%s\necho "fatal: The remote end hung up unexpectedly" >&2\nexit 1\n' "$refuse" > "$pp_hook" ;;
+    flaky) printf '#!/bin/sh\n%s\nif [ -f "%s.count" ]; then exit 0; fi\ntouch "%s.count"\necho "fatal: The remote end hung up unexpectedly" >&2\nexit 1\n' \
+      "$refuse" "$pp_calls" "$pp_calls" > "$pp_hook" ;;
+  esac
+  chmod +x "$pp_hook"
+}
+pp_run() { # <args>; runs push-probe.sh in the clone with the test playbook; output in $work/pp.out, prints the exit code
+  local code=0
+  (cd "$pp_clone" && PUSH_PROBE_PLAYBOOK="${PP_TABLE-$pp_table}" PUSH_PROBE_RETRY_SECONDS="${PP_RETRY:-0 0}" \
+    "$pp_root/scripts/push-probe.sh" "$@") > "$work/pp.out" 2>&1 || code=$?
+  echo "$code"
+}
+pp_probe_branches() { git -C "$pp_origin" for-each-ref --format='%(refname)' refs/heads/claude/ | grep -c 'probe-RUN-20261027-02' || true; }
+pp_calls_count() { if [ -f "$pp_calls" ]; then wc -l < "$pp_calls" | tr -d ' '; else echo 0; fi; }
+pp_untouched() { echo "$(git -C "$pp_clone" branch --show-current) $(git -C "$pp_clone" status --porcelain | wc -l | tr -d ' ') $(git -C "$pp_clone" worktree list | wc -l | tr -d ' ')"; }
+
+pp_hook_mode record
+expect "push-probe: a push that goes through exits 0" 0 "$(pp_run RUN-20261027-02)"
+expect "push-probe: says QUA" 1 "$(grep -c '^QUA: phiên đẩy được thay đổi .github/workflows/' "$work/pp.out" || true)"
+expect "push-probe: the probe commit changes only the workflow without a push trigger" ".github/workflows/b.yml" "$(cat "$pp_files")"
+expect "push-probe: the probe branch is deleted again" 0 "$(pp_probe_branches)"
+expect "push-probe: the checkout keeps its branch, files and worktrees" "claude/T-999-task 0 1" "$(pp_untouched)"
+expect "push-probe: main on the remote does not change" "$(git -C "$pp_clone" rev-parse origin/main)" "$(git -C "$pp_origin" rev-parse main)"
+pp_hook_mode nodelete
+expect "push-probe: a refused delete still says the push went through" "0 1" \
+  "$(pp_run RUN-20261027-02) $(grep -c '^CHÚ Ý: không xóa được nhánh claude/probe-RUN-20261027-02-' "$work/pp.out" || true)"
+expect "push-probe: a probe branch left by a refused delete does not block the next probe" "0 2" \
+  "$(pp_run RUN-20261027-02) $(pp_probe_branches)"
+for ref in $(git -C "$pp_origin" for-each-ref --format='%(refname)' refs/heads/claude/); do git -C "$pp_origin" update-ref -d "$ref"; done
+pp_hook_mode scope
+expect "push-probe: a push refused for the workflow scope exits 3" 3 "$(pp_run RUN-20261027-02)"
+expect "push-probe: says TỪ CHỐI with the playbook row and what the session does" "1 1" \
+  "$(grep -c '^TỪ CHỐI: PB-13 bo-qua-loai' "$work/pp.out" || true) $(grep -c 'plan-check.py --touches .github/workflows/' "$work/pp.out" || true)"
+expect "push-probe: quotes GitHub's line" 1 "$(grep -c 'without .workflow. scope' "$work/pp.out" || true)"
+expect "push-probe: a refusal is not retried" 1 "$(pp_calls_count)"
+expect "push-probe: a refused probe leaves no branch" 0 "$(pp_probe_branches)"
+expect "push-probe: a refused probe leaves the checkout as it was" "claude/T-999-task 0 1" "$(pp_untouched)"
+pp_hook_mode app
+expect "push-probe: the GitHub App wording of the same refusal exits 3" 3 "$(pp_run RUN-20261027-02)"
+pp_hook_mode scope
+expect "push-probe: the real playbook (PB-13 of T-067) classifies the refusal" 3 "$(PP_TABLE='' pp_run RUN-20261027-02)"
+pp_hook_mode other
+expect "push-probe: another refusal exits 4" 4 "$(pp_run RUN-20261027-02)"
+expect "push-probe: another refusal is not called a missing workflow scope" "0 1" \
+  "$(grep -c 'TỪ CHỐI' "$work/pp.out" || true) $(grep -c '^CHƯA RÕ: không đẩy được nhánh thử' "$work/pp.out" || true)"
+expect "push-probe: an unclear refusal shows at most the last 3 git or remote lines" "3 1" \
+  "$(grep -c '^remote:\|^ ! \|^error:\|^fatal:' "$work/pp.out" || true) $(grep -c 'remote: line four' "$work/pp.out" || true)"
+pp_hook_mode network
+expect "push-probe: a network error is retried, then unclear" "4 3" "$(pp_run RUN-20261027-02) $(pp_calls_count)"
+pp_hook_mode flaky
+expect "push-probe: a network error that clears goes through" "0 3" "$(pp_run RUN-20261027-02) $(pp_calls_count)"
+pp_hook_mode record
+expect "push-probe: refuses an argument that is not a run id" 2 "$(pp_run RUN-abc)"
+expect "push-probe: a bad argument pushes nothing" 0 "$(pp_calls_count)"
+git -C "$pp_clone" checkout -q main
+git -C "$pp_clone" rm -q -r .github
+git -C "$pp_clone" commit -q -m "no workflows"
+git -C "$pp_clone" push -q origin main
+git -C "$pp_clone" fetch -q origin
+git -C "$pp_clone" checkout -q claude/T-999-task
+expect "push-probe: a repository without workflows has nothing to probe" 2 "$(pp_run RUN-20261027-02)"
+export GIT_CONFIG_COUNT="${pp_git_config[0]}" GIT_CONFIG_KEY_0="${pp_git_config[1]}" GIT_CONFIG_VALUE_0="${pp_git_config[2]}"
 
 # In-place sed without a backup suffix is GNU only: BSD sed on macOS stops with "invalid command code" (L-088).
 # Scripts write `sed -i.bak ... && rm -f file.bak`, or use perl or python. The pattern is built from two

@@ -527,6 +527,7 @@ expect "playbook: PB-08 missing R8 classes -> that" "PB-08 that" "$(pb_head $pb_
 expect "playbook: PB-09 library download 429 -> lich-thu-lai" "PB-09 lich-thu-lai" "$(pb_head $pb_dir/PB-09.log)"
 expect "playbook: PB-10 a UI timeout without R2 lines is a real failure" "PB-10 that" "$(pb_head $pb_dir/PB-10.log)"
 expect "playbook: PB-11 Claude org access 403 in a subagent -> cho" "PB-11 cho" "$(pb_head $pb_dir/PB-11.log)"
+expect "playbook: PB-12 an R2 file missing (404) in ui-test -> nguoi, before the rerun of PB-01" "PB-12 nguoi" "$(pb_head $pb_dir/PB-12.log)"
 expect "playbook: an unknown failure says khong-co" "khong-co" "$(pb_head $pb_dir/none.log)"
 expect "playbook: a missing log says khong-co" "khong-co" "$(pb_head "$work/no-such.log")"
 expect "playbook: a missing log exits 0" 0 "$(scripts/failure-kind.sh --playbook "$work/no-such.log" > /dev/null 2>&1; echo $?)"

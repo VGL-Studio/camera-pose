@@ -1,7 +1,7 @@
 ---
 ticket: T-064
 title: Máy chỉ có một camera thì nút đổi camera mờ đi, camera mở bằng camera máy có
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 5                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
@@ -402,3 +402,15 @@ Không có.
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261027-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-27 06:06 UTC, commit `542d0a1` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-064-mot-camera`, PR #187.
+- **Đã làm:** phiên con làm bước 3 đến 5 trong worktree `../task-T-064` (lời giao có dòng `Task: T-064`); phiên chính đẩy nhánh sau mỗi commit. Đúng mục 3.1, bước 1 đến 5: `CameraController.availableLenses()` có mặc định, `camera/CameraLenses.kt` (`lensesOf`), `CameraXController.availableLenses()` bằng `hasCamera`, `Ready.canFlip`, `CameraViewModel` chọn camera mở và chặn `onFlipClick`, `FlipCameraButton` tắt khi `!canFlip`. Tệp kịch bản `feature/camera/src/deviceScenarios/T-064-mot-camera.txt` nguyên văn mục 4, giữ dòng `need id=camera_grid_button 15`: Tuấn chỉ cho đổi thành `wait` khi T-062 có trong phiên (dòng T-064 của danh sách chạy), mà T-062 dừng ở bước 7, emulator CI vẫn không có camera. Không ảnh chuẩn nào đổi.
+- **Test viết trước:** 15 test (commit `ed03806`): 12 thất bại đúng lý do, trùng từng dòng với mục 4.1; 3 đối chứng qua (`twoCameras_flipAvailable`, `noLensReported_opensSavedLens_flipStaysAvailable`, `lensesOf_bothCameras`). Test JVM mọi module lúc đó: 1183 test, chỉ 12 test mới đỏ, không test nào ngoài mục 3.2 đỏ.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 4 ghi chú. Hai đột biến của phiên rà soát (bỏ chặn `!canFlip` cùng nút về `ready != null`; bỏ đường mở camera máy có) đều làm 4 test mới thất bại. Ghi chú: lỗi khi hỏi camera bị nuốt mà không ghi log (mã plan cũng vậy; ADR-0019 muốn log lỗi đã bắt; đề xuất `logger.warn(LOG_TAG, "Camera list unavailable", e)` ở plan sau); `CameraXController.availableLenses` không có test JVM (ngoại lệ của plan); tệp kịch bản ra `bỏ qua (môi trường)` cho tới khi có T-062; mỗi lần mở camera gọi thêm `awaitInstance` và `hasCamera`.
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA (Test JVM 1183 test, 0 lỗi; `:feature:camera` 459 test; ảnh 97). `scripts/design-compare.sh camera`: không đổi `design/review/`. `pr-check` lần chạy 40458120279: xanh ở vòng đầu.
+- **Lệch so với plan:** Không có về nội dung. Phiên con viết chú thích của `FlipCameraButton` thành khối KDoc ba dòng (chữ đúng plan) và thêm hai dòng chú thích tiếng Anh trong `CameraViewModel`. Ngoài mục 3.2: không có.
+- **Việc còn lại:** tệp kịch bản chỉ kiểm được lỗi gốc trên emulator một camera, tức sau T-062; khi đó đổi `need` thành `wait` như Tuấn đã cho phép.
+- **Cần người xem:** tiêu chí TalkBack trên máy thật một camera (nếu có máy); ghi chú log lỗi của rà soát.

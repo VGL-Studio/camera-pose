@@ -1,7 +1,7 @@
 ---
 ticket: T-063
 title: Token của phiên chính khi làm task trên HEAD tách rời tính vào đúng task (lệnh `token-usage.py mark`)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -427,3 +427,18 @@ Phiên bản 2:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261027-01, phiên bản plan 2
+
+- **Kết quả:** đã merge (2026-10-27 05:21 UTC, commit `af437fb` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-063-token-phien-chinh`, PR #186.
+- **Đã làm:** phiên chính tự làm (task cỡ S, không giao phiên con). Áp `diff` của mục 3.1 (`git apply --check` sạch trên `fbf1390`, không cần viết lại). Khối 11 test của mục 4 đặt ngay sau test `a worktree of the repository is counted`. Câu mới ở `docs/auto-run.md` (bước 1, mục Giao bước 3 đến 5, bước 10, mục 4 bước 0, mục Tiếp tục phiên bước 5) và `docs/ops/token-usage.md` (mục 1, bốn giới hạn ở mục 5), đúng chữ của mục 3.1. L-083 sang `applied`, dòng Áp dụng ghi PR #186. Khối test và tài liệu viết bằng công cụ sửa tệp, không qua lệnh shell, để không sinh dấu mốc giả trong transcript.
+- **Test viết trước:** 11 test (commit `c816eb6`): 7 thất bại đúng lý do, giống mục 4.1 (dòng T-031 thiếu, `invalid choice: 'mark'`, thiếu dòng `LỖI: `), 4 đối chứng qua, 18 test có sẵn qua (22 dòng `ok`). Sau code: 29 dòng `ok`, `failures=0`. Thêm 1 test theo rà soát (mục dưới), thất bại trước, chặt bằng ba đột biến.
+- **Rà soát độc lập:** vòng 1: 0 chặn, 2 nên sửa, 7 ghi chú. Vòng 2 (phần vừa sửa): 0 chặn, 0 nên sửa.
+  - Đã sửa (nên sửa 1): `docs/auto-run.md` bước 1 có một câu thừa so với mục 3.1 (quy ước "lệnh `mark` viết thành lệnh riêng ... dấu nháy ngược" ghi trong ngoặc của plan, không phải chữ cần thêm); đã bỏ. Tài liệu, không có test.
+  - Đã sửa (nên sửa 2): `report` dừng vì `AttributeError` khi một dòng có chuỗi tên lệnh là JSON không phải object, có `message` là chuỗi, hay `input` của `tool_use` là chuỗi. Test `token-usage: a mark line of an odd shape is skipped without failing the report` (commit test `test(T-063)` riêng): trước khi sửa `expected '0 1', got '1 0'`; sau khi sửa qua. Đột biến của vòng 2: bỏ từng chỗ kiểm `isinstance` một (ba chỗ) thì test thất bại cả ba lần.
+  - Ghi chú để người xem: request trùng `requestId` giữa phiên chính và phiên con thì bản của phiên con thắng (cách gộp có từ trước); `report` chạy không có `--since` thì dấu mốc cũ để mở lan sang (mọi lệnh trong tài liệu đều có `--since`); hai nhánh đọc dòng khác của `requests()` (dòng `user` đầu của phiên con, dòng `"usage"`) và `cwd` không phải chuỗi vẫn có thể làm `report` dừng với transcript dạng lạ, có từ trước T-063.
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA (Test JVM 1168 test, 0 lỗi, ảnh 97). `pr-check` lần chạy 40454303321: xanh ở vòng đầu. Tổng 1 vòng CI.
+- **Lệch so với plan:** thêm 1 test (12 thay vì 11) và 3 chỗ kiểm `isinstance` theo rà soát (ADR-0029, quyết định 3), chỉ trong file của mục 3.2. Ngoài mục 3.2: không có.
+- **Việc còn lại:** kiểm tra thủ công của mục 4 (dòng task giao phiên con có số request lớn hơn tổng request của phiên con và phiên rà soát) ghi ở mục Token của báo cáo RUN-20261027-01: các task sau trong phiên này chạy lệnh `mark`. Đề xuất về dự án mẫu (mục 6) khi người mở issue `from-app`.
+- **Cần người xem:** ba ghi chú của rà soát ở trên; mục Token của báo cáo phiên này để kiểm chứng L-083.

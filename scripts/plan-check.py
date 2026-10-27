@@ -4,6 +4,14 @@
 Usage: scripts/plan-check.py <plan.md> [<plan.md> ...]
 Exit 0: no error (warnings may be printed). Exit 1: at least one error.
 
+Usage: scripts/plan-check.py --touches <path prefix> <plan.md>
+Exit 0: a row of the file table of section 3.2 (Tạo, Sửa, Ghi lại, Xóa) names a path under the prefix; exit 1: none
+does (prose of section 3.2 and tables of other sections do not count). A directory row (path ending in "/") counts,
+unlike in run-check.py: skipping a task that may touch the prefix is the safe side. Exit 2: wrong arguments, an empty
+prefix or no such plan. An auto-run session uses it to
+skip the remaining tasks a known environment error blocks (docs/ops/failure-playbook.md, kind bo-qua-loai;
+ADR-1005 of camera-pose).
+
 Finds, from the plan alone, the mistakes that otherwise stop a task in the middle of the night
 (RUN-20261016-02 stopped on a test that read a file the plan changed, L-020):
   1. The file list (section 3.2) matches the repository: files to change exist, files to create do not,
@@ -493,7 +501,18 @@ def check(plan_path):
     return errors, warnings
 
 
+def touches(argv):
+    if len(argv) != 4 or not argv[2] or not Path(argv[3]).is_file():
+        print("Cách dùng: scripts/plan-check.py --touches <tiền tố đường dẫn> <plan.md> (plan phải có).", file=sys.stderr)
+        return 2
+    prefix = argv[2]
+    rows = file_list(Path(argv[3]).read_text(encoding="utf-8"))
+    return 0 if any(path.startswith(prefix) for _, path in rows) else 1
+
+
 def main(argv):
+    if len(argv) > 1 and argv[1] == "--touches":
+        return touches(argv)
     if len(argv) < 2:
         print("Cách dùng: scripts/plan-check.py <plan.md> [<plan.md> ...]", file=sys.stderr)
         return 2

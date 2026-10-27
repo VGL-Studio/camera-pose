@@ -23,6 +23,7 @@ AI không làm các bước trong tài liệu này. Mọi bước có bí mật 
 
 1. Cài Android Studio. Dùng JDK đi kèm, không dùng Java cài riêng trên máy: Java quá mới (ví dụ Java 26) làm Gradle dừng ngay với lỗi chỉ ghi số phiên bản. `scripts/check.sh` kiểm Java trước khi gọi Gradle (`scripts/java-check.sh`, khoảng phiên bản đọc từ `build-logic` và phiên bản Gradle) và in lệnh đặt `JAVA_HOME` khi không hợp:
    - macOS: `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`, ghi vào `~/.zshrc` để mọi terminal dùng.
+   - Không cài Android Studio: `scripts/local-setup.sh` cài JDK và Android SDK vào thư mục người dùng (cùng gói SDK với môi trường cloud, kiểm mã băm), rồi `source` tệp `env.sh` mà script in ra; `scripts/local-setup.sh --check` xem còn thiếu gì. `scripts/java-check.sh` kiểm JDK này như mọi JDK khác.
    - Mở Android Studio một lần để cài Android SDK. Đặt `export ANDROID_HOME=$HOME/Library/Android/sdk` (macOS) hoặc `$HOME/Android/Sdk` (Linux).
 2. Cài `git`, `gh` (GitHub CLI), `jq`, `python3`. Trên macOS: `brew install gh jq`.
 3. Đăng nhập GitHub CLI: `gh auth login`, chọn GitHub.com, HTTPS, đăng nhập bằng trình duyệt. `scripts/merge-if-green.sh` dùng phiên đăng nhập này.

@@ -31,13 +31,13 @@ PR #180 (bản đầu, trên `scripts/preflight.sh`) đã đóng: PR #179 thay `
 
 - `scripts/setup-check-app.sh` (mới, chỉ có ở app): phần kiểm catalog, đọc template Remote Config bằng `firebase-tools remoteconfig:get` với tài khoản dịch vụ chỉ đọc.
 - `scripts/setup-check.sh` (của dự án mẫu): thử lại một lần khi `000`, `429`, `5xx`; gợi ý xóa bộ nhớ đệm CDN; gọi `scripts/setup-check-app.sh` khi repo có file đó. Đề xuất về dự án mẫu.
-- `.github/workflows/env-canary.yml`, `.github/workflows/start-run.yml`: bí mật `STAGING_REMOTE_CONFIG_CREDENTIALS` (đã có, Tuấn tạo ngày 2026-10-27), giới hạn thời gian của job 10 phút.
+- `.github/workflows/env-canary.yml`, `.github/workflows/start-run.yml`: bí mật `STAGING_REMOTE_CONFIG_CREDENTIALS` (đã có, Tuấn tạo ngày 2026-10-27), giới hạn thời gian của job 10 phút; `env-canary` kiểm lại sau 90 giây trước khi mở issue và có ô `setup_only` (không kích hoạt routine); `start-run` xanh thì đóng `setup-broken` đang mở.
 - Test trong `scripts/tests/run.sh`.
-- `docs/ops/staging-and-runs.md`, `CLAUDE.md`.
+- `docs/ops/staging-and-runs.md`, `CLAUDE.md`, `docs/template-sync.txt` (các thay đổi lần đồng bộ sau phải giữ).
 
 **Không bao gồm:**
 
-- Phiên tự chạy tự chạy lại kiểm tra lúc bắt đầu phiên mở bằng `claude --cloud` (câu hỏi 3 của plan).
+- Phiên mở bằng `claude --cloud` tự chạy lại kiểm tra lúc bắt đầu (thay bằng: `start-run` xanh đóng issue cũ, `env-canary` kiểm lại sau 90 giây).
 - Biến chú ý lặp lại nhiều ngày thành issue (câu hỏi 5).
 
 ## Rủi ro sơ bộ
@@ -49,4 +49,5 @@ Cao: sửa CI (`.github/`) và điều kiện bắt đầu phiên (`start-run.ym
 - [ ] Test của script trong `scripts/tests/run.sh` qua; `scripts/check.sh` qua.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính.
 - [ ] Trước khi duyệt, trên nhánh thử (workflow tạm, không mở hay đóng issue): đường xanh có dòng `ok   - ... catalog ... và <n> file khởi đầu trả 200` cho catalog của khóa và catalog mặc định; đường đỏ (`SETUP_CHECK_EXTRA_CATALOG` trả 404) có dòng `LỖI - khóa poses_catalog_path trỏ tới catalog ...`.
-- [ ] Sau khi merge: một lần chạy xanh của job `setup-check` trên nhánh chính (`env-canary`); không chạy đường đỏ trên nhánh chính.
+- [ ] Sau khi merge: một lần chạy xanh của job `setup-check` trên nhánh chính (`env-canary` với `setup_only`); không chạy đường đỏ trên nhánh chính.
+- [ ] Báo cáo phiên ghi vào Cần người kiểm tra: mở issue `from-app` ở dự án mẫu trong tuần (plan mục 3.1).

@@ -47,6 +47,7 @@ Quy tắc phụ thuộc (ADR-0001, kiểm tra tự động bằng `checkModuleDe
 - Chọn ticket cho hàng chờ plan cuối phiên: `scripts/plan-queue.py [--max N]` (`docs/auto-run.md`, mục 4).
 - Đếm token AI theo task của một phiên: `scripts/token-usage.py report --since <giờ bắt đầu>`; số gợi ý cho `token_estimate` của plan: `scripts/token-usage.py estimate` (`docs/ops/token-usage.md`).
 - Môi trường cloud chưa có `ANDROID_HOME` thì đặt `export ANDROID_HOME=$HOME/android-sdk` (SDK do `scripts/cloud-setup.sh` cài).
+- Máy dev chưa có JDK hay Android SDK: `scripts/local-setup.sh` cài vào thư mục người dùng, không cần sudo (JDK Temurin, gói SDK đọc từ `scripts/cloud-setup.sh`, kiểm mã băm), rồi `source` tệp `env.sh` mà script in ra trước `scripts/check.sh`. `scripts/local-setup.sh --check` xem còn thiếu gì, không tải. Chỉ dùng trên máy dev; môi trường cloud dùng `scripts/cloud-setup.sh` và dòng `export ANDROID_HOME` ở trên.
 - `app/src/staging/google-services.json` là file cấu hình Firebase giả, chỉ để build qua được; bản build từ file này không gửi số liệu nào (ADR-0012). Không sửa, không thay bằng file thật.
 - Môi trường cloud không có emulator. Test trên emulator (`app/src/androidTest`) chỉ chạy trong CI.
 

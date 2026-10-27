@@ -775,11 +775,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-083: phiên con giữ nhánh task trong worktree, request của phiên chính cho task đó tính vào dòng Chung
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261026-02 (T-057, T-056).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261026-02 (T-057, T-056).
 - **Chuyện gì:** khi giao bước 3 đến 5 cho phiên con trong worktree của nhánh task (auto-run.md, mục Giao bước 3 đến 5), thư mục chính không mở được cùng nhánh đó nên đứng ở `origin/main` tách rời. `scripts/token-usage.py` gán request của phiên chính theo nhánh của thư mục chính, nên phần phiên chính làm cho task (đọc plan, mở PR, chờ CI, merge, nhật ký) tính vào dòng Chung.
 - **Bằng chứng:** RUN-20261026-02, mục Token: dòng T-056 có đúng 66 request, bằng 55 của phiên con bước 3 đến 5 cộng 11 của phiên rà soát; T-057 50 = 39 + 11; Chung 22.4M.
 - **Đề xuất sửa:** `scripts/token-usage.py`: request của phiên chính trên HEAD tách rời tính vào task có nhánh được tạo gần nhất trước đó mà chưa merge (theo giờ tạo nhánh và giờ merge), hoặc phiên chính ghi task đang làm vào một tệp trạng thái mà script đọc; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên ghi rõ dòng nào thiếu phần phiên chính.
-- **Áp dụng:** làm ở ticket T-063 (sửa `scripts/token-usage.py` có test, phiên sau). Trong lúc chờ, báo cáo phiên ghi rõ dòng nào thiếu phần phiên chính. Tuấn nhận ngày 2026-10-26. Dự án mẫu: VGL-Studio/app-project-template#206.
+- **Áp dụng:** T-063 (RUN-20261027-01): lệnh `scripts/token-usage.py mark T-NNN` và `mark chung`; `report` đọc lại dấu mốc trong transcript của phiên chính và gán request của phiên chính không ở nhánh task nào cho task của dấu mốc gần nhất, từ `--since` trở đi; 11 test trong `scripts/tests/run.sh`; `docs/auto-run.md` (bước 1, mục Giao bước 3 đến 5, bước 10, mục 4 bước 0, mục Tiếp tục phiên bước 5) và `docs/ops/token-usage.md` (mục 1, mục 5). PR của T-063. Tuấn nhận ngày 2026-10-26. Dự án mẫu: VGL-Studio/app-project-template#206.
 - **Kiểm chứng:**
 
 ### L-084: phiên con dừng giữa chừng vì lỗi API, phiên `claude --cloud` không tự tiếp tục

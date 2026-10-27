@@ -5,15 +5,22 @@ Usage:
   scripts/token-usage.py report [--since ISO] [--until ISO] [--run RUN-ID] [--csv FILE] [--transcripts FILE ...]
   scripts/token-usage.py estimate [--csv FILE]
   scripts/token-usage.py credit --run RUN-ID --usd AMOUNT [--csv FILE]
+  scripts/token-usage.py mark T-NNN|chung
 
 report: reads every transcript (subagents included) of this repository, keeps one usage per API request,
   attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...),
-  and prints a Markdown table with the plan's estimate next to the actual count. With --run and --csv it also
-  writes the rows of that run into the CSV, replacing rows of the same run so it can run again.
+  and prints a Markdown table with the plan's estimate next to the actual count. A request of a main session
+  transcript on no task branch counts for the task of the last `mark` a main session ran before it, from --since
+  on (any transcript): --since acts as `mark chung`, so a mark left open by an earlier session never reaches this
+  one. With --run and --csv it also writes the rows of that run into the CSV, replacing rows of the same run so it
+  can run again.
 estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan, and the cloud
   session credit spent per million tokens over the runs that recorded it.
 credit: records the cloud session credit (US dollars) a run opened with `claude --cloud` spent, read by a person
   from the balance before and after the run. It goes on the shared row of the run, once per run.
+mark: the main session runs `mark T-NNN` when it starts a task and `mark chung` when the task ends
+  (L-083 of camera-pose). It only prints what it marks: report reads the command back from the transcript,
+  so the mark lasts as long as it.
 
 A transcript belongs to this repository when its working directory is the repository, any of its git worktrees
 (the report branch is often checked out in one, L-008 of camera-pose), or a folder named like the repository
@@ -52,6 +59,14 @@ TASK_BRANCH = re.compile(r"^claude/(?:fix-)?(T-\d+)(?:-|$)")
 # A subagent brief names its task on a line of its own (auto-run.md, L-071): the subagent runs in the task worktree by
 # path, so its transcript still carries the report branch of the main session.
 BRIEF_TASK = re.compile(r"^Task: (T-\d+)\s*$", re.M)
+# While a subagent worktree holds the task branch, the main checkout is on a detached HEAD, so the main session's
+# own requests for the task carry no task branch. It runs `scripts/token-usage.py mark T-NNN` at the start of the
+# task and `mark chung` at its end; the command, read back from its transcript, is the mark (L-083 of camera-pose).
+# Only a command that runs the script counts, by any path (./scripts/..., /abs/repo/scripts/...): the name inside
+# quotes (a grep, a commit message) does not.
+MARK_COMMAND = re.compile(
+    r"(?:^|[\s;&|(])(?:[^\s'\"]*/)?scripts/token-usage\.py mark (T-\d+|chung)(?=$|[\s;&|)])", re.M)
+MARK_NAME = re.compile(r"^(T-\d+|chung)$")
 
 
 def parse_amount(text):
@@ -161,9 +176,32 @@ def message_text(message):
     return ""
 
 
+def marks_of(entry):
+    """The `mark` commands of one assistant line of a main session transcript."""
+    found = []
+    content = (entry.get("message") or {}).get("content")
+    for part in content if isinstance(content, list) else []:
+        if isinstance(part, dict) and part.get("type") == "tool_use" and part.get("name") == "Bash":
+            found += MARK_COMMAND.findall(str((part.get("input") or {}).get("command") or ""))
+    return found
+
+
+def apply_marks(found, marks, since):
+    """A main session request on no task branch counts for the task of the last mark before it, since `since`."""
+    marks = sorted(mark for mark in marks if not since or mark[0] >= since)
+    for request in found:
+        main, moment = request.pop("main"), request.pop("time")
+        if not main or TASK_BRANCH.match(request["branch"]):
+            continue
+        current = [name for at, name in marks if at <= moment]
+        if current and current[-1] != SHARED:
+            request["branch"] = f"claude/{current[-1]}"
+    return found
+
+
 def requests(files, since, until):
     """One usage per API request: the last line of a request carries its final counts."""
-    found = {}
+    found, marks = {}, []
     in_repo = repo_matcher()
     for path in files:
         try:
@@ -182,6 +220,14 @@ def requests(files, since, until):
                         first_user = False
                         match = BRIEF_TASK.search(message_text(entry.get("message")))
                         brief_task = f"claude/{match.group(1)}" if match else None
+                if "subagents" not in path.parts and "token-usage.py mark" in line:
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        entry = {}
+                    moment = timestamp(entry.get("timestamp"))
+                    if entry.get("type") == "assistant" and moment and in_repo(entry.get("cwd")):
+                        marks += [(moment, name) for name in marks_of(entry)]
                 if '"usage"' not in line:
                     continue
                 try:
@@ -202,8 +248,10 @@ def requests(files, since, until):
                     "cache_write": usage.get("cache_creation_input_tokens") or 0,
                     "cache_read": usage.get("cache_read_input_tokens") or 0,
                     "output": usage.get("output_tokens") or 0,
+                    "main": "subagents" not in path.parts,
+                    "time": moment,
                 }
-    return found.values()
+    return apply_marks(list(found.values()), marks, since)
 
 
 def group(found):
@@ -344,6 +392,17 @@ def estimate(args):
     return 0
 
 
+def mark(args):
+    if not MARK_NAME.match(args.name):
+        print(f"LỖI: mark nhận T-NNN (task bắt đầu) hoặc chung (task xong); nhận được: {args.name}")
+        return 2
+    if args.name == SHARED:
+        print("Đã đánh dấu: từ giờ request của phiên chính vào dòng Chung.")
+    else:
+        print(f"Đã đánh dấu: từ giờ request của phiên chính không ở nhánh task nào tính vào {args.name}.")
+    return 0
+
+
 def main(argv):
     parser = argparse.ArgumentParser(description="Đếm token AI theo task của phiên tự chạy.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -359,8 +418,10 @@ def main(argv):
     credit_parser.add_argument("--run", required=True)
     credit_parser.add_argument("--usd", required=True)
     credit_parser.add_argument("--csv", default=DEFAULT_CSV)
+    mark_parser = commands.add_parser("mark")
+    mark_parser.add_argument("name")
     args = parser.parse_args(argv[1:])
-    return {"report": report, "estimate": estimate, "credit": credit}[args.command](args)
+    return {"report": report, "estimate": estimate, "credit": credit, "mark": mark}[args.command](args)
 
 
 if __name__ == "__main__":

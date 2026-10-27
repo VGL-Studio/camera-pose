@@ -25,9 +25,11 @@ Ticket này cho phiên một danh sách lệch nhỏ được tự làm, cách b
 ## Phạm vi
 
 - `docs/ops/failure-playbook.md`: loại mới `bo-qua-loai`; dòng PB-13 cho lệnh đẩy bị từ chối vì thiếu quyền `workflow`; `scripts/tests/playbook/PB-13.log` từ log thật.
-- `scripts/tests/run.sh`: 4 test (PB-13 hai cách viết của GitHub, đối chứng một lần từ chối khác, mọi loại trong bảng có trong câu liệt kê loại).
-- `docs/adr/1005-lech-nho-tu-lam-roi-bao.md` (ADR mới của app, bổ sung ADR-0029) và `docs/foundation.md` sinh lại.
-- `docs/auto-run.md`: mục Khi không đẩy được (tra bảng, bỏ qua theo loại, không kết thúc phiên), mục 5 Báo cáo phiên, bước 6 (rà soát xét lệch).
+- `scripts/plan-check.py`: cách gọi `--touches <tiền tố> <plan>` (mã 0 khi một hàng của bảng mục 3.2 có đường dẫn dưới tiền tố, 1 khi không, 2 khi sai đối số), để biết task nào thuộc loại bị chặn mà không tính chữ của mục 3.2.
+- `scripts/tests/run.sh`: 13 test (8 cho bảng tra lỗi: PB-13 ba cách viết, đối chứng một lần từ chối khác, câu liệt kê loại, dòng `bo-qua-loai` có lệnh `--touches`; 5 cho `--touches`).
+- `docs/adr/1005-lech-nho-tu-lam-roi-bao.md` (ADR mới của app, bổ sung ADR-0029, lệch nhỏ L1 tới L10) và `docs/foundation.md` sinh lại.
+- `docs/lessons.md`: dòng Áp dụng của L-086 (thêm phần T-067, không ghi đè phần của T-066).
+- `docs/auto-run.md`: mục Khi không đẩy được (tra bảng, bỏ qua theo loại, không kết thúc phiên), dòng kết thúc phiên ở mục 4, mục 5 Báo cáo phiên, bước 6 (rà soát xét lệch).
 - `docs/risk-scoring.md` mục 4: đoạn "Không phải dừng: lệch nhỏ đã liệt kê".
 - `docs/templates/run.md`: mục "Quyết định AI đã tự làm" và một dòng ở Cần người kiểm tra.
 
@@ -44,7 +46,8 @@ Chạm điểm chặn 7 (quy trình phiên tự chạy): đổi khi nào phiên 
 
 ## Định nghĩa hoàn thành
 
-- [ ] PB-13 nhận đúng thông báo thật của RUN-20261027-01 và cách viết của GitHub App; một lần từ chối khác không khớp.
+- [ ] PB-13 nhận đúng thông báo thật của RUN-20261027-01, cách viết của GitHub App và personal access token; một lần từ chối khác không khớp.
+- [ ] `scripts/plan-check.py --touches` chỉ tính hàng của bảng mục 3.2 (test có plan chỉ nhắc workflow trong chữ).
 - [ ] Mọi loại trong bảng tra lỗi có trong câu liệt kê loại (test).
 - [ ] ADR-1005 có trong `docs/foundation.md`; `scripts/foundation.py --check` qua.
 - [ ] `docs/auto-run.md`, `docs/risk-scoring.md`, `docs/templates/run.md` dẫn ADR-1005 như plan mục 3.1.

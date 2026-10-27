@@ -1,16 +1,16 @@
 ---
 ticket: T-069
 title: "`scripts/local-setup.sh`: cài JDK và Android SDK trên máy dev để chạy thử bằng đúng `scripts/check.sh`"
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 6.3M         # cỡ S, số gợi ý của scripts/token-usage.py estimate (2026-10-27), không nâng tay (camera-pose L-081)
 blocking_points: [process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-27
 ---
 
 # PLAN T-069: `SCRIPTS/LOCAL-SETUP.SH` CÀI JDK VÀ ANDROID SDK TRÊN MÁY DEV
@@ -597,9 +597,9 @@ Không có.
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-27, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8: chỗ cài trong thư mục của người dùng, mã băm lấy từ nơi phát hành, JDK `jdk-21.0.13+9`, đề xuất về dự án mẫu sau khi merge (bỏ tên app khỏi đường dẫn).
 
 ## 10. Nhật ký thực hiện
 

@@ -5,7 +5,10 @@
 #   ENV_CANARY_FIRE_URL    fire URL of the env-canary routine's API trigger
 #   ENV_CANARY_FIRE_TOKEN  bearer token of that trigger; it can only start that one routine
 # Not fired while an auto-run session is running: the canary would compete with it for the same usage limit.
-# A second job, setup-check, checks the staging setup, R2 files and DNS on the GitHub runner (see below).
+# A second job, setup-check, checks the staging setup, R2 files and DNS on the GitHub runner (see below); in
+# camera-pose also the pose catalog and its starter files (scripts/setup-check-app.sh, plan T-065), with the
+# read-only STAGING_REMOTE_CONFIG_CREDENTIALS secret. A manual run with setup_only checks only that, without firing
+# the routine (no Claude usage).
 # Changing this file is a high-risk plan; cross-review required.
 name: env-canary
 
@@ -14,6 +17,11 @@ on:
     # 01:00 UTC is 08:00 in Vietnam: the result is there when the team starts work.
     - cron: "0 1 * * *"
   workflow_dispatch:
+    inputs:
+      setup_only:
+        description: Chỉ kiểm thiết lập (job setup-check), không kích hoạt routine env-canary
+        type: boolean
+        default: false
 
 concurrency:
   group: env-canary
@@ -29,29 +37,48 @@ permissions:
 jobs:
   # Checks on a GitHub runner, every morning, what the cloud environment cannot see: the required files on R2,
   # the DNS of the static file host through 1.1.1.1 and 8.8.8.8, the Firebase staging secret and the tester
-  # groups (scripts/setup-check.sh; app lessons L-002, L-011, L-012, L-027 of camera-pose). Red opens an issue
+  # groups (scripts/setup-check.sh; app lessons L-002, L-011, L-012, L-027 of camera-pose), and in camera-pose the
+  # pose catalog of the default path and of poses_catalog_path on Remote Config staging with its starter files
+  # (scripts/setup-check-app.sh, plan T-065). A red result is checked once more after 90 seconds, so one passing R2
+  # hiccup does not open the issue (about 110 R2 requests per run). Red opens an issue
   # labelled setup-broken, or comments on the open one; green closes it. A separate label from env-broken,
   # because scripts/env-canary.sh closes env-broken issues when the cloud environment is green.
   # Runs even during an auto-run session: it costs no Claude usage.
   setup-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # 15, not 5: the pose catalog check of scripts/setup-check-app.sh downloads firebase-tools (up to 2 minutes for
+    # remoteconfig:get) and asks R2 for every starter file of each catalog, and a red result is checked twice with
+    # 90 seconds between (worst case about 10 minutes; plan T-065).
+    timeout-minutes: 15
     permissions:
       contents: read
       issues: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          # No token in .git/config: scripts/setup-check.sh runs npx firebase-tools (plan T-065).
+          persist-credentials: false
 
       - name: Kiểm tra thiết lập staging, file R2 và DNS
         env:
           GH_TOKEN: ${{ github.token }}
           GOOGLE_SERVICES: ${{ secrets.STAGING_GOOGLE_SERVICES_JSON }}
           DISTRIBUTION_CREDENTIALS: ${{ secrets.STAGING_APP_DISTRIBUTION_CREDENTIALS }}
+          # Read-only Remote Config staging account: the pose catalog the key points to (scripts/setup-check-app.sh).
+          REMOTE_CONFIG_CREDENTIALS: ${{ secrets.STAGING_REMOTE_CONFIG_CREDENTIALS }}
           STAGING_TESTER_GROUPS: ${{ vars.STAGING_TESTER_GROUPS || 'team' }}
         run: |
           result=0
-          scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
+          # No GitHub token next to npx firebase-tools (third-party packages): this job writes issues (plan T-065).
+          env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
           cat "${RUNNER_TEMP}/setup-check.log"
+          if [ "${result}" != "0" ]; then
+            echo "Kiểm tra đỏ; kiểm lại một lần sau 90 giây (lỗi tạm của R2 hay mạng)."
+            sleep 90
+            result=0
+            env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
+            cat "${RUNNER_TEMP}/setup-check.log"
+          fi
           label="setup-broken"
           open_issues="$(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=${label}&per_page=10" --jq '[.[].number] | join(" ")')"
           commit="${GITHUB_SHA::7}"
@@ -81,6 +108,7 @@ jobs:
           exit 1
 
   fire:
+    if: ${{ !inputs.setup_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

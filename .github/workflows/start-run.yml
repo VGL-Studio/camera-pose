@@ -4,7 +4,9 @@
 #   ROUTINE_FIRE_URL    https://api.anthropic.com/v1/claude_code/routines/<trig_ id>/fire, from the routine's API trigger
 #   ROUTINE_FIRE_TOKEN  bearer token of that trigger; it can only start this one routine
 # Before firing, scripts/setup-check.sh --staging also reads the staging secrets of staging.yml
-# (STAGING_GOOGLE_SERVICES_JSON, STAGING_APP_DISTRIBUTION_CREDENTIALS) and the STAGING_TESTER_GROUPS variable.
+# (STAGING_GOOGLE_SERVICES_JSON, STAGING_APP_DISTRIBUTION_CREDENTIALS), the STAGING_TESTER_GROUPS variable and, in
+# camera-pose, the read-only STAGING_REMOTE_CONFIG_CREDENTIALS for the pose catalog check (plan T-065). A green check
+# closes an open setup-broken issue, so a session opened with claude --cloud after it does not stop on an old one.
 # The fire endpoint is a research preview behind a beta header, so its contract may still change.
 # It has no idempotency key: every successful call starts a new session, so it is never retried.
 # Changing this file is a high-risk plan; cross-review required.
@@ -28,7 +30,8 @@ defaults:
 
 permissions:
   contents: read
-  issues: read
+  # write: a green setup check closes an open setup-broken issue (plan T-065).
+  issues: write
   checks: read
   # main-guard-status.sh reads when a pending main-guard run was created (Actions API); without it the time is unknown.
   actions: read
@@ -37,9 +40,13 @@ jobs:
   start:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # 10, not 5: scripts/setup-check.sh --staging includes the pose catalog check of scripts/setup-check-app.sh.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          # No token in .git/config: scripts/setup-check.sh runs npx firebase-tools (plan T-065).
+          persist-credentials: false
 
       - name: Kiểm tra trước khi bắt đầu phiên
         env:
@@ -90,12 +97,29 @@ jobs:
         env:
           GOOGLE_SERVICES: ${{ secrets.STAGING_GOOGLE_SERVICES_JSON }}
           DISTRIBUTION_CREDENTIALS: ${{ secrets.STAGING_APP_DISTRIBUTION_CREDENTIALS }}
+          # Read-only Remote Config staging account: the pose catalog the key points to (scripts/setup-check-app.sh).
+          REMOTE_CONFIG_CREDENTIALS: ${{ secrets.STAGING_REMOTE_CONFIG_CREDENTIALS }}
           STAGING_TESTER_GROUPS: ${{ vars.STAGING_TESTER_GROUPS || 'team' }}
         run: |
-          if ! scripts/setup-check.sh --staging; then
+          # No GitHub token next to npx firebase-tools (third-party packages): this job may write issues (plan T-065).
+          if ! env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging; then
             echo "::error::Thiết lập chưa đủ cho một phiên: phiên sẽ dừng ở cuối (bản staging) hoặc ở test emulator đầu tiên. Sửa các lỗi trên (docs/ops/staging-and-runs.md, docs/ops/setup-new-app.md) rồi bắt đầu lại."
             exit 1
           fi
+
+      # The check above is green: an open setup-broken issue is old (the problem is gone, or it was an R2 hiccup);
+      # close it, as the morning check of env-canary.yml would, so a session opened with claude --cloud after it does
+      # not stop on it (plan T-065). A failure to close only warns.
+      - name: Đóng issue setup-broken cũ
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for number in $(gh api "repos/${GITHUB_REPOSITORY}/issues?state=open&labels=setup-broken&per_page=10" --jq '.[].number' || true); do
+            { gh api "repos/${GITHUB_REPOSITORY}/issues/${number}/comments" -X POST \
+                -f body="Kiểm tra thiết lập của start-run xanh trên \`${GITHUB_SHA::7}\`. Đóng mục này." > /dev/null &&
+              gh api "repos/${GITHUB_REPOSITORY}/issues/${number}" -X PATCH -f state=closed > /dev/null; } ||
+              echo "::warning::không đóng được issue ${number}"
+          done
 
       - name: Kích hoạt routine
         env:

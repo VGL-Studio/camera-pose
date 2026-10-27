@@ -6,7 +6,12 @@
 #      resolvers validate DNSSEC, and a zone whose DNSSEC fails there does not resolve on many phones;
 #   3. with --staging: the STAGING_GOOGLE_SERVICES_JSON secret is not the fake file and has the
 #      <applicationId>.staging app, and every App Distribution group in STAGING_TESTER_GROUPS (default "team")
-#      exists, checked with the STAGING_APP_DISTRIBUTION_CREDENTIALS service account when gcloud is available.
+#      exists, checked with the STAGING_APP_DISTRIBUTION_CREDENTIALS service account when gcloud is available;
+#   4. the app's own checks in scripts/setup-check-app.sh, when the repository has that file (sourced at the end
+#      with ok, problem, note, http_status, cdn_hint, $STAGING, $work and $base_url; SETUP_CHECK_APP_CHECKS replaces
+#      the path, "none" in the template's own tests).
+# A file that does not answer 200 is asked once more with a cache-busting query: a 200 then means the file is on R2
+# but the CDN still serves an old 404 (camera-pose, 2026-10-27: a 404 cached for a year after the upload).
 #
 # Usage:  scripts/setup-check.sh [--staging]
 #   Without --staging it needs no secret: a developer runs it at the end of docs/ops/setup-new-app.md.
@@ -31,6 +36,8 @@ base_url="${SETUP_CHECK_ASSETS_BASE_URL:-$(grep -E '"ASSETS_BASE_URL", *"\\"http
   | head -n 1 | grep -oE 'https://[^\\"]+' || true)}"
 package="${SETUP_CHECK_PACKAGE:-$(sed -n 's/^ *applicationId = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)}"
 groups="${STAGING_TESTER_GROUPS:-team}"
+app_checks="${SETUP_CHECK_APP_CHECKS:-scripts/setup-check-app.sh}"
+retry_seconds="${SETUP_CHECK_RETRY_SECONDS:-5}"
 
 problems=0
 work="$(mktemp -d)"
@@ -45,6 +52,28 @@ problem() {
 note() {
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::warning::$*"; else echo "CHÚ Ý - $*"; fi
 }
+# HTTP status of a URL (curl options before the URL). 000, 429 and 5xx are asked once more, so one passing hiccup of
+# R2 does not open setup-broken for a whole day. Prints the code curl gave, empty when curl printed none.
+http_status() { # <url> [curl options]
+  local url="$1" code
+  shift
+  code="$(curl -sS --max-time 20 -w '%{http_code}' "$@" "$url" 2> /dev/null || true)"
+  if [[ -z "$code" || "$code" == "000" || "$code" == "429" || "$code" == 5?? ]]; then
+    sleep "$retry_seconds"
+    code="$(curl -sS --max-time 20 -w '%{http_code}' "$@" "$url" 2> /dev/null || true)"
+  fi
+  printf '%s' "$code"
+}
+# For a file that answered 404 or 403: prints a hint when the same file answers 200 with a cache-busting query,
+# that is, the file is on R2 and the CDN still serves an old answer for the plain URL. Other codes get no hint.
+cdn_hint() { # <url> <code of the plain URL>
+  local code
+  case "${2:-}" in 404 | 403) ;; *) return 0 ;; esac
+  code="$(http_status "$1?setup-check-nocache=$(date +%s)$RANDOM" -o /dev/null -I)"
+  if [ "$code" = "200" ]; then
+    printf ' File đã có trên R2 nhưng CDN còn giữ câu trả lời cũ cho đúng địa chỉ này: xóa bộ nhớ đệm của URL này (Cloudflare: Caching, Configuration, Custom Purge), và đặt Cache Rule cho mã 404 với thời hạn ngắn.'
+  fi
+}
 
 echo "== File bắt buộc trên R2 staging"
 if ! [[ "$base_url" =~ ^https://[^/]+/.*/$|^https://[^/]+/$ ]]; then
@@ -56,11 +85,11 @@ else
     path="${line%%#*}"
     path="$(echo "$path" | tr -d '[:space:]')"
     [ -n "$path" ] || continue
-    code="$(curl -sS -o /dev/null -I --max-time 20 -w '%{http_code}' "${base_url}${path}" 2> /dev/null || true)"
+    code="$(http_status "${base_url}${path}" -o /dev/null -I)"
     if [ "$code" = "200" ]; then
       ok "${base_url}${path}"
     else
-      problem "${base_url}${path} trả '${code:-không kết nối được}', cần 200. Đưa file lên R2 staging (docs/ops/setup-new-app.md, phần 3)."
+      problem "${base_url}${path} trả '${code:-không kết nối được}', cần 200. Đưa file lên R2 staging (docs/ops/setup-new-app.md, phần 3).$(cdn_hint "${base_url}${path}" "$code")"
     fi
   done < "$assets_list"
 fi
@@ -139,6 +168,11 @@ if [ "$STAGING" = "yes" ]; then
       esac
     done
   fi
+fi
+
+if [ -f "$app_checks" ]; then
+  # shellcheck source=/dev/null
+  . "$app_checks"
 fi
 
 if [ "$problems" -gt 0 ]; then

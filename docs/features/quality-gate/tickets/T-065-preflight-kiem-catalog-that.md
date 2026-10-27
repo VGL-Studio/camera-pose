@@ -40,4 +40,4 @@ Cao: sửa CI (`.github/`) và cách phiên bắt đầu (điểm chặn 7), th�
 
 - [ ] Test của script trong `scripts/tests/run.sh` qua; `scripts/check.sh` qua.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính.
-- [ ] `preflight.yml` chạy tay trên nhánh chính xanh, có dòng `QUA: catalog ... (khóa poses_catalog_path)`; chạy tay với ô `catalog_path_override` (hay cách thử đường đỏ của plan) cho dòng `LỖI` đúng.
+- [ ] `preflight.yml` chạy tay trên nhánh chính xanh, có dòng `QUA: catalog ... (khóa poses_catalog_path)`; chạy tay với ô `extra_catalog` là một đường dẫn trả 404 cho dòng `LỖI: khóa poses_catalog_path trỏ tới ...` đúng.

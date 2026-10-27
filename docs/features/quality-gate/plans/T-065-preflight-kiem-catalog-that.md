@@ -17,7 +17,7 @@ approved_at:
 
 ## 1. Tóm tắt
 
-`scripts/preflight.sh` thêm điều kiểm thứ 5: đọc template Remote Config của project staging bằng `firebase-tools remoteconfig:get` (tài khoản dịch vụ chỉ đọc, bí mật mới `STAGING_REMOTE_CONFIG_CREDENTIALS`), lấy mọi giá trị của khóa `poses_catalog_path` (giá trị mặc định và từng giá trị theo điều kiện), tải từng catalog trên R2 và kiểm: trả 200, là JSON có `poses`, `minAppSchema` không lớn hơn của app, và ảnh nhỏ cùng nét viền của mọi tư thế `starter` đều trả 200. Khóa không có, không có giá trị mặc định, `useInAppDefault` hay giá trị sai dạng thì kiểm đường dẫn mặc định của app, đúng như `DefaultPoseCatalogRepository`. Sai thì dòng `LỖI` nêu tên khóa và đường dẫn, `preflight.yml` mở issue `setup-broken` như mọi điều kiểm khác. Phần script và 43 test mới (cùng 2 kỳ vọng cũ đổi) đã chạy thật trên code hiện tại (44 thất bại đúng lý do, 1 đối chứng qua) và trên bản cài thử (68 qua), cùng 6 đột biến (mục 4.1). Workflow chưa chạy thử được vì bí mật chưa có: Tuấn tạo bí mật trước, rồi chạy thử trước khi duyệt (mục 4.1, câu hỏi 1).
+`scripts/preflight.sh` thêm điều kiểm thứ 5: đọc template Remote Config của project staging bằng `firebase-tools remoteconfig:get` (tài khoản dịch vụ chỉ đọc, bí mật mới `STAGING_REMOTE_CONFIG_CREDENTIALS`), lấy mọi giá trị của khóa `poses_catalog_path` (giá trị mặc định và từng giá trị theo điều kiện), tải từng catalog trên R2 và kiểm: trả 200, là JSON có `poses`, `minAppSchema` không lớn hơn của app, và ảnh nhỏ cùng nét viền của mọi tư thế `starter` đều trả 200. Khóa không có, không có giá trị mặc định, `useInAppDefault` hay giá trị sai dạng thì kiểm đường dẫn mặc định của app, đúng như `DefaultPoseCatalogRepository`. Sai thì dòng `LỖI` nêu tên khóa và đường dẫn, `preflight.yml` mở issue `setup-broken` như mọi điều kiểm khác. Phần script và 56 test mới (cùng 2 kỳ vọng cũ đổi) đã chạy thật trên code hiện tại (56 thất bại đúng lý do, 2 đối chứng qua) và trên bản cài thử (81 qua), cùng 15 đột biến (mục 4.1). Workflow chưa chạy thử được vì bí mật chưa có: Tuấn tạo bí mật trước, rồi chạy thử trước khi duyệt (mục 4.1, câu hỏi 1).
 
 ## 2. Hiểu yêu cầu
 
@@ -27,11 +27,11 @@ Không có spec nghiệp vụ. Yêu cầu là sự cố ngày 2026-10-26 (plan T
 | --- | --- | --- |
 | Bắt được sự cố hôm nay | Khi khóa trỏ tới một file trả 404 thì `preflight.sh` trả mã 1 và có dòng `LỖI: khóa poses_catalog_path trỏ tới <đường dẫn>, file này trả 404 ...` | Kiểm đúng file mà máy tải, không phải danh sách viết cứng |
 | Mọi máy staging, kể cả theo điều kiện | Khi giá trị theo một điều kiện trỏ tới file 404 thì cũng đỏ | Không đánh giá điều kiện (phiên bản app, phần trăm, thuộc tính người dùng) được ở đây; kiểm mọi giá trị là chặt hơn và đơn giản. Project staging chỉ có app staging (điều kiểm 1), production ở project khác (ADR-0007), nên mọi giá trị trong template đều có thể tới một máy staging |
-| Giống cách app chọn | Khi không có khóa, không có giá trị mặc định, `useInAppDefault`, hay giá trị sai dạng (`AssetPath.isValid` của `:core:assets`) thì kiểm `DEFAULT_CATALOG_PATH`; giá trị sai dạng có thêm dòng `CHÚ Ý` | Khóa và đường dẫn mặc định đọc thẳng từ `PosesSettings.kt`, nên script theo code của app. Quy tắc đường dẫn chép sang bash, có test đối chiếu cùng danh sách ví dụ của `AssetPathTest` |
-| Catalog dùng được | Khi catalog không phải JSON có `poses`, hay `minAppSchema` lớn hơn `APP_SCHEMA` của `CatalogParser.kt`, thì đỏ | Hai lỗi khác cũng làm app dừng ở màn tải |
+| Giống cách app chọn | Khi không có khóa, không có giá trị mặc định, `useInAppDefault`, giá trị sai dạng (`AssetPath.isValid` của `:core:assets`), hay không đọc được giá trị nào (ví dụ chỉ có giá trị cá nhân hóa) thì kiểm `DEFAULT_CATALOG_PATH`; giá trị sai dạng và giá trị cá nhân hóa có thêm dòng `CHÚ Ý` | Khóa và đường dẫn mặc định đọc thẳng từ `PosesSettings.kt`, nên script theo code của app. Quy tắc đường dẫn chép sang bash, có test đối chiếu cùng danh sách ví dụ của `AssetPathTest` |
+| Catalog dùng được | Khi catalog không phải JSON có `poses`, hay `minAppSchema` lớn hơn `APP_SCHEMA` của `CatalogParser.kt`, thì đỏ. Một phần tử của `poses` không phải object không che các file khởi đầu khác | Hai lỗi khác cũng làm app dừng ở màn tải. `jq` lỗi thì không im lặng ra 0 file và in `QUA` |
 | Bộ khởi đầu | Khi ảnh nhỏ (`preview.small`) hay nét viền (`outline`) của một tư thế `starter` trả khác 200 thì đỏ, nêu tên file | Đúng hai file mà `loadStarterSet` tải. Tư thế không phải `starter` không kiểm (tải lúc dùng) |
-| Báo rõ khi thiếu quyền | Khi thiếu bí mật thì `LỖI: thiếu bí mật STAGING_REMOTE_CONFIG_CREDENTIALS ...`; khi tài khoản thiếu vai trò (lỗi có `PERMISSION_DENIED` hay `403`) thì `LỖI: ... (cần vai trò Firebase Remote Config Viewer)` | Hai việc người làm một lần |
-| Không chặn phiên vì lỗi mạng của công cụ | Khi lệnh `firebase-tools` không chạy được vì lý do khác thì chỉ `CHÚ Ý` và vẫn kiểm đường dẫn mặc định | Như điều kiểm nhóm người test (plan T-030, mục 3.4): không tệ hơn hôm nay |
+| Báo rõ khi thiếu quyền | Khi thiếu bí mật thì `LỖI: thiếu bí mật STAGING_REMOTE_CONFIG_CREDENTIALS ...`; khi lỗi của công cụ có `HTTP Error: 403`, `PERMISSION_DENIED` hay `missing the following required permissions` (thông báo của `firebase-tools` khi tài khoản thiếu quyền) thì `LỖI: ... (cần vai trò Firebase Remote Config Viewer, hoặc API Remote Config chưa bật)` | Hai việc người làm một lần. Không khớp `403` trần: một lỗi tạm có số `84031` không được thành `LỖI` |
+| Không chặn phiên vì lỗi tạm | Khi lệnh `firebase-tools` không chạy được vì lý do khác, chạy quá 120 giây (`timeout`, mã 124), hay ghi ra tệp không phải JSON, thì chỉ `CHÚ Ý` và vẫn kiểm đường dẫn mặc định. Khi R2 trả `000`, `429` hay `5xx` một lần thì thử lại một lần trước khi tính là lỗi | Như điều kiểm nhóm người test (plan T-030, mục 3.4): không tệ hơn hôm nay. Không có giới hạn thời gian thì lệnh treo làm job hết 10 phút trước bước "Ghi kết quả": không mở hay đóng issue nào. Điều kiểm 5 gửi nhiều request hơn khoảng 10 lần, nên một lần lỗi tạm của R2 không được chặn cả ngày; thay đổi này cũng áp dụng cho điều kiểm 4 (trước đây chỉ thử lại `000`) |
 | Không lộ bí mật | Mã project, nội dung khóa và lỗi của công cụ không bao giờ in ra | Lỗi của `firebase-tools` ghi vào tệp tạm, chỉ dùng làm điều kiện |
 | Thử được đường đỏ | Chạy tay `preflight.yml` với ô `extra_catalog` thì đường dẫn đó được kiểm như một giá trị của khóa | Như ô `extra_asset` có sẵn |
 | Người biết phải chạy lại | `docs/ops/staging-and-runs.md`, mục 2.8: đổi khóa `poses_catalog_path` hay tải catalog mới thì chạy lại **preflight** | Lần chạy buổi sáng không thấy thay đổi buổi chiều (hôm nay đổi sau 14:36 UTC) |
@@ -50,22 +50,23 @@ ADR liên quan: ADR-0003 (Remote Config), ADR-0007 (staging, production tách pr
 2. **+ Create service account**, tên `remote-config-reader`. **Select a role**: gõ `Remote Config`, chọn **Firebase Remote Config Viewer** (`roles/firebaseremoteconfig.viewer`). Không gán vai trò nào khác. **Done**.
 3. Email của tài khoản > tab **Keys** > **Add key** > **Create new key** > **JSON**.
 4. `gh secret set STAGING_REMOTE_CONFIG_CREDENTIALS < <file khóa JSON>`, rồi chuyển file khóa ra khỏi máy vào trình quản lý mật khẩu (`docs/ops/staging-and-runs.md`, mục 1.3).
-5. Báo AI để chạy thử workflow trên nhánh thử (mục 4.1).
+5. Báo AI để chạy thử workflow trên nhánh thử (mục 4.1), lúc không có issue `setup-broken` nào đang mở và không có phiên nào sắp bắt đầu: lần chạy đỏ của nhánh thử mở `setup-broken` cho cả repo, lần chạy xanh đóng cả issue thật đang mở.
 
 Merge PR của task khi chưa có bí mật thì `preflight` đỏ ngay (`LỖI: thiếu bí mật ...`), issue `setup-broken` chặn mọi phiên. Vì vậy danh sách chạy chỉ đưa T-065 vào khi bí mật đã có và lần chạy thử đã xanh (mục 7).
 
 **`scripts/preflight.sh`** (bản cài thử đã chạy, mục 4.1):
 
 - Đọc `CATALOG_PATH_KEY`, `DEFAULT_CATALOG_PATH` từ `PosesSettings.kt` và `APP_SCHEMA` từ `CatalogParser.kt` bằng `sed`, như `ASSETS_BASE_URL` đọc từ `app/build.gradle.kts`.
-- Hàm `status_of` gom lệnh `curl` có thử lại một lần khi `000`; `check_assets` dùng lại hàm này (hành vi giữ nguyên, test cũ qua).
+- Hàm `status_of` gom lệnh `curl`, thử lại một lần khi `000`, `429` hay `5xx`; `check_assets` dùng lại hàm này. Hành vi của điều kiểm 4 đổi một chút: trước đây chỉ thử lại `000`; test cũ vẫn qua.
+- `remoteconfig:get` chạy dưới `timeout 120` khi máy có lệnh `timeout` (runner Ubuntu có; macOS không có thì chạy không giới hạn, như `cloud-env-check.sh`, `device-session.sh`).
 - `valid_asset_path`: cùng quy tắc với `AssetPath.isValid`.
 - `catalog_values`: `jq` lấy giá trị của khóa ở `parameters` hay trong `parameterGroups`, giá trị mặc định và mọi `conditionalValues`; `value`, `rolloutValue.value`; `@default` cho không có khóa, không có giá trị, `useInAppDefault`; `@unknown` (ví dụ giá trị cá nhân hóa) thì `CHÚ Ý`.
-- `check_remote_catalog`: điều kiểm thứ 5, gọi sau `check_assets`. Không có giá trị nào của khóa trả về lỗi thì dòng `QUA: catalog <đường dẫn> (khóa poses_catalog_path) và <n> file khởi đầu đều trả 200.`, mỗi đường dẫn khác nhau một dòng.
+- `check_remote_catalog`: điều kiểm thứ 5, gọi sau `check_assets`. Lỗi của `jq` không in ra; danh sách tư thế đọc bằng `.poses[] | objects`; đọc template xong mà không có đường dẫn nào thì `CHÚ Ý` và kiểm đường dẫn mặc định. Không có giá trị nào của khóa trả về lỗi thì dòng `QUA: catalog <đường dẫn> (khóa poses_catalog_path) và <n> file khởi đầu đều trả 200.`, mỗi đường dẫn khác nhau một dòng.
 - Biến môi trường mới: `REMOTE_CONFIG_CREDENTIALS_FILE`, `EXTRA_CATALOG_PATH`. Không dùng `mapfile` (bash 3.2 của máy macOS).
 
 ```diff
 diff --git a/scripts/preflight.sh b/scripts/preflight.sh
-index fa2f17b..1f164f4 100755
+index fa2f17b..9049f9d 100755
 --- a/scripts/preflight.sh
 +++ b/scripts/preflight.sh
 @@ -3,7 +3,9 @@
@@ -88,7 +89,7 @@ index fa2f17b..1f164f4 100755
  #   DIG_CMD, CURL_CMD, FIREBASE_CMD, PREFLIGHT_RETRY_SECONDS replace the real commands and wait in tests.
  # Exit codes: 0 every check passed (warnings allowed), 1 at least one check failed.
  # Secret values are never printed: jq results are only used as conditions, command output is discarded.
-@@ -26,6 +30,14 @@ TESTER_GROUPS="${TESTER_GROUPS:-team}"
+@@ -26,9 +30,21 @@ TESTER_GROUPS="${TESTER_GROUPS:-team}"
  DNS_SERVERS="${DNS_SERVERS:-1.1.1.1 8.8.8.8}"
  REQUIRED_ASSETS="${REQUIRED_ASSETS:-scripts/required-assets.txt}"
  RETRY_SECONDS="${PREFLIGHT_RETRY_SECONDS:-5}"
@@ -103,16 +104,24 @@ index fa2f17b..1f164f4 100755
  read -r -a DIG <<< "${DIG_CMD:-dig}"
  read -r -a CURL <<< "${CURL_CMD:-curl}"
  read -r -a FIREBASE <<< "${FIREBASE_CMD:-npx --yes firebase-tools@15.32.1}"
-@@ -119,6 +131,18 @@ check_dns() {
++# remoteconfig:get gets a time limit, so a hang cannot kill the job before preflight.yml records the result.
++REMOTE_CONFIG_TIMEOUT="${PREFLIGHT_REMOTE_CONFIG_TIMEOUT:-120}"
++REMOTE_CONFIG_GET=("${FIREBASE[@]}")
++if command -v timeout > /dev/null; then REMOTE_CONFIG_GET=(timeout "$REMOTE_CONFIG_TIMEOUT" "${FIREBASE[@]}"); fi
+ 
+ passed=0
+ failed=0
+@@ -119,6 +135,19 @@ check_dns() {
    return 0
  }
  
-+# HTTP status of a file on R2; 000 (no connection) is retried once. Extra curl options go before the URL.
++# HTTP status of a file on R2; 000 (no connection), 429 and 5xx are retried once (plan T-065: one passing hiccup must
++# not open setup-broken for a whole day). Extra curl options go before the URL.
 +status_of() { # <path> [curl options]
 +  local path="$1" code
 +  shift
 +  code="$("${CURL[@]}" -sS --max-time 20 -w '%{http_code}' "$@" "${base_url%/}/$path" 2> /dev/null || true)"
-+  if [[ "$code" == "000" || -z "$code" ]]; then
++  if [[ -z "$code" || "$code" == "000" || "$code" == "429" || "$code" == 5?? ]]; then
 +    sleep "$RETRY_SECONDS"
 +    code="$("${CURL[@]}" -sS --max-time 20 -w '%{http_code}' "$@" "${base_url%/}/$path" 2> /dev/null || true)"
 +  fi
@@ -122,7 +131,7 @@ index fa2f17b..1f164f4 100755
  # 4. Required files on R2 (L-011). 000 (no connection) is retried once before counting as a failure.
  check_assets() {
    local count=0 bad=0 code
-@@ -134,13 +158,9 @@ check_assets() {
+@@ -134,13 +163,9 @@ check_assets() {
      path="$(sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' <<< "$path")"
      [[ -z "$path" || "$path" == \#* ]] && continue
      count=$((count + 1))
@@ -138,7 +147,7 @@ index fa2f17b..1f164f4 100755
        bad=$((bad + 1))
      fi
    done < "$REQUIRED_ASSETS"
-@@ -148,10 +168,109 @@ check_assets() {
+@@ -148,10 +173,116 @@ check_assets() {
    return 0
  }
  
@@ -183,10 +192,13 @@ index fa2f17b..1f164f4 100755
 +  if [[ -z "$project" ]]; then
 +    warn "không đọc được khóa $CATALOG_PATH_KEY: bí mật Firebase không có mã project; chỉ kiểm đường dẫn mặc định."
 +    paths="$DEFAULT_CATALOG_PATH"
-+  elif ! GOOGLE_APPLICATION_CREDENTIALS="$credentials" "${FIREBASE[@]}" remoteconfig:get --project "$project" \
-+      -o "$template" > /dev/null 2> "$tmp_dir/remote-config.err" || ! jq -e . "$template" > /dev/null 2>&1; then
-+    if grep -qE 'PERMISSION_DENIED|403|does not have permission' "$tmp_dir/remote-config.err" 2> /dev/null; then
-+      fail "tài khoản của STAGING_REMOTE_CONFIG_CREDENTIALS không đọc được Remote Config staging (cần vai trò Firebase Remote Config Viewer)."
++  elif ! GOOGLE_APPLICATION_CREDENTIALS="$credentials" "${REMOTE_CONFIG_GET[@]}" \
++      remoteconfig:get --project "$project" -o "$template" > /dev/null 2> "$tmp_dir/remote-config.err" \
++      || ! jq -e 'type == "object"' "$template" > /dev/null 2>&1; then
++    # Only these texts mean a missing role or API; any other failure (network, npm, timeout 124) is a tool failure.
++    if grep -qE 'HTTP Error: 403|PERMISSION_DENIED|missing the following required permissions' \
++        "$tmp_dir/remote-config.err" 2> /dev/null; then
++      fail "tài khoản của STAGING_REMOTE_CONFIG_CREDENTIALS không đọc được Remote Config staging (cần vai trò Firebase Remote Config Viewer, hoặc API Remote Config chưa bật)."
 +      return
 +    fi
 +    warn "không đọc được khóa $CATALOG_PATH_KEY (lệnh firebase-tools không chạy được); chỉ kiểm đường dẫn mặc định."
@@ -205,7 +217,11 @@ index fa2f17b..1f164f4 100755
 +          fi
 +          ;;
 +      esac
-+    done < <(catalog_values "$template")
++    done < <(catalog_values "$template" 2> /dev/null)
++    if [[ -z "$paths" ]]; then
++      warn "không đọc được giá trị nào của khóa $CATALOG_PATH_KEY trong template Remote Config; chỉ kiểm đường dẫn mặc định."
++      paths="$DEFAULT_CATALOG_PATH"
++    fi
 +  fi
 +  [[ -n "${EXTRA_CATALOG_PATH:-}" ]] && paths+=$'\n'"$EXTRA_CATALOG_PATH"
 +  while IFS= read -r path; do
@@ -234,7 +250,7 @@ index fa2f17b..1f164f4 100755
 +        fail "file khởi đầu $file của catalog $path trả $code (cần 200): app dừng ở màn tải bộ khởi đầu."
 +        bad=$((bad + 1))
 +      fi
-+    done < <(jq -r '.poses[] | select(.starter == true) | .preview.small?, .outline? | strings' "$catalog")
++    done < <(jq -r '.poses[] | objects | select(.starter == true) | (.preview | objects | .small), .outline | strings' "$catalog" 2> /dev/null)
 +    [[ "$bad" -eq 0 ]] && pass "catalog $path (khóa $CATALOG_PATH_KEY) và $count file khởi đầu đều trả 200."
 +  done < <(sort -u <<< "$paths")
 +  return 0
@@ -249,6 +265,8 @@ index fa2f17b..1f164f4 100755
  say "Tổng: $passed điều qua, $failed điều lỗi."
  if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
 ```
+
+**ADR-0016** có bảng bí mật của repo nhưng `origin: template`, nên app không sửa (`docs/CLAUDE.md`, Khi viết ADR). Bí mật mới ghi ở `docs/ops/staging-and-runs.md`, mục 1.3; đề xuất về dự án mẫu thêm dòng vào bảng của ADR-0016 ở bản của dự án mẫu.
 
 **Workflow** (`.github/workflows/preflight.yml`, `.github/workflows/start-run.yml`): đưa bí mật vào tệp tạm `umask 077`, xóa khi xong, như hai bí mật có sẵn; `preflight.yml` thêm ô `extra_catalog`.
 
@@ -307,14 +325,19 @@ index fa2f17b..1f164f4 100755
 - Mục 1.3: dòng `STAGING_REMOTE_CONFIG_CREDENTIALS` trong bảng bí mật và lệnh `gh secret set`.
 - Mục 2.8: gạch đầu dòng thứ 5 (catalog mà khóa `poses_catalog_path` trỏ tới và file khởi đầu của nó trả 200, kiểm mọi giá trị kể cả theo điều kiện), ô `extra_catalog` ở dòng Chạy tay, và dòng mới: "**Đổi khóa `poses_catalog_path` hay tải catalog mới:** chạy lại **preflight** ngay; lần chạy buổi sáng không thấy thay đổi sau đó".
 
-**Đề xuất về dự án mẫu** (`docs/ops/from-app.md`, ghi vào mô tả PR, mở issue sau khi merge): dự án mẫu không có `:core:poses`; phần chung là "kiểm các file R2 mà một khóa Remote Config trỏ tới", với khóa và đường dẫn mặc định khai báo theo app.
+**Đề xuất về dự án mẫu** (`docs/ops/from-app.md`, ghi vào mô tả PR, mở issue sau khi merge): dự án mẫu không có `:core:poses`; phần chung là "kiểm các file R2 mà một khóa Remote Config trỏ tới", với khóa và đường dẫn mặc định khai báo theo app; thêm dòng `STAGING_REMOTE_CONFIG_CREDENTIALS` vào bảng bí mật của ADR-0016.
+
+**Sau khi merge** (phiên làm task): phiên chạy `preflight.yml` trên nhánh chính (`gh workflow run preflight.yml --ref main`, chờ bằng `scripts/wait-run.sh --workflow preflight.yml --since <giờ>`).
+- Xanh: ghi vào nhật ký.
+- Đỏ vì catalog thật hỏng (dòng `LỖI: khóa poses_catalog_path trỏ tới ...`, `LỖI: file khởi đầu ...`, `LỖI: catalog ...`): giữ issue `setup-broken`, ghi vào Cần người kiểm tra của báo cáo; đó là việc của người.
+- Đỏ vì chính điều kiểm 5 (thiếu bí mật, lỗi quyền dù bí mật đúng, hay phân loại sai): revert commit merge của task theo `docs/auto-run.md`, mục 3, Khi nhánh chính đỏ vì task của phiên, chạy lại `preflight.yml` để issue tự đóng, ghi lý do vào nhật ký và báo cáo.
 
 ### 3.2. Danh sách file
 
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
 | Sửa | `scripts/preflight.sh` | Điều kiểm thứ 5 `check_remote_catalog`, `status_of`, `valid_asset_path`, `catalog_values` (mục 3.1) |
-| Sửa | `scripts/tests/run.sh` | Khối preflight: `fake-curl` ghi phương thức và tải nội dung từ `$PF/body/`, `fake-firebase` trả `remoteconfig:get`, `preflight_reset` có template và catalog, 43 test mới, 2 kỳ vọng cũ đổi (mục 4) |
+| Sửa | `scripts/tests/run.sh` | Khối preflight: `fake-curl` ghi phương thức và tải nội dung từ `$PF/body/`, `fake-firebase` trả `remoteconfig:get`, `preflight_reset` có template và catalog, 56 test mới (một test chỉ chạy khi máy có `timeout`), 2 kỳ vọng cũ đổi (mục 4) |
 | Sửa | `.github/workflows/preflight.yml` | Bí mật `STAGING_REMOTE_CONFIG_CREDENTIALS`, ô `extra_catalog`, chú thích đầu file |
 | Sửa | `.github/workflows/start-run.yml` | Bí mật `STAGING_REMOTE_CONFIG_CREDENTIALS` ở bước "Kiểm tra môi trường staging" |
 | Sửa | `docs/ops/staging-and-runs.md` | Mục 1.1, 1.3, 2.8 (mục 3.1) |
@@ -342,6 +365,8 @@ L-020, các file nhắc tới file mà plan sửa:
 - **Điểm chưa chắc:** dạng lệnh `firebase-tools remoteconfig:get --project <id> -o <tệp>` và dạng JSON nó ghi (giống REST API `GET .../remoteConfig`: `parameters`, `parameterGroups`, `conditionalValues`) chưa chạy được thật, vì chưa có bí mật và máy viết plan không có Node.
 - **Điều kiện chuyển:** lần chạy thử (mục 4.1) cho `CHÚ Ý: không đọc được khóa ...` dù bí mật đúng, hay tệp ghi ra không có `parameters`.
 - **Cách làm thay:** lấy token bằng chính `firebase-tools` không được thì gọi REST API: `curl -fsS -H "Authorization: Bearer $(...)" https://firebaseremoteconfig.googleapis.com/v1/projects/<id>/remoteConfig -o <tệp>`, với token lấy từ tài khoản dịch vụ bằng bước `google-github-actions/auth` hay lệnh `gcloud` có sẵn trên runner. Đây là thay đổi workflow mới, nên đi qua plan phiên bản 2 có người duyệt, không đổi trong phiên. Tiêu chí và test của mục 4 giữ nguyên (test giả lập lệnh, không phụ thuộc cách lấy).
+- **Điểm chưa chắc 2:** tổ chức Google Cloud có thể bật chính sách `iam.disableServiceAccountKeyCreation`, làm bước tạo khóa JSON báo `Service account key creation is disabled` (như `docs/ops/staging-and-runs.md`, mục 1.1, bước 4.5).
+- **Cách làm thay:** quản trị viên tắt chính sách đó cho project staging; không thì plan dừng ở bước Tuấn tạo bí mật, chưa duyệt.
 
 ## 4. Kiểm thử
 
@@ -359,6 +384,10 @@ Mọi test nằm trong khối preflight của `scripts/tests/run.sh`, chạy b�
 | Khóa trong nhóm tham số | Test script | `a key inside a parameter group is read` |
 | Thiếu bí mật, thiếu vai trò, công cụ lỗi | Test script | `a missing Remote Config secret is refused`, `names the Remote Config secret`, `a Remote Config account without the role is refused`, `names the missing role`, `a Remote Config command that cannot run only warns` |
 | Project staging được truyền | Test script | `the staging project is passed to remoteconfig:get` |
+| Phân loại lỗi của công cụ | Test script | `the firebase-tools missing permissions text is refused`, `a transient error with 403 inside a number only warns`, `a Remote Config command that cannot run only warns and checks the default`, `a Remote Config command that hits the time limit only warns` (mã 124), `a Remote Config command that hangs is stopped and only warns` (chỉ chạy khi máy có lệnh `timeout`), `a template that is not JSON only warns`, `a Firebase secret without project id only warns for Remote Config` |
+| Catalog hỏng, rollout, cá nhân hóa | Test script | `a catalog that is not JSON is refused`, `a rollout value that answers 404 is refused`, `a personalization value warns`, `no readable value checks the default path` |
+| Không in `QUA` sai | Test script | `no QUA line for a catalog with a missing starter file` (đối chứng), `a pose that is not an object does not hide the starter files` |
+| Lỗi tạm của R2 | Test script | `a 503 that passes on the retry is not a failure` |
 | Ô `extra_catalog` | Test script | `the extra catalog path of a manual run is checked` |
 | Quy tắc đường dẫn giống `AssetPath` | Test script | 7 test `... is a valid asset path`, 14 test `... is not a valid asset path`, cùng danh sách ví dụ của `AssetPathTest` |
 | Không lộ bí mật | Test script, có sẵn | `never prints secret values`: nay gồm cả lỗi giả của công cụ có `MARKER-SECRET-1` và mã project `proj-test-1` |
@@ -369,10 +398,10 @@ Test thêm vào `scripts/tests/run.sh` (đã chạy, mục 4.1):
 
 ```diff
 diff --git a/scripts/tests/run.sh b/scripts/tests/run.sh
-index fb6ab8c..0b613aa 100755
+index fb6ab8c..fdb4453 100755
 --- a/scripts/tests/run.sh
 +++ b/scripts/tests/run.sh
-@@ -1695,13 +1695,28 @@ SH
+@@ -1695,13 +1695,29 @@ SH
  cat > "$work/bin/fake-curl" << 'SH'
  #!/usr/bin/env bash
  # The status code for a URL is the first line of $PF/curl/<path with / as _>, consumed one per call; default 200.
@@ -394,6 +423,7 @@ index fb6ab8c..0b613aa 100755
 +  echo "$*" >> "$PF/rc.args"
 +  out=""; prev=""; for a in "$@"; do [[ "$prev" == "-o" ]] && out="$a"; prev="$a"; done
 +  cat "$PF/rc-err" >&2 2>/dev/null || true
++  [[ -f "$PF/rc-sleep" ]] && sleep "$(cat "$PF/rc-sleep")"
 +  code="$(cat "$PF/rc-exit" 2>/dev/null || echo 0)"
 +  [[ "$code" == 0 && -f "$PF/remote-config.json" ]] && cp "$PF/remote-config.json" "$out"
 +  exit "$code"
@@ -401,7 +431,7 @@ index fb6ab8c..0b613aa 100755
  code="$(cat "$PF/firebase-exit" 2>/dev/null || echo 0)"
  [[ "$code" == 0 ]] && cat "$PF/groups.json"
  exit "$code"
-@@ -1720,12 +1735,25 @@ preflight_reset() { # sets up a ready environment; a test then breaks one thing
+@@ -1720,12 +1736,25 @@ preflight_reset() { # sets up a ready environment; a test then breaks one thing
    printf '104.21.40.144\n172.67.153.9\n' > "$pf/dig-1.1.1.1"
    printf '104.21.40.144\n' > "$pf/dig-8.8.8.8"
    printf '# Required files\n\nposes/catalog/v1/catalog-587b5394.json\n' > "$pf/assets.txt"
@@ -428,7 +458,7 @@ index fb6ab8c..0b613aa 100755
      FIREBASE_CMD="$work/bin/fake-firebase" PREFLIGHT_RETRY_SECONDS=0 GITHUB_STEP_SUMMARY="$pf/summary" \
      scripts/preflight.sh > "$pf/out" 2>&1 || code=$?
    cat "$pf/out" >> "$work/preflight-all.out"; cat "$pf/summary" >> "$work/preflight-all.out" 2>/dev/null || true
-@@ -1736,7 +1764,7 @@ pf_lines() { grep -c "$1" "$pf/out" || true; }
+@@ -1736,7 +1765,7 @@ pf_lines() { grep -c "$1" "$pf/out" || true; }
  
  preflight_reset
  expect "preflight: a ready environment passes" 0 "$(preflight)"
@@ -437,7 +467,7 @@ index fb6ab8c..0b613aa 100755
  expect "preflight: the domain is read from app/build.gradle.kts" 2 "$(grep -c 'camera-pose.vgl.io.vn' "$pf/dig.args" 2>/dev/null || true)"
  expect "preflight: existing tester groups pass" 0 "$(PF_GROUPS=team,qa preflight)"
  
-@@ -1773,8 +1801,59 @@ expect "preflight: a connection that fails once is retried" 0 "$(preflight)"
+@@ -1773,8 +1802,91 @@ expect "preflight: a connection that fails once is retried" 0 "$(preflight)"
  preflight_reset; printf '000\n000\n' > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
  expect "preflight: a connection that keeps failing is refused" 1 "$(preflight)"
  
@@ -466,7 +496,8 @@ index fb6ab8c..0b613aa 100755
 +expect "preflight: no parameter means the default path" "0 1" "$(preflight) $(grep -c '^GET .*/poses/catalog/v1/catalog-587b5394.json$' "$pf/curl.urls" || true)"
 +preflight_reset; remote_config '{"defaultValue": {"useInAppDefault": true}}'; echo 404 > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
 +expect "preflight: useInAppDefault checks the app default path" 1 "$(preflight > /dev/null; pf_lines '^LỖI: khóa poses_catalog_path trỏ tới poses/catalog/v1/catalog-587b5394.json')"
-+preflight_reset; remote_config '{"defaultValue": {"value": "poses/catalog/latest.json"}}'
++preflight_reset; remote_config "{\"defaultValue\": {\"value\": \"$v3\"}, \"conditionalValues\": {\"old\": {\"value\": \"poses/catalog/latest.json\"}}}"
++catalog_body > "$pf/body/poses_catalog_v3_catalog-c2e0ce0d.json"
 +expect "preflight: an invalid path warns and checks the default, as the app does" "0 1 1" \
 +  "$(preflight) $(pf_lines '^CHÚ Ý: khóa poses_catalog_path có giá trị \"poses/catalog/latest.json\" không hợp lệ') $(grep -c '^GET .*/poses/catalog/v1/catalog-587b5394.json$' "$pf/curl.urls" || true)"
 +preflight_reset; printf '{"parameterGroups": {"poses": {"parameters": {"poses_catalog_path": {"defaultValue": {"value": "%s"}}}}}}' "$v3" > "$pf/remote-config.json"
@@ -478,8 +509,39 @@ index fb6ab8c..0b613aa 100755
 +preflight_reset; echo 1 > "$pf/rc-exit"; echo 'Error: Request had HTTP Error: 403, PERMISSION_DENIED MARKER-SECRET-1' > "$pf/rc-err"
 +expect "preflight: a Remote Config account without the role is refused" 1 "$(preflight)"
 +expect "preflight: names the missing role" 1 "$(pf_lines '^LỖI: .*Firebase Remote Config Viewer')"
++preflight_reset; echo 1 > "$pf/rc-exit"; echo 'Error: Authorization failed. This account is missing the following required permissions on project proj-test-1: cloudconfig.configs.get' > "$pf/rc-err"
++expect "preflight: the firebase-tools missing permissions text is refused" "1 1" "$(preflight) $(pf_lines '^LỖI: .*Firebase Remote Config Viewer, hoặc API Remote Config chưa bật')"
++preflight_reset; echo 1 > "$pf/rc-exit"; echo 'Error: Server Error. request id 84031, connect ETIMEDOUT' > "$pf/rc-err"
++expect "preflight: a transient error with 403 inside a number only warns" "0 1" "$(preflight) $(pf_lines '^CHÚ Ý: không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
 +preflight_reset; echo 1 > "$pf/rc-exit"; echo 'npm ERR! network timeout' > "$pf/rc-err"
-+expect "preflight: a Remote Config command that cannot run only warns" "0 1" "$(preflight) $(pf_lines '^CHÚ Ý: không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
++expect "preflight: a Remote Config command that cannot run only warns and checks the default" "0 1 1" \
++  "$(preflight) $(pf_lines '^CHÚ Ý: không đọc được khóa poses_catalog_path (lệnh firebase-tools') $(grep -c '^GET .*/poses/catalog/v1/catalog-587b5394.json$' "$pf/curl.urls" || true)"
++preflight_reset; echo 124 > "$pf/rc-exit"
++expect "preflight: a Remote Config command that hits the time limit only warns" "0 1" "$(preflight) $(pf_lines '^CHÚ Ý: không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
++if command -v timeout > /dev/null; then
++  preflight_reset; echo 5 > "$pf/rc-sleep"
++  expect "preflight: a Remote Config command that hangs is stopped and only warns" "0 1" \
++    "$(PREFLIGHT_REMOTE_CONFIG_TIMEOUT=1 preflight) $(pf_lines '^CHÚ Ý: không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
++fi
++preflight_reset; echo 'not json' > "$pf/remote-config.json"
++expect "preflight: a template that is not JSON only warns" "0 1" "$(preflight) $(pf_lines '^CHÚ Ý: không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
++preflight_reset; echo 'not a catalog' > "$pf/body/poses_catalog_v1_catalog-587b5394.json"
++expect "preflight: a catalog that is not JSON is refused" "1 1" "$(preflight) $(pf_lines '^LỖI: catalog poses/catalog/v1/catalog-587b5394.json (khóa poses_catalog_path) không phải catalog đọc được')"
++preflight_reset; remote_config "{\"defaultValue\": {\"value\": \"poses/catalog/v1/catalog-587b5394.json\"}, \"conditionalValues\": {\"half\": {\"rolloutValue\": {\"rolloutId\": \"r1\", \"value\": \"$v3\"}}}}"
++echo 404 > "$pf/curl/poses_catalog_v3_catalog-c2e0ce0d.json"
++expect "preflight: a rollout value that answers 404 is refused" "1 1" "$(preflight) $(pf_lines "^LỖI: khóa poses_catalog_path trỏ tới $v3")"
++preflight_reset; remote_config '{"defaultValue": {"value": "poses/catalog/v1/catalog-587b5394.json"}, "conditionalValues": {"p": {"personalizationValue": {"personalizationId": "x"}}}}'
++expect "preflight: a personalization value warns" "0 1" "$(preflight) $(pf_lines '^CHÚ Ý: .*cá nhân hóa')"
++preflight_reset; remote_config '{"conditionalValues": {"p": {"personalizationValue": {"personalizationId": "x"}}}, "defaultValue": {"personalizationValue": {}}}'
++expect "preflight: no readable value checks the default path" "0 1" "$(preflight) $(grep -c '^GET .*/poses/catalog/v1/catalog-587b5394.json$' "$pf/curl.urls" || true)"
++preflight_reset; echo 404 > "$pf/curl/poses_img_v1_w01_outline.webp"
++expect "preflight: no QUA line for a catalog with a missing starter file" 0 "$(preflight > /dev/null; pf_lines '^QUA: catalog ')"
++preflight_reset; printf '{"schema": 1, "minAppSchema": 1, "poses": ["broken", {"id": "w01", "starter": true, "preview": {"small": "poses/img/v1/w01/preview_540.webp"}, "outline": "poses/img/v1/w01/outline.webp"}]}' > "$pf/body/poses_catalog_v1_catalog-587b5394.json"
++expect "preflight: a pose that is not an object does not hide the starter files" "0 1" "$(preflight) $(pf_lines '^QUA: catalog .* và 2 file khởi đầu')"
++preflight_reset; echo 503 > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"; printf '503\n200\n' > "$pf/curl/poses_catalog_v1_catalog-587b5394.json"
++expect "preflight: a 503 that passes on the retry is not a failure" 0 "$(preflight)"
++preflight_reset; google_services proj-test-1 "$staging_client" | jq 'del(.project_info.project_id)' > "$pf/google-services.json"
++expect "preflight: a Firebase secret without project id only warns for Remote Config" "0 1" "$(preflight) $(pf_lines '^CHÚ Ý: không đọc được khóa poses_catalog_path: bí mật Firebase không có mã project')"
 +preflight_reset; echo 404 > "$pf/curl/poses_catalog_v9_catalog-00000000.json"
 +expect "preflight: the extra catalog path of a manual run is checked" "1 1" \
 +  "$(EXTRA_CATALOG_PATH=poses/catalog/v9/catalog-00000000.json preflight) $(pf_lines '^LỖI: khóa poses_catalog_path trỏ tới poses/catalog/v9/catalog-00000000.json')"
@@ -506,20 +568,30 @@ index fb6ab8c..0b613aa 100755
 
 - **Đã chạy thử:** 2026-10-26, worktree `wt-t065` từ nhánh chính `f464d7f`, bản cài thử của `scripts/preflight.sh` và test ở mục 3.1, mục 4 (không commit). Chạy riêng khối preflight của `scripts/tests/run.sh` (dòng 1 đến 26 và khối từ "# preflight.sh checks the staging" tới trước "# java-check.sh"), vì máy viết plan không có JDK nên `scripts/check.sh` và toàn bộ `run.sh` (có test cần Java) không chạy được; phiên chạy `scripts/check.sh` như mọi task.
 - **Lệnh:** `bash scripts/tests/pf-block.sh` (tệp tạm, đã xóa).
-- **Kết quả trên code hiện tại** (test mới, `preflight.sh` cũ): 24 qua, 44 thất bại. Thất bại đúng lý do: 2 kỳ vọng cũ đổi (`expected '5', got '4'`, `expected '3', got '2'`); 21 test mới của điều kiểm 5 (`expected '1', got '0'`, `expected '1 0', got '0 0'`; `the staging project is passed`: không có `rc.args`); 21 test quy tắc đường dẫn (`valid_asset_path: command not found`, mã 127). Đối chứng qua: `a Remote Config catalog that exists passes`; 23 test cũ không đổi qua.
-- **Kết quả trên bản cài thử:** 68 qua, `failures=0` (23 test cũ không đổi, 2 kỳ vọng sửa, 43 test mới).
-- **Đột biến** (mỗi lần sửa một chỗ của bản cài thử, chạy lại khối):
+- **Đã chạy lại sau rà soát độc lập** (2026-10-26, nhánh chính `191ebd7`): hai lần, không và có lệnh `timeout` (máy viết plan là macOS, không có `timeout`; lần thứ hai dùng một lệnh `timeout` tạm bằng `perl alarm` trong `PATH`, chỉ để chạy test treo).
+- **Kết quả trên code hiện tại** (test mới, `preflight.sh` cũ): có `timeout`: 25 qua, 56 thất bại; không `timeout`: 25 qua, 55 thất bại (test treo bỏ qua). Thất bại đúng lý do: 2 kỳ vọng cũ đổi (`expected '5', got '4'`, `expected '3', got '2'`); 33 test mới của điều kiểm 5 (`expected '1', got '0'`, `expected '0 1', got '0 0'`; `a 503 that passes on the retry`: điều kiểm 4 cũ không thử lại `503`; `the staging project is passed`: không có `rc.args`); 21 test quy tắc đường dẫn (`valid_asset_path: command not found`, mã 127). Đối chứng qua: `a Remote Config catalog that exists passes`, `no QUA line for a catalog with a missing starter file`; 23 test cũ không đổi qua.
+- **Kết quả trên bản cài thử:** có `timeout` 81 qua, không `timeout` 80 qua, `failures=0` (23 test cũ không đổi, 2 kỳ vọng sửa, 56 hay 55 test mới).
+- **Đột biến** (mỗi lần sửa một chỗ của bản cài thử, chạy lại khối có `timeout`):
 
 | # | Đột biến | Thất bại |
 | --- | --- | --- |
-| 1 | Bỏ `conditionalValues` | 2 |
+| 1 | Bỏ `conditionalValues` | 5 |
 | 2 | Bỏ `parameterGroups` | 1 |
-| 3 | Giá trị sai dạng không quay về đường dẫn mặc định | 1 (sau khi thêm kiểm `GET` mặc định vào test giá trị sai dạng; trước đó 0) |
-| 4 | Lỗi `403` chỉ cảnh báo | 2 |
+| 3 | Giá trị sai dạng không quay về đường dẫn mặc định | 1 (test giá trị sai dạng nay có giá trị mặc định hợp lệ cạnh giá trị sai; trước đó 0) |
+| 4 | Lỗi thiếu quyền chỉ cảnh báo | 3 |
 | 5 | Bỏ kiểm `minAppSchema` | 2 |
 | 6 | Kiểm mọi tư thế, không chỉ `starter` | 1 |
+| 7 | Mẫu khớp `403` trần | 1 |
+| 8 | Không thử lại `5xx`, `429` | 1 |
+| 9 | Bỏ kiểm template là object JSON | 1 |
+| 10 | In `QUA` khi có file khởi đầu hỏng | 1 |
+| 11 | Bỏ `objects` khi đọc `poses` | 1 |
+| 12 | Không quay về mặc định khi không đọc được giá trị nào | 1 |
+| 13 | Thiếu mã project là `LỖI` thay vì `CHÚ Ý` | 1 |
+| 14 | Bỏ `rolloutValue` | 1 |
+| 15 | Bỏ giới hạn thời gian | 1 |
 
-- **Workflow:** chưa chạy thử: cần bí mật `STAGING_REMOTE_CONFIG_CREDENTIALS`. Khi Tuấn tạo xong, AI đẩy một nhánh thử có thay đổi của mục 3.1 và chạy `gh workflow run preflight.yml --ref <nhánh thử>` (hai lần, có và không ô `extra_catalog`; workflow không giới hạn nhánh), ghi kết quả vào đây trước khi duyệt, rồi xóa nhánh thử. Lần chạy đỏ của nhánh thử mở issue `setup-broken`; lần chạy xanh sau đó đóng nó.
+- **Workflow:** chưa chạy thử: cần bí mật `STAGING_REMOTE_CONFIG_CREDENTIALS`. Chỉ chạy thử lúc không có issue `setup-broken` đang mở và không có phiên nào sắp bắt đầu (mục 3.1, bước 5 của Tuấn). Khi Tuấn tạo xong, AI đẩy một nhánh thử có thay đổi của mục 3.1 và chạy `gh workflow run preflight.yml --ref <nhánh thử>` (hai lần, có và không ô `extra_catalog`; workflow không giới hạn nhánh), ghi kết quả vào đây trước khi duyệt, rồi xóa nhánh thử. Lần chạy đỏ của nhánh thử mở issue `setup-broken`; lần chạy xanh sau đó đóng nó.
 
 ## 5. Chấm rủi ro
 
@@ -529,10 +601,10 @@ index fb6ab8c..0b613aa 100755
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 2 | Một script, hai workflow, test, một tài liệu |
 | B. Độ rõ của yêu cầu | 1 | Sự cố rõ; còn câu hỏi 2, 3 không đổi cách làm chính |
-| C. Khả năng kiểm chứng tự động | 1 | Script có test; workflow kiểm bằng lần chạy tay |
+| C. Khả năng kiểm chứng tự động | 2 | Script có test; workflow và lệnh `remoteconfig:get` thật chỉ kiểm bằng lần chạy tay |
 | D. Ảnh hưởng chéo | 2 | `preflight` quyết định phiên có bắt đầu không |
 | E. Độ mới của kỹ thuật | 2 | `remoteconfig:get` lần đầu dùng trong dự án |
-| **Tổng** | 8 | **Mức: Cao** (điểm chặn 7) |
+| **Tổng** | 9 | **Mức: Cao** (điểm chặn 7) |
 
 ## 6. Ảnh hưởng chéo
 
@@ -550,6 +622,7 @@ index fb6ab8c..0b613aa 100755
 2. Tài khoản dịch vụ riêng `remote-config-reader` (chỉ vai trò Firebase Remote Config Viewer) hay gán thêm vai trò đó cho tài khoản App Distribution có sẵn (không thêm bí mật)? **AI đề xuất: tài khoản riêng**, mỗi bí mật một quyền nhỏ nhất (ADR-0009); thêm một bí mật là việc một lần.
 3. Phiên mở bằng `claude --cloud` chỉ đọc kết quả `preflight.yml` trong 26 giờ (`docs/auto-run.md`, mục 2), nên thay đổi Remote Config sau lần chạy buổi sáng vẫn lọt. Có cho phiên tự chạy lại `preflight.yml` lúc bắt đầu không? **AI đề xuất: chưa**, chỉ thêm dòng "đổi khóa thì chạy lại preflight" ở `docs/ops/staging-and-runs.md`: catalog hỏng không làm task hỏng (CI dùng file Firebase giả, đường dẫn mặc định), và một `preflight` đỏ lúc bắt đầu sẽ dừng cả phiên vì một việc chỉ ảnh hưởng `device-session` và bản staging. Nếu muốn, làm ticket riêng.
 4. Catalog hỏng (điều kiểm 5) là `LỖI` (mở `setup-broken`, chặn phiên) như file R2 bắt buộc, hay chỉ `CHÚ Ý`? **AI đề xuất: `LỖI`**: người sửa trong vài phút, còn phiên chạy với catalog hỏng thì `device-session` hỏng mọi kịch bản và bản staging không dùng được.
+5. Ghi chú: `CHÚ Ý` của điều kiểm 5 lặp lại nhiều ngày (công cụ hỏng lâu, điều kiểm thực ra không chạy) không mở issue; nếu thấy cần, một ticket sau có thể biến `CHÚ Ý` lặp lại quá 3 ngày thành issue riêng.
 
 ## 9. Quyết định duyệt
 

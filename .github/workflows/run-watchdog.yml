@@ -1,0 +1,44 @@
+# Tells people when an auto-run session has gone quiet (T-068, camera-pose L-084). Every 30 minutes,
+# scripts/run-watchdog.py looks for a run file that is still "running" on its report branch but whose branches have
+# had no commit for 60 minutes (90 while a workflow run it may be waiting for is still going), and opens or updates
+# one issue labelled session-stalled with the prompt to paste; it closes the issue when the session commits again or
+# the run is no longer "running". A session opened with `claude --cloud` is not continued by resume-run.yml (L-008),
+# so this issue is how a person learns it must be reopened.
+# Only reads the repository and writes session-stalled issues: never starts a session or a routine, never touches
+# main-broken or any other issue. Needs no secret. About 1 Actions minute a run, 48 a day (L-046 of camera-pose:
+# the Actions quota once ran out).
+# Changing this file is a high-risk plan; cross-review required.
+name: run-watchdog
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: run-watchdog
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+jobs:
+  watch:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Tìm phiên không có commit mới
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I scripts/run-watchdog.py | tee -a "${GITHUB_STEP_SUMMARY}"

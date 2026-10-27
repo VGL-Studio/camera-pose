@@ -177,7 +177,7 @@ Worktree riêng cho nhánh báo cáo: thư mục chính luôn ở nhánh của t
 
 **Khi phiên bị ngắt.** Không có `resume-run.yml` cho kiểu phiên này: hết hạn mức, hết credit hay mất kết nối thì phiên dừng hẳn. Phần đã đẩy lên còn nguyên (`docs/auto-run.md`, mục 3, bước 3). Người tiếp tục như sau:
 
-1. Xem nhánh báo cáo `claude/RUN-YYYYMMDD-NN-report` trên GitHub: danh sách chạy còn `running` và dòng thời gian cho biết phiên dừng ở task nào. Giờ commit cuối trên các nhánh của phiên là giờ dừng.
+1. Issue `session-stalled` (workflow `run-watchdog.yml`, mỗi 30 phút) báo khi phiên không có commit 60 phút; thân issue có sẵn prompt dưới đây kèm dòng tiếp tục (T-068). Xem nhánh báo cáo `claude/RUN-YYYYMMDD-NN-report` trên GitHub: danh sách chạy còn `running` và dòng thời gian cho biết phiên dừng ở task nào. Giờ commit cuối trên các nhánh của phiên là giờ dừng. Đoạn Nhánh chưa đẩy của báo cáo có dòng Patch trên nhánh báo cáo thì người xem patch rồi tự quyết lấy lại nhánh bằng lệnh in ở đó.
 2. Kiểm lại như phần Trước khi mở (bước 2, 3).
 3. Mở một phiên `claude --cloud` mới với cùng prompt và cùng danh sách chạy, thêm một dòng: "Đây là phiên tiếp tục: nhánh báo cáo đã có, danh sách chạy đang running. Làm theo docs/auto-run.md, mục 4, Tiếp tục phiên sau khi hết hạn mức." Phiên mới đọc nhánh báo cáo và đi tiếp như phiên do `resume-run.yml` kích hoạt lại.
 4. Phiên dừng giữa một lệnh dài (tiến trình bị khởi động lại, lệnh trả mã 137) mà vẫn còn chạy thì không cần làm gì: phiên tự chạy lại lệnh đó.

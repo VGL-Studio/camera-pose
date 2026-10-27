@@ -8,8 +8,8 @@ risk_level: high             # low | medium | high
 token_estimate: 5.5M         # cỡ S, số gợi ý của scripts/token-usage.py estimate (2026-10-27), không nâng tay (L-081)
 blocking_points: [process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Nhật               # người duyệt
-cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
 approved_at:
 ---
 
@@ -19,7 +19,7 @@ approved_at:
 
 Thêm lệnh `scripts/token-usage.py mark T-NNN` và `mark chung`. Phiên chính chạy `mark T-NNN` khi bắt đầu một task (hay khi chuyển sang làm việc của một task khác) và `mark chung` khi không còn task nào đang làm. Lệnh chỉ in một dòng xác nhận; `report` đọc lại chính dòng lệnh đó trong transcript của phiên chính (khối `tool_use` của công cụ Bash) và gán mọi request của phiên chính không ở nhánh task nào, từ dấu mốc `mark T-NNN` gần nhất tới dấu mốc kế tiếp, cho T-NNN. Dấu mốc trước `--since` không tính: `--since` (giờ bắt đầu phiên) có tác dụng như `mark chung`, nên dấu mốc mà một phiên trước bỏ dở không lan sang phiên sau. Dấu mốc nằm trong transcript nên sống đúng bằng transcript; phiên tiếp tục trong môi trường mới chạy lại `mark` cho task đang làm dở. Code và 11 test đã chạy thật trên code hiện tại, trên bản cài thử và với 7 đột biến (mục 4.1).
 
-**Phiên bản 2** viết lại theo nhánh chính sau PR #179 (đồng bộ dự án mẫu, đợt 1, `1fc049e`), cùng thiết kế, cùng test và câu trả lời của Tuấn ở mục 8 của phiên bản 1:
+**Phiên bản 2** viết lại theo nhánh chính sau PR #179 (đồng bộ dự án mẫu, đợt 1, `1fc049e`), cùng thiết kế, cùng test và câu trả lời của Tuấn cho mục 8 (ghi ở mục 9) của phiên bản 1:
 
 - PR #179 đổi docstring đầu tệp, chú thích của `BRIEF_TASK` và hàm `message_text` của `scripts/token-usage.py`, nên `diff` của phiên bản 1 không áp được (hunk docstring hỏng). `diff` ở mục 3.1 viết lại trên `1fc049e`, `git apply --check` sạch; phần code không đổi so với phiên bản 1.
 - `scripts/tests/run.sh` của mẫu có 18 test `token-usage` có sẵn (phiên bản 1: 20), và một khối test `plan-check` mới nằm giữa test `a worktree of the repository is counted` và `# status.py builds the progress page`; khối test mới đặt ngay sau test `a worktree ...`.
@@ -205,7 +205,7 @@ index b4e9da3..849933c 100755
 
 **`scripts/tests/run.sh`:** thêm khối test của mục 4 ngay sau test `token-usage: a worktree of the repository is counted` (cuối khối `token-usage`, trước khối `# In a git checkout, plan-check.py only searches tracked files ...`). Khối dùng lại `usage_line`, `expect`, `token_usage`, `$tokens` và ticket, plan T-031 có sẵn ở đầu khối; thêm hàm `mark_line`. Mỗi nhóm có thư mục transcript riêng (`$work/projects-mark`, `$work/projects-mark2`, `$work/projects-mark4`, `$work/projects-mark5`) nên không đổi số của test nào khác.
 
-**`docs/auto-run.md`** (lệnh `mark` viết thành một lệnh riêng, hoặc nối sau lệnh khác bằng `;`, không đứng đầu chuỗi `&&`; trong câu văn, tên lệnh đặt trong dấu nháy ngược):
+**`docs/auto-run.md`** (lệnh `mark` viết thành một lệnh riêng, hoặc nối sau lệnh khác bằng `;`, không đứng đầu chuỗi `&&` (để `mark` gõ sai, trả mã 2, không chặn các lệnh sau); trong câu văn, tên lệnh đặt trong dấu nháy ngược):
 
 - Mục 3, bảng các bước, dòng `1. Tạo nhánh`: thêm vào đầu cột Việc làm "Phiên chính chạy `scripts/token-usage.py mark T-NNN` khi bắt đầu task, kể cả khi tiếp tục trên nhánh có sẵn (mục Tiếp tục task đã dừng), trước khi tạo hay checkout nhánh, để token của phiên chính cho task tính vào task cả khi thư mục chính ở HEAD tách rời (camera-pose L-083)."
 - Mục Giao bước 3 đến 5 cho phiên con, gạch đầu dòng đầu (sau câu "Thư mục chính giữ sạch, ..."): thêm "Thư mục chính ở HEAD tách rời trong lúc này; dấu mốc `mark T-NNN` của bước 1 gán phần phiên chính làm cho task vào task. Phiên chính chuyển sang làm việc của task khác (chuẩn bị bước 1, 2 của task sau trong lúc phiên con làm) thì chạy `mark` cho task đó, rồi `mark` lại task cũ khi quay về; phiên chính khởi động lại thì chạy lại `mark` cho task đang làm. Không giao lệnh `mark` cho phiên con: chỉ dấu mốc trong transcript của phiên chính được tính (camera-pose L-083)." Câu này vào cuối gạch đầu dòng đầu, trước gạch "Phiên chính đẩy nhánh task ..." và đoạn "Phiên con kết thúc mà không có báo cáo ..." (camera-pose L-084); không đổi chữ của hai gạch đó.
@@ -420,9 +420,9 @@ Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-26); ghi chú: Tu
 
 Phiên bản 2:
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
 
 ## 10. Nhật ký thực hiện
 

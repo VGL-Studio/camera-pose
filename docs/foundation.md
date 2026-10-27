@@ -184,13 +184,15 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - ở app này, màn loading chờ tối đa 15 giây cho cấu hình, catalog và từng file của bộ khởi đầu
 - các quy tắc khác của ADR-0018 vẫn áp dụng
 
-### [ADR-1002](adr/1002-main-tu-hoi-phuc.md): Nhánh chính tự hồi phục khi đỏ: chạy lại test hỏng một lần, tự đóng issue khi chạy lại xanh, merge bản revert được kiểm bằng nội dung
+### [ADR-1004](adr/1004-chua-ap-dung-quang-cao-adskit.md): App chưa áp dụng quảng cáo theo AdsKit và AppsFlyer cho tới đợt đồng bộ core, trong lúc đó giữ quy tắc quảng cáo cũ
 
-- ở app này, `main-guard` chạy lại `check.sh` một lần khi chỉ có test thất bại và ghi issue `flaky` nếu lần chạy lại xanh
-- khi `main-broken` mở, chỉ merge PR mà `scripts/is-exact-revert.sh` xác nhận là bản revert đúng của commit bị đổ lỗi
-- phiên chỉ revert commit merge của chính phiên
-- AI vẫn không đóng, sửa hay bình luận để gỡ issue `main-broken`
-- các quy tắc khác của ADR-0010 vẫn áp dụng
+- chưa áp dụng ADR-0026, ADR-0027 và các vế ADR-0026 đổi trong ADR-0004, ADR-0013, ADR-0014 cho tới khi `core/ads` được đồng bộ qua plan đã duyệt
+- không khởi tạo SDK quảng cáo trước khi xử lý xong sự đồng ý của người dùng
+- feature chỉ dùng `AdSlot`, `rememberShowInterstitial` và `PrivacyOptionsButton`
+- gọi quảng cáo toàn màn hình chỉ ở điểm dừng tự nhiên, không bao giờ lúc mở hay đóng app
+- khóa quảng cáo dạng `ads_<vị trí>_enabled`, vị trí mới mặc định tắt
+- khai báo khóa Remote Config mới như các khóa hiện có trong `:core:config` cho tới khi app có `AppRemoteKeys`
+- không thêm AppsFlyer khi chưa có plan đồng bộ `core` được duyệt
 
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 

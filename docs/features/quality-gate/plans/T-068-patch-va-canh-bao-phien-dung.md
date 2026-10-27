@@ -20,9 +20,9 @@ approved_at:
 Hai việc, cùng mục đích là phiên tự chạy không mất việc và không đứng im mà không ai biết (đề xuất 3b, 4b sau RUN-20261027-01, Tuấn chọn ngày 2026-10-27):
 
 - **3b.** Khi chính GitHub từ chối lệnh đẩy nhánh task vì token không có quyền `workflow` (thông báo "refusing to allow an OAuth App to create or update workflow ... without `workflow` scope", L-086), `scripts/save-branch.sh` ngoài bundle như hôm nay còn ghi các commit thành một tệp văn bản trên nhánh báo cáo (`docs/runs/patches/<RUN>/<nhánh>.mbox`, hay `.diff` khi nhánh có commit merge) và đẩy nhánh báo cáo. Đây là giao nội dung cho người xem rồi tự quyết áp hay không, không phải đẩy nhánh dưới dạng khác: không bao giờ ghi khi `--bundle-only` (môi trường từ chối lời gọi đẩy) hay với lần từ chối khác. Patch được kiểm bằng cách áp lại trong một worktree tạm (cây phải trùng nhánh), không quá 1 MB, phải là UTF-8 và qua `scripts/secret-scan.py`; mọi lỗi của phần này chỉ thành một dòng ghi chú, bundle vẫn giữ, mã thoát vẫn 3.
-- **4b.** `scripts/run-watchdog.py` (mới) và `.github/workflows/run-watchdog.yml` (mới, mỗi 30 phút, khoảng 48 phút Actions mỗi ngày): danh sách chạy `running` mà các nhánh của phiên không có commit 45 phút (90 phút khi đang có lần chạy workflow của chính phiên, hay trên nhánh chính do đẩy hoặc chạy tay) thì mở một issue `session-stalled: RUN-...` có sẵn prompt tiếp tục của `docs/ops/staging-and-runs.md` mục 2.7; cập nhật ở các lần sau; đóng khi phiên commit lại hay danh sách không còn `running`. Đọc hết rồi mới ghi, lỗi đọc nào khác 404 thì mã 1 và không đổi issue nào. Chỉ ghi issue mang nhãn `session-stalled`, không kích hoạt phiên hay routine.
+- **4b.** `scripts/run-watchdog.py` (mới) và `.github/workflows/run-watchdog.yml` (mới, mỗi 30 phút, khoảng 48 phút Actions mỗi ngày): danh sách chạy `running` mà các nhánh của phiên không có commit 60 phút (90 phút khi đang có lần chạy workflow của chính phiên, hay trên nhánh chính do đẩy hoặc chạy tay) thì mở một issue `session-stalled: RUN-...` có sẵn prompt tiếp tục của `docs/ops/staging-and-runs.md` mục 2.7; cập nhật ở các lần sau; đóng khi phiên commit lại hay danh sách không còn `running`. Đọc hết rồi mới ghi, lỗi đọc nào khác 404 thì mã 1 và không đổi issue nào. Chỉ ghi issue mang nhãn `session-stalled`, không kích hoạt phiên hay routine.
 
-Code và 82 test (52 của `save-branch`, 30 của `run-watchdog`) đã chạy thật trên nhánh chính `084d366` (mục 4.1): trên code hiện tại 44 test thất bại đúng lý do, 38 đối chứng qua; với bản cài thử cả 82 qua, toàn bộ `scripts/tests/run.sh` qua; 33 đột biến, 32 bị bắt, 1 tương đương. Script watchdog chạy thật với GitHub (chỉ đọc) và trong một workflow tạm trên runner.
+Code và 99 test (64 của `save-branch`, 35 của `run-watchdog`) đã chạy thật trên nhánh chính `084d366` (mục 4.1): trên code hiện tại 53 test thất bại đúng lý do, 46 đối chứng qua; với bản cài thử cả 99 qua, toàn bộ `scripts/tests/run.sh` qua; 41 đột biến, 40 bị bắt, 1 tương đương. Script watchdog chạy thật với GitHub (chỉ đọc) và trong một workflow tạm trên runner.
 
 ## 2. Hiểu yêu cầu
 
@@ -31,17 +31,17 @@ Không có spec nghiệp vụ. Yêu cầu là đề xuất 3b và 4b mà Tuấn 
 | Yêu cầu | Tiêu chí chấp nhận | Cách hiểu của AI |
 | --- | --- | --- |
 | 3b, chỉ đúng trường hợp quyền `workflow` | Khi `git push` thật bị GitHub từ chối với thông báo thiếu quyền `workflow` thì có patch; khi bị từ chối vì lý do khác, hay khi chạy `--bundle-only`, thì không có tệp nào trên nhánh báo cáo, worktree báo cáo sạch, và có một dòng nói vì sao | `--bundle-only` là lúc bộ phân loại của môi trường chặn lời gọi đẩy: ghi nội dung đó sang chỗ khác là đẩy lại dưới dạng khác (`docs/auto-run.md`, Khi không đẩy được, ý 1), nên không làm |
-| 3b, giữ phần chưa đẩy ngoài máy cloud | Khi có patch thì tệp `docs/runs/patches/<RUN>/<nhánh với / thành __>.mbox` (hay `.diff`) có trên nhánh báo cáo ở GitHub, trong một commit riêng; chạy lại lần nữa với cùng patch thì không thêm commit mà vẫn đẩy và vẫn in lệnh | Commit bằng `git commit -- <tệp>`: phần đang soạn khác trong worktree báo cáo không bị commit theo; commit lỗi thì bỏ `add` và xóa tệp |
+| 3b, giữ phần chưa đẩy ngoài máy cloud | Khi có patch thì tệp `docs/runs/patches/<RUN>/<nhánh với / thành __>.mbox` (hay `.diff`) có trên nhánh báo cáo ở GitHub, trong một commit riêng; chạy lại lần nữa với cùng patch thì không thêm commit mà vẫn đẩy và vẫn in lệnh | Commit bằng `git commit -- <tệp>`: phần đang soạn khác trong worktree báo cáo không bị commit theo; commit lỗi thì bỏ `add`, trả tệp về bản đã commit nếu có (không xóa patch cũ), không thì xóa tệp |
 | 3b, người lấy lại được | Khi người chạy các lệnh script in ra trong một bản sao mới thì có nhánh cùng tên, cùng cây thư mục với nhánh gốc, kể cả file nhị phân và file `.github/workflows/`; nhánh có commit merge của nhánh chính thì một bản `git diff` gộp, áp bằng `git apply --index` | Patch chỉ được ghi khi áp thử trong worktree tạm cho đúng cây (`write-tree`); không dựng được thì ghi chú |
 | 3b, không làm lộ bí mật | Khi patch có chuỗi giống bí mật, hay có byte không phải UTF-8 (`secret-scan.py` bỏ qua tệp như vậy) thì không có tệp nào trên nhánh báo cáo hay trong worktree, script không in chuỗi đó | Quét bản patch trong thư mục tạm trước khi chép |
 | 3b, không đẩy tệp lớn | Khi patch lớn hơn `SAVE_BRANCH_PATCH_MAX_BYTES` (mặc định 1048576) thì không ghi, báo lý do | |
-| 3b, chỗ ghi | Có worktree của nhánh báo cáo thì dùng nó; không có mà có nhánh `claude/RUN-*-report` cục bộ thì mở một worktree tạm rồi xóa; không có nhánh báo cáo thì ghi chú; nhánh chưa đẩy là chính nhánh báo cáo thì ghi chú | Trong phiên, nhánh báo cáo nằm trong `../report` (prompt của phiên `claude --cloud`, `docs/ops/staging-and-runs.md` mục 2.7) |
+| 3b, chỗ ghi | Có đúng một worktree của nhánh báo cáo thì dùng nó; không có mà có đúng một nhánh `claude/RUN-*-report` cục bộ thì mở một worktree tạm rồi xóa (kể cả khi script dừng giữa chừng: `trap`, `git worktree prune`); có nhiều thì ghi chú, không chọn; không có nhánh báo cáo, nhánh chưa đẩy là chính nhánh báo cáo, hay nhánh báo cáo trên máy và trên GitHub đã khác nhau thì ghi chú | Trong phiên, nhánh báo cáo nằm trong `../report` (prompt của phiên `claude --cloud`, `docs/ops/staging-and-runs.md` mục 2.7) |
 | 3b, không làm hỏng điều đã có | Khi nhánh báo cáo cũng không đẩy được, hay khi commit lỗi thì vẫn có bundle, vẫn mã 3, có một dòng ghi chú và không in lệnh lấy lại | Mọi test cũ của khối `save-branch` giữ nguyên |
-| 4b, báo người khi phiên đứng im | Khi danh sách chạy trên nhánh báo cáo là `running` và các nhánh của phiên (nhánh báo cáo, `claude/T-NNN-...`, `claude/fix-T-NNN-...` của các ticket trong danh sách, như `scripts/resume-check.py`) không có commit từ 45 phút trở lên thì có một issue mở `session-stalled: RUN-...` mang nhãn `session-stalled`; thân có cả prompt của `staging-and-runs.md` mục 2.7 với tên danh sách và nhánh báo cáo của phiên, dòng "Đây là phiên tiếp tục: ...", và lời dặn không mở thêm phiên tay khi phiên mở bằng routine | 44 phút chưa báo, 45 phút báo; nhãn chưa có thì tạo |
+| 4b, báo người khi phiên đứng im | Khi danh sách chạy trên nhánh báo cáo là `running` và các nhánh của phiên (nhánh báo cáo, `claude/T-NNN-...`, `claude/fix-T-NNN-...` của các ticket trong danh sách, như `scripts/resume-check.py`) không có commit từ 60 phút trở lên thì có một issue mở `session-stalled: RUN-...` mang nhãn `session-stalled`; thân có cả prompt của `staging-and-runs.md` mục 2.7 với tên danh sách và nhánh báo cáo của phiên, dòng "Đây là phiên tiếp tục: ...", và lời dặn không mở thêm phiên tay khi phiên mở bằng routine | 59 phút chưa báo, 60 phút báo; nhãn chưa có thì tạo |
 | 4b, không báo nhầm khi phiên đang chờ | Khi có lần chạy workflow `queued` hay `in_progress` tạo sau commit cuối (cho dư 5 phút), trên một nhánh của phiên hay trên nhánh chính do `push` hoặc `workflow_dispatch`, thì chưa mở issue cho tới 90 phút; lần chạy trên nhánh khác, theo lịch, hay của chính `run-watchdog` không tính | Chờ CI (`pull_request` trên nhánh task), `main-guard` (push), `device-session`, `staging` (chạy tay) đều là workflow |
-| 4b, một issue mỗi phiên, tự đóng | Khi đã có issue mở cho phiên thì chỉ cập nhật thân; khi phiên có commit trong 45 phút hay danh sách không còn `running` thì đóng kèm một bình luận | So theo tiêu đề `session-stalled: RUN-...`; bỏ PR. Danh sách cũ còn kẹt ở `running` thì issue của nó còn mở tới khi người sửa thành `finished` |
+| 4b, một issue mỗi phiên, tự đóng | Khi đã có issue mở cho phiên thì chỉ cập nhật thân; khi phiên có commit trong 60 phút hay danh sách không còn `running` thì đóng trước, rồi bình luận (đóng lỗi thì không có bình luận, để lần sau không thêm bình luận) | So theo tiêu đề `session-stalled: RUN-...`; bỏ PR. Danh sách cũ còn kẹt ở `running` thì issue của nó còn mở tới khi người sửa thành `finished` |
 | 4b, không đụng việc khác | Khi có issue khác (ví dụ `main-broken`) thì không ghi gì vào chúng; workflow không kích hoạt phiên hay routine, không cần bí mật | Quyền `contents: read`, `issues: write`, `actions: read` |
-| 4b, đọc GitHub lỗi | Khi một lần đọc lỗi khác 404 (ví dụ 500 khi đọc danh sách chạy, 502 khi đọc lần chạy workflow) thì mã 1, không đổi issue nào (kể cả issue lẽ ra được đóng) | Đọc hết rồi mới ghi; 404 của tệp, nhánh hay nhãn là bình thường |
+| 4b, đọc hay ghi GitHub lỗi | Khi một lần đọc lỗi khác 404 (ví dụ 500 khi đọc danh sách chạy của phiên thứ hai, 502 khi đọc lần chạy workflow) thì mã 1, không đổi issue nào, kể cả issue của phiên đọc trước; khi một lần ghi lỗi thì mã 1 và dòng "Ghi issue lỗi" | Đọc hết rồi mới ghi; 404 của tệp, nhánh hay nhãn là bình thường |
 
 Thiết kế tham chiếu: Không có thiết kế riêng.
 
@@ -54,17 +54,17 @@ ADR liên quan: ADR-0009 (tài khoản, quyền nhỏ nhất), ADR-0010 (cổng 
 **`scripts/save-branch.sh`** (file của dự án mẫu; đề xuất về mẫu sau khi merge, mục 6). Phần mới chạy sau khi đã có bundle, nên mọi nhánh lỗi của nó chỉ đổi dòng ghi chú cuối đoạn "Nhánh chưa đẩy":
 
 1. Chỉ khi lệnh `git push` thật của script bị từ chối với thông báo khớp `refusing to allow an? (OAuth App|GitHub App|Personal Access Token)[^)]*workflow` (đúng câu GitHub trả ở RUN-20261027-01). `--bundle-only` và mọi lần từ chối khác: ghi chú, không ghi patch.
-2. Tìm worktree của nhánh báo cáo: `SAVE_BRANCH_REPORT_DIR`; không có thì worktree đang ở nhánh `claude/RUN-*-report` trong `git worktree list --porcelain`; không có thì mở một worktree tạm trên nhánh `claude/RUN-*-report` cục bộ (xóa khi xong). Nhánh không khớp `claude/RUN-YYYYMMDD-NN-report`, hay chính là nhánh chưa đẩy: ghi chú.
-3. Gốc là `git merge-base origin/main <nhánh>`. Dựng patch trong thư mục tạm, kiểm bằng cách áp vào một worktree tạm ở gốc: trước hết `git format-patch --binary --stdout` rồi `git am`; cây khác nhánh (nhánh có commit merge, merge bỏ bớt thay đổi) hay `git am` lỗi thì thử `git diff --binary <gốc> <nhánh>` rồi `git apply --index`; cả hai không ra đúng cây (ví dụ chỉ có commit rỗng) thì ghi chú. Kiểm mã thoát và tệp không rỗng.
+2. Tìm worktree của nhánh báo cáo: `SAVE_BRANCH_REPORT_DIR`; không có thì worktree đang ở nhánh `claude/RUN-*-report` trong `git worktree list --porcelain`; không có thì mở một worktree tạm trên nhánh `claude/RUN-*-report` cục bộ. Có hơn một (worktree hay nhánh): ghi chú, không chọn. Nhánh không khớp `claude/RUN-YYYYMMDD-NN-report`, hay chính là nhánh chưa đẩy: ghi chú. Worktree và thư mục tạm được dọn bằng `trap ... EXIT` và `git worktree prune`, kể cả khi script dừng giữa chừng.
+3. Gốc là `git merge-base origin/main <nhánh>`. Dựng patch trong thư mục tạm, kiểm bằng cách áp vào một worktree tạm ở gốc: trước hết `git format-patch --binary --stdout` rồi `git am`; cây khác nhánh (nhánh có commit merge, merge bỏ bớt thay đổi) hay `git am` lỗi thì thử `git diff --binary <gốc> <nhánh>` rồi `git apply --index`; cả hai không ra đúng cây (ví dụ chỉ có commit rỗng) thì ghi chú. Kiểm mã thoát và tệp không rỗng; `git am` chạy với `-c commit.gpgsign=false` và tên người commit tạm. Không mở được worktree tạm thì ghi chú riêng (khác "không dựng được").
 4. Lớn hơn giới hạn, không đọc được bằng UTF-8, hay `SECRET_SCAN_ROOT=<thư mục tạm> scripts/secret-scan.py` báo lỗi: ghi chú, không in giá trị. Thư mục tạm luôn bị xóa.
-5. Tệp đã có và giống hệt thì không commit lại. Không thì chép vào `<worktree báo cáo>/docs/runs/patches/<RUN>/<nhánh, / thành __>.<mbox|diff>`, `git add`, `git commit -m "<RUN>: patch của nhánh chưa đẩy <nhánh> (<mã>)" -- <tệp>`; commit lỗi thì `git reset -q -- <tệp>` và xóa tệp. Đẩy `HEAD:<nhánh báo cáo>` một lần (không thử lại).
-6. Đẩy được thì in dòng "Patch trên nhánh báo cáo, để người xem rồi tự quyết áp hay không" và bốn lệnh lấy lại (`git fetch origin <nhánh báo cáo> main`, `git switch -c <nhánh> <gốc>`, `git show ... | git am` hay `| git apply --index && git commit`, `git push`); không thì in dòng ghi chú.
+5. `git fetch origin <nhánh báo cáo>`: bản trên GitHub có commit không có trên máy (hai bên đã khác nhau) thì ghi chú, để phiên gộp nhánh báo cáo trước. Tệp đã có và giống hệt thì không commit lại. Không thì chép vào `<worktree báo cáo>/docs/runs/patches/<RUN>/<nhánh, / thành __>.<mbox|diff>`, `git add`, `git commit -m "<RUN>: patch của nhánh chưa đẩy <nhánh> (<mã>)" -- <tệp>`; commit lỗi thì `git reset -q -- <tệp>`, rồi `git checkout -- <tệp>` khi tệp đã được theo dõi (giữ patch cũ), không thì xóa tệp. Đẩy `HEAD:<nhánh báo cáo>` một lần (không thử lại).
+6. Đẩy được thì in dòng "Patch trên nhánh báo cáo, để người xem rồi tự quyết áp hay không" và bốn lệnh lấy lại (`git fetch origin <nhánh báo cáo> main`, `git switch -c <nhánh> <gốc>`, `git show ... | git am` hay `| git apply --index && git commit`, `git push`), cùng câu "Sau khi PR báo cáo đã merge, thay `origin/<nhánh báo cáo>` bằng `origin/main`"; không thì in dòng ghi chú.
 
 `diff` trên nhánh chính `084d366`:
 
 ```diff
 diff --git a/scripts/save-branch.sh b/scripts/save-branch.sh
-index 4d04bf7..c3cedb4 100755
+index 4d04bf7..ba3159b 100755
 --- a/scripts/save-branch.sh
 +++ b/scripts/save-branch.sh
 @@ -7,6 +7,17 @@
@@ -105,7 +105,7 @@ index 4d04bf7..c3cedb4 100755
      break
    done
  fi
-@@ -68,6 +85,122 @@ if ! git bundle create "${bundle}" "${branch}" --not origin/main > /dev/null 2>&
+@@ -68,6 +85,159 @@ if ! git bundle create "${bundle}" "${branch}" --not origin/main > /dev/null 2>&
  fi
  size="$(wc -c < "${bundle}" | tr -d ' ')"
  echo "CHƯA ĐẨY: ${branch} (${short_sha}). Đã giữ ${count} commit trong bundle."
@@ -117,11 +117,15 @@ index 4d04bf7..c3cedb4 100755
 +  scratch="${dir}/verify"
 +  for mode in mbox diff; do
 +    rm -rf "${scratch}"
-+    git worktree add -q --detach "${scratch}" "${base}" > /dev/null 2>&1 || return 0
++    if ! git worktree add -q --detach "${scratch}" "${base}" > /dev/null 2>&1; then
++      echo "noworktree"
++      return 0
++    fi
 +    if [ "${mode}" = mbox ]; then
 +      git format-patch --binary --stdout "${base}..${branch}" > "${dir}/patch" 2> /dev/null || { rm -f "${dir}/patch"; }
 +      [ -s "${dir}/patch" ] && git -C "${scratch}" -c user.name=save-branch -c user.email=save-branch@localhost \
-+        am -q < "${dir}/patch" > /dev/null 2>&1 || { git -C "${scratch}" am --abort > /dev/null 2>&1; rm -f "${dir}/patch"; }
++        -c commit.gpgsign=false am -q < "${dir}/patch" > /dev/null 2>&1 \
++        || { git -C "${scratch}" am --abort > /dev/null 2>&1; rm -f "${dir}/patch"; }
 +    else
 +      git diff --binary "${base}" "${branch}" > "${dir}/patch" 2> /dev/null || rm -f "${dir}/patch"
 +      [ -s "${dir}/patch" ] && git -C "${scratch}" apply --index "${dir}/patch" > /dev/null 2>&1 || rm -f "${dir}/patch"
@@ -139,29 +143,53 @@ index 4d04bf7..c3cedb4 100755
 +patch_note=""
 +patch_lines=""
 +temp_report=""
++work_dir=""
++# Temporary worktrees and folders go even when the script is stopped half way; a stale worktree entry is pruned.
++cleanup() {
++  if [ -n "${work_dir}" ]; then
++    git worktree remove --force "${work_dir}/verify" > /dev/null 2>&1
++    rm -rf "${work_dir}"
++  fi
++  if [ -n "${temp_report}" ]; then
++    git worktree remove --force "${temp_report}" > /dev/null 2>&1
++    rm -rf "$(dirname "${temp_report}")"
++  fi
++  git worktree prune > /dev/null 2>&1
++}
++trap cleanup EXIT
 +if [ "${bundle_only}" = "yes" ]; then
 +  patch_note="Không ghi patch: lệnh đẩy bị môi trường từ chối (--bundle-only), không đẩy lại dưới dạng khác (auto-run.md, Khi không đẩy được)."
 +elif [ "${patch_handoff}" = "no" ]; then
 +  patch_note="Không ghi patch: chỉ ghi khi GitHub từ chối vì quyền workflow (L-086); lần từ chối này khác."
 +else
 +  report_dir="${SAVE_BRANCH_REPORT_DIR:-}"
++  many_reports=no
 +  if [ -z "${report_dir}" ]; then
-+    report_dir="$(git worktree list --porcelain | awk '
++    found="$(git worktree list --porcelain | awk '
 +      /^worktree / { dir = substr($0, 10) }
-+      /^branch refs\/heads\/claude\/RUN-[0-9]+-[0-9]+-report$/ { print dir; exit }')"
++      /^branch refs\/heads\/claude\/RUN-[0-9]+-[0-9]+-report$/ { print dir }')"
++    if [ "$(grep -c . <<< "${found}")" -gt 1 ]; then
++      many_reports=yes
++    else
++      report_dir="${found}"
++    fi
 +  fi
-+  if [ -z "${report_dir}" ]; then
-+    local_report="$(git for-each-ref --format='%(refname:short)' 'refs/heads/claude/RUN-*-report' | head -n 1)"
-+    if [ -n "${local_report}" ]; then
++  if [ -z "${report_dir}" ] && [ "${many_reports}" = "no" ]; then
++    local_reports="$(git for-each-ref --format='%(refname:short)' 'refs/heads/claude/RUN-*-report')"
++    if [ "$(grep -c . <<< "${local_reports}")" -gt 1 ]; then
++      many_reports=yes
++    elif [ -n "${local_reports}" ]; then
 +      temp_report="$(mktemp -d)/report"
-+      git worktree add -q "${temp_report}" "${local_report}" > /dev/null 2>&1 && report_dir="${temp_report}"
++      git worktree add -q "${temp_report}" "${local_reports}" > /dev/null 2>&1 && report_dir="${temp_report}"
 +    fi
 +  fi
 +  report_branch=""
 +  if [ -n "${report_dir}" ]; then
 +    report_branch="$(git -C "${report_dir}" symbolic-ref -q --short HEAD 2> /dev/null || true)"
 +  fi
-+  if [[ ! "${report_branch}" =~ ^claude/(RUN-[0-9]{8}-[0-9]{2})-report$ ]]; then
++  if [ "${many_reports}" = "yes" ]; then
++    patch_note="Có nhiều nhánh báo cáo (claude/RUN-...-report) trên máy này, không biết ghi vào nhánh nào; đặt SAVE_BRANCH_REPORT_DIR. Chỉ có bundle."
++  elif [[ ! "${report_branch}" =~ ^claude/(RUN-[0-9]{8}-[0-9]{2})-report$ ]]; then
 +    patch_note="Không có nhánh báo cáo (claude/RUN-...-report) trên máy này, nên không ghi patch; chỉ có bundle."
 +  elif [ "${branch}" = "${report_branch}" ]; then
 +    patch_note="Nhánh chưa đẩy là chính nhánh báo cáo: không ghi patch lên nó; chỉ có bundle."
@@ -172,7 +200,9 @@ index 4d04bf7..c3cedb4 100755
 +    mode="$(make_patch "${work_dir}")"
 +    max_bytes="${SAVE_BRANCH_PATCH_MAX_BYTES:-1048576}"
 +    script_dir="$(cd "$(dirname "$0")" && pwd)"
-+    if [ -z "${mode}" ]; then
++    if [ "${mode}" = "noworktree" ]; then
++      patch_note="Không mở được worktree tạm để kiểm patch; chỉ có bundle."
++    elif [ -z "${mode}" ]; then
 +      patch_note="Không dựng được patch áp lại đúng nhánh (git format-patch hay git diff, kiểm trong worktree tạm); chỉ có bundle."
 +    else
 +      rel="docs/runs/patches/${run_id}/${branch//\//__}.${mode}"
@@ -184,16 +214,25 @@ index 4d04bf7..c3cedb4 100755
 +        patch_note="Patch có byte không phải UTF-8 nên scripts/secret-scan.py không đọc được; không ghi lên nhánh báo cáo, chỉ có bundle. Người xem lại nhánh trước khi đẩy."
 +      elif ! SECRET_SCAN_ROOT="${work_dir}/scan" python3 -I "${script_dir}/secret-scan.py" > /dev/null 2>&1; then
 +        patch_note="scripts/secret-scan.py thấy chuỗi giống bí mật trong patch, nên không ghi lên nhánh báo cáo; chỉ có bundle. Người xem lại nhánh trước khi đẩy."
++      elif git -C "${report_dir}" fetch -q origin "${report_branch}" > /dev/null 2>&1 \
++          && ! git -C "${report_dir}" merge-base --is-ancestor FETCH_HEAD HEAD > /dev/null 2>&1; then
++        patch_note="Nhánh báo cáo trên máy này và trên GitHub đã khác nhau (có commit không có ở bên kia): không ghi patch, để phiên gộp nhánh báo cáo trước; chỉ có bundle."
 +      else
 +        target="${report_dir}/${rel}"
 +        committed=yes
++        was_tracked=no
++        git -C "${report_dir}" ls-files --error-unmatch -- "${rel}" > /dev/null 2>&1 && was_tracked=yes
 +        if ! cmp -s "${work_dir}/scan/patch" "${target}" 2> /dev/null || ! git -C "${report_dir}" ls-files --error-unmatch -- "${rel}" > /dev/null 2>&1; then
 +          mkdir -p "$(dirname "${target}")"
 +          cp "${work_dir}/scan/patch" "${target}"
 +          git -C "${report_dir}" add -- "${rel}"
 +          if ! git -C "${report_dir}" commit -q -m "${run_id}: patch của nhánh chưa đẩy ${branch} (${short_sha})" -- "${rel}" > /dev/null 2>&1; then
 +            git -C "${report_dir}" reset -q -- "${rel}" > /dev/null 2>&1
-+            rm -f "${target}"
++            if [ "${was_tracked}" = "yes" ]; then
++              git -C "${report_dir}" checkout -q -- "${rel}" > /dev/null 2>&1
++            else
++              rm -f "${target}"
++            fi
 +            committed=no
 +          fi
 +        fi
@@ -215,20 +254,18 @@ index 4d04bf7..c3cedb4 100755
 +git switch -c ${branch} $(git rev-parse --short=12 "${base}")
 +${apply_cmd}
 +git push -u origin ${branch}
-+\`\`\`"
++\`\`\`
++
++  Sau khi PR báo cáo đã merge, thay \`origin/${report_branch}\` bằng \`origin/main\` trong lệnh \`git show\`."
 +        fi
 +      fi
 +    fi
-+    rm -rf "${work_dir}"
-+  fi
-+  if [ -n "${temp_report}" ]; then
-+    git worktree remove --force "${temp_report}" > /dev/null 2>&1
 +  fi
 +fi
  cat << EOF
  
  ### Nhánh chưa đẩy
-@@ -80,4 +213,9 @@ git fetch ${bundle} ${branch}:${branch}
+@@ -80,4 +250,9 @@ git fetch ${bundle} ${branch}:${branch}
  git push -u origin ${branch}
  \`\`\`
  EOF
@@ -254,7 +291,7 @@ RUN-20261026-03 waited 2 hours 30 minutes that way. .github/workflows/run-watchd
 Usage: scripts/run-watchdog.py
 A run is quiet when its run file on its report branch is "running" and none of its branches (the report branch,
 claude/T-NNN-... and claude/fix-T-NNN-... of its tickets, as in scripts/resume-check.py) got a commit for
-WATCHDOG_STALL_MINUTES (45). While a workflow run of the repository is queued or in progress and started after the
+WATCHDOG_STALL_MINUTES (60). While a workflow run of the repository is queued or in progress and started after the
 last commit on one of the session's branches (or on main, by push or by hand: device-session, staging), the
 session may be waiting for it, so the issue waits until WATCHDOG_HARD_MINUTES (90). A quiet run gets one open
 issue "session-stalled: RUN-..." whose body has the prompt to paste (docs/ops/staging-and-runs.md, 2.7); the body
@@ -276,7 +313,7 @@ import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
 
-STALL_MINUTES = int(os.environ.get("WATCHDOG_STALL_MINUTES", "45"))
+STALL_MINUTES = int(os.environ.get("WATCHDOG_STALL_MINUTES", "60"))
 HARD_MINUTES = int(os.environ.get("WATCHDOG_HARD_MINUTES", "90"))
 LABEL = "session-stalled"
 REPORT_BRANCH = re.compile(r"^claude/(RUN-\d{8}-\d{2})-report$")
@@ -471,8 +508,12 @@ def main():
     for run_id, number in sorted(open_issues.items()):
         if run_id not in running:
             writes.append(lambda n=number, r=run_id: close(n, f"Danh sách chạy `{r}` không còn `running`. Đóng."))
-    for write in writes:
-        write()
+    try:
+        for write in writes:
+            write()
+    except LookupError as error:
+        print(f"Ghi issue lỗi ({error}). Lần chạy sau thử lại.", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -489,8 +530,9 @@ def report(number, body, quiet, run_id):
 
 
 def close(number, message):
-    api(f"issues/{number}/comments", method="POST", body={"body": message})
+    # Closed first: a close that fails leaves no comment behind, so a retry every 30 minutes adds none.
     api(f"issues/{number}", method="PATCH", body={"state": "closed"})
+    api(f"issues/{number}/comments", method="POST", body={"body": message})
     print(f"Đóng issue #{number}: {message}")
 
 
@@ -508,7 +550,7 @@ if __name__ == "__main__":
 ```yaml
 # Tells people when an auto-run session has gone quiet (T-068, camera-pose L-084). Every 30 minutes,
 # scripts/run-watchdog.py looks for a run file that is still "running" on its report branch but whose branches have
-# had no commit for 45 minutes (90 while a workflow run it may be waiting for is still going), and opens or updates
+# had no commit for 60 minutes (90 while a workflow run it may be waiting for is still going), and opens or updates
 # one issue labelled session-stalled with the prompt to paste; it closes the issue when the session commits again or
 # the run is no longer "running". A session opened with `claude --cloud` is not continued by resume-run.yml (L-008),
 # so this issue is how a person learns it must be reopened.
@@ -587,23 +629,23 @@ index 0671469..be2e5f5 100755
 
 **`docs/auto-run.md`** (file của mẫu; câu mới dẫn số bài học của app dạng "camera-pose L-0NN", theo đầu `docs/CLAUDE.md`). Chỉ sửa hai chỗ:
 
-- Bước 7, "Khi không đẩy được", ý 2: thay câu "Bundle nằm ở `$HOME/rescue/`, ngoài worktree." bằng: "Bundle nằm ở `$HOME/rescue/`, ngoài worktree, và mất khi máy cloud bị thu hồi. Riêng khi chính GitHub từ chối vì token không có quyền `workflow` (camera-pose L-086), `scripts/save-branch.sh` (không có `--bundle-only`) còn ghi các commit thành tệp `docs/runs/patches/<RUN>/<nhánh>.mbox` (hay `.diff`) trên nhánh báo cáo và đẩy nhánh báo cáo, để người xem rồi tự quyết áp hay không; đây là ngoại lệ duy nhất của ý 1, vì phiên không đẩy nhánh task dưới dạng khác mà giao nội dung cho người (T-068). Script không ghi patch khi chạy `--bundle-only`, với lần từ chối khác, hay khi patch lớn hơn 1 MB, không phải UTF-8 hay có chuỗi giống bí mật."
-- Mục 4, "Tiếp tục phiên sau khi hết hạn mức": sau ý 3 của danh sách đầu (trước "Phiên tiếp tục làm như sau:") thêm đoạn: "Phiên mở bằng `claude --cloud` không được `resume-run.yml` tiếp tục (camera-pose L-008). Mỗi 30 phút, `run-watchdog.yml` chạy `scripts/run-watchdog.py`: danh sách `running` mà các nhánh của phiên không có commit 45 phút (90 phút khi đang có lần chạy workflow của phiên, vì phiên có thể đang chờ CI, `device-session` hay `staging`) thì mở issue `session-stalled` có sẵn prompt tiếp tục; có commit lại hay danh sách xong thì tự đóng (camera-pose L-084, T-068). Vì vậy phiên không để quá 40 phút không có commit nào trên các nhánh của phiên mà không có workflow đang chạy: việc dài hơn (phiên con làm bước 3 đến 5 của task cỡ L) thì phiên chính ghi một dòng vào Dòng thời gian và đẩy nhánh báo cáo. Phiên không đóng, sửa hay bình luận issue `session-stalled`; người mở lại phiên thì issue tự đóng ở lần chạy sau. Phiên mở bằng routine thì `resume-run.yml` tự tiếp tục sau 90 phút: người không mở thêm phiên tay."
+- Bước 7, "Khi không đẩy được", ý 2: thay câu "Bundle nằm ở `$HOME/rescue/`, ngoài worktree." bằng: "Bundle nằm ở `$HOME/rescue/`, ngoài worktree, và mất khi máy cloud bị thu hồi. Riêng khi chính GitHub từ chối vì token không có quyền `workflow` (camera-pose L-086), `scripts/save-branch.sh` (không có `--bundle-only`) còn ghi các commit thành tệp `docs/runs/patches/<RUN>/<nhánh>.mbox` (hay `.diff`) trên nhánh báo cáo và đẩy nhánh báo cáo, để người xem rồi tự quyết áp hay không; đây là ngoại lệ duy nhất của ý 1, vì phiên không đẩy nhánh task dưới dạng khác mà giao nội dung cho người (T-068). Script không ghi patch khi chạy `--bundle-only`, với lần từ chối khác, hay khi patch lớn hơn 1 MB, không phải UTF-8 hay có chuỗi giống bí mật. Phiên không chạy lại script không có `--bundle-only` để có patch."
+- Mục 4, "Tiếp tục phiên sau khi hết hạn mức": sau ý 3 của danh sách đầu (trước "Phiên tiếp tục làm như sau:") thêm đoạn: "Phiên mở bằng `claude --cloud` không được `resume-run.yml` tiếp tục (camera-pose L-008). Mỗi 30 phút, `run-watchdog.yml` chạy `scripts/run-watchdog.py`: danh sách `running` mà các nhánh của phiên không có commit 60 phút (90 phút khi đang có lần chạy workflow của phiên, vì phiên có thể đang chờ CI, `device-session` hay `staging`) thì mở issue `session-stalled` có sẵn prompt tiếp tục; có commit lại hay danh sách xong thì tự đóng (camera-pose L-084, T-068). Vì vậy phiên chính ghi một dòng vào Dòng thời gian và đẩy nhánh báo cáo khi giao bước 3 đến 5 cho phiên con và khi nhận kết quả, và không để quá 50 phút không có commit nào trên các nhánh của phiên mà không có workflow đang chạy: trong lúc chờ phiên con (một phiên con từng chạy 40 phút, T-046 ở RUN-20261024-02), cứ 50 phút đẩy một dòng Dòng thời gian. Phiên không đóng, sửa hay bình luận issue `session-stalled`; người mở lại phiên thì issue tự đóng ở lần chạy sau. Phiên mở bằng routine thì `resume-run.yml` tự tiếp tục sau 90 phút: người không mở thêm phiên tay."
 
 **`docs/templates/run.md`**, mục "Nhánh chưa đẩy": thay chỗ giữ chỗ bằng "<Không có. Hoặc chép đoạn "Nhánh chưa đẩy" mà `scripts/save-branch.sh` in ra: nhánh, mã commit, đường dẫn bundle, lệnh lấy lại từ bundle, và dòng "Patch trên nhánh báo cáo" kèm lệnh lấy lại (khi GitHub từ chối vì quyền `workflow`), hay dòng ghi chú vì sao không có patch (auto-run.md, bước 7).>"
 
-**`docs/ops/staging-and-runs.md`**, mục 2.7, đoạn "Khi phiên bị ngắt", ý 1: thêm vào đầu "Issue `session-stalled` (workflow `run-watchdog.yml`, mỗi 30 phút) báo khi phiên không có commit 45 phút; thân issue có sẵn prompt dưới đây kèm dòng tiếp tục (T-068)." Ý 1 cũng thêm: "Đoạn Nhánh chưa đẩy của báo cáo có dòng Patch trên nhánh báo cáo thì người xem patch rồi tự quyết lấy lại nhánh bằng lệnh in ở đó."
+**`docs/ops/staging-and-runs.md`**, mục 2.7, đoạn "Khi phiên bị ngắt", ý 1: thêm vào đầu "Issue `session-stalled` (workflow `run-watchdog.yml`, mỗi 30 phút) báo khi phiên không có commit 60 phút; thân issue có sẵn prompt dưới đây kèm dòng tiếp tục (T-068)." Ý 1 cũng thêm: "Đoạn Nhánh chưa đẩy của báo cáo có dòng Patch trên nhánh báo cáo thì người xem patch rồi tự quyết lấy lại nhánh bằng lệnh in ở đó."
 
 **`CLAUDE.md`** (gốc repo, mục Lệnh):
 
 - Dòng `save-branch.sh` (hiện ở dòng 46, "Đẩy nhánh task, thử lại khi lỗi mạng, giữ thành bundle khi không đẩy được"): thêm "; GitHub từ chối vì quyền `workflow` thì còn ghi patch lên nhánh báo cáo cho người xem (T-068)".
-- Thêm dòng ngay sau: "- Xem phiên tự chạy nào đứng im (danh sách `running`, không có commit 45 phút): `scripts/run-watchdog.py`; `run-watchdog.yml` chạy nó mỗi 30 phút và mở issue `session-stalled` (T-068)."
+- Thêm dòng ngay sau: "- Xem phiên tự chạy nào đứng im (danh sách `running`, không có commit 60 phút): `scripts/run-watchdog.py`; `run-watchdog.yml` chạy nó mỗi 30 phút và mở issue `session-stalled` (T-068)."
 
 **`docs/template-sync.txt`** (file của app): thêm một dòng chú thích "# T-068: scripts/save-branch.sh (patch trên nhánh báo cáo), scripts/tests/fake-gh (errors, 404) và khối test của chúng trong scripts/tests/run.sh là phần của app chưa có ở mẫu: khi gộp xung đột, giữ phần này (đã đề xuất from-app).". `scripts/run-watchdog.py` và `run-watchdog.yml` không có ở mẫu nên lần đồng bộ không đè.
 
 **Cần quyền `workflow` (L-086):** commit tạo `.github/workflows/run-watchdog.yml` chỉ đẩy được bằng token có quyền `workflow`. Danh sách chạy chỉ xếp T-068 vào phiên mở bằng routine (`start-run.yml`) hay phiên local, hoặc phiên `claude --cloud` sau khi Tuấn cấp lại quyền và lần thử đẩy đầu phiên qua (đề xuất 4c, T-066). Không đẩy được thì phiên làm theo "Khi không đẩy được" (phần 3b chưa có trên nhánh chính nên chỉ có bundle).
 
-**Sau khi merge:** phiên chạy tay một lần `gh api -X POST "repos/{owner}/{repo}/actions/workflows/run-watchdog.yml/dispatches" -f ref=main` (cách gọi của phiên, L-063 của mẫu), chờ bằng `scripts/wait-run.sh --workflow run-watchdog.yml --since <giờ>`. Lúc đó danh sách của chính phiên đang `running` và vừa có commit, nên kết quả đúng là "đang chạy, commit gần nhất N phút trước" và không mở issue. Đỏ thì xem log: lỗi đọc GitHub (quyền) thì tắt workflow (`gh workflow disable run-watchdog.yml`), ghi vào báo cáo, không revert; lỗi của script thì revert theo PR thường (`claude/T-068-revert`, `git revert -m 1 <merge>`, CI, `merge-if-green.sh`).
+**Sau khi merge:** phiên chạy tay một lần `gh api -X POST "repos/{owner}/{repo}/actions/workflows/run-watchdog.yml/dispatches" -f ref=main` (cách gọi của phiên, L-063 của mẫu), chờ bằng `scripts/wait-run.sh --workflow run-watchdog.yml --since <giờ>`. Lúc đó danh sách của chính phiên đang `running` và vừa có commit (phiên đẩy nhánh báo cáo ngay trước lần chạy này), nên kết quả đúng là "đang chạy, commit gần nhất N phút trước" và không mở issue. Đỏ thì xem log: lỗi đọc GitHub (quyền) thì tắt workflow (`gh workflow disable run-watchdog.yml`), ghi vào báo cáo, không revert; lỗi của script thì revert theo PR thường (`claude/T-068-revert`, `git revert -m 1 <merge>`, CI, `merge-if-green.sh`).
 
 ### 3.2. Danh sách file
 
@@ -613,8 +655,8 @@ index 0671469..be2e5f5 100755
 | Tạo | `scripts/run-watchdog.py` | Script watchdog (mục 3.1, toàn văn) |
 | Tạo | `.github/workflows/run-watchdog.yml` | Workflow mỗi 30 phút (mục 3.1, toàn văn) |
 | Sửa | `scripts/tests/fake-gh` | `"errors"` trong fixture; 404 có thông báo (mục 3.1, `diff`) |
-| Sửa | `scripts/tests/run.sh` | Khối test `save-branch patch` (52 dòng `expect` mới) và `run-watchdog` (30), mục 4 |
-| Sửa | `docs/auto-run.md` | Bước 7 "Khi không đẩy được" ý 2; mục 4 "Tiếp tục phiên sau khi hết hạn mức" đoạn watchdog và nhịp commit 40 phút |
+| Sửa | `scripts/tests/run.sh` | Khối test `save-branch patch` (64 dòng `expect` mới) và `run-watchdog` (35), mục 4 |
+| Sửa | `docs/auto-run.md` | Bước 7 "Khi không đẩy được" ý 2; mục 4 "Tiếp tục phiên sau khi hết hạn mức" đoạn watchdog và nhịp commit (giao, nhận bước 3 đến 5; tối đa 50 phút) |
 | Sửa | `docs/templates/run.md` | Mục "Nhánh chưa đẩy": dòng patch |
 | Sửa | `docs/ops/staging-and-runs.md` | Mục 2.7, "Khi phiên bị ngắt": issue `session-stalled`, dòng patch |
 | Sửa | `CLAUDE.md` | Mục Lệnh: dòng `save-branch.sh`, một dòng `run-watchdog.py` |
@@ -655,17 +697,17 @@ Thứ tự commit (L-025 của mẫu): bước 3 commit hai khối test vào `sc
 | 3b, người lấy lại được (nhị phân, workflow) | Test script | `save-branch patch: the printed commands rebuild the same tree`, `... the rebuilt branch keeps both commit messages` (nhánh có `.github/workflows/x.yml` và `b.bin`; chạy đúng các lệnh in ra, trừ `git push`, trong một bản sao mới), `... the check worktree is removed` |
 | 3b, chạy lại không thêm commit | Test script | `save-branch patch: the same patch again exits 3`, `... adds no second commit`, `... still prints the commands` |
 | 3b, chỉ đúng trường hợp | Test script | `save-branch patch: another refusal exits 3`, `... another refusal writes no patch`, `... another refusal says why`, `... --bundle-only exits 3`, `... --bundle-only never writes the patch`, `... --bundle-only leaves the report worktree clean`, `... --bundle-only says it does not push in another form`, `... --bundle-only never pushes the task branch` |
-| 3b, không commit phần khác; commit lỗi thì dọn | Test script | `save-branch patch: other staged changes of the report worktree`, `... stay staged, not committed`, `... a commit that fails exits 3`, `... a failed commit leaves no file and nothing staged`, `... a failed commit says so` (hook `pre-commit` tạm trả 1) |
+| 3b, không commit phần khác; commit lỗi thì dọn | Test script | `save-branch patch: other staged changes of the report worktree`, `... stay staged, not committed`, `... a commit that fails exits 3`, `... a failed commit leaves no file and nothing staged`, `... a failed commit says so` (hook `pre-commit` tạm trả 1), `... a newer patch whose commit fails exits 3`, `... leaves the report worktree clean`, `... keeps the patch already committed` |
 | 3b, giới hạn cỡ | Test script | `save-branch patch: a patch over the limit is left out`, `... over the limit, no patch on the report branch`, `... over the limit says so` |
 | 3b, bí mật; không phải UTF-8 | Test script | `save-branch patch: a patch with a secret exits 3`, `... a secret is never on the report branch`, `... never left in the report worktree`, `... says secret-scan`, `... the secret is not printed`; `... a patch that is not UTF-8 exits 3`, `... is never written`, `... says so` (tệp latin-1 có cùng token: `secret-scan.py` bỏ qua tệp không đọc được, đột biến M10) |
 | 3b, nhánh có commit merge | Test script | `save-branch patch: a branch with a merge of main exits 3`, `... gets one combined diff`, `... the diff commands rebuild the same tree` (merge bỏ tệp mới của nhánh chính: `git am` các commit thường cho sai cây) |
 | 3b, patch không dựng lại được | Test script | `save-branch patch: a branch whose patch cannot rebuild it exits 3`, `... writes no patch and says so` (nhánh chỉ có commit rỗng) |
 | 3b, nhánh báo cáo cũng bị từ chối; chính nhánh báo cáo | Test script | `save-branch patch: report branch refused too exits 3`, `... says the patch is only local`, `... prints no apply commands`; `... the report branch itself is never patched onto itself`, `... and says so` |
-| 3b, chỗ ghi | Test script | `save-branch patch: a local report branch without a worktree still gets the patch`, `... pushed through a temporary worktree`, `... which is removed`, `... no report branch at all still bundles`, `... no report branch at all says so`, `... SAVE_BRANCH_REPORT_DIR picks the worktree`, `... with SAVE_BRANCH_REPORT_DIR the patch is pushed`; test cũ của khối `save-branch` giữ nguyên (đối chứng) |
-| 4b, báo khi đứng im từ 45 phút | Test script (`fake-gh`) | `run-watchdog: a running session quiet for 60 minutes exits 0`, `... opens one session-stalled issue`, `... the issue body has the resume line`, `... has the whole prompt of staging-and-runs 2.7`, `... the prompt names this run's report branch`, `... warns that a routine session is resumed by resume-run`, `... counts the latest commit of any branch of the run`, `... 44 minutes is not quiet yet`, `... 45 minutes is quiet` |
+| 3b, chỗ ghi | Test script | `save-branch patch: a local report branch without a worktree still gets the patch`, `... pushed through a temporary worktree`, `... which is removed`, `... no report branch at all still bundles`, `... no report branch at all says so`, `... SAVE_BRANCH_REPORT_DIR picks the worktree`, `... with SAVE_BRANCH_REPORT_DIR the patch is pushed`, `... two report worktrees exit 3`, `... two local report branches without worktrees exit 3`, `... pick neither` (hai lần), `... and leave no worktree`, `... a report branch that diverged from GitHub exits 3`, `... writes no patch`, `... says the branches differ`, `... the commands say how to read the patch after the report PR merges`; test cũ của khối `save-branch` giữ nguyên (đối chứng) |
+| 4b, báo khi đứng im từ 60 phút | Test script (`fake-gh`) | `run-watchdog: a running session quiet for 70 minutes exits 0`, `... opens one session-stalled issue`, `... the issue body has the resume line`, `... has the whole prompt of staging-and-runs 2.7`, `... the prompt names this run's report branch`, `... warns that a routine session is resumed by resume-run`, `... counts the latest commit of any branch of the run`, `... 59 minutes is not quiet yet`, `... 60 minutes is quiet` |
 | 4b, không báo nhầm, chỉ tính workflow của phiên | Test script | `run-watchdog: CI on a branch of the session means it may be waiting`, `... and says which workflow`, `... a queued run on main started by hand counts too`, `... CI of a branch outside the session does not count`, `... a scheduled run on main does not count`, `... its own run does not count`, `... created 4 minutes before the last commit counts (5 minutes of slack)`, `... created 6 minutes before the last commit is not a wait`, `... past 90 minutes a running workflow no longer holds the issue back` |
 | 4b, một issue, tự đóng | Test script | `run-watchdog: an open issue is updated, not opened again`, `... a new commit closes the issue with a comment`, `... a finished run closes its issue`, `... a finished run without an issue changes nothing` |
-| 4b, không đụng việc khác; nhãn; 24 giờ; lỗi đọc | Test script | `run-watchdog: issues that are not its own are never touched`, `... a run older than 24 hours is still reported, with a note`, `... a server error on the run file exits 1`, `... and changes no issue`, `... a server error on the workflow runs exits 1`, `... and opens no issue`, `... a missing label is created before the issue`, `... GitHub that cannot be read exits 1` |
+| 4b, không đụng việc khác; nhãn; 24 giờ; lỗi đọc | Test script | `run-watchdog: issues that are not its own are never touched`, `... a run older than 24 hours is still reported, with a note`, `... a server error on the run file exits 1`, `... and changes no issue`, `... a server error on the workflow runs exits 1`, `... and opens no issue`, `... a later run that cannot be read exits 1`, `... before anything is written for the first run`, `... a write that fails exits 1`, `... and says the write failed`, `... a close that fails adds no comment`, `... a missing label is created before the issue`, `... GitHub that cannot be read exits 1` |
 | 4b, workflow chạy được trên runner với `GITHUB_TOKEN` | Kiểm tra thủ công (người: chạy một lần sau khi merge, mục 3.1) | `run-watchdog.yml` chạy tay trên nhánh chính xanh, in "đang chạy, commit gần nhất N phút trước" cho danh sách của chính phiên, không mở issue |
 | 3b trong phiên thật | Kiểm tra thủ công (người: chỉ có khi GitHub từ chối vì quyền `workflow`) | Lần đầu báo cáo có dòng "Patch trên nhánh báo cáo", người xem patch rồi tự quyết chạy bốn lệnh in ra và mở PR |
 
@@ -818,14 +860,40 @@ git -C "$sb_clone" worktree add -q -b "$sb_report_branch" "$sb_report" main && s
 expect "save-branch patch: SAVE_BRANCH_REPORT_DIR picks the worktree" 3 \
   "$(SAVE_BRANCH_REPORT_DIR="$sb_report" sb_run claude/T-997-patch)"
 expect "save-branch patch: with SAVE_BRANCH_REPORT_DIR the patch is pushed" yes "$(sb_report_has "$sb_mbox_rel")"
+expect "save-branch patch: the commands say how to read the patch after the report PR merges" 1 \
+  "$(grep -c 'thay `origin/claude/RUN-20261027-09-report` bằng `origin/main`' "$work/sb.out")"
+sb_tracked="$(git -C "$sb_report" rev-parse -q --verify "HEAD:$sb_mbox_rel" || echo none)"
+printf 'two\n' > "$sb_clone/a.txt"
+git -C "$sb_clone" checkout -q claude/T-997-patch && git -C "$sb_clone" commit -q -am "T-997: a again"
+printf '#!/bin/sh\nexit 1\n' > "$sb_clone/.git/hooks/pre-commit" && chmod +x "$sb_clone/.git/hooks/pre-commit"
+expect "save-branch patch: a newer patch whose commit fails exits 3" 3 "$(SAVE_BRANCH_REPORT_DIR="$sb_report" sb_run claude/T-997-patch)"
+rm -f "$sb_clone/.git/hooks/pre-commit"
+expect "save-branch patch: ... leaves the report worktree clean" "" "$(git -C "$sb_report" status --short --untracked-files=all)"
+expect "save-branch patch: ... keeps the patch already committed" "$sb_tracked" "$(git -C "$sb_report" hash-object "$sb_mbox_rel" 2> /dev/null || echo gone)"
+git -C "$sb_clone" push -q -f origin "main:$sb_report_branch"
+git -C "$sb_clone" fetch -q origin
+git -C "$sb_origin" update-ref "refs/heads/$sb_report_branch" "$(git -C "$sb_origin" commit-tree -p "refs/heads/$sb_report_branch" -m remote "refs/heads/$sb_report_branch^{tree}")"
+git -C "$sb_report" reset -q --hard main
+git -C "$sb_report" commit -q --allow-empty -m "local timeline"
+expect "save-branch patch: a report branch that diverged from GitHub exits 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... writes no patch" "" "$(git -C "$sb_report" status --short --untracked-files=all)"
+expect "save-branch patch: ... says the branches differ" 1 "$(grep -c 'đã khác nhau' "$work/sb.out")"
+git -C "$sb_clone" worktree add -q -b claude/RUN-20261027-10-report "$work/sb-report2" main
+expect "save-branch patch: two report worktrees exit 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... pick neither" 1 "$(grep -c 'Có nhiều nhánh báo cáo' "$work/sb.out")"
+git -C "$sb_clone" worktree remove --force "$work/sb-report2"
 git -C "$sb_clone" worktree remove --force "$sb_report"
+expect "save-branch patch: two local report branches without worktrees exit 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... pick neither" 1 "$(grep -c 'Có nhiều nhánh báo cáo' "$work/sb.out")"
+expect "save-branch patch: ... and leave no worktree" 1 "$(git -C "$sb_clone" worktree list | grep -c .)"
+git -C "$sb_clone" branch -q -D claude/RUN-20261027-10-report
 git -C "$sb_clone" checkout -q claude/T-999-thu
 ```
 
 Khối test `run-watchdog` (thêm sau test cuối của `resume-check`):
 
 ```bash
-# run-watchdog.py opens an issue when a running session has no commit for 45 minutes, so a person can
+# run-watchdog.py opens an issue when a running session has no commit for 60 minutes, so a person can
 # continue a `claude --cloud` session that resume-run.yml does not continue (T-068).
 wd_time() { python3 -c "import datetime as d; print((d.datetime(2026,10,27,12,0,tzinfo=d.timezone.utc)-d.timedelta(minutes=$1)).strftime('%Y-%m-%dT%H:%M:%SZ'))"; }
 watchdog() { # <run status> <minutes since the last commit> [workflow runs: "min:branch:event:status:name,..." or -] [open issues JSON] [started_at] [errors JSON]
@@ -860,7 +928,7 @@ JSON
 }
 wd_writes() { if [ -f "$work/wd.json.writes" ]; then paste -sd ';' - < "$work/wd.json.writes"; else echo none; fi; }
 wd_open='[{"number": 41, "title": "session-stalled: RUN-20261027-05 không có commit 50 phút"}]'
-expect "run-watchdog: a running session quiet for 60 minutes exits 0" 0 "$(watchdog running 60)"
+expect "run-watchdog: a running session quiet for 70 minutes exits 0" 0 "$(watchdog running 70)"
 expect "run-watchdog: ... opens one session-stalled issue" "POST issues" "$(wd_writes)"
 expect "run-watchdog: the issue body has the resume line" 1 \
   "$(grep -c 'Đây là phiên tiếp tục: nhánh báo cáo đã có, danh sách chạy đang running.' "$work/wd.out")"
@@ -869,46 +937,79 @@ expect "run-watchdog: the issue body has the whole prompt of staging-and-runs 2.
 expect "run-watchdog: the prompt names this run's report branch" 1 "$(grep -c 'git worktree add ../report claude/RUN-20261027-05-report' "$work/wd.out")"
 expect "run-watchdog: the body warns that a routine session is resumed by resume-run" 1 "$(grep -c 'không mở thêm phiên tay' "$work/wd.out")"
 expect "run-watchdog: the quiet time counts the latest commit of any branch of the run" 1 \
-  "$(grep -c 'không có commit nào trong 60 phút' "$work/wd.out")"
-watchdog running 44 > /dev/null
-expect "run-watchdog: 44 minutes is not quiet yet" none "$(wd_writes)"
-watchdog running 45 > /dev/null
-expect "run-watchdog: 45 minutes is quiet" "POST issues" "$(wd_writes)"
-watchdog running 60 "20:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
+  "$(grep -c 'không có commit nào trong 70 phút' "$work/wd.out")"
+watchdog running 59 > /dev/null
+expect "run-watchdog: 59 minutes is not quiet yet" none "$(wd_writes)"
+watchdog running 60 > /dev/null
+expect "run-watchdog: 60 minutes is quiet" "POST issues" "$(wd_writes)"
+watchdog running 70 "20:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
 expect "run-watchdog: CI on a branch of the session means it may be waiting" none "$(wd_writes)"
 expect "run-watchdog: ... and says which workflow" 1 "$(grep -c 'đang có workflow chạy (pr-check)' "$work/wd.out")"
-watchdog running 60 "20:main:workflow_dispatch:queued:device-session" > /dev/null
+watchdog running 70 "20:main:workflow_dispatch:queued:device-session" > /dev/null
 expect "run-watchdog: a queued run on main started by hand counts too" none "$(wd_writes)"
-watchdog running 60 "20:claude/T-099-other:pull_request:in_progress:pr-check" > /dev/null
+watchdog running 70 "20:claude/T-099-other:pull_request:in_progress:pr-check" > /dev/null
 expect "run-watchdog: CI of a branch outside the session does not count" "POST issues" "$(wd_writes)"
-watchdog running 60 "20:main:schedule:in_progress:env-canary" > /dev/null
+watchdog running 70 "20:main:schedule:in_progress:env-canary" > /dev/null
 expect "run-watchdog: a scheduled run on main does not count" "POST issues" "$(wd_writes)"
-watchdog running 60 "10:main:workflow_dispatch:in_progress:run-watchdog" > /dev/null
+watchdog running 70 "10:main:workflow_dispatch:in_progress:run-watchdog" > /dev/null
 expect "run-watchdog: its own run does not count" "POST issues" "$(wd_writes)"
-watchdog running 60 "64:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
+watchdog running 70 "74:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
 expect "run-watchdog: a run created 4 minutes before the last commit counts (5 minutes of slack)" none "$(wd_writes)"
-watchdog running 60 "66:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
+watchdog running 70 "76:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
 expect "run-watchdog: a run created 6 minutes before the last commit is not a wait" "POST issues" "$(wd_writes)"
 watchdog running 95 "20:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
 expect "run-watchdog: past 90 minutes a running workflow no longer holds the issue back" "POST issues" "$(wd_writes)"
-watchdog running 60 - "$wd_open" > /dev/null
+watchdog running 70 - "$wd_open" > /dev/null
 expect "run-watchdog: an open issue is updated, not opened again" "PATCH issues/41" "$(wd_writes)"
 watchdog running 10 - "$wd_open" > /dev/null
-expect "run-watchdog: a new commit closes the issue with a comment" "POST issues/41/comments;PATCH issues/41" "$(wd_writes)"
+expect "run-watchdog: a new commit closes the issue with a comment" "PATCH issues/41;POST issues/41/comments" "$(wd_writes)"
 watchdog finished 300 - "$wd_open" > /dev/null
-expect "run-watchdog: a finished run closes its issue" "POST issues/41/comments;PATCH issues/41" "$(wd_writes)"
+expect "run-watchdog: a finished run closes its issue" "PATCH issues/41;POST issues/41/comments" "$(wd_writes)"
 watchdog finished 300 > /dev/null
 expect "run-watchdog: a finished run without an issue changes nothing" none "$(wd_writes)"
-watchdog running 60 - '[{"number": 7, "title": "main-broken: abc1234"}, {"number": 8, "title": "session-stalled: RUN-20261027-05 x", "pull_request": {}}]' > /dev/null
+watchdog running 70 - '[{"number": 7, "title": "main-broken: abc1234"}, {"number": 8, "title": "session-stalled: RUN-20261027-05 x", "pull_request": {}}]' > /dev/null
 expect "run-watchdog: issues that are not its own are never touched" "POST issues" "$(wd_writes)"
-watchdog running 60 - "[]" 2026-10-26T06:00:00Z > /dev/null
+watchdog running 70 - "[]" 2026-10-26T06:00:00Z > /dev/null
 expect "run-watchdog: a run older than 24 hours is still reported, with a note" 1 "$(grep -c 'hơn 24 giờ trước' "$work/wd.out")"
 expect "run-watchdog: a server error on the run file exits 1" 1 \
   "$(watchdog running 10 - "$wd_open" "" '{"contents/docs/runs/RUN-20261027-05.md?ref=claude/RUN-20261027-05-report": "HTTP 500: Server Error"}')"
 expect "run-watchdog: ... and changes no issue" none "$(wd_writes)"
 expect "run-watchdog: a server error on the workflow runs exits 1" 1 \
-  "$(watchdog running 60 - "[]" "" '{"actions/runs?status=in_progress&per_page=100": "HTTP 502: Bad Gateway"}')"
+  "$(watchdog running 70 - "[]" "" '{"actions/runs?status=in_progress&per_page=100": "HTTP 502: Bad Gateway"}')"
 expect "run-watchdog: ... and opens no issue" none "$(wd_writes)"
+watchdog running 70 > /dev/null
+python3 -I - "$work/wd.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+fx["routes"]["branches?per_page=100&page=1"].append({"name": "claude/RUN-20261027-06-report"})
+fx["errors"] = {"contents/docs/runs/RUN-20261027-06.md?ref=claude/RUN-20261027-06-report": "HTTP 500: Server Error"}
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+rm -f "$work/wd.json.writes"
+expect "run-watchdog: a later run that cannot be read exits 1" 1 \
+  "$(PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z python3 -I scripts/run-watchdog.py > /dev/null 2>&1; echo $?)"
+expect "run-watchdog: ... before anything is written for the first run" none "$(wd_writes)"
+watchdog running 70 > /dev/null
+python3 -I - "$work/wd.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+fx["fail_writes"] = ["POST issues"]
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+expect "run-watchdog: a write that fails exits 1" 1 \
+  "$(PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z python3 -I scripts/run-watchdog.py 2> "$work/wd.err" > /dev/null; echo $?)"
+expect "run-watchdog: ... and says the write failed" 1 "$(grep -c 'Ghi issue lỗi' "$work/wd.err")"
+watchdog running 10 - "$wd_open" > /dev/null
+python3 -I - "$work/wd.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+fx["fail_writes"] = ["PATCH issues/41"]
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+rm -f "$work/wd.json.writes"
+PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z python3 -I scripts/run-watchdog.py > /dev/null 2>&1 || true
+expect "run-watchdog: a close that fails adds no comment" "PATCH issues/41" "$(wd_writes)"
+watchdog running 70 > /dev/null
 python3 -I - "$work/wd.json" << 'PY'
 import json, sys
 fx = json.load(open(sys.argv[1]))
@@ -934,12 +1035,12 @@ expect "run-watchdog: GitHub that cannot be read exits 1" 1 \
 
 ### 4.1. Chạy thử
 
-- **Đã chạy thử:** 2026-10-27, nhánh chính `084d366`, trong worktree `../wt-t068`, code của mục 3.1 cài thử, không commit; sau đó hoàn tác. Chạy riêng khối test (phần đầu `run.sh` dòng 2 đến 26, khối `save-branch` cộng khối mới; khối `run-watchdog` riêng), rồi toàn bộ `scripts/tests/run.sh`. Bản này đã sửa theo rà soát độc lập lần 1 (3 điểm chặn, 9 điểm nên sửa).
+- **Đã chạy thử:** 2026-10-27, nhánh chính `084d366`, trong worktree `../wt-t068`, code của mục 3.1 cài thử, không commit; sau đó hoàn tác. Chạy riêng khối test (phần đầu `run.sh` dòng 2 đến 26, khối `save-branch` cộng khối mới; khối `run-watchdog` riêng), rồi toàn bộ `scripts/tests/run.sh`. Bản này đã sửa theo rà soát độc lập lần 1 (3 điểm chặn, 9 điểm nên sửa) và lần 2 (0 chặn, 4 nên sửa).
 - **Lệnh:** `bash scripts/tests/run.sh` (JDK 21, macOS, bash 5); `scripts/secret-scan.py`.
 - **Kết quả trên code hiện tại** (`save-branch.sh` của nhánh chính, chưa có `run-watchdog.py`; `fake-gh` đã có phần thêm của bước 3):
-  - `save-branch patch`: 21 thất bại đúng lý do (không có patch trên nhánh báo cáo, nhánh báo cáo 0 commit, không có dòng patch, lệnh lấy lại không có nên nhánh `none`, không có `.diff`, không có các dòng ghi chú), 31 đối chứng qua (mã 3, bundle, không đẩy nhánh task, không có patch ở các trường hợp không được ghi, worktree báo cáo sạch, phần đã `add` vẫn ở đó, không in bí mật, không in lệnh lấy lại).
-  - `run-watchdog`: 23 thất bại đúng lý do (`python3` mã 2 vì chưa có script; không có lần ghi nào), 7 đối chứng qua (không ghi khi 44 phút, khi có CI của phiên, khi có lần chạy tay đang chờ, khi lần chạy trong 5 phút dư, khi danh sách xong mà không có issue, và hai "không đổi issue nào" khi lỗi đọc).
-- **Kết quả với bản cài thử:** 52/52 và 30/30 qua; toàn bộ `scripts/tests/run.sh` 824 ok, "All script tests passed" (trước đó 742); `secret-scan.py` sạch.
+  - `save-branch patch`: 26 thất bại đúng lý do (không có patch trên nhánh báo cáo, nhánh báo cáo 0 commit, không có dòng patch, lệnh lấy lại không có nên nhánh `none`, không có `.diff`, không có các dòng ghi chú), 38 đối chứng qua (mã 3, bundle, không đẩy nhánh task, không có patch ở các trường hợp không được ghi, worktree báo cáo sạch, phần đã `add` vẫn ở đó, không in bí mật, không in lệnh lấy lại).
+  - `run-watchdog`: 27 thất bại đúng lý do (`python3` mã 2 vì chưa có script; không có lần ghi nào), 8 đối chứng qua (không ghi khi 59 phút, khi có CI của phiên, khi có lần chạy tay đang chờ, khi lần chạy trong 5 phút dư, khi danh sách xong mà không có issue, và các "không ghi gì" khi lỗi đọc).
+- **Kết quả với bản cài thử:** 64/64 và 35/35 qua; toàn bộ `scripts/tests/run.sh` 841 ok, "All script tests passed" (trước đó 742); `secret-scan.py` sạch.
 - **Đột biến** (mỗi lần một chỗ trên bản cài thử, chạy lại khối test):
 
 | # | Đột biến | Test thất bại |
@@ -955,28 +1056,36 @@ expect "run-watchdog: GitHub that cannot be read exits 1" 1 \
 | M9 | Ghi patch với mọi lần từ chối | 1 |
 | M10 | Bỏ kiểm UTF-8 | 1 (xác nhận `secret-scan.py` bỏ qua tệp latin-1 có token) |
 | M11 | Bỏ bước áp thử và so cây | 2 |
-| M12 | Không dọn khi commit lỗi | 3 |
+| M12 | Không bỏ `add` khi commit lỗi | 5 |
 | M13 | Commit lại khi patch giống hệt | 1 |
 | M14 | Không mở worktree tạm cho nhánh báo cáo cục bộ | 1 |
 | M15 | Không chặn chính nhánh báo cáo | 1 |
 | M16 | Chỉ có mbox, không có `diff` | 2 |
+| M17 | Commit lỗi thì xóa cả patch đã theo dõi | 2 |
+| M18 | Có nhiều nhánh báo cáo cục bộ thì lấy nhánh đầu | 1 |
+| M19 | Có nhiều worktree báo cáo thì lấy cái đầu | 1 |
+| M20 | Không so nhánh báo cáo với bản trên GitHub | 1 |
+| M21 | Bỏ `trap` dọn dẹp | khối test dừng (worktree tạm còn lại, lệnh `worktree add` sau đó lỗi) |
 | W1 | Không xem workflow đang chạy | 6 |
 | W2 | Bỏ mốc 90 phút | 1 |
 | W3 | Bỏ 5 phút dư | 1 |
 | W4 | Mở issue mới dù đã có | 1 |
-| W5 | Không đóng khi có commit lại | 1 |
+| W5 | Không đóng khi có commit lại | 2 |
 | W6 | Không đóng khi danh sách xong | 1 |
 | W7 | Nhận cả PR làm issue của mình | 1 |
 | W8 | Chỉ xem nhánh báo cáo, bỏ nhánh task | 7 |
 | W9 | Không tạo nhãn | 1 |
 | W10 | Bỏ ghi chú 24 giờ | 1 |
-| W11 | 45 phút thành `<=` | 1 |
+| W11 | 60 phút thành `<=` | 1 |
 | W12 | Mọi workflow của repo đều tính | 2 |
 | W13 | Tính cả chính `run-watchdog` | 1 |
 | W14 | Bỏ hàng `queued` | 1 |
-| W15 | Lỗi đọc danh sách chạy coi như 404 | 2 |
-| W16 | Không ghi gì (bỏ vòng ghi) | 18 |
+| W15 | Lỗi đọc danh sách chạy coi như 404 | 4 |
+| W16 | Không ghi gì (bỏ vòng ghi) | 21 |
 | W17 | Lần chạy theo lịch trên nhánh chính cũng tính | 1 |
+| W18 | Ghi ngay trong vòng đọc | 2 |
+| W19 | Bình luận trước khi đóng | 3 |
+| W20 | Lỗi ghi không báo | 1 |
 
 - **Chạy với GitHub thật:** `scripts/run-watchdog.py` (bản trước khi sửa theo rà soát, cùng đường REST) chạy từ máy dev với token của người (2026-10-27 08:50 UTC): mã 0, không in gì, không ghi gì, vì không có danh sách nào `running` (đã kiểm mọi nhánh `claude/RUN-*-report` trước khi chạy). Nhãn `session-stalled` chưa có trên repo (lần đầu mở issue sẽ tạo).
 - **Chạy trên runner:** workflow tạm `trial-t068` trên nhánh tạm `trial/T-068` (bản trước khi sửa, đổi `schedule` thành `push`, bỏ điều kiện nhánh chính, thêm một bước chỉ đọc), lần chạy 40476497684, xanh: `GITHUB_TOKEN` với `actions: read` đọc được `actions/runs` (thấy chính nó), đọc được issue theo nhãn (0). Lần chạy 40476449325 đỏ là lần đẩy đầu với tệp workflow rỗng (lỗi khi dựng tệp tạm). Nhánh tạm đã xóa, workflow tạm đã tắt. Bản sửa theo rà soát dùng thêm `head_branch`, `event` của cùng đường `actions/runs` (có trong mọi lần chạy của REST) và không đổi quyền, nên không chạy lại.
@@ -989,7 +1098,7 @@ expect "run-watchdog: GitHub that cannot be read exits 1" 1 \
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 2 | Một script sửa, một script và một workflow mới, công cụ test, năm tài liệu |
 | B. Độ rõ của yêu cầu | 1 | Tuấn chọn đề xuất 3b, 4b; ngưỡng, nhịp chạy và ngoại lệ giao patch là đề xuất của AI (mục 8) |
-| C. Khả năng kiểm chứng tự động | 1 | 82 test và 33 đột biến; workflow và lần GitHub từ chối thật chỉ kiểm được khi gặp |
+| C. Khả năng kiểm chứng tự động | 1 | 99 test và 41 đột biến; workflow và lần GitHub từ chối thật chỉ kiểm được khi gặp |
 | D. Ảnh hưởng chéo | 2 | `save-branch.sh` dùng ở mọi task; phần mới chỉ chạy sau khi GitHub đã từ chối vì quyền `workflow` và không đổi mã thoát. Workflow theo lịch tốn phút Actions của repo riêng: mỗi lần khoảng 1 phút tính tiền, 30 phút một lần là 48 phút mỗi ngày, khoảng 1.440 phút mỗi tháng (15 phút một lần thì gấp đôi, khoảng 2.900); từng hết phút Actions làm CI dừng (L-046), nên nhịp do Tuấn chọn (mục 8, câu 2) |
 | E. Độ mới của kỹ thuật | 1 | `format-patch`/`git am`/`git apply` và workflow theo lịch đã quen; khuôn script theo `resume-check.py` |
 | **Tổng** | 7 | **Mức: Cao (điểm chặn 7)** |
@@ -1013,8 +1122,8 @@ expect "run-watchdog: GitHub that cannot be read exits 1" 1 \
 ## 8. Câu hỏi cho người duyệt
 
 1. **Ngoại lệ giao patch (điểm chặn của rà soát).** Khi chính GitHub từ chối vì token không có quyền `workflow`, phiên ghi nội dung nhánh thành tệp văn bản trên nhánh báo cáo để người xem và tự quyết áp hay không; phiên không đẩy nhánh task dưới dạng khác, không mở PR, không áp. Không bao giờ làm khi bộ phân loại của môi trường chặn lời gọi đẩy (`--bundle-only`) hay với lần từ chối khác. Đề xuất của AI: đồng ý ngoại lệ này, và ghi nó là ngoại lệ duy nhất trong `auto-run.md` (ý 2) và dòng PB-13 của T-067. Không đồng ý thì bỏ phần 3b, chỉ giữ 4b.
-2. **Nhịp chạy và phút Actions.** 30 phút một lần: khoảng 48 phút mỗi ngày, 1.440 phút mỗi tháng; 15 phút: khoảng 2.900 phút mỗi tháng; mỗi giờ: khoảng 720. Đề xuất của AI: 30 phút (ngưỡng 45/90 vẫn đúng: người biết sau 45 đến 75 phút). Cách khác không tốn phút khi không có phiên: phiên bật workflow ở đầu phiên (`gh workflow enable`) và workflow tự tắt khi không còn danh sách `running`; cách này cần thêm quyền `actions: write` cho workflow và một bước trong kiểm tra đầu phiên, và phiên chết trước khi bật thì không có gì báo, nên AI chưa đề xuất.
-3. **Ngưỡng 45 phút không có commit (90 khi có workflow của phiên đang chạy) và nhịp "không quá 40 phút không commit" của phiên.** Đề xuất của AI: giữ. Các khoảng lặng dài nhất gần đây có workflow chạy kèm (CI 10 đến 15 phút, `device-session` 25, `staging` 12); khoảng không có workflow dài nhất là phiên con làm bước 3 đến 5 (17 phút ở T-064).
+2. **Nhịp chạy và phút Actions.** 30 phút một lần: khoảng 48 phút mỗi ngày, 1.440 phút mỗi tháng; 15 phút: khoảng 2.900 phút mỗi tháng; mỗi giờ: khoảng 720. Đề xuất của AI: 30 phút (ngưỡng 60/90: người biết sau 60 đến 90 phút). Cách khác không tốn thêm phút: gộp bước của watchdog vào job theo giờ của `resume-run.yml` (cùng cách đọc nhánh), đổi lại người biết chậm hơn (tới 120 phút); việc đó sửa `resume-run.yml`, ngoài phạm vi ticket này, để Tuấn quyết. Cách khác không tốn phút khi không có phiên: phiên bật workflow ở đầu phiên (`gh workflow enable`) và workflow tự tắt khi không còn danh sách `running`; cách này cần thêm quyền `actions: write` cho workflow và một bước trong kiểm tra đầu phiên, và phiên chết trước khi bật thì không có gì báo, nên AI chưa đề xuất.
+3. **Ngưỡng 60 phút không có commit (90 khi có workflow của phiên đang chạy) và nhịp commit của phiên** (đẩy một dòng Dòng thời gian khi giao và khi nhận bước 3 đến 5, và tối đa 50 phút không commit). Đề xuất của AI: giữ. Các khoảng lặng dài nhất gần đây có workflow chạy kèm (CI 10 đến 15 phút, `device-session` 25, `staging` 12); khoảng không có workflow dài nhất là phiên con làm bước 3 đến 5: 40 phút ở T-046 (RUN-20261024-02), 17 phút ở T-064. Ngưỡng 45 như bản trước thì phiên con 40 phút cộng phần chuẩn bị đã sát ngưỡng.
 4. **Hai phiên cùng chạy.** Phiên mở bằng routine được `resume-run.yml` tự tiếp tục sau 90 phút; người thấy issue mà mở thêm phiên tay thì có thể có hai phiên. Thân issue dặn không mở tay với phiên routine; phiên tay mới đẩy nhánh báo cáo ngay ở bước đầu (giờ tiếp tục) nên `resume-run.yml` không kích hoạt thêm. Đề xuất của AI: như vậy là đủ; muốn chắc hơn thì người tắt `resume-run` trước khi mở tay.
 5. **Báo qua kênh khác** (email của GitHub đã có cho người theo dõi repo; Slack hay thông báo đẩy cần bí mật mới). Đề xuất của AI: chưa, dùng thông báo issue của GitHub; Tuấn bật "Watch: All activity" hay "Issues" cho repo.
 6. **Patch vào nhánh chính** khi PR báo cáo merge (`docs/runs/patches/`), như một bản ghi. Đề xuất của AI: giữ; nếu không muốn thì người xóa thư mục đó khỏi PR báo cáo sau khi đã lấy lại nhánh.

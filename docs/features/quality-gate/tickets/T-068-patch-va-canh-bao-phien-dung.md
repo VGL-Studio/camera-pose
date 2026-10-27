@@ -23,7 +23,7 @@ Hai chỗ làm phiên tự chạy mất việc hay đứng lâu mà không ai bi
 1. Lệnh đẩy nhánh task bị từ chối thì `scripts/save-branch.sh` chỉ giữ một bundle trên máy cloud (`$HOME/rescue/`). Máy bị thu hồi là mất. Ở RUN-20261027-01, T-062 làm xong, rà soát sạch, nhưng GitHub từ chối vì token không có quyền `workflow` (L-086); bundle nằm trên máy cloud, người không lấy được.
 2. Phiên mở bằng `claude --cloud` dừng giữa chừng (lỗi API, hết hạn mức, tiến trình khởi động lại) thì không có gì báo người: `resume-run.yml` không tiếp tục kiểu phiên này (L-008). RUN-20261026-03 đứng 2 giờ 30 phút tới khi người tình cờ thấy (L-084).
 
-Ticket này làm hai việc: (3b) khi chính GitHub từ chối lệnh đẩy vì token không có quyền `workflow`, `save-branch.sh` ghi thêm các commit của nhánh thành một tệp văn bản (`git format-patch`, hay một `git diff` gộp khi nhánh có commit merge) trên nhánh báo cáo rồi đẩy nhánh báo cáo, để người xem rồi tự quyết áp hay không: tệp văn bản dưới `docs/` đẩy được kể cả khi nhánh task sửa `.github/workflows/`. Không bao giờ làm với `--bundle-only` (môi trường chặn lời gọi đẩy) hay lần từ chối khác. (4b) Workflow mới `run-watchdog.yml` chạy mỗi 30 phút: danh sách chạy đang `running` mà các nhánh của phiên không có commit 45 phút (90 phút khi đang có lần chạy workflow của phiên) thì mở một issue `session-stalled` có sẵn prompt tiếp tục để dán; có commit lại hay danh sách xong thì tự đóng.
+Ticket này làm hai việc: (3b) khi chính GitHub từ chối lệnh đẩy vì token không có quyền `workflow`, `save-branch.sh` ghi thêm các commit của nhánh thành một tệp văn bản (`git format-patch`, hay một `git diff` gộp khi nhánh có commit merge) trên nhánh báo cáo rồi đẩy nhánh báo cáo, để người xem rồi tự quyết áp hay không: tệp văn bản dưới `docs/` đẩy được kể cả khi nhánh task sửa `.github/workflows/`. Không bao giờ làm với `--bundle-only` (môi trường chặn lời gọi đẩy) hay lần từ chối khác. (4b) Workflow mới `run-watchdog.yml` chạy mỗi 30 phút: danh sách chạy đang `running` mà các nhánh của phiên không có commit 60 phút (90 phút khi đang có lần chạy workflow của phiên) thì mở một issue `session-stalled` có sẵn prompt tiếp tục để dán; có commit lại hay danh sách xong thì tự đóng.
 
 ## Phạm vi
 
@@ -45,5 +45,5 @@ Cao: chạm điểm chặn 7 (CI, `.github/workflows/` mới; quy trình phiên 
 ## Định nghĩa hoàn thành
 
 - Test mới trong `scripts/tests/run.sh` qua; `scripts/check.sh` qua.
-- Sau khi merge: một lần `run-watchdog.yml` chạy tay trên nhánh chính xanh, không mở issue nào khi không có phiên `running`.
-- Phiên tự chạy có lệnh đẩy bị từ chối thì báo cáo có đoạn "Patch trên nhánh báo cáo" và người lấy lại được bằng các lệnh in ra (kiểm khi gặp lần đầu).
+- Sau khi merge: phiên chạy tay `run-watchdog.yml` một lần trên nhánh chính (plan mục 3.1, Sau khi merge): xanh, in "đang chạy, commit gần nhất N phút trước" cho danh sách của chính phiên, không mở issue.
+- Lần đầu GitHub từ chối một lệnh đẩy vì quyền `workflow`, báo cáo có dòng "Patch trên nhánh báo cáo" và người xem patch rồi lấy lại được bằng các lệnh in ra.

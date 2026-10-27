@@ -1042,6 +1042,209 @@ expect "cloud-env-check.sh stops when compileSdk cannot be read" stop \
 expect "cloud-env-check.sh names compileSdk when it cannot be read" 1 \
   "$(grep -c '^LỖI: không đọc được compileSdk' "$work/env-check.out" || true)"
 
+# local-setup.sh installs on a developer machine the JDK and the SDK packages of cloud-setup.sh, checking every
+# download against its published checksum (T-069). curl, the Adoptium API, Google's package list and sdkmanager
+# are fakes; the JDK in the fake archive answers like fake_java above.
+ls_dir="$work/local-setup"
+mkdir -p "$ls_dir/bin" "$ls_dir/build"
+ls_release="$(sed -n 's/^JDK_RELEASE="\(.*\)"$/\1/p' scripts/local-setup.sh)"
+ls_tools="$(sed -nE 's/^CMDLINE_TOOLS_ZIP="commandlinetools-linux-([0-9]+)_latest\.zip"$/\1/p' scripts/cloud-setup.sh)"
+# Fake curl: `curl -fsSL <url> -o <file>`; answers from $ls_dir by the shape of the URL and logs every URL.
+cat > "$ls_dir/bin/curl" << 'SH'
+#!/usr/bin/env bash
+url="" out=""
+while [ "$#" -gt 0 ]; do case "$1" in -o) out="$2"; shift 2 ;; --proto | --connect-timeout | --retry) shift 2 ;; -*) shift ;; *) url="$1"; shift ;; esac; done
+echo "$url" >> "$LS_DIR/curl.log"
+echo "$*" > /dev/null
+case "$url" in
+  *assets/release_name/*) src="$LS_DIR/jdk.json" ;;
+  *repository2-3.xml) src="$LS_DIR/repository.xml" ;;
+  *commandlinetools-mac-*_latest.zip) src="$LS_DIR/tools-mac.zip" ;;
+  *commandlinetools-linux-*_latest.zip) src="$LS_DIR/tools-linux.zip" ;;
+  *.tar.gz) src="$LS_DIR/jdk.tar.gz" ;;
+  *) exit 22 ;;
+esac
+[ -f "$src" ] || exit 22
+cp "$src" "$out"
+SH
+chmod +x "$ls_dir/bin/curl"
+# ls_jdk <mac|linux> <Java major>: writes the fake JDK archive and the Adoptium answer (right checksum).
+ls_jdk() {
+  local home="$ls_dir/build/jdk/$ls_release"
+  rm -rf "$ls_dir/build/jdk"
+  [ "$1" = mac ] && home="$home/Contents/Home"
+  mkdir -p "$home/bin"
+  fake_java "$2"
+  cp "$work/fake-jdk/bin/java" "$home/bin/java"
+  tar -czf "$ls_dir/jdk.tar.gz" -C "$ls_dir/build/jdk" "$ls_release"
+  jq -n --arg sum "$(shasum -a 256 "$ls_dir/jdk.tar.gz" | cut -d' ' -f1)" \
+    '{binaries: [{package: {link: "https://github.com/adoptium/temurin21-binaries/releases/download/fake/jdk.tar.gz", checksum: $sum}}]}' > "$ls_dir/jdk.json"
+}
+# The fake command-line tools: sdkmanager logs its arguments and creates the package directories.
+mkdir -p "$ls_dir/build/tools/cmdline-tools/bin"
+cat > "$ls_dir/build/tools/cmdline-tools/bin/sdkmanager" << 'SH'
+#!/usr/bin/env bash
+echo "$*" >> "$LS_DIR/sdkmanager.log"
+if [ "$1" = --install ]; then shift; for p in "$@"; do mkdir -p "$ANDROID_HOME/${p//;//}"; done; fi
+SH
+chmod +x "$ls_dir/build/tools/cmdline-tools/bin/sdkmanager"
+# Two zips with different content, so each OS has its own SHA-1 in the fake package list.
+for ls_os in mac linux; do
+  (cd "$ls_dir/build/tools" && LS_OS_NAME="$ls_os" python3 -c 'import os, zipfile
+with zipfile.ZipFile("../../tools-" + os.environ["LS_OS_NAME"] + ".zip", "w") as z:
+    i = zipfile.ZipInfo("cmdline-tools/bin/sdkmanager"); i.external_attr = 0o755 << 16
+    z.writestr(i, open("cmdline-tools/bin/sdkmanager").read())
+    z.writestr("cmdline-tools/" + os.environ["LS_OS_NAME"] + ".txt", os.environ["LS_OS_NAME"])')
+done
+ls_repo() { # <sha1 for the mac zip> <sha1 for the linux zip>
+  printf '<sdk>\n  <archive>\n    <complete>\n      <size>1</size>\n      <checksum type="sha1">%s</checksum>\n      <url>commandlinetools-mac-%s_latest.zip</url>\n    </complete>\n  </archive>\n  <archive>\n    <complete>\n      <size>1</size>\n      <checksum type="sha1">%s</checksum>\n      <url>commandlinetools-linux-%s_latest.zip</url>\n    </complete>\n  </archive>\n</sdk>\n' \
+    "$1" "$ls_tools" "${2:-$1}" "$ls_tools" > "$ls_dir/repository.xml"
+}
+ls_calls() { if [ -f "$ls_dir/curl.log" ]; then wc -l < "$ls_dir/curl.log" | tr -d ' '; else echo 0; fi; }
+ls_mac_sha1="$(shasum -a 1 "$ls_dir/tools-mac.zip" | cut -d' ' -f1)"
+ls_linux_sha1="$(shasum -a 1 "$ls_dir/tools-linux.zip" | cut -d' ' -f1)"
+# ls_run <home> [args...]: runs local-setup.sh with the fakes as a Mac on arm64 unless LS_OS, LS_ARCH say otherwise;
+# prints the exit code; output in $ls_dir/out.
+ls_run() {
+  local home="$1"; shift
+  set +e
+  HOME="$home" XDG_DATA_HOME="" LS_DIR="$ls_dir" CURL="$ls_dir/bin/curl" \
+    LOCAL_SETUP_OS="${LS_OS:-Darwin}" LOCAL_SETUP_ARCH="${LS_ARCH:-arm64}" \
+    LOCAL_SETUP_ADOPTIUM_API=https://api.example.test/v3 LOCAL_SETUP_GOOGLE_REPO=https://dl.example.test/repository \
+    scripts/local-setup.sh "$@" > "$ls_dir/out" 2>&1
+  echo $?
+  set -e
+}
+ls_jdk mac 21
+ls_repo "$ls_mac_sha1" "$ls_linux_sha1"
+
+expect "local-setup.sh has a JDK release" yes "$([[ "$ls_release" == jdk-* ]] && echo yes || echo no)"
+expect "local-setup.sh reads the command-line tools build from cloud-setup.sh" "command-line tools: $ls_tools" \
+  "$(scripts/local-setup.sh --print-versions | sed -n 's/^command-line tools: /command-line tools: /p')"
+printf 'CMDLINE_TOOLS_ZIP="commandlinetools-linux-42_latest.zip"\n"${SDKMANAGER}" --install \\\n  "platform-tools" \\\n  "platforms;android-99" > /dev/null\n' \
+  > "$ls_dir/cloud-setup-fixture.sh"
+expect "local-setup.sh reads the package list after --install" "gói SDK: platform-tools platforms;android-99" \
+  "$(LOCAL_SETUP_CLOUD_SETUP="$ls_dir/cloud-setup-fixture.sh" scripts/local-setup.sh --print-versions | grep '^gói SDK')"
+printf 'echo nothing here\n' > "$ls_dir/cloud-setup-broken.sh"
+expect "local-setup.sh stops when cloud-setup.sh has no versions" 1 \
+  "$(LOCAL_SETUP_CLOUD_SETUP="$ls_dir/cloud-setup-broken.sh" ls_run "$ls_dir/home-broken" --print-versions)"
+expect "local-setup.sh names cloud-setup.sh when it cannot read the versions" 1 \
+  "$(grep -c '^LỖI: không đọc được phiên bản command-line tools' "$ls_dir/out" || true)"
+expect "local-setup.sh refuses an unknown argument" 2 "$(ls_run "$ls_dir/home-args" --prefx /tmp)"
+expect "local-setup.sh refuses --prefix without a directory" 2 "$(ls_run "$ls_dir/home-args" --prefix)"
+
+expect "local-setup.sh --check on an empty machine reports missing" 1 "$(ls_run "$ls_dir/home-mac" --check)"
+expect "local-setup.sh --check makes no download" 0 "$(ls_calls)"
+rm -f "$ls_dir/curl.log" "$ls_dir/sdkmanager.log"
+expect "local-setup.sh installs on a Mac" 0 "$(ls_run "$ls_dir/home-mac")"
+expect "local-setup.sh downloads the JDK info, the JDK, the package list and the tools" 4 \
+  "$(ls_calls)"
+expect "local-setup.sh asks Adoptium for the mac aarch64 JDK" 1 \
+  "$(grep -c "release_name/eclipse/${ls_release//+/%2B}?architecture=aarch64&image_type=jdk&os=mac" "$ls_dir/curl.log" || true)"
+expect "local-setup.sh downloads the mac command-line tools" 1 \
+  "$(grep -c "/commandlinetools-mac-${ls_tools}_latest.zip$" "$ls_dir/curl.log" || true)"
+expect "local-setup.sh installs the packages of cloud-setup.sh" \
+  "--install $(scripts/local-setup.sh --print-versions | sed -n 's/^gói SDK: //p')" \
+  "$(grep '^--install' "$ls_dir/sdkmanager.log")"
+ls_env="$ls_dir/home-mac/.local/share/camera-pose/env.sh"
+expect "local-setup.sh writes JAVA_HOME to Contents/Home on a Mac" 1 \
+  "$(grep -c "^export JAVA_HOME=\"$ls_dir/home-mac/.local/share/camera-pose/jdk/$ls_release/Contents/Home\"$" "$ls_env" || true)"
+expect "local-setup.sh writes ANDROID_HOME" 1 "$(grep -c "^export ANDROID_HOME=\"$ls_dir/home-mac/android-sdk\"$" "$ls_env" || true)"
+expect "local-setup.sh writes ANDROID_SDK_ROOT" 1 "$(grep -c "^export ANDROID_SDK_ROOT=\"$ls_dir/home-mac/android-sdk\"$" "$ls_env" || true)"
+expect "local-setup.sh puts the JDK and platform-tools on PATH" 1 \
+  "$(grep -cF "/jdk/$ls_release/Contents/Home/bin:$ls_dir/home-mac/android-sdk/platform-tools:\${PATH}\"" "$ls_env" || true)"
+expect "local-setup.sh accepts the SDK licences" 1 "$(grep -c '^--licenses$' "$ls_dir/sdkmanager.log" || true)"
+expect "local-setup.sh leaves no temp dir behind" 0 \
+  "$(find "$ls_dir/home-mac" -name '.tmp.*' 2> /dev/null | wc -l | tr -d ' ')"
+expect "env.sh gives a Java that java-check.sh accepts" 0 \
+  "$(set +e; (. "$ls_env"; scripts/java-check.sh > /dev/null 2>&1); echo $?)"
+cp "$ls_env" "$ls_dir/env-first.sh" 2> /dev/null || : > "$ls_dir/env-first.sh"
+rm -f "$ls_dir/curl.log"
+expect "local-setup.sh runs again without error" 0 "$(ls_run "$ls_dir/home-mac")"
+expect "local-setup.sh downloads nothing the second time" 0 "$(ls_calls)"
+expect "local-setup.sh says both steps were skipped" 2 "$(grep -c '^Bỏ qua:' "$ls_dir/out" || true)"
+expect "local-setup.sh leaves env.sh as it was" same "$(cmp -s "$ls_dir/env-first.sh" "$ls_env" && echo same || echo changed)"
+expect "local-setup.sh --check after the install passes" 0 "$(ls_run "$ls_dir/home-mac" --check)"
+expect "local-setup.sh --check lists every package" 3 "$(grep -c '^QUA: \(platform-tools\|platforms;\|build-tools;\)' "$ls_dir/out" || true)"
+
+ls_pkg="$(scripts/local-setup.sh --print-versions | sed -n 's/^gói SDK: //p' | awk '{print $NF}' || true)"
+mv "$ls_dir/home-mac/android-sdk/${ls_pkg//;//}" "$ls_dir/pkg-aside" 2> /dev/null || true
+expect "local-setup.sh --check fails when one SDK package is missing" 1 "$(ls_run "$ls_dir/home-mac" --check)"
+expect "local-setup.sh --check names the missing package" 1 "$(grep -cxF "THIẾU: $ls_pkg" "$ls_dir/out" || true)"
+mv "$ls_dir/pkg-aside" "$ls_dir/home-mac/android-sdk/${ls_pkg//;//}" 2> /dev/null || true
+# A JDK left half-installed (java does not run) is installed again, not taken as present.
+printf '#!/bin/sh\nexit 1\n' > "$ls_dir/home-mac/.local/share/camera-pose/jdk/$ls_release/Contents/Home/bin/java" 2> /dev/null || true
+rm -f "$ls_dir/curl.log"
+expect "local-setup.sh installs a JDK that does not run again" 0 "$(ls_run "$ls_dir/home-mac")"
+expect "local-setup.sh says the broken JDK is installed again" 1 "$(grep -c 'không chạy được (cài dở?): cài lại' "$ls_dir/out" || true)"
+expect "local-setup.sh downloads only the JDK again" 2 "$(ls_calls)"
+expect "local-setup.sh refuses a relative --prefix" 2 "$(ls_run "$ls_dir/home-args" --prefix relative/dir)"
+expect "local-setup.sh refuses a relative --sdk" 2 "$(ls_run "$ls_dir/home-args" --sdk sdk)"
+mkdir -p "$ls_dir/home-cloud" && echo 3 > "$ls_dir/home-cloud/.cloud-setup-version"
+expect "local-setup.sh refuses to run in a cloud environment" 1 "$(ls_run "$ls_dir/home-cloud")"
+expect "local-setup.sh points a cloud environment at CLAUDE.md" 1 "$(grep -c 'chỉ dành cho máy dev' "$ls_dir/out" || true)"
+expect "local-setup.sh makes no download in a cloud environment" no "$([ -e "$ls_dir/home-cloud/android-sdk" ] && echo yes || echo no)"
+expect "local-setup.sh refuses a machine without a needed tool" 1 \
+  "$(LOCAL_SETUP_TOOLS="curl no-such-tool-t069" ls_run "$ls_dir/home-tools" --check)"
+expect "local-setup.sh names the missing tool" 1 "$(grep -c '^LỖI: máy thiếu công cụ: no-such-tool-t069' "$ls_dir/out" || true)"
+printf 'CMDLINE_TOOLS_ZIP="commandlinetools-linux-42_latest.zip"\n"${SDKMANAGER}" --install \\\n  "platform-tools" \\\n  "platforms;android-99"\n  "systemProp.org.gradle.internal.repository.max.retries=8" \\\n' \
+  > "$ls_dir/cloud-setup-shape.sh"
+expect "local-setup.sh refuses a package name that is not an SDK package" 1 \
+  "$(LOCAL_SETUP_CLOUD_SETUP="$ls_dir/cloud-setup-shape.sh" ls_run "$ls_dir/home-shape" --print-versions)"
+expect "local-setup.sh names the bad package" 1 "$(grep -c 'gói không hợp lệ: systemProp' "$ls_dir/out" || true)"
+# The packages read from cloud-setup.sh are the ones cloud-setup.sh itself passes to sdkmanager: run the real
+# cloud-setup.sh with a temp HOME and a fake sdkmanager already in place (so it downloads nothing).
+mkdir -p "$ls_dir/home-cloudsetup/android-sdk/cmdline-tools/latest/bin"
+printf '#!/bin/sh\n[ "$1" = --install ] && { shift; echo "$*" > "$HOME/install-args"; }\nexit 0\n' \
+  > "$ls_dir/home-cloudsetup/android-sdk/cmdline-tools/latest/bin/sdkmanager"
+chmod +x "$ls_dir/home-cloudsetup/android-sdk/cmdline-tools/latest/bin/sdkmanager"
+HOME="$ls_dir/home-cloudsetup" bash scripts/cloud-setup.sh > /dev/null 2>&1 || true
+expect "local-setup.sh installs exactly what cloud-setup.sh installs" \
+  "$(cat "$ls_dir/home-cloudsetup/install-args" 2> /dev/null || echo 'cloud-setup.sh did not run')" \
+  "$(scripts/local-setup.sh --print-versions 2> /dev/null | sed -n 's/^gói SDK: //p' || true)"
+# A wrong checksum stops before anything is unpacked into place.
+jq '.binaries[0].package.checksum = "0000"' "$ls_dir/jdk.json" > "$ls_dir/jdk.json.new" && mv "$ls_dir/jdk.json.new" "$ls_dir/jdk.json"
+expect "local-setup.sh refuses a JDK with a wrong SHA-256" 1 "$(ls_run "$ls_dir/home-badjdk")"
+expect "local-setup.sh names the SHA-256 mismatch" 1 "$(grep -c '^LỖI: mã SHA-256 của JDK không khớp' "$ls_dir/out" || true)"
+expect "local-setup.sh leaves no JDK after a wrong SHA-256" no \
+  "$([ -e "$ls_dir/home-badjdk/.local/share/camera-pose/jdk/$ls_release" ] && echo yes || echo no)"
+ls_jdk mac 21
+jq '.binaries[0].package.link = "https://evil.example.test/jdk.tar.gz"' "$ls_dir/jdk.json" > "$ls_dir/jdk.json.new" && mv "$ls_dir/jdk.json.new" "$ls_dir/jdk.json"
+expect "local-setup.sh refuses a JDK link outside github.com/adoptium" 1 "$(ls_run "$ls_dir/home-badlink")"
+expect "local-setup.sh names the JDK link" 1 "$(grep -c '^LỖI: đường tải JDK không nằm ở https://github.com/adoptium/' "$ls_dir/out" || true)"
+ls_jdk mac 21
+ls_repo 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000
+expect "local-setup.sh refuses command-line tools with a wrong SHA-1" 1 "$(ls_run "$ls_dir/home-badtools")"
+expect "local-setup.sh names the SHA-1 mismatch" 1 "$(grep -c '^LỖI: mã SHA-1 của commandlinetools-mac-' "$ls_dir/out" || true)"
+expect "local-setup.sh leaves no command-line tools after a wrong SHA-1" no \
+  "$([ -e "$ls_dir/home-badtools/android-sdk/cmdline-tools/latest" ] && echo yes || echo no)"
+ls_repo "$ls_mac_sha1" "$ls_linux_sha1"
+printf '<sdk/>\n' > "$ls_dir/repository.xml"
+expect "local-setup.sh stops when Google's list has no checksum for the tools" 1 "$(ls_run "$ls_dir/home-nosum")"
+ls_repo "$ls_mac_sha1" "$ls_linux_sha1"
+
+# Linux x86_64: other URLs, JAVA_HOME at the top of the JDK.
+ls_jdk linux 21
+rm -f "$ls_dir/curl.log"
+expect "local-setup.sh installs on Linux x86_64" 0 "$(LS_OS=Linux LS_ARCH=x86_64 ls_run "$ls_dir/home-linux")"
+expect "local-setup.sh asks Adoptium for the linux x64 JDK" 1 "$(grep -c 'architecture=x64&image_type=jdk&os=linux' "$ls_dir/curl.log" || true)"
+expect "local-setup.sh downloads the linux command-line tools" 1 \
+  "$(grep -c "/commandlinetools-linux-${ls_tools}_latest.zip$" "$ls_dir/curl.log" || true)"
+expect "local-setup.sh writes JAVA_HOME at the top of the JDK on Linux" 1 \
+  "$(grep -c "^export JAVA_HOME=\"$ls_dir/home-linux/.local/share/camera-pose/jdk/$ls_release\"$" \
+    "$ls_dir/home-linux/.local/share/camera-pose/env.sh" || true)"
+expect "local-setup.sh refuses another system" 1 "$(LS_OS=FreeBSD ls_run "$ls_dir/home-bsd")"
+
+# A JDK that java-check.sh does not accept is reported, not left silently in env.sh.
+ls_jdk mac 26
+expect "local-setup.sh stops when java-check.sh refuses the JDK" 1 "$(ls_run "$ls_dir/home-java26")"
+expect "local-setup.sh names java-check.sh and the JDK dir to delete" 1 \
+  "$(grep -c "^LỖI: scripts/java-check.sh không nhận JDK vừa cài. Xem lại JDK_RELEASE, xóa $ls_dir/home-java26/.local/share/camera-pose/jdk/$ls_release" "$ls_dir/out" || true)"
+ls_jdk mac 21
+# --prefix and --sdk move the install.
+expect "local-setup.sh honours --prefix and --sdk" 0 "$(ls_run "$ls_dir/home-custom" --prefix "$ls_dir/custom" --sdk "$ls_dir/custom-sdk")"
+expect "local-setup.sh writes env.sh under --prefix" 1 "$(grep -c "^export ANDROID_HOME=\"$ls_dir/custom-sdk\"$" "$ls_dir/custom/env.sh" || true)"
+
 # plan-check.py finds, from the plan alone, what would otherwise stop a task during the night (L-020).
 repo="$work/plan-repo"
 mkdir -p "$repo/scripts" "$repo/docs/data" "$repo/docs/features/demo/plans" "$repo/docs/features/demo/tickets" \

@@ -8,7 +8,7 @@ owner: Tuấn
 status: planned
 risk: high
 size: M
-depends_on: []
+depends_on: [T-067]          # PB-13, plan-check.py --touches, ADR-1005/L8
 sprint:
 plan: features/quality-gate/plans/T-066-kha-nang-cach-mo-phien.md
 created: 2026-10-27
@@ -28,20 +28,20 @@ Ticket này làm ba việc Tuấn chọn ngày 2026-10-27 (đề xuất 1a, 1b, 
 
 ## Phạm vi
 
-- `scripts/run-check.py` (quy tắc 8, biến `RUN_CHECK_OPEN_WITH`), `scripts/push-probe.sh` (mới), `scripts/tests/run.sh` (33 test mới).
+- `scripts/run-check.py` (quy tắc 8, biến `RUN_CHECK_OPEN_WITH`), `scripts/push-probe.sh` (mới; tra lời từ chối bằng bảng tra lỗi, PB-13 của T-067), `scripts/tests/run.sh` (46 test mới).
 - `docs/ops/session-capabilities.md` (mới), `docs/templates/run.md`, `docs/CLAUDE.md` (Khi lập danh sách chạy), `docs/ops/pre-run-review.md`, `docs/auto-run.md` (mục 1 bước 3, mục 2), `CLAUDE.md` (mục Lệnh).
 - `docs/lessons.md`: L-086 sang `accepted` (PR plan), rồi `applied` khi task merge.
 
 **Không bao gồm:**
 
-- Dòng bảng tra lỗi cho lỗi `without workflow scope`: T-067.
+- Dòng bảng tra lỗi PB-13, `plan-check.py --touches`, ADR-1005/L8: T-067 (chạy trước, T-066 phụ thuộc).
 - Ghi patch của nhánh không đẩy được vào nhánh báo cáo, workflow theo dõi phiên đứng im: T-068.
 - Cấp lại quyền `workflow` cho kết nối GitHub của tài khoản Claude: việc của Tuấn.
 - Ghi `open_with` vào danh sách nháp RUN-20261027-02.
 
 ## Rủi ro sơ bộ
 
-Chạm điểm chặn 7 (quy trình phiên tự chạy: `docs/auto-run.md` mục 2 thêm một bước đầu phiên; `run-check.py` thêm lỗi có thể chặn duyệt danh sách). `push-probe.sh` đẩy và xóa một nhánh `claude/probe-<RUN>` trên GitHub; không workflow nào chạy theo push lên nhánh đó.
+Chạm điểm chặn 7 (quy trình phiên tự chạy: `docs/auto-run.md` mục 2 thêm một bước đầu phiên; `run-check.py` thêm lỗi có thể chặn duyệt danh sách). `push-probe.sh` đẩy và xóa một nhánh `claude/probe-<RUN>-<giờ>-<pid>` trên GitHub; không workflow nào chạy theo push lên nhánh đó (có test).
 
 ## Định nghĩa hoàn thành
 

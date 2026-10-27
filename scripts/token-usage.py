@@ -179,10 +179,12 @@ def message_text(message):
 def marks_of(entry):
     """The `mark` commands of one assistant line of a main session transcript."""
     found = []
-    content = (entry.get("message") or {}).get("content")
+    message = entry.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
     for part in content if isinstance(content, list) else []:
         if isinstance(part, dict) and part.get("type") == "tool_use" and part.get("name") == "Bash":
-            found += MARK_COMMAND.findall(str((part.get("input") or {}).get("command") or ""))
+            command = part.get("input")
+            found += MARK_COMMAND.findall(str(command.get("command") or "") if isinstance(command, dict) else "")
     return found
 
 
@@ -224,6 +226,8 @@ def requests(files, since, until):
                     try:
                         entry = json.loads(line)
                     except json.JSONDecodeError:
+                        entry = {}
+                    if not isinstance(entry, dict):
                         entry = {}
                     moment = timestamp(entry.get("timestamp"))
                     if entry.get("type") == "assistant" and moment and in_repo(entry.get("cwd")):

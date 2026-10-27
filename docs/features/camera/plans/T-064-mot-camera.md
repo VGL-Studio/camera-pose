@@ -17,7 +17,7 @@ approved_at:
 
 ## 1. Tóm tắt
 
-Trên máy chỉ có một camera, nút đổi camera vẫn bấm được; bấm vào thì app lưu lựa chọn camera kia, mở không được và hiện màn lỗi, mở lại app vẫn lỗi (FB-20261027-01, thấy ở lần chạy thử của T-062). Task này hỏi máy có những camera nào trước khi mở (`ProcessCameraProvider.hasCamera`, qua hàm mới `CameraController.availableLenses()`): máy một camera thì mở camera máy có, kể cả khi lựa chọn đã lưu là camera kia, và nút đổi camera mờ đi (trạng thái tắt đã có trong thiết kế). Tám test JVM mới đã chạy trên code hiện tại cộng khung rỗng: 6 thất bại đúng lý do, 2 đối chứng qua; với bản cài thử, cả 452 test của `:feature:camera` qua và `scripts/check.sh` qua (mục 4.1). Không đổi ảnh chuẩn.
+Trên máy chỉ có một camera, nút đổi camera vẫn bấm được; bấm vào thì app lưu lựa chọn camera kia, mở không được và hiện màn lỗi, mở lại app vẫn lỗi (FB-20261027-01, thấy ở lần chạy thử của T-062). Task này hỏi máy có những camera nào trước khi mở (`ProcessCameraProvider.hasCamera`, qua hàm mới `CameraController.availableLenses()`): máy một camera thì mở camera máy có, kể cả khi lựa chọn đã lưu là camera kia, và nút đổi camera mờ đi (trạng thái tắt đã có trong thiết kế). Mười lăm test JVM mới đã chạy trên code hiện tại cộng khung rỗng: 12 thất bại đúng lý do, 3 đối chứng qua; với bản cài thử, cả 459 test của `:feature:camera` qua và `scripts/check.sh` qua (mục 4.1). Không đổi ảnh chuẩn.
 
 ## 2. Hiểu yêu cầu
 
@@ -50,16 +50,31 @@ Cách làm, đúng như bản cài thử ở mục 4.1:
    ```
 
    Mặc định trả cả hai, để các bản giả khác của interface không phải đổi.
-2. `camera/CameraXController.kt`: cài đặt bằng `ProcessCameraProvider.awaitInstance(context)` (giữ vào `provider` như `open`) và `provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA / DEFAULT_FRONT_CAMERA)`, trên `Dispatchers.Main`. `hasCamera` ném `CameraInfoUnavailableException` hay lỗi khác thì trả tập rỗng (không biết); `CancellationException` của chính coroutine gọi thì ném lại, như `open`. Mã đã chạy thử (đặt trước `setFlash`):
+2. `camera/CameraLenses.kt` (tạo): phần thuần của việc hỏi camera, test được trên JVM:
+
+   ```kotlin
+   /** The lenses [hasCamera] reports; empty when it throws, so the open decides as before (spec camera, KB-4, T-064). */
+   internal fun lensesOf(hasCamera: (Lens) -> Boolean): Set<Lens> = try {
+       Lens.entries.filterTo(mutableSetOf(), hasCamera)
+   } catch (e: CancellationException) {
+       throw e
+   } catch (e: Exception) {
+       emptySet()
+   }
+   ```
+
+   `CancellationException` là `kotlin.coroutines.cancellation.CancellationException`. Tập rỗng nghĩa là "không biết": app làm như hôm nay. Máy chỉ có camera ngoài (USB, không phải camera trước hay sau) cũng cho tập rỗng, như hôm nay.
+
+   `camera/CameraXController.kt`: cài đặt `availableLenses()` bằng `lensesOf` và `ProcessCameraProvider.hasCamera`, trên `Dispatchers.Main`, giữ `provider` như `open`; `awaitInstance` lỗi thì trả tập rỗng; `CancellationException` của chính coroutine gọi thì ném lại, như `open`. Mã đã chạy thử (đặt trước `setFlash`):
 
    ```kotlin
    override suspend fun availableLenses(): Set<Lens> = withContext(Dispatchers.Main) {
        try {
            val provider = ProcessCameraProvider.awaitInstance(context).also { provider = it }
-           Lens.entries.filterTo(mutableSetOf()) { lens ->
-               val selector =
-                   if (lens == Lens.BACK) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
-               provider.hasCamera(selector)
+           lensesOf { lens ->
+               provider.hasCamera(
+                   if (lens == Lens.BACK) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA,
+               )
            }
        } catch (e: CancellationException) {
            if (!currentCoroutineContext().isActive) throw e
@@ -75,21 +90,23 @@ Cách làm, đúng như bản cài thử ở mục 4.1:
    - `openCamera`: sau `loadTools()`, `val lenses = controller.availableLenses()`; `val lens = if (lenses.isEmpty() || tools.lens in lenses) tools.lens else lenses.first()`; `lenses.size == 1` thì ghi log `info` "Only one camera: <back|front>"; mở `lens`; `Ready(lens = lens, ..., canFlip = lenses.isEmpty() || lenses.size > 1)`; dòng log "Camera ready: ..." dùng `lens` (nội dung không đổi với máy hai camera; kịch bản và log của T-058 đọc dòng này).
    - `onFlipClick`: `if (ready.capturing || !ready.canFlip) return`, trước `cancelCountdown`.
    - Không lưu `lens` vừa chọn thay: `repository.setLens` chỉ gọi khi người dùng bấm.
-5. `CameraControls.kt`, `FlipCameraButton`: `enabled = ready?.canFlip == true`. Bố cục mở gập dùng cùng hàm (`CameraUnfolded.kt:193`), nên không cần sửa file đó.
+5. `CameraControls.kt`, `FlipCameraButton`: `enabled = ready?.canFlip == true`; chú thích của hàm thành "Switches between the back and the front camera; faded and disabled until the camera is ready, or when the device has one camera (T-064)." (hai dòng, giới hạn 120 ký tự). Bố cục mở gập dùng cùng hàm (`CameraUnfolded.kt:193`), nên không cần sửa file đó.
 
-Thứ tự commit (L-025): bước 3 gồm bốn file test và khung rỗng ở code chính: hàm `availableLenses()` của interface với mặc định trên, `canFlip` của `Ready` (mặc định `true`, chưa đặt ở đâu), bản giả `FakeCameraController` thêm `var lenses` và `override suspend fun availableLenses() = lenses`, tệp kịch bản. Test biên dịch được và thất bại ở phần khẳng định (mục 4.1). Bước 4: phần còn lại của mục 1 đến 5.
+Thứ tự commit (L-025): bước 3 gồm năm file test và khung rỗng ở code chính: hàm `availableLenses()` của interface với mặc định trên, `canFlip` của `Ready` (mặc định `true`, chưa đặt ở đâu), `camera/CameraLenses.kt` với `lensesOf` khung rỗng trả `Lens.entries.toSet()`, bản giả `FakeCameraController` thêm `var lenses` và `override suspend fun availableLenses() = lenses`, tệp kịch bản. Test biên dịch được và thất bại ở phần khẳng định (mục 4.1). Bước 4: phần còn lại của mục 1 đến 5 (thân thật của `lensesOf`, `CameraXController`, `CameraViewModel`, `CameraControls`).
 
 ### 3.2. Danh sách file
 
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/camera/CameraController.kt` | `availableLenses()` có mặc định |
-| Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/camera/CameraXController.kt` | Cài đặt `availableLenses()` bằng `hasCamera` |
+| Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/camera/CameraLenses.kt` | `lensesOf` (bước 3 khung rỗng, bước 4 thân thật) |
+| Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/camera/CameraXController.kt` | Cài đặt `availableLenses()` bằng `lensesOf` và `hasCamera` |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraUiState.kt` | `Ready.canFlip` |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraViewModel.kt` | Chọn camera mở, `canFlip`, log, chặn `onFlipClick` |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraControls.kt` | `FlipCameraButton` tắt khi `!canFlip` |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraFakes.kt` | `FakeCameraController.lenses`, `availableLenses()` |
-| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraViewModelTest.kt` | 6 test mới (mục 4) |
+| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraViewModelTest.kt` | 9 test mới (mục 4) |
+| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/camera/CameraLensesTest.kt` | 4 test của `lensesOf` (mục 4) |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenTest.kt` | 1 test mới, import `assertIsNotEnabled` |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenUnfoldedTest.kt` | 1 test mới, import `assertIsNotEnabled` |
 | Tạo | `feature/camera/src/deviceScenarios/T-064-mot-camera.txt` | Kịch bản trên emulator một camera (mục 4) |
@@ -109,6 +126,7 @@ File không đổi, đã kiểm (L-020): `CameraUnfolded.kt` (gọi `FlipCameraB
 
 - **Điểm chưa chắc:** `hasCamera` trên vài máy trả `true` cho camera mà `bindToLifecycle` vẫn không mở được (máy báo sai số camera; log của emulator CI cũ: "Device reporting less cameras than anticipated").
 - **Điều kiện chuyển:** không chuyển trong phiên; JVM test không thấy được điều này. Nếu bản staging trên máy thật vẫn hiện màn lỗi sau khi bấm nút đổi camera, ghi phản hồi mới.
+- **Máy chỉ có camera ngoài** (USB): `lensesOf` cho tập rỗng, app làm như hôm nay (mở lựa chọn đã lưu, nút bấm được). Không đổi ở task này.
 - **Cách làm thay:** (cho plan sau, không làm trong phiên) khi mở camera đã chọn bị lỗi mà camera kia có, mở camera kia và đặt `canFlip = false`. Không có trong mục 3.2 vì đổi tiêu chí chấp nhận.
 
 ## 4. Kiểm thử
@@ -121,14 +139,18 @@ Test JVM dùng `FakeCameraController.lenses` (tập camera máy có), `FakeCamer
 | KB-4 (đề xuất), bấm khi máy một camera không làm gì | Unit test | `CameraViewModelTest.oneCamera_flipClick_isIgnored`: `onFlipClick()`; `openCalls == [BACK]`, `ready().lens == BACK`, `lensSaves` rỗng |
 | KB-4 (đề xuất), lựa chọn đã lưu là camera máy không có | Unit test | `CameraViewModelTest.savedFront_withoutFrontCamera_opensBack_keepsSetting`: `stored = CameraSettings(lens = FRONT)`, `lenses = setOf(BACK)`; `openCalls == [BACK]`, `lens == BACK`, `canFlip == false`, `lensSaves` rỗng, log `Camera` "Only one camera: back" |
 | KB-4 (đề xuất), máy chỉ có camera trước | Unit test | `CameraViewModelTest.frontOnlyDevice_opensFront`: `lenses = setOf(FRONT)`; `openCalls == [FRONT]`, `lens == FRONT`, `canFlip == false` |
+| KB-4 (đề xuất), máy một camera đang đếm ngược: bấm nút đổi camera không dừng đếm | Unit test | `CameraViewModelTest.oneCamera_flipDuringCountdown_keepsCounting`: hẹn giờ 10 giây, `lenses = setOf(BACK)`, `onShutterClick()`, `onFlipClick()`; `countdown == 10`, không có log "Countdown cancelled: flip". Giữ thứ tự `!canFlip` trước `cancelCountdown` |
+| KB-4 (đề xuất), đường kẹt cũ: lỗi rồi "Try again" | Unit test | `CameraViewModelTest.savedFront_withoutFrontCamera_retryAfterError_opensBack`: `stored = CameraSettings(lens = FRONT)`, `lenses = setOf(BACK)`, lần mở đầu lỗi (`openError`), rồi `onRetry()`; `openCalls == [BACK, BACK]`, `canFlip == false` |
+| KB-4 (đề xuất), đường kẹt cũ: rời app rồi quay lại | Unit test | `CameraViewModelTest.savedFront_withoutFrontCamera_stoppedThenStarted_opensBack`: như trên, không lỗi; `onScreenStopped()`, `onScreenStarted(true)`; `openCalls == [BACK, BACK]`, `lens == BACK` |
+| KB-4 (đề xuất), máy cho biết camera nào có | Unit test | `CameraLensesTest.lensesOf_bothCameras` (đối chứng, qua trên khung rỗng), `lensesOf_backOnly` (`{BACK}`), `lensesOf_error_isUnknown` (lỗi thì tập rỗng), `lensesOf_cancellation_isRethrown` (`@Test(expected = CancellationException::class)`) |
 | KB-4, máy hai camera không đổi (đối chứng) | Unit test | `CameraViewModelTest.twoCameras_flipAvailable`: mặc định; `canFlip == true`. Đối chứng, qua cả trên khung rỗng; cùng với `flip_switchesLens_resetsZoom_keepsTools`, `flip_twiceQuickly_returnsToBack` có sẵn |
 | KB-4, máy không trả lời được (đối chứng) | Unit test | `CameraViewModelTest.noLensReported_opensSavedLens_flipStaysAvailable`: `lenses = emptySet()`; `openCalls == [BACK]`, `canFlip == true`. Đối chứng, qua trên khung rỗng; thất bại nếu cài đặt coi tập rỗng là "không có camera" (đột biến ở mục 4.1) |
 | KB-4 (đề xuất), nút mờ, bấm không gọi gì | Compose UI test | `CameraScreenTest.flip_cannotFlip_disabled`: `READY.copy(canFlip = false)`; `FLIP` `assertIsNotEnabled()`, `performClick()`, `calls` rỗng |
 | KB-4 (đề xuất), bố cục mở gập | Compose UI test | `CameraScreenUnfoldedTest.unfolded_cannotFlip_disabled`: `Screen(uiState = DEFAULT.copy(canFlip = false))`; như trên |
 | Giao diện các màn camera không đổi | Screenshot test (có sẵn) | Mọi ảnh `CameraScreen_*`, `ReviewScreen_*` không đổi (`verifyRoborazziDebug`) |
 | Đúng thiết kế (khi có `design/screens/`) | Ảnh chuẩn có sẵn, cùng tên ảnh thiết kế | Không thêm hay ghi lại ảnh nào. Ảnh thiết kế của ticket khác (T-013, T-014, T-015, T-016, T-017, T-020): `CameraScreen_default_dark`, `CameraScreen_no-pose_dark`, `CameraScreen_adjust_dark`, `CameraScreen_locked_dark`, `CameraScreen_steps-hidden_dark`, `CameraScreen_matching_dark`, `CameraScreen_matched_dark`, `CameraScreen_no-person_dark`, `CameraScreen_countdown_dark`, `CameraScreen_starting_dark`, `CameraScreen_permission-denied_dark`, `CameraScreen_error_dark`, `CameraScreen_default_dark_unfolded`, `ReviewScreen_default_dark`, `ReviewScreen_saving_dark`, `ReviewScreen_save-error_dark`, `ReviewScreen_discard_dark`, `ReviewScreen_default_dark_unfolded` |
-| KB-4 (đề xuất), máy một camera thật: bấm nút đổi camera, rời màn, quay lại, camera vẫn sẵn sàng | Kiểm tra thủ công (emulator: `feature/camera/src/deviceScenarios/T-064-mot-camera.txt`) | Emulator CI chỉ có camera sau sau T-062. Tệp bấm `camera_flip`, mở thư viện, `back`, chờ `camera_grid_button` (chỉ có ở `Ready`), `expect_no str=camera_error_title`. Trên code hiện tại camera kẹt ở camera trước và màn lỗi hiện, nên bước `wait id=camera_grid_button` thất bại; trên máy hai camera tệp cũng đạt (đổi sang camera trước được). Emulator không có camera (trước T-062) thì `need` cho `bỏ qua (môi trường)` |
-| TalkBack đọc nút đã tắt | Kiểm tra thủ công (máy thật: TalkBack) | Máy một camera (hay emulator `-camera-front none`): TalkBack đọc nút đổi camera kèm "đã tắt" |
+| KB-4 (đề xuất), máy một camera thật: bấm nút đổi camera, rời màn, quay lại, camera vẫn sẵn sàng | Kiểm tra thủ công (emulator: `feature/camera/src/deviceScenarios/T-064-mot-camera.txt`) | Emulator CI chỉ có camera sau sau T-062. Tệp bấm `camera_flip`, mở thư viện, `back`, chờ `camera_grid_button` (chỉ có ở `Ready`), `expect_no str=camera_error_title`. Trên code hiện tại camera kẹt ở camera trước và màn lỗi hiện, nên bước `wait id=camera_grid_button` thất bại; trên máy hai camera tệp cũng đạt (đổi sang camera trước được). Emulator không có camera (trước T-062) thì `need` cho `bỏ qua (môi trường)`. Giới hạn: tệp không đọc được trạng thái tắt của nút (trình chạy không có bộ lọc `enabled`) và không kiểm được lần mở lại app với lựa chọn đã lưu (`fresh` xóa dữ liệu); hai điều đó có test JVM ở trên |
+| TalkBack đọc nút đã tắt | Kiểm tra thủ công (máy thật: TalkBack) | Đã kiểm tự động bằng `assertIsNotEnabled` (thuộc tính `Disabled` mà TalkBack đọc). Trên máy một camera, nếu có: TalkBack đọc nút đổi camera kèm "đã tắt" |
 
 Mã các test JVM đúng như đã chạy thử (mục 4.1):
 
@@ -186,6 +208,79 @@ Mã các test JVM đúng như đã chạy thử (mục 4.1):
         assertEquals(listOf(Lens.BACK), controller.openCalls)
         assertTrue(viewModel.ready().canFlip)
     }
+
+    @Test
+    fun oneCamera_flipDuringCountdown_keepsCounting() = runTest {
+        repository.stored.value = CameraSettings(timer = TimerSetting.TEN)
+        controller.lenses = setOf(Lens.BACK)
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        viewModel.onFlipClick()
+        runCurrent()
+        assertEquals(10, viewModel.ready().countdown)
+        assertFalse(logger.entries.any { it.message == "Countdown cancelled: flip" })
+    }
+
+    @Test
+    fun savedFront_withoutFrontCamera_retryAfterError_opensBack() = runTest {
+        repository.stored.value = CameraSettings(lens = Lens.FRONT)
+        controller.lenses = setOf(Lens.BACK)
+        controller.openError = IllegalStateException("camera in use")
+        val viewModel = readyViewModel()
+        assertEquals(CameraUiState.Error, viewModel.uiState.value)
+        controller.openError = null
+        viewModel.onRetry()
+        runCurrent()
+        assertEquals(listOf(Lens.BACK, Lens.BACK), controller.openCalls)
+        assertFalse(viewModel.ready().canFlip)
+    }
+
+    @Test
+    fun savedFront_withoutFrontCamera_stoppedThenStarted_opensBack() = runTest {
+        repository.stored.value = CameraSettings(lens = Lens.FRONT)
+        controller.lenses = setOf(Lens.BACK)
+        val viewModel = readyViewModel()
+        viewModel.onScreenStopped()
+        viewModel.onScreenStarted(permissionGranted = true)
+        runCurrent()
+        assertEquals(listOf(Lens.BACK, Lens.BACK), controller.openCalls)
+        assertEquals(Lens.BACK, viewModel.ready().lens)
+    }
+```
+
+`CameraLensesTest.kt` (tạo, gói `...feature.camera.camera`):
+
+```kotlin
+package com.vglstudio.camera.pose.line.guide.feature.camera.camera
+
+import com.vglstudio.camera.pose.line.guide.feature.camera.model.Lens
+import kotlin.coroutines.cancellation.CancellationException
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+// Spec camera, KB-4 (plan T-064): which lenses the device has, as CameraX reports them.
+class CameraLensesTest {
+    @Test
+    fun lensesOf_bothCameras() {
+        assertEquals(setOf(Lens.BACK, Lens.FRONT), lensesOf { true })
+    }
+
+    @Test
+    fun lensesOf_backOnly() {
+        assertEquals(setOf(Lens.BACK), lensesOf { it == Lens.BACK })
+    }
+
+    @Test
+    fun lensesOf_error_isUnknown() {
+        assertEquals(emptySet<Lens>(), lensesOf { throw IllegalStateException("camera info unavailable") })
+    }
+
+    @Test(expected = CancellationException::class)
+    fun lensesOf_cancellation_isRethrown() {
+        lensesOf { throw CancellationException("cancelled") }
+    }
+}
 ```
 
 Đặt trước `flip_twiceQuickly_returnsToBack` trong `CameraViewModelTest`. `CameraScreenTest` (trước `countdown_showsNumber_andShutterCancels`):
@@ -244,23 +339,25 @@ expect_no str=camera_error_title
 shot camera-after-flip
 ```
 
-**Ngoại lệ viết test trước:** `CameraXController.availableLenses()` gọi CameraX thật, không chạy được trên JVM (như `open`); kiểm bằng tệp kịch bản trên emulator CI một camera ở `device-session` cuối phiên. Tệp kịch bản là test chạy cuối phiên, không "thất bại trước" được (`docs/CLAUDE.md`, mục Khi viết plan).
+**Ngoại lệ viết test trước:** trong `CameraXController.availableLenses()`, chỉ `ProcessCameraProvider.awaitInstance` và `hasCamera` thật không chạy được trên JVM (như `open`); phần lọc và bắt lỗi nằm ở `lensesOf`, có test; kiểm bằng tệp kịch bản trên emulator CI một camera ở `device-session` cuối phiên. Tệp kịch bản là test chạy cuối phiên, không "thất bại trước" được (`docs/CLAUDE.md`, mục Khi viết plan).
 
 ### 4.1. Chạy thử
 
-- **Đã chạy thử:** ngày 2026-10-27, worktree `../wt-t064` trên nhánh chính f464d7f, không commit. JDK 21 (Temurin 21.0.13) và Android SDK (`platforms;android-36`, `build-tools;36.0.0`) tải vào thư mục tạm, vì máy dev không có.
-- **Lệnh và kết quả:**
-  1. Khung rỗng của bước 3 cộng 8 test mới: `./gradlew :feature:camera:testDebugUnitTest --tests '*CameraViewModelTest*' --tests '*CameraScreenTest*' --tests '*CameraScreenUnfoldedTest*'`: 81 test, 6 thất bại đúng lý do, 2 đối chứng qua, các test có sẵn qua:
+- **Đã chạy thử:** ngày 2026-10-27, worktree `../wt-t064`, lần 1 trên nhánh chính f464d7f, lần 2 (sau rà soát độc lập) trên 191ebd7; không commit. JDK 21 (Temurin 21.0.13) và Android SDK (`platforms;android-36`, `build-tools;36.0.0`) tải vào thư mục tạm, vì máy dev không có.
+- **Lệnh và kết quả (lần 2, đủ 15 test mới):**
+  1. Khung rỗng của bước 3 cộng 15 test mới: `./gradlew :feature:camera:testDebugUnitTest --tests '*CameraViewModelTest*' --tests '*CameraScreenTest*' --tests '*CameraScreenUnfoldedTest*' --tests '*CameraLensesTest*'`: 88 test, 12 thất bại đúng lý do, 3 đối chứng qua, các test có sẵn qua:
      - `oneCamera_flipUnavailable`: `AssertionError` (`canFlip` là `true`);
      - `oneCamera_flipClick_isIgnored`: `expected:<[BACK]> but was:<[BACK, FRONT]>`;
      - `savedFront_withoutFrontCamera_opensBack_keepsSetting`: `expected:<[BACK]> but was:<[FRONT]>`;
      - `frontOnlyDevice_opensFront`: `expected:<[FRONT]> but was:<[BACK]>`;
+     - `oneCamera_flipDuringCountdown_keepsCounting`: `expected:<10> but was:<null>`;
+     - `savedFront_withoutFrontCamera_retryAfterError_opensBack`, `savedFront_withoutFrontCamera_stoppedThenStarted_opensBack`: `expected:<[BACK, BACK]> but was:<[FRONT, FRONT]>` (đúng đường kẹt của FB-20261027-01);
+     - `lensesOf_backOnly`: `expected:<[BACK]> but was:<[BACK, FRONT]>`; `lensesOf_error_isUnknown`: `expected:<[]> but was:<[BACK, FRONT]>`; `lensesOf_cancellation_isRethrown`: `Expected exception: java.util.concurrent.CancellationException`;
      - `flip_cannotFlip_disabled`, `unfolded_cannotFlip_disabled`: `Failed to assert the following: (is not enabled)`;
-     - đối chứng qua: `twoCameras_flipAvailable`, `noLensReported_opensSavedLens_flipStaysAvailable`.
-  2. Bản cài thử (mục 3.1, bước 1 đến 5): `./gradlew :feature:camera:testDebugUnitTest`: 452 test, 0 thất bại.
-  3. Bản cài thử: `scripts/check.sh`: lần đầu đỏ ở `:feature:camera:ktlintMainSourceSetCheck` (dòng `provider.hasCamera(if (...) ... else ...)` dài 134 ký tự; các task khác qua nhờ `--continue`), vì vậy mục 3.1 bước 2 tách biến `selector`; lần hai qua: `BUILD SUCCESSFUL`, "Test JVM: 1176 test, 0 lỗi. Ảnh screenshot: 97", `:feature:camera` 452 test, "Cổng chất lượng: QUA". Không ảnh chuẩn nào đổi.
-  4. Đột biến cho đối chứng tập rỗng: đổi `canFlip = lenses.isEmpty() || lenses.size > 1` thành `canFlip = lenses.size > 1`: `noLensReported_opensSavedLens_flipStaysAvailable` thất bại, các test khác qua. Đã hoàn tác.
-  5. `scripts/device-scenario.py check feature/camera/src/deviceScenarios/T-064-mot-camera.txt`: mã 0 (tệp tạm, không commit; tạo ở bước 3 của task).
+     - đối chứng qua: `twoCameras_flipAvailable`, `noLensReported_opensSavedLens_flipStaysAvailable`, `lensesOf_bothCameras`.
+  2. Bản cài thử (mục 3.1, bước 1 đến 5): `scripts/check.sh`: `BUILD SUCCESSFUL`, "Test JVM: 1183 test, 0 lỗi. Ảnh screenshot: 97", `:feature:camera` 459 test, 0 lỗi, "Cổng chất lượng: QUA". Không ảnh chuẩn nào đổi. Lần 1 (chưa có `lensesOf`): lần đầu đỏ ở `:feature:camera:ktlintMainSourceSetCheck` vì một dòng `hasCamera(if ... else ...)` dài 134 ký tự (các task khác qua nhờ `--continue`); mã ở mục 3.1 đã xuống dòng, lần 2 qua.
+  3. Đột biến cho đối chứng tập rỗng (lần 1): đổi `canFlip = lenses.isEmpty() || lenses.size > 1` thành `canFlip = lenses.size > 1`: `noLensReported_opensSavedLens_flipStaysAvailable` thất bại, các test khác qua. Đã hoàn tác.
+  4. `scripts/device-scenario.py check feature/camera/src/deviceScenarios/T-064-mot-camera.txt`: mã 0 (tệp tạm, không commit; tạo ở bước 3 của task).
 - Lần chạy thử T-062 (lần chạy 40355405834, emulator chỉ có camera sau) là bằng chứng của lỗi gốc; tệp kịch bản chưa chạy trên emulator vì T-062 chưa merge: kết quả đầu tiên là `device-session` cuối phiên có T-062 và T-064.
 
 ## 5. Chấm rủi ro
@@ -270,7 +367,7 @@ shot camera-after-flip
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 2 | 5 file chính trong `:feature:camera`, thêm hàm vào interface công khai `CameraController` |
-| B. Độ rõ của yêu cầu | 1 | Spec đổi KB-4 chờ xác nhận lại; chọn mờ hay ẩn nút là câu hỏi 1 |
+| B. Độ rõ của yêu cầu | 1 | Chấm 1 với giả định câu hỏi 17 của spec (câu 1 ở mục 8) được trả lời trước khi duyệt; chọn ẩn nút thì chấm lại (cần thiết kế) |
 | C. Khả năng kiểm chứng tự động | 1 | Logic và giao diện có test JVM; phần CameraX kiểm bằng tệp kịch bản trên emulator; TalkBack trên máy thật |
 | D. Ảnh hưởng chéo | 0 | Chỉ file của `:feature:camera` |
 | E. Độ mới của kỹ thuật | 1 | Biến thể nhỏ của mẫu đã có (`hasFlash` làm nút flash mờ; `ProcessCameraProvider` đã dùng ở `open`) |
@@ -279,8 +376,8 @@ shot camera-after-flip
 ## 6. Ảnh hưởng chéo
 
 - File hoặc thành phần dùng chung bị chạm: Không (chỉ `:feature:camera`).
-- Task khác trong sprint có thể xung đột: T-062 (đổi emulator CI sang camera sau giả): không chung file, nhưng tệp kịch bản của T-064 chỉ kiểm được sau T-062. T-063 không liên quan.
-- Đề xuất thứ tự chạy: sau T-062.
+- Task khác trong sprint có thể xung đột: T-062 (đổi emulator CI sang camera sau giả): không chung file, code không cần T-062; tệp kịch bản của T-064 chỉ kiểm được trên emulator một camera, trước T-062 thì `need` cho `bỏ qua (môi trường)`. T-063 không liên quan.
+- Đề xuất thứ tự chạy: sau T-062 (chỉ để kịch bản chạy được trong cùng phiên, không phải phụ thuộc).
 
 ## 7. Điều kiện dừng riêng
 

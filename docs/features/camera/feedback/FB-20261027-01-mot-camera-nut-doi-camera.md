@@ -49,6 +49,6 @@ Không đính kèm. Log nằm trong artifact `device-session` của lần chạy
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 - **Loại:** đề xuất của AI: lỗi so với spec (KB-4 "Khi bấm nút đổi camera thì camera đổi giữa trước và sau" ngầm giả định máy có hai camera), cần thêm tiêu chí cho máy một camera.
-- **Xử lý:** ticket T-064. Tuấn chọn ngày 2026-10-26 tạo ticket. Spec camera đổi KB-4 và thêm câu hỏi 17, chờ xác nhận.
+- **Xử lý:** ticket T-064. Tuấn chọn tạo ticket ngày 2026-10-27 (giờ UTC; 2026-10-26 giờ máy). Spec camera đổi KB-4 và thêm câu hỏi 17, chờ xác nhận.
 - **Lý do:** máy tính bảng giá rẻ, Chromebook, một số máy chỉ có một camera; lỗi kẹt lại sau khi mở lại app.
 - **Liên kết:** [T-064](../tickets/T-064-mot-camera.md), [plan T-064](../plans/T-064-mot-camera.md), plan T-062 mục 4.1 và câu hỏi 3

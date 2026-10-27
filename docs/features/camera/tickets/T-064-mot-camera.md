@@ -8,7 +8,7 @@ owner: Nhật
 status: planned
 risk: medium
 size: S
-depends_on: [T-013, T-062]
+depends_on: [T-013]
 sprint:
 plan: features/camera/plans/T-064-mot-camera.md
 created: 2026-10-27
@@ -22,10 +22,10 @@ Trên máy chỉ có một camera, nút đổi camera vẫn bấm được; bấ
 
 ## Phạm vi
 
-- `CameraController` hỏi máy có những camera nào (`ProcessCameraProvider.hasCamera`); `CameraViewModel` chọn camera mở và đặt `canFlip` vào trạng thái `Ready`.
+- `CameraController` hỏi máy có những camera nào (`ProcessCameraProvider.hasCamera`, phần thuần `lensesOf` có test JVM); `CameraViewModel` chọn camera mở và đặt `canFlip` vào trạng thái `Ready`.
 - Nút đổi camera ở bố cục điện thoại và bố cục mở gập mờ đi khi `canFlip` là `false`.
 - Lựa chọn đã lưu không bị ghi đè khi app mở camera kia thay.
-- Tệp kịch bản `feature/camera/src/deviceScenarios/T-064-mot-camera.txt`: trên emulator CI một camera (sau T-062), bấm nút đổi camera rồi rời màn và quay lại, camera vẫn sẵn sàng.
+- Tệp kịch bản `feature/camera/src/deviceScenarios/T-064-mot-camera.txt`: trên emulator CI một camera, bấm nút đổi camera rồi rời màn và quay lại, camera vẫn sẵn sàng. Nên chạy sau T-062 trong cùng phiên để kịch bản chạy được (không phải phụ thuộc: trước T-062 tệp `bỏ qua (môi trường)`).
 
 **Không bao gồm:** thêm camera trước cho emulator CI (plan T-062, câu hỏi 3); máy không có camera nào (màn lỗi như hiện nay).
 

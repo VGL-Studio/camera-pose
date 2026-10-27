@@ -11,6 +11,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
@@ -169,6 +170,31 @@ class OnboardingScreenTest {
         assertTrue("illustration height ${illustration.height}", illustration.height >= 160.dp)
         assertTrue("illustration height ${illustration.height}", illustration.height < 280.dp)
         // The last point is reached by scrolling.
+        composeRule.onNodeWithTag(OnboardingTestTags.FEATURE_SAVED).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(OnboardingTestTags.ENABLE_CAMERA).performClick()
+        assertEquals(1, clicks)
+    }
+
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056): button and note stay inside the
+    // window, the content scrolls. The second frame is the first minus the system bars.
+    @Test
+    @Config(qualifiers = "vi-w960dp-h600dp-land-xxhdpi")
+    fun landscape_buttonAndNoteVisible_w960h600() = assertLandscape()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_buttonAndNoteVisible_w960h520() = assertLandscape()
+
+    private fun assertLandscape() {
+        var clicks = 0
+        setScreen(onEnableCamera = { clicks++ })
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val button = bounds(OnboardingTestTags.ENABLE_CAMERA)
+        val note = bounds(OnboardingTestTags.NOTE)
+        val content = composeRule.onNodeWithTag(OnboardingTestTags.CONTENT).getBoundsInRoot()
+        assertTrue("button bottom ${button.bottom} inside the window ${root.bottom}", button.bottom <= root.bottom)
+        assertTrue("note bottom ${note.bottom} inside the window ${root.bottom}", note.bottom <= root.bottom)
+        assertTrue("button top ${button.top} overlaps scroll area ${content.bottom}", button.top >= content.bottom)
         composeRule.onNodeWithTag(OnboardingTestTags.FEATURE_SAVED).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(OnboardingTestTags.ENABLE_CAMERA).performClick()
         assertEquals(1, clicks)

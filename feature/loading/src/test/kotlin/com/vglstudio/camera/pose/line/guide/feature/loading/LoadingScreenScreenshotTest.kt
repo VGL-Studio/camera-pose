@@ -66,6 +66,34 @@ class LoadingScreenScreenshotTest {
         }
     }
 
+    // The server guidance (plan T-057) has no design frame of its own: same layout as failed, other guidance line.
+    @Test
+    fun failedServer_light() {
+        captureRoboImage("src/test/screenshots/LoadingScreen_failed-server_light.png") {
+            AppTheme(darkTheme = false) {
+                LoadingScreen(
+                    uiState = LoadingUiState.Failed(PROGRESS, LoadingFailure.SERVER),
+                    appName = APP_NAME,
+                    onRetry = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = SHORT_SCREEN)
+    fun failedServer_small() {
+        captureRoboImage("src/test/screenshots/LoadingScreen_failed-server_small.png") {
+            AppTheme(darkTheme = false) {
+                LoadingScreen(
+                    uiState = LoadingUiState.Failed(PROGRESS, LoadingFailure.SERVER),
+                    appName = APP_NAME,
+                    onRetry = {},
+                )
+            }
+        }
+    }
+
     @Test
     @Config(qualifiers = SHORT_SCREEN)
     fun progress_small() {

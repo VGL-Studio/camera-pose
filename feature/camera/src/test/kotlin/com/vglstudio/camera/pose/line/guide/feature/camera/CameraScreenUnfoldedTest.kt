@@ -9,15 +9,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.percentOffset
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -26,6 +30,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraScreenScreenshotTest.Companion.DEFAULT
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraScreenScreenshotTest.Companion.LOCKED
+import com.vglstudio.camera.pose.line.guide.feature.camera.CameraScreenScreenshotTest.Companion.STEP_TEXT
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraScreenScreenshotTest.Companion.samplePoses
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseThumbItem
@@ -57,6 +62,7 @@ class CameraScreenUnfoldedTest {
     private val actions = PoseActions(
         onCategorySelect = { calls += "category $it" },
         onPoseSelect = { calls += "pose $it" },
+        onHideSteps = { calls += "hide" },
     )
 
     @Composable
@@ -64,17 +70,19 @@ class CameraScreenUnfoldedTest {
         poseState: PoseUiState = samplePoses(),
         lastPhoto: ImageBitmap? = null,
         onLastPhotoClick: (() -> Unit)? = { calls += "lastPhoto" },
+        uiState: CameraUiState = DEFAULT,
+        onCancelCountdown: (CountdownCancelReason) -> Unit = {},
     ) {
         AppTheme(darkTheme = true) {
             CameraScreen(
-                uiState = DEFAULT,
+                uiState = uiState,
                 onFlashClick = {},
                 onTimerClick = {},
                 onGridClick = {},
                 onFlipClick = { calls += "flip" },
                 onZoomSelect = { calls += "zoom $it" },
                 onShutterClick = { calls += "shutter" },
-                onCancelCountdown = {},
+                onCancelCountdown = onCancelCountdown,
                 onRetry = {},
                 onOpenAppSettings = {},
                 onOpenPoses = { calls += "poses" },
@@ -161,6 +169,15 @@ class CameraScreenUnfoldedTest {
     }
 
     @Test
+    fun tapStepText_hides() {
+        composeRule.setContent { Screen() }
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithText(STEP_TEXT, useUnmergedTree = true).performClick()
+        assertEquals(listOf("hide"), calls)
+    }
+
+    @Test
     fun overlayToolsAndHints_stayInsideFrame() {
         composeRule.setContent { Screen(samplePoses(overlay = LOCKED)) }
         val preview = bounds(CameraTestTags.PREVIEW)
@@ -170,6 +187,24 @@ class CameraScreenUnfoldedTest {
         assertNear("tools right gap", 16f, preview.right - tools.right, 2f)
         val hint = bounds(CameraTestTags.LOCK_HINT)
         assertNear("hint bottom gap", 16f, preview.bottom - hint.bottom, 2f)
+    }
+
+    // KB-6 (plan T-061): while counting down the same buttons are locked, a tap on the frame stops the count and the
+    // zoom in the right column still works.
+    @Test
+    fun counting_locksAndTapCancels() {
+        composeRule.setContent {
+            Screen(uiState = DEFAULT.copy(countdown = 3), onCancelCountdown = { calls += "cancel $it" })
+        }
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithTag(CameraTestTags.FLASH).assertIsNotEnabled()
+        composeRule.onNodeWithText("Nữ").assertIsNotEnabled()
+        composeRule.onNodeWithTag(CameraTestTags.PREVIEW).performTouchInput { click(percentOffset(0.2f, 0.7f)) }
+        composeRule.waitForIdle()
+        assertTrue("calls $calls", "cancel PREVIEW" in calls)
+        composeRule.onNodeWithText("2").performClick()
+        assertTrue("calls $calls", "zoom 2.0" in calls)
     }
 
     private fun manyPoses(): PoseUiState.Ready {
@@ -207,6 +242,48 @@ class CameraScreenUnfoldedTest {
     }
 
     private fun isPhoneLayout(): Boolean = bounds(CameraTestTags.SHUTTER).top >= bounds(CameraTestTags.STRIP).bottom
+
+    // A large screen in landscape follows the device (spec camera, KB-11; plan T-056): every control stays inside the
+    // window and the frame keeps 3:4. The last two frames are the first two minus the system bars.
+    private fun assertControlsInsideWindow() {
+        composeRule.setContent { Screen() }
+        val root = bounds(CameraTestTags.SCREEN)
+        val tags = listOf(
+            CameraTestTags.PREVIEW,
+            CameraTestTags.FLIP,
+            CameraTestTags.SHUTTER,
+            CameraTestTags.LAST_PHOTO,
+            CameraTestTags.ZOOM,
+            CameraTestTags.CHIPS,
+            CameraTestTags.STRIP,
+            CameraTestTags.POSES,
+            CameraTestTags.SETTINGS,
+        )
+        tags.forEach { tag ->
+            val box = bounds(tag)
+            assertTrue("$tag bottom ${box.bottom} inside the window ${root.bottom}", box.bottom <= root.bottom)
+            assertTrue("$tag right ${box.right} inside the window ${root.right}", box.right <= root.right)
+        }
+        val preview = bounds(CameraTestTags.PREVIEW)
+        val ratio = preview.height.value / preview.width.value
+        assertTrue("preview height / width $ratio is 3:4", abs(ratio - 4f / 3f) <= 0.02f)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w841dp-h673dp-land-xxhdpi")
+    fun landscape_controlsInsideWindow_w841h673() = assertControlsInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h600dp-land-xxhdpi")
+    fun landscape_controlsInsideWindow_w960h600() = assertControlsInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w841dp-h593dp-land-xxhdpi")
+    fun landscape_controlsInsideWindow_w841h593() = assertControlsInsideWindow()
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_controlsInsideWindow_w960h520() = assertControlsInsideWindow()
 
     @Test
     fun stateRestoration_keepsStripScroll() {

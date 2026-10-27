@@ -514,6 +514,87 @@ class CameraViewModelTest {
         assertTrue(analytics.events.none { it.name == "photo_captured" })
     }
 
+    // KB-6, plan T-061: while counting down, flash, timer and grid change nothing; zoom still works.
+
+    @Test
+    fun countdown_ignoresFlashTimerGrid() = runTest {
+        repository.stored.value = CameraSettings(timer = TimerSetting.TEN)
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        val before = viewModel.ready()
+        assertEquals(10, before.countdown)
+
+        viewModel.onFlashClick()
+        viewModel.onTimerClick()
+        viewModel.onGridClick()
+        runCurrent()
+        val after = viewModel.ready()
+        assertEquals(before.flash, after.flash)
+        assertEquals(before.timer, after.timer)
+        assertEquals(before.gridVisible, after.gridVisible)
+        assertEquals(10, after.countdown)
+        assertTrue(controller.flashCalls.isEmpty())
+        assertTrue(repository.flashSaves.isEmpty())
+        assertTrue(repository.timerSaves.isEmpty())
+        assertTrue(repository.gridSaves.isEmpty())
+
+        // Control (L-035): once the countdown is cancelled, the timer changes again.
+        viewModel.onCancelCountdown()
+        viewModel.onTimerClick()
+        runCurrent()
+        assertEquals(TimerSetting.OFF, viewModel.ready().timer)
+    }
+
+    @Test
+    fun countdown_zoomStillChanges() = runTest {
+        repository.stored.value = CameraSettings(timer = TimerSetting.TEN)
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        viewModel.onZoomSelect(2f)
+        runCurrent()
+        assertEquals(2f, viewModel.ready().zoom)
+        assertEquals(10, viewModel.ready().countdown)
+        assertEquals(2f, controller.zoomCalls.last())
+    }
+
+    @Test
+    fun countdown_flipCancelsAndSwitches() = runTest {
+        repository.stored.value = CameraSettings(timer = TimerSetting.TEN)
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        viewModel.onFlipClick()
+        runCurrent()
+        assertNull(viewModel.ready().countdown)
+        assertEquals(listOf(Lens.BACK, Lens.FRONT), controller.openCalls)
+        assertTrue(logger.entries.any { it.tag == "Camera" && it.message == "Countdown cancelled: flip" })
+        advanceTimeBy(20_000)
+        runCurrent()
+        assertEquals(0, controller.captureCount)
+    }
+
+    @Test
+    fun cancelReasons_logged() = runTest {
+        repository.stored.value = CameraSettings(timer = TimerSetting.TEN)
+        val viewModel = readyViewModel()
+        val expected = listOf(
+            CountdownCancelReason.PREVIEW to "Countdown cancelled: preview",
+            CountdownCancelReason.LEAVE to "Countdown cancelled: leave",
+            null to "Countdown cancelled: user",
+        )
+        expected.forEach { (reason, message) ->
+            viewModel.onShutterClick()
+            runCurrent()
+            if (reason == null) viewModel.onCancelCountdown() else viewModel.onCancelCountdown(reason)
+            runCurrent()
+            assertNull(viewModel.ready().countdown)
+            assertEquals(message, logger.entries.last { it.tag == "Camera" }.message)
+        }
+        assertEquals(0, controller.captureCount)
+    }
+
     @Test
     fun stopped_duringCountdown_cancels() = runTest {
         repository.stored.value = CameraSettings(timer = TimerSetting.THREE)

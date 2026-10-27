@@ -74,17 +74,19 @@ class CameraStringsTest {
     }
 
     /**
-     * The slider shows how solid the outline is, 100% when it is fully drawn: a word for "transparency" would read the
-     * other way round (independent review of T-050).
+     * The slider shows how solid the outline is, 100% when it is fully drawn: a word for "transparency", or Vietnamese
+     * "mờ" (faint), would read the other way round (independent review of T-050; plan T-055). Words are matched by their
+     * stem, so the noun and the adjective are both caught.
      */
     @Test
     fun opacityLabel_isNotTransparency() {
-        TRANSPARENCY.forEach { (tag, word) ->
+        OPPOSITE_WORDS.forEach { (tag, word) ->
             val label = context(tag).getString(R.string.camera_adjust_opacity)
-            // A whole word: Hindi अपारदर्शिता (opacity) is पारदर्शिता (transparency) with the prefix of negation.
-            val transparency = Regex("(?<![\\p{L}\\p{M}])" + Regex.escape(word), RegexOption.IGNORE_CASE)
-                .containsMatchIn(label)
-            assertFalse("$tag camera_adjust_opacity says transparency: $label", transparency)
+            // Thai is written without spaces between words, so its stem may be anywhere. Elsewhere the stem starts a
+            // word: Hindi अपारदर्शिता (opacity) is पारदर्शिता (transparency) with the prefix of negation.
+            val pattern = if (tag == "th") Regex.escape(word) else "(?<![\\p{L}\\p{M}])" + Regex.escape(word)
+            val opposite = Regex(pattern, RegexOption.IGNORE_CASE).containsMatchIn(label)
+            assertFalse("$tag camera_adjust_opacity reads the other way round: $label", opposite)
         }
     }
 
@@ -110,14 +112,21 @@ class CameraStringsTest {
         /** (language, string) pairs kept in English, as the same word is in values-<language> of settings or onboarding. */
         val SAME_AS_ENGLISH = emptySet<Pair<String, String>>()
 
-        /** The word for "transparency" in each language, as the onboarding uses it for the outline. */
-        val TRANSPARENCY = listOf(
-            "en" to "transparency",
+        /**
+         * Stems that read the other way round on the slider (plan T-055): "transparency" in each language, as the
+         * onboarding uses it for the outline, and Vietnamese "mờ" (faint).
+         */
+        val OPPOSITE_WORDS = listOf(
+            "en" to "transparen",
             "hi" to "पारदर्शिता",
             "pt-BR" to "transparência",
+            "pt-BR" to "transparente",
             "es-419" to "transparencia",
-            "id" to "transparansi",
-            "th" to "ความโปร่งใส",
+            "es-419" to "transparente",
+            "id" to "transparan",
+            "th" to "โปร่ง",
+            "vi" to "mờ",
+            "vi" to "trong suốt",
         )
 
         val PLACEHOLDER = Regex("%(\\d+\\$)?[a-z%]")

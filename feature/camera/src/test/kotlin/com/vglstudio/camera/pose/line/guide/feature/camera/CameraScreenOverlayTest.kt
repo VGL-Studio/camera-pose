@@ -49,6 +49,8 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.model.FlashMode
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.Lens
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.TimerSetting
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.CategoryChip
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.MAX_OFFSET
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.MAX_SCALE
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.OverlayState
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseImage
@@ -92,6 +94,7 @@ class CameraScreenOverlayTest {
         onToggleLock = { calls += "lock" },
         onToggleHidden = { calls += "hidden" },
         onResetOverlay = { calls += "reset" },
+        onHideSteps = { calls += "hide" },
     )
 
     private var cameraState by mutableStateOf<CameraUiState>(READY)
@@ -186,6 +189,20 @@ class CameraScreenOverlayTest {
         composeRule.waitForIdle()
         assertTrue("transforms $transforms", transforms.isEmpty())
         assertTrue("calls $calls", calls.isEmpty())
+    }
+
+    @Test
+    fun tapOnStepCard_doesNotMoveOutline() {
+        setScreen()
+        composeRule.waitForIdle()
+        transforms.clear()
+        calls.clear()
+        composeRule.onNodeWithText("Step 2", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+        assertTrue("transforms $transforms", transforms.isEmpty())
+        assertTrue("calls $calls", "end" !in calls)
+        // Control: the tap reached the card, which hides it (plan T-059), and nothing else.
+        assertEquals(listOf("hide"), calls)
     }
 
     @Test
@@ -390,7 +407,7 @@ class CameraScreenOverlayTest {
     fun panel_showsSlidersAndActions_andHidesZoom() {
         setScreen(OverlayState(settings = OverlaySettings(opacity = 0.7f), panelOpen = true))
         assertTrue(exists(CameraTestTags.ADJUST_PANEL))
-        listOf("Chỉnh lớp phủ", "Độ mờ", "70%", "Cỡ", "100%").forEach { assertTrue("$it", textExists(it)) }
+        listOf("Chỉnh lớp phủ", "Độ đậm", "70%", "Cỡ", "100%").forEach { assertTrue("$it", textExists(it)) }
         // The four actions: the label is drawn under each button, and the button is named after it.
         listOf("Lật", "Khóa", "Ẩn", "Đặt lại").forEach {
             assertTrue(it, textExists(it))
@@ -487,7 +504,26 @@ class CameraScreenOverlayTest {
     // around the middle of the button of the same name.
     @Test
     @Config(qualifiers = "pt-rBR-w360dp-h640dp-xxhdpi")
-    fun smallPortuguese_adjustPanel_labelsFit() {
+    fun smallPortuguese_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    // The other release languages on the short screen (plan T-055): Indonesian "Sembunyikan" overlapped "Kunci".
+    @Test
+    @Config(qualifiers = "b+es+419-w360dp-h640dp-xxhdpi")
+    fun smallSpanish_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    @Test
+    @Config(qualifiers = "in-w360dp-h640dp-xxhdpi")
+    fun smallIndonesian_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    @Test
+    @Config(qualifiers = "hi-w360dp-h640dp-xxhdpi")
+    fun smallHindi_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    @Test
+    @Config(qualifiers = "th-w360dp-h640dp-xxhdpi")
+    fun smallThai_adjustPanel_labelsFit() = assertAdjustLabelsFit()
+
+    private fun assertAdjustLabelsFit() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val labels = listOf(
             R.string.camera_adjust_flip,
@@ -523,6 +559,57 @@ class CameraScreenOverlayTest {
         }
     }
 
+    // The outline stays in the frame (spec camera, KB-3; plan T-060)
+
+    @Test
+    fun outline_largestAndMovedUp_notDrawnOverTopBar() {
+        setScreen(
+            overlay = OverlayState(settings = OverlaySettings(scale = MAX_SCALE), offsetY = -MAX_OFFSET),
+            selected = sampleSelected(outline = FULL_IMAGE),
+        )
+        val bitmap = windowBitmap()
+        val preview = boundsOf(CameraTestTags.PREVIEW)
+        val poses = boundsOf(CameraTestTags.POSES)
+        val flash = boundsOf(CameraTestTags.FLASH)
+        val inTopBar = lumaAt(bitmap, (poses.right + flash.left) / 2, poses.center.y)
+        val inFrame = lumaAt(bitmap, (poses.right + flash.left) / 2, preview.top + 8f * composeRule.density.density)
+        assertTrue("outline is drawn in the frame: $inFrame", inFrame > 200)
+        assertTrue("outline is drawn over the top bar: $inTopBar", inTopBar < 60)
+    }
+
+    @Test
+    fun outline_largestAndMovedDown_notDrawnOverPickerOrCaptureRow() {
+        setScreen(
+            overlay = OverlayState(settings = OverlaySettings(scale = MAX_SCALE), offsetY = MAX_OFFSET),
+            selected = sampleSelected(outline = FULL_IMAGE),
+        )
+        val bitmap = windowBitmap()
+        val density = composeRule.density.density
+        val preview = boundsOf(CameraTestTags.PREVIEW)
+        val chips = boundsOf(CameraTestTags.CHIPS)
+        val strip = boundsOf(CameraTestTags.STRIP)
+        val lastPhoto = boundsOf(CameraTestTags.LAST_PHOTO)
+        val shutter = boundsOf(CameraTestTags.SHUTTER)
+        val x = preview.center.x - 60f * density
+        val betweenRows = lumaAt(bitmap, x, (chips.bottom + strip.top) / 2)
+        val captureRow = lumaAt(bitmap, (lastPhoto.right + shutter.left) / 2, shutter.center.y)
+        val inFrame = lumaAt(bitmap, x, preview.bottom - 8f * density)
+        assertTrue("outline is drawn in the frame: $inFrame", inFrame > 200)
+        assertTrue("outline is drawn between chips and strip: $betweenRows", betweenRows < 60)
+        assertTrue("outline is drawn over the capture row: $captureRow", captureRow < 60)
+    }
+
+    private fun boundsOf(tag: String) = composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInWindow
+
+    private fun windowBitmap(): Bitmap {
+        composeRule.waitForIdle()
+        val root = (composeRule as AndroidComposeTestRule<*, *>).activity.window.decorView
+        return Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888).also { root.draw(Canvas(it)) }
+    }
+
+    private fun lumaAt(bitmap: Bitmap, x: Float, y: Float): Int =
+        (Color(bitmap.getPixel(x.toInt(), y.toInt())).let { (it.red + it.green + it.blue) / 3f } * 255).toInt()
+
     private fun lumaAt(tag: String, fraction: Float): Int {
         composeRule.waitForIdle()
         val root = (composeRule as AndroidComposeTestRule<*, *>).activity.window.decorView
@@ -545,6 +632,13 @@ class CameraScreenOverlayTest {
         val HALF_IMAGE = PoseImage.Ready(
             ImageBitmap(100, 200).also { image ->
                 ComposeCanvas(image).drawRect(0f, 0f, 50f, 200f, Paint().apply { color = Color.White })
+            },
+        )
+
+        /** All white, 1:2 like an outline. */
+        val FULL_IMAGE = PoseImage.Ready(
+            ImageBitmap(100, 200).also { image ->
+                ComposeCanvas(image).drawRect(0f, 0f, 100f, 200f, Paint().apply { color = Color.White })
             },
         )
 

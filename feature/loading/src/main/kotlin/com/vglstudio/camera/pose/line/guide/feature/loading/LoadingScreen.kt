@@ -78,6 +78,7 @@ internal fun LoadingScreen(
         LoadingUiState.Finished -> 1f
     }
     val failed = uiState is LoadingUiState.Failed
+    val cause = (uiState as? LoadingUiState.Failed)?.cause ?: LoadingFailure.OFFLINE
     Surface(
         modifier = modifier.fillMaxSize().testTag(LoadingTestTags.SCREEN),
         color = MaterialTheme.colorScheme.background,
@@ -101,6 +102,7 @@ internal fun LoadingScreen(
                     LoadingContent(
                         progress = progress,
                         failed = failed,
+                        cause = cause,
                         appName = appName,
                         onRetry = onRetry,
                         modifier = Modifier
@@ -121,6 +123,7 @@ internal fun LoadingScreen(
 private fun LoadingContent(
     progress: Float,
     failed: Boolean,
+    cause: LoadingFailure,
     appName: String,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -171,7 +174,7 @@ private fun LoadingContent(
                 trackColor = colors.errorContainer,
             )
             Spacer(modifier = Modifier.height(Spacing.lg))
-            LoadingError(onRetry = onRetry)
+            LoadingError(cause = cause, onRetry = onRetry)
         } else {
             ProgressBar(progress = { progress }, modifier = Modifier.testTag(LoadingTestTags.PROGRESS))
             Spacer(modifier = Modifier.height(Spacing.lg))
@@ -185,9 +188,12 @@ private fun LoadingContent(
     }
 }
 
-/** Error block below the progress bar: title with an alert icon, guidance, and the retry button. */
+/**
+ * Error block below the progress bar: title with an alert icon, guidance, and the retry button. The guidance
+ * depends on [cause]: check the network, or try again later when the device is online (plan T-057).
+ */
 @Composable
-private fun LoadingError(onRetry: () -> Unit) {
+private fun LoadingError(cause: LoadingFailure, onRetry: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = Modifier.fillMaxWidth().testTag(LoadingTestTags.ERROR),
@@ -209,7 +215,9 @@ private fun LoadingError(onRetry: () -> Unit) {
         }
         Spacer(modifier = Modifier.height(Spacing.sm))
         Text(
-            text = stringResource(R.string.loading_error),
+            text = stringResource(
+                if (cause == LoadingFailure.SERVER) R.string.loading_error_server else R.string.loading_error,
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -286,5 +294,17 @@ private fun LoadingScreenPreview() {
 private fun LoadingScreenFailedPreview() {
     AppTheme {
         LoadingScreen(uiState = LoadingUiState.Failed(0.68f), appName = PREVIEW_APP_NAME, onRetry = {})
+    }
+}
+
+@Preview
+@Composable
+private fun LoadingScreenFailedServerPreview() {
+    AppTheme {
+        LoadingScreen(
+            uiState = LoadingUiState.Failed(0.68f, LoadingFailure.SERVER),
+            appName = PREVIEW_APP_NAME,
+            onRetry = {},
+        )
     }
 }

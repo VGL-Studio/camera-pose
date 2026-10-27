@@ -42,7 +42,8 @@ private val BadgeOffset = 7.dp
 /**
  * Pose thumbnail of the strip (sticker.md, section 4): 64 dp square, [image] cropped to the rounded corners. Selected:
  * a 3 dp yellow border and a [SelectedBadge] outside the top right corner. No image yet: only the fill. [failed]: a
- * retry icon in the middle. Screen readers hear [contentDescription] and whether it is selected.
+ * retry icon in the middle. Screen readers hear [contentDescription] and whether it is selected. [enabled] false: not
+ * selectable, read as disabled; the caller fades it (plan T-061).
  */
 @Composable
 fun PoseThumb(
@@ -52,6 +53,7 @@ fun PoseThumb(
     contentDescription: String,
     modifier: Modifier = Modifier,
     failed: Boolean = false,
+    enabled: Boolean = true,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Radius.thumb)
@@ -62,6 +64,7 @@ fun PoseThumb(
             .semantics { this.contentDescription = contentDescription }
             .selectable(
                 selected = selected,
+                enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null,
                 role = Role.Button,

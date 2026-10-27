@@ -12,6 +12,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.SurfaceRequest
+import androidx.camera.core.UseCase
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
@@ -50,7 +51,9 @@ import kotlinx.coroutines.withContext
 /**
  * The camera through CameraX: a 3:4 preview and photo capture. Holds its own lifecycle, so the view model never holds
  * the lifecycle of the screen; the screen opens and closes it through the view model. With the pose matching flag on
- * it binds a third use case, an analysis of small frames for ML Kit (plan T-017). A thin layer over the hardware,
+ * it binds a third use case, an analysis of small frames for ML Kit (plan T-017). It unbinds only the use cases it bound
+ * itself, never the whole process-wide provider: two camera screens can live at once during a screen change, and the
+ * stale one must not unbind the camera of the new one (FB-20261026-01, plan T-058). A thin layer over the hardware,
  * checked on devices (plan T-013, section 4); the decisions live in CameraViewModel.
  */
 @ViewModelScoped
@@ -72,10 +75,12 @@ internal class CameraXController @Inject constructor(
     private var provider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private var imageCapture: ImageCapture? = null
+    private var boundUseCases: List<UseCase> = emptyList()
     private var analysisExecutor: ExecutorService? = null
     private var shutterSound: MediaActionSound? = null
 
-    // The app is locked to portrait, so the photo rotation follows how the phone is held.
+    // The photo rotation follows how the device is held, from the sensor's angle to the device's natural orientation.
+    // Right for every orientation of the screen: portrait on a phone, any on a large screen (plan T-056).
     private val orientationListener = object : OrientationEventListener(context) {
         override fun onOrientationChanged(orientation: Int) {
             if (orientation == ORIENTATION_UNKNOWN) return
@@ -105,7 +110,7 @@ internal class CameraXController @Inject constructor(
                 if (lens == Lens.BACK) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
             val analysis = if (featureFlags.enabled(FeatureFlag.POSE_MATCHING).first()) buildAnalysis() else null
             poseAnalyzer.lens = lens
-            provider.unbindAll()
+            unbindOwn(provider)
             registry.currentState = Lifecycle.State.CREATED
             val bound = bindUseCases(provider, selector, preview, capture, analysis)
             registry.currentState = Lifecycle.State.RESUMED
@@ -154,14 +159,22 @@ internal class CameraXController @Inject constructor(
         capture: ImageCapture,
         analysis: ImageAnalysis?,
     ): Camera {
-        if (analysis == null) return provider.bindToLifecycle(this, selector, preview, capture)
-        return try {
-            provider.bindToLifecycle(this, selector, preview, capture, analysis)
-        } catch (e: IllegalArgumentException) {
-            logger.warn(LOG_TAG, "Pose analysis not supported on this camera", e)
-            provider.unbindAll()
-            provider.bindToLifecycle(this, selector, preview, capture)
+        if (analysis != null) {
+            try {
+                return provider.bindToLifecycle(this, selector, preview, capture, analysis)
+                    .also { boundUseCases = listOf(preview, capture, analysis) }
+            } catch (e: IllegalArgumentException) {
+                logger.warn(LOG_TAG, "Pose analysis not supported on this camera", e)
+                provider.unbind(preview, capture, analysis)
+            }
         }
+        return provider.bindToLifecycle(this, selector, preview, capture)
+            .also { boundUseCases = listOf(preview, capture) }
+    }
+
+    private fun unbindOwn(provider: ProcessCameraProvider?) {
+        if (boundUseCases.isNotEmpty()) provider?.unbind(*boundUseCases.toTypedArray())
+        boundUseCases = emptyList()
     }
 
     override fun setFlash(mode: FlashMode) {
@@ -207,8 +220,10 @@ internal class CameraXController @Inject constructor(
     }
 
     override fun close() {
+        // Already closed (the screen stopped before it was destroyed): nothing to unbind, no second null frame.
+        if (boundUseCases.isEmpty() && camera == null) return
         orientationListener.disable()
-        provider?.unbindAll()
+        unbindOwn(provider)
         if (registry.currentState.isAtLeast(Lifecycle.State.CREATED)) registry.currentState = Lifecycle.State.CREATED
         camera = null
         imageCapture = null
@@ -224,7 +239,6 @@ internal class CameraXController @Inject constructor(
         if (registry.currentState.isAtLeast(Lifecycle.State.CREATED)) registry.currentState = Lifecycle.State.DESTROYED
         shutterSound?.release()
         shutterSound = null
-        poseAnalyzer.release()
         analysisExecutor?.shutdown()
         analysisExecutor = null
     }

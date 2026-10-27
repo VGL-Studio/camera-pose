@@ -66,7 +66,7 @@ internal fun CameraUnfoldedLayout(
     onFlipClick: () -> Unit,
     onZoomSelect: (Float) -> Unit,
     onShutterClick: () -> Unit,
-    onCancelCountdown: () -> Unit,
+    onCancelCountdown: (CountdownCancelReason) -> Unit,
     onRetry: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenPoses: (() -> Unit)?,
@@ -82,6 +82,7 @@ internal fun CameraUnfoldedLayout(
 ) {
     val appColors = MaterialTheme.appColors
     val ready = uiState as? CameraUiState.Ready
+    val counting = ready?.countdown != null
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -134,9 +135,11 @@ internal fun CameraUnfoldedLayout(
                                     toolsOffset = if (tools != null) DpOffset(placement.x.dp, placement.y.dp) else null,
                                     onStepBottomChange = { stepBottom = it },
                                     matchState = matchState,
+                                    locked = counting,
                                 )
                             },
                             zoomVisible = false,
+                            onCountdownTap = { onCancelCountdown(CountdownCancelReason.PREVIEW) },
                         )
                     }
                 }
@@ -145,7 +148,7 @@ internal fun CameraUnfoldedLayout(
                     frameHeight = frameHeight,
                     onZoomSelect = onZoomSelect,
                     onShutterClick = onShutterClick,
-                    onCancelCountdown = onCancelCountdown,
+                    onCancelCountdown = { onCancelCountdown(CountdownCancelReason.BUTTON) },
                     onFlipClick = onFlipClick,
                     lastPhoto = lastPhoto,
                     onLastPhotoClick = onLastPhotoClick,
@@ -155,7 +158,13 @@ internal fun CameraUnfoldedLayout(
             }
         }
         // Chip row and pose strip, across the screen, right under the frame.
-        PosePicker(state = poseState, actions = poseActions, chipsState = chipsState, stripState = stripState)
+        PosePicker(
+            state = poseState,
+            actions = poseActions,
+            chipsState = chipsState,
+            stripState = stripState,
+            enabled = !counting,
+        )
         Spacer(modifier = Modifier.height(BOTTOM_MARGIN))
     }
 }

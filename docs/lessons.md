@@ -716,8 +716,8 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `docs/auto-run.md` bước 3 bảo đẩy nhánh task ngay sau mỗi commit; bước 9 bảo trước khi đẩy commit đầu tiên của task sau phải có kết quả `main-guard` của lần merge trước. Phiên làm theo bước 3 và đẩy commit test của task sau khi `main-guard` còn chạy. Không gây hại vì `main-guard` đều xanh, nhưng nếu đỏ thì task sau đã bắt đầu trên nhánh chính hỏng.
 - **Bằng chứng:** commit test `d185cce` của T-052 đẩy lúc 17:57, `main-guard` sau T-053 xanh lúc 17:58 (lần chạy 40218650987); commit test `846cb47` của T-050 đẩy lúc 18:22, `main-guard` sau T-052 xanh lúc 18:23 (lần chạy 40220611120). T-051 thì phiên chờ `main-guard` (19:00) rồi mới đẩy, test viết sẵn cục bộ từ 18:53.
 - **Đề xuất sửa:** `docs/auto-run.md` bước 3: ghi ngoại lệ "commit đầu tiên của task sau chỉ đẩy khi đã có kết quả `main-guard` của lần merge trước (bước 9); trong lúc chờ, commit cục bộ". Có thể thêm vào `scripts/save-branch.sh` một kiểm tra: nhánh chính có `main-guard` đang chạy thì in cảnh báo.
-- **Áp dụng:** `docs/auto-run.md` bước 3: ngoại lệ đẩy commit đầu của task sau chỉ khi có kết quả `main-guard` (PR này). Không thêm cảnh báo vào `scripts/save-branch.sh`: quy tắc ở bước 3 và bước 9 đủ, phiên T-051 đã làm đúng khi chờ. Tuấn nhận ngày 2026-10-25.
-- **Kiểm chứng:**
+- **Áp dụng:** `docs/auto-run.md` bước 3: ngoại lệ đẩy commit đầu của task sau chỉ khi có kết quả `main-guard` (PR này). Không thêm cảnh báo vào `scripts/save-branch.sh`: quy tắc ở bước 3 và bước 9 đủ, phiên T-051 đã làm đúng khi chờ. Tuấn nhận ngày 2026-10-25. Dự án mẫu: VGL-Studio/app-project-template#188.
+- **Kiểm chứng:** RUN-20261026-02: ba lần (T-055, T-057, T-056) commit test của task sau được giữ cục bộ tới khi `main-guard` của lần merge trước xanh, rồi mới đẩy; không CI nào phải chạy lại vì commit mới của nhánh chính. Có hiệu quả.
 
 ### L-077: từ dịch dùng lại từ feature khác đổi nghĩa khi đi cùng con số
 
@@ -725,8 +725,8 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** plan T-050 bảo dịch "dùng lại cách gọi đã có trong settings và onboarding". Phiên lấy từ "transparency" của onboarding ("Atur transparansi... garis pose") cho nhãn con trượt `camera_adjust_opacity` ở `hi`, `id`, `th`. Ở onboarding câu không có số nên đúng; trên con trượt có phần trăm thì "Transparansi 100%" đọc thành "trong suốt hoàn toàn", ngược với nét viền đậm nhất. Test chữ của plan (đủ bản dịch, khác tiếng Anh, giữ tham số) không bắt được lỗi nghĩa này; chỉ rà soát độc lập thấy.
 - **Bằng chứng:** PR #145, rà soát độc lập lần 1 (điểm nên sửa); `OverlayGeometry.kt` (mặc định 1.0, khoảng 0.2 đến 1.0); test `CameraStringsTest.opacityLabel_isNotTransparency` (commit `f374916`) và phần sửa `b47f863`.
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: plan dịch chữ liệt kê các chuỗi đi cùng con số hay phần trăm, ghi giá trị lớn nhất nghĩa là gì, và có một test chặn từ ngược nghĩa khi có rủi ro; lời giao rà soát độc lập của task dịch nhắc kiểm nghĩa của nhãn đi cùng số.
-- **Áp dụng:** `docs/CLAUDE.md` mục Khi viết plan (chuỗi đi cùng con số, test chặn từ ngược nghĩa); `docs/auto-run.md` bước 6, nội dung rà soát của task dịch chữ (PR này). Tuấn nhận ngày 2026-10-25.
-- **Kiểm chứng:**
+- **Áp dụng:** `docs/CLAUDE.md` mục Khi viết plan (chuỗi đi cùng con số, test chặn từ ngược nghĩa); `docs/auto-run.md` bước 6, nội dung rà soát của task dịch chữ (PR này). Tuấn nhận ngày 2026-10-25. Dự án mẫu: VGL-Studio/app-project-template#188.
+- **Kiểm chứng:** RUN-20261026-02: T-055 thêm test chặn từ ngược nghĩa theo gốc từ; rà soát độc lập T-055, T-057 kiểm nghĩa từng nhãn và thấy hai điểm nhỏ (gốc tiếng Hindi chỉ bắt danh từ, tiếng Thái "ในอีกสักครู่"). Có hiệu quả.
 
 ### L-078: plan chép code từ dự án mẫu, nhưng phiên cloud chỉ đọc được repo của app
 
@@ -734,7 +734,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** plan T-053 bảo chép ba khối của `scripts/token-usage.py` từ dự án mẫu (commit `a76b3cd`) và có điều kiện dừng riêng khi bản của mẫu khác bản đã so. Quyền GitHub của phiên `claude --cloud` chỉ gồm repo `VGL-Studio/camera-pose`, nên phiên không đọc được repo mẫu; phiên viết code theo mô tả ở mục 3.1 của plan, không so được với bản mẫu.
 - **Bằng chứng:** phạm vi GitHub của phiên RUN-20261026-01 chỉ có `vgl-studio/camera-pose`; nhật ký plan T-053, dòng Lệch so với plan. Code vẫn đúng nhờ mục 3.1 mô tả từng khối, và rà soát độc lập không thấy lệch.
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: plan chép code từ dự án mẫu dán nguyên đoạn code (hay `diff`) vào plan, hoặc ghi rõ phiên phải có quyền đọc repo mẫu; `docs/ops/from-app.md` ghi giới hạn này.
-- **Áp dụng:** `docs/CLAUDE.md` mục Khi viết plan (dán nguyên code của mẫu vào mục 3.1); `docs/ops/from-app.md` mục 1 (PR này). Tuấn nhận ngày 2026-10-25.
+- **Áp dụng:** `docs/CLAUDE.md` mục Khi viết plan (dán nguyên code của mẫu vào mục 3.1); `docs/ops/from-app.md` mục 1 (PR này). Tuấn nhận ngày 2026-10-25. Dự án mẫu: VGL-Studio/app-project-template#188.
 - **Kiểm chứng:**
 
 ### L-079: dòng `Task: T-NNN` trong lời giao soạn plan làm số token soạn plan thành mẫu ước tính của task
@@ -743,7 +743,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** T-053 thêm dòng `Task: T-NNN` vào lời giao cho phiên con ở cả bước soạn plan cuối phiên (`docs/auto-run.md` mục 4, bước 5), đúng như plan. Khi đó `scripts/token-usage.py report --csv` ghi một dòng `(RUN soạn plan, T-NNN, cỡ)` chỉ có token soạn plan, và `estimate` lấy dòng đó làm mẫu cho trung vị, kéo số gợi ý `token_estimate` xuống. Phần soạn plan của phiên chính chạy trên nhánh `claude/plan-T-NNN-...`, không khớp `TASK_BRANCH`, nên lại vào dòng Chung: cách gán không nhất quán. Rà soát độc lập ghi mức nên sửa; phiên không sửa vì mâu thuẫn với chữ của plan đã duyệt.
 - **Bằng chứng:** PR #143, rà soát độc lập (điểm nên sửa); `scripts/token-usage.py`, hàm `estimate()` lấy mọi dòng có `task` và `size`.
 - **Đề xuất sửa:** bỏ dòng `Task:` khỏi lời giao soạn plan ở `docs/auto-run.md` mục 4, bước 5, hoặc dùng dạng riêng `Plan: T-NNN` mà script tính vào dòng Chung (hay một cột riêng), có test.
-- **Áp dụng:** `docs/auto-run.md` mục 4, bước 5: lời giao soạn plan không có dòng `Task:`, token soạn plan vào dòng Chung; `docs/ops/token-usage.md` (PR này). Không đổi `scripts/token-usage.py`. Tuấn nhận ngày 2026-10-25.
+- **Áp dụng:** `docs/auto-run.md` mục 4, bước 5: lời giao soạn plan không có dòng `Task:`, token soạn plan vào dòng Chung; `docs/ops/token-usage.md` (PR này). Không đổi `scripts/token-usage.py`. Tuấn nhận ngày 2026-10-25. Dự án mẫu: VGL-Studio/app-project-template#188.
 - **Kiểm chứng:**
 
 ### L-080: sau task cuối, thư mục chính vẫn đứng trên nhánh task, token của việc cuối phiên tính vào task đó
@@ -752,5 +752,50 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `scripts/token-usage.py` gán request của phiên chính theo `gitBranch` của thư mục chính. Sau khi T-051 merge, phiên làm việc cuối phiên (chờ `main-guard`, `device-session`, staging, viết báo cáo trong worktree `../report`) mà thư mục chính vẫn đứng trên `claude/T-051-dich-chu-thu-vien`, nên phần đó tính vào T-051 thay vì dòng Chung.
 - **Bằng chứng:** RUN-20261026-01, mục Token: T-051 15.0M lúc 19:36, 27.0M lúc 20:07; phiên chuyển thư mục chính sang nhánh mặc định lúc 20:07. CSV giữ số lúc 19:36 cho T-051.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 4, bước 1: trước việc cuối phiên, chuyển thư mục chính sang nhánh báo cáo hay nhánh mặc định của phiên (`git checkout`), không để trên nhánh task đã merge. Có thể để `scripts/token-usage.py` coi request sau giờ merge của task là phần Chung.
-- **Áp dụng:** `docs/auto-run.md` mục 4, bước 0: `git checkout --detach origin/main` trước việc cuối phiên; `docs/ops/token-usage.md` (PR này). Không đổi `scripts/token-usage.py`. Tuấn nhận ngày 2026-10-25.
+- **Áp dụng:** `docs/auto-run.md` mục 4, bước 0: `git checkout --detach origin/main` trước việc cuối phiên; `docs/ops/token-usage.md` (PR này). Không đổi `scripts/token-usage.py`. Tuấn nhận ngày 2026-10-25. Dự án mẫu: VGL-Studio/app-project-template#188.
+- **Kiểm chứng:** RUN-20261026-02: thư mục chính `git checkout --detach origin/main` ngay sau merge T-056 (05:43); T-056 trong bảng token chỉ có 9.0M, việc cuối phiên vào dòng Chung. Có hiệu quả.
+
+### L-081: `token_estimate` nâng tay gần gấp đôi số gợi ý, task thật chỉ dùng 0,4 đến 0,7 lần
+
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261026-02.
+- **Chuyện gì:** bốn plan của RUN-20261026-02 nâng `token_estimate` lên gần gấp đôi số của `scripts/token-usage.py estimate`, theo hai task cỡ M của RUN-20261026-01 (15.0M, 19.7M). Thực tế cả bốn task dùng 0,4 đến 0,7 lần ước tính; T-057 lệch 2,5 lần.
+- **Bằng chứng:** RUN-20261026-02, mục Token: T-054 5.5M/10M, T-055 7.1M/10M (đếm đủ: phiên chính làm trên nhánh task, rà soát là phiên con có `Task:`), T-057 6.0M/15M, T-056 9.0M/18M (thiếu phần phiên chính, L-083).
+- **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan, dòng `token_estimate`: lấy số của `scripts/token-usage.py estimate` (nay có mẫu đã gồm phiên con), chỉ chỉnh khi task khác thường và ghi lý do; không nâng theo một hai task của một phiên.
+- **Áp dụng:** `docs/CLAUDE.md`, mục Khi viết plan, dòng `token_estimate`: không nâng số gợi ý theo một hai task của một phiên (PR này). Tuấn nhận ngày 2026-10-26.
+- **Kiểm chứng:**
+
+### L-082: điểm nên sửa chỉ đòi thêm test cho code đã đúng, ADR-1003 không nói cách xử lý
+
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261026-02 (T-054, rà soát độc lập).
+- **Chuyện gì:** rà soát độc lập T-054 có một điểm nên sửa: nhánh `if len(starts) < attempt` của `killed_by` không có test riêng. ADR-1003 bắt sửa điểm nên sửa khi có test viết trước thất bại đúng lý do; test cho code đã đúng không thể thất bại trước, nên phiên phải đoán. Phiên chọn không sửa và ghi vào báo cáo.
+- **Bằng chứng:** nhật ký plan T-054 (RUN-20261026-02); PR #158, mục Rà soát độc lập.
+- **Đề xuất sửa:** `docs/auto-run.md` bước 6, dòng Nên sửa: điểm chỉ thêm test cho hành vi đã đúng thì thêm khi test nằm trong file của mục 3.2 và thất bại khi tạm bỏ dòng code đó (đột biến, như đối chứng của L-035), ghi kết quả đột biến vào nhật ký; không thì ghi vào báo cáo.
+- **Áp dụng:** `docs/auto-run.md` bước 6, dòng Nên sửa: điểm chỉ đòi thêm test cho hành vi đã đúng thì thêm khi test nằm trong mục 3.2 và thất bại khi tạm bỏ dòng code đó (đột biến), không thì ghi vào báo cáo (PR này). Tuấn nhận ngày 2026-10-26.
+- **Kiểm chứng:**
+
+### L-083: phiên con giữ nhánh task trong worktree, request của phiên chính cho task đó tính vào dòng Chung
+
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261026-02 (T-057, T-056).
+- **Chuyện gì:** khi giao bước 3 đến 5 cho phiên con trong worktree của nhánh task (auto-run.md, mục Giao bước 3 đến 5), thư mục chính không mở được cùng nhánh đó nên đứng ở `origin/main` tách rời. `scripts/token-usage.py` gán request của phiên chính theo nhánh của thư mục chính, nên phần phiên chính làm cho task (đọc plan, mở PR, chờ CI, merge, nhật ký) tính vào dòng Chung.
+- **Bằng chứng:** RUN-20261026-02, mục Token: dòng T-056 có đúng 66 request, bằng 55 của phiên con bước 3 đến 5 cộng 11 của phiên rà soát; T-057 50 = 39 + 11; Chung 22.4M.
+- **Đề xuất sửa:** `scripts/token-usage.py`: request của phiên chính trên HEAD tách rời tính vào task có nhánh được tạo gần nhất trước đó mà chưa merge (theo giờ tạo nhánh và giờ merge), hoặc phiên chính ghi task đang làm vào một tệp trạng thái mà script đọc; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên ghi rõ dòng nào thiếu phần phiên chính.
+- **Áp dụng:** làm ở ticket T-063 (sửa `scripts/token-usage.py` có test, phiên sau). Trong lúc chờ, báo cáo phiên ghi rõ dòng nào thiếu phần phiên chính. Tuấn nhận ngày 2026-10-26.
+- **Kiểm chứng:**
+
+### L-084: phiên con dừng giữa chừng vì lỗi API, phiên `claude --cloud` không tự tiếp tục
+
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261026-03 (T-059).
+- **Chuyện gì:** phiên con làm bước 3 của T-059 dừng vì lỗi API `oauth_org_not_allowed` (HTTP 403: tổ chức tắt quyền dùng gói Claude cho Claude Code), tiến trình phiên chính khởi động lại. Phiên mở bằng `claude --cloud` nên không tự tiếp tục (L-008); người nhắn "Tiếp tục" sau khoảng 2 giờ 30 phút. Phần test phiên con đã viết còn nguyên trong worktree (chưa commit, chưa đẩy); phiên chính chạy test, thấy đúng mục 4 của plan, commit và làm tiếp. Tài liệu chỉ nói tới hết hạn mức, không nói phiên con chết giữa chừng thì làm gì.
+- **Bằng chứng:** thông báo lỗi của phiên con (request id `req_011CgQhvfc2tZWzDZDAjMrn6`); commit cuối trước khi dừng 10:37 (nhánh báo cáo 0f3f6b8), tiếp tục 13:10; commit test T-059 94a69fe lúc 13:12; RUN-20261026-03, mục Tiếp tục.
+- **Đề xuất sửa:** `docs/auto-run.md`, mục Giao bước 3 đến 5: phiên con kết thúc vì lỗi API (không có báo cáo) thì phiên chính đọc `git status`, `git log` của worktree, chạy test của phần đã viết, đối chiếu mục 4 của plan, rồi tự làm tiếp hoặc giao phiên con mới tiếp từ phần đã có; không tính là task dừng. Thêm dòng `oauth_org_not_allowed` vào bảng tra lỗi (hạ tầng). Phiên qua đêm ưu tiên routine (L-008).
+- **Áp dụng:** `docs/auto-run.md`, mục Giao bước 3 đến 5: phiên con kết thúc mà không có báo cáo thì phiên chính tiếp từ phần đã có trong worktree, không tính là task dừng; bảng tra lỗi thêm PB-11 (`oauth_org_not_allowed`, loại `cho`), kèm `scripts/tests/playbook/PB-11.log` và test (PR này). Lỗi ở cấp tổ chức do Tuấn hỏi người quản trị. Tuấn nhận ngày 2026-10-26.
+- **Kiểm chứng:**
+
+### L-085: thiết kế xuất lại mà không sinh lại `design/review/`, task khác thấy ảnh so sánh đổi ngoài mục 3.2
+
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261026-03 (T-060).
+- **Chuyện gì:** `scripts/design-compare.sh camera` ở bước 5 của T-060 đổi `CameraScreen_countdown_dark_compare.png` và `summary.md` (6.0% thành 9.6%), không do T-060: PR thiết kế #167 xuất lại ảnh đếm ngược mà không sinh lại `design/review/`. Hai file nằm ngoài mục 3.2; tài liệu không nói làm gì, phiên phải đoán: không commit, ghi vào mô tả PR. T-061 sau đó sinh lại đúng theo plan.
+- **Bằng chứng:** PR #171, mục Tóm tắt; nhật ký plan T-060, dòng Lệch so với plan.
+- **Đề xuất sửa:** `docs/ops/design-workflow.md`: PR xuất lại ảnh thiết kế chạy `scripts/design-compare.sh <feature>` và commit `design/review/` cùng PR. `docs/auto-run.md` bước 5: ảnh so sánh đổi mà ảnh chuẩn của task không đổi và `design/review/` không có trong mục 3.2 thì không commit, ghi vào mô tả PR.
+- **Áp dụng:** `docs/ops/design-workflow.md`, mục Xuất từ Figma: PR xuất lại ảnh chạy `scripts/design-compare.sh` và commit `design/review/` cùng PR; `docs/auto-run.md` bước 5: ảnh so sánh đổi không do task thì không commit, ghi vào mô tả PR (PR này). Tuấn nhận ngày 2026-10-26.
 - **Kiểm chứng:**

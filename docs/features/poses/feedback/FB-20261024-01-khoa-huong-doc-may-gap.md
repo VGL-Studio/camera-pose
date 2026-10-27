@@ -7,7 +7,7 @@ build: 5443ecd (bản staging của RUN-20261024-02, chạy trên emulator CI)
 feature: poses
 ticket: T-024
 severity: nang
-status: new
+status: planned
 created: 2026-10-24
 ---
 
@@ -52,11 +52,7 @@ KB-7 của `features/poses/spec.md`: khi máy gập mở ra, thư viện hiện 
 
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
-- **Loại:** chưa phân loại. Đề xuất của AI: lỗi so với spec (KB-7) trên Android 14, 15. Cần kiểm trên một máy gập thật chạy Android 14 hay 15 trước khi kết luận.
-- **Xử lý:** chủ feature quyết. Có hai hướng, đều cần người phụ trách sản phẩm xác nhận:
-  - bỏ khóa hướng dọc trên màn lớn;
-  - chấp nhận đóng khung trên Android 14, 15 và ghi rõ trong spec.
-
-  Kịch bản emulator T-024 hiện không kiểm số cột (plan T-048).
-- **Lý do:**
-- **Liên kết:** ticket T-024 (bố cục máy gập), plan T-048 (mục 8, câu 2)
+- **Loại:** lỗi so với spec (poses KB-7) trên Android 12L đến 15 khi màn lớn nằm ngang. Bằng chứng trên emulator CI của phản hồi này là do kích thước bị cắt (FB-20261025-01, T-049); trên máy thật, màn trong nằm ngang của máy gập và máy tính bảng vẫn bị đóng khung khi app khóa dọc (tài liệu Android về chế độ tương thích).
+- **Xử lý:** Tuấn chọn sửa ở T-056 (2026-10-26): điện thoại vẫn khóa dọc, màn có cạnh ngắn từ 600 dp theo hướng của máy. Spec camera đổi theo (mục 2, KB-11, câu 7, câu 15), chờ người phụ trách sản phẩm xác nhận.
+- **Lý do:** Android 16 đã bỏ qua khóa dọc trên màn từ 600 dp, nên app vốn phải chạy được ở màn lớn nằm ngang; T-056 cho Android 12L đến 15 cùng hành vi đó.
+- **Liên kết:** ticket T-024 (bố cục máy gập), plan T-048 (mục 8, câu 2), ticket và plan T-056

@@ -66,7 +66,7 @@ class CameraScreenTest {
                     onFlipClick = { calls += "flip" },
                     onZoomSelect = { calls += "zoom $it" },
                     onShutterClick = { calls += "shutter" },
-                    onCancelCountdown = { calls += "cancel" },
+                    onCancelCountdown = { calls += "cancel $it" },
                     onRetry = { calls += "retry" },
                     onOpenAppSettings = { calls += "appSettings" },
                     onOpenPoses = onOpenPoses,
@@ -222,7 +222,17 @@ class CameraScreenTest {
         setScreen(READY.copy(timer = TimerSetting.THREE, countdown = 3))
         composeRule.onNodeWithTag(CameraTestTags.COUNTDOWN, useUnmergedTree = true).assertTextEquals("3")
         composeRule.onNodeWithTag(CameraTestTags.SHUTTER).assert(hasDescription("Hủy đếm ngược")).performClick()
-        assertEquals(listOf("cancel"), calls)
+        assertEquals(listOf("cancel BUTTON"), calls)
+    }
+
+    // KB-6 (plan T-061): switching the camera stays possible while counting down; the view model stops the count.
+    @Test
+    fun countdown_flipCancelsThenFlips() {
+        setScreen(READY.copy(timer = TimerSetting.THREE, countdown = 3))
+        composeRule.waitForIdle()
+        calls.clear()
+        composeRule.onNodeWithTag(CameraTestTags.FLIP).assertIsEnabled().performClick()
+        assertEquals(listOf("flip"), calls)
     }
 
     @Test

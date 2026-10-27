@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -64,6 +65,19 @@ class LoadingStringsTest {
         }
     }
 
+    // The server guidance is shown while the device is online, so it must never ask to check the network (L-077).
+    @Test
+    fun serverGuidance_doesNotAskToCheckTheNetwork() {
+        NETWORK_WORDS.forEach { (tag, word) ->
+            val context = context(tag)
+            val network = context.getString(R.string.loading_error).lowercase(Locale.ROOT)
+            val server = context.getString(R.string.loading_error_server).lowercase(Locale.ROOT)
+            // Control: the word is the one the network guidance of that language uses.
+            assertTrue("$tag loading_error does not contain '$word': $network", word in network)
+            assertFalse("$tag loading_error_server asks to check the network: $server", word in server)
+        }
+    }
+
     private companion object {
         val ENGLISH = mapOf(
             R.string.loading_tagline to "Follow the outline, get a great shot.",
@@ -72,6 +86,8 @@ class LoadingStringsTest {
             R.string.loading_status_failed to "Progress stopped",
             R.string.loading_error_title to "Unable to load data",
             R.string.loading_error to "The connection was interrupted. Check your network and try again to continue.",
+            R.string.loading_error_server to
+                "Our server isn't responding right now. Please try again in a few minutes.",
             R.string.loading_retry to "Try again",
             R.string.loading_footer to "Your photos stay on your device",
         )
@@ -83,8 +99,20 @@ class LoadingStringsTest {
             R.string.loading_status_failed to "Tiến độ đã dừng",
             R.string.loading_error_title to "Không thể tải dữ liệu",
             R.string.loading_error to "Kết nối đang gián đoạn. Vui lòng kiểm tra mạng và thử lại để tiếp tục.",
+            R.string.loading_error_server to "Máy chủ chưa phản hồi. Vui lòng thử lại sau ít phút.",
             R.string.loading_retry to "Thử lại",
             R.string.loading_footer to "Ảnh chỉ lưu trên máy của bạn",
+        )
+
+        // The word for "network" in each release language, as used by loading_error.
+        val NETWORK_WORDS = mapOf(
+            "en" to "network",
+            "vi" to "mạng",
+            "hi" to "नेटवर्क",
+            "pt-BR" to "rede",
+            "es-419" to "red",
+            "id" to "jaringan",
+            "th" to "เครือข่าย",
         )
     }
 }

@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là bài học L-086 (docs/lessons.md, accepted)
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: M
 depends_on: [T-067]          # PB-13, plan-check.py --touches, ADR-1005/L8

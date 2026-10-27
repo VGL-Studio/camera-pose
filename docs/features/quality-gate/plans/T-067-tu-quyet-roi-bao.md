@@ -1,7 +1,7 @@
 ---
 ticket: T-067
 title: Phiên tự quyết các lệch nhỏ đã liệt kê, bỏ qua loại task mà môi trường không làm được, rồi báo người sau
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -513,3 +513,15 @@ Không có. Thay đổi là tài liệu, một dòng bảng tra lỗi, một t�
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261027-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-27 17:56 UTC, commit `96844d3` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-067-tu-quyet-roi-bao`, PR #195.
+- **Đã làm:** phiên chính tự làm (task cỡ S). Áp `diff` của mục 3.1 (`git apply --check` sạch trên `89dcdaa`, không khối nào dời chỗ), tách phần `scripts/tests/` vào commit test, phần còn lại vào commit code (L-025). ADR-1005 chép nguyên khối ở mục 3.1, `status: accepted` theo mục 9; `docs/foundation.md` sinh lại bằng `scripts/foundation.py` (`--check` khớp). L-086: nối `; T-067: ...` vào cuối dòng Áp dụng (dấu chấm cuối dòng cũ thành `;`), trạng thái không đổi.
+- **Test viết trước:** 18 test (commit `9d14759`): 11 thất bại đúng lý do (3 test PB-13 `got 'khong-co'`, "mỗi tệp log có dòng", "ít nhất một dòng `bo-qua-loai`" `got 'no'`, 6 test `--touches` `got '1'`), 7 đối chứng qua, đúng mục 4.1. Sau code: `scripts/tests/run.sh` 762 ok, "All script tests passed".
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú: dấu chấm cuối dòng Áp dụng của L-086 thành `;`; docstring `plan-check.py` ngắt dòng lạ (chép nguyên plan); mục 2 ghi "7 plan có hàng `.github/workflows/`", nay là 8 (T-028, T-030, T-034, T-038, T-041, T-062, T-065, T-068).
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA (1183 test JVM, 0 lỗi, 97 ảnh). `pr-check` lần chạy 40554495095: xanh ở vòng đầu. Tổng 1 vòng CI.
+- **Lệch so với plan:** không có. Ngoài mục 3.2: không có.
+- **Việc còn lại:** kiểm tra thủ công của mục 4 (người đọc tài liệu; ở phiên đầu tiên gặp PB-13, báo cáo có dòng ADR-1005/L8). Đề xuất về dự án mẫu (mục 3.1, ghi chú) khi người mở issue `from-app`. `merge-if-green.sh` không xóa được nhánh `claude/T-067-tu-quyet-roi-bao` (L-092): người xóa tay.
+- **Cần người xem:** ba ghi chú của rà soát ở trên.

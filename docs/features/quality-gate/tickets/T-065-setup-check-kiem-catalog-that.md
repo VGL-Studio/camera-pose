@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là hai sự cố catalog ngày 2026-10-26 và 2026-10-27 (plan T-062, mục 4.1 và câu hỏi 4; rà soát PR #179)
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: M
 depends_on: []

@@ -1,7 +1,7 @@
 ---
 ticket: T-062
 title: Emulator của `device-session` có camera sau giả, để kịch bản camera chạy được trên CI
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -159,3 +159,15 @@ Nơi khác đọc `device-session.yml` (`grep -rn "device-session" scripts/ .git
 - **Lệnh bị từ chối:** `scripts/save-branch.sh claude/T-062-camera-gia` (05:27 UTC); GitHub trả `! [remote rejected] claude/T-062-camera-gia -> claude/T-062-camera-gia (refusing to allow an OAuth App to create or update workflow `.github/workflows/device-session.yml` without `workflow` scope)`. Token mà phiên `claude --cloud` dùng để đẩy không có quyền `workflow`, nên mọi commit sửa `.github/workflows/` bị từ chối. Phiên không đẩy lại dưới dạng khác (không qua API, không đổi tên nhánh).
 - **Việc còn lại:** người lấy lại nhánh từ bundle và đẩy bằng tài khoản có quyền `workflow` trước khi máy cloud bị thu hồi (lệnh ở báo cáo phiên, mục Nhánh chưa đẩy), hoặc chạy lại task với cùng phiên bản plan trong một phiên đẩy được file workflow (routine, hay `claude --cloud` sau khi cấp quyền `workflow` cho GitHub App). Phần đổi chỉ 4 file, làm lại nhanh theo mục 3.1.
 - **Cần người xem:** quyền `workflow` của token GitHub mà phiên `claude --cloud` dùng (bài học mới trong báo cáo phiên).
+
+### RUN-20261027-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-27 19:47 UTC, commit `890c4ff` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-062-camera-gia` (làm lại từ nhánh chính `e311e48`, đẩy tiến từ `af437fb` của lần trước; bundle cũ đã mất cùng máy cloud), PR #199.
+- **Đã làm:** đúng mục 3.1 như lần trước. Thêm, theo danh sách chạy (T-067 đã merge): ADR-1005/L1 `DEVICE_SCENARIOS_BUDGET` 1300 thành 1500 ở `scripts/device-scenario.py` (dòng 65, 508), `scripts/device-session.sh` (dòng 32, 276), `docs/ops/test-sessions.md` (đoạn Hạn chót); tổng theo công thức 990 + 6 x 80 = 1470, làm tròn lên 1500. ADR-1005/L2: `T-064-mot-camera.txt` dòng 9 `need` thành `wait` (bằng chứng: lần chạy thử 40366043473, 40366063060 ở mục 4.1). Commit `b02b0e1` (mục 3.2; dòng 1500 của `docs/ops/test-sessions.md` lọt vào commit này vì cùng file) và `a1c1452` (L1, L2).
+- **Test viết trước:** ngoại lệ đã duyệt (mục 4). `scripts/device-scenario.py check` cho T-020, T-058, T-064: mã 0. `scripts/check.sh`: QUA.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 5 ghi chú: L1, L2 đúng mục ADR-1005; tệp T-064 chạy với `wait` lần đầu ở `device-session` cuối phiên (hai lần chạy bằng chứng không có tệp T-064); hoàn tác L1 phải đặt lại cả dòng của `docs/ops/test-sessions.md`; thời gian xấu nhất của phần kịch bản khoảng 27,5 phút, dưới `timeout-minutes: 50`; ticket đổi qua nhánh báo cáo.
+- **Kết quả CI:** `pr-check` lần chạy 40570994282: xanh ở vòng đầu. Tổng 1 vòng CI.
+- **Lệch so với plan:** ADR-1005/L1, L2 như trên (ngoài mục 3.2, đều trong danh sách của ADR-1005). Không có lệch khác.
+- **Việc còn lại:** kiểm chứng ở `device-session` cuối phiên (báo cáo phiên, mục Kiểm thử trên máy ảo). Đề xuất về dự án mẫu (mục 8, câu 2). Người xóa tay nhánh `claude/T-062-camera-gia` (L-092).
+- **Cần người xem:** kết quả kịch bản camera ở `device-session` cuối phiên.

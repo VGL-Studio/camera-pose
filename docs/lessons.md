@@ -789,7 +789,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** thông báo lỗi của phiên con (request id `req_011CgQhvfc2tZWzDZDAjMrn6`); commit cuối trước khi dừng 10:37 (nhánh báo cáo 0f3f6b8), tiếp tục 13:10; commit test T-059 94a69fe lúc 13:12; RUN-20261026-03, mục Tiếp tục.
 - **Đề xuất sửa:** `docs/auto-run.md`, mục Giao bước 3 đến 5: phiên con kết thúc vì lỗi API (không có báo cáo) thì phiên chính đọc `git status`, `git log` của worktree, chạy test của phần đã viết, đối chiếu mục 4 của plan, rồi tự làm tiếp hoặc giao phiên con mới tiếp từ phần đã có; không tính là task dừng. Thêm dòng `oauth_org_not_allowed` vào bảng tra lỗi (hạ tầng). Phiên qua đêm ưu tiên routine (L-008).
 - **Áp dụng:** `docs/auto-run.md`, mục Giao bước 3 đến 5: phiên con kết thúc mà không có báo cáo thì phiên chính tiếp từ phần đã có trong worktree, không tính là task dừng; bảng tra lỗi thêm PB-11 (`oauth_org_not_allowed`, loại `cho`), kèm `scripts/tests/playbook/PB-11.log` và test (PR này). Lỗi ở cấp tổ chức do Tuấn hỏi người quản trị. Tuấn nhận ngày 2026-10-26. Dự án mẫu: VGL-Studio/app-project-template#206.
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261027-02: T-068 thêm `run-watchdog.yml` (mỗi 30 phút); chạy tay lúc 19:29 UTC (lần chạy 40569540482) in "RUN-20261027-02: đang chạy, commit gần nhất 0 phút trước", không mở issue. Chưa có lần phiên đứng im thật để kiểm việc mở issue.
 
 ### L-085: thiết kế xuất lại mà không sinh lại `design/review/`, task khác thấy ảnh so sánh đổi ngoài mục 3.2
 
@@ -802,9 +802,27 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-086: token đẩy của phiên `claude --cloud` không có quyền `workflow`, task sửa `.github/workflows/` không đẩy được
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261027-01 (T-062, T-065).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261027-01 (T-062, T-065).
 - **Chuyện gì:** T-062 (plan rủi ro cao đã duyệt chéo, sửa `.github/workflows/device-session.yml`) làm xong, `check.sh` qua, rà soát không có điểm nào; lệnh đẩy commit đầu tiên bị GitHub từ chối vì token mà phiên `claude --cloud` dùng không có quyền `workflow`. Lệnh đẩy ở bước 1 qua được vì nhánh chưa có commit nào đổi workflow, nên lỗi chỉ lộ ra sau khi đã làm xong task. T-065 cũng sửa hai workflow nên phiên bỏ qua trước khi tạo nhánh. `run-check.py`, `plan-check.py` và rà soát trước khi duyệt không biết điều này; danh sách chạy ghi "T-062 và T-065 sửa `.github/` đúng như plan rủi ro cao đã duyệt chéo" và chọn mở phiên bằng `claude --cloud` (L-020).
 - **Bằng chứng:** `scripts/save-branch.sh claude/T-062-camera-gia` lúc 05:27 UTC: `! [remote rejected] claude/T-062-camera-gia -> claude/T-062-camera-gia (refusing to allow an OAuth App to create or update workflow `.github/workflows/device-session.yml` without `workflow` scope)`; bundle `/root/rescue/claude__T-062-camera-gia.bundle` (RUN-20261027-01, mục Nhánh chưa đẩy).
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi lập danh sách chạy, và `docs/ops/pre-run-review.md`: plan có file `.github/workflows/` trong mục 3.2 không xếp vào phiên mở bằng `claude --cloud`, trừ khi đã thử đẩy một nhánh tạm có đổi workflow từ chính môi trường đó; `scripts/run-check.py` báo chú ý khi danh sách chạy ghi `claude --cloud` mà có plan như vậy. `docs/auto-run.md`, mục Khi không đẩy được: lỗi `without workflow scope` thì bỏ qua luôn các task sau có file `.github/workflows/` trong mục 3.2, không đợi tới lần đẩy thứ hai. Thêm một dòng vào bảng tra lỗi (loại `moi-truong`, không thử lại) kèm log thật. Người kiểm có cấp được quyền `workflow` cho GitHub App mà phiên cloud dùng không; nếu được, ghi vào `docs/ops/` cách cấp.
-- **Áp dụng:** làm ở ticket T-066 (`open_with` của danh sách chạy, bảng khả năng `docs/ops/session-capabilities.md`, `scripts/run-check.py` quy tắc 8, câu hỏi bắt buộc của rà soát danh sách, `scripts/push-probe.sh` ở đầu phiên); dòng bảng tra lỗi ở T-067. Tuấn nhận ngày 2026-10-27; quyền `workflow` của kết nối GitHub do Tuấn cấp lại; T-067: dòng PB-13 (loại `bo-qua-loai`) ở docs/ops/failure-playbook.md, docs/auto-run.md mục Khi không đẩy được bước 5, scripts/plan-check.py --touches, ADR-1005/L8.
+- **Áp dụng:** làm ở ticket T-066 (`open_with` của danh sách chạy, bảng khả năng `docs/ops/session-capabilities.md`, `scripts/run-check.py` quy tắc 8, câu hỏi bắt buộc của rà soát danh sách, `scripts/push-probe.sh` ở đầu phiên; PR #197); dòng bảng tra lỗi ở T-067. Tuấn nhận ngày 2026-10-27; quyền `workflow` của kết nối GitHub do Tuấn cấp lại; T-067: dòng PB-13 (loại `bo-qua-loai`) ở docs/ops/failure-playbook.md, docs/auto-run.md mục Khi không đẩy được bước 5, scripts/plan-check.py --touches, ADR-1005/L8.
+- **Kiểm chứng:** RUN-20261027-02: `scripts/push-probe.sh RUN-20261027-02` lúc 18:37 UTC mã 0 (QUA, token sau `/web-setup`); ba task sửa `.github/workflows/` (T-068, T-062, T-065) đẩy được và merge. Có hiệu quả.
+
+### L-087: test của script dựa vào cấu hình git toàn cục (và Java) của máy, qua trên cloud nhưng đỏ trên runner
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261027-02 (T-068, T-069).
+- **Chuyện gì:** khối test `save-branch patch` của T-068 qua trên máy viết plan và trên máy cloud, nhưng đỏ trên runner: `git -C "$sb_origin" commit-tree` trong kho trần giả cần tên người commit, runner không có cấu hình git toàn cục. Cùng khối, kho trần giả tạo bằng `git init --bare` không `-b main`, nên khi git không đặt `init.defaultBranch` (máy cloud, runner) bản sao mới không có nhánh `main` và `git log main..` lỗi. Ở T-069, test `env.sh gives a Java that java-check.sh accepts` qua ngay trên khung rỗng vì máy cloud có `JAVA_HOME` hợp lệ (máy dev của lần chạy thử không có Java).
+- **Bằng chứng:** PR #198, `pr-check` lần chạy 40566657337: `fatal: empty ident name ... not allowed`; tái hiện bằng `GIT_CONFIG_GLOBAL=/dev/null bash scripts/tests/run.sh`; sửa ở commit `9e63b5f`, `37d8e5a`. Nhật ký plan T-069 (ADR-1005/L4).
+- **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan (ý L-075), và `docs/auto-run.md` bước 5: chạy test của script mới cả với `GIT_CONFIG_GLOBAL=/dev/null`; khối test dựng kho git giả luôn dùng `-b main` và tên người commit riêng. Cân nhắc đặt `GIT_CONFIG_GLOBAL=/dev/null` cùng `GIT_AUTHOR_*`, `GIT_COMMITTER_*` ở đầu `scripts/tests/run.sh`, để máy nào chạy cũng như runner.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-088: `gh` của môi trường cloud không có cờ `--allow-escape-sequences` mà `docs/auto-run.md` bước 8 dùng để tải log job
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261027-02 (T-068).
+- **Chuyện gì:** CI của T-068 đỏ; lệnh tải log theo bước 8 (`gh api --allow-escape-sequences "repos/{owner}/{repo}/actions/jobs/<id>/logs"`) trả "unknown flag: --allow-escape-sequences", tệp log chỉ có trợ giúp của `gh`, nên `failure-kind.sh --playbook` ra `khong-co` trên một tệp không phải log. Bỏ cờ thì tải được log (1339 dòng).
+- **Bằng chứng:** job 122409697329, 19:15 UTC.
+- **Đề xuất sửa:** `docs/auto-run.md` bước 8: bỏ cờ `--allow-escape-sequences` (log tải về vẫn đọc được), hay ghi "`gh` báo unknown flag thì bỏ cờ". `scripts/failure-kind.sh --playbook` có thể báo khi tệp không giống log của job.
+- **Áp dụng:**
 - **Kiểm chứng:**

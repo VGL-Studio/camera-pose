@@ -1,7 +1,7 @@
 ---
 ticket: T-069
 title: "`scripts/local-setup.sh`: cài JDK và Android SDK trên máy dev để chạy thử bằng đúng `scripts/check.sh`"
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -604,3 +604,15 @@ Không có.
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261027-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-27 18:15 UTC, commit `e263212` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-069-local-setup`, PR #196.
+- **Đã làm:** phiên chính tự làm (task cỡ S). `scripts/local-setup.sh` và khối test chép nguyên khối ở mục 3.1 và mục 4 (rà soát so từng ký tự: trùng); khối test đặt ngay sau test `cloud-env-check.sh names compileSdk when it cannot be read`, cách một dòng trống. Ba câu tài liệu đặt đúng chỗ của mục 3.1. Phiên không chạy lệnh tải thật (script tự từ chối trên cloud).
+- **Test viết trước:** 60 test (commit `3ee6a2f`) trên khung rỗng: 40 thất bại đúng lý do, 20 qua. Plan ghi 41 và 19: `env.sh gives a Java that java-check.sh accepts` qua ngay trên cloud, vì máy có `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64` hợp lệ; khi `env.sh` chưa có, `java-check.sh` dùng Java của máy (máy dev của lần chạy thử không có Java). ADR-1005/L4(b): giữ nguyên test, kiểm bằng đột biến (`env.sh` ghi `JAVA_HOME="${jdk_dir}"`, thiếu `Contents/Home`): test thất bại `expected '0', got '1'`, cùng `writes JAVA_HOME to Contents/Home on a Mac`. Sau code: 60/60 qua; `scripts/tests/run.sh` 822 ok.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú (lệch L4(b) đúng mục): test `env.sh gives a Java ...` phụ thuộc Java của máy chạy test; `curl --proto '=https'` không chặn chuyển hướng sang `http` (`--proto-redir`); `--prefix`, `--sdk` có `"` hay `$` thì `env.sh` hỏng.
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA. `pr-check` lần chạy 40557357706: xanh ở vòng đầu (lần đầu khối test chạy trên Linux của CI). Tổng 1 vòng CI.
+- **Lệch so với plan:** ADR-1005/L4(b) như trên. Ngoài mục 3.2: không có.
+- **Việc còn lại:** kiểm tra thủ công của mục 4: cài thật trên máy dev (`scripts/local-setup.sh`, chạy lại, `--check`, `source .../env.sh && scripts/check.sh`). Đề xuất về dự án mẫu (mục 3.1), kèm ghi chú 2 và 3 của rà soát. Người xóa tay nhánh `claude/T-069-local-setup` (L-092).
+- **Cần người xem:** ba ghi chú của rà soát ở trên.

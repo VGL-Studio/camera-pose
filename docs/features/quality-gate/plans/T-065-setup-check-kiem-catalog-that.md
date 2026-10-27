@@ -1,7 +1,7 @@
 ---
 ticket: T-065
 title: "`setup-check` kiểm catalog tư thế mà máy tải (catalog mặc định và khóa `poses_catalog_path` trên Remote Config) cùng các file khởi đầu của nó"
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -1079,3 +1079,16 @@ index 14c21b9..d56ffa5 100755
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi sau khi chạy task. -->
+
+### RUN-20261027-02, phiên bản plan 2
+
+- **Kết quả:** đã merge (2026-10-27 20:14 UTC, commit `6f3c01d` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-065-setup-check-catalog`, PR #200.
+- **Đã làm:** phiên chính tự làm. `diff` của `scripts/setup-check.sh`, hai workflow, tài liệu và khối test áp sạch (`git apply --check`) trên nhánh chính `890c4ff`, trừ khối `docs/template-sync.txt`; `scripts/setup-check-app.sh` chép nguyên khối mục 3.1 (quyền 644, chỉ gọi bằng `.`). ADR-1005/L3 ở `docs/template-sync.txt`: khối chỉ có dòng `+`, ba dòng ngữ cảnh trên còn nguyên văn, cuối file nay có dòng `# T-068: ...` (T-068 merge trước trong phiên) nên `git apply` từ chối; đặt nguyên 13 dòng `+` (không đổi chữ) ngay sau dòng của T-068, như danh sách chạy ghi. Rà soát so từng byte: các file khác giống bản của plan.
+- **Test viết trước:** 81 test (commit `e41d073`): 73 thất bại đúng lý do, 25 qua (17 test cũ, 8 đối chứng), đúng mục 4.1. Sau code: `scripts/tests/run.sh` 1048 ok, cả khi chạy với `GIT_CONFIG_GLOBAL=/dev/null`.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 2 ghi chú: `issues: write` ở cấp workflow nên hai bước có sẵn của `start-run.yml` cũng cầm token có quyền ghi (đúng `diff` đã duyệt); `env -u GH_TOKEN` chỉ giảm rủi ro của `npx`, đề xuất về mẫu nên tách `setup-check` thành job riêng không có `issues: write`.
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA. `pr-check` lần chạy 40575330240: xanh ở vòng đầu. Tổng 1 vòng CI.
+- **Sau khi merge:** `env-canary.yml` chạy tay với `setup_only` lúc 20:14 UTC (lần chạy 40576244925): job `setup-check` xanh, `fire` bỏ qua; "catalog mặc định của app poses/catalog/v1/catalog-587b5394.json và 8 file khởi đầu trả 200", "khóa poses_catalog_path trỏ tới catalog poses/catalog/v3/catalog-512aa695.json và 100 file khởi đầu trả 200", "== Thiết lập: QUA".
+- **Lệch so với plan:** ADR-1005/L3 như trên. Ngoài mục 3.2: không có.
+- **Việc còn lại:** kiểm tra thủ công: lần đầu `start-run` xanh khi có issue `setup-broken` mở, xem issue có bình luận và được đóng. Đề xuất về dự án mẫu (mục 3.1), kèm ghi chú 2 của rà soát. Người xóa tay nhánh `claude/T-065-setup-check-catalog` (L-092).
+- **Cần người xem:** hai ghi chú của rà soát.

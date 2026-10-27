@@ -1,7 +1,7 @@
 ---
 ticket: T-068
 title: Nhánh bị GitHub từ chối vì quyền workflow được giao cho người thành patch trên nhánh báo cáo; báo người khi phiên tự chạy đứng im (run-watchdog)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -1140,3 +1140,19 @@ expect "run-watchdog: GitHub that cannot be read exits 1" 1 \
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261027-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-27 19:29 UTC, commit `e311e48` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-068-patch-va-canh-bao-phien-dung`, PR #198.
+- **Đã làm:** phiên chính tự làm. Trước khi tạo nhánh, `scripts/push-probe.sh RUN-20261027-02` (T-066) mã 0 (QUA), nên commit có `.github/workflows/run-watchdog.yml` đẩy được. `diff` của `scripts/save-branch.sh` và `scripts/tests/fake-gh` áp sạch trên nhánh chính `2bbe19f`; `scripts/run-watchdog.py`, `.github/workflows/run-watchdog.yml` và hai khối test chép nguyên mục 3.1 và mục 4. Tài liệu đặt đúng chỗ của mục 3.1; dòng `run-watchdog.py` của `CLAUDE.md` ngay sau dòng `save-branch.sh`, trước dòng `push-probe.sh` của T-066.
+- **Test viết trước:** 99 test (commit `0746e8b`): 53 thất bại đúng lý do, 46 đối chứng qua, đúng mục 4.1. Sau code: 98/99.
+- **Sửa chi tiết test (`docs/auto-run.md` bước 4, điều test kiểm không đổi), hai lần, mỗi lần một commit riêng:**
+  - `save-branch patch: the rebuilt branch keeps both commit messages`: `git log main..claude/T-997-patch` thành `origin/main..` (commit `9e63b5f`). Kho giả tạo bằng `git init --bare` không `-b main`; khi git không đặt `init.defaultBranch` (máy cloud, runner Ubuntu) bản sao mới không có nhánh `main` cục bộ. Cây dựng lại đúng, cả hai commit có mặt (in chẩn đoán bằng một bản chép tạm của `run.sh`, không commit).
+  - CI vòng 1 (lần chạy 40566657337, `build-and-test`) đỏ: `fatal: empty ident name` ở `git -C "$sb_origin" commit-tree` của khối test (kho trần giả không có tên người commit; runner không có cấu hình git toàn cục, máy cloud có). `failure-kind.sh --playbook`: `khong-co`. Tái hiện bằng `GIT_CONFIG_GLOBAL=/dev/null bash scripts/tests/run.sh`; thêm `-c user.name=t -c user.email=t@example.com` cho lệnh đó (commit `37d8e5a`); chạy lại không có cấu hình toàn cục: "All script tests passed". 1 lần sửa vì lỗi thật.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 2 ghi chú: sửa thứ nhất đúng (tái hiện trên repo giả; test vẫn thất bại khi mất thông điệp commit); khi đẩy nhánh báo cáo, script đẩy cả commit báo cáo chưa đẩy khác (đúng ý plan). Lần sửa thứ hai làm sau rà soát, chỉ một tham số `-c` của một lệnh dựng dữ liệu test.
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA. `pr-check`: vòng 1 đỏ (trên), vòng 2 lần chạy 40568587944 xanh. Tổng 2 vòng CI.
+- **Sau khi merge:** chạy tay `run-watchdog.yml` lúc 19:29 UTC (lần chạy 40569540482): xanh, in "RUN-20261027-02: đang chạy, commit gần nhất 0 phút trước.", không mở issue.
+- **Lệch so với plan:** hai lần sửa chi tiết test ở trên. Ngoài mục 3.2: không có.
+- **Việc còn lại:** kiểm tra thủ công 3b trong phiên thật (chỉ có khi GitHub từ chối vì quyền `workflow`). Đề xuất về dự án mẫu. Người xóa tay nhánh `claude/T-068-patch-va-canh-bao-phien-dung` (L-092).
+- **Cần người xem:** hai lần sửa chi tiết test; bài học đề xuất "kho git giả trong test tự đặt nhánh và tên người commit" (báo cáo phiên, mục Bài học).

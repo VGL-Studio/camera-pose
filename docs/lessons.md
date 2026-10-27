@@ -780,7 +780,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** RUN-20261026-02, mục Token: dòng T-056 có đúng 66 request, bằng 55 của phiên con bước 3 đến 5 cộng 11 của phiên rà soát; T-057 50 = 39 + 11; Chung 22.4M.
 - **Đề xuất sửa:** `scripts/token-usage.py`: request của phiên chính trên HEAD tách rời tính vào task có nhánh được tạo gần nhất trước đó mà chưa merge (theo giờ tạo nhánh và giờ merge), hoặc phiên chính ghi task đang làm vào một tệp trạng thái mà script đọc; `docs/ops/token-usage.md` ghi giới hạn này. Trong lúc chờ, báo cáo phiên ghi rõ dòng nào thiếu phần phiên chính.
 - **Áp dụng:** T-063 (RUN-20261027-01): lệnh `scripts/token-usage.py mark T-NNN` và `mark chung`; `report` đọc lại dấu mốc trong transcript của phiên chính và gán request của phiên chính không ở nhánh task nào cho task của dấu mốc gần nhất, từ `--since` trở đi; 11 test trong `scripts/tests/run.sh`; `docs/auto-run.md` (bước 1, mục Giao bước 3 đến 5, bước 10, mục 4 bước 0, mục Tiếp tục phiên bước 5) và `docs/ops/token-usage.md` (mục 1, mục 5). PR #186. Tuấn nhận ngày 2026-10-26. Dự án mẫu: VGL-Studio/app-project-template#206.
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261027-01 (ngay sau T-063): phiên chính chạy lệnh `mark` ở bước 1 của T-062, T-064 và `mark chung` sau mỗi task. T-064 giao bước 3 đến 5 cho phiên con: dòng T-064 của cả phiên có 49 request, riêng transcript của phiên con và phiên rà soát (có dòng `Task: T-064`) chỉ 34 request; 15 request của phiên chính (đẩy nhánh, PR, chờ CI, merge) nay vào task. Có hiệu quả.
 
 ### L-084: phiên con dừng giữa chừng vì lỗi API, phiên `claude --cloud` không tự tiếp tục
 
@@ -798,4 +798,13 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** PR #171, mục Tóm tắt; nhật ký plan T-060, dòng Lệch so với plan.
 - **Đề xuất sửa:** `docs/ops/design-workflow.md`: PR xuất lại ảnh thiết kế chạy `scripts/design-compare.sh <feature>` và commit `design/review/` cùng PR. `docs/auto-run.md` bước 5: ảnh so sánh đổi mà ảnh chuẩn của task không đổi và `design/review/` không có trong mục 3.2 thì không commit, ghi vào mô tả PR.
 - **Áp dụng:** `docs/ops/design-workflow.md`, mục Xuất từ Figma: PR xuất lại ảnh chạy `scripts/design-compare.sh` và commit `design/review/` cùng PR; `docs/auto-run.md` bước 5: ảnh so sánh đổi không do task thì không commit, ghi vào mô tả PR (PR này). Tuấn nhận ngày 2026-10-26. Dự án mẫu: VGL-Studio/app-project-template#206.
+- **Kiểm chứng:**
+
+### L-086: token đẩy của phiên `claude --cloud` không có quyền `workflow`, task sửa `.github/workflows/` không đẩy được
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261027-01 (T-062, T-065).
+- **Chuyện gì:** T-062 (plan rủi ro cao đã duyệt chéo, sửa `.github/workflows/device-session.yml`) làm xong, `check.sh` qua, rà soát không có điểm nào; lệnh đẩy commit đầu tiên bị GitHub từ chối vì token mà phiên `claude --cloud` dùng không có quyền `workflow`. Lệnh đẩy ở bước 1 qua được vì nhánh chưa có commit nào đổi workflow, nên lỗi chỉ lộ ra sau khi đã làm xong task. T-065 cũng sửa hai workflow nên phiên bỏ qua trước khi tạo nhánh. `run-check.py`, `plan-check.py` và rà soát trước khi duyệt không biết điều này; danh sách chạy ghi "T-062 và T-065 sửa `.github/` đúng như plan rủi ro cao đã duyệt chéo" và chọn mở phiên bằng `claude --cloud` (L-020).
+- **Bằng chứng:** `scripts/save-branch.sh claude/T-062-camera-gia` lúc 05:27 UTC: `! [remote rejected] claude/T-062-camera-gia -> claude/T-062-camera-gia (refusing to allow an OAuth App to create or update workflow `.github/workflows/device-session.yml` without `workflow` scope)`; bundle `/root/rescue/claude__T-062-camera-gia.bundle` (RUN-20261027-01, mục Nhánh chưa đẩy).
+- **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi lập danh sách chạy, và `docs/ops/pre-run-review.md`: plan có file `.github/workflows/` trong mục 3.2 không xếp vào phiên mở bằng `claude --cloud`, trừ khi đã thử đẩy một nhánh tạm có đổi workflow từ chính môi trường đó; `scripts/run-check.py` báo chú ý khi danh sách chạy ghi `claude --cloud` mà có plan như vậy. `docs/auto-run.md`, mục Khi không đẩy được: lỗi `without workflow scope` thì bỏ qua luôn các task sau có file `.github/workflows/` trong mục 3.2, không đợi tới lần đẩy thứ hai. Thêm một dòng vào bảng tra lỗi (loại `moi-truong`, không thử lại) kèm log thật. Người kiểm có cấp được quyền `workflow` cho GitHub App mà phiên cloud dùng không; nếu được, ghi vào `docs/ops/` cách cấp.
+- **Áp dụng:**
 - **Kiểm chứng:**

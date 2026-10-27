@@ -16,6 +16,10 @@
 # $FAKE_ADB_NIGHT (default no). With $FAKE_ADB_NETWORK_ON set, `svc wifi enable` makes `dumpsys connectivity` report
 # that network and `svc wifi disable` takes it away again (state in $FAKE_ADB_STATE_DIR).
 # `logcat -b crash -d` prints $FAKE_ADB_CRASH_LOG (default nothing) and returns.
+# `getprop ro.build.version.sdk` prints $FAKE_ADB_SDK (default 34), `getprop persist.sys.locale` $FAKE_ADB_LOCALE
+# (default en-US); `cmd locale set-app-locales ... --locales` fails when $FAKE_ADB_LOCALE_FAILS is set (camera-pose T-054).
+# `log -t <tag> <text>` appends a logcat line to $FAKE_ADB_LOGCAT_FILE when set, then $FAKE_ADB_KILL_LINE when set
+# (with FAKE_ADB_KILL_ONCE=1 only after the first line, counted in $FAKE_ADB_STATE_DIR/kills.n).
 # The app process (camera-pose T-048) is only simulated when $FAKE_ADB_STATE_DIR is set; without it `pidof` prints nothing.
 # With it: `am start -W` counts the starts in starts.n and leaves the process alive (file `alive`) once the count is
 # above $FAKE_ADB_DEAD_STARTS (default 0); `pm clear` and `am force-stop` kill it; `pidof` prints 4242 while it is
@@ -58,7 +62,27 @@ case "$1" in
       "wm size") echo "Physical size: ${FAKE_ADB_PHYSICAL_SIZE:-1080x2400}" ;;
       "wm density") echo "Physical density: 420" ;;
       "pm path"*) [[ -n "${FAKE_ADB_NO_APP:-}" ]] && exit 1; echo "package:/data/app/base.apk" ;;
-      "getprop ro.build.version.sdk") echo 34 ;;
+      "getprop ro.build.version.sdk") echo "${FAKE_ADB_SDK:-34}" ;;
+      "getprop persist.sys.locale") echo "${FAKE_ADB_LOCALE:-en-US}" ;;
+      "log -t "*)
+        [[ -z "${FAKE_ADB_LOGCAT_FILE:-}" ]] && exit 0
+        echo "10-25 19:53:04.500  1000  1000 I $3: ${*:4}" >> "${FAKE_ADB_LOGCAT_FILE}"
+        if [[ -n "${FAKE_ADB_KILL_LINE:-}" ]]; then
+          state="${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}"
+          mkdir -p "$state"
+          kills="$(cat "$state/kills.n" 2>/dev/null || echo 0)"
+          if [[ "${FAKE_ADB_KILL_ONCE:-}" != 1 || "$kills" == 0 ]]; then
+            echo "${FAKE_ADB_KILL_LINE}" >> "${FAKE_ADB_LOGCAT_FILE}"
+          fi
+          echo $(( kills + 1 )) > "$state/kills.n"
+        fi
+        exit 0 ;;
+      "cmd locale set-app-locales"*"--locales"*)
+        if [[ -n "${FAKE_ADB_LOCALE_FAILS:-}" ]]; then
+          echo "Exception occurred while executing 'set-app-locales':"
+          exit 255
+        fi
+        exit 0 ;;
       getprop*) echo Fake ;;
       "dumpsys package"*)
         echo "    versionName=0.1.0-staging.4"

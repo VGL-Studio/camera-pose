@@ -1,16 +1,16 @@
 ---
 ticket: T-065
 title: "`setup-check` kiểm catalog tư thế mà máy tải (catalog mặc định và khóa `poses_catalog_path` trên Remote Config) cùng các file khởi đầu của nó"
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 7.6M         # cỡ M, số gợi ý của scripts/token-usage.py estimate (2026-10-27), không nâng tay (L-081)
 blocking_points: [ci, process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-27
 ---
 
 # PLAN T-065: `SETUP-CHECK` KIỂM CATALOG TƯ THẾ MÀ MÁY TẢI
@@ -1072,9 +1072,9 @@ index 14c21b9..d56ffa5 100755
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-27, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: logic riêng của app trong `scripts/setup-check-app.sh`. Câu 2: luôn kiểm catalog mặc định và file khởi đầu. Câu 3: `start-run.yml` đóng `setup-broken` khi chính nó kiểm xanh, chấp nhận cái giá đã nêu. Câu 4: catalog hay file khởi đầu hỏng là `LỖI`. Câu 6: không thử gỡ vai trò trước khi duyệt; thiếu vai trò thật có thể chỉ ra `CHÚ Ý`.
 
 ## 10. Nhật ký thực hiện
 

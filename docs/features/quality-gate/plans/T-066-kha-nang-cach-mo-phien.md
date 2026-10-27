@@ -1,16 +1,16 @@
 ---
 ticket: T-066
 title: Kiểm khả năng của cách mở phiên trước khi duyệt và ở đầu phiên (`open_with`, bảng khả năng, `push-probe.sh`)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 7.6M         # cỡ M, số gợi ý của scripts/token-usage.py estimate (2026-10-27), không nâng tay (L-081)
 blocking_points: [process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-27
 ---
 
 # PLAN T-066: KIỂM KHẢ NĂNG CỦA CÁCH MỞ PHIÊN
@@ -732,9 +732,9 @@ Không có.
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-27, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8: ô `workflow-push` của cloud, routine, local để `thử` tới khi hai phiên liền nhau cho cùng kết quả; `open_with` trống chỉ CHÚ Ý khi có plan cần khả năng; nhánh thử sửa một dòng chú thích của workflow có sẵn, mỗi lần một tên mới; đề xuất về dự án mẫu qua mô tả PR và mục Cần người kiểm tra.
 
 ## 10. Nhật ký thực hiện
 

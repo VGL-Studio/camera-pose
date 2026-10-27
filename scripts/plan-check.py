@@ -41,6 +41,10 @@ Finds, from the plan alone, the mistakes that otherwise stop a task in the middl
  12. A command of the plan does not use $TMPDIR or ${TMPDIR} without a default (L-088): a cloud session does not set
      TMPDIR, so "$TMPDIR/x" writes /x at the root of the disk. ${TMPDIR:-/tmp} passes. An error for a draft plan,
      a warning for an approved one, like rule 7.
+ 13. A draft plan that changes or deletes Kotlin code (outside test source sets) has section 3.5, "Hành vi đã có bị
+     đổi": the existing tests that check behaviour the plan changes, found with scripts/existing-tests.py, and for
+     each one whether its assertions stay true or how they change (ADR-0031, L-106: T-041 stopped on such a test).
+     Approved plans are left alone: they were reviewed before the rule.
 PLAN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
 """
 
@@ -71,6 +75,9 @@ OTHER_TICKET_IMAGES = re.compile(r"Ảnh thiết kế của ticket khác([^:\n]*
 # Score of criterion E in the risk table of section 5 (rule 7).
 NOVELTY_SCORE = re.compile(r"^\|\s*E\.[^|]*\|\s*(\d)", re.M)
 TRIAL_RUN_HEADING = "4.1. Chạy thử"
+# Rule 13: section 3.5 of a plan that changes Kotlin code.
+CHANGED_BEHAVIOUR_HEADING = re.compile(r"^### 3\.5\.", re.M)
+TEST_SOURCE_SET = re.compile(r"/src/(test|androidTest)[A-Za-z]*/")
 # Rule 8: permissions and libraries.
 # Permissions are named as android.permission.X, or by a bare name from this list of common Android permissions.
 KNOWN_PERMISSIONS = {
@@ -486,6 +493,12 @@ def check(plan_path):
         (errors if status == "draft" else warnings).append(
             "quy tắc 12: plan ghi $TMPDIR không có giá trị mặc định. Trên cloud TMPDIR không được đặt, tệp sẽ "
             "ghi vào gốc ổ đĩa. Ghi ${TMPDIR:-/tmp} (L-088).")
+    changes_code = any(operation != "create" and path.endswith(".kt") and not TEST_SOURCE_SET.search("/" + path)
+                       for operation, path in rows)
+    if status == "draft" and changes_code and not CHANGED_BEHAVIOUR_HEADING.search(text):
+        errors.append("quy tắc 13: plan sửa code Kotlin nhưng thiếu mục 3.5 (Hành vi đã có bị đổi). Chạy "
+                      "scripts/existing-tests.py <plan>, ghi test có sẵn kiểm hành vi plan đổi và câu nào đổi, "
+                      "hoặc ghi \"Không có\" (ADR-0031, L-106).")
     warnings += ticket_status_problems(fields)
     (errors if status == "draft" else warnings).extend(manual_test_problems(text, listed))
     if "## 4. Kiểm thử" not in text:

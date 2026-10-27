@@ -51,7 +51,7 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 2. Cần thêm thư viện, quyền truy cập hoặc chạm điểm chặn 1 tới 6, 8, 9 ở mục 1 mà plan chưa nêu. Điểm chặn 7 (module core, cấu hình build, quy trình) không làm dừng với phần ngoài mục 3.2 theo ADR-0029, trừ file của điều kiện 1. Để ít gặp điều kiện này, quyền và thư viện được quyết lúc lập plan (`docs/CLAUDE.md`, mục Khi viết plan; mục 3.3 của mẫu plan; `scripts/plan-check.py`, quy tắc 8).
 3. Phát hiện spec, thiết kế hoặc ADR mâu thuẫn với plan hoặc với nhau.
 4. Test vẫn thất bại sau 3 lần sửa liên tiếp cho cùng một lỗi.
-5. Muốn làm cho test qua bằng cách xóa test hay câu khẳng định, nới phép so sánh, thêm `@Ignore`, đổi điều test cũ kiểm về hành vi đã có, hạ tiêu chí kiểm tra, hoặc bỏ qua quy tắc lint. Cập nhật dữ liệu của test cũ chỉ vì dữ liệu đó chưa có phần plan thêm thì không phải dừng (ADR-0029, quyết định 2).
+5. Muốn làm cho test qua bằng cách xóa test hay câu khẳng định, nới phép so sánh, thêm `@Ignore`, đổi điều test cũ kiểm về hành vi đã có, hạ tiêu chí kiểm tra, hoặc bỏ qua quy tắc lint. Cập nhật dữ liệu của test cũ chỉ vì dữ liệu đó chưa có phần plan thêm thì không phải dừng (ADR-0029, quyết định 2); viết lại câu khẳng định cũ trái điều plan đã duyệt nói rõ, đủ sáu điều của ADR-0031, cũng không phải dừng (dưới).
 6. Phần việc thực tế lớn hơn rõ rệt so với ước lượng trong ticket.
 7. Bất kỳ thao tác nào chạm tới cấu hình production: mã quảng cáo thật, project Firebase production, bucket R2 production, khóa ký ứng dụng.
 8. Cần thay đổi điều mà test viết trước đang kiểm tra để code qua được.
@@ -64,6 +64,17 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 - Ảnh chuẩn screenshot ngoài mục 3.2 lệch: dừng, vì `CLAUDE.md` chỉ cho cập nhật ảnh chuẩn khi plan cho phép.
 - Điều kiện dừng riêng ở mục 7 của plan vẫn áp dụng.
 - Ghi vào nhật ký plan (file, vì sao cần, loại), mô tả PR (mục "Ngoài mục 3.2", kèm `git diff --stat origin/main...HEAD -- <các file đó>`) và báo cáo phiên (một dòng `- [ ]` ở mục Cần người kiểm tra). Rà soát độc lập xét riêng phần này; vi phạm ADR-0029 là mức chặn (`auto-run.md`, bước 6).
+
+**Không phải dừng: câu khẳng định cũ trái điều plan đã duyệt nói rõ (ADR-0031).** Một câu khẳng định của test JVM có sẵn đỏ vì trái trực tiếp một câu của plan đã duyệt (mục 3.1, 3.5, câu trả lời ở mục 8) hay spec: AI viết lại câu đó, không dừng, khi đủ sáu điều của ADR-0031, quyết định 2:
+
+- có câu của plan nói điều mới;
+- ý định của test viết thành một câu, và câu mới kiểm đúng ý định đó;
+- không nới: không bớt câu, không đổi bằng thành khoảng hay chứa, không tăng sai số, không bỏ đối chứng, không `@Ignore`;
+- có đối chứng đỏ khi ý định bị phá;
+- không phải ảnh chuẩn, test viết trước của plan, hay câu kiểm tiêu chí của spec hoặc luật nghiệp vụ mà plan không đổi;
+- tối đa 3 câu mỗi task.
+
+Thiếu một điều thì dừng theo điều kiện 3 hay 5. Ghi lại và báo sau như phần ngoài mục 3.2; rà soát độc lập xét riêng từng câu, vi phạm là mức chặn.
 
 **Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2 (cộng phần ngoài mục 3.2 theo ADR-0029, như với phương án chính), giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
 

@@ -526,10 +526,15 @@ expect "playbook: PB-07 fake Firebase file -> nguoi" "PB-07 nguoi" "$(pb_head $p
 expect "playbook: PB-08 missing R8 classes -> that" "PB-08 that" "$(pb_head $pb_dir/PB-08.log)"
 expect "playbook: PB-09 library download 429 -> lich-thu-lai" "PB-09 lich-thu-lai" "$(pb_head $pb_dir/PB-09.log)"
 expect "playbook: PB-10 a UI timeout without R2 lines is a real failure" "PB-10 that" "$(pb_head $pb_dir/PB-10.log)"
-expect "playbook: PB-11 Claude org access 403 in a subagent -> cho" "PB-11 cho" "$(pb_head $pb_dir/PB-11.log)"
-expect "playbook: PB-12 an R2 file missing (404) in ui-test -> nguoi, before the rerun of PB-01" "PB-12 nguoi" "$(pb_head $pb_dir/PB-12.log)"
+expect "playbook: PB-11 Maven 403 on a GitHub runner -> chay-lai" "PB-11 chay-lai" "$(pb_head $pb_dir/PB-11.log)"
+expect "playbook: PB-12 Claude org access 403 in a subagent -> cho" "PB-12 cho" "$(pb_head $pb_dir/PB-12.log)"
+expect "playbook: PB-13 an R2 file missing (404) in ui-test -> nguoi, before the rerun of PB-01" "PB-13 nguoi" "$(pb_head $pb_dir/PB-13.log)"
 expect "playbook: an unknown failure says khong-co" "khong-co" "$(pb_head $pb_dir/none.log)"
 expect "playbook: a missing log says khong-co" "khong-co" "$(pb_head "$work/no-such.log")"
+printf 'unknown flag: --allow-escape-sequences\n\nUsage:  gh api <endpoint> [flags]\n' > "$work/gh-help.log"
+expect "playbook: the help text of a failed gh call says log-hong, not khong-co" "log-hong" "$(pb_head "$work/gh-help.log")"
+printf 'the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway\n' > "$work/gh-esc.log"
+expect "playbook: the escape-sequence refusal of gh says log-hong" "log-hong" "$(pb_head "$work/gh-esc.log")"
 expect "playbook: a missing log exits 0" 0 "$(scripts/failure-kind.sh --playbook "$work/no-such.log" > /dev/null 2>&1; echo $?)"
 expect "playbook: the line carries the action and the source" "PB-02 cho: GitHub không cấp máy. Làm theo \`auto-run.md\` mục 4, dòng \"GitHub không chạy job\" (L-064)" \
   "$(playbook $pb_dir/PB-02.log)"
@@ -894,7 +899,8 @@ release_fails_with() {
   fi
 }
 write_release_properties() {
-  printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" > "$release_dir/release.properties"
+  printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" "appsFlyerDevKey=${4-AbCdEf0123456789XyZ}" \
+    > "$release_dir/release.properties"
 }
 mkdir -p "$release_dir"
 release_fails_with "missing files" "/release/google-services.json"
@@ -903,13 +909,37 @@ write_release_properties "ca-app-pub-3940256099942544~3347511713" "" "https://cd
 release_fails_with "Google test app id" "mã thử của Google"
 write_release_properties "ca-app-pub-1234567890123456/1111111111" "" "https://cdn.example.vn/"
 release_fails_with "ad unit given as app id" "admobAppId phải có dạng"
-write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "https://cdn.example.vn/"
-release_fails_with "Google test ad unit" "mã quảng cáo thử"
+# A Google test unit given by hand is accepted (2026-10-26): the folder check goes on to the next value.
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "http://cdn.example.vn/"
+release_fails_with "a Google test ad unit given by hand passes the ad unit check" "assetsBaseUrl phải"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
+release_fails_with "missing AppsFlyer dev key" "thiếu appsFlyerDevKey"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "key with spaces"
+release_fails_with "AppsFlyer dev key with odd characters" "thiếu appsFlyerDevKey"
+expect "release.sh never prints the AppsFlyer dev key" 0 \
+  "$(write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/" "SecretKey0123456789"
+     scripts/release.sh --config "$release_dir" 2>&1 < /dev/null | grep -c 'SecretKey0123456789' || true)"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner" "https://cdn.example.vn/"
 release_fails_with "malformed ad unit entry" "mục adUnits"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/"
 release_fails_with "assets address without https" "assetsBaseUrl phải"
 release_fails_with "unknown argument" "tham số không hợp lệ" --upload
+expect "release.sh: native placements and placements with attributes need a production ad unit, gallery ones do not" \
+  "sample_bottom_banner sample_native_small home_full_screen inter_sounds list_native" \
+  "$(scripts/release.sh --list-placements scripts/tests/fixtures/release/AdPlacement.kt | tr '\n' ' ' | sed 's/ $//')"
+# Placements without a real unit get Google's test unit of their format, and are listed (decision 2026-10-26).
+expect "release.sh: placements without a real unit get the test unit of their format" \
+  "sample_bottom_banner=ca-app-pub-1/2;sample_native_small=ca-app-pub-3940256099942544/2247696110;home_full_screen=ca-app-pub-3940256099942544/1044960115;inter_sounds=ca-app-pub-3940256099942544/1033173712;list_native=ca-app-pub-3940256099942544/2247696110" \
+  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2> /dev/null)"
+expect "release.sh: lists the placements that got a test unit" 1 \
+  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2>&1 > /dev/null | grep -c 'không có doanh thu) cho vị trí: sample_native_small home_full_screen inter_sounds list_native.$')"
+expect "release.sh: every real placement has a test unit for its format" 0 \
+  "$(code=0; scripts/release.sh --fill-test-units core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt '' > /dev/null 2>&1 || code=$?; echo $code)"
+printf '%s\n' 'enum class AdPlacement(val key: String) {' '    WRAPPED(' '        "wrapped",' '        AdFormat.BANNER,' '    ),' '}' \
+  > "$work/WrappedAdPlacement.kt"
+expect "release.sh refuses a placement wrapped over several lines" "1 1" \
+  "$(code=0; out="$(scripts/release.sh --list-placements "$work/WrappedAdPlacement.kt" 2>&1)" || code=$?
+     echo "$code $(grep -c 'nhiều dòng (dòng 2)' <<< "$out")")"
 
 # new-app.sh renames the template into a new repository and leaves out the template's own files.
 # It exists only in the template repository: an app made from it has no new-app.sh, so the app skips these tests.
@@ -953,6 +983,78 @@ for args in "--package com.vglstudio.camera.pose.line.guide.notes" "--package No
     expect "new-app.sh rejects '$args'" rejected rejected
   fi
 done
+if [[ -f scripts/new-app.sh ]]; then
+  expect "new-app.sh records the template commit and package for template-sync.sh" \
+    "base=$(git rev-parse HEAD) package=com.example.notes" \
+    "$(tr '\n' ' ' < "$new_app/docs/template-sync.txt" | sed 's/ $//')"
+  expect "new-app.sh leaves out template-sync.sh" absent \
+    "$([ -e "$new_app/scripts/template-sync.sh" ] && echo present || echo absent)"
+fi
+
+# template-sync.sh brings later template commits into an app made by new-app.sh (ADR-0030). It runs on a scratch
+# copy of the template, so the test can add template commits; like new-app.sh it exists only in the template.
+if [[ ! -f scripts/template-sync.sh ]]; then
+  echo "skip - template-sync.sh: chỉ có ở repo dự án mẫu"
+else
+  (
+    failures=0
+    export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
+    tpl="$work/sync-template" app="$work/sync-app"
+    mkdir -p "$tpl"
+    git ls-files -z --cached --others --exclude-standard | xargs -0 tar -cf - 2> /dev/null | tar -xf - -C "$tpl"
+    git -C "$tpl" init --quiet -b main
+    git -C "$tpl" add -A > /dev/null
+    git -C "$tpl" commit --quiet -m "template v1"
+    "$tpl/scripts/new-app.sh" --dest "$app" --package com.example.notes --name "Ghi chú" \
+      --staging-assets-url https://notes.example.vn/staging/ > /dev/null 2>&1
+    v1="$(git -C "$tpl" rev-parse HEAD)"
+    logger_kt="core/logging/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/logging/AppLogger.kt"
+    ads_kt="core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIds.kt"
+    echo "# template v2" >> "$tpl/scripts/wait-run.sh"
+    echo "// template v2: com.vglstudio.camera.pose.line.guide.core.logging" >> "$tpl/$logger_kt"
+    echo "// template v2" >> "$tpl/$ads_kt"
+    echo "template v2" >> "$tpl/docs/lessons.md"
+    git -C "$tpl" commit --quiet -am "template v2"
+    v2="$(git -C "$tpl" rev-parse HEAD)"
+    echo "hold=core/ads $v1" >> "$app/docs/template-sync.txt"
+    git -C "$app" commit --quiet -am "hold ads"
+    app_logger="$app/core/logging/src/main/kotlin/com/example/notes/core/logging/AppLogger.kt"
+    app_ads="$app/core/ads/src/main/kotlin/com/example/notes/core/ads/AdUnitIds.kt"
+
+    code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to "$v2" 2>&1)" || code=$?
+    expect "template-sync.sh merges a template commit without conflicts" "0 1" "$code $(grep -c 'Xong, không có xung đột' <<< "$out")"
+    expect "template-sync.sh works on a new branch of the app" "template-sync/${v2:0:7}" "$(git -C "$app" branch --show-current)"
+    expect "template-sync.sh brings a changed script" 1 "$(grep -cx '# template v2' "$app/scripts/wait-run.sh")"
+    expect "template-sync.sh renames the package in moved sources" 1 \
+      "$(grep -cx '// template v2: com.example.notes.core.logging' "$app_logger")"
+    expect "template-sync.sh leaves the template's lessons out" 0 "$(grep -c 'template v2' "$app/docs/lessons.md")"
+    expect "template-sync.sh keeps a held path at its commit" 0 "$(grep -c 'template v2' "$app_ads")"
+    expect "template-sync.sh moves the base in the same commit" "base=$v2" "$(grep '^base=' "$app/docs/template-sync.txt")"
+    expect "template-sync.sh leaves the app clean" "" "$(git -C "$app" status --porcelain)"
+
+    code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to "$v2" 2>&1)" || code=$?
+    expect "template-sync.sh has nothing to do at the base" "0 1" "$code $(grep -c 'Không có gì mới' <<< "$out")"
+
+    code=0; "$tpl/scripts/template-sync.sh" --app "$app" --take core/ads > /dev/null 2>&1 || code=$?
+    expect "template-sync.sh --take brings a held path up to the base" "0 1 0" \
+      "$code $(grep -cx '// template v2' "$app_ads") $(grep -c '^hold=' "$app/docs/template-sync.txt")"
+
+    sed -i.bak '2s/.*/# app change/' "$app/scripts/wait-run.sh" && rm "$app/scripts/wait-run.sh.bak"
+    git -C "$app" commit --quiet -am "app change"
+    sed -i.bak '2s/.*/# template v3/' "$tpl/scripts/wait-run.sh" && rm "$tpl/scripts/wait-run.sh.bak"
+    # new-app.sh put the app's name on the first line of README.md, so a template change there conflicts too.
+    sed -i.bak '1s/.*/# TEMPLATE V3/' "$tpl/README.md" && rm "$tpl/README.md.bak"
+    git -C "$tpl" commit --quiet -am "template v3"
+    code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to HEAD 2>&1)" || code=$?
+    expect "template-sync.sh stops on a conflict and sorts the files" "1 1 1" \
+      "$code $(sed -n '/Phần của dự án mẫu/,/Phần app cũng sửa/p' <<< "$out" | grep -cx '   scripts/wait-run.sh') $(
+        sed -n '/Phần app cũng sửa/,$p' <<< "$out" | grep -cx '   README.md')"
+
+    code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to HEAD 2>&1)" || code=$?
+    expect "template-sync.sh refuses an app with uncommitted changes" "1 1" "$code $(grep -c 'chưa commit' <<< "$out")"
+    exit "$failures"
+  ) || failures=$((failures + $?))
+fi
 
 # cloud-env-check.sh passes only when the environment was built from the current cloud-setup.sh and can run
 # the project's Gradle (L-075, from app lesson L-056 of camera-pose).
@@ -1035,8 +1137,11 @@ echo '{}' > "$repo/docs/data/values.json"
 echo 'open("docs/data/values.json")' > "$repo/scripts/reader.py"
 touch "$repo/feature/demo/A.kt" "$repo/core/x/B.kt" "$repo/docs/features/demo/design/screens/DemoScreen_main_light.png"
 write_plan() { # <file> <risk> <status> <rows> [extra text]
-  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: %s\nreviewer: A\ncross_reviewer:\napproved_at: 2026-10-17\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%b\n\n### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện\n\n- **Quyền truy cập:** %s\n- **Thư viện và SDK:** Không thêm.\n\n%s\n\n## 4. Kiểm thử\n' \
-    "$(basename "$1" | cut -d- -f1-2)" "$3" "$2" "$4" "${PERMISSIONS:-Không thêm.}" "${5:-}" > "$1"
+  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: %s\nreviewer: A\ncross_reviewer:\napproved_at: 2026-10-17\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%b\n\n### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện\n\n- **Quyền truy cập:** %s\n- **Thư viện và SDK:** Không thêm.\n\n%s\n\n%s\n\n## 4. Kiểm thử\n' \
+    "$(basename "$1" | cut -d- -f1-2)" "$3" "$2" "$4" "${PERMISSIONS:-Không thêm.}" \
+    "${CHANGED_BEHAVIOUR-### 3.5. Hành vi đã có bị đổi
+
+Không có.}" "${5:-}" > "$1"
 }
 plan_check() { if PLAN_CHECK_ROOT="$repo" python3 -I scripts/plan-check.py "$1" > "$work/plan-check.out" 2>&1; then echo pass; else echo stop; fi; }
 # One row of the file list of a plan; the backticks are Markdown, not command substitution.
@@ -1261,6 +1366,87 @@ expect "plan-check: an approved plan with \$TMPDIR only warns" "pass 1" \
 # shellcheck disable=SC2016
 write_plan "$plans/T-949-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Ghi vào `${TMPDIR:-/tmp}/out.txt` và `$TMPDIR_OLD`.'
 expect "plan-check: \${TMPDIR:-/tmp} passes" "pass 0" "$(plan_check "$plans/T-949-a.md") $(tmpdir_lines)"
+
+# Rule 13 and scripts/existing-tests.py: a plan that changes Kotlin code says which existing tests check behaviour
+# it changes (ADR-0031, L-106: T-041 stopped on an existing test that measured where the card sits).
+CHANGED_BEHAVIOUR="" write_plan "$plans/T-951-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+expect "plan-check: a draft plan changing Kotlin code without section 3.5 stops" \
+  "stop 1" "$(plan_check "$plans/T-951-a.md") $(grep -c 'LỖI: quy tắc 13' "$work/plan-check.out" || true)"
+CHANGED_BEHAVIOUR="" write_plan "$plans/T-952-a.md" medium approved "$(row Sửa feature/demo/A.kt)"
+expect "plan-check: an approved plan without section 3.5 passes" \
+  "pass 0" "$(plan_check "$plans/T-952-a.md") $(grep -c 'quy tắc 13' "$work/plan-check.out" || true)"
+CHANGED_BEHAVIOUR="" write_plan "$plans/T-953-a.md" medium draft \
+  "$(row Sửa docs/data/values.json)\n$(row Sửa feature/demo/src/test/kotlin/ATest.kt)" 'scripts/reader.py chỉ đọc khóa a.'
+mkdir -p "$repo/feature/demo/src/test/kotlin" && touch "$repo/feature/demo/src/test/kotlin/ATest.kt"
+expect "plan-check: a plan changing only data and tests needs no section 3.5" pass "$(plan_check "$plans/T-953-a.md")"
+
+trepo="$work/tests-repo"
+mkdir -p "$trepo/feature/demo/src/main/kotlin" "$trepo/feature/demo/src/test/kotlin" "$trepo/docs/plans" \
+  "$trepo/feature/other/src/test/kotlin"
+cat > "$trepo/feature/demo/src/main/kotlin/DemoScreen.kt" <<'KOTLIN'
+object DemoTags {
+    const val PAGER = "demo_pager"
+    const val CARD = "demo_card"
+}
+
+@Composable
+fun DemoScreen(modifier: Modifier) {
+    fun localHelper() = Unit
+    val every = 3
+    Box(modifier.testTag(DemoTags.PAGER)) { Card(Modifier.testTag(DemoTags.CARD)) }
+}
+
+private fun hiddenHelper() = Unit
+KOTLIN
+cat > "$trepo/feature/demo/src/test/kotlin/DemoScreenTest.kt" <<'KOTLIN'
+class DemoScreenTest {
+    @Test
+    fun card_belowPager() {
+        assertTrue(bounds(DemoTags.CARD).top >= bounds(DemoTags.PAGER).bottom)
+    }
+
+    @Test
+    fun card_exists() {
+        assertTrue(exists(DemoTags.CARD))
+    }
+
+    @Test
+    fun alreadyNamed_inPlan() {
+        assertTrue(bounds(DemoTags.CARD).height > 0)
+    }
+
+    @Test
+    fun unrelated() {
+        val every = 3
+        localHelper()
+        hiddenHelper()
+    }
+}
+KOTLIN
+cat > "$trepo/feature/other/src/test/kotlin/OtherTest.kt" <<'KOTLIN'
+class OtherTest {
+    @Test
+    fun otherCard_measured() {
+        assertTrue(bounds(OtherTags.CARD).height > 0)
+    }
+}
+KOTLIN
+# Backticks are Markdown here, not command substitution.
+# shellcheck disable=SC2016
+printf '### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| Sửa | `feature/demo/src/main/kotlin/DemoScreen.kt` | thẻ đè lên `PAGER` |\n| Sửa | `feature/demo/src/test/kotlin/DemoScreenTest.kt` | `alreadyNamed_inPlan` |\n\n## 4. Kiểm thử\n' \
+  > "$trepo/docs/plans/T-1.md"
+EXISTING_TESTS_ROOT="$trepo" python3 -I scripts/existing-tests.py "$trepo/docs/plans/T-1.md" > "$work/existing.out"
+expect "existing-tests: the measuring test of a tag the plan names comes first" 1 \
+  "$(sed -n '/^Cần xem trước/,/^Nên xem/p' "$work/existing.out" | grep -c 'DemoScreenTest.card_belowPager.*| có |')"
+expect "existing-tests: a test the plan already names is only counted" "0 1" \
+  "$(grep -c 'alreadyNamed_inPlan' "$work/existing.out" || true) $(grep -c '^Plan đã nhắc tới 1 test' "$work/existing.out")"
+expect "existing-tests: a test using a tag the plan does not name is only counted" "0 1" \
+  "$(grep -c 'DemoScreenTest.card_exists' "$work/existing.out" || true) $(grep -c '^Còn 1 test' "$work/existing.out")"
+expect "existing-tests: local functions, plain vals, private functions and another object's CARD are not names" 0 \
+  "$(grep -c 'unrelated\|OtherTest' "$work/existing.out" || true)"
+EXISTING_TESTS_ROOT="$trepo" python3 -I scripts/existing-tests.py --all "$trepo/docs/plans/T-1.md" > "$work/existing.out"
+expect "existing-tests: --all lists the test using a tag the plan does not name" 1 \
+  "$(grep -c 'DemoScreenTest.card_exists' "$work/existing.out")"
 
 # The latest run list must not get an error from rule 11 (the plans of a run list are approved, so rule 11 only warns).
 latest_run="$(ls docs/runs/RUN-*.md | sort | tail -n 1)"
@@ -1629,6 +1815,12 @@ expect "token-usage: estimate falls back to the starting value" 1 \
   "$(token_usage estimate --csv docs/metrics/t.csv | grep -c '^| M | 1 | 2k | 15.0M (tạm')"
 expect "token-usage: starting estimates are S 5M, M 15M, L 30M (L-021)" "5.0M 15.0M 30.0M" \
   "$(token_usage estimate --csv docs/metrics/none.csv | sed -n 's/^| [SML] | 0 | - | \([0-9.]*M\) (tạm.*/\1/p' | xargs)"
+# A task continued in a later run is one sample, the sum of its rows (L-111).
+printf 'run,date,task,size,estimate,requests,input,cache_write,cache_read,output,total,credit_usd\n%s\n%s\n%s\n' \
+  'RUN-1,2026-10-01,T-001,M,,1,1,1,1,1,3000,' 'RUN-2,2026-10-02,T-001,M,,1,1,1,1,1,1000,' \
+  'RUN-2,2026-10-02,T-002,M,,1,1,1,1,1,2000,' > "$tokens/docs/metrics/continued.csv"
+expect "token-usage: a task measured in two runs counts once, with the sum" 1 \
+  "$(token_usage estimate --csv docs/metrics/continued.csv | grep -c '^| M | 2 | 3k | 15.0M (tạm')"
 # The cloud session credit of a run goes on its shared row, once, and survives measuring the run again (L-020).
 expect "token-usage: credit needs a measured run" 1 "$(token_usage credit --run RUN-0 --usd 1 --csv docs/metrics/t.csv > /dev/null; echo $?)"
 expect "token-usage: credit must be a number" 2 "$(token_usage credit --run RUN-20261018-01 --usd abc --csv docs/metrics/t.csv > /dev/null; echo $?)"
@@ -2164,6 +2356,31 @@ expect "device-session: leaves out other apps' lines" 0 "$(grep -c 'com.android.
 mkdir -p "$work/clean"
 cp "$fixtures/logcat-clean.txt" "$work/clean/logcat.txt"
 expect "device-session: a clean session is not blocking" 0 "$(session /dev/null summary "$work/clean" com.example.app.staging)"
+# An ANR inside the ad SDK's AdActivity (a test ad under monkey) is counted apart and does not block; one in an
+# activity of the app still blocks (FB-20261025-02).
+mkdir -p "$work/ad-anr" "$work/app-anr"
+{
+  cat "$fixtures/logcat-clean.txt"
+  echo "10-27 05:01:37.028   538  7321 E ActivityManager: ANR in com.example.app.staging (com.example.app.staging/com.google.android.gms.ads.AdActivity)"
+  echo "10-27 05:01:37.033  6539  6554 W Monkey  : ANR in com.example.app.staging (com.example.app.staging/com.google.android.gms.ads.AdActivity)"
+} > "$work/ad-anr/logcat.txt"
+printf '%s\n' '// NOT RESPONDING: com.example.app.staging (pid 5828)' \
+  'ANR in com.example.app.staging (com.example.app.staging/com.google.android.gms.ads.AdActivity)' 'Events injected: 1059' \
+  > "$work/ad-anr/monkey.txt"
+expect "device-session: an ANR only inside AdActivity does not block" 0 \
+  "$(session /dev/null summary "$work/ad-anr" com.example.app.staging)"
+expect "device-session: the AdActivity ANRs have their own row, level xem" "1 1 1" \
+  "$(grep -c '^| ANR trong màn quảng cáo của SDK (`AdActivity`, FB-20261025-02) | 2 | xem |' "$work/ad-anr/summary.md") $(grep -c '^| App không phản hồi (ANR) | 0 |  |' "$work/ad-anr/summary.md") $(grep -c '^| Monkey báo crash hay treo | 0 |  |' "$work/ad-anr/summary.md")"
+{
+  cat "$work/ad-anr/logcat.txt"
+  echo "10-27 05:02:01.000   538  7321 E ActivityManager: ANR in com.example.app.staging (com.example.app.staging/com.example.app.MainActivity)"
+} > "$work/app-anr/logcat.txt"
+printf '%s\n' '// NOT RESPONDING: com.example.app.staging (pid 5828)' \
+  'ANR in com.example.app.staging (com.example.app.staging/com.example.app.MainActivity)' > "$work/app-anr/monkey.txt"
+expect "device-session: an ANR in an activity of the app still blocks" 1 \
+  "$(session /dev/null summary "$work/app-anr" com.example.app.staging)"
+expect "device-session: the app ANR and the monkey hang stay blocking" "1 1" \
+  "$(grep -c '^| App không phản hồi (ANR) | 1 | chặn |' "$work/app-anr/summary.md") $(grep -c '^| Monkey báo crash hay treo | 1 | chặn |' "$work/app-anr/summary.md")"
 # The offline scenario turns every radio off and runs only when the device really has no network (L-031).
 # The plan scenarios (scripts/device-scenario.py) get an empty folder here, so these tests keep counting the standard ones.
 export DEVICE_SESSION_SLEEP=0 FAKE_ADB_CALLS="$work/adb-calls.txt" DEVICE_SCENARIOS_GLOB="$work/no-scenarios/*.txt"
@@ -2967,6 +3184,40 @@ sb_hook_mode reject
 expect "save-branch: refuses a branch outside claude/" 2 "$(sb_run main)"
 expect "save-branch: a branch outside claude/is never pushed" 0 "$(sb_calls_count)"
 expect "save-branch: refuses a branch that does not exist" 2 "$(sb_run claude/T-000-none)"
+
+# push-on-commit.sh pushes a task branch whenever it gets a new commit, for a bounded time (L-090, L-096).
+# A fake push command records its calls, so no remote is needed.
+pc_fake="$work/pc-save.sh"
+printf '#!/bin/sh\necho "$1 $(git rev-parse --short=7 "refs/heads/$1")" >> "%s"\nexit "${PC_SAVE_CODE:-0}"\n' \
+  "$work/pc.calls" > "$pc_fake"
+chmod +x "$pc_fake"
+pc_run() { # <seconds> <args>; runs push-on-commit.sh in the clone, prints the exit code
+  local seconds="$1" code=0
+  shift
+  (cd "$sb_clone" && PUSH_ON_COMMIT_SAVE="$pc_fake" PUSH_ON_COMMIT_SECONDS="$seconds" \
+    "$sb_root/scripts/push-on-commit.sh" "$@") > "$work/pc.out" 2>&1 || code=$?
+  echo "$code"
+}
+pc_calls() { if [ -f "$work/pc.calls" ]; then wc -l < "$work/pc.calls" | tr -d ' '; else echo 0; fi; }
+git -C "$sb_clone" commit -q --allow-empty -m pc-one
+rm -f "$work/pc.calls"
+expect "push-on-commit: a commit the remote does not have is pushed on the first read" "0 1" \
+  "$(pc_run 0 claude/T-999-thu --interval 1) $(pc_calls)"
+git -C "$sb_clone" update-ref refs/remotes/origin/claude/T-999-thu "$(git -C "$sb_clone" rev-parse HEAD)"
+rm -f "$work/pc.calls"
+expect "push-on-commit: nothing new, nothing pushed" "0 0" "$(pc_run 0 claude/T-999-thu --interval 1) $(pc_calls)"
+rm -f "$work/pc.calls"
+( sleep 1; git -C "$sb_clone" commit -q --allow-empty -m three ) &
+expect "push-on-commit: a commit made while it watches is pushed, then it stops when the time is up" "0 1" \
+  "$(pc_run 3 claude/T-999-thu --interval 1) $(pc_calls)"
+wait
+expect "push-on-commit: says when the time is up" 1 "$(grep -c '^HẾT GIỜ' "$work/pc.out")"
+git -C "$sb_clone" commit -q --allow-empty -m four
+rm -f "$work/pc.calls"
+expect "push-on-commit: a failed push (save-branch exit 3) stops it with exit 3" "3 1" \
+  "$(PC_SAVE_CODE=3 pc_run 30 claude/T-999-thu --interval 1) $(pc_calls)"
+expect "push-on-commit: refuses a branch outside claude/" 2 "$(pc_run 0 main)"
+expect "push-on-commit: refuses a bad interval" 2 "$(pc_run 0 claude/T-999-thu --interval x)"
 export GIT_CONFIG_COUNT="${sb_git_config[0]}" GIT_CONFIG_KEY_0="${sb_git_config[1]}" GIT_CONFIG_VALUE_0="${sb_git_config[2]}"
 
 # In-place sed without a backup suffix is GNU only: BSD sed on macOS stops with "invalid command code" (L-088).

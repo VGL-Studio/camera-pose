@@ -23,6 +23,7 @@ App Camera Pose: Lines and Guides, tạo từ dự án mẫu của nhóm ngày 2
 | Cài đặt staging và phiên tự chạy | [docs/ops/staging-and-runs.md](docs/ops/staging-and-runs.md) |
 | Phát hành bản production | [docs/ops/release.md](docs/ops/release.md) |
 | Đưa cải tiến từ app về dự án mẫu | [docs/ops/from-app.md](docs/ops/from-app.md) |
+| Đưa thay đổi của dự án mẫu về app | [docs/ops/to-app.md](docs/ops/to-app.md) |
 | Thiết kế giao diện và đối chiếu với thiết kế | [docs/ops/design-workflow.md](docs/ops/design-workflow.md) |
 | Khảo sát app mẫu để làm app clone | [docs/ops/clone-study.md](docs/ops/clone-study.md) |
 | Quảng cáo: định dạng, quy chuẩn native, thêm vị trí, đo lường | [docs/ops/ads-guide.md](docs/ops/ads-guide.md) |

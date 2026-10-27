@@ -1,6 +1,6 @@
 # ĐƯA CẢI TIẾN TỪ APP VỀ DỰ ÁN MẪU
 
-Mọi app được tạo từ dự án mẫu `VGL-Studio/app-project-template`. Khi làm app, nhóm sẽ cải tiến quy trình, script, CI hay module core. Cải tiến có ích cho mọi app thì đưa về dự án mẫu, để app tạo sau được hưởng. Tài liệu này mô tả đường đi đó. Chiều ngược lại (đưa thay đổi của dự án mẫu về các app đã tạo) không có cơ chế tự động; app tự quyết định có chép hay không.
+Mọi app được tạo từ dự án mẫu `VGL-Studio/app-project-template`. Khi làm app, nhóm sẽ cải tiến quy trình, script, CI hay module core. Cải tiến có ích cho mọi app thì đưa về dự án mẫu, để app tạo sau được hưởng. Tài liệu này mô tả đường đi đó. Chiều ngược lại (đưa thay đổi của dự án mẫu về các app đã tạo) đi qua PR đồng bộ theo [to-app.md](to-app.md) (ADR-0030).
 
 ## 1. Ở app: nhận ra cải tiến chung
 
@@ -46,4 +46,4 @@ Người phụ trách dự án mẫu (hiện là anh Nhật):
 
 ## 4. Các app đã tạo trước đó
 
-App muốn nhận cải tiến mới của dự án mẫu thì đọc `docs/lessons.md` của dự án mẫu (các bài học `applied` và `verified` sau ngày app được tạo, ghi trong commit đầu tiên của app), rồi tự chép thay đổi qua một PR thường của app.
+App nhận cải tiến mới của dự án mẫu qua PR đồng bộ (`docs/ops/to-app.md`, ADR-0030), không chép tay. Trước mỗi đợt đồng bộ, đưa xong cải tiến chung của app về dự án mẫu theo mục 1 đến 3. Khi đó xung đột ở phần của dự án mẫu lấy bản mẫu mà không mất gì.

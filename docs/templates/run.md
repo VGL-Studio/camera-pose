@@ -30,6 +30,7 @@ staging_build:               # phiên bản bản staging được phát cuối 
 
 - **`scripts/run-check.py`:** <qua, hoặc các lỗi đã sửa>; chú ý: <từng dòng và kết luận>
 - **Rà soát độc lập:** <ngày, số điểm chặn, nên sửa, ghi chú>
+- **Hạn mức Actions:** <số phút CI ước tính của danh sách, số phút còn lại dev đã xem, ngày> (`auto-run.md` mục 1, L-094)
 
 | Mức | Ticket | Vấn đề | Xử lý |
 | --- | --- | --- | --- |
@@ -71,6 +72,7 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 - [ ] Tiêu chí kiểm tra thủ công (máy thật, người): <ticket, tiêu chí, các bước>
 - [ ] Kịch bản emulator lỗi hay bỏ qua: <tệp, kết quả, bước lỗi, phản hồi FB-...>, hoặc "Không có"
 - [ ] Phần ngoài mục 3.2 đã merge (ADR-0029): <ticket, file, vì sao cần, PR>, hoặc "Không có"
+- [ ] Câu khẳng định cũ viết lại (ADR-0031): <ticket, test, câu cũ và câu mới, câu của plan nói điều mới, PR>, hoặc "Không có"
 - [ ] Điểm rà soát mức ghi chú: <ticket, nội dung>
 - [ ] Test chập chờn: <issue `flaky` đang mở, tên test>, hoặc "Không có" (ADR-0025)
 - [ ] Task bị revert: <ticket, issue `main-broken`, PR revert>, hoặc "Không có" (ADR-0025)

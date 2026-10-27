@@ -58,6 +58,7 @@ Nội dung giao việc tối thiểu: "Rà soát danh sách chạy `<đường d
 ### 2.3. Chạy được trong phiên
 
 - Kỹ thuật lần đầu dùng (tiêu chí E từ 2) đã chạy thử bằng `scripts/check.sh`, ghi ở mục 4.1 (L-042).
+- Plan sửa code Kotlin có mục 3.5 đủ: chạy `scripts/existing-tests.py <plan>`, xem từng test của nhóm "Cần xem trước" mà mục 3.5 chưa nói tới; câu khẳng định nào sẽ đỏ với hành vi mới mà plan chưa viết sẵn câu mới là điểm chặn (ADR-0031, L-106).
 - Điểm còn chưa chắc có phương án dự phòng ở mục 3.4 với điều kiện chuyển cụ thể (L-041).
 - Plan không dùng cách mà `scripts/check.sh` từ chối (L-042).
 - Quyền và thư viện đã được quyết trong mục 3.3:

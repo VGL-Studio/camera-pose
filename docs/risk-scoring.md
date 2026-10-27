@@ -65,6 +65,8 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 - Điều kiện dừng riêng ở mục 7 của plan vẫn áp dụng.
 - Ghi vào nhật ký plan (file, vì sao cần, loại), mô tả PR (mục "Ngoài mục 3.2", kèm `git diff --stat origin/main...HEAD -- <các file đó>`) và báo cáo phiên (một dòng `- [ ]` ở mục Cần người kiểm tra). Rà soát độc lập xét riêng phần này; vi phạm ADR-0029 là mức chặn (`auto-run.md`, bước 6).
 
+**Không phải dừng: lệch nhỏ đã liệt kê (camera-pose ADR-1005).** ADR-1005/L1 ngân sách kịch bản; L2 `need` thành `wait` khi emulator đã có thiết bị; L3 mốc tài liệu và mã dời chỗ (mọi dòng `-` của plan có nguyên văn ở chỗ mới); L4 test viết trước thất bại khi plan ghi qua ngay; L5 chi tiết do ktlint, lint hay trình biên dịch buộc; L6 tệp sinh bằng `scripts/foundation.py`, `scripts/status.py`; L7 dòng Áp dụng đã ghi; L8 bỏ qua loại task theo dòng `bo-qua-loai` của bảng tra lỗi; L9 điểm nên sửa (ADR-0029); L10 mã kế tiếp đã có người dùng. Ghi vào mục Quyết định AI đã tự làm của báo cáo. Không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
+
 **Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2 (cộng phần ngoài mục 3.2 theo ADR-0029, như với phương án chính), giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
 
 Khi dừng, AI làm ba việc:

@@ -1,7 +1,7 @@
 ---
 ticket: T-066
 title: Kiểm khả năng của cách mở phiên trước khi duyệt và ở đầu phiên (`open_with`, bảng khả năng, `push-probe.sh`)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -739,3 +739,15 @@ Không có.
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261027-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-27 18:35 UTC, commit `2bbe19f` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-066-kha-nang-cach-mo-phien`, PR #197.
+- **Đã làm:** phiên chính tự làm. `diff` của `scripts/run-check.py` và khối test áp sạch (`git apply --check`) trên nhánh chính `e263212` (sau T-067, T-069); `scripts/push-probe.sh`, `docs/ops/session-capabilities.md` chép nguyên khối của mục 3.1; chín câu tài liệu đặt đúng chỗ của mục 3.1 (rà soát so từng chỗ). L-086 sang `applied`, thêm PR #197 vào phần của T-066, giữ phần của T-067 (bước 10, trên nhánh báo cáo).
+- **Test viết trước:** 46 test (commit `e52da31`): 27 thất bại đúng lý do (quy tắc 8 chưa có; `push-probe.sh` chưa có, mã 127), 19 đối chứng qua, đúng mục 4.1 (test bảng tra lỗi thật qua vì T-067 đã merge, nằm trong số 27 vì `push-probe.sh` chưa có). Sau code: `scripts/tests/run.sh` 868 ok.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 2 ghi chú: `push-probe.sh` gọi từ thư mục con thì `git ls-tree origin/main .github/workflows/` rỗng, báo mã 2 với lời sai (an toàn; đề xuất `--full-tree` hay `cd` về gốc repo); script bị giết hẳn giữa chừng để lại mục trong `.git/worktrees` (`git worktree prune` dọn được).
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA. `pr-check` lần chạy 40560591036: xanh ở vòng đầu. Tổng 1 vòng CI.
+- **Lệch so với plan:** không có. Ngoài mục 3.2: không có. Lúc áp, phiên ghép nhầm thứ tự ba khối chữ của `docs/auto-run.md` và `docs/ops/pre-run-review.md` trên thư mục làm việc, thấy ngay ở `git diff`, hoàn tác và đặt lại trước khi commit; commit không có bản sai.
+- **Việc còn lại:** kiểm tra thủ công của mục 4 (lần thử thật ở đầu phiên: chính phiên này chạy `push-probe.sh` trước nhánh của T-068, kết quả ở mục Kiểm tra đầu phiên của báo cáo). Đề xuất về dự án mẫu. Người xóa tay nhánh `claude/T-066-kha-nang-cach-mo-phien` (L-092).
+- **Cần người xem:** hai ghi chú của rà soát ở trên.

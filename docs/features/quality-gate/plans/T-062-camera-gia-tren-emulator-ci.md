@@ -146,3 +146,16 @@ Nơi khác đọc `device-session.yml` (`grep -rn "device-session" scripts/ .git
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261027-01, phiên bản plan 1
+
+- **Kết quả:** dừng ở bước 7 vì lệnh đẩy bị từ chối (`docs/auto-run.md`, mục "Khi không đẩy được"). Plan và ticket giữ `approved`: không phải lỗi của plan.
+- **Nhánh, PR:** `claude/T-062-camera-gia`, commit `69db625`, chưa có trên GitHub (chỉ có phần trỏ vào nhánh chính `af437fb`, đẩy ở bước 1). Không có PR (GitHub trả `No commits between main and claude/T-062-camera-gia`). Bundle `/root/rescue/claude__T-062-camera-gia.bundle` trong máy cloud của phiên.
+- **Đã làm:** đúng mục 3.1: `device-session.yml` (`-camera-back emulated`, chú thích mới, chú thích dòng 86), dòng `criterion:` và `need` thành `wait` ở `T-058-chup-tu-chi-tiet.txt`, `need` thành `wait` ở `T-020-camera-mo-gap.txt`, câu ở `docs/ops/test-sessions.md` mục 4 và dòng `need` ở bảng lệnh mục 5.
+- **Test viết trước:** ngoại lệ đã duyệt (mục 4). `scripts/device-scenario.py check` cho hai tệp: mã 0. `scripts/check.sh`: QUA.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú (câu mới ở `test-sessions.md` mục 4 nằm giữa đoạn đầu và hai gạch kết quả, đúng chỗ plan nêu; `pr-check.yml` giữ `-camera-back none` theo câu hỏi 1; ticket đi qua nhánh báo cáo). `git diff origin/main -- .github/` chỉ có ba dòng plan nêu.
+- **Kết quả CI:** không chạy (chưa đẩy được).
+- **Lệch so với plan:** Không có.
+- **Lệnh bị từ chối:** `scripts/save-branch.sh claude/T-062-camera-gia` (05:27 UTC); GitHub trả `! [remote rejected] claude/T-062-camera-gia -> claude/T-062-camera-gia (refusing to allow an OAuth App to create or update workflow `.github/workflows/device-session.yml` without `workflow` scope)`. Token mà phiên `claude --cloud` dùng để đẩy không có quyền `workflow`, nên mọi commit sửa `.github/workflows/` bị từ chối. Phiên không đẩy lại dưới dạng khác (không qua API, không đổi tên nhánh).
+- **Việc còn lại:** người lấy lại nhánh từ bundle và đẩy bằng tài khoản có quyền `workflow` trước khi máy cloud bị thu hồi (lệnh ở báo cáo phiên, mục Nhánh chưa đẩy), hoặc chạy lại task với cùng phiên bản plan trong một phiên đẩy được file workflow (routine, hay `claude --cloud` sau khi cấp quyền `workflow` cho GitHub App). Phần đổi chỉ 4 file, làm lại nhanh theo mục 3.1.
+- **Cần người xem:** quyền `workflow` của token GitHub mà phiên `claude --cloud` dùng (bài học mới trong báo cáo phiên).

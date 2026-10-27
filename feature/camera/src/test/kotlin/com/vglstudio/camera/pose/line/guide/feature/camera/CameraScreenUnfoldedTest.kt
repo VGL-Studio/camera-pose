@@ -154,6 +154,14 @@ class CameraScreenUnfoldedTest {
         }
     }
 
+    // KB-4 (plan T-064): the right column uses the same flip button.
+    @Test
+    fun unfolded_cannotFlip_disabled() {
+        composeRule.setContent { Screen(uiState = DEFAULT.copy(canFlip = false)) }
+        composeRule.onNodeWithTag(CameraTestTags.FLIP).assertIsNotEnabled().performClick()
+        assertEquals(emptyList<String>(), calls)
+    }
+
     @Test
     fun unfoldedControls_callTheSameCallbacks() {
         composeRule.setContent { Screen() }

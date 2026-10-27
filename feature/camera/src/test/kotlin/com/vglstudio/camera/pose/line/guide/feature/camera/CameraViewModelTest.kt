@@ -289,6 +289,99 @@ class CameraViewModelTest {
         assertEquals(listOf(Lens.FRONT), repository.lensSaves)
     }
 
+    // KB-4 (plan T-064): a device with one camera cannot switch; the saved lens it lacks falls back to the one it has.
+    @Test
+    fun oneCamera_flipUnavailable() = runTest {
+        controller.lenses = setOf(Lens.BACK)
+        val viewModel = readyViewModel()
+        assertFalse(viewModel.ready().canFlip)
+    }
+
+    @Test
+    fun twoCameras_flipAvailable() = runTest {
+        val viewModel = readyViewModel()
+        assertTrue(viewModel.ready().canFlip)
+    }
+
+    @Test
+    fun oneCamera_flipClick_isIgnored() = runTest {
+        controller.lenses = setOf(Lens.BACK)
+        val viewModel = readyViewModel()
+        viewModel.onFlipClick()
+        runCurrent()
+        assertEquals(listOf(Lens.BACK), controller.openCalls)
+        assertEquals(Lens.BACK, viewModel.ready().lens)
+        assertEquals(emptyList<Lens>(), repository.lensSaves)
+    }
+
+    @Test
+    fun savedFront_withoutFrontCamera_opensBack_keepsSetting() = runTest {
+        repository.stored.value = CameraSettings(lens = Lens.FRONT)
+        controller.lenses = setOf(Lens.BACK)
+        val viewModel = readyViewModel()
+        assertEquals(listOf(Lens.BACK), controller.openCalls)
+        assertEquals(Lens.BACK, viewModel.ready().lens)
+        assertFalse(viewModel.ready().canFlip)
+        assertEquals(emptyList<Lens>(), repository.lensSaves)
+        assertTrue(logger.entries.any { it.tag == "Camera" && it.message == "Only one camera: back" })
+    }
+
+    @Test
+    fun frontOnlyDevice_opensFront() = runTest {
+        controller.lenses = setOf(Lens.FRONT)
+        val viewModel = readyViewModel()
+        assertEquals(listOf(Lens.FRONT), controller.openCalls)
+        assertEquals(Lens.FRONT, viewModel.ready().lens)
+        assertFalse(viewModel.ready().canFlip)
+    }
+
+    @Test
+    fun noLensReported_opensSavedLens_flipStaysAvailable() = runTest {
+        controller.lenses = emptySet()
+        val viewModel = readyViewModel()
+        assertEquals(listOf(Lens.BACK), controller.openCalls)
+        assertTrue(viewModel.ready().canFlip)
+    }
+
+    @Test
+    fun oneCamera_flipDuringCountdown_keepsCounting() = runTest {
+        repository.stored.value = CameraSettings(timer = TimerSetting.TEN)
+        controller.lenses = setOf(Lens.BACK)
+        val viewModel = readyViewModel()
+        viewModel.onShutterClick()
+        runCurrent()
+        viewModel.onFlipClick()
+        runCurrent()
+        assertEquals(10, viewModel.ready().countdown)
+        assertFalse(logger.entries.any { it.message == "Countdown cancelled: flip" })
+    }
+
+    @Test
+    fun savedFront_withoutFrontCamera_retryAfterError_opensBack() = runTest {
+        repository.stored.value = CameraSettings(lens = Lens.FRONT)
+        controller.lenses = setOf(Lens.BACK)
+        controller.openError = IllegalStateException("camera in use")
+        val viewModel = readyViewModel()
+        assertEquals(CameraUiState.Error, viewModel.uiState.value)
+        controller.openError = null
+        viewModel.onRetry()
+        runCurrent()
+        assertEquals(listOf(Lens.BACK, Lens.BACK), controller.openCalls)
+        assertFalse(viewModel.ready().canFlip)
+    }
+
+    @Test
+    fun savedFront_withoutFrontCamera_stoppedThenStarted_opensBack() = runTest {
+        repository.stored.value = CameraSettings(lens = Lens.FRONT)
+        controller.lenses = setOf(Lens.BACK)
+        val viewModel = readyViewModel()
+        viewModel.onScreenStopped()
+        viewModel.onScreenStarted(permissionGranted = true)
+        runCurrent()
+        assertEquals(listOf(Lens.BACK, Lens.BACK), controller.openCalls)
+        assertEquals(Lens.BACK, viewModel.ready().lens)
+    }
+
     @Test
     fun flip_twiceQuickly_returnsToBack() = runTest {
         val pending = CompletableDeferred<Unit>()

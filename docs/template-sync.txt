@@ -12,3 +12,4 @@ hold=gradle.properties 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # which the app does not have yet (ADR-1004). Take them with core/ads in a later sync, through an approved plan.
 hold=scripts/release.sh 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
+# T-068: scripts/save-branch.sh (patch trên nhánh báo cáo), scripts/tests/fake-gh (errors, 404) và khối test của chúng trong scripts/tests/run.sh là phần của app chưa có ở mẫu: khi gộp xung đột, giữ phần này (đã đề xuất from-app).

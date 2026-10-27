@@ -1664,6 +1664,91 @@ git -C "$wt_repo" worktree add -q "$work/wt-report" 2> /dev/null
 usage_line k1 claude/RUN-1-report 2026-10-18T02:00:00Z 90 "$work/wt-report" > "$work/worktree.jsonl"
 expect "token-usage: a worktree of the repository is counted" 1 \
   "$(TOKEN_USAGE_ROOT="$wt_repo" python3 -I scripts/token-usage.py report --transcripts "$work/worktree.jsonl" | grep -c '^| Chung (ngoài task) | - | - | 1k | - | 1 |')"
+# The main session marks the task it works on with `scripts/token-usage.py mark T-NNN` and ends it with
+# `mark chung`: its own requests between the two count for the task, even on a detached HEAD (L-083 of camera-pose).
+mark_line() { # <time> <command> [cwd]
+  printf '{"type":"assistant","timestamp":"%s","cwd":"%s","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"%s"}}]}}\n' \
+    "$1" "${3:-$tokens}" "$2"
+}
+mkdir -p "$work/projects-mark/p/s/subagents"
+{
+  usage_line m0 HEAD 2026-10-18T02:59:00Z 90
+  mark_line 2026-10-18T03:00:00Z 'cd /repo && scripts/token-usage.py mark T-031'
+  usage_line m1 HEAD 2026-10-18T03:01:00Z 90
+  usage_line m2 claude/T-032-other 2026-10-18T03:02:00Z 90
+  usage_line m5 HEAD 2026-10-18T03:07:00Z 90
+  mark_line 2026-10-18T03:08:00Z "git commit -m 'chạy scripts/token-usage.py mark T-035'"
+  mark_line 2026-10-18T03:09:00Z "grep -En 'scripts/token-usage.py mark T-033|mark chung' docs/auto-run.md"
+  usage_line m6 HEAD 2026-10-18T03:09:30Z 90
+  mark_line 2026-10-18T03:10:00Z 'git checkout --detach origin/main; scripts/token-usage.py mark chung'
+  usage_line m3 HEAD 2026-10-18T03:11:00Z 90
+} > "$work/projects-mark/p/s.jsonl"
+{
+  mark_line 2026-10-18T03:05:00Z 'scripts/token-usage.py mark T-034'
+  usage_line m4 HEAD 2026-10-18T03:06:00Z 90
+} > "$work/projects-mark/p/s/subagents/agent-1.jsonl"
+TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-mark" python3 -I scripts/token-usage.py report \
+  --since 2026-10-18T00:00:00Z > "$work/tokens-mark.out"
+expect "token-usage: main-session requests after a mark count for the marked task" 1 \
+  "$(grep -c '^| T-031 | M | 2k | 4k | 1.8x | 3 |' "$work/tokens-mark.out")"
+expect "token-usage: before the first mark and after mark chung stay shared" 1 \
+  "$(grep -c '^| Chung (ngoài task) | - | - | 4k | - | 3 |' "$work/tokens-mark.out")"
+expect "token-usage: a request on a task branch keeps its branch's task during a mark" 1 \
+  "$(grep -c '^| T-032 | - | - | 1k | - | 1 |' "$work/tokens-mark.out")"
+expect "token-usage: a mark named in quotes or run by a subagent is not a mark" "0 0 0" \
+  "$(grep -c '^| T-033 |' "$work/tokens-mark.out") $(grep -c '^| T-034 |' "$work/tokens-mark.out") $(grep -c '^| T-035 |' "$work/tokens-mark.out")"
+mkdir -p "$work/projects-mark2/p"
+{
+  mark_line 2026-10-18T01:00:00Z 'scripts/token-usage.py mark T-031'
+  usage_line n1 HEAD 2026-10-18T01:01:00Z 90
+} > "$work/projects-mark2/p/s.jsonl"
+usage_line n2 HEAD 2026-10-18T05:00:00Z 90 > "$work/projects-mark2/p/s2.jsonl"
+TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-mark2" python3 -I scripts/token-usage.py report \
+  --since 2026-10-18T00:30:00Z > "$work/tokens-mark2.out"
+expect "token-usage: a mark in an earlier transcript of the run still counts (resumed session)" "1 0" \
+  "$(grep -c '^| T-031 | M | 2k | 2k | 1.2x | 2 |' "$work/tokens-mark2.out") $(grep -c '^| Chung' "$work/tokens-mark2.out")"
+TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-mark2" python3 -I scripts/token-usage.py report \
+  --since 2026-10-18T04:00:00Z > "$work/tokens-mark3.out"
+expect "token-usage: a mark before --since does not count (left open by an earlier session)" "0 1" \
+  "$(grep -c '^| T-031 |' "$work/tokens-mark3.out") $(grep -c '^| Chung (ngoài task) | - | - | 1k | - | 1 |' "$work/tokens-mark3.out")"
+mkdir -p "$work/projects-mark4/p"
+{
+  mark_line 2026-10-18T00:50:00Z 'scripts/token-usage.py mark T-036' /elsewhere
+  usage_line q0 HEAD 2026-10-18T00:55:00Z 90
+  mark_line 2026-10-18T01:00:00Z 'python3 /home/user/camera-pose/scripts/token-usage.py mark T-031'
+  usage_line q1 HEAD 2026-10-18T01:01:00Z 90
+} > "$work/projects-mark4/p/s.jsonl"
+TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-mark4" python3 -I scripts/token-usage.py report \
+  --since 2026-10-18T00:00:00Z > "$work/tokens-mark4.out"
+expect "token-usage: a mark run by an absolute path counts" 1 \
+  "$(grep -c '^| T-031 | M | 2k | 1k | 0.6x | 1 |' "$work/tokens-mark4.out")"
+expect "token-usage: a mark run in another folder is not a mark" 0 "$(grep -c '^| T-036 |' "$work/tokens-mark4.out")"
+# Transcripts are read in file name order, not in time order: the marks of all of them are sorted by time.
+mkdir -p "$work/projects-mark5/p"
+mark_line 2026-10-18T03:00:00Z 'scripts/token-usage.py mark T-031' > "$work/projects-mark5/p/a.jsonl"
+{
+  mark_line 2026-10-18T02:00:00Z 'scripts/token-usage.py mark chung'
+  usage_line r1 HEAD 2026-10-18T04:00:00Z 90
+} > "$work/projects-mark5/p/b.jsonl"
+TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-mark5" python3 -I scripts/token-usage.py report \
+  --since 2026-10-18T00:00:00Z > "$work/tokens-mark5.out"
+expect "token-usage: the latest mark wins whatever the order of the transcript files" "1 0" \
+  "$(grep -c '^| T-031 | M | 2k | 1k | 0.6x | 1 |' "$work/tokens-mark5.out") $(grep -c '^| Chung' "$work/tokens-mark5.out")"
+expect "token-usage: mark prints the task and exits 0" "0 1" \
+  "$(token_usage mark T-031 > "$work/mark.out"; echo $?) $(grep -c 'T-031' "$work/mark.out")"
+expect "token-usage: mark with a name that is not T-NNN or chung exits 2 and says why" "2 1" \
+  "$(token_usage mark T031 > "$work/mark-bad.out" 2>&1; echo $?) $(grep -c '^LỖI: ' "$work/mark-bad.out")"
+# A line naming the command in an odd shape (not an object, a text message, a text input) is no mark and no failure.
+mkdir -p "$work/projects-mark6/p"
+{
+  echo '["scripts/token-usage.py mark T-031"]'
+  printf '{"type":"assistant","timestamp":"2026-10-18T03:00:00Z","cwd":"%s","message":"scripts/token-usage.py mark T-031"}\n' "$tokens"
+  printf '{"type":"assistant","timestamp":"2026-10-18T03:00:00Z","cwd":"%s","message":{"content":[{"type":"tool_use","name":"Bash","input":"scripts/token-usage.py mark T-031"}]}}\n' "$tokens"
+  usage_line s1 HEAD 2026-10-18T03:01:00Z 90
+} > "$work/projects-mark6/p/s.jsonl"
+expect "token-usage: a mark line of an odd shape is skipped without failing the report" "0 1" \
+  "$(TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-mark6" python3 -I scripts/token-usage.py report \
+    --since 2026-10-18T00:00:00Z > "$work/tokens-mark6.out" 2>&1; echo $?) $(grep -c '^| Chung (ngoài task) | - | - | 1k | - | 1 |' "$work/tokens-mark6.out")"
 
 # In a git checkout, plan-check.py only searches tracked files for readers: a copy of the repository in an untracked
 # folder such as .claude/worktrees/ is not a reader of the changed file.

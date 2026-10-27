@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là mục Đề xuất của báo cáo RUN-20261026-03 và câu hỏi 2 của plan T-058
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: S
 depends_on: [T-058]

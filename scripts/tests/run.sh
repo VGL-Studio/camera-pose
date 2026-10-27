@@ -3473,7 +3473,7 @@ expect "save-branch patch: the bundle is still made" ok \
 expect "save-branch patch: the printed commands rebuild the same tree" "$(git -C "$sb_clone" rev-parse "$sb_patch_head^{tree}")" \
   "$(sb_apply_check "$work/sb.out" claude/T-997-patch)"
 expect "save-branch patch: the rebuilt branch keeps both commit messages" "T-997: workflow and binary|T-997: a" \
-  "$(git -C "$work/sb-apply" log --format=%s main..claude/T-997-patch 2> /dev/null | paste -sd '|' -)"
+  "$(git -C "$work/sb-apply" log --format=%s origin/main..claude/T-997-patch 2> /dev/null | paste -sd '|' -)"
 expect "save-branch patch: the check worktree is removed" 2 "$(git -C "$sb_clone" worktree list | grep -c .)"
 expect "save-branch patch: the same patch again exits 3" 3 "$(sb_run claude/T-997-patch)"
 expect "save-branch patch: ... adds no second commit" 1 "$(sb_report_commits)"

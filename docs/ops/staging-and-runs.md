@@ -19,6 +19,7 @@ Bí mật thêm ở **Settings > Secrets and variables > Actions > Secrets** c�
    5. Gặp lỗi `Service account key creation is disabled` thì quản trị viên tổ chức Google Cloud tắt chính sách `iam.disableServiceAccountKeyCreation` cho project staging.
    6. Cất file khóa vào trình quản lý mật khẩu, xóa bản trong thư mục tải về sau khi thêm bí mật (mục 1.3). Lộ khóa thì xóa khóa ở tab **Keys**, tạo khóa mới, cập nhật bí mật.
 5. Kiểm tra `google-services.json` có app với package `<applicationId>.staging`; workflow `staging` báo lỗi nếu không có.
+6. Tạo tài khoản dịch vụ chỉ đọc Remote Config, để `scripts/setup-check.sh --staging` kiểm catalog tư thế mà khóa `poses_catalog_path` trỏ tới (plan T-065; chỉ có ở camera-pose): như bước 4, tên `remote-config-reader`, vai trò **Firebase Remote Config Viewer** (`roles/firebaseremoteconfig.viewer`), không vai trò nào khác; tạo khóa JSON, cất như bước 4.6.
 
 ### 1.2. Khóa ký staging
 
@@ -38,6 +39,7 @@ Cất `staging.keystore` và mật khẩu vào trình quản lý mật khẩu c�
 | --- | --- |
 | `STAGING_GOOGLE_SERVICES_JSON` | Toàn bộ nội dung `google-services.json` của staging |
 | `STAGING_APP_DISTRIBUTION_CREDENTIALS` | Toàn bộ nội dung file khóa JSON của tài khoản dịch vụ |
+| `STAGING_REMOTE_CONFIG_CREDENTIALS` | Toàn bộ nội dung file khóa JSON của tài khoản `remote-config-reader` (mục 1.1, bước 6) |
 | `STAGING_KEYSTORE_BASE64` | Nội dung `staging.keystore.b64` |
 | `STAGING_KEYSTORE_PASSWORD` | Mật khẩu keystore (cũng là mật khẩu của khóa) |
 | `STAGING_KEY_ALIAS` | `staging` |
@@ -47,6 +49,7 @@ Thêm bằng terminal của mình (lệnh không in giá trị ra):
 ```sh
 gh secret set STAGING_GOOGLE_SERVICES_JSON < google-services.json
 gh secret set STAGING_APP_DISTRIBUTION_CREDENTIALS < <file khóa JSON>
+gh secret set STAGING_REMOTE_CONFIG_CREDENTIALS < <file khóa JSON của remote-config-reader>
 gh secret set STAGING_KEYSTORE_BASE64 < staging.keystore.b64
 gh secret set STAGING_KEYSTORE_PASSWORD     # nhập mật khẩu khi được hỏi
 gh secret set STAGING_KEY_ALIAS --body staging
@@ -109,7 +112,7 @@ Mã này chỉ kích hoạt được đúng routine đó, không đọc được
 
 1. Danh sách chạy `docs/runs/RUN-YYYYMMDD-NN.md` có trạng thái `approved` đã được merge vào nhánh chính.
 2. **Actions > start-run > Run workflow**, nhánh `main`, nhập đường dẫn danh sách chạy.
-3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`, L-076). Workflow cũng chạy `scripts/setup-check.sh --staging` trên máy của GitHub và từ chối khi: bí mật `STAGING_GOOGLE_SERVICES_JSON` thiếu, là file giả (`fake-staging-project`) hay không có app `<applicationId>.staging`; một nhóm trong `STAGING_TESTER_GROUPS` (mặc định `team`) chưa có trên App Distribution; một file trong `docs/ops/required-assets.txt` không trả `200`; tên miền file tĩnh không phân giải được qua 1.1.1.1 hay 8.8.8.8. Các lỗi này trước đây chỉ lộ ra ở cuối phiên, khi phát bản staging (L-059). Nhóm người test được kiểm bằng API của App Distribution với tài khoản dịch vụ ở mục 1.1; API không trả lời (ví dụ thiếu quyền) thì chỉ báo chú ý. Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
+3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`, L-076). Workflow cũng chạy `scripts/setup-check.sh --staging` trên máy của GitHub và từ chối khi: bí mật `STAGING_GOOGLE_SERVICES_JSON` thiếu, là file giả (`fake-staging-project`) hay không có app `<applicationId>.staging`; một nhóm trong `STAGING_TESTER_GROUPS` (mặc định `team`) chưa có trên App Distribution; một file trong `docs/ops/required-assets.txt` không trả `200`; tên miền file tĩnh không phân giải được qua 1.1.1.1 hay 8.8.8.8; catalog tư thế mặc định của app, hay catalog mà một giá trị của khóa `poses_catalog_path` trên Remote Config staging trỏ tới, hay một file khởi đầu của các catalog đó không trả `200` (`scripts/setup-check-app.sh`, plan T-065). Kiểm tra xanh thì workflow đóng issue `setup-broken` đang mở, để phiên mở sau đó không dừng vì một issue cũ. Các lỗi này trước đây chỉ lộ ra ở cuối phiên, khi phát bản staging (L-059). Nhóm người test được kiểm bằng API của App Distribution với tài khoản dịch vụ ở mục 1.1; API không trả lời (ví dụ thiếu quyền) thì chỉ báo chú ý. Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
 4. Bị từ chối vì `main-guard` chưa chạy hay chưa có kết quả (`CHƯA KIỂM`, thường vì GitHub không phát sự kiện push sau một lần merge; cũng báo khi lần chạy thất bại mà không có issue `main-broken`, tức lỗi hạ tầng): **Actions > main-guard > Run workflow** trên `main`, **Re-run all jobs** trên lần chạy thất bại, hoặc lệnh mà thông báo in ra,, chờ xanh, rồi chạy lại `start-run`. Đang chạy (`CHỜ`): chờ xong rồi chạy lại.
 
 Lưu ý:
@@ -134,7 +137,12 @@ Thiết lập một lần:
 2. Mở trigger **API** của routine này, **Generate token**, thêm hai bí mật: `gh secret set ENV_CANARY_FIRE_URL` và `gh secret set ENV_CANARY_FIRE_TOKEN`.
 3. Chạy thử: **Actions > env-canary > Run workflow**. Mở phiên trong đường dẫn ở phần tóm tắt, xem script báo xanh.
 
-Cùng workflow có job thứ hai, `setup-check`, chạy `scripts/setup-check.sh --staging` trên máy của GitHub (không tốn hạn mức Claude, chạy cả khi có phiên đang chạy): file R2 bắt buộc, DNS, bí mật Firebase staging và nhóm người test, như `start-run` (mục 2.3). Đỏ thì mở issue `setup-broken` (hoặc thêm bình luận vào issue đang mở), xanh thì tự đóng. Nhãn riêng vì `scripts/env-canary.sh` đóng mọi issue `env-broken` khi môi trường cloud xanh.
+Cùng workflow có job thứ hai, `setup-check`, chạy `scripts/setup-check.sh --staging` trên máy của GitHub (không tốn hạn mức Claude, chạy cả khi có phiên đang chạy): file R2 bắt buộc, DNS, bí mật Firebase staging và nhóm người test, như `start-run` (mục 2.3). Đỏ thì kiểm lại một lần sau 90 giây; vẫn đỏ thì mở issue `setup-broken` (hoặc thêm bình luận vào issue đang mở), xanh thì tự đóng. Nhãn riêng vì `scripts/env-canary.sh` đóng mọi issue `env-broken` khi môi trường cloud xanh. Chạy tay chỉ phần này: **Actions > env-canary > Run workflow**, chọn **setup_only** (không kích hoạt routine, không tốn hạn mức Claude).
+
+**Catalog tư thế (camera-pose, plan T-065).** Kiểm tra trên gồm `scripts/setup-check-app.sh`: catalog mặc định của app (`DEFAULT_CATALOG_PATH`, bản staging của CI dùng nó) và mọi giá trị của khóa `poses_catalog_path` trên Remote Config staging, kể cả giá trị theo điều kiện; mỗi catalog phải trả `200`, đọc được, không đòi app mới hơn (giá trị chỉ theo điều kiện thì chỉ chú ý), và ảnh nhỏ cùng nét viền của mọi tư thế `starter` phải trả `200`. Một file trả 404 mà hỏi lại kèm tham số chống bộ nhớ đệm thì trả `200` nghĩa là file đã có nhưng Cloudflare còn giữ câu trả lời 404 cũ: xóa bộ nhớ đệm của URL đó (2026-10-27, một 404 được giữ với `max-age=31536000`).
+
+- **Đổi khóa `poses_catalog_path` hay tải catalog mới:** tải catalog và mọi file của nó lên R2 trước, rồi mới thêm hay đổi giá trị của khóa, kể cả giá trị theo điều kiện chưa bật (một giá trị trỏ tới file chưa có cũng làm kiểm tra đỏ và chặn mọi phiên). Xong thì chạy lại **env-canary** với **setup_only**, vì lần chạy buổi sáng không thấy thay đổi sau đó.
+- Không đọc được Remote Config (mạng, `firebase-tools` lỗi, quá 120 giây) chỉ là chú ý: catalog mặc định vẫn được kiểm. Thiếu bí mật hay tài khoản thiếu vai trò thì là lỗi. R2 không trả lời 3 file liền thì dừng phần catalog với một dòng lỗi.
 
 Khi có issue `env-broken`: đọc log trong issue. Thường là môi trường chưa dán setup script mới (dán lại theo mục 2.1); lỗi khác thì sửa nguyên nhân. Sau đó chạy lại **env-canary** bằng tay; lần chạy xanh tự đóng issue.
 

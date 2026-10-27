@@ -3579,7 +3579,7 @@ expect "save-branch patch: ... leaves the report worktree clean" "" "$(git -C "$
 expect "save-branch patch: ... keeps the patch already committed" "$sb_tracked" "$(git -C "$sb_report" hash-object "$sb_mbox_rel" 2> /dev/null || echo gone)"
 git -C "$sb_clone" push -q -f origin "main:$sb_report_branch"
 git -C "$sb_clone" fetch -q origin
-git -C "$sb_origin" update-ref "refs/heads/$sb_report_branch" "$(git -C "$sb_origin" commit-tree -p "refs/heads/$sb_report_branch" -m remote "refs/heads/$sb_report_branch^{tree}")"
+git -C "$sb_origin" update-ref "refs/heads/$sb_report_branch" "$(git -C "$sb_origin" -c user.name=t -c user.email=t@example.com commit-tree -p "refs/heads/$sb_report_branch" -m remote "refs/heads/$sb_report_branch^{tree}")"
 git -C "$sb_report" reset -q --hard main
 git -C "$sb_report" commit -q --allow-empty -m "local timeline"
 expect "save-branch patch: a report branch that diverged from GitHub exits 3" 3 "$(sb_run claude/T-997-patch)"

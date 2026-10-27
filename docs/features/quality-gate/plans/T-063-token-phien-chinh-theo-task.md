@@ -1,16 +1,16 @@
 ---
 ticket: T-063
 title: Token của phiên chính khi làm task trên HEAD tách rời tính vào đúng task (lệnh `token-usage.py mark`)
-status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
-token_estimate: 5.5M         # cỡ S, số gợi ý của scripts/token-usage.py estimate (2026-10-26), không nâng tay (L-081)
+token_estimate: 5.5M         # cỡ S, số gợi ý của scripts/token-usage.py estimate (2026-10-27), không nâng tay (L-081)
 blocking_points: [process]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Nhật               # người duyệt
 cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at: 2026-10-26
+approved_at:
 ---
 
 # PLAN T-063: TOKEN CỦA PHIÊN CHÍNH KHI LÀM TASK TÍNH VÀO ĐÚNG TASK
@@ -18,6 +18,13 @@ approved_at: 2026-10-26
 ## 1. Tóm tắt
 
 Thêm lệnh `scripts/token-usage.py mark T-NNN` và `mark chung`. Phiên chính chạy `mark T-NNN` khi bắt đầu một task (hay khi chuyển sang làm việc của một task khác) và `mark chung` khi không còn task nào đang làm. Lệnh chỉ in một dòng xác nhận; `report` đọc lại chính dòng lệnh đó trong transcript của phiên chính (khối `tool_use` của công cụ Bash) và gán mọi request của phiên chính không ở nhánh task nào, từ dấu mốc `mark T-NNN` gần nhất tới dấu mốc kế tiếp, cho T-NNN. Dấu mốc trước `--since` không tính: `--since` (giờ bắt đầu phiên) có tác dụng như `mark chung`, nên dấu mốc mà một phiên trước bỏ dở không lan sang phiên sau. Dấu mốc nằm trong transcript nên sống đúng bằng transcript; phiên tiếp tục trong môi trường mới chạy lại `mark` cho task đang làm dở. Code và 11 test đã chạy thật trên code hiện tại, trên bản cài thử và với 7 đột biến (mục 4.1).
+
+**Phiên bản 2** viết lại theo nhánh chính sau PR #179 (đồng bộ dự án mẫu, đợt 1, `1fc049e`), cùng thiết kế, cùng test và câu trả lời của Tuấn ở mục 8 của phiên bản 1:
+
+- PR #179 đổi docstring đầu tệp, chú thích của `BRIEF_TASK` và hàm `message_text` của `scripts/token-usage.py`, nên `diff` của phiên bản 1 không áp được (hunk docstring hỏng). `diff` ở mục 3.1 viết lại trên `1fc049e`, `git apply --check` sạch; phần code không đổi so với phiên bản 1.
+- `scripts/tests/run.sh` của mẫu có 18 test `token-usage` có sẵn (phiên bản 1: 20), và một khối test `plan-check` mới nằm giữa test `a worktree of the repository is counted` và `# status.py builds the progress page`; khối test mới đặt ngay sau test `a worktree ...`.
+- `docs/auto-run.md` và `docs/ops/token-usage.md` là file lấy từ mẫu, dẫn sổ bài học của mẫu (`docs/CLAUDE.md`, đầu tệp); câu mới ghi `camera-pose L-083`, như các phần app áp lại (`camera-pose L-084`). Mục 4 bước 0 giữ L-103 (của mẫu, cùng nội dung với camera-pose L-080). Mục Giao bước 3 đến 5 có thêm gạch "Phiên chính đẩy nhánh task" trước đoạn L-084; câu mới vào gạch đầu dòng đầu, trước cả hai.
+- Chạy lại L-075 trên `1fc049e` (mục 4.1): kết quả và 7 đột biến giống phiên bản 1.
 
 ## 2. Hiểu yêu cầu
 
@@ -59,49 +66,51 @@ ADR liên quan: ADR-0010 (cổng chất lượng, test của script).
 - lệnh con `mark` (in dòng xác nhận, mã 0; tên sai thì `LỖI: `, mã 2); docstring đầu tệp thêm `mark` và cách gán.
 
 ```diff
+diff --git a/scripts/token-usage.py b/scripts/token-usage.py
+index b4e9da3..849933c 100755
 --- a/scripts/token-usage.py
 +++ b/scripts/token-usage.py
-@@ -5,16 +5,22 @@ Usage:
+@@ -5,15 +5,22 @@ Usage:
    scripts/token-usage.py report [--since ISO] [--until ISO] [--run RUN-ID] [--csv FILE] [--transcripts FILE ...]
    scripts/token-usage.py estimate [--csv FILE]
    scripts/token-usage.py credit --run RUN-ID --usd AMOUNT [--csv FILE]
 +  scripts/token-usage.py mark T-NNN|chung
  
  report: reads every transcript (subagents included) of this repository, keeps one usage per API request,
-   attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...)
-   or, for a subagent transcript, by a `Task: T-NNN` line of its first user message, and prints a Markdown
--  table with the plan's estimate next to the actual count. With --run and --csv it also writes the rows
--  of that run into the CSV, replacing rows of the same run so it can run again.
-+  table with the plan's estimate next to the actual count. A request of a main session transcript on no task
-+  branch counts for the task of the last `mark` a main session ran before it, from --since on (any transcript):
-+  --since acts as `mark chung`, so a mark left open by an earlier session never reaches this one.
-+  With --run and --csv it also writes the rows of that run into the CSV, replacing rows of the same run so it
+   attributes it to a task by the git branch the request was made on (claude/T-NNN-..., claude/fix-T-NNN-...),
+-  and prints a Markdown table with the plan's estimate next to the actual count. With --run and --csv it also
+-  writes the rows of that run into the CSV, replacing rows of the same run so it can run again.
++  and prints a Markdown table with the plan's estimate next to the actual count. A request of a main session
++  transcript on no task branch counts for the task of the last `mark` a main session ran before it, from --since
++  on (any transcript): --since acts as `mark chung`, so a mark left open by an earlier session never reaches this
++  one. With --run and --csv it also writes the rows of that run into the CSV, replacing rows of the same run so it
 +  can run again.
  estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan, and the cloud
    session credit spent per million tokens over the runs that recorded it.
  credit: records the cloud session credit (US dollars) a run opened with `claude --cloud` spent, read by a person
    from the balance before and after the run. It goes on the shared row of the run, once per run.
-+mark: the main session runs `mark T-NNN` when it starts a task and `mark chung` when the task ends (L-083). It only
-+  prints what it marks: report reads the command back from the transcript, so the mark lasts as long as it.
++mark: the main session runs `mark T-NNN` when it starts a task and `mark chung` when the task ends
++  (L-083 of camera-pose). It only prints what it marks: report reads the command back from the transcript,
++  so the mark lasts as long as it.
  
  A transcript belongs to this repository when its working directory is the repository, any of its git worktrees
  (the report branch is often checked out in one, L-008 of camera-pose), or a folder named like the repository
-@@ -53,6 +59,14 @@ TASK_BRANCH = re.compile(r"^claude/(?:fix-)?(T-\d+)(?:-|$)")
- # A subagent works in a worktree by path, so its transcript keeps the main checkout's branch. The main session
- # writes a line "Task: T-NNN" in its brief, and every request of that subagent transcript counts for the task (L-073).
+@@ -52,6 +59,14 @@ TASK_BRANCH = re.compile(r"^claude/(?:fix-)?(T-\d+)(?:-|$)")
+ # A subagent brief names its task on a line of its own (auto-run.md, L-071): the subagent runs in the task worktree by
+ # path, so its transcript still carries the report branch of the main session.
  BRIEF_TASK = re.compile(r"^Task: (T-\d+)\s*$", re.M)
 +# While a subagent worktree holds the task branch, the main checkout is on a detached HEAD, so the main session's
 +# own requests for the task carry no task branch. It runs `scripts/token-usage.py mark T-NNN` at the start of the
-+# task and `mark chung` at its end; the command, read back from its transcript, is the mark (L-083). Only a command
-+# that runs the script counts, by any path (./scripts/..., /abs/repo/scripts/...): the name inside quotes (a grep,
-+# a commit message) does not.
++# task and `mark chung` at its end; the command, read back from its transcript, is the mark (L-083 of camera-pose).
++# Only a command that runs the script counts, by any path (./scripts/..., /abs/repo/scripts/...): the name inside
++# quotes (a grep, a commit message) does not.
 +MARK_COMMAND = re.compile(
 +    r"(?:^|[\s;&|(])(?:[^\s'\"]*/)?scripts/token-usage\.py mark (T-\d+|chung)(?=$|[\s;&|)])", re.M)
 +MARK_NAME = re.compile(r"^(T-\d+|chung)$")
  
  
  def parse_amount(text):
-@@ -163,9 +177,32 @@ def message_text(message):
+@@ -161,9 +176,32 @@ def message_text(message):
      return ""
  
  
@@ -135,7 +144,7 @@ ADR liên quan: ADR-0010 (cổng chất lượng, test của script).
      in_repo = repo_matcher()
      for path in files:
          try:
-@@ -184,6 +221,14 @@ def requests(files, since, until):
+@@ -182,6 +220,14 @@ def requests(files, since, until):
                          first_user = False
                          match = BRIEF_TASK.search(message_text(entry.get("message")))
                          brief_task = f"claude/{match.group(1)}" if match else None
@@ -150,7 +159,7 @@ ADR liên quan: ADR-0010 (cổng chất lượng, test của script).
                  if '"usage"' not in line:
                      continue
                  try:
-@@ -204,8 +249,10 @@ def requests(files, since, until):
+@@ -202,8 +248,10 @@ def requests(files, since, until):
                      "cache_write": usage.get("cache_creation_input_tokens") or 0,
                      "cache_read": usage.get("cache_read_input_tokens") or 0,
                      "output": usage.get("output_tokens") or 0,
@@ -162,7 +171,7 @@ ADR liên quan: ADR-0010 (cổng chất lượng, test của script).
  
  
  def group(found):
-@@ -346,6 +393,17 @@ def estimate(args):
+@@ -344,6 +392,17 @@ def estimate(args):
      return 0
  
  
@@ -180,7 +189,7 @@ ADR liên quan: ADR-0010 (cổng chất lượng, test của script).
  def main(argv):
      parser = argparse.ArgumentParser(description="Đếm token AI theo task của phiên tự chạy.")
      commands = parser.add_subparsers(dest="command", required=True)
-@@ -361,8 +419,10 @@ def main(argv):
+@@ -359,8 +418,10 @@ def main(argv):
      credit_parser.add_argument("--run", required=True)
      credit_parser.add_argument("--usd", required=True)
      credit_parser.add_argument("--csv", default=DEFAULT_CSV)
@@ -194,26 +203,26 @@ ADR liên quan: ADR-0010 (cổng chất lượng, test của script).
  if __name__ == "__main__":
 ```
 
-**`scripts/tests/run.sh`:** thêm khối test của mục 4 ngay sau test `token-usage: a worktree of the repository is counted` (cuối khối `token-usage`, trước `# status.py builds the progress page`). Khối dùng lại `usage_line`, `expect`, `token_usage`, `$tokens` và ticket, plan T-031 có sẵn ở đầu khối; thêm hàm `mark_line`. Mỗi nhóm có thư mục transcript riêng (`$work/projects-mark`, `$work/projects-mark2`, `$work/projects-mark4`, `$work/projects-mark5`) nên không đổi số của test nào khác.
+**`scripts/tests/run.sh`:** thêm khối test của mục 4 ngay sau test `token-usage: a worktree of the repository is counted` (cuối khối `token-usage`, trước khối `# In a git checkout, plan-check.py only searches tracked files ...`). Khối dùng lại `usage_line`, `expect`, `token_usage`, `$tokens` và ticket, plan T-031 có sẵn ở đầu khối; thêm hàm `mark_line`. Mỗi nhóm có thư mục transcript riêng (`$work/projects-mark`, `$work/projects-mark2`, `$work/projects-mark4`, `$work/projects-mark5`) nên không đổi số của test nào khác.
 
 **`docs/auto-run.md`** (lệnh `mark` viết thành một lệnh riêng, hoặc nối sau lệnh khác bằng `;`, không đứng đầu chuỗi `&&`; trong câu văn, tên lệnh đặt trong dấu nháy ngược):
 
-- Mục 3, bảng các bước, dòng `1. Tạo nhánh`: thêm vào đầu cột Việc làm "Phiên chính chạy `scripts/token-usage.py mark T-NNN` khi bắt đầu task, kể cả khi tiếp tục trên nhánh có sẵn (mục Tiếp tục task đã dừng), trước khi tạo hay checkout nhánh, để token của phiên chính cho task tính vào task cả khi thư mục chính ở HEAD tách rời (L-083)."
-- Mục Giao bước 3 đến 5 cho phiên con, gạch đầu dòng đầu (sau câu "Thư mục chính giữ sạch, ..."): thêm "Thư mục chính ở HEAD tách rời trong lúc này; dấu mốc `mark T-NNN` của bước 1 gán phần phiên chính làm cho task vào task. Phiên chính chuyển sang làm việc của task khác (chuẩn bị bước 1, 2 của task sau trong lúc phiên con làm) thì chạy `mark` cho task đó, rồi `mark` lại task cũ khi quay về; phiên chính khởi động lại thì chạy lại `mark` cho task đang làm. Không giao lệnh `mark` cho phiên con: chỉ dấu mốc trong transcript của phiên chính được tính (L-083)." Đặt trước đoạn "Phiên con kết thúc mà không có báo cáo ..." của L-084, không đổi chữ của đoạn đó.
-- Bước 10, gạch đầu dòng đầu: thêm "Khi task có kết quả cuối (merge, dừng, hay bỏ qua sau khi đã tạo nhánh), chạy `scripts/token-usage.py mark chung` nếu không còn task nào đang làm; còn task đang làm (đã tạo nhánh) thì chạy `mark` cho task đó (L-083)."
-- Mục 4, bước 0: thêm "và `scripts/token-usage.py mark chung`" sau `git checkout --detach origin/main`, cùng lý do L-083.
-- Mục 4, Tiếp tục phiên sau khi hết hạn mức, bước 5 ("Task đang làm dở: ..."): thêm câu "Chạy `scripts/token-usage.py mark T-NNN` cho task đó trước khi làm tiếp: môi trường mới không có transcript của phiên trước nên không có dấu mốc của nó (L-083)."
+- Mục 3, bảng các bước, dòng `1. Tạo nhánh`: thêm vào đầu cột Việc làm "Phiên chính chạy `scripts/token-usage.py mark T-NNN` khi bắt đầu task, kể cả khi tiếp tục trên nhánh có sẵn (mục Tiếp tục task đã dừng), trước khi tạo hay checkout nhánh, để token của phiên chính cho task tính vào task cả khi thư mục chính ở HEAD tách rời (camera-pose L-083)."
+- Mục Giao bước 3 đến 5 cho phiên con, gạch đầu dòng đầu (sau câu "Thư mục chính giữ sạch, ..."): thêm "Thư mục chính ở HEAD tách rời trong lúc này; dấu mốc `mark T-NNN` của bước 1 gán phần phiên chính làm cho task vào task. Phiên chính chuyển sang làm việc của task khác (chuẩn bị bước 1, 2 của task sau trong lúc phiên con làm) thì chạy `mark` cho task đó, rồi `mark` lại task cũ khi quay về; phiên chính khởi động lại thì chạy lại `mark` cho task đang làm. Không giao lệnh `mark` cho phiên con: chỉ dấu mốc trong transcript của phiên chính được tính (camera-pose L-083)." Câu này vào cuối gạch đầu dòng đầu, trước gạch "Phiên chính đẩy nhánh task ..." và đoạn "Phiên con kết thúc mà không có báo cáo ..." (camera-pose L-084); không đổi chữ của hai gạch đó.
+- Bước 10, gạch đầu dòng đầu: thêm "Khi task có kết quả cuối (merge, dừng, hay bỏ qua sau khi đã tạo nhánh), chạy `scripts/token-usage.py mark chung` nếu không còn task nào đang làm; còn task đang làm (đã tạo nhánh) thì chạy `mark` cho task đó (camera-pose L-083)."
+- Mục 4, bước 0: thêm "và `scripts/token-usage.py mark chung` (camera-pose L-083)" sau `git checkout --detach origin/main`; giữ dẫn L-103 có sẵn (của mẫu).
+- Mục 4, Tiếp tục phiên sau khi hết hạn mức, bước 5 ("Task đang làm dở: ..."): thêm câu "Chạy `scripts/token-usage.py mark T-NNN` cho task đó trước khi làm tiếp: môi trường mới không có transcript của phiên trước nên không có dấu mốc của nó (camera-pose L-083)."
 
 **`docs/ops/token-usage.md`:**
 
-- Mục 1, đoạn "Gán cho task theo nhánh", trước câu "Mọi request khác ...": thêm "Phiên chính làm task khi thư mục chính ở HEAD tách rời (phiên con giữ nhánh task trong worktree) thì chạy `scripts/token-usage.py mark T-NNN` khi bắt đầu hay chuyển sang task đó và `mark chung` khi không còn task nào đang làm (`docs/auto-run.md`, bước 1 và 10). Lệnh chỉ in một dòng; `report` đọc lại dòng lệnh trong transcript của phiên chính và gán mọi request của phiên chính không ở nhánh task nào, từ dấu mốc đó tới dấu mốc kế tiếp, cho task. Dấu mốc ở transcript trước vẫn tính cho phiên tiếp tục trong cùng môi trường; dấu mốc trước `--since` không tính (`--since` như `mark chung`); dấu mốc trong transcript của phiên con không được tính (L-083)."
+- Mục 1, đoạn "Gán cho task theo nhánh", sau câu "Việc cuối phiên chạy khi thư mục chính đã rời nhánh task ... (L-103).", trước câu "Mọi request khác ...": thêm "Phiên chính làm task khi thư mục chính ở HEAD tách rời (phiên con giữ nhánh task trong worktree) thì chạy `scripts/token-usage.py mark T-NNN` khi bắt đầu hay chuyển sang task đó và `mark chung` khi không còn task nào đang làm (`docs/auto-run.md`, bước 1 và 10). Lệnh chỉ in một dòng; `report` đọc lại dòng lệnh trong transcript của phiên chính và gán mọi request của phiên chính không ở nhánh task nào, từ dấu mốc đó tới dấu mốc kế tiếp, cho task. Dấu mốc ở transcript trước vẫn tính cho phiên tiếp tục trong cùng môi trường; dấu mốc trước `--since` không tính (`--since` như `mark chung`); dấu mốc trong transcript của phiên con không được tính (camera-pose L-083)."
 - Mục 5, Giới hạn, thêm bốn gạch đầu dòng:
   - "Việc chung mà phiên chính làm trong lúc một task có dấu mốc (chờ `main-guard` của task trước, `check.sh` đầu phiên chạy song song với bước 1 đến 3 của task đầu) tính vào task đó. Phiên chính quên `mark` khi chuyển giữa hai task thì phần đó tính vào task của dấu mốc trước."
   - "Phiên `claude --cloud` mở lại trong môi trường mới không còn transcript của phần trước: phần token đó mất, cùng với dấu mốc của nó; phiên tiếp tục chạy lại `mark` cho task đang làm dở."
   - "Dòng lệnh có tên `scripts/token-usage.py mark T-NNN` đứng sau khoảng trắng mà không nằm ngay sau dấu nháy (ví dụ trong heredoc của commit hay mô tả PR) cũng được đọc là dấu mốc. Trong chữ viết, đặt tên lệnh trong dấu nháy ngược hay dấu nháy."
-  - "Các dòng của `docs/metrics/token-usage.csv` ghi trước T-063 thiếu phần phiên chính của task có phiên con (L-083), nên trung vị của `estimate` thấp hơn thật cho tới khi đủ task đo sau T-063."
+  - "Các dòng của `docs/metrics/token-usage.csv` ghi trước T-063 thiếu phần phiên chính của task có phiên con (camera-pose L-083), nên trung vị của `estimate` thấp hơn thật cho tới khi đủ task đo sau T-063."
 
-**`docs/lessons.md`, L-083:** chuyển `applied`; thay dòng Áp dụng hiện có ("làm ở ticket T-063 ...") bằng các file trên và PR của task, giữ câu "Tuấn nhận ngày 2026-10-26"; không thêm dòng Áp dụng thứ hai. Mục Kiểm chứng để trống cho báo cáo phiên sau.
+**`docs/lessons.md`, L-083:** chuyển `applied`; thay dòng Áp dụng hiện có ("làm ở ticket T-063 ...") bằng các file trên và PR của task, giữ câu "Tuấn nhận ngày 2026-10-26" và "Dự án mẫu: VGL-Studio/app-project-template#206"; không thêm dòng Áp dụng thứ hai. Mục Kiểm chứng để trống cho báo cáo phiên sau.
 
 ### 3.2. Danh sách file
 
@@ -253,7 +262,7 @@ Test của script trong `scripts/tests/run.sh`, khối `token-usage`, với tran
 
 ```bash
 # The main session marks the task it works on with `scripts/token-usage.py mark T-NNN` and ends it with
-# `mark chung`: its own requests between the two count for the task, even on a detached HEAD (L-083).
+# `mark chung`: its own requests between the two count for the task, even on a detached HEAD (L-083 of camera-pose).
 mark_line() { # <time> <command> [cwd]
   printf '{"type":"assistant","timestamp":"%s","cwd":"%s","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"%s"}}]}}\n' \
     "$1" "${3:-$tokens}" "$2"
@@ -340,16 +349,16 @@ expect "token-usage: mark with a name that is not T-NNN or chung exits 2 and say
 | Dấu mốc trước `--since` | Test của script (đối chứng, bắt được đột biến 3) | `token-usage: a mark before --since does not count (left open by an earlier session)`: cùng transcript, `--since` 04:00; không có dòng T-031, dòng Chung 1 request; kỳ vọng `"0 1"` |
 | Đường dẫn tuyệt đối | Test của script | `token-usage: a mark run by an absolute path counts`: bảng có `\| T-031 \| M \| 2k \| 1k \| 0.6x \| 1 \|` |
 | Lệnh `mark` | Test của script | `token-usage: mark prints the task and exits 0` (`"0 1"`); `token-usage: mark with a name that is not T-NNN or chung exits 2 and says why` (`"2 1"`, dòng bắt đầu `LỖI: `) |
-| Không đổi phần khác | Test của script có sẵn | 20 test `token-usage` có sẵn qua mà không sửa |
+| Không đổi phần khác | Test của script có sẵn | 18 test `token-usage` có sẵn qua mà không sửa |
 | Phiên chính chạy lệnh | Kiểm tra thủ công (người: đọc báo cáo phiên) | Phiên chạy T-063 (hay phiên kế tiếp nếu T-063 là task cuối), khi viết mục Token của báo cáo: với mỗi task giao bước 3 đến 5 cho phiên con, chạy `scripts/token-usage.py report --since <started_at> --transcripts <các tệp trong subagents/ có dòng Task: T-NNN của task đó>` và dán số request của dòng task vào mục Token. Đạt: số request của dòng task trong bảng của cả phiên lớn hơn số đó (có phần phiên chính). Dòng Chung dưới khoảng 15M (RUN-20261026-03: 33.2M) là số tham khảo, không phải tiêu chí đạt |
 
 **Ngoại lệ viết test trước:** phần sửa `docs/auto-run.md`, `docs/ops/token-usage.md`, `docs/lessons.md` là tài liệu, không có test. Dòng kiểm tra thủ công ở trên kiểm phần `auto-run.md`.
 
 ### 4.1. Chạy thử
 
-- **Đã chạy thử (L-075):** 2026-10-26, worktree của nhánh plan trên `origin/main` `f747428`. Chèn tạm khối test trên vào `scripts/tests/run.sh` sau test `a worktree of the repository is counted`, không commit, rồi trả lại tệp gốc.
-- **Lệnh:** khối `token-usage` của `scripts/tests/run.sh` (dòng 1346 tới trước `# status.py builds the progress page`), chạy bằng `bash` 3.2.57 của macOS cùng phần đầu của `run.sh` (`set -euo pipefail`, `$work`, `expect`). Không chạy cả `run.sh`: máy dev không có JDK, `run.sh` dừng ở một test cần Java ở khối trước (`Unable to locate a Java Runtime`), không liên quan tới plan này. Phiên tự chạy chạy cả `run.sh` qua `scripts/check.sh`.
-- **Kết quả trên code hiện tại:** 7 test thất bại đúng lý do, 4 đối chứng qua, 20 test có sẵn qua (`failures=7`, 24 dòng `ok`):
+- **Đã chạy thử (L-075), phiên bản 2:** 2026-10-27, worktree của nhánh `plan/T-063-v2` trên nhánh chính `1fc049e` (sau PR #179). Áp `diff` của mục 3.1 (`git apply --check` sạch), chèn tạm khối test trên sau test `a worktree of the repository is counted`, không commit, rồi trả lại cả hai tệp.
+- **Lệnh:** phần đầu của `scripts/tests/run.sh` (dòng 1 tới 26: `set -euo pipefail`, `$work`, `expect`) cùng khối `token-usage` (dòng 1582 tới 1667) và khối test mới, chạy bằng `bash` của macOS. Không chạy cả `run.sh` ở bước này; phiên tự chạy chạy cả `run.sh` qua `scripts/check.sh`.
+- **Kết quả trên code hiện tại (`1fc049e`):** 7 test thất bại đúng lý do, 4 đối chứng qua, 18 test có sẵn qua (`failures=7`, 22 dòng `ok`):
   - `main-session requests after a mark count for the marked task`: `expected '1', got '0'`. Không có dòng T-031: `m1`, `m5`, `m6` vào Chung.
   - `before the first mark and after mark chung stay shared`: `expected '1', got '0'`. Dòng Chung có 6 request.
   - `a mark in an earlier transcript of the run still counts (resumed session)`: `expected '1 0', got '0 1'`.
@@ -358,16 +367,17 @@ expect "token-usage: mark with a name that is not T-NNN or chung exits 2 and say
   - `mark prints the task and exits 0`: `expected '0 1', got '2 0'` (`argparse`: `invalid choice: 'mark'`).
   - `mark with a name that is not T-NNN or chung exits 2 and says why`: `expected '2 1', got '2 0'`. Mã 2 có sẵn từ `argparse` nhưng không có dòng `LỖI: `; vì vậy test kiểm cả dòng thông báo.
   - Đối chứng, qua: `a request on a task branch keeps its branch's task during a mark`, `a mark named in quotes or run by a subagent is not a mark`, `a mark before --since does not count`, `a mark run in another folder is not a mark`. Code hiện tại không đọc dấu mốc nào; các test giữ để bản mới không gán nhầm. Mỗi đối chứng (trừ test nhánh task, giữ cho quy tắc "nhánh thắng dấu mốc") bắt được ít nhất một đột biến dưới đây.
-- **Kết quả trên bản cài thử:** áp `diff` của mục 3.1 cùng khối test: `failures=0`, 31 dòng `ok` (20 có sẵn, 11 mới).
-- **Đột biến trên bản cài thử** (mỗi lần đổi một chỗ, chạy lại khối, rồi trả lại):
-  1. Đọc dấu mốc cả trong `subagents/` (bỏ điều kiện `"subagents" not in path.parts`): `failures=2`: `main-session requests after a mark ...` (`m5` vào T-034) và `a mark named in quotes or run by a subagent ...` (`expected '0 0 0', got '0 1 0'`).
-  2. Cho mẫu khớp ngay sau dấu nháy (thêm `'` vào nhóm ký tự đứng trước): `failures=2`: `main-session requests after a mark ...` (`m6` vào T-033) và `a mark named in quotes ...` (`expected '0 0 0', got '1 0 0'`).
+- **Kết quả trên bản cài thử:** `failures=0`, 29 dòng `ok` (18 có sẵn, 11 mới). Test có sẵn của dòng `Task: T-NNN` ở phiên con (`a subagent brief ...`) vẫn qua: `message_text` mới của PR #179 vẫn đọc tin nhắn đầu dạng chuỗi và dạng danh sách phần, và `diff` không đụng tới cách gán đó.
+- **Đột biến trên bản cài thử** (mỗi lần đổi một chỗ, chạy lại khối, rồi trả lại; kết quả giống phiên bản 1):
+  1. Đọc dấu mốc cả trong `subagents/` (bỏ điều kiện `"subagents" not in path.parts`): `failures=2`: `main-session requests after a mark ...` và `a mark named in quotes or run by a subagent ...` (`expected '0 0 0', got '0 1 0'`).
+  2. Cho mẫu khớp ngay sau dấu nháy (thêm `'` vào nhóm ký tự đứng trước): `failures=2`: `main-session requests after a mark ...` và `a mark named in quotes ...` (`expected '0 0 0', got '1 0 0'`).
   3. Không bỏ dấu mốc trước `--since` (`marks = sorted(marks)`): `failures=1`: `a mark before --since does not count ...` (`expected '0 1', got '1 0'`).
   4. Không cho đường dẫn đứng trước `scripts/` (chỉ `./`): `failures=1`: `a mark run by an absolute path counts`.
   5. Bỏ lọc cwd của dấu mốc (bỏ `in_repo(entry.get("cwd"))`): `failures=1`: `a mark run in another folder is not a mark` (`expected '0', got '1'`).
-  6. Bỏ phần nhìn sau tên nhiệm vụ (`(?=$|[\s;&|)])`): `failures=2`: `main-session requests after a mark ...` (`m6` vào T-035) và `a mark named in quotes ...` (`expected '0 0 0', got '0 0 1'`).
+  6. Bỏ phần nhìn sau tên nhiệm vụ (`(?=$|[\s;&|)])`): `failures=2`: `main-session requests after a mark ...` và `a mark named in quotes ...` (`expected '0 0 0', got '0 0 1'`).
   7. Không xếp dấu mốc theo giờ (`list` thay cho `sorted` trong `apply_marks`): `failures=1`: `the latest mark wins whatever the order of the transcript files` (`expected '1 0', got '0 1'`).
   - Đột biến `!= SHARED` (bỏ so với `chung`) cho kết quả tương đương (nhánh `claude/chung` không khớp `TASK_BRANCH`, vẫn vào Chung), nên không có test riêng.
+- **Phiên bản 1** (2026-10-26, trên `f747428`): cùng kết quả với 20 test có sẵn (`failures=7`, 24 dòng `ok` trên code cũ; 31 dòng `ok` trên bản cài thử).
 - **Dạng transcript:** đo trên transcript thật của máy dev (`~/.claude/projects/-Users-vgldev-Projects-camera-pose/`): lệnh Bash nằm ở dòng `"type":"assistant"`, `message.content[]` có `{"type":"tool_use","name":"Bash","input":{"command":...}}`, cùng `timestamp`, `cwd`, `gitBranch`. Thư mục ở HEAD tách rời: `git rev-parse --abbrev-ref HEAD` in `HEAD`; giá trị `gitBranch` mà Claude Code ghi lúc đó chưa đo được, nên code không dựa vào nó (gán mọi nhánh không khớp `TASK_BRANCH`).
 
 ## 5. Chấm rủi ro
@@ -386,7 +396,7 @@ expect "token-usage: mark with a name that is not T-NNN or chung exits 2 and say
 ## 6. Ảnh hưởng chéo
 
 - **File hoặc thành phần dùng chung bị chạm:** `scripts/token-usage.py` (mục Token của báo cáo mọi phiên), `docs/auto-run.md`, `docs/ops/token-usage.md`, `scripts/tests/run.sh`.
-- **PR trước đó:** PR #176 (đã merge, `f747428`) áp dụng L-081, L-082, L-084, L-085: thêm đoạn L-084 vào mục Giao bước 3 đến 5 và chuyển L-083 sang `accepted` với dòng Áp dụng "làm ở ticket T-063 ...". Plan viết theo nhánh chính sau PR đó: câu mới của mục Giao bước 3 đến 5 đặt trước đoạn L-084, dòng Áp dụng của L-083 được thay, không thêm dòng thứ hai.
+- **PR trước đó:** PR #176 (`f747428`) áp dụng L-081, L-082, L-084, L-085 và chuyển L-083 sang `accepted`. PR #179 (`1fc049e`, đồng bộ dự án mẫu, đợt 1) thay `docs/auto-run.md`, `docs/ops/token-usage.md`, `scripts/token-usage.py`, `scripts/tests/run.sh` bằng bản mẫu, áp lại đoạn camera-pose L-084 và ghi dòng Áp dụng của L-083 với "Dự án mẫu: VGL-Studio/app-project-template#206". Phiên bản 2 viết theo nhánh chính sau PR #179.
 - **Task khác:** T-062 (camera giả của emulator CI) sửa `.github/workflows/device-session.yml`, có thể cả `scripts/tests/run.sh`; khác khối. Chạy lần lượt, mỗi task tạo nhánh từ nhánh chính mới nhất.
 - **Đề xuất thứ tự chạy:** chạy đầu danh sách. Phiên chính đọc `docs/auto-run.md` lúc bắt đầu, nên các task sau trong cùng phiên chưa chắc có lệnh `mark`; nếu phiên vẫn chạy lệnh (đã đọc PR của T-063), báo cáo của chính phiên đó tính đúng, vì `report` chạy bản script trên nhánh chính khi viết báo cáo.
 - **Đề xuất về dự án mẫu:** sau khi merge, đề xuất lệnh `mark` và test về VGL-Studio/app-project-template (`docs/ops/from-app.md`); dán nguyên `diff` vì phiên mẫu không đọc được repo app (L-078).
@@ -394,7 +404,7 @@ expect "token-usage: mark with a name that is not T-NNN or chung exits 2 and say
 ## 7. Điều kiện dừng riêng
 
 1. Một test `token-usage` có sẵn phải sửa thì mới qua: dừng.
-2. Áp `diff` của mục 3.1 không sạch (nhánh chính đã đổi `scripts/token-usage.py` sau `f747428`): viết lại theo phần tóm tắt của mục 3.1, giữ nguyên test của mục 4; ghi khác biệt vào nhật ký. Không dừng.
+2. Áp `diff` của mục 3.1 không sạch (nhánh chính đã đổi `scripts/token-usage.py` sau `1fc049e`): viết lại theo phần tóm tắt của mục 3.1, giữ nguyên test của mục 4; ghi khác biệt vào nhật ký. Không dừng.
 
 ## 8. Câu hỏi cho người duyệt
 
@@ -406,9 +416,13 @@ expect "token-usage: mark with a name that is not T-NNN or chung exits 2 and say
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
-- **Ghi chú:** Ngày 2026-10-26, Tuấn trả lời câu hỏi cùng AI: chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: dùng lệnh `mark`, không suy từ bảng Dòng thời gian. Câu 2: việc chung và task chồng nhau lúc đang đánh dấu một task tính vào task đó (mục Giới hạn). Câu 3: giữ rủi ro cao, duyệt chéo.
+Phiên bản 1: Duyệt (Nhật, duyệt chéo Tuấn, 2026-10-26); ghi chú: Tuấn trả lời câu hỏi cùng AI, chấp nhận mọi đề xuất của AI ở mục 8. Câu 1: dùng lệnh `mark`, không suy từ bảng Dòng thời gian. Câu 2: việc chung và task chồng nhau lúc đang đánh dấu một task tính vào task đó (mục Giới hạn). Câu 3: giữ rủi ro cao, duyệt chéo. Thay bằng phiên bản 2 vì PR #179 đổi `scripts/token-usage.py` và tài liệu, `diff` không còn áp được (mục 1).
+
+Phiên bản 2:
+
+- **Quyết định:**
+- **Người duyệt:**
+- **Ghi chú:**
 
 ## 10. Nhật ký thực hiện
 

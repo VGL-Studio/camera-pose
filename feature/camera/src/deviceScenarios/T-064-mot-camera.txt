@@ -6,7 +6,7 @@ consent decline 30
 wait id=onboarding_screen | id=camera_screen 60
 tap_if id=onboarding_enable_camera
 wait id=camera_screen 15
-need id=camera_grid_button 15
+wait id=camera_grid_button 15
 # (1) bấm nút đổi camera: máy hai camera đổi sang camera trước, máy một camera không đổi gì
 tap id=camera_flip
 # (2) rời màn camera rồi quay lại: camera mở lại theo lựa chọn đã lưu

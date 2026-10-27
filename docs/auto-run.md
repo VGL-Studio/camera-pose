@@ -124,7 +124,7 @@ Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho
 
 ### Bước 6. Rà soát độc lập
 
-Một phiên AI riêng được khởi tạo để rà soát. Phiên này chỉ nhận plan, spec, thiết kế, ADR và phần thay đổi; không nhận quá trình làm việc của phiên viết code, để đánh giá với con mắt mới. Có phần ngoài mục 3.2 (ADR-0029) thì phiên rà soát nhận thêm danh sách file đó, lý do của từng file và `git diff --stat origin/main...HEAD -- <các file đó>`.
+Một phiên AI riêng được khởi tạo để rà soát. Phiên này chỉ nhận plan, spec, thiết kế, ADR và phần thay đổi; không nhận quá trình làm việc của phiên viết code, để đánh giá với con mắt mới. Có phần ngoài mục 3.2 (ADR-0029) thì phiên rà soát nhận thêm danh sách file đó, lý do của từng file và `git diff --stat origin/main...HEAD -- <các file đó>`. Có lệch nhỏ của task (camera-pose ADR-1005/L1 tới L7, L10) thì phiên rà soát nhận danh sách lệch kèm mã; với L3 nhận thêm `diff` của plan và `diff` thật của mỗi chỗ dời (kết quả `git apply -3`). Lệch ngoài danh sách của ADR-1005 hay vi phạm quyết định 2 của nó là mức chặn. L8 (bỏ qua task) và L9 (điểm nên sửa, ADR-0029) không qua rà soát của task: L8 là quyết định của phiên, L9 đã do chính rà soát nêu.
 
 Nội dung rà soát:
 
@@ -172,7 +172,8 @@ Lệnh đẩy của phiên chính bị môi trường từ chối (bộ phân lo
 2. Chạy `scripts/save-branch.sh --bundle-only <nhánh>` (nếu chưa có bundle). Bundle nằm ở `$HOME/rescue/`, ngoài worktree. Phần chưa commit thì commit trước (L-069).
 3. Dừng task theo `risk-scoring.md` mục 4. Plan và ticket giữ `approved`, vì không phải lỗi của plan. Nhật ký plan ghi mã commit.
 4. Chép đoạn "Nhánh chưa đẩy" mà script in ra, cùng nguyên văn lệnh bị từ chối và thông báo, vào báo cáo phiên.
-5. Làm tiếp task sau. Lần đẩy nhánh của task sau (bước 1) cũng bị từ chối thì kết thúc phiên (mục 4), vì mọi task đều cần đẩy.
+5. Tra thông báo bị từ chối trong bảng tra lỗi. Chép nguyên văn dòng lỗi mà lệnh đẩy đã in ra (dòng có `[remote rejected]` hay `refusing`) vào một tệp, không chạy lại lệnh đẩy (ngoại lệ duy nhất: `scripts/save-branch.sh` tự ghi patch lên nhánh báo cáo để người xem và tự quyết áp, T-068, khi T-068 đã merge): `printf '%s\n' '<dòng lỗi>' > "${TMPDIR:-/tmp}/push-refused.log"`, rồi `scripts/failure-kind.sh --playbook "${TMPDIR:-/tmp}/push-refused.log"`. Dòng loại `bo-qua-loai` (ví dụ PB-13, thiếu quyền `workflow`): với mỗi task còn lại của danh sách, chạy lệnh `scripts/plan-check.py --touches <tiền tố> <plan>` mà dòng đó nêu; mã 0 thì bỏ qua task (cùng các task phụ thuộc nó), mã khác 0 thì làm như thường. Soạn danh sách chạy nháp cho các task bị bỏ qua, ghi vào mục Quyết định AI đã tự làm (camera-pose ADR-1005/L8). Không kết thúc phiên vì lỗi loại này.
+6. Làm tiếp task sau. Lần đẩy nhánh của task sau (bước 1) cũng bị từ chối, mà thông báo không khớp dòng `bo-qua-loai` nào, thì kết thúc phiên (mục 4), vì mọi task đều cần đẩy.
 
 ### Bước 8. CI đầy đủ
 
@@ -264,7 +265,7 @@ Phiên kết thúc khi gặp một trong các điều kiện sau:
 | Hết hạn mức sử dụng | Phiên dừng ngay, không làm được gì thêm. Phần đã đẩy lên còn nguyên (bước 3). `resume-run.yml` kích hoạt lại phiên khi hạn mức được làm mới (mục Tiếp tục phiên sau khi hết hạn mức) |
 | Lỗi hạ tầng còn sau lịch thử lại ở bước 5 | Như trên. Plan và ticket giữ `approved`; báo cáo ghi tên nhánh để lần sau tiếp tục trên nhánh đó |
 | GitHub không chạy job (`wait-run.sh` mã 4, L-064) | Đẩy hết những gì đang có: nhánh của task đang làm, nhánh báo cáo với dòng thời gian ghi giờ, tên workflow và mã lần chạy bị bỏ. Giữ danh sách chạy `running`, plan và ticket giữ trạng thái; không bắt đầu task mới. `resume-run.yml` kích hoạt lại phiên khi GitHub chạy lại được (nó cũng chỉ chạy được từ lúc đó) |
-| Lệnh đẩy nhánh bị từ chối ở hai task liên tiếp | Đẩy nhánh báo cáo nếu được; báo cáo ghi các bundle (bước 7, "Khi không đẩy được") |
+| Lệnh đẩy nhánh bị từ chối ở hai task liên tiếp, mà thông báo không khớp dòng `bo-qua-loai` nào của bảng tra lỗi (camera-pose ADR-1005/L8) | Đẩy nhánh báo cáo nếu được; báo cáo ghi các bundle (bước 7, "Khi không đẩy được") |
 | Nhánh chính đỏ sau một lần merge (xuất hiện issue mang nhãn `main-broken`) | Dừng ngay, không làm thêm task nào. Trừ khi commit gây lỗi là commit merge của một task chính phiên: revert theo mục 3, Khi nhánh chính đỏ vì task của phiên, rồi làm tiếp các task không phụ thuộc task đó (ADR-0025) |
 
 ### Tiếp tục phiên sau khi hết hạn mức
@@ -352,6 +353,7 @@ Báo cáo phiên là thứ dev đọc đầu tiên khi bắt đầu làm việc 
 
 - Nhánh chưa đẩy, ngay dưới Tóm tắt khi có bundle: chép đoạn `scripts/save-branch.sh` in ra.
 - Kết quả từng task: đã merge, bị dừng, bị bỏ qua, kèm lý do.
+- Quyết định AI đã tự làm: mỗi lệch nhỏ (camera-pose ADR-1005/L1 tới L10), phần ngoài mục 3.2 (ADR-0029), lần chuyển sang phương án dự phòng, task bỏ qua vì lỗi môi trường; mỗi dòng có task, loại, quyết định, lý do, cách hoàn tác. Mục Cần người kiểm tra luôn có dòng `- [ ] Quyết định AI đã tự làm: <N>, xem mục trên`, hoặc "Không có".
 - Những gì người cần tự kiểm tra: ảnh chuẩn screenshot mới, tiêu chí kiểm tra thủ công máy thật và người, kịch bản emulator lỗi hay bị bỏ qua, điểm rà soát mức ghi chú.
 - Task bị dừng: dừng ở bước nào, vì sao, đề xuất hướng xử lý.
 - Thông tin bản staging: phiên bản, kênh phát.

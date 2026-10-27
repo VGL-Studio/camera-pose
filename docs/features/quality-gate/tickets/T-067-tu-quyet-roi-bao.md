@@ -26,9 +26,9 @@ Ticket này cho phiên một danh sách lệch nhỏ được tự làm, cách b
 
 - `docs/ops/failure-playbook.md`: loại mới `bo-qua-loai`; dòng PB-13 cho lệnh đẩy bị từ chối vì thiếu quyền `workflow`; `scripts/tests/playbook/PB-13.log` từ log thật.
 - `scripts/plan-check.py`: cách gọi `--touches <tiền tố> <plan>` (mã 0 khi một hàng của bảng mục 3.2 có đường dẫn dưới tiền tố, 1 khi không, 2 khi sai đối số), để biết task nào thuộc loại bị chặn mà không tính chữ của mục 3.2.
-- `scripts/tests/run.sh`: 13 test (8 cho bảng tra lỗi: PB-13 ba cách viết, đối chứng một lần từ chối khác, câu liệt kê loại, dòng `bo-qua-loai` có lệnh `--touches`; 5 cho `--touches`).
+- `scripts/tests/run.sh`: 18 test (8 cho bảng tra lỗi: PB-13 ba cách viết, đối chứng một lần từ chối khác, câu liệt kê loại, dòng `bo-qua-loai` có lệnh `--touches`; 10 cho `--touches`: hàng Tạo, Sửa, Xóa, chữ, giữa đường dẫn, bảng của mục khác, tiền tố rỗng, plan không có, T-062, T-067).
 - `docs/adr/1005-lech-nho-tu-lam-roi-bao.md` (ADR mới của app, bổ sung ADR-0029, lệch nhỏ L1 tới L10) và `docs/foundation.md` sinh lại.
-- `docs/lessons.md`: dòng Áp dụng của L-086 (thêm phần T-067, không ghi đè phần của T-066).
+- `docs/lessons.md`: thêm phần T-067 vào cuối dòng Áp dụng của L-086, không thay chữ đã có (T-066 cũng ghi dòng này).
 - `docs/auto-run.md`: mục Khi không đẩy được (tra bảng, bỏ qua theo loại, không kết thúc phiên), dòng kết thúc phiên ở mục 4, mục 5 Báo cáo phiên, bước 6 (rà soát xét lệch).
 - `docs/risk-scoring.md` mục 4: đoạn "Không phải dừng: lệch nhỏ đã liệt kê".
 - `docs/templates/run.md`: mục "Quyết định AI đã tự làm" và một dòng ở Cần người kiểm tra.

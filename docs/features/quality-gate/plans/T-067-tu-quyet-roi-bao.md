@@ -23,7 +23,7 @@ Ba thay đổi, theo đề xuất 2a, 2b, 3a mà Tuấn chọn sau RUN-20261027-
 - **2b. Danh sách lệch nhỏ được tự làm.** ADR-1005 của app (bổ sung ADR-0029) liệt kê mười lệch nhỏ ADR-1005/L1 tới L10 mà phiên tự làm không cần plan phiên bản mới, ranh giới của từng mục và những việc vẫn cấm.
 - **3a. Báo sau ở một chỗ.** Báo cáo phiên có mục "Quyết định AI đã tự làm" (task, loại, quyết định, lý do, cách hoàn tác); mục Cần người kiểm tra luôn có dòng `- [ ] Quyết định AI đã tự làm: <N>, xem mục trên`, hoặc "Không có".
 
-13 test mới trong `scripts/tests/run.sh` (8 cho bảng tra lỗi, 5 cho `--touches`) đã chạy thật trên nhánh chính: 9 thất bại đúng lý do, 4 đối chứng qua; với bản cài thử cả 13 qua, toàn bộ `scripts/tests/run.sh` qua (755 ok); 9 đột biến đều bị bắt (mục 4.1).
+18 test mới trong `scripts/tests/run.sh` (8 cho bảng tra lỗi, 10 cho `--touches`) đã chạy thật trên nhánh chính: 11 thất bại đúng lý do, 7 đối chứng qua; với bản cài thử cả 18 qua, toàn bộ `scripts/tests/run.sh` qua (760 ok); 13 đột biến đều bị bắt (mục 4.1).
 
 ## 2. Hiểu yêu cầu
 
@@ -36,7 +36,7 @@ Không có spec nghiệp vụ. Yêu cầu là đề xuất 2a, 2b, 3a của phi�
 | 2a | Khi lệnh đẩy bị từ chối vì lý do khác (`protected branch hook declined`) thì không ra PB-13 | Không bỏ qua nhầm cả loại task |
 | 2a | Khi một loại trong bảng không có trong câu liệt kê loại, hay câu đó mất, thì test đỏ | Loại mới phải được mô tả cho phiên đọc |
 | 2a | Mỗi dòng `bo-qua-loai` có lệnh `scripts/plan-check.py --touches`; bảng có ít nhất một dòng như vậy | Phiên luôn có một lệnh cụ thể để biết task nào thuộc loại bị chặn |
-| 2a | Khi plan có hàng Tạo hay Sửa với đường dẫn dưới tiền tố thì `--touches` trả 0; khi tiền tố chỉ có trong chữ của mục 3.2 thì trả 1; plan không có thì trả 2 | 26 plan nhắc `.github/workflows/` trong mục 3.2, chỉ 7 plan có hàng của bảng; tìm theo chữ thì bỏ qua nhầm cả T-067 |
+| 2a | Khi plan có hàng Tạo, Sửa hay Xóa với đường dẫn bắt đầu bằng tiền tố thì `--touches` trả 0; khi tiền tố chỉ có trong chữ của mục 3.2, ở giữa một đường dẫn khác hay trong bảng của mục khác thì trả 1; plan không có hay tiền tố rỗng thì trả 2. Hàng thư mục (đường dẫn kết thúc bằng `/`) được tính, khác `run-check.py` (`files_of` bỏ hàng thư mục): bỏ qua một task có thể chạm tiền tố là phía an toàn | 26 plan nhắc `.github/workflows/` trong mục 3.2, chỉ 7 plan có hàng của bảng; tìm theo chữ thì bỏ qua nhầm cả T-067 |
 | 2a | Khi lỗi khớp dòng `bo-qua-loai`, phiên bỏ qua mọi task còn lại mà `--touches` trả 0, làm tiếp task khác, không kết thúc phiên, soạn danh sách chạy nháp | `docs/auto-run.md` mục Khi không đẩy được, bước 5 mới; RUN-20261027-01 phiên đã làm đúng như vậy với T-065 nhưng không có quy tắc |
 | 2b | ADR-1005 liệt kê L1 tới L10, ranh giới của từng mục và các việc cấm; `docs/foundation.md` có quy tắc của nó | Danh sách hẹp, rà soát kiểm được (mục 3.1) |
 | 2b | `docs/risk-scoring.md` mục 4 có đoạn "Không phải dừng: lệch nhỏ đã liệt kê" với đủ L1 tới L10 | Phiên đọc điều kiện dừng ở đây trước tiên |
@@ -104,8 +104,8 @@ Mục tiêu của nhóm: phiên chạy hết danh sách, không dừng giữa ch
 
 - **L1. Ngân sách kịch bản.** Sau khi thêm hay bật tệp kịch bản của task, tổng theo công thức của `docs/ops/test-sessions.md` mục 5 (tổng `timeout:` của các tệp cộng 80 giây mỗi tệp) vượt `DEVICE_SCENARIOS_BUDGET`: nâng giá trị mặc định ở `scripts/device-scenario.py`, `scripts/device-session.sh` và `docs/ops/test-sessions.md` lên tổng đó làm tròn lên hàng trăm, tối đa 1600 giây (`device-session.yml` có `timeout-minutes: 50`), trong PR của task đó. Mô tả PR ghi "giá trị chỉ app cần, không đề xuất về dự án mẫu" (ba file là file của mẫu). Tổng vượt 1600: nâng tới 1600 và ghi vào Cần người kiểm tra.
 - **L2. `need` thành `wait` khi môi trường đã có thiết bị.** Một dòng `need` trong tệp kịch bản chỉ để bỏ qua khi máy thiếu một thiết bị (camera, máy gập) mà emulator của CI đã có nhờ một task đã merge (ví dụ T-062): đổi thành `wait` cùng bộ chọn và thời gian, trong PR của task thêm thiết bị hay của task sau trong cùng phiên; chạy `scripts/device-scenario.py check` cho tệp đó. Cần bằng chứng emulator có thiết bị: một lần `device-session` xanh có thiết bị đó sau khi task thêm thiết bị merge, hay lần chạy thử thật ghi ở mục 4.1 của plan task đó (ví dụ T-062); ghi số lần chạy vào mục Quyết định AI đã tự làm. Không có bằng chứng thì giữ `need`.
-- **L3. Mốc tài liệu và mã dời chỗ.** Dòng, mục hay đoạn code mà plan dẫn đã dời vì task trước trong phiên hay vì đồng bộ dự án mẫu. Chỉ là L3 khi mọi dòng `-` của từng khối (hunk) của plan có nguyên văn ở chỗ mới; chỉ dòng ngữ cảnh và số dòng được khác. Khi đó đặt đúng các dòng `+` của plan vào chỗ mới (`git apply -3`, hay bằng tay nếu `-3` không áp được), không đổi chữ nào của chúng; mã bài học dẫn theo quy tắc ở đầu `docs/CLAUDE.md`. Một dòng `-` không còn nguyên văn (task trước đã sửa nó) thì không phải L3: không tự hòa hai thay đổi, xử lý theo ADR-0029 nếu phần sửa cần cho task và không đè thay đổi của task trước, không thì dừng theo điều kiện 3 của `risk-scoring.md` mục 4. Nhật ký plan ghi từng khối dời chỗ và kết quả `git apply -3`; phiên rà soát ở bước 6 nhận cả `diff` của plan và `diff` thật.
-- **L4. Test viết trước khác kỳ vọng của plan ở bước 3.** (a) Plan ghi test "qua ngay" mà test thất bại: là L4 khi thông báo thất bại chỉ vào đúng phần plan thêm (khóa, hàm, hành vi mới), và test qua sau bước 4 mà không sửa test; giữ test, ghi nguyên văn thông báo vào nhật ký. Một test đối chứng thất bại vì hành vi cũ hỏng thì không phải L4: đó là lỗi của code hay của khung rỗng, sửa code. (b) Plan ghi test sẽ thất bại mà test qua ngay: thêm bước đối chứng theo L-035 (ghi rồi đọc lại, dữ liệu đúng cạnh dữ liệu sai) hay kiểm bằng đột biến (camera-pose L-082), không đổi điều test kiểm; không làm được thì dừng theo điều kiện 8 của `risk-scoring.md` mục 4 nếu phải đổi điều test kiểm, không thì ghi vào báo cáo và làm tiếp.
+- **L3. Mốc tài liệu và mã dời chỗ.** Dòng, mục hay đoạn code mà plan dẫn đã dời vì task trước trong phiên hay vì đồng bộ dự án mẫu. Chỉ là L3 khi mọi dòng `-` của từng khối (hunk) của plan có nguyên văn ở chỗ mới; chỉ dòng ngữ cảnh và số dòng được khác. Khối chỉ có dòng `+`: dòng ngữ cảnh ngay trên và ngay dưới (hay tiêu đề của mục chứa khối) phải có nguyên văn ở chỗ mới. Khi đó đặt đúng các dòng `+` của plan vào chỗ mới (`git apply -3`, hay bằng tay nếu `-3` không áp được), không đổi chữ nào của chúng; mã bài học dẫn theo quy tắc ở đầu `docs/CLAUDE.md`. Một dòng `-` hay dòng ngữ cảnh đó không còn nguyên văn (task trước đã sửa nó) thì không phải L3: không tự hòa hai thay đổi, dừng theo điều kiện 3 của `risk-scoring.md` mục 4. Nhật ký plan ghi từng khối dời chỗ và kết quả `git apply -3`; phiên rà soát ở bước 6 nhận cả `diff` của plan và `diff` thật.
+- **L4. Test viết trước khác kỳ vọng của plan ở bước 3.** (a) Plan ghi test "qua ngay" mà test thất bại: là L4 khi thông báo thất bại chỉ vào đúng phần plan thêm (khóa, hàm, hành vi mới), và test qua sau bước 4 mà không sửa test; giữ test, ghi nguyên văn thông báo vào nhật ký. Một test đối chứng thất bại vì hành vi cũ hỏng thì không phải L4: đó là lỗi của code hay của khung rỗng, sửa code. (b) Plan ghi test sẽ thất bại mà test qua ngay: thêm bước đối chứng theo L-035 (ghi rồi đọc lại, dữ liệu đúng cạnh dữ liệu sai) hay kiểm bằng đột biến (camera-pose L-082), không đổi điều test kiểm; chỉ là L4 khi test đã chặt lại thất bại đúng lý do trên khung rỗng, hay một đột biến (tạm bỏ dòng code mới) làm nó thất bại; ghi kết quả vào nhật ký. Không được thì không phải L4: dừng theo điều kiện 8 của `risk-scoring.md` mục 4, hay điều kiện 3 khi hành vi đã có từ trước.
 - **L5. Chi tiết công cụ bắt buộc.** ktlint, Android Lint hay trình biên dịch buộc đổi cách viết mà không đổi hành vi hay điều test kiểm: tách biến hay hàm, đổi `public` thành `internal`, hằng thay cho file rỗng, đổi dạng khối của lambda, ngắt dòng. Không phải L5: thêm `@Suppress`, thêm hay sửa lint baseline, sửa `.editorconfig` hay luật ktlint.
 - **L6. Tệp sinh ra.** Chỉ hai script: `scripts/foundation.py` (commit `docs/foundation.md` khi test đòi tệp khớp) và `scripts/status.py` (trang không vào git). Không phải L6: ảnh chuẩn screenshot của Roborazzi (chỉ ghi lại khi plan cho phép, `CLAUDE.md`), `design/review/` (theo `docs/auto-run.md` bước 5, camera-pose L-085).
 - **L7. Sổ bài học đã ghi.** Plan bảo sửa dòng Áp dụng của một bài học mà dòng đó đã ghi đúng: không sửa, ghi nhật ký.
@@ -144,16 +144,16 @@ Mục tiêu của nhóm: phiên chạy hết danh sách, không dừng giữa ch
 - **Phải chấp nhận:**
   - Lệch nhỏ lên nhánh chính trước khi người xem.
   - Thêm một mục trong báo cáo và một việc cho phiên rà soát.
-- **Việc AI phải tuân thủ:** chỉ tự làm các lệch nhỏ L1 tới L10 của quyết định 1 mà không cần plan phiên bản mới; ngân sách kịch bản nâng tới tổng theo công thức làm tròn lên hàng trăm, tối đa 1600 giây, trong PR của task làm tổng vượt; `need` chỉ đổi thành `wait` khi có bằng chứng emulator đã có thiết bị nhờ task đã merge; mốc dời chỗ chỉ khi mọi dòng `-` của plan có nguyên văn ở chỗ mới, đặt các dòng `+` không đổi chữ, không thì không tự hòa hai thay đổi; không dùng `@Suppress`, lint baseline hay sửa `.editorconfig` thay cho L5; tệp sinh ra chỉ của `scripts/foundation.py`, `scripts/status.py`; mã kế tiếp đã có người dùng thì lấy mã sau và sửa mọi chỗ dẫn trong cùng PR; lỗi khớp dòng `bo-qua-loai` của bảng tra lỗi thì bỏ qua mọi task còn lại mà lệnh `scripts/plan-check.py --touches` của dòng đó trả mã 0, làm tiếp các task khác, không kết thúc phiên, soạn danh sách chạy nháp cho task bị bỏ qua; không tự thêm quyền, thư viện, SDK, quảng cáo, sự kiện phân tích, không chạm production, không đổi spec, thiết kế hay câu trả lời của người, không làm yếu test, không đẩy lại lệnh bị từ chối dưới dạng khác; mỗi quyết định tự làm ghi vào mục "Quyết định AI đã tự làm" của báo cáo (task, loại, quyết định, lý do, cách hoàn tác), và mục Cần người kiểm tra luôn có dòng `- [ ] Quyết định AI đã tự làm: <N>`; rà soát độc lập xét mỗi lệch L1 tới L7, L10, lệch ngoài danh sách là mức chặn.
+- **Việc AI phải tuân thủ:** chỉ tự làm các lệch nhỏ L1 tới L10 của quyết định 1 mà không cần plan phiên bản mới; ngân sách kịch bản nâng tới tổng theo công thức làm tròn lên hàng trăm, tối đa 1600 giây, trong PR của task làm tổng vượt; `need` chỉ đổi thành `wait` khi có bằng chứng emulator đã có thiết bị nhờ task đã merge; mốc dời chỗ chỉ khi mọi dòng `-` của plan (khối chỉ có dòng `+`: dòng ngữ cảnh trên, dưới hay tiêu đề mục) có nguyên văn ở chỗ mới, đặt các dòng `+` không đổi chữ, không thì dừng theo điều kiện 3; test viết trước qua ngay chỉ được làm tiếp khi test chặt lại hay một đột biến làm nó thất bại, không thì dừng theo điều kiện 8; không dùng `@Suppress`, lint baseline hay sửa `.editorconfig` thay cho L5; tệp sinh ra chỉ của `scripts/foundation.py`, `scripts/status.py`; mã kế tiếp đã có người dùng thì lấy mã sau và sửa mọi chỗ dẫn trong cùng PR; lỗi khớp dòng `bo-qua-loai` của bảng tra lỗi thì bỏ qua mọi task còn lại mà lệnh `scripts/plan-check.py --touches` của dòng đó trả mã 0, làm tiếp các task khác, không kết thúc phiên, soạn danh sách chạy nháp cho task bị bỏ qua; không tự thêm quyền, thư viện, SDK, quảng cáo, sự kiện phân tích, không chạm production, không đổi spec, thiết kế hay câu trả lời của người, không làm yếu test, không đẩy lại lệnh bị từ chối dưới dạng khác; mỗi quyết định tự làm ghi vào mục "Quyết định AI đã tự làm" của báo cáo (task, loại, quyết định, lý do, cách hoàn tác), và mục Cần người kiểm tra luôn có dòng `- [ ] Quyết định AI đã tự làm: <N>`; rà soát độc lập xét mỗi lệch L1 tới L7, L10, lệch ngoài danh sách là mức chặn.
 ```
 
-Sau khi tạo ADR: `scripts/foundation.py` rồi commit `docs/foundation.md` (bản thử thêm 14 dòng của ADR-1005; `scripts/foundation.py --check` qua).
+Sau khi tạo ADR: `scripts/foundation.py` rồi commit `docs/foundation.md` (bản thử thêm 15 dòng của ADR-1005; `scripts/foundation.py --check` qua).
 
-**Các file còn lại**, `diff` của bản cài thử trên nhánh chính `084d366` (áp sạch bằng `git apply --check`; gồm dòng của bảng kết thúc phiên ở `docs/auto-run.md` mục 4 và dòng Áp dụng của L-086):
+**Các file còn lại**, `diff` của bản cài thử trên nhánh chính `084d366` (áp sạch bằng `git apply --check`; gồm dòng của bảng kết thúc phiên ở `docs/auto-run.md` mục 4; `docs/lessons.md` không có trong `diff`, xem ghi chú dưới):
 
 ```diff
 diff --git a/docs/auto-run.md b/docs/auto-run.md
-index ae63813..e040acf 100644
+index ae63813..62162dd 100644
 --- a/docs/auto-run.md
 +++ b/docs/auto-run.md
 @@ -124,7 +124,7 @@ Task lớn (nhiều file, cỡ L) thì phiên chính giao bước 3 đến 5 cho
@@ -170,7 +170,7 @@ index ae63813..e040acf 100644
  3. Dừng task theo `risk-scoring.md` mục 4. Plan và ticket giữ `approved`, vì không phải lỗi của plan. Nhật ký plan ghi mã commit.
  4. Chép đoạn "Nhánh chưa đẩy" mà script in ra, cùng nguyên văn lệnh bị từ chối và thông báo, vào báo cáo phiên.
 -5. Làm tiếp task sau. Lần đẩy nhánh của task sau (bước 1) cũng bị từ chối thì kết thúc phiên (mục 4), vì mọi task đều cần đẩy.
-+5. Tra thông báo bị từ chối trong bảng tra lỗi. Chép nguyên văn dòng lỗi mà lệnh đẩy đã in ra (dòng có `[remote rejected]` hay `refusing`) vào một tệp, không chạy lại lệnh đẩy: `printf '%s\n' '<dòng lỗi>' > "${TMPDIR:-/tmp}/push-refused.log"`, rồi `scripts/failure-kind.sh --playbook "${TMPDIR:-/tmp}/push-refused.log"`. Dòng loại `bo-qua-loai` (ví dụ PB-13, thiếu quyền `workflow`): với mỗi task còn lại của danh sách, chạy lệnh `scripts/plan-check.py --touches <tiền tố> <plan>` mà dòng đó nêu; mã 0 thì bỏ qua task (cùng các task phụ thuộc nó), mã 1 thì làm như thường. Soạn danh sách chạy nháp cho các task bị bỏ qua, ghi vào mục Quyết định AI đã tự làm (camera-pose ADR-1005/L8). Không kết thúc phiên vì lỗi loại này.
++5. Tra thông báo bị từ chối trong bảng tra lỗi. Chép nguyên văn dòng lỗi mà lệnh đẩy đã in ra (dòng có `[remote rejected]` hay `refusing`) vào một tệp, không chạy lại lệnh đẩy: `printf '%s\n' '<dòng lỗi>' > "${TMPDIR:-/tmp}/push-refused.log"`, rồi `scripts/failure-kind.sh --playbook "${TMPDIR:-/tmp}/push-refused.log"`. Dòng loại `bo-qua-loai` (ví dụ PB-13, thiếu quyền `workflow`): với mỗi task còn lại của danh sách, chạy lệnh `scripts/plan-check.py --touches <tiền tố> <plan>` mà dòng đó nêu; mã 0 thì bỏ qua task (cùng các task phụ thuộc nó), mã khác 0 thì làm như thường. Soạn danh sách chạy nháp cho các task bị bỏ qua, ghi vào mục Quyết định AI đã tự làm (camera-pose ADR-1005/L8). Không kết thúc phiên vì lỗi loại này.
 +6. Làm tiếp task sau. Lần đẩy nhánh của task sau (bước 1) cũng bị từ chối, mà thông báo không khớp dòng `bo-qua-loai` nào, thì kết thúc phiên (mục 4), vì mọi task đều cần đẩy.
  
  ### Bước 8. CI đầy đủ
@@ -192,19 +192,8 @@ index ae63813..e040acf 100644
  - Những gì người cần tự kiểm tra: ảnh chuẩn screenshot mới, tiêu chí kiểm tra thủ công máy thật và người, kịch bản emulator lỗi hay bị bỏ qua, điểm rà soát mức ghi chú.
  - Task bị dừng: dừng ở bước nào, vì sao, đề xuất hướng xử lý.
  - Thông tin bản staging: phiên bản, kênh phát.
-diff --git a/docs/lessons.md b/docs/lessons.md
-index 9fc04db..dd6abfb 100644
---- a/docs/lessons.md
-+++ b/docs/lessons.md
-@@ -806,5 +806,5 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
- - **Chuyện gì:** T-062 (plan rủi ro cao đã duyệt chéo, sửa `.github/workflows/device-session.yml`) làm xong, `check.sh` qua, rà soát không có điểm nào; lệnh đẩy commit đầu tiên bị GitHub từ chối vì token mà phiên `claude --cloud` dùng không có quyền `workflow`. Lệnh đẩy ở bước 1 qua được vì nhánh chưa có commit nào đổi workflow, nên lỗi chỉ lộ ra sau khi đã làm xong task. T-065 cũng sửa hai workflow nên phiên bỏ qua trước khi tạo nhánh. `run-check.py`, `plan-check.py` và rà soát trước khi duyệt không biết điều này; danh sách chạy ghi "T-062 và T-065 sửa `.github/` đúng như plan rủi ro cao đã duyệt chéo" và chọn mở phiên bằng `claude --cloud` (L-020).
- - **Bằng chứng:** `scripts/save-branch.sh claude/T-062-camera-gia` lúc 05:27 UTC: `! [remote rejected] claude/T-062-camera-gia -> claude/T-062-camera-gia (refusing to allow an OAuth App to create or update workflow `.github/workflows/device-session.yml` without `workflow` scope)`; bundle `/root/rescue/claude__T-062-camera-gia.bundle` (RUN-20261027-01, mục Nhánh chưa đẩy).
- - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi lập danh sách chạy, và `docs/ops/pre-run-review.md`: plan có file `.github/workflows/` trong mục 3.2 không xếp vào phiên mở bằng `claude --cloud`, trừ khi đã thử đẩy một nhánh tạm có đổi workflow từ chính môi trường đó; `scripts/run-check.py` báo chú ý khi danh sách chạy ghi `claude --cloud` mà có plan như vậy. `docs/auto-run.md`, mục Khi không đẩy được: lỗi `without workflow scope` thì bỏ qua luôn các task sau có file `.github/workflows/` trong mục 3.2, không đợi tới lần đẩy thứ hai. Thêm một dòng vào bảng tra lỗi (loại `moi-truong`, không thử lại) kèm log thật. Người kiểm có cấp được quyền `workflow` cho GitHub App mà phiên cloud dùng không; nếu được, ghi vào `docs/ops/` cách cấp.
--- **Áp dụng:**
-+- **Áp dụng:** T-067: `docs/ops/failure-playbook.md` dòng PB-13 (loại mới `bo-qua-loai`), `docs/auto-run.md` mục Khi không đẩy được bước 5 (bỏ qua mọi task còn lại có file `.github/workflows/` trong mục 3.2, `scripts/plan-check.py --touches`), camera-pose ADR-1005/L8.
- - **Kiểm chứng:**
 diff --git a/docs/ops/failure-playbook.md b/docs/ops/failure-playbook.md
-index 6672b1c..b9431f0 100644
+index 6672b1c..99984e2 100644
 --- a/docs/ops/failure-playbook.md
 +++ b/docs/ops/failure-playbook.md
 @@ -4,7 +4,7 @@ Bảng này gom các lỗi đã gặp thật của phiên tự chạy: thông b
@@ -220,7 +209,7 @@ index 6672b1c..b9431f0 100644
  | PB-09 | `Could not (GET\|HEAD\|resolve\|download) .*(status code (429\|5[0-9][0-9])\|timed out)\|Read timed out\|Connect timed out\|Connection reset` | `check.sh` (Gradle tải thư viện) | `lich-thu-lai` | Lỗi tải thư viện. Chạy lại theo lịch 1, 2, 4, 8, 15 phút của bước 5, không tính vào 3 lần sửa. Hết lịch thì kết thúc phiên (mục 4) | `auto-run.md` bước 5 |
  | PB-10 | `ComposeTimeoutException: Condition still not satisfied` | job `ui-test` | `that` | Test trên emulator chờ hết giờ. Tra PB-01 trước (dòng trên khớp thì là R2). Không khớp: lỗi thật, đọc bước "Chi tiết test trên emulator" (bước 8) | L-079 |
  | PB-11 | `oauth_org_not_allowed\|organization has disabled Claude subscription access` | kết quả của phiên con (lỗi API 403) | `cho` | Tài khoản Claude của tổ chức tạm bị chặn, không phải lỗi của code. Phiên con chết thì làm theo `auto-run.md`, mục Giao bước 3 đến 5 (phiên con kết thúc mà không có báo cáo): tiếp từ phần đã có trong worktree. Lỗi ở chính phiên chính thì phiên dừng; người mở lại theo mục 4, Tiếp tục phiên sau khi hết hạn mức, và báo người quản trị tổ chức. Không tính vào 3 lần sửa | camera-pose L-084, RUN-20261026-03 |
-+| PB-13 | `refusing to allow an? [A-Za-z ]+ to create or update workflow` | lệnh đẩy (`scripts/save-branch.sh`, `git push`) | `bo-qua-loai` | Token đẩy của phiên không có quyền sửa file workflow. Không đẩy lại dưới dạng khác. Làm theo `auto-run.md` mục Khi không đẩy được cho task này. Loại bị chặn: task có file `.github/workflows/` trong bảng của mục 3.2; với mỗi task còn lại, `scripts/plan-check.py --touches .github/workflows/ <plan>` mã 0 thì bỏ qua task đó, mã 1 thì làm như thường. Ghi vào mục Quyết định AI đã tự làm và soạn danh sách chạy nháp cho các task bị bỏ qua (camera-pose ADR-1005/L8). Người cấp quyền `workflow` hay chạy các task đó bằng cách mở phiên đẩy được workflow | camera-pose L-086, RUN-20261027-01 |
++| PB-13 | `refusing to allow an? [A-Za-z ]+ to create or update workflow` | lệnh đẩy (`scripts/save-branch.sh`, `git push`) | `bo-qua-loai` | Token đẩy của phiên không có quyền sửa file workflow. Không đẩy lại dưới dạng khác. Làm theo `auto-run.md` mục Khi không đẩy được cho task này. Loại bị chặn: task có file `.github/workflows/` trong bảng của mục 3.2; với mỗi task còn lại, `scripts/plan-check.py --touches .github/workflows/ <plan>` mã 0 thì bỏ qua task đó, mã khác 0 thì làm như thường. Ghi vào mục Quyết định AI đã tự làm và soạn danh sách chạy nháp cho các task bị bỏ qua (camera-pose ADR-1005/L8). Người cấp quyền `workflow` hay chạy các task đó bằng cách mở phiên đẩy được workflow | camera-pose L-086, RUN-20261027-01 |
  <!-- playbook:end -->
 diff --git a/docs/risk-scoring.md b/docs/risk-scoring.md
 index bfe35a0..84668db 100644
@@ -263,28 +252,30 @@ index 47b31f8..1933675 100644
  - [ ] Test chập chờn: <issue `flaky` đang mở, tên test>, hoặc "Không có" (ADR-0025)
  - [ ] Task bị revert: <ticket, issue `main-broken`, PR revert>, hoặc "Không có" (ADR-0025)
 diff --git a/scripts/plan-check.py b/scripts/plan-check.py
-index b215269..7ef055e 100755
+index b215269..2ca8d86 100755
 --- a/scripts/plan-check.py
 +++ b/scripts/plan-check.py
-@@ -4,6 +4,12 @@
+@@ -4,6 +4,14 @@
  Usage: scripts/plan-check.py <plan.md> [<plan.md> ...]
  Exit 0: no error (warnings may be printed). Exit 1: at least one error.
  
 +Usage: scripts/plan-check.py --touches <path prefix> <plan.md>
 +Exit 0: a row of the file table of section 3.2 (Tạo, Sửa, Ghi lại, Xóa) names a path under the prefix; exit 1: none
-+does (prose of section 3.2 does not count). Exit 2: wrong arguments or no such plan. An auto-run session uses it to
++does (prose of section 3.2 and tables of other sections do not count). A directory row (path ending in "/") counts,
++unlike in run-check.py: skipping a task that may touch the prefix is the safe side. Exit 2: wrong arguments, an empty
++prefix or no such plan. An auto-run session uses it to
 +skip the remaining tasks a known environment error blocks (docs/ops/failure-playbook.md, kind bo-qua-loai;
 +ADR-1005 of camera-pose).
 +
  Finds, from the plan alone, the mistakes that otherwise stop a task in the middle of the night
  (RUN-20261016-02 stopped on a test that read a file the plan changed, L-020):
    1. The file list (section 3.2) matches the repository: files to change exist, files to create do not,
-@@ -493,7 +499,18 @@ def check(plan_path):
+@@ -493,7 +501,18 @@ def check(plan_path):
      return errors, warnings
  
  
 +def touches(argv):
-+    if len(argv) != 4 or not Path(argv[3]).is_file():
++    if len(argv) != 4 or not argv[2] or not Path(argv[3]).is_file():
 +        print("Cách dùng: scripts/plan-check.py --touches <tiền tố đường dẫn> <plan.md> (plan phải có).", file=sys.stderr)
 +        return 2
 +    prefix = argv[2]
@@ -306,7 +297,7 @@ index 0000000..96429ba
 @@ -0,0 +1 @@
 + ! [remote rejected] claude/T-062-camera-gia -> claude/T-062-camera-gia (refusing to allow an OAuth App to create or update workflow `.github/workflows/device-session.yml` without `workflow` scope)
 diff --git a/scripts/tests/run.sh b/scripts/tests/run.sh
-index 910d4dd..c82e529 100755
+index 910d4dd..cb7942e 100755
 --- a/scripts/tests/run.sh
 +++ b/scripts/tests/run.sh
 @@ -528,6 +528,13 @@ expect "playbook: PB-09 library download 429 -> lich-thu-lai" "PB-09 lich-thu-la
@@ -338,7 +329,7 @@ index 910d4dd..c82e529 100755
  expect "playbook: the table has at least 10 rows" yes "$([ "$(printf '%s\n' "$pb_rows" | wc -l)" -ge 10 ] && echo yes || echo no)"
  expect "failure-kind: a playbook-only log still says other" other "$(scripts/failure-kind.sh $pb_dir/PB-01.log)"
  
-@@ -1045,6 +1060,17 @@ row() { printf '| %s | `%s` | x |' "$1" "$2"; }
+@@ -1045,6 +1060,27 @@ row() { printf '| %s | `%s` | x |' "$1" "$2"; }
  plans="$repo/docs/features/demo/plans"
  write_plan "$plans/T-901-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
  expect "plan-check: a correct plan passes" pass "$(plan_check "$plans/T-901-a.md")"
@@ -351,6 +342,16 @@ index 910d4dd..c82e529 100755
 +write_plan "$plans/T-933-a.md" medium draft "$(row Sửa feature/demo/A.kt)\n\nGhi chú: \`.github/workflows/ci.yml\` chỉ nhắc tới file này, không đọc."
 +expect "plan-check --touches: workflows named only in prose -> 1" 1 "$(touches .github/workflows/ "$plans/T-933-a.md")"
 +expect "plan-check --touches: no such plan -> 2" 2 "$(touches .github/workflows/ "$plans/T-999-none.md")"
++expect "plan-check --touches: an empty prefix -> 2" 2 "$(touches "" "$plans/T-931-a.md")"
++write_plan "$plans/T-934-a.md" high draft "$(row Xóa .github/workflows/old.yml)"
++expect "plan-check --touches: a Xóa row under the prefix -> 0" 0 "$(touches .github/workflows/ "$plans/T-934-a.md")"
++write_plan "$plans/T-935-a.md" medium draft "$(row Sửa docs/.github/workflows/x.md)"
++expect "plan-check --touches: the prefix in the middle of a path -> 1" 1 "$(touches .github/workflows/ "$plans/T-935-a.md")"
++write_plan "$plans/T-936-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
++  "$(printf '### 3.4. Phương án dự phòng\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%s' "$(row Sửa .github/workflows/ci.yml)")"
++expect "plan-check --touches: a table outside section 3.2 -> 1" 1 "$(touches .github/workflows/ "$plans/T-936-a.md")"
++expect "plan-check --touches: the real T-067 plan (workflows only in prose) -> 1" 1 \
++  "$(touches .github/workflows/ docs/features/quality-gate/plans/T-067-tu-quyet-roi-bao.md)"
 +expect "plan-check --touches: a real plan that changes a workflow (T-062) -> 0" 0 \
 +  "$(touches .github/workflows/ docs/features/quality-gate/plans/T-062-camera-gia-tren-emulator-ci.md)"
  write_plan "$plans/T-902-a.md" medium draft "$(row Sửa feature/demo/Missing.kt)"
@@ -369,8 +370,8 @@ Ghi chú về `diff`:
 
   Phiên tự chạy không mở issue ở repo khác: ghi vào mục Cần người kiểm tra của báo cáo phiên để người mở issue `from-app`.
 - Mẫu PB-13 `refusing to allow an? [A-Za-z ]+ to create or update workflow`: nhận cách viết của OAuth App, GitHub App và personal access token; không trùng dòng nào khác (đối chứng ở mục 4).
-- `--touches` dùng lại `file_list()` của `scripts/plan-check.py` (hàng Tạo, Sửa, Ghi lại, Xóa của bảng mục 3.2), nên chữ trong mục 3.2 không được tính. Lệnh không có dấu `|`, nên chép được nguyên vào ô của bảng tra lỗi.
-- `docs/lessons.md`, L-086: dòng Áp dụng hiện để trống. T-066 cũng ghi vào dòng này ("ticket T-066"). Task nào chạy sau thì thêm phần của mình vào cuối dòng, nối bằng "; ", không ghi đè (ADR-1005/L3). Trạng thái của L-086 giữ như retro quyết; T-067 không tự đổi.
+- `--touches` dùng lại `file_list()` của `scripts/plan-check.py` (hàng Tạo, Sửa, Ghi lại, Xóa của bảng mục 3.2), nên chữ trong mục 3.2 và bảng của mục khác không được tính. Hàng thư mục được tính (khác `files_of` của `run-check.py`), vì bỏ qua thừa an toàn hơn bỏ qua thiếu. Lệnh không có dấu `|`, nên chép được nguyên vào ô của bảng tra lỗi. Mã khác 0 (1 hay 2) thì phiên làm task như thường.
+- `docs/lessons.md`, L-086: dòng Áp dụng có thể đã có phần của T-066 (PR #192 ghi "làm ở ticket T-066 ...; dòng bảng tra lỗi ở T-067 ..." và chuyển L-086 sang `accepted`). Cách làm, không phải `diff`: dòng Áp dụng đã có chữ thì thêm `; T-067: dòng PB-13 (loại `bo-qua-loai`) ở docs/ops/failure-playbook.md, docs/auto-run.md mục Khi không đẩy được bước 5, scripts/plan-check.py --touches, ADR-1005/L8` vào cuối dòng, không thay chữ đã có; dòng còn trống thì ghi `- **Áp dụng:** T-067: ...` với cùng nội dung. Trạng thái của L-086 không đổi.
 - `scripts/status.py` không đổi: dòng `- [ ] Quyết định AI đã tự làm: ...` nằm trong mục Cần người kiểm tra; `is_not_a_task` bỏ dòng mẫu (`<N, xem mục trên>`) và dòng "Không có", hiện dòng có số.
 - Thứ tự commit (L-025):
   - Bước 3, commit test: `scripts/tests/run.sh` (khối trên) và `scripts/tests/playbook/PB-13.log`, để test PB-13 thất bại vì thiếu dòng của bảng (`khong-co`), không vì thiếu tệp. Test "mỗi tệp log có dòng" cũng thất bại trên commit này, đúng lý do.
@@ -385,11 +386,11 @@ Ghi chú về `diff`:
 | Sửa | `docs/ops/failure-playbook.md` | Loại `bo-qua-loai` trong câu liệt kê loại, kèm cách hiểu; dòng PB-13 |
 | Tạo | `scripts/tests/playbook/PB-13.log` | Một dòng thông báo thật của RUN-20261027-01 |
 | Sửa | `scripts/plan-check.py` | Cách gọi `--touches <tiền tố> <plan>` (mã 0, 1, 2) và docstring |
-| Sửa | `scripts/tests/run.sh` | 8 test trong khối `playbook`, 5 test `--touches` trong khối `plan-check` |
+| Sửa | `scripts/tests/run.sh` | 8 test trong khối `playbook`, 10 test `--touches` trong khối `plan-check` |
 | Sửa | `docs/auto-run.md` | Bước 6 (rà soát xét lệch), mục Khi không đẩy được (bước 5 mới, bước 6), mục 4 (dòng "Lệnh đẩy nhánh bị từ chối ở hai task liên tiếp"), mục 5 Báo cáo phiên |
 | Sửa | `docs/risk-scoring.md` | Mục 4: đoạn "Không phải dừng: lệch nhỏ đã liệt kê (camera-pose ADR-1005)" |
 | Sửa | `docs/templates/run.md` | Mục "Quyết định AI đã tự làm"; dòng `- [ ] Quyết định AI đã tự làm: ...` |
-| Sửa | `docs/lessons.md` | L-086: dòng Áp dụng ghi phần T-067 làm (mục 3.1) |
+| Sửa | `docs/lessons.md` | L-086: thêm phần T-067 vào cuối dòng Áp dụng, không thay chữ đã có (cách làm ở mục 3.1) |
 
 Nơi đọc các file bị đổi (L-020): `grep -rn 'failure-playbook\|templates/run.md\|risk-scoring.md\|foundation.md\|plan-check.py' scripts/ .github/ */src/test`:
 
@@ -426,7 +427,7 @@ Không có. Thay đổi là tài liệu, một dòng bảng tra lỗi, một t�
 | 2a, mọi loại trong bảng có trong câu | Test script, đối chứng | `playbook: every kind in the table is listed in the kinds sentence`. Qua trước và sau; bắt đột biến "quên thêm `bo-qua-loai` vào câu" |
 | 2a, dòng `bo-qua-loai` có lệnh `--touches` | Test script | `playbook: every bo-qua-loai row names the plan-check --touches command` (đối chứng, rỗng trên nhánh chính) và `playbook: the table has at least one bo-qua-loai row` (thất bại đúng lý do: `no`) |
 | 2a, mỗi dòng có tệp log | Test script có sẵn | `playbook: every row has a log file and every log file a row`. Trên commit test: thất bại đúng lý do (có `PB-13.log` mà chưa có dòng) |
-| 2a, `--touches` theo hàng của bảng | Test script | `plan-check --touches: a Sửa row under the prefix -> 0`, `... a Tạo row among others -> 0`, `... a real plan that changes a workflow (T-062) -> 0` (thất bại đúng lý do trên nhánh chính: `1`, vì `--touches` bị coi là tên plan); `... workflows named only in prose -> 1` (đối chứng, qua trước và sau); `... no such plan -> 2` (thất bại đúng lý do: `1`) |
+| 2a, `--touches` theo hàng của bảng | Test script | Thất bại đúng lý do trên nhánh chính (`got '1'`, vì `--touches` bị coi là tên plan): `plan-check --touches: a Sửa row under the prefix -> 0`, `... a Tạo row among others -> 0`, `... a Xóa row under the prefix -> 0`, `... a real plan that changes a workflow (T-062) -> 0`, `... no such plan -> 2`, `... an empty prefix -> 2`. Đối chứng, qua trước và sau: `... workflows named only in prose -> 1`, `... the prefix in the middle of a path -> 1`, `... a table outside section 3.2 -> 1`, `... the real T-067 plan (workflows only in prose) -> 1` |
 | 2a, phiên bỏ qua đúng loại và làm tiếp | Kiểm tra thủ công (người: đọc tài liệu) | `docs/auto-run.md` mục Khi không đẩy được có bước 5 mới như mục 3.1; ở phiên đầu tiên gặp PB-13, báo cáo có dòng ADR-1005/L8 ở mục Quyết định AI đã tự làm |
 | 2b, ADR-1005 vào trang quy tắc | Test script có sẵn | `scripts/foundation.py --check` (kiểm riêng và trong `scripts/check.sh`); thiếu `docs/foundation.md` sinh lại thì báo "chưa khớp" (đã thấy ở bản thử) |
 | 2b, `risk-scoring.md` và bước 6 dẫn ADR-1005 | Kiểm tra thủ công (người: đọc tài liệu) | Đoạn mới ở `docs/risk-scoring.md` mục 4 có đủ L1 tới L10; câu mới ở `docs/auto-run.md` bước 6 như mục 3.1 |
@@ -440,11 +441,11 @@ Không có. Thay đổi là tài liệu, một dòng bảng tra lỗi, một t�
 - **Lệnh:**
   - khối `playbook` của `scripts/tests/run.sh` (dòng 1 tới 26 cùng khối từ `# failure-kind.sh --playbook` tới trước `# is-exact-revert`), chạy trên bản sao của nhánh chính có test mới và `PB-13.log` (đúng commit test của bước 3), rồi trên bản cài thử;
   - toàn bộ `bash scripts/tests/run.sh` trên cả hai (JDK 21 qua `env64.sh` vì khối `design-compare` cần Java);
-  - 5 test `--touches` chạy riêng bằng cùng `write_plan` của khối `plan-check`;
+  - 10 test `--touches` chạy riêng bằng cùng `write_plan` của khối `plan-check` (cho các đột biến);
   - `python3 scripts/foundation.py --check`; `python3 scripts/secret-scan.py`; `git apply --check` của `diff` ở mục 3.1 trên `084d366`.
 - **Kết quả:**
-  - Nhánh chính, 13 test mới: 9 thất bại đúng lý do (ba test PB-13 `got 'khong-co'`; "mỗi tệp log có dòng" có PB-13 thừa; "ít nhất một dòng `bo-qua-loai`" `got 'no'`; bốn test `--touches` `got '1'` vì `--touches` bị coi là tên plan), 4 đối chứng qua (lý do từ chối khác; câu liệt kê có `that`; mọi loại có trong câu; `--touches` với chữ trong mục 3.2). Bản sao của nhánh chính: 742 ok; ngoài 9 test trên chỉ có 4 test `env-canary` đỏ vì bản sao dựng bằng `git archive` không có remote (môi trường của bản sao, không liên quan; trên worktree thật các test đó qua).
-  - Bản cài thử: khối `playbook` 33 ok, `failures=0`; toàn bộ `scripts/tests/run.sh` 755 ok, "All script tests passed". `foundation.py --check`: "khớp" sau khi sinh lại. `secret-scan.py`: sạch. `git apply --check`: áp sạch.
+  - Nhánh chính, 18 test mới: 11 thất bại đúng lý do (ba test PB-13 `got 'khong-co'`; "mỗi tệp log có dòng" có PB-13 thừa; "ít nhất một dòng `bo-qua-loai`" `got 'no'`; sáu test `--touches` `got '1'`), 7 đối chứng qua (lý do từ chối khác; câu liệt kê có `that`; mọi loại có trong câu; bốn test `--touches` trả 1). Bản sao của nhánh chính: 743 ok; ngoài 11 test trên còn 6 test đỏ vì bản sao dựng bằng `git archive` không có kho git (`plan-queue`, `status page`, 4 test `env-canary`; môi trường của bản sao, không liên quan; trên worktree thật các test đó qua).
+  - Bản cài thử: khối `playbook` 33 ok, `failures=0`; toàn bộ `scripts/tests/run.sh` 760 ok, "All script tests passed". `foundation.py --check`: "khớp" sau khi sinh lại. `secret-scan.py`: sạch. `git apply --check`: áp sạch.
   - Hai lỗi của chính khối test đã sửa khi chạy thử: lệnh `grep` không có dòng khớp làm cả `run.sh` dừng vì `set -euo pipefail` (thêm `|| true`); `sed` không có `-n ... p` làm đột biến 9 sống.
   - Đột biến trên bản cài thử, mỗi cái một lần, rồi hoàn tác:
 
@@ -458,6 +459,10 @@ Không có. Thay đổi là tài liệu, một dòng bảng tra lỗi, một t�
     | 6 | Ô Việc phải làm của PB-13 không có lệnh `--touches` | `every bo-qua-loai row names the plan-check --touches command` |
     | 7 | `--touches` tìm tiền tố trong cả chữ của mục 3.2 | `--touches: workflows named only in prose -> 1` (ra 0) |
     | 8 | `--touches` bỏ qua tiền tố (có hàng nào là trả 0) | `--touches: workflows named only in prose -> 1` (ra 0) |
+    | 10 | `startswith` thành `in` | `--touches: the prefix in the middle of a path -> 1` (ra 0) |
+    | 11 | Bỏ hàng Xóa | `--touches: a Xóa row under the prefix -> 0` (ra 1) |
+    | 12 | `file_list()` đọc bảng của cả plan, không chỉ mục 3.2 | `--touches: a table outside section 3.2 -> 1` (ra 0) |
+    | 13 | Nhận tiền tố rỗng | `--touches: an empty prefix -> 2` (ra 0) |
     | 9 | Câu "Cột Loại là một trong:" đổi chữ | `the kinds sentence lists the kinds (that among them)`, `every kind ... listed` |
   - Code thử đã hoàn tác; nhánh plan chỉ có plan và ticket. Chưa chạy `scripts/check.sh` (không có code Android đổi; `scripts/tests/run.sh` là phần của `check.sh` mà plan chạm).
 
@@ -478,7 +483,7 @@ Không có. Thay đổi là tài liệu, một dòng bảng tra lỗi, một t�
 
 - File hoặc thành phần dùng chung bị chạm: `docs/auto-run.md`, `docs/risk-scoring.md`, `docs/ops/failure-playbook.md`, `docs/templates/run.md`, `docs/lessons.md` (L-086), `scripts/plan-check.py`, `scripts/tests/run.sh` (khối `playbook`, `plan-check`), `docs/foundation.md`.
 - Task khác có thể xung đột:
-  - T-066 (`open_with`, khả năng của cách mở phiên, thử đẩy ở đầu phiên): dẫn dòng PB-13 và loại `bo-qua-loai` của plan này; sửa `docs/auto-run.md` mục 2, có thể `docs/templates/run.md` (phần đầu), `scripts/run-check.py`, và dòng Áp dụng của L-086. Khối khác nhau; T-066 nên chạy sau T-067. T-066 cần biết task nào sửa workflow thì dùng `scripts/plan-check.py --touches .github/workflows/` của plan này thay vì tự viết lại.
+  - T-066 (`open_with`, khả năng của cách mở phiên, thử đẩy ở đầu phiên; PR #192): dẫn dòng PB-13 và loại `bo-qua-loai` của plan này; sửa `docs/auto-run.md` mục 2, có thể `docs/templates/run.md` (phần đầu), `scripts/run-check.py`, và dòng Áp dụng của L-086 (T-067 thêm phần của mình vào cuối, mục 3.1). Khối khác nhau; T-066 nên chạy sau T-067. Khi lần thử đẩy ở đầu phiên của T-066 bị từ chối (mã 3) và bỏ qua các task sửa workflow, T-066 dùng `scripts/plan-check.py --touches .github/workflows/ <plan>` của plan này (không tìm theo chữ của mục 3.2), và ghi cả mục "Task bị bỏ qua" lẫn một dòng ADR-1005/L8 ở mục Quyết định AI đã tự làm.
   - T-068 (patch của nhánh không đẩy được vào nhánh báo cáo, `run-watchdog.yml`): sửa `docs/auto-run.md` mục Khi không đẩy được (bước 2 tới 4) và có thể thêm dòng bảng tra lỗi. Plan nào merge sau thì đặt nội dung của mình vào chỗ mới (ADR-1005/L3) và lấy mã PB kế tiếp (ADR-1005/L10).
   - T-065 (approved, chưa chạy): sửa `scripts/tests/run.sh` khối `setup-check`, không chạm khối `playbook` hay `plan-check`.
   - T-062 (approved, chưa chạy): không chung file.
@@ -495,7 +500,7 @@ Không có. Thay đổi là tài liệu, một dòng bảng tra lỗi, một t�
 2. Danh sách L1 tới L10: có thêm hay bớt mục nào không? Đề xuất của AI: giữ mười mục. Cân nhắc nhưng không đưa vào: tự sửa test cũ ngoài mục 3.2 (đã có ADR-0029, quyết định 2), tự ghi lại ảnh chuẩn screenshot (cấm theo `CLAUDE.md`), tự đổi câu trả lời của người khi thấy sai (phải hỏi).
 3. L1, mức trần 1600 giây của ngân sách kịch bản: đề xuất của AI: giữ 1600 (job `device-session` 50 phút, phần còn lại của lượt khoảng 20 phút); vượt thì nâng tới 1600 và ghi vào Cần người kiểm tra, không dừng.
 4. L8 chỉ áp dụng cho lỗi khớp một dòng `bo-qua-loai` đã có trong bảng; lỗi mới chưa có dòng thì phiên vẫn làm như cũ (bước 6: kết thúc phiên khi task sau cũng không đẩy được). Đề xuất của AI: giữ như vậy; mỗi lỗi môi trường mới thành bài học rồi thành dòng bảng (`docs/auto-run.md` mục 6).
-5. L3 chỉ khi mọi dòng `-` của plan có nguyên văn ở chỗ mới; dòng `-` đã bị task trước sửa thì không tự hòa hai thay đổi (xử lý theo ADR-0029 hay dừng theo điều kiện 3). Đề xuất của AI: đồng ý; đây là ranh giới để một task không đè thay đổi của task trước.
+5. L3 chỉ khi mọi dòng `-` của plan có nguyên văn ở chỗ mới (khối chỉ có dòng `+`: dòng ngữ cảnh trên, dưới hay tiêu đề mục); không thì dừng theo điều kiện 3, không tự hòa hai thay đổi. Đề xuất của AI: đồng ý; đây là ranh giới để một task không đè thay đổi của task trước.
 
 ## 9. Quyết định duyệt
 

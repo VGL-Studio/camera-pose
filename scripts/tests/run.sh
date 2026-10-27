@@ -893,8 +893,7 @@ release_fails_with() {
   fi
 }
 write_release_properties() {
-  printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" "appsFlyerDevKey=${4-AbCdEf0123456789XyZ}" \
-    > "$release_dir/release.properties"
+  printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" > "$release_dir/release.properties"
 }
 mkdir -p "$release_dir"
 release_fails_with "missing files" "/release/google-services.json"
@@ -903,37 +902,13 @@ write_release_properties "ca-app-pub-3940256099942544~3347511713" "" "https://cd
 release_fails_with "Google test app id" "mã thử của Google"
 write_release_properties "ca-app-pub-1234567890123456/1111111111" "" "https://cdn.example.vn/"
 release_fails_with "ad unit given as app id" "admobAppId phải có dạng"
-# A Google test unit given by hand is accepted (2026-10-26): the folder check goes on to the next value.
-write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "http://cdn.example.vn/"
-release_fails_with "a Google test ad unit given by hand passes the ad unit check" "assetsBaseUrl phải"
-write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
-release_fails_with "missing AppsFlyer dev key" "thiếu appsFlyerDevKey"
-write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "key with spaces"
-release_fails_with "AppsFlyer dev key with odd characters" "thiếu appsFlyerDevKey"
-expect "release.sh never prints the AppsFlyer dev key" 0 \
-  "$(write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/" "SecretKey0123456789"
-     scripts/release.sh --config "$release_dir" 2>&1 < /dev/null | grep -c 'SecretKey0123456789' || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "https://cdn.example.vn/"
+release_fails_with "Google test ad unit" "mã quảng cáo thử"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner" "https://cdn.example.vn/"
 release_fails_with "malformed ad unit entry" "mục adUnits"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/"
 release_fails_with "assets address without https" "assetsBaseUrl phải"
 release_fails_with "unknown argument" "tham số không hợp lệ" --upload
-expect "release.sh: native placements and placements with attributes need a production ad unit, gallery ones do not" \
-  "sample_bottom_banner sample_native_small home_full_screen inter_sounds list_native" \
-  "$(scripts/release.sh --list-placements scripts/tests/fixtures/release/AdPlacement.kt | tr '\n' ' ' | sed 's/ $//')"
-# Placements without a real unit get Google's test unit of their format, and are listed (decision 2026-10-26).
-expect "release.sh: placements without a real unit get the test unit of their format" \
-  "sample_bottom_banner=ca-app-pub-1/2;sample_native_small=ca-app-pub-3940256099942544/2247696110;home_full_screen=ca-app-pub-3940256099942544/1044960115;inter_sounds=ca-app-pub-3940256099942544/1033173712;list_native=ca-app-pub-3940256099942544/2247696110" \
-  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2> /dev/null)"
-expect "release.sh: lists the placements that got a test unit" 1 \
-  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2>&1 > /dev/null | grep -c 'không có doanh thu) cho vị trí: sample_native_small home_full_screen inter_sounds list_native.$')"
-expect "release.sh: every real placement has a test unit for its format" 0 \
-  "$(code=0; scripts/release.sh --fill-test-units core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt '' > /dev/null 2>&1 || code=$?; echo $code)"
-printf '%s\n' 'enum class AdPlacement(val key: String) {' '    WRAPPED(' '        "wrapped",' '        AdFormat.BANNER,' '    ),' '}' \
-  > "$work/WrappedAdPlacement.kt"
-expect "release.sh refuses a placement wrapped over several lines" "1 1" \
-  "$(code=0; out="$(scripts/release.sh --list-placements "$work/WrappedAdPlacement.kt" 2>&1)" || code=$?
-     echo "$code $(grep -c 'nhiều dòng (dòng 2)' <<< "$out")")"
 
 # new-app.sh renames the template into a new repository and leaves out the template's own files.
 # It exists only in the template repository: an app made from it has no new-app.sh, so the app skips these tests.

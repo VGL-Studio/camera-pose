@@ -3,8 +3,6 @@
 # The person then uploads the bundle in Play Console. Nothing here runs on GitHub.
 #
 # Usage:  scripts/release.sh [--commit <sha>] [--config <folder>]
-#         scripts/release.sh --list-placements <AdPlacement.kt>   (tests: print the keys that need a production ad unit)
-#         scripts/release.sh --fill-test-units <AdPlacement.kt> <adUnits>   (tests: print adUnits with test units added)
 #   --commit  commit of main to release; default: the latest commit of origin/main.
 #   --config  release folder copied from the team's password manager;
 #             default: ~/.vgl-release/<applicationId>.
@@ -16,15 +14,12 @@
 #                          adUnits=<placement key>=ca-app-pub-<publisher>/<unit>;<placement key>=...
 #                          assetsBaseUrl=https://<production address on R2>/
 #                          uploadKeyAlias=<alias of the upload key>
-#                          appsFlyerDevKey=<AppsFlyer dev key> (ADR-0027)
 # Passwords of the upload key are asked for when the script runs; they are never stored in the folder.
 #
 # Only commits of main that passed main-guard.yml are built (commits touching docs only reuse the run of
 # the code below them). The build runs in a temporary worktree, so local changes never reach a release.
 #
-# Written during the template phase only. AI never changes this file afterwards (ADR-0009), except when the
-# release owner allows it for one session (2026-10-23: native formats and staging-only placements; 2026-10-24:
-# placements with attributes; 2026-10-26: AppsFlyer dev key, Google test units for placements without a real unit).
+# Written during the template phase only. AI never changes this file afterwards (ADR-0009).
 # Messages are in Vietnamese for the team; comments are in English.
 
 set -euo pipefail
@@ -37,60 +32,6 @@ TEST_PUBLISHER="3940256099942544"
 STAGING_PROJECT_ID="fake-staging-project"
 BUNDLE="app/build/outputs/bundle/productionRelease/app-production-release.aab"
 MAPPING="app/build/outputs/mapping/productionRelease/mapping.txt"
-
-# Google's public test unit of each ad format, the same as GoogleTestAdUnitIds in :core:ads (AdUnitIds.kt).
-test_unit_for() {
-  case "$1" in
-    BANNER|BANNER_COLLAPSIBLE) echo "ca-app-pub-$TEST_PUBLISHER/9214589741" ;;
-    INTERSTITIAL) echo "ca-app-pub-$TEST_PUBLISHER/1033173712" ;;
-    NATIVE_SMALL) echo "ca-app-pub-$TEST_PUBLISHER/2247696110" ;;
-    APP_OPEN) echo "ca-app-pub-$TEST_PUBLISHER/9257395921" ;;
-    REWARDED) echo "ca-app-pub-$TEST_PUBLISHER/5224354917" ;;
-    NATIVE_*) echo "ca-app-pub-$TEST_PUBLISHER/1044960115" ;;
-    *) die "không có mã quảng cáo thử cho định dạng AdFormat.$1; thêm định dạng này vào scripts/release.sh." ;;
-  esac
-}
-
-# Placement keys that need a production ad unit, from AdPlacement.kt on stdin: one per enum line
-# NAME("key", AdFormat.FORMAT) or NAME("key", AdFormat.FORMAT, <attributes>) (interval group, nativeEvery...).
-# Formats may contain underscores (NATIVE_SMALL). Keys starting with gallery_ belong to the staging-only ad gallery
-# (ads guide, section 5) and never ship, so they need no production unit. A placement wrapped over several lines
-# (a line ending with `NAME(`) cannot be read and is refused, so it never ships without an ad unit.
-placement_formats() {
-  local source wrapped
-  source="$(cat)"
-  wrapped="$(grep -nE '^[[:space:]]*[A-Z][A-Z0-9_]*\($' <<< "$source" | head -n 1 || true)"
-  [ -z "$wrapped" ] || die "AdPlacement.kt khai báo vị trí trên nhiều dòng (dòng ${wrapped%%:*}); viết mỗi vị trí trên một dòng."
-  sed -nE 's/^[[:space:]]*[A-Z0-9_]+\("([a-z0-9_]+)", AdFormat\.([A-Z_]+)(, .*)?\),?$/\1 \2/p' <<< "$source" \
-    | { grep -v '^gallery_' || true; }
-}
-placement_keys() { placement_formats | cut -d' ' -f1; }
-
-# adUnits with Google's test unit added for every placement that has no unit of its own (decision of the release
-# owner, 2026-10-26: release before every real unit exists). Those placements show test ads and earn nothing, so
-# each one is listed on stderr. Arguments: placement lines "<key> <FORMAT>" on stdin, the configured adUnits.
-fill_test_units() {
-  local units="$1" key format added=""
-  while read -r key format; do
-    [ -n "$key" ] || continue
-    case ";$(tr -d '[:space:]' <<< "$units");" in *";$key="*) continue ;; esac
-    units="${units:+$units;}$key=$(test_unit_for "$format")"
-    added="$added $key"
-  done
-  [ -z "$added" ] || echo "CHÚ Ý: dùng mã quảng cáo thử của Google (không có doanh thu) cho vị trí:$added." >&2
-  printf '%s' "$units"
-}
-if [ "${1:-}" = "--list-placements" ]; then
-  [ "$#" -eq 2 ] || die "cách dùng: scripts/release.sh --list-placements <AdPlacement.kt>"
-  placement_keys < "$2"
-  exit 0
-fi
-if [ "${1:-}" = "--fill-test-units" ]; then
-  [ "$#" -eq 3 ] || die "cách dùng: scripts/release.sh --fill-test-units <AdPlacement.kt> <adUnits>"
-  placement_formats < "$2" | fill_test_units "$3"
-  echo
-  exit 0
-fi
 
 commit_arg=""
 config_dir=""
@@ -136,11 +77,12 @@ admob_app_id="$(property admobAppId)"
 ad_units="$(property adUnits)"
 assets_base_url="$(property assetsBaseUrl)"
 upload_key_alias="$(property uploadKeyAlias)"
-appsflyer_dev_key="$(property appsFlyerDevKey)"
 
 [[ "$admob_app_id" =~ ^ca-app-pub-[0-9]+~[0-9]+$ ]] ||
   die "admobAppId phải có dạng ca-app-pub-<số>~<số> (mã ứng dụng AdMob, không phải mã quảng cáo)."
 [[ "$admob_app_id" != *"$TEST_PUBLISHER"* ]] || die "admobAppId đang là mã thử của Google."
+[[ "$ad_units" != *"$TEST_PUBLISHER"* ]] || die "adUnits có mã quảng cáo thử của Google."
+configured_keys=""
 if [ -n "$ad_units" ]; then
   IFS=';' read -r -a entries <<< "$ad_units"
   for entry in "${entries[@]}"; do
@@ -148,14 +90,12 @@ if [ -n "$ad_units" ]; then
     [ -n "$entry" ] || continue
     [[ "$entry" =~ ^[a-z0-9_]+=ca-app-pub-[0-9]+/[0-9]+$ ]] ||
       die "mục adUnits '$entry' phải có dạng <khóa vị trí>=ca-app-pub-<số>/<số>."
+    configured_keys="$configured_keys ${entry%%=*}"
   done
 fi
 [[ "$assets_base_url" =~ ^https://[^/]+/.*$ ]] && [[ "$assets_base_url" == */ ]] ||
   die "assetsBaseUrl phải là địa chỉ https và kết thúc bằng '/' (ADR-0015)."
 [ -n "$upload_key_alias" ] || die "thiếu uploadKeyAlias trong release.properties."
-# The key itself is never printed.
-[[ "$appsflyer_dev_key" =~ ^[A-Za-z0-9]{16,64}$ ]] ||
-  die "thiếu appsFlyerDevKey trong release.properties, hoặc khóa có ký tự lạ (ADR-0027). Lấy khóa dev trong AppsFlyer > App settings."
 
 # 2. The commit: on main, and checked green by main-guard.yml.
 step "Kiểm tra commit phát hành"
@@ -197,19 +137,19 @@ jq -e --arg pkg "$app_id" 'any(.client[]; .client_info.android_client_info.packa
   die "google-services.json là file cấu hình giả của staging."
 placement_file="$(git ls-tree -r --name-only "$target" core/ads/src/main | grep '/AdPlacement\.kt$' | head -n 1)"
 [ -n "$placement_file" ] || die "không tìm thấy AdPlacement.kt trong :core:ads."
-placement_lines="$(git show "$target:$placement_file" | placement_formats)"
-placements="$(cut -d' ' -f1 <<< "$placement_lines")"
-# A placement without an ad unit would silently show no ad (ConfiguredAdUnitIds.missing, ADR-0013), so it gets
-# Google's test unit of its format instead, with a warning.
-ad_units="$(fill_test_units "$ad_units" <<< "$placement_lines")"
-test_unit_keys="$(tr ';' '\n' <<< "$ad_units" | grep "=ca-app-pub-$TEST_PUBLISHER/" | cut -d= -f1 | tr '\n' ' ' || true)"
+placements="$(git show "$target:$placement_file" | sed -nE 's/^[[:space:]]*[A-Z0-9_]+\("([a-z0-9_]+)", AdFormat\.[A-Z]+\),?$/\1/p')"
+missing=""
+for key in $placements; do
+  case " $configured_keys " in *" $key "*) ;; *) missing="$missing $key" ;; esac
+done
+# A placement without an ad unit would silently show no ad (ConfiguredAdUnitIds.missing, ADR-0013).
+[ -z "$missing" ] || die "adUnits thiếu mã quảng cáo cho vị trí:$missing."
 
 cat << EOF
    App:        $app_id
    Phiên bản:  $version_name (versionCode $version_code)
    Commit:     ${target::7} $(git log -1 --format=%s "$target")
-   Vị trí quảng cáo: $(tr '\n' ' ' <<< "${placements:-không có}")
-   Mã quảng cáo thử (không có doanh thu): ${test_unit_keys:-không có}
+   Vị trí quảng cáo: ${placements:-không có}
 EOF
 
 # 4. Passwords, asked for on the terminal only.
@@ -250,10 +190,9 @@ cp "$config_dir/google-services.json" "$work/src/app/src/production/google-servi
   export ORG_GRADLE_PROJECT_uploadKeystorePassword="$keystore_password"
   export ORG_GRADLE_PROJECT_uploadKeyAlias="$upload_key_alias"
   export ORG_GRADLE_PROJECT_uploadKeyPassword="$key_password"
-  export ORG_GRADLE_PROJECT_appsFlyerDevKey="$appsflyer_dev_key"
   ./gradlew --no-daemon --console=plain :app:bundleProductionRelease
 )
-unset keystore_password key_password appsflyer_dev_key
+unset keystore_password key_password
 
 # 6. Check the bundle is signed, keep it with its mapping file, and mark the version as released.
 [ -f "$work/src/$BUNDLE" ] || die "không tìm thấy $BUNDLE sau khi build."

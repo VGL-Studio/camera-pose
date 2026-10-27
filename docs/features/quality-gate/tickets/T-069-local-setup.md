@@ -23,9 +23,9 @@ Plan nào dùng kỹ thuật mới (tiêu chí E từ 2) hay có test của scri
 ## Phạm vi
 
 - `scripts/local-setup.sh` (macOS, Linux; không cần sudo): JDK Temurin `JDK_RELEASE` và gói Android SDK đọc từ `scripts/cloud-setup.sh` (một nguồn phiên bản), kiểm mã băm của mọi file tải về, chạy lại không tải lại, ghi `env.sh` để `source`.
-- `--check` (chỉ báo đã có gì, không tải), `--print-versions`, `--prefix`, `--sdk`.
+- `--check` (chỉ báo đã có gì, không tải), `--print-versions`, `--prefix`, `--sdk` (đường dẫn tuyệt đối). Chỉ máy dev: từ chối chạy trong môi trường cloud (có `~/.cloud-setup-version`).
 - Test của script trong `scripts/tests/run.sh` (curl, Adoptium, danh sách gói của Google và `sdkmanager` giả).
-- Ghi lệnh vào `CLAUDE.md` (mục Lệnh) và quy tắc chạy thử của `docs/CLAUDE.md`.
+- Ghi lệnh vào `CLAUDE.md` (mục Lệnh), quy tắc chạy thử của `docs/CLAUDE.md` và `docs/ops/setup-new-app.md` phần 1 (máy không cài Android Studio).
 
 **Không bao gồm:**
 
@@ -43,4 +43,4 @@ Cao vì chạm điểm chặn 7 (quy trình: quy tắc chạy thử trong `docs/
 - [ ] Sau `source <prefix>/env.sh`, `scripts/check.sh` qua trên máy dev.
 - [ ] Tải về sai mã băm thì dừng, không để lại thư mục cài dở.
 - [ ] Test của script qua trong `scripts/tests/run.sh`; CI qua toàn bộ, đã merge vào nhánh chính.
-- [ ] `CLAUDE.md` và `docs/CLAUDE.md` chỉ tới lệnh này.
+- [ ] `CLAUDE.md`, `docs/CLAUDE.md` và `docs/ops/setup-new-app.md` chỉ tới lệnh này.

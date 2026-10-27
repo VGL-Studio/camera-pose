@@ -30,6 +30,9 @@ if method != "GET":
     if f"{method} {route}" in fx.get("fail_writes", []):
         sys.stderr.write("HTTP 422\n"); sys.exit(1)
     sys.stdout.write("{}"); sys.exit(0)
+# "errors" maps a route to the message of a failed read (for example "HTTP 500: Server Error"): exit 1 with it.
+if route in fx.get("errors", {}):
+    sys.stderr.write(fx["errors"][route] + "\n"); sys.exit(1)
 if route in fx.get("routes", {}):
     answer = fx["routes"][route]
     # {"__sequence__": [a, b, ...]} answers a, then b, ... one per query, then keeps the last (a run that finishes).
@@ -43,7 +46,7 @@ if route in fx.get("routes", {}):
     out = subprocess.run(["jq", "-r", jq], input=json.dumps(answer), capture_output=True, text=True)
     sys.stdout.write(out.stdout); sys.exit(out.returncode)
 if route.startswith("contents/"):
-    sys.exit(1)
+    sys.stderr.write("HTTP 404: Not Found\n"); sys.exit(1)
 # A path the fixture does not serve answers like GitHub: 404 and exit 1 (not a Python error).
 if not re.match(r"repos/[^/]+/[^/]+/commits/[0-9a-f]+(/check-runs)?($|\?)", path):
     sys.stderr.write("HTTP 404: Not Found\n"); sys.exit(1)

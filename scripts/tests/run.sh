@@ -823,6 +823,143 @@ PY
 expect "resume-check: finds a report branch on page 2 of the branches" docs/runs/RUN-20261018-01.md \
   "$(PATH="$work/bin:$PATH" FIXTURE="$work/resume.json" GITHUB_REPOSITORY=o/r RESUME_NOW=2026-10-18T03:00:00Z python3 -I scripts/resume-check.py 2> /dev/null)"
 
+# run-watchdog.py opens an issue when a running session has no commit for 60 minutes, so a person can
+# continue a `claude --cloud` session that resume-run.yml does not continue (T-068).
+wd_time() { python3 -c "import datetime as d; print((d.datetime(2026,10,27,12,0,tzinfo=d.timezone.utc)-d.timedelta(minutes=$1)).strftime('%Y-%m-%dT%H:%M:%SZ'))"; }
+watchdog() { # <run status> <minutes since the last commit> [workflow runs: "min:branch:event:status:name,..." or -] [open issues JSON] [started_at] [errors JSON]
+  local last in_progress="" queued="" code=0 spec min branch event status name entry errors="${6:-}"
+  [ -n "$errors" ] || errors="{}"
+  last="$(wd_time "$2")"
+  if [ "${3:--}" != "-" ]; then
+    IFS=',' read -r -a specs <<< "$3"
+    for spec in "${specs[@]}"; do
+      IFS=':' read -r min branch event status name <<< "$spec"
+      entry="{\"name\": \"$name\", \"head_branch\": \"$branch\", \"event\": \"$event\", \"created_at\": \"$(wd_time "$min")\"}"
+      if [ "$status" = queued ]; then queued="${queued:+$queued, }$entry"; else in_progress="${in_progress:+$in_progress, }$entry"; fi
+    done
+  fi
+  rm -f "$work/wd.json.writes"
+  cat > "$work/wd.json" << JSON
+{"routes": {
+  "branches?per_page=100&page=1": [{"name": "main"}, {"name": "claude/RUN-20261027-05-report"}, {"name": "claude/T-062-x"}, {"name": "claude/T-099-other"}],
+  "contents/docs/runs/RUN-20261027-05.md?ref=claude/RUN-20261027-05-report": "---\nid: RUN-20261027-05\nstatus: $1\nstarted_at: ${5:-2026-10-27T09:00:00Z}\n---\n\n## 1. Danh sách chạy\n\n| 1 | T-062 | demo |\n",
+  "commits/claude/RUN-20261027-05-report": {"commit": {"committer": {"date": "2026-10-27T09:05:00Z"}}},
+  "commits/claude/T-062-x": {"commit": {"committer": {"date": "$last"}}},
+  "commits/claude/T-099-other": {"commit": {"committer": {"date": "2026-10-27T11:59:00Z"}}},
+  "issues?state=open&labels=session-stalled&per_page=100": ${4:-[]},
+  "actions/runs?status=in_progress&per_page=100": {"workflow_runs": [$in_progress]},
+  "actions/runs?status=queued&per_page=100": {"workflow_runs": [$queued]},
+  "labels/session-stalled": {"name": "session-stalled"}
+}, "errors": $errors}
+JSON
+  PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z \
+    python3 -I scripts/run-watchdog.py > "$work/wd.out" 2>&1 || code=$?
+  echo "$code"
+}
+wd_writes() { if [ -f "$work/wd.json.writes" ]; then paste -sd ';' - < "$work/wd.json.writes"; else echo none; fi; }
+wd_open='[{"number": 41, "title": "session-stalled: RUN-20261027-05 không có commit 50 phút"}]'
+expect "run-watchdog: a running session quiet for 70 minutes exits 0" 0 "$(watchdog running 70)"
+expect "run-watchdog: ... opens one session-stalled issue" "POST issues" "$(wd_writes)"
+expect "run-watchdog: the issue body has the resume line" 1 \
+  "$(grep -c 'Đây là phiên tiếp tục: nhánh báo cáo đã có, danh sách chạy đang running.' "$work/wd.out")"
+expect "run-watchdog: the issue body has the whole prompt of staging-and-runs 2.7" 1 \
+  "$(grep -c '^Danh sách chạy: docs/runs/RUN-20261027-05.md. Danh sách không có trạng thái approved' "$work/wd.out")"
+expect "run-watchdog: the prompt names this run's report branch" 1 "$(grep -c 'git worktree add ../report claude/RUN-20261027-05-report' "$work/wd.out")"
+expect "run-watchdog: the body warns that a routine session is resumed by resume-run" 1 "$(grep -c 'không mở thêm phiên tay' "$work/wd.out")"
+expect "run-watchdog: the quiet time counts the latest commit of any branch of the run" 1 \
+  "$(grep -c 'không có commit nào trong 70 phút' "$work/wd.out")"
+watchdog running 59 > /dev/null
+expect "run-watchdog: 59 minutes is not quiet yet" none "$(wd_writes)"
+watchdog running 60 > /dev/null
+expect "run-watchdog: 60 minutes is quiet" "POST issues" "$(wd_writes)"
+watchdog running 70 "20:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
+expect "run-watchdog: CI on a branch of the session means it may be waiting" none "$(wd_writes)"
+expect "run-watchdog: ... and says which workflow" 1 "$(grep -c 'đang có workflow chạy (pr-check)' "$work/wd.out")"
+watchdog running 70 "20:main:workflow_dispatch:queued:device-session" > /dev/null
+expect "run-watchdog: a queued run on main started by hand counts too" none "$(wd_writes)"
+watchdog running 70 "20:claude/T-099-other:pull_request:in_progress:pr-check" > /dev/null
+expect "run-watchdog: CI of a branch outside the session does not count" "POST issues" "$(wd_writes)"
+watchdog running 70 "20:main:schedule:in_progress:env-canary" > /dev/null
+expect "run-watchdog: a scheduled run on main does not count" "POST issues" "$(wd_writes)"
+watchdog running 70 "10:main:workflow_dispatch:in_progress:run-watchdog" > /dev/null
+expect "run-watchdog: its own run does not count" "POST issues" "$(wd_writes)"
+watchdog running 70 "74:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
+expect "run-watchdog: a run created 4 minutes before the last commit counts (5 minutes of slack)" none "$(wd_writes)"
+watchdog running 70 "76:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
+expect "run-watchdog: a run created 6 minutes before the last commit is not a wait" "POST issues" "$(wd_writes)"
+watchdog running 95 "20:claude/T-062-x:pull_request:in_progress:pr-check" > /dev/null
+expect "run-watchdog: past 90 minutes a running workflow no longer holds the issue back" "POST issues" "$(wd_writes)"
+watchdog running 70 - "$wd_open" > /dev/null
+expect "run-watchdog: an open issue is updated, not opened again" "PATCH issues/41" "$(wd_writes)"
+watchdog running 10 - "$wd_open" > /dev/null
+expect "run-watchdog: a new commit closes the issue with a comment" "PATCH issues/41;POST issues/41/comments" "$(wd_writes)"
+watchdog finished 300 - "$wd_open" > /dev/null
+expect "run-watchdog: a finished run closes its issue" "PATCH issues/41;POST issues/41/comments" "$(wd_writes)"
+watchdog finished 300 > /dev/null
+expect "run-watchdog: a finished run without an issue changes nothing" none "$(wd_writes)"
+watchdog running 70 - '[{"number": 7, "title": "main-broken: abc1234"}, {"number": 8, "title": "session-stalled: RUN-20261027-05 x", "pull_request": {}}]' > /dev/null
+expect "run-watchdog: issues that are not its own are never touched" "POST issues" "$(wd_writes)"
+watchdog running 70 - "[]" 2026-10-26T06:00:00Z > /dev/null
+expect "run-watchdog: a run older than 24 hours is still reported, with a note" 1 "$(grep -c 'hơn 24 giờ trước' "$work/wd.out")"
+expect "run-watchdog: a server error on the run file exits 1" 1 \
+  "$(watchdog running 10 - "$wd_open" "" '{"contents/docs/runs/RUN-20261027-05.md?ref=claude/RUN-20261027-05-report": "HTTP 500: Server Error"}')"
+expect "run-watchdog: ... and changes no issue" none "$(wd_writes)"
+expect "run-watchdog: a server error on the workflow runs exits 1" 1 \
+  "$(watchdog running 70 - "[]" "" '{"actions/runs?status=in_progress&per_page=100": "HTTP 502: Bad Gateway"}')"
+expect "run-watchdog: ... and opens no issue" none "$(wd_writes)"
+watchdog running 70 > /dev/null
+python3 -I - "$work/wd.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+fx["routes"]["branches?per_page=100&page=1"].append({"name": "claude/RUN-20261027-06-report"})
+fx["errors"] = {"contents/docs/runs/RUN-20261027-06.md?ref=claude/RUN-20261027-06-report": "HTTP 500: Server Error"}
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+rm -f "$work/wd.json.writes"
+expect "run-watchdog: a later run that cannot be read exits 1" 1 \
+  "$(PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z python3 -I scripts/run-watchdog.py > /dev/null 2>&1; echo $?)"
+expect "run-watchdog: ... before anything is written for the first run" none "$(wd_writes)"
+watchdog running 70 > /dev/null
+python3 -I - "$work/wd.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+fx["fail_writes"] = ["POST issues"]
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+expect "run-watchdog: a write that fails exits 1" 1 \
+  "$(PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z python3 -I scripts/run-watchdog.py 2> "$work/wd.err" > /dev/null; echo $?)"
+expect "run-watchdog: ... and says the write failed" 1 "$(grep -c 'Ghi issue lỗi' "$work/wd.err")"
+watchdog running 10 - "$wd_open" > /dev/null
+python3 -I - "$work/wd.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+fx["fail_writes"] = ["PATCH issues/41"]
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+rm -f "$work/wd.json.writes"
+PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z python3 -I scripts/run-watchdog.py > /dev/null 2>&1 || true
+expect "run-watchdog: a close that fails adds no comment" "PATCH issues/41" "$(wd_writes)"
+watchdog running 70 > /dev/null
+python3 -I - "$work/wd.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+fx["routes"].pop("labels/session-stalled")
+fx["errors"] = {}
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+rm -f "$work/wd.json.writes"
+PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z \
+  python3 -I scripts/run-watchdog.py > /dev/null 2>&1 || true
+expect "run-watchdog: a missing label is created before the issue" "POST labels;POST issues" "$(wd_writes)"
+python3 -I - "$work/wd.json" << 'PY'
+import json, sys
+fx = json.load(open(sys.argv[1]))
+fx["routes"].pop("branches?per_page=100&page=1")
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+expect "run-watchdog: GitHub that cannot be read exits 1" 1 \
+  "$(PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z python3 -I scripts/run-watchdog.py > /dev/null 2>&1; echo $?)"
+
 # DesignCompare: an identical image differs by 0%, a design without a screenshot is reported missing.
 java_cmd="java"
 [ -z "${JAVA_HOME:-}" ] || java_cmd="${JAVA_HOME}/bin/java"
@@ -3284,6 +3421,180 @@ sb_hook_mode reject
 expect "save-branch: refuses a branch outside claude/" 2 "$(sb_run main)"
 expect "save-branch: a branch outside claude/is never pushed" 0 "$(sb_calls_count)"
 expect "save-branch: refuses a branch that does not exist" 2 "$(sb_run claude/T-000-none)"
+# A push that GitHub refuses for lack of the workflow scope is also handed off as a patch on the report branch,
+# pushed there for a person to review and apply (T-068, L-086). Never with --bundle-only, never for another refusal.
+sb_report="$work/sb-report"
+sb_report_branch=claude/RUN-20261027-09-report
+sb_hook_mode none
+git -C "$sb_clone" worktree add -q -b "$sb_report_branch" "$sb_report" main
+git -C "$sb_report" push -q -u origin "$sb_report_branch"
+git -C "$sb_clone" checkout -q -b claude/T-997-patch main
+printf 'one\n' > "$sb_clone/a.txt"
+git -C "$sb_clone" add a.txt && git -C "$sb_clone" commit -q -m "T-997: a"
+mkdir -p "$sb_clone/.github/workflows"
+printf 'name: x\n' > "$sb_clone/.github/workflows/x.yml"
+printf '\x00\x01\x02\xff' > "$sb_clone/b.bin"
+git -C "$sb_clone" add .github/workflows/x.yml b.bin && git -C "$sb_clone" commit -q -m "T-997: workflow and binary"
+sb_patch_head="$(git -C "$sb_clone" rev-parse HEAD)"
+sb_mbox_rel="docs/runs/patches/RUN-20261027-09/claude__T-997-patch.mbox"
+sb_hook_scope() { # <task | all | task-and-deny-report>: GitHub refusing a workflow change without the workflow scope
+  rm -f "$sb_calls" "$sb_calls.count"
+  local task="echo 'remote: refusing to allow an OAuth App to create or update workflow .github/workflows/x.yml without workflow scope' >&2; exit 1"
+  local report=':'
+  case "$1" in
+    all) report="$task" ;;
+    task-and-deny-report) report="echo 'remote: denied' >&2; exit 1" ;;
+  esac
+  printf '#!/bin/sh\nwhile read old new ref; do case "$ref" in refs/heads/claude/T-*) echo x >> "%s"; %s;; refs/heads/claude/RUN-*) %s;; esac; done\nexit 0\n' \
+    "$sb_calls" "$task" "$report" > "$sb_hook"
+  chmod +x "$sb_hook"
+}
+sb_report_has() { git -C "$sb_origin" cat-file -e "refs/heads/$sb_report_branch:$1" 2> /dev/null && echo yes || echo no; }
+sb_report_commits() { git -C "$sb_origin" rev-list --count "main..$sb_report_branch"; }
+sb_report_reset() { git -C "$sb_report" reset -q --hard main && git -C "$sb_report" push -q -f origin "$sb_report_branch"; }
+sb_apply_check() { # <file of printed output> <branch>: runs the printed commands (but git push) in a fresh clone; prints the tree
+  rm -rf "$work/sb-apply"
+  git clone -q "$sb_origin" "$work/sb-apply" 2> /dev/null
+  git -C "$work/sb-apply" config user.email p@example.com
+  git -C "$work/sb-apply" config user.name p
+  local cmds
+  cmds="$(awk '/^- Patch trên nhánh báo cáo/ { on = 1; next } on && /^```$/ { n++; if (n == 2) exit; next } on && n == 1 && !/^git push/' "$1")"
+  (cd "$work/sb-apply" && eval "$cmds") > /dev/null 2>&1 || true
+  git -C "$work/sb-apply" rev-parse -q --verify "$2^{tree}" || echo none
+}
+sb_hook_scope task
+expect "save-branch patch: a workflow-scope refusal still exits 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: the mbox is on the pushed report branch" yes "$(sb_report_has "$sb_mbox_rel")"
+expect "save-branch patch: the report branch got one commit" 1 "$(sb_report_commits)"
+expect "save-branch patch: the rescue section names the patch for a person to review" yes \
+  "$(grep -qF -- "- Patch trên nhánh báo cáo, để người xem rồi tự quyết áp hay không: \`$sb_mbox_rel\`" "$work/sb.out" && echo yes || echo no)"
+expect "save-branch patch: the bundle is still made" ok \
+  "$(git -C "$sb_clone" bundle verify "$work/rescue/claude__T-997-patch.bundle" > /dev/null 2>&1 && echo ok || echo bad)"
+expect "save-branch patch: the printed commands rebuild the same tree" "$(git -C "$sb_clone" rev-parse "$sb_patch_head^{tree}")" \
+  "$(sb_apply_check "$work/sb.out" claude/T-997-patch)"
+expect "save-branch patch: the rebuilt branch keeps both commit messages" "T-997: workflow and binary|T-997: a" \
+  "$(git -C "$work/sb-apply" log --format=%s main..claude/T-997-patch 2> /dev/null | paste -sd '|' -)"
+expect "save-branch patch: the check worktree is removed" 2 "$(git -C "$sb_clone" worktree list | grep -c .)"
+expect "save-branch patch: the same patch again exits 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... adds no second commit" 1 "$(sb_report_commits)"
+expect "save-branch patch: ... still prints the commands" 1 "$(grep -c '| git am$' "$work/sb.out")"
+sb_report_reset
+sb_hook_mode reject
+expect "save-branch patch: another refusal exits 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: another refusal writes no patch" no "$(sb_report_has "$sb_mbox_rel")"
+expect "save-branch patch: another refusal says why" 1 "$(grep -c 'chỉ ghi khi GitHub từ chối vì quyền workflow' "$work/sb.out")"
+sb_hook_scope task
+rm -f "$sb_calls"
+expect "save-branch patch: --bundle-only exits 3" 3 "$(sb_run --bundle-only claude/T-997-patch)"
+expect "save-branch patch: --bundle-only never writes the patch" no "$(sb_report_has "$sb_mbox_rel")"
+expect "save-branch patch: --bundle-only leaves the report worktree clean" "" "$(git -C "$sb_report" status --short)"
+expect "save-branch patch: --bundle-only says it does not push in another form" 1 "$(grep -c 'không đẩy lại dưới dạng khác' "$work/sb.out")"
+expect "save-branch patch: --bundle-only never pushes the task branch" 0 "$(sb_calls_count)"
+printf 'session draft\n' > "$sb_report/notes.md"
+git -C "$sb_report" add notes.md
+expect "save-branch patch: other staged changes of the report worktree" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... stay staged, not committed" "A  notes.md" "$(git -C "$sb_report" status --short notes.md)"
+git -C "$sb_report" rm -q --cached notes.md && rm -f "$sb_report/notes.md"
+sb_report_reset
+printf '#!/bin/sh\nexit 1\n' > "$sb_clone/.git/hooks/pre-commit" && chmod +x "$sb_clone/.git/hooks/pre-commit"
+expect "save-branch patch: a commit that fails exits 3" 3 "$(sb_run claude/T-997-patch)"
+rm -f "$sb_clone/.git/hooks/pre-commit"
+expect "save-branch patch: a failed commit leaves no file and nothing staged" "" "$(git -C "$sb_report" status --short --untracked-files=all)"
+expect "save-branch patch: a failed commit says so" 1 "$(grep -c 'Không commit được patch' "$work/sb.out")"
+expect "save-branch patch: a patch over the limit is left out" 3 "$(SAVE_BRANCH_PATCH_MAX_BYTES=100 sb_run claude/T-997-patch)"
+expect "save-branch patch: over the limit, no patch on the report branch" no "$(sb_report_has "$sb_mbox_rel")"
+expect "save-branch patch: over the limit says so" 1 "$(grep -c 'lớn hơn giới hạn 100 byte' "$work/sb.out")"
+sb_token="$(printf '%s%s' "gh""p_" "abcdefghijklmnopqrstuvwxyz0123456789")"
+git -C "$sb_clone" checkout -q -b claude/T-996-secret main
+printf 'token=%s\n' "$sb_token" > "$sb_clone/leak.txt"
+git -C "$sb_clone" add leak.txt && git -C "$sb_clone" commit -q -m "T-996: leak"
+expect "save-branch patch: a patch with a secret exits 3" 3 "$(sb_run claude/T-996-secret)"
+expect "save-branch patch: a secret is never on the report branch" no \
+  "$(sb_report_has docs/runs/patches/RUN-20261027-09/claude__T-996-secret.mbox)"
+expect "save-branch patch: a secret is never left in the report worktree" "" "$(git -C "$sb_report" status --short --untracked-files=all)"
+expect "save-branch patch: a secret says secret-scan" 1 "$(grep -c 'secret-scan.py thấy chuỗi giống bí mật' "$work/sb.out")"
+expect "save-branch patch: the secret is not printed" 0 "$(grep -c "$sb_token" "$work/sb.out")"
+git -C "$sb_clone" checkout -q -b claude/T-995-latin main
+printf 'caf\xe9 token=%s\n' "$sb_token" > "$sb_clone/latin.txt"
+git -C "$sb_clone" add latin.txt && git -C "$sb_clone" commit -q -m "T-995: latin-1"
+expect "save-branch patch: a patch that is not UTF-8 exits 3" 3 "$(sb_run claude/T-995-latin)"
+expect "save-branch patch: a patch that is not UTF-8 is never written" "" "$(git -C "$sb_report" status --short --untracked-files=all)"
+expect "save-branch patch: a patch that is not UTF-8 says so" 1 "$(grep -c 'không phải UTF-8' "$work/sb.out")"
+git -C "$sb_clone" checkout -q -b claude/T-994-merge main
+printf 'on branch\n' > "$sb_clone/c.txt"
+git -C "$sb_clone" add c.txt && git -C "$sb_clone" commit -q -m "T-994: c"
+git -C "$sb_clone" checkout -q main
+printf 'main moved\n' > "$sb_clone/m.txt"
+git -C "$sb_clone" add m.txt && git -C "$sb_clone" commit -q -m "main: m"
+git -C "$sb_clone" checkout -q claude/T-994-merge
+# The merge of main also drops main's new file: replaying only the non-merge commits (git am) would keep it.
+git -C "$sb_clone" merge -q --no-commit main > /dev/null 2>&1
+git -C "$sb_clone" rm -q -f m.txt
+git -C "$sb_clone" commit -q -m "merge main, without m.txt"
+git -C "$sb_clone" push -q origin main 2> /dev/null; git -C "$sb_clone" fetch -q origin
+sb_hook_scope task
+expect "save-branch patch: a branch with a merge of main exits 3" 3 "$(sb_run claude/T-994-merge)"
+expect "save-branch patch: a branch with a merge gets one combined diff" yes \
+  "$(sb_report_has docs/runs/patches/RUN-20261027-09/claude__T-994-merge.diff)"
+expect "save-branch patch: the diff commands rebuild the same tree" "$(git -C "$sb_clone" rev-parse 'claude/T-994-merge^{tree}')" \
+  "$(sb_apply_check "$work/sb.out" claude/T-994-merge)"
+git -C "$sb_clone" checkout -q -b claude/T-993-empty main
+git -C "$sb_clone" commit -q --allow-empty -m "T-993: nothing"
+expect "save-branch patch: a branch whose patch cannot rebuild it exits 3" 3 "$(sb_run claude/T-993-empty)"
+expect "save-branch patch: ... writes no patch and says so" 1 "$(grep -c 'Không dựng được patch' "$work/sb.out")"
+git -C "$sb_clone" checkout -q claude/T-997-patch
+sb_report_reset
+sb_hook_scope task-and-deny-report
+expect "save-branch patch: report branch refused too exits 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: report branch refused says the patch is only local" 1 "$(grep -c 'nhánh báo cáo cũng không đẩy được' "$work/sb.out")"
+expect "save-branch patch: report branch refused prints no apply commands" 0 "$(grep -c '| git am' "$work/sb.out")"
+git -C "$sb_report" reset -q --hard main
+git -C "$sb_report" commit -q --allow-empty -m "report: timeline"
+sb_hook_scope all
+expect "save-branch patch: the report branch itself is never patched onto itself" 3 "$(sb_run "$sb_report_branch")"
+expect "save-branch patch: ... and says so" 1 "$(grep -c 'chính nhánh báo cáo' "$work/sb.out")"
+git -C "$sb_clone" worktree remove --force "$sb_report"
+sb_hook_scope task
+sb_report_reset_remote() { git -C "$sb_clone" push -q -f origin "main:$sb_report_branch"; }
+git -C "$sb_clone" branch -q -f "$sb_report_branch" main && sb_report_reset_remote
+expect "save-branch patch: a local report branch without a worktree still gets the patch" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... pushed through a temporary worktree" yes "$(sb_report_has "$sb_mbox_rel")"
+expect "save-branch patch: ... which is removed" 1 "$(git -C "$sb_clone" worktree list | grep -c .)"
+git -C "$sb_clone" branch -q -D "$sb_report_branch"
+expect "save-branch patch: no report branch at all still bundles" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: no report branch at all says so" 1 "$(grep -c 'Không có nhánh báo cáo' "$work/sb.out")"
+git -C "$sb_clone" worktree add -q -b "$sb_report_branch" "$sb_report" main && sb_report_reset_remote
+expect "save-branch patch: SAVE_BRANCH_REPORT_DIR picks the worktree" 3 \
+  "$(SAVE_BRANCH_REPORT_DIR="$sb_report" sb_run claude/T-997-patch)"
+expect "save-branch patch: with SAVE_BRANCH_REPORT_DIR the patch is pushed" yes "$(sb_report_has "$sb_mbox_rel")"
+expect "save-branch patch: the commands say how to read the patch after the report PR merges" 1 \
+  "$(grep -c 'thay `origin/claude/RUN-20261027-09-report` bằng `origin/main`' "$work/sb.out")"
+sb_tracked="$(git -C "$sb_report" rev-parse -q --verify "HEAD:$sb_mbox_rel" || echo none)"
+printf 'two\n' > "$sb_clone/a.txt"
+git -C "$sb_clone" checkout -q claude/T-997-patch && git -C "$sb_clone" commit -q -am "T-997: a again"
+printf '#!/bin/sh\nexit 1\n' > "$sb_clone/.git/hooks/pre-commit" && chmod +x "$sb_clone/.git/hooks/pre-commit"
+expect "save-branch patch: a newer patch whose commit fails exits 3" 3 "$(SAVE_BRANCH_REPORT_DIR="$sb_report" sb_run claude/T-997-patch)"
+rm -f "$sb_clone/.git/hooks/pre-commit"
+expect "save-branch patch: ... leaves the report worktree clean" "" "$(git -C "$sb_report" status --short --untracked-files=all)"
+expect "save-branch patch: ... keeps the patch already committed" "$sb_tracked" "$(git -C "$sb_report" hash-object "$sb_mbox_rel" 2> /dev/null || echo gone)"
+git -C "$sb_clone" push -q -f origin "main:$sb_report_branch"
+git -C "$sb_clone" fetch -q origin
+git -C "$sb_origin" update-ref "refs/heads/$sb_report_branch" "$(git -C "$sb_origin" commit-tree -p "refs/heads/$sb_report_branch" -m remote "refs/heads/$sb_report_branch^{tree}")"
+git -C "$sb_report" reset -q --hard main
+git -C "$sb_report" commit -q --allow-empty -m "local timeline"
+expect "save-branch patch: a report branch that diverged from GitHub exits 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... writes no patch" "" "$(git -C "$sb_report" status --short --untracked-files=all)"
+expect "save-branch patch: ... says the branches differ" 1 "$(grep -c 'đã khác nhau' "$work/sb.out")"
+git -C "$sb_clone" worktree add -q -b claude/RUN-20261027-10-report "$work/sb-report2" main
+expect "save-branch patch: two report worktrees exit 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... pick neither" 1 "$(grep -c 'Có nhiều nhánh báo cáo' "$work/sb.out")"
+git -C "$sb_clone" worktree remove --force "$work/sb-report2"
+git -C "$sb_clone" worktree remove --force "$sb_report"
+expect "save-branch patch: two local report branches without worktrees exit 3" 3 "$(sb_run claude/T-997-patch)"
+expect "save-branch patch: ... pick neither" 1 "$(grep -c 'Có nhiều nhánh báo cáo' "$work/sb.out")"
+expect "save-branch patch: ... and leave no worktree" 1 "$(git -C "$sb_clone" worktree list | grep -c .)"
+git -C "$sb_clone" branch -q -D claude/RUN-20261027-10-report
+git -C "$sb_clone" checkout -q claude/T-999-thu
 export GIT_CONFIG_COUNT="${sb_git_config[0]}" GIT_CONFIG_KEY_0="${sb_git_config[1]}" GIT_CONFIG_VALUE_0="${sb_git_config[2]}"
 
 # push-probe.sh tells at the start of a session whether it may push a change to .github/workflows/ (L-086 of

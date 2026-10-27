@@ -186,7 +186,7 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 
 ### [ADR-1004](adr/1004-chua-ap-dung-quang-cao-adskit.md): App chưa áp dụng quảng cáo theo AdsKit và AppsFlyer cho tới đợt đồng bộ core, trong lúc đó giữ quy tắc quảng cáo cũ
 
-- chưa áp dụng ADR-0026, ADR-0027 và các vế ADR-0026 đổi trong ADR-0004, ADR-0013, ADR-0014 cho tới khi `core/ads` được đồng bộ qua plan đã duyệt
+- chưa áp dụng ADR-0026, ADR-0027, các vế mà ghi chú ngày 2026-10-23 đổi trong ADR-0004, ADR-0013, ADR-0014, và vế "sinh lại bảng khóa" của ADR-0023, cho tới khi `core/ads` được đồng bộ qua plan đã duyệt
 - không khởi tạo SDK quảng cáo trước khi xử lý xong sự đồng ý của người dùng
 - feature chỉ dùng `AdSlot`, `rememberShowInterstitial` và `PrivacyOptionsButton`
 - gọi quảng cáo toàn màn hình chỉ ở điểm dừng tự nhiên, không bao giờ lúc mở hay đóng app

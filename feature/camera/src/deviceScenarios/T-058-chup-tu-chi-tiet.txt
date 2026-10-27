@@ -1,12 +1,12 @@
 ticket: T-058
-criterion: Mở camera từ "Chụp với tư thế này" rồi bấm chụp thì màn xem lại mở (FB-20261026-01); cần camera sau, emulator CI bỏ qua
+criterion: Mở camera từ "Chụp với tư thế này" rồi bấm chụp thì màn xem lại mở (FB-20261026-01)
 timeout: 120
 fresh
 consent decline 30
 wait id=onboarding_screen | id=camera_screen 60
 tap_if id=onboarding_enable_camera
 wait id=camera_screen 15
-need id=camera_grid_button 15
+wait id=camera_grid_button 15
 need id=camera_poses 15
 # (1) thư viện, chi tiết, "Chụp với tư thế này": camera mới sẵn sàng
 tap id=camera_poses

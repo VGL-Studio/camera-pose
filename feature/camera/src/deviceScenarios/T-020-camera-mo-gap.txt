@@ -6,7 +6,7 @@ consent decline 30
 wait id=onboarding_screen | id=camera_screen 60
 tap_if id=onboarding_enable_camera
 wait id=camera_screen 15
-need id=camera_grid_button 15
+wait id=camera_grid_button 15
 tap idp=camera_pose_ in=camera_strip index=2
 tap id=camera_grid_button
 wait id=camera_grid 5

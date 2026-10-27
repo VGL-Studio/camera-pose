@@ -83,7 +83,7 @@ jobs:
       - name: Xóa cấu hình staging khỏi máy chạy
         run: rm -f app/src/staging/release/google-services.json "${RUNNER_TEMP}/staging.keystore"
 
-      # Same emulator setup as the ui-test job of pr-check.yml.
+      # Same emulator setup as the ui-test job of pr-check.yml, except the emulated back camera (T-062).
       - name: Giải phóng đĩa cho emulator
         run: |
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /opt/hostedtoolcache/CodeQL
@@ -102,7 +102,8 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # An emulated back camera (a generated scene, no person) lets the camera scenarios run (T-062).
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back emulated
           # stop always runs and decides the result: red when the app crashed or did not respond.
           script: bash -c 'adb install -r app/build/outputs/apk/staging/release/app-staging-release.apk && scripts/device-session.sh start ci && scripts/device-session.sh scenarios --yes; scripts/device-session.sh stop'
 

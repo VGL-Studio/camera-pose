@@ -47,6 +47,8 @@ Lệnh này **xóa dữ liệu của app** và bật, tắt chế độ máy bay
 
 Muốn thử chính luồng hỏi quyền (người dùng đồng ý, từ chối, từ chối hẳn) thì chạy `scripts/device-session.sh scenarios --yes --ask-permissions`: kịch bản không cấp quyền, `scenarios.txt` ghi `permissions ask`. Khi đó số đo khởi động nguội sau lần đầu không dùng được. Thử tay luồng này thì dùng `reset` (lệnh này không cấp quyền), rồi ghi lựa chọn của mình vào `notes.md`.
 
+Muốn thử cả app theo từng bước có kết quả mong đợi thì dùng [kịch bản kiểm thử thủ công](manual-test.md).
+
 Thư mục `test-sessions/` không vào git: log thô lớn và có thể chứa thông tin của máy. Giữ trên máy dev cho tới khi phân tích xong.
 
 ## 3. Nhờ AI phân tích

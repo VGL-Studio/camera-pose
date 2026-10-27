@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là đề xuất 4e sau RUN-20261027-01, Tuấn chọn ngày 2026-10-27
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: S
 depends_on: []

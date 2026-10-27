@@ -22,7 +22,13 @@ documents behind it, the mistakes that stopped or slowed earlier sessions:
      "Bỏ đề xuất thứ tự: A trước B" (then a warning). A plan that names a file another plan of the list creates,
      without having it in its own section 3.2 and without depending on that plan: an error when it comes first,
      a warning (what it misses if the other plan stops) when it comes after.
-RUN_CHECK_ROOT overrides the repository root (tests). Messages are in Vietnamese for the team.
+  8. What the way of opening the session can do (L-086 of camera-pose): the list's `open_with` (cloud, routine,
+     local) against the table of docs/ops/session-capabilities.md. A plan whose file table (section 3.2, rows only,
+     like plan-check.py --touches) has a path matching a capability the method lacks ("không") is an error; one the
+     session must probe at its start ("thử") is a warning. A missing or unknown `open_with` is a warning only when
+     some plan needs a capability. A row of the table with a broken pattern is a warning.
+RUN_CHECK_ROOT overrides the repository root (tests). RUN_CHECK_OPEN_WITH overrides `open_with` (a session opened
+another way than the list says). Messages are in Vietnamese for the team.
 """
 
 import importlib.util
@@ -194,6 +200,77 @@ def repo_basenames():
     return [Path(line).name for line in out.splitlines()]
 
 
+OPEN_METHODS = ("cloud", "routine", "local")
+CAPABILITIES = DOCS / "ops" / "session-capabilities.md"
+
+
+def capability_rows():
+    """(rows, warnings): rows are (name, path pattern, {method: value}) of the table in session-capabilities.md.
+
+    Columns are found by their header (Khả năng, Mẫu, cloud, routine, local). Rows without a path pattern ("-")
+    are for people only; a row with a broken pattern is skipped with a warning.
+    """
+    if not CAPABILITIES.is_file():
+        return [], []
+    match = re.search(r"<!-- capabilities:start -->(.*?)<!-- capabilities:end -->",
+                      CAPABILITIES.read_text(encoding="utf-8"), re.S)
+    rows, warnings, columns = [], [], None
+    for line in (match.group(1) if match else "").splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if columns is None:
+            lowered = [c.lower() for c in cells]
+            if not all(m in lowered for m in OPEN_METHODS):
+                continue
+            columns = {m: lowered.index(m) for m in OPEN_METHODS}
+            columns["pattern"] = next((i for i, c in enumerate(lowered) if c.startswith("mẫu")), 1)
+            continue
+        if len(cells) <= max(columns.values()) or not cells[0].startswith("`"):
+            continue
+        name = cells[0].strip("`")
+        pattern = re.search(r"`([^`]+)`", cells[columns["pattern"]])
+        if not pattern:
+            continue
+        try:
+            compiled = re.compile(pattern.group(1))
+        except re.error as error:
+            warnings.append(f"docs/ops/session-capabilities.md: mẫu của '{name}' không đọc được ({error}); "
+                            "dòng này không được kiểm.")
+            continue
+        rows.append((name, compiled, {m: cells[columns[m]].strip("` ").lower() for m in OPEN_METHODS}))
+    return rows, warnings
+
+
+def capability_problems(run_text, files_of, in_list):
+    """Errors and warnings of rule 8: what the plans need against what the way of opening the session can do."""
+    rows, warnings = capability_rows()
+    errors = []
+    needs = []  # (ticket, capability, first matching path, values)
+    for name, pattern, values in rows:
+        for ticket in in_list:
+            hit = sorted(path for path in files_of.get(ticket, ()) if pattern.search(path))
+            if hit:
+                needs.append((ticket, name, hit[0], values))
+    if not needs:
+        return errors, warnings
+    method = (os.environ.get("RUN_CHECK_OPEN_WITH") or front_matter(run_text).get("open_with", "")).lower()
+    if method not in OPEN_METHODS:
+        tickets = ", ".join(dict.fromkeys(ticket for ticket, *_ in needs))
+        warnings.append(f"danh sách chưa ghi open_with (cloud, routine hay local; nhận '{method}') mà {tickets} cần "
+                        "khả năng riêng của cách mở phiên (docs/ops/session-capabilities.md, L-086 của camera-pose).")
+        return errors, warnings
+    for ticket, name, path, values in needs:
+        value = values.get(method, "")
+        if value == "không":
+            errors.append(f"{ticket} cần '{name}' (`{path}` ở mục 3.2) mà phiên mở bằng {method} không có "
+                          "(docs/ops/session-capabilities.md). Đổi open_with, hoặc để task sang phiên khác.")
+        elif value != "có":
+            warnings.append(f"{ticket} cần '{name}' (`{path}` ở mục 3.2): phiên mở bằng {method} phải thử ở đầu phiên "
+                            "(docs/auto-run.md, mục 2); không được thì task bị bỏ qua.")
+    return errors, warnings
+
+
 def check(run_path):
     errors, warnings = [], []
     rows = run_rows(run_path.read_text())
@@ -318,6 +395,9 @@ def check(run_path):
                     warnings.append(f"{user} nhắc `{mention}` mà {creator} tạo; nếu {creator} dừng thì {user} thiếu "
                                     f"`{mention}`. Cân nhắc thêm {creator} vào depends_on của {user}, hoặc ghi phương án "
                                     "ở mục 3.4 của plan (L-078).")
+    capability_errors, capability_warnings = capability_problems(run_text, files_of, in_list)
+    errors += capability_errors
+    warnings += capability_warnings
     independent = [t for t in in_list if not set(depends.get(t, [])) & set(in_list)]
     if len(in_list) > 1 and len(independent) == 1:
         warnings.append("danh sách chỉ có một chuỗi phụ thuộc: một task dừng thì các task sau bị bỏ qua (L-045).")

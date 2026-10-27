@@ -1738,6 +1738,17 @@ expect "token-usage: mark prints the task and exits 0" "0 1" \
   "$(token_usage mark T-031 > "$work/mark.out"; echo $?) $(grep -c 'T-031' "$work/mark.out")"
 expect "token-usage: mark with a name that is not T-NNN or chung exits 2 and says why" "2 1" \
   "$(token_usage mark T031 > "$work/mark-bad.out" 2>&1; echo $?) $(grep -c '^LỖI: ' "$work/mark-bad.out")"
+# A line naming the command in an odd shape (not an object, a text message, a text input) is no mark and no failure.
+mkdir -p "$work/projects-mark6/p"
+{
+  echo '["scripts/token-usage.py mark T-031"]'
+  printf '{"type":"assistant","timestamp":"2026-10-18T03:00:00Z","cwd":"%s","message":"scripts/token-usage.py mark T-031"}\n' "$tokens"
+  printf '{"type":"assistant","timestamp":"2026-10-18T03:00:00Z","cwd":"%s","message":{"content":[{"type":"tool_use","name":"Bash","input":"scripts/token-usage.py mark T-031"}]}}\n' "$tokens"
+  usage_line s1 HEAD 2026-10-18T03:01:00Z 90
+} > "$work/projects-mark6/p/s.jsonl"
+expect "token-usage: a mark line of an odd shape is skipped without failing the report" "0 1" \
+  "$(TOKEN_USAGE_ROOT="$tokens" TOKEN_USAGE_PROJECTS_DIR="$work/projects-mark6" python3 -I scripts/token-usage.py report \
+    --since 2026-10-18T00:00:00Z > "$work/tokens-mark6.out" 2>&1; echo $?) $(grep -c '^| Chung (ngoài task) | - | - | 1k | - | 1 |' "$work/tokens-mark6.out")"
 
 # In a git checkout, plan-check.py only searches tracked files for readers: a copy of the repository in an untracked
 # folder such as .claude/worktrees/ is not a reader of the changed file.

@@ -10,7 +10,7 @@
 #          SAVE_BRANCH_REPORT_DIR     worktree of the report branch (default: the worktree on claude/RUN-*-report,
 #                                     or a temporary one on the local claude/RUN-*-report branch)
 #          SAVE_BRANCH_PATCH_MAX_BYTES  largest patch kept on the report branch (default 1048576)
-# Hand-off as text (camera-pose L-086, T-068): when GitHub itself refuses the push because the token may not change
+# Hand-off as text (PB-14, ADR-0032): when GitHub itself refuses the push because the token may not change
 # .github/workflows/ (the message below), the commits are also written as a patch on the report branch, which is
 # pushed, so a person can review and apply them after the cloud machine is gone; the bundle stays on that machine.
 # This is the only case: never with --bundle-only (the environment refused the push call, and writing the same
@@ -27,7 +27,7 @@ set -uo pipefail
 
 bundle_only=no
 patch_handoff=no
-# GitHub's refusal of a push that changes .github/workflows/ without the workflow scope (L-086).
+# GitHub's refusal of a push that changes .github/workflows/ without the workflow scope (PB-14).
 workflow_scope_pattern='refusing to allow an? (OAuth App|GitHub App|Personal Access Token)[^)]*workflow'
 if [ "${1:-}" = "--bundle-only" ]; then
   bundle_only=yes
@@ -136,7 +136,7 @@ trap cleanup EXIT
 if [ "${bundle_only}" = "yes" ]; then
   patch_note="Không ghi patch: lệnh đẩy bị môi trường từ chối (--bundle-only), không đẩy lại dưới dạng khác (auto-run.md, Khi không đẩy được)."
 elif [ "${patch_handoff}" = "no" ]; then
-  patch_note="Không ghi patch: chỉ ghi khi GitHub từ chối vì quyền workflow (L-086); lần từ chối này khác."
+  patch_note="Không ghi patch: chỉ ghi khi GitHub từ chối vì quyền workflow (PB-14); lần từ chối này khác."
 else
   report_dir="${SAVE_BRANCH_REPORT_DIR:-}"
   many_reports=no

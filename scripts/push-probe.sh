@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Checks at the start of a session that this environment may push a change to .github/workflows/ (L-086 of
-# camera-pose). A token without the GitHub `workflow` scope pushes ordinary commits but refuses any commit that
+# Checks at the start of a session that this environment may push a change to .github/workflows/ (L-112). A token without the GitHub `workflow` scope pushes ordinary commits but refuses any commit that
 # touches a workflow file, so a task that edits a workflow only learns it after all its work is done.
 #
 # Usage:   scripts/push-probe.sh <RUN-YYYYMMDD-NN>
 # Exit:    0 the push went through (the probe branch is deleted again, or a warning says it is left).
-#          3 the refusal is a `bo-qua-loai` row of the failure playbook (PB-13: no `workflow` scope): the session
+#          3 the refusal is a `bo-qua-loai` row of the failure playbook (PB-14: no `workflow` scope): the session
 #            skips the tasks of that kind (docs/auto-run.md, mục 2).
 #          4 no clear answer (another refusal, or a network error that did not clear): the session records it and
 #            runs its tasks as usual. 2 bad arguments, or nothing to probe.
@@ -16,7 +15,7 @@
 #          blocks the next call.
 # Env:     PUSH_PROBE_PLAYBOOK        failure playbook table (default docs/ops/failure-playbook.md; tests)
 #          PUSH_PROBE_RETRY_SECONDS   waits between retries of a network error (default "60 120 240")
-# Runs in the current repository, so it works from a worktree.
+# Runs in the current repository, so it works from a worktree and from any of its subdirectories.
 # Messages are in Vietnamese for the team; comments are in English.
 
 set -uo pipefail
@@ -33,7 +32,8 @@ if ! git rev-parse --verify -q origin/main > /dev/null; then
   echo "LỖI: không có origin/main; chạy git fetch origin main trước." >&2
   exit 2
 fi
-workflows="$(git ls-tree --name-only origin/main .github/workflows/ | grep -E '\.ya?ml$')"
+# --full-tree: paths are from the repository root, so a call from a subdirectory finds the workflows too.
+workflows="$(git ls-tree --full-tree --name-only origin/main .github/workflows/ | grep -E '\.ya?ml$')"
 if [ -z "${workflows}" ]; then
   echo "LỖI: origin/main không có file nào trong .github/workflows/, không có gì để thử." >&2
   exit 2
@@ -70,7 +70,7 @@ while :; do
   output="$(git -C "${tmp}/probe" push origin "HEAD:refs/heads/${branch}" 2>&1)"
   code=$?
   [ "${code}" -ne 0 ] || break
-  # One pattern for every refusal the session knows: the failure playbook (PB-13 for the workflow scope).
+  # One pattern for every refusal the session knows: the failure playbook (PB-14 for the workflow scope).
   printf '%s\n' "${output}" > "${tmp}/push.log"
   kind="$("${here}/failure-kind.sh" --playbook "${tmp}/push.log" ${PUSH_PROBE_PLAYBOOK:+"${PUSH_PROBE_PLAYBOOK}"} 2> /dev/null)"
   if [[ "${kind}" =~ ^PB-[0-9]+\ bo-qua-loai ]]; then

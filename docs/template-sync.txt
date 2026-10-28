@@ -1,4 +1,4 @@
-base=d1165e0cbcbb08c63e552129d18dfbdc311443d9
+base=8d9bc55e622adaaceec44b05a86bbba226b1e8e1
 package=com.vglstudio.camera.pose.line.guide
 hold=app 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=core 0eaeadbc2b04a94c81d9877aec4681b05a11587a
@@ -12,17 +12,9 @@ hold=gradle.properties 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # which the app does not have yet (ADR-1004). Take them with core/ads in a later sync, through an approved plan.
 hold=scripts/release.sh 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-# T-068: scripts/save-branch.sh (patch trên nhánh báo cáo), scripts/tests/fake-gh (errors, 404) và khối test của chúng trong scripts/tests/run.sh là phần của app chưa có ở mẫu: khi gộp xung đột, giữ phần này (đã đề xuất from-app).
-# Plan T-065 (pose catalog check) changed these template files; until the template takes the from-app proposal,
-# a sync must keep, when merging each file:
-#   scripts/setup-check.sh: http_status (retry 000, 429, 5xx), cdn_hint, the call of scripts/setup-check-app.sh at
-#     the end (SETUP_CHECK_APP_CHECKS);
-#   scripts/tests/run.sh: SETUP_CHECK_APP_CHECKS=none in setup_check(), and the block "camera-pose only (plan T-065)";
-#   .github/workflows/env-canary.yml: input setup_only and the if of job fire, REMOTE_CONFIG_CREDENTIALS, the second
-#     check after 90 seconds, persist-credentials: false and env -u GH_TOKEN around the script,
-#     timeout-minutes 15 of job setup-check;
-#   .github/workflows/start-run.yml: REMOTE_CONFIG_CREDENTIALS, persist-credentials: false and env -u GH_TOKEN around
-#     the script, issues: write and the step that closes setup-broken when green, timeout-minutes 10;
-#   docs/ops/staging-and-runs.md: sections 1.1 step 6, 1.3, 2.3, 2.4 (catalog).
-# scripts/setup-check-app.sh is the app's own file; a sync does not touch it. Without the REMOTE_CONFIG_CREDENTIALS
-# line the check only warns (the catalog of the key is not read); with the line and no secret it fails.
+# App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6
+# (scenario budget 1500, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
+# and start-run.yml, the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
+# docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md, and the
+# release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh.
+# App-only files a sync never touches: scripts/setup-check-app.sh, scripts/tests/app.sh, docs/ops/manual-test.md.

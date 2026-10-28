@@ -1,2 +1,23 @@
-API Error: 403 oauth_org_not_allowed
-Your organization has disabled Claude subscription access for Claude Code
+ui-test	UNKNOWN STEP	2026-10-26T17:41:45.2745824Z > Task :app:packageStagingDebug
+ui-test	UNKNOWN STEP	2026-10-26T17:41:45.2746853Z > Task :app:createStagingDebugApkListingFileRedirect
+ui-test	UNKNOWN STEP	2026-10-26T17:41:47.5701083Z > Task :app:connectedStagingDebugAndroidTest FAILED
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.1727208Z gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__reactivecircus_android-emulator-runner-1793036214866.json
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2733734Z 
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2774642Z FAILURE: Build failed with an exception.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2791672Z 
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2825715Z * What went wrong:
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2839331Z Execution failed for task ':app:connectedStagingDebugAndroidTest'.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2859576Z > Could not resolve all files for configuration ':app:_internal-unified-test-platform-android-test-plugin-host-additional-test-output'.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2873778Z    > Could not resolve com.google.api.grpc:proto-google-common-protos:2.17.0.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2885984Z      Required by:
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2909696Z          project :app > com.android.tools.utp:android-test-plugin-host-additional-test-output:31.13.0 > com.google.testing.platform:android-device-provider-local:0.0.9-alpha03
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2913864Z       > Could not resolve com.google.api.grpc:proto-google-common-protos:2.17.0.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2943777Z          > Could not get resource 'https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-common-protos/2.17.0/proto-google-common-protos-2.17.0.pom'.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2949924Z             > Could not GET 'https://repo.maven.apache.org/maven2/com/google/api/grpc/proto-google-common-protos/2.17.0/proto-google-common-protos-2.17.0.pom'. Received status code 403 from server: Forbidden
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2974392Z    > Could not resolve com.google.auto.service:auto-service:1.1.1.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.2977906Z      Required by:
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.3010745Z          project :app > com.android.tools.utp:android-test-plugin-host-additional-test-output:31.13.0 > com.google.testing.platform:android-device-provider-local:0.0.9-alpha03
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.3014616Z       > Could not resolve com.google.auto.service:auto-service:1.1.1.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.3041458Z          > Could not get resource 'https://repo.maven.apache.org/maven2/com/google/auto/service/auto-service/1.1.1/auto-service-1.1.1.pom'.
+ui-test	UNKNOWN STEP	2026-10-26T17:41:48.3889204Z BUILD FAILED in 5m 6s
+ui-test	UNKNOWN STEP	2026-10-26T17:42:05.8447222Z ##[error]Không có test nào chạy trên emulator.

@@ -75,6 +75,20 @@ Ghi "Không có" nếu không có.
 - **Điều kiện chuyển:** <dấu hiệu cụ thể, ví dụ test viết trước vẫn thất bại vì cùng một lỗi sau 2 lần sửa, hay một lỗi biết trước như hết thời gian chờ>
 - **Cách làm thay:** <hướng kỹ thuật thay thế; tiêu chí chấp nhận và test ở mục 4 giữ nguyên>
 
+### 3.5. Hành vi đã có bị đổi
+
+<!--
+Bắt buộc khi plan sửa hay xóa code Kotlin ngoài thư mục test (scripts/plan-check.py, quy tắc 13; ADR-0031).
+Bắt đầu từ `scripts/existing-tests.py <plan>`: đọc từng test của nhóm "Cần xem trước" và "Nên xem".
+Mỗi dòng một hành vi plan đổi (vị trí, kích thước, thứ tự, giá trị, luồng). Câu khẳng định phải đổi thì viết sẵn câu mới,
+để phiên dùng như test viết trước; chưa quyết được thì đặt câu hỏi ở mục 8. Không cần chạy test.
+Ghi "Không có" kèm một câu lý do nếu plan không đổi hành vi nào mà test có sẵn kiểm.
+-->
+
+| Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
+| --- | --- | --- | --- |
+| <ví dụ: thẻ nằm dưới pager> | <thẻ đè ở đáy vùng bước> | `XxxTest.card_belowPager` | <câu mới: khung thẻ ở đáy vùng bước, thẻ không che chữ của bước> |
+
 ## 4. Kiểm thử
 
 <!--

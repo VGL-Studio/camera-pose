@@ -1,15 +1,17 @@
 ---
 id: ADR-1005
 title: Phiên tự chạy tự làm các lệch nhỏ đã liệt kê và tự bỏ qua loại task mà môi trường không làm được, rồi báo người sau
-status: accepted             # proposed | accepted | superseded
+status: superseded           # proposed | accepted | superseded
 origin: app                  # template: ADR của dự án mẫu (mã dưới 1000) | app: ADR riêng của app (mã từ 1001)
 date: 2026-10-27
 deciders: [Tuấn]
 supersedes:                  # bổ sung ADR-0029, không thay quy tắc nào của nó
-superseded_by:
+superseded_by: ADR-0032         # dự án mẫu nhận quyết định này (cùng quy tắc; dòng bảng tra lỗi là PB-14, không phải PB-13)
 ---
 
 # ADR-1005: PHIÊN TỰ CHẠY TỰ LÀM CÁC LỆCH NHỎ ĐÃ LIỆT KÊ VÀ TỰ BỎ QUA LOẠI TASK MÀ MÔI TRƯỜNG KHÔNG LÀM ĐƯỢC, RỒI BÁO NGƯỜI SAU
+
+> **Ghi chú 2026-10-28:** dự án mẫu nhận quyết định này thành ADR-0032 (đồng bộ dự án mẫu d1165e0..8d9bc55). ADR-0032 thay ADR này; tài liệu dẫn ADR-0032/L1 tới L10, và dòng thiếu quyền `workflow` của bảng tra lỗi là PB-14 (PB-13 ở dưới là số cũ của app).
 
 ## Bối cảnh
 

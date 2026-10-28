@@ -177,6 +177,39 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - rà soát độc lập xét riêng phần đó, vi phạm là mức chặn
 - ở bước 6 phải sửa điểm nên sửa có test viết trước, giới hạn 3 lần sửa mỗi điểm và 2 vòng rà soát lại mỗi task
 
+### [ADR-0030](adr/0030-dong-bo-du-an-mau-ve-app.md): Đưa thay đổi của dự án mẫu về app theo từng đợt, bằng PR đồng bộ dựng từ diff của dự án mẫu
+
+- không chép tay code hay tài liệu của dự án mẫu về phần dùng chung của app, dùng `scripts/template-sync.sh` theo `docs/ops/to-app.md`
+- không sửa `base=` hay `hold=` của `docs/template-sync.txt` ngoài PR đồng bộ
+- trước khi đồng bộ, đưa cải tiến chung của app chưa về dự án mẫu qua `from-app.md`
+- xung đột ở phần của dự án mẫu thì lấy bản mẫu, trừ phần app chưa đưa về và giá trị riêng của app ở mục 6 của `to-app.md`
+- phần app cũng sửa thì gộp tay, giữ phần riêng của app
+- mô tả PR đồng bộ liệt kê cách gộp từng file xung đột
+- phần giữ lại vì lớn thì đưa vào bằng một task có plan
+
+### [ADR-0031](adr/0031-test-cu-mau-thuan-voi-plan.md): Test có sẵn kiểm hành vi mà plan đổi được tìm từ lúc soạn plan, và phiên tự viết lại câu khẳng định khi plan đã duyệt rõ điều mới
+
+- plan sửa hay xóa code Kotlin ngoài thư mục test có mục 3.5 "Hành vi đã có bị đổi", liệt kê test có sẵn kiểm hành vi plan đổi (bắt đầu từ `scripts/existing-tests.py <plan>`) và câu khẳng định giữ nguyên hay câu mới viết sẵn, chỗ chưa quyết thì đặt câu hỏi ở mục 8
+- trong phiên, câu khẳng định của test JVM có sẵn đỏ vì trái trực tiếp điều plan đã duyệt nói rõ thì viết lại khi đủ sáu điều: có câu của plan nói điều mới, có câu ý định và câu mới kiểm đúng ý định đó, không nới (không bớt câu, không đổi bằng thành khoảng hay chứa, không tăng sai số, không bỏ đối chứng, không `@Ignore`), có đối chứng đỏ khi ý định bị phá, không phải ảnh chuẩn hay test viết trước của plan hay câu kiểm tiêu chí của spec hay luật nghiệp vụ mà plan không đổi, tối đa 3 câu mỗi task
+- thiếu một điều thì dừng như cũ
+- mỗi câu viết lại ghi vào nhật ký plan, mục "Test cũ viết lại (ADR-0031)" của mô tả PR và một dòng `- [ ]` ở mục Cần người kiểm tra
+- rà soát độc lập xét riêng từng câu, vi phạm là mức chặn
+
+### [ADR-0032](adr/0032-lech-nho-tu-lam-roi-bao.md): Phiên tự chạy tự làm các lệch nhỏ đã liệt kê và tự bỏ qua loại task mà môi trường không làm được, rồi báo người sau
+
+- chỉ tự làm các lệch nhỏ L1 tới L10 của quyết định 1 mà không cần plan phiên bản mới
+- ngân sách kịch bản nâng tới tổng theo công thức làm tròn lên hàng trăm, không quá trần tính từ `timeout-minutes` của `device-session.yml`, trong PR của task làm tổng vượt
+- `need` chỉ đổi thành `wait` khi có bằng chứng emulator đã có thiết bị nhờ task đã merge
+- mốc dời chỗ chỉ khi mọi dòng `-` của plan (khối chỉ có dòng `+`: dòng ngữ cảnh trên, dưới hay tiêu đề mục) có nguyên văn ở chỗ mới, đặt các dòng `+` không đổi chữ, không thì dừng theo điều kiện 3
+- test viết trước qua ngay chỉ được làm tiếp khi test chặt lại hay một đột biến làm nó thất bại, không thì dừng theo điều kiện 8
+- không dùng `@Suppress`, lint baseline hay sửa `.editorconfig` thay cho L5
+- tệp sinh ra chỉ của `scripts/foundation.py`, `scripts/status.py`
+- mã kế tiếp đã có người dùng thì lấy mã sau và sửa mọi chỗ dẫn trong cùng PR
+- lỗi khớp dòng `bo-qua-loai` của bảng tra lỗi thì bỏ qua mọi task còn lại mà lệnh `scripts/plan-check.py --touches` của dòng đó trả mã 0, làm tiếp các task khác, không kết thúc phiên, soạn danh sách chạy nháp cho task bị bỏ qua
+- không tự thêm quyền, thư viện, SDK, quảng cáo, sự kiện phân tích, không chạm production, không đổi spec, thiết kế hay câu trả lời của người, không làm yếu test, không đẩy lại lệnh bị từ chối dưới dạng khác
+- mỗi quyết định tự làm ghi vào mục "Quyết định AI đã tự làm" của báo cáo (task, loại, quyết định, lý do, cách hoàn tác), và mục Cần người kiểm tra luôn có dòng `- [ ] Quyết định AI đã tự làm: <N>`
+- rà soát độc lập xét mỗi lệch L1 tới L7, L10, lệch ngoài danh sách là mức chặn
+
 ## Quyết định riêng của app
 
 ### [ADR-1001](adr/1001-loading-timeout-15s.md): Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config
@@ -193,21 +226,6 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - khóa quảng cáo dạng `ads_<vị trí>_enabled`, vị trí mới mặc định tắt
 - khai báo khóa Remote Config mới như các khóa hiện có trong `:core:config` cho tới khi app có `AppRemoteKeys`
 - không thêm AppsFlyer khi chưa có plan đồng bộ `core` được duyệt
-
-### [ADR-1005](adr/1005-lech-nho-tu-lam-roi-bao.md): Phiên tự chạy tự làm các lệch nhỏ đã liệt kê và tự bỏ qua loại task mà môi trường không làm được, rồi báo người sau
-
-- chỉ tự làm các lệch nhỏ L1 tới L10 của quyết định 1 mà không cần plan phiên bản mới
-- ngân sách kịch bản nâng tới tổng theo công thức làm tròn lên hàng trăm, tối đa 1600 giây, trong PR của task làm tổng vượt
-- `need` chỉ đổi thành `wait` khi có bằng chứng emulator đã có thiết bị nhờ task đã merge
-- mốc dời chỗ chỉ khi mọi dòng `-` của plan (khối chỉ có dòng `+`: dòng ngữ cảnh trên, dưới hay tiêu đề mục) có nguyên văn ở chỗ mới, đặt các dòng `+` không đổi chữ, không thì dừng theo điều kiện 3
-- test viết trước qua ngay chỉ được làm tiếp khi test chặt lại hay một đột biến làm nó thất bại, không thì dừng theo điều kiện 8
-- không dùng `@Suppress`, lint baseline hay sửa `.editorconfig` thay cho L5
-- tệp sinh ra chỉ của `scripts/foundation.py`, `scripts/status.py`
-- mã kế tiếp đã có người dùng thì lấy mã sau và sửa mọi chỗ dẫn trong cùng PR
-- lỗi khớp dòng `bo-qua-loai` của bảng tra lỗi thì bỏ qua mọi task còn lại mà lệnh `scripts/plan-check.py --touches` của dòng đó trả mã 0, làm tiếp các task khác, không kết thúc phiên, soạn danh sách chạy nháp cho task bị bỏ qua
-- không tự thêm quyền, thư viện, SDK, quảng cáo, sự kiện phân tích, không chạm production, không đổi spec, thiết kế hay câu trả lời của người, không làm yếu test, không đẩy lại lệnh bị từ chối dưới dạng khác
-- mỗi quyết định tự làm ghi vào mục "Quyết định AI đã tự làm" của báo cáo (task, loại, quyết định, lý do, cách hoàn tác), và mục Cần người kiểm tra luôn có dòng `- [ ] Quyết định AI đã tự làm: <N>`
-- rà soát độc lập xét mỗi lệch L1 tới L7, L10, lệch ngoài danh sách là mức chặn
 
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 

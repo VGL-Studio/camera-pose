@@ -11,7 +11,8 @@
 # Usage:   scripts/failure-kind.sh --playbook <log> [<table>]
 # Prints:  one line "PB-NN <kind>: <what to do> (<source>)" for the first row of docs/ops/failure-playbook.md
 #          (or <table>) whose pattern matches the log, or "khong-co: ..." when no row matches (L-079).
-#          A pattern grep -E rejects is skipped and reported as "LỖI BẢNG" on stderr. Always exits 0.
+#          A pattern grep -E rejects is skipped and reported as "LỖI BẢNG" on stderr. A file that is the error or
+#          help text of a failed gh call prints "log-hong: ..." instead (L-104). Always exits 0.
 # Changing this file changes the quality gate: high-risk plan, cross-review required.
 
 set -uo pipefail
@@ -21,6 +22,12 @@ if [ "${1:-}" = "--playbook" ]; then
   table="${3:-$(dirname "$0")/../docs/ops/failure-playbook.md}"
   if [ -z "${playbook_log}" ] || [ ! -f "${playbook_log}" ]; then
     echo "khong-co: không có log để tra bảng (${playbook_log:-không đưa đường dẫn}). Xử lý như lỗi thật (auto-run.md bước 8, tối đa 3 lần sửa)."
+    exit 0
+  fi
+  # A gh call that failed writes its error or its help instead of the job log (L-104): looking that up would say
+  # khong-co and read as a real failure missing from the table.
+  if head -n 5 "${playbook_log}" | grep -qE '^Usage:  gh |^unknown flag: |terminal escape sequences'; then
+    echo "log-hong: ${playbook_log} là thông báo lỗi hay phần trợ giúp của gh, không phải log của job. Tải lại: gh run view <id> --log-failed > ci.log (auto-run.md bước 8, L-104)."
     exit 0
   fi
   # Markdown cells are split at every "|" not preceded by a backslash; "\|" inside a pattern becomes "|".

@@ -1,1 +1,5 @@
- ! [remote rejected] claude/T-062-camera-gia -> claude/T-062-camera-gia (refusing to allow an OAuth App to create or update workflow `.github/workflows/device-session.yml` without `workflow` scope)
+10-26 16:35:19.212  6250  6286 W VGL.Assets: Could not download borrowed/poses/img/v1/w02/outline.webp (reason=NOT_FOUND, error=HttpStatusException, status=404)
+10-26 16:35:19.363  6250  6466 W VGL.Assets: Could not download borrowed/poses/img/v1/m01/preview_540.webp (reason=NOT_FOUND, error=HttpStatusException, status=404)
+10-26 16:35:19.427  6250  6458 W VGL.Assets: Could not download borrowed/poses/img/v1/m02/preview_540.webp (reason=NOT_FOUND, error=HttpStatusException, status=404)
+10-26 16:35:19.542  6250  6457 W VGL.Assets: Could not download borrowed/poses/img/v1/m01/outline.webp (reason=NOT_FOUND, error=HttpStatusException, status=404)
+10-26 16:35:20.437  6250  6250 W VGL.Loading: Task STARTER_SET failed

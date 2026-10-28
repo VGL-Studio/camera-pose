@@ -14,7 +14,8 @@ report: reads every transcript (subagents included) of this repository, keeps on
   on (any transcript): --since acts as `mark chung`, so a mark left open by an earlier session never reaches this
   one. With --run and --csv it also writes the rows of that run into the CSV, replacing rows of the same run so it
   can run again.
-estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan, and the cloud
+estimate: median total per ticket size from the CSV, for writing token_estimate in a new plan (a task measured in
+  several runs counts once, with the sum of its rows), and the cloud
   session credit spent per million tokens over the runs that recorded it.
 credit: records the cloud session credit (US dollars) a run opened with `claude --cloud` spent, read by a person
   from the balance before and after the run. It goes on the shared row of the run, once per run.
@@ -366,7 +367,7 @@ def credit(args):
 
 
 def estimate(args):
-    by_size = {}
+    by_task, by_size = {}, {}
     run_totals, run_credits = {}, {}
     for row in read_csv(ROOT / args.csv):
         total = parse_amount(row.get("total", ""))
@@ -377,7 +378,12 @@ def estimate(args):
             except ValueError:
                 pass
         if row.get("task") != SHARED and row.get("size") and total:
-            by_size.setdefault(row["size"], []).append(total)
+            # A task continued in a later run has a row per run: its cost is their sum, one sample (L-111).
+            sample = by_task.setdefault(row["task"], {"total": 0})
+            sample["total"] += total
+            sample["size"] = row["size"]
+    for sample in by_task.values():
+        by_size.setdefault(sample["size"], []).append(sample["total"])
     print("| Cỡ | Số task đã đo | Trung vị thực tế | Ghi vào token_estimate |")
     print("| --- | --- | --- | --- |")
     for size in sorted(set(DEFAULT_ESTIMATES) | set(by_size), key=lambda s: (SIZE_ORDER.get(s, 9), s)):

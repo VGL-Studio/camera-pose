@@ -5,10 +5,8 @@
 #   ENV_CANARY_FIRE_URL    fire URL of the env-canary routine's API trigger
 #   ENV_CANARY_FIRE_TOKEN  bearer token of that trigger; it can only start that one routine
 # Not fired while an auto-run session is running: the canary would compete with it for the same usage limit.
-# A second job, setup-check, checks the staging setup, R2 files and DNS on the GitHub runner (see below); in
-# camera-pose also the pose catalog and its starter files (scripts/setup-check-app.sh, plan T-065), with the
-# read-only STAGING_REMOTE_CONFIG_CREDENTIALS secret. A manual run with setup_only checks only that, without firing
-# the routine (no Claude usage).
+# A second job, setup-check, checks the staging setup, R2 files and DNS on the GitHub runner (see below). A manual
+# run with setup_only runs only that job, without firing the routine (no Claude usage).
 # Changing this file is a high-risk plan; cross-review required.
 name: env-canary
 
@@ -37,18 +35,17 @@ permissions:
 jobs:
   # Checks on a GitHub runner, every morning, what the cloud environment cannot see: the required files on R2,
   # the DNS of the static file host through 1.1.1.1 and 8.8.8.8, the Firebase staging secret and the tester
-  # groups (scripts/setup-check.sh; app lessons L-002, L-011, L-012, L-027 of camera-pose), and in camera-pose the
-  # pose catalog of the default path and of poses_catalog_path on Remote Config staging with its starter files
-  # (scripts/setup-check-app.sh, plan T-065). A red result is checked once more after 90 seconds, so one passing R2
-  # hiccup does not open the issue (about 110 R2 requests per run). Red opens an issue
+  # groups (scripts/setup-check.sh; app lessons L-002, L-011, L-012, L-027 of camera-pose), and the app's own checks
+  # of scripts/setup-check-app.sh when the app has one. A red result is checked once more after 90 seconds, so one
+  # passing R2 hiccup does not open the issue (L-113). Red opens an issue
   # labelled setup-broken, or comments on the open one; green closes it. A separate label from env-broken,
   # because scripts/env-canary.sh closes env-broken issues when the cloud environment is green.
   # Runs even during an auto-run session: it costs no Claude usage.
   setup-check:
     runs-on: ubuntu-latest
-    # 15, not 5: the pose catalog check of scripts/setup-check-app.sh downloads firebase-tools (up to 2 minutes for
-    # remoteconfig:get) and asks R2 for every starter file of each catalog, and a red result is checked twice with
-    # 90 seconds between (worst case about 10 minutes; plan T-065).
+    # camera-pose: 15, not 5. The pose catalog check of scripts/setup-check-app.sh downloads firebase-tools (up to
+    # 2 minutes for remoteconfig:get) and asks R2 for every starter file of each catalog, and a red result is checked
+    # twice with 90 seconds between (worst case about 10 minutes; plan T-065).
     timeout-minutes: 15
     permissions:
       contents: read
@@ -56,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          # No token in .git/config: scripts/setup-check.sh runs npx firebase-tools (plan T-065).
+          # No token in .git/config: an app's own checks may run third-party tools (L-113).
           persist-credentials: false
 
       - name: Kiểm tra thiết lập staging, file R2 và DNS
@@ -64,12 +61,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GOOGLE_SERVICES: ${{ secrets.STAGING_GOOGLE_SERVICES_JSON }}
           DISTRIBUTION_CREDENTIALS: ${{ secrets.STAGING_APP_DISTRIBUTION_CREDENTIALS }}
-          # Read-only Remote Config staging account: the pose catalog the key points to (scripts/setup-check-app.sh).
+          # camera-pose: read-only Remote Config staging account, for the pose catalog the key points to
+          # (scripts/setup-check-app.sh, plan T-065).
           REMOTE_CONFIG_CREDENTIALS: ${{ secrets.STAGING_REMOTE_CONFIG_CREDENTIALS }}
           STAGING_TESTER_GROUPS: ${{ vars.STAGING_TESTER_GROUPS || 'team' }}
         run: |
           result=0
-          # No GitHub token next to npx firebase-tools (third-party packages): this job writes issues (plan T-065).
+          # No GitHub token next to the checks: this job writes issues, and an app's own checks may run third-party
+          # tools (L-113).
           env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging > "${RUNNER_TEMP}/setup-check.log" 2>&1 || result=$?
           cat "${RUNNER_TEMP}/setup-check.log"
           if [ "${result}" != "0" ]; then

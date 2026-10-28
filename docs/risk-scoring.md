@@ -51,7 +51,7 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 2. Cần thêm thư viện, quyền truy cập hoặc chạm điểm chặn 1 tới 6, 8, 9 ở mục 1 mà plan chưa nêu. Điểm chặn 7 (module core, cấu hình build, quy trình) không làm dừng với phần ngoài mục 3.2 theo ADR-0029, trừ file của điều kiện 1. Để ít gặp điều kiện này, quyền và thư viện được quyết lúc lập plan (`docs/CLAUDE.md`, mục Khi viết plan; mục 3.3 của mẫu plan; `scripts/plan-check.py`, quy tắc 8).
 3. Phát hiện spec, thiết kế hoặc ADR mâu thuẫn với plan hoặc với nhau.
 4. Test vẫn thất bại sau 3 lần sửa liên tiếp cho cùng một lỗi.
-5. Muốn làm cho test qua bằng cách xóa test hay câu khẳng định, nới phép so sánh, thêm `@Ignore`, đổi điều test cũ kiểm về hành vi đã có, hạ tiêu chí kiểm tra, hoặc bỏ qua quy tắc lint. Cập nhật dữ liệu của test cũ chỉ vì dữ liệu đó chưa có phần plan thêm thì không phải dừng (ADR-0029, quyết định 2).
+5. Muốn làm cho test qua bằng cách xóa test hay câu khẳng định, nới phép so sánh, thêm `@Ignore`, đổi điều test cũ kiểm về hành vi đã có, hạ tiêu chí kiểm tra, hoặc bỏ qua quy tắc lint. Cập nhật dữ liệu của test cũ chỉ vì dữ liệu đó chưa có phần plan thêm thì không phải dừng (ADR-0029, quyết định 2); viết lại câu khẳng định cũ trái điều plan đã duyệt nói rõ, đủ sáu điều của ADR-0031, cũng không phải dừng (dưới).
 6. Phần việc thực tế lớn hơn rõ rệt so với ước lượng trong ticket.
 7. Bất kỳ thao tác nào chạm tới cấu hình production: mã quảng cáo thật, project Firebase production, bucket R2 production, khóa ký ứng dụng.
 8. Cần thay đổi điều mà test viết trước đang kiểm tra để code qua được.
@@ -65,7 +65,18 @@ Trong lúc thực hiện plan đã duyệt, AI **phải dừng** task, không t�
 - Điều kiện dừng riêng ở mục 7 của plan vẫn áp dụng.
 - Ghi vào nhật ký plan (file, vì sao cần, loại), mô tả PR (mục "Ngoài mục 3.2", kèm `git diff --stat origin/main...HEAD -- <các file đó>`) và báo cáo phiên (một dòng `- [ ]` ở mục Cần người kiểm tra). Rà soát độc lập xét riêng phần này; vi phạm ADR-0029 là mức chặn (`auto-run.md`, bước 6).
 
-**Không phải dừng: lệch nhỏ đã liệt kê (camera-pose ADR-1005).** ADR-1005/L1 ngân sách kịch bản; L2 `need` thành `wait` khi emulator đã có thiết bị; L3 mốc tài liệu và mã dời chỗ (mọi dòng `-` của plan có nguyên văn ở chỗ mới); L4 test viết trước thất bại khi plan ghi qua ngay; L5 chi tiết do ktlint, lint hay trình biên dịch buộc; L6 tệp sinh bằng `scripts/foundation.py`, `scripts/status.py`; L7 dòng Áp dụng đã ghi; L8 bỏ qua loại task theo dòng `bo-qua-loai` của bảng tra lỗi; L9 điểm nên sửa (ADR-0029); L10 mã kế tiếp đã có người dùng. Ghi vào mục Quyết định AI đã tự làm của báo cáo. Không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
+**Không phải dừng: câu khẳng định cũ trái điều plan đã duyệt nói rõ (ADR-0031).** Một câu khẳng định của test JVM có sẵn đỏ vì trái trực tiếp một câu của plan đã duyệt (mục 3.1, 3.5, câu trả lời ở mục 8) hay spec: AI viết lại câu đó, không dừng, khi đủ sáu điều của ADR-0031, quyết định 2:
+
+- có câu của plan nói điều mới;
+- ý định của test viết thành một câu, và câu mới kiểm đúng ý định đó;
+- không nới: không bớt câu, không đổi bằng thành khoảng hay chứa, không tăng sai số, không bỏ đối chứng, không `@Ignore`;
+- có đối chứng đỏ khi ý định bị phá;
+- không phải ảnh chuẩn, test viết trước của plan, hay câu kiểm tiêu chí của spec hoặc luật nghiệp vụ mà plan không đổi;
+- tối đa 3 câu mỗi task.
+
+Thiếu một điều thì dừng theo điều kiện 3 hay 5. Ghi lại và báo sau như phần ngoài mục 3.2; rà soát độc lập xét riêng từng câu, vi phạm là mức chặn.
+
+**Không phải dừng: lệch nhỏ đã liệt kê (ADR-0032).** L1 ngân sách kịch bản; L2 `need` thành `wait` khi emulator đã có thiết bị; L3 mốc tài liệu và mã dời chỗ (mọi dòng `-` của plan có nguyên văn ở chỗ mới); L4 test viết trước khác kỳ vọng của plan; L5 chi tiết do ktlint, lint hay trình biên dịch buộc; L6 tệp sinh bằng `scripts/foundation.py`, `scripts/status.py`; L7 dòng Áp dụng đã ghi; L8 bỏ qua loại task theo dòng `bo-qua-loai` của bảng tra lỗi; L9 điểm nên sửa (ADR-0029); L10 mã kế tiếp đã có người dùng. Ranh giới của từng mục ở ADR-0032, quyết định 1. Ghi vào mục Quyết định AI đã tự làm của báo cáo. Không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
 
 **Không phải dừng: chuyển sang phương án dự phòng đã duyệt.** Plan có mục 3.4 (Phương án dự phòng) đã được duyệt cùng plan. Khi phương án chính gặp đúng điều kiện chuyển ghi trong mục đó, hoặc gặp điều kiện 4 ở trên, AI chuyển sang phương án dự phòng thay vì dừng: chỉ chạm file của mục 3.2 (cộng phần ngoài mục 3.2 theo ADR-0029, như với phương án chính), giữ nguyên test viết trước và tiêu chí chấp nhận, đếm lại giới hạn 3 lần sửa từ đầu, ghi vào nhật ký lúc chuyển và lý do. Chỉ chuyển một lần; phương án dự phòng cũng không qua thì dừng như bình thường. Phương án dự phòng không bao giờ là lý do để vượt điều kiện 1, 2, 3, 5, 7, 8 hay 9.
 
@@ -89,3 +100,4 @@ Khi bắt đầu làm việc lại, nhóm trả lời câu hỏi "vì sao plan c
 | 2026-10-22 | Mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng | Ở app camera-pose, ba lần dừng task đều vì kỹ thuật của plan không chạy, trong khi cách thay đã rõ từ lúc viết plan (L-041) |
 | 2026-10-24 | Mục 4, điều kiện 1: nối chỗ gọi mà task khác cùng danh sách đổi không phải dừng, trong giới hạn của ADR-0028 (đếm 3 file và 40 dòng bằng `git diff --numstat`, không tính test; "cùng danh sách" tính cả task đã merge ở danh sách trước khi task được chuyển sang) | Ở app camera-pose, một task phải nối chỗ gọi trong file mà task khác cùng danh sách vừa tạo, ngoài mục 3.2 (L-077) |
 | 2026-10-25 | Mục 4, điều kiện 1 và 5, đoạn "Không phải dừng": phần ngoài mục 3.2 cần cho task thì sửa tiếp, merge, báo sau, không giới hạn số file hay module; chỉ file "Không được làm" của `CLAUDE.md` còn làm dừng theo điều kiện 1; test cũ được cập nhật dữ liệu theo phần plan thêm (ADR-0029, thay ADR-0028) | 3 trên 4 lần dừng gần nhất vì mục 3.2 thiếu file hay test (T-014, T-024 hai lần); người quyết không dựng thử lúc soạn plan |
+| 2026-10-28 | Mục 4, đoạn "Không phải dừng: lệch nhỏ đã liệt kê": mười lệch nhỏ L1 tới L10 phiên tự làm rồi báo sau, kể cả bỏ qua loại task mà môi trường không làm được (ADR-0032) | Ở app camera-pose, phiên phải hỏi người, soạn plan phiên bản mới hay đoán vì những lệch người sẽ đồng ý ngay (camera-pose ADR-1005, T-067, L-112) |

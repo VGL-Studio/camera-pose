@@ -23,7 +23,7 @@ AI không làm các bước trong tài liệu này. Mọi bước có bí mật 
 
 1. Cài Android Studio. Dùng JDK đi kèm, không dùng Java cài riêng trên máy: Java quá mới (ví dụ Java 26) làm Gradle dừng ngay với lỗi chỉ ghi số phiên bản. `scripts/check.sh` kiểm Java trước khi gọi Gradle (`scripts/java-check.sh`, khoảng phiên bản đọc từ `build-logic` và phiên bản Gradle) và in lệnh đặt `JAVA_HOME` khi không hợp:
    - macOS: `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`, ghi vào `~/.zshrc` để mọi terminal dùng.
-   - Không cài Android Studio: `scripts/local-setup.sh` cài JDK và Android SDK vào thư mục người dùng (cùng gói SDK với môi trường cloud, kiểm mã băm), rồi `source` tệp `env.sh` mà script in ra; `scripts/local-setup.sh --check` xem còn thiếu gì. `scripts/java-check.sh` kiểm JDK này như mọi JDK khác.
+   - Không cài Android Studio: `scripts/local-setup.sh` cài JDK và Android SDK vào thư mục người dùng. Gói SDK giống môi trường cloud, có kiểm mã băm. Sau đó `source` tệp `env.sh` mà script in ra. `scripts/local-setup.sh --check` xem còn thiếu gì. `scripts/java-check.sh` kiểm JDK này như mọi JDK khác.
    - Mở Android Studio một lần để cài Android SDK. Đặt `export ANDROID_HOME=$HOME/Library/Android/sdk` (macOS) hoặc `$HOME/Android/Sdk` (Linux).
 2. Cài `git`, `gh` (GitHub CLI), `jq`, `python3`. Trên macOS: `brew install gh jq`.
 3. Đăng nhập GitHub CLI: `gh auth login`, chọn GitHub.com, HTTPS, đăng nhập bằng trình duyệt. `scripts/merge-if-green.sh` dùng phiên đăng nhập này.
@@ -51,6 +51,7 @@ App đọc file tĩnh từ một địa chỉ https công khai (ADR-0006, ADR-00
 2. Trong **Settings** của bucket, mục **Public access**, nối một tên miền riêng (**Custom Domains**, ví dụ `<app>-staging.vgl.io.vn`). Không dùng địa chỉ `r2.dev` cho app thật. Chọn tên miền thuộc vùng có DNSSEC ổn định: nếu bước kiểm DNSSEC của vùng lỗi, DNS công cộng như 1.1.1.1 và 8.8.8.8 từ chối trả lời, và điện thoại dùng các DNS đó không tải được file, trong khi máy dev và emulator trên GitHub vẫn tải được (L-059).
 3. Tải lên mọi file trong `docs/ops/required-assets.txt` theo đúng đường dẫn, ví dụ `test/v1/hello.txt` mà màn hình loading của dự án mẫu tải. Thiếu file này thì PR có code đầu tiên đỏ ở test emulator. Không bao giờ ghi đè một file đã đưa lên; nội dung đổi thì dùng đường dẫn mới.
 4. Địa chỉ gốc (kết thúc bằng `/`) chính là tham số `--staging-assets-url` của script tạo app, nằm trong `app/build.gradle.kts`.
+5. Trên Cloudflare, mục **Caching**, **Cache Rules**, thêm một luật cho tên miền đó: **Edge TTL** theo mã trạng thái, `404` giữ khoảng 60 giây. Mặc định Cloudflare giữ phản hồi `404` của R2 tới một năm (`cache-control: max-age=31536000`), nên file tải lên sau một lần app đọc thiếu vẫn trả `404` cho tới khi purge địa chỉ đó (app camera-pose, issue #215). Đã gặp mà chưa có luật thì vào **Caching**, **Purge Cache**, purge đúng địa chỉ của file; gọi địa chỉ kèm tham số (`?x=1`) trả `200` là dấu hiệu cần purge.
 
 Kiểm tra: `scripts/setup-check.sh` in `== Thiết lập: QUA`. Script kiểm mọi file trong `docs/ops/required-assets.txt` trả `200` (`curl -I`) và tên miền phân giải được qua 1.1.1.1 và 8.8.8.8. Chạy trên máy dev, không chạy trong môi trường `claude --cloud` (proxy chặn R2).
 

@@ -3025,6 +3025,17 @@ ds_script none.txt 'consent decline 1'
 expect "device-scenario: consent decline fails when nothing shows" "0 1 1" \
   "$(ds_run "blank.xml" "$ds_files/none.txt") $(ds_count 'step=1 consent decline 1 FAIL') $(ds_count 'result=lỗi')"
 
+# The system shade left open over the app (monkey swipes from the top edge) hides the app from every dump:
+# fresh closes it before opening the app, and a dump of the system UI only closes it once more (FB-20261027-02).
+ds_first() { local n; n="$(grep -n -m1 -- "$1" "$ds_calls" | cut -d: -f1)"; echo "${n:-999999}"; } # line of the first matching adb call, 999999 when none
+expect "device-scenario: fresh closes the system shade before opening the app" "0 1 yes" \
+  "$(ds_run "consent.xml welcome.xml home.xml" "$ds_fixtures/scenarios/ok.txt" FAKE_ADB_SHADE="$ds_fixtures/shade.xml") $(ds_count 'result=đạt') $( (( $(ds_first '^shell cmd statusbar collapse$') < $(ds_first '^shell am start -W') )) && echo yes)"
+ds_script shade.txt 'fresh' 'expect id=home_screen'
+expect "device-scenario: a dump of the system UI only closes the shade and reads again" "0 1 2 1" \
+  "$(ds_run "shade.xml home.xml" "$ds_files/shade.txt") $(ds_count 'result=đạt') $(ds_count '^shell cmd statusbar collapse$' "$ds_calls") $(ds_count 'note step=2 .*bảng của hệ thống che app')"
+expect "device-scenario: a shade that stays open is closed once per dump, then the step fails" "0 1 2" \
+  "$(ds_run "shade.xml" "$ds_files/shade.txt") $(ds_count 'step=2 expect id=home_screen FAIL') $(ds_count '^shell cmd statusbar collapse$' "$ds_calls")"
+
 ds_script cards.txt 'tap idp=gallery_card_ in=gallery_grid index=2'
 expect "device-scenario: idp= in= index= pick the second card of the grid" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/cards.txt") $(ds_count '^shell input tap 540 600$' "$ds_calls")"
@@ -3505,6 +3516,12 @@ expect "device-session: summary lists the runner notes about consent and restart
   "$(joined "$notes_code" "$(notes_cell 'Ghi chú của trình chạy:')" \
     "$(notes_cell '- ok.txt, bước 2: hộp thoại đồng ý hiện muộn, đã từ chối')" "$(notes_cell '- ok.txt, bước 1')" \
     "$(cell 'Ghi chú của trình chạy')")"
+# camera-pose T-070: the system shade the runner closed is listed too, so a reader sees why a step took longer.
+mkplan "$work/plan-shade" "$plan_lines
+plan ok.txt note step=2 t=0.4 bảng của hệ thống che app, đã đóng (cmd statusbar collapse)" "$(cat "$fixtures/logcat-clean.txt")"
+shade_code="$(session /dev/null summary "$work/plan-shade" com.example.app.staging)"
+expect "device-session: summary lists the system shade the runner closed" "0 1" \
+  "$(joined "$shade_code" "$(grep -cF -- '- ok.txt, bước 2: bảng của hệ thống che app, đã đóng (cmd statusbar collapse)' "$work/plan-shade/summary.md" || true)")"
 # camera-pose T-054: a file run again after the system killed the app: the table has the second result and no failing step,
 # and the note of the run again is listed (it says "mở lại").
 mkplan "$work/plan-retry" 'plan killed.txt ticket=T-022 criterion=Mẫu

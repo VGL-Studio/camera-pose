@@ -346,10 +346,11 @@ print_plan_scenarios() {
     echo "Kịch bản theo plan: không có"
     echo
   fi
-  # Notes of the runner that are out of the ordinary: a late consent form it declined, an app it had to start again.
+  # Notes of the runner that are out of the ordinary: a late consent form it declined, an app it had to start again,
+  # the system shade it closed.
   local notes
   notes="$(sed -n 's/^plan \([^ ]*\) note step=\([0-9]*\) t=[^ ]* \(.*\)$/- \1, bước \2: \3/p' "${dir}/scenarios.txt" |
-    grep -E 'hộp thoại đồng ý hiện muộn|mở lại' || true)"
+    grep -E 'hộp thoại đồng ý hiện muộn|mở lại|bảng của hệ thống' || true)"
   if [[ -n "${notes}" ]]; then
     echo "Ghi chú của trình chạy:"
     echo

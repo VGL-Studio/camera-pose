@@ -1,12 +1,12 @@
 ---
 id: ADR-1006
 title: Phiên tự sửa chi tiết dựng môi trường của test khi test chỉ đỏ trên runner vì máy không có cấu hình chung, rồi báo người sau
-status: accepted             # proposed | accepted | superseded
+status: superseded           # proposed | accepted | superseded
 origin: app                  # template: ADR của dự án mẫu (mã dưới 1000) | app: ADR riêng của app (mã từ 1001)
 date: 2026-10-28
 deciders: [Nhật]
 supersedes:                  # bổ sung ADR-0032 (thêm mục L11), không thay quy tắc nào của nó
-superseded_by:
+superseded_by: ADR-0033      # dự án mẫu nhận quyết định này thành mục L11 (issue VGL-Studio/app-project-template#243, PR VGL-Studio/app-project-template#247; múi giờ, ngôn ngữ thêm ở ghi chú 2026-10-28, PR VGL-Studio/app-project-template#252), thêm L12
 ---
 
 # ADR-1006: PHIÊN TỰ SỬA CHI TIẾT DỰNG MÔI TRƯỜNG CỦA TEST KHI TEST CHỈ ĐỎ TRÊN RUNNER VÌ MÁY KHÔNG CÓ CẤU HÌNH CHUNG, RỒI BÁO NGƯỜI SAU

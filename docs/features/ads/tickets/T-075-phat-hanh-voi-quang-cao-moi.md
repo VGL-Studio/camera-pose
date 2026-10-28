@@ -1,5 +1,5 @@
 ---
-id: T-072
+id: T-075
 title: Lấy release.sh và release.md của dự án mẫu theo khung quảng cáo mới (mã quảng cáo thật, khóa AppsFlyer production)
 feature: ads
 spec:                        # không có spec nghiệp vụ; làm theo ADR-0009, ADR-0017, ADR-0027 của dự án mẫu
@@ -8,17 +8,17 @@ owner: Tuấn
 status: backlog
 risk: high
 size: S
-depends_on: [T-071]
+depends_on: [T-074]
 sprint:
 plan:
 created: 2026-10-28
 ---
 
-# T-072: LẤY RELEASE.SH VÀ RELEASE.MD CỦA DỰ ÁN MẪU THEO KHUNG QUẢNG CÁO MỚI
+# T-075: LẤY RELEASE.SH VÀ RELEASE.MD CỦA DỰ ÁN MẪU THEO KHUNG QUẢNG CÁO MỚI
 
 ## Mô tả
 
-`scripts/release.sh` và `docs/ops/release.md` của app đang giữ ở commit `0eaeadb` của dự án mẫu (dòng `hold=` trong `docs/template-sync.txt`). Bản mới của dự án mẫu kiểm cả mã quảng cáo thật cho mọi vị trí của `AdPlacement` lẫn khóa AppsFlyer production, mà app chưa có khi chưa xong T-071. Sau ticket này, app phát bản production bằng đúng script của dự án mẫu.
+`scripts/release.sh` và `docs/ops/release.md` của app đang giữ ở commit `0eaeadb` của dự án mẫu (dòng `hold=` trong `docs/template-sync.txt`). Bản mới của dự án mẫu kiểm cả mã quảng cáo thật cho mọi vị trí của `AdPlacement` lẫn khóa AppsFlyer production, mà app chưa có khi chưa xong T-074. Sau ticket này, app phát bản production bằng đúng script của dự án mẫu.
 
 ## Phạm vi
 

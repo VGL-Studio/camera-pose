@@ -1,5 +1,5 @@
 ---
-id: T-071
+id: T-074
 title: Lấy khung quảng cáo AdsKit và AppsFlyer của dự án mẫu về app, chuyển ba vị trí quảng cáo hiện có sang khung mới
 feature: ads
 spec:                        # chưa có spec riêng cho quảng cáo; vị trí nằm ở mục 5 của features/camera/spec.md và features/poses/spec.md, cần đổi (mục Câu hỏi)
@@ -14,7 +14,7 @@ plan:
 created: 2026-10-28
 ---
 
-# T-071: LẤY KHUNG QUẢNG CÁO ADSKIT VÀ APPSFLYER CỦA DỰ ÁN MẪU VỀ APP, CHUYỂN BA VỊ TRÍ QUẢNG CÁO HIỆN CÓ SANG KHUNG MỚI
+# T-074: LẤY KHUNG QUẢNG CÁO ADSKIT VÀ APPSFLYER CỦA DỰ ÁN MẪU VỀ APP, CHUYỂN BA VỊ TRÍ QUẢNG CÁO HIỆN CÓ SANG KHUNG MỚI
 
 ## Mô tả
 
@@ -57,11 +57,11 @@ Sau ticket này, app dùng khung mới. Ba vị trí hiện có (`review_interst
   - ADR-1004 chuyển `superseded`.
   - Bỏ các dòng `hold=` của các đường dẫn đã lấy trong `docs/template-sync.txt`.
   - Sinh lại `docs/foundation.md`.
-  - Ghi chú trong `docs/template-sync.txt` về `release.sh` để lại cho T-072.
+  - Ghi chú trong `docs/template-sync.txt` về `release.sh` để lại cho T-075.
 
 **Không bao gồm:**
 
-- `scripts/release.sh`, `docs/ops/release.md`, mã quảng cáo thật, khóa AppsFlyer production: ticket T-072.
+- `scripts/release.sh`, `docs/ops/release.md`, mã quảng cáo thật, khóa AppsFlyer production: ticket T-075.
 - Thêm vị trí quảng cáo mới (native, rewarded, app open, trong danh sách). Mỗi vị trí mới cần spec được duyệt và ticket riêng.
 - Các phần khác của dự án mẫu đã đổi từ `0eaeadb` mà khung quảng cáo không cần, ví dụ `feature/loading`, `core/assets`. Plan liệt kê phần nào để lại, cho một đợt `--take` khác.
 
@@ -96,7 +96,7 @@ Mỗi lượt có PR riêng.
 
    AI đề xuất (c).
 2. **Tên khóa Remote Config.** Đổi `ads_review_interstitial_enabled`, `ads_poses_banner_enabled`, `ads_poses_detail_banner_enabled` sang `is_show_review_interstitial`, `is_show_poses_banner`, `is_show_poses_detail_banner`. Trên Firebase Remote Config, người phụ trách tạo khóa mới với giá trị của khóa cũ trước khi bản mới phát. Đồng ý không?
-3. **AppsFlyer ở app.** Bật AppsFlyer cho camera-pose như dự án mẫu (ADR-0027)? Staging không có khóa nên không gửi gì; production cần khóa riêng (T-072). Spec mục 6 cần thêm dữ liệu gửi đi và hai quyền đọc nguồn cài đặt mà SDK kéo vào.
+3. **AppsFlyer ở app.** Bật AppsFlyer cho camera-pose như dự án mẫu (ADR-0027)? Staging không có khóa nên không gửi gì; production cần khóa riêng (T-075). Spec mục 6 cần thêm dữ liệu gửi đi và hai quyền đọc nguồn cài đặt mà SDK kéo vào.
 4. **Màn xem thử quảng cáo (staging) và `feature/sample`.** Giữ màn xem thử của khung (`AdGalleryActivity`, chỉ có ở staging) để thử quảng cáo trên máy thật, và bỏ `SAMPLE_BOTTOM_BANNER` của `feature/sample`? AI đề xuất giữ màn xem thử, bỏ `SAMPLE_BOTTOM_BANNER` nếu app không còn dùng `feature/sample`.
 5. **Chia lượt.** Một ticket chia thành nhiều lượt trong plan, hay tách thành ba ticket nối nhau? AI đề xuất một ticket, plan chia ba lượt có PR riêng, cùng một danh sách chạy.
 

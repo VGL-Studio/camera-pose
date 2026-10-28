@@ -5,9 +5,9 @@ reporter: AI (RUN-20261027-02, device-session cuối phiên)
 source: staging
 build: nhánh chính 6f3c01d (bản staging của device-session, lần chạy 40576589779)
 feature: quality-gate
-ticket:
+ticket: T-070
 severity: nang
-status: new
+status: planned
 created: 2026-10-27
 ---
 
@@ -44,6 +44,6 @@ Trong artifact `device-session` của lần chạy 40576589779: `TS-20261027-02/
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 - **Loại:** đề xuất của AI: lỗi của trình chạy kịch bản (`scripts/device-scenario.py`, file của dự án mẫu), không phải của app
-- **Xử lý:** đề xuất của AI: ticket sửa `step_fresh` (đề xuất về dự án mẫu); trong lúc chờ, các tiêu chí kịch bản của T-020, T-058, T-064 chưa được kiểm trên emulator
-- **Lý do:** <...>
-- **Liên kết:** <plan hoặc ticket xử lý>
+- **Xử lý:** nhóm chọn ngày 2026-10-28: ticket T-070 sửa trình chạy kịch bản và soạn plan ngay. `fresh` đóng bảng (`cmd statusbar collapse`) trước khi mở app; lần dump chỉ có node của `com.android.systemui` thì đóng bảng một lần rồi đọc lại. Đề xuất về dự án mẫu. Trong lúc chờ, các tiêu chí kịch bản của T-020, T-058, T-062, T-064 chưa được kiểm trên emulator
+- **Lý do:** lỗi của trình chạy, không phải của app: app mở màn đầu trong 30 giây chờ (`VGL.Onboarding: Onboarding shown`), chỉ bị bảng của hệ thống che. Đóng bảng ở trình chạy đúng cho mọi nguyên nhân để bảng mở (monkey hay thông báo của hệ thống), nên không đổi tham số của monkey. Tái hiện trên `scripts/tests/fake-adb` (bảng mở tới khi có lệnh đóng): `ok.txt` ra đúng lỗi của phiên, `step=2 consent decline 5 FAIL không thấy hộp thoại đồng ý hay màn hình đầu của app` (plan T-070, mục 4).
+- **Liên kết:** ticket và plan T-070 (`docs/features/quality-gate/plans/T-070-dong-bang-he-thong.md`); plan T-054 và T-052 (cùng trình chạy).

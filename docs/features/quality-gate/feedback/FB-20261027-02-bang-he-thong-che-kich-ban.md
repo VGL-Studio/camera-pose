@@ -7,7 +7,7 @@ build: nhánh chính 6f3c01d (bản staging của device-session, lần chạy 4
 feature: quality-gate
 ticket: T-070
 severity: nang
-status: planned
+status: fixed
 created: 2026-10-27
 ---
 

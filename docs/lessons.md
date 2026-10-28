@@ -826,3 +826,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `docs/auto-run.md` bước 8: bỏ cờ `--allow-escape-sequences` (log tải về vẫn đọc được), hay ghi "`gh` báo unknown flag thì bỏ cờ". `scripts/failure-kind.sh --playbook` có thể báo khi tệp không giống log của job.
 - **Áp dụng:** dự án mẫu đã nhận (đồng bộ dự án mẫu, đợt 2, PR #202): `docs/auto-run.md` bước 8 không dùng `gh api .../jobs/<id>/logs` nữa, `scripts/failure-kind.sh --playbook` in `log-hong` khi tệp là thông báo lỗi hay trợ giúp của `gh` (bài học L-104 của dự án mẫu). Nhật nhận ngày 2026-10-28.
 - **Kiểm chứng:**
+
+### L-089: phiên mở `local` lần đầu: `origin` dùng SSH không đẩy được, `cloud-env-check.sh` không áp dụng ở máy dev
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261028-01.
+- **Chuyện gì:** người yêu cầu chạy phiên trên máy dev (`local`) thay cho `claude --cloud`. `origin` của bản sao trên máy là địa chỉ SSH mà máy không có khóa, nên lần đẩy đầu (nhánh báo cáo) của `scripts/save-branch.sh` trả mã 3 và giữ bundle. `docs/auto-run.md` mục 2 chỉ có `scripts/cloud-env-check.sh` để kiểm môi trường; script này luôn báo lỗi ở máy dev vì đòi tệp phiên bản của `scripts/cloud-setup.sh` và init script mirror Maven, nên phiên phải tự quyết không coi đó là điều kiện dừng.
+- **Bằng chứng:** 10:56 UTC, "git@github.com: Permission denied (publickey)", bundle `~/rescue/claude__RUN-20261028-01-report.bundle`; đổi `remote.origin.url` sang HTTPS với `credential.helper` là `gh auth git-credential` thì đẩy được. `cloud-env-check.sh`: "môi trường dựng từ setup script phiên bản không có ... thiếu ~/.gradle/init.d/maven-central-mirror.gradle".
+- **Đề xuất sửa:** `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md`: phiên `local` chạy `scripts/local-setup.sh --check` (hay `scripts/java-check.sh`) thay cho `cloud-env-check.sh`, và thử `git push --dry-run origin HEAD:refs/heads/<nhánh báo cáo>` trước khi tạo nhánh. `scripts/local-setup.sh` in cách đặt `origin` sang HTTPS với `gh auth git-credential` khi `origin` là SSH mà `ssh -T git@github.com` lỗi.
+- **Áp dụng:**
+- **Kiểm chứng:**

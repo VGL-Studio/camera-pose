@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là FB-20261027-02
 scenarios: []
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: S
 depends_on: [T-054]

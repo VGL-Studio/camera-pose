@@ -11,6 +11,7 @@ size: S
 depends_on: [T-074]
 sprint:
 plan:                        # không có plan cho phiên tự chạy; người làm hay AI có người theo dõi (mục Rủi ro sơ bộ)
+auto_run: false              # người làm (mục Rủi ro sơ bộ); plan-queue.py, run-check.py đọc trường này từ khi đồng bộ VGL-Studio/app-project-template#255
 created: 2026-10-28
 ---
 

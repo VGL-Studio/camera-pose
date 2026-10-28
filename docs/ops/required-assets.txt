@@ -2,4 +2,4 @@
 # address in app/build.gradle.kts. scripts/setup-check.sh checks each one returns 200 (curl -I), at the end of
 # docs/ops/setup-new-app.md, every morning in env-canary.yml and before every session in start-run.yml.
 # A plan that makes the app need a new file on R2 adds its path here.
-poses/catalog/v1/catalog-587b5394.json
+poses/catalog/v3/catalog-512aa695.json

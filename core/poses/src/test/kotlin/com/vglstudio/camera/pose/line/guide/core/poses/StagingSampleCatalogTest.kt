@@ -32,12 +32,18 @@ class StagingSampleCatalogTest {
         assertEquals(listOf("women", "men"), library.categories.map { it.id })
     }
 
+    /**
+     * Intent: the app's default catalog path names the catalog file the repo keeps a copy of, by the hash of its
+     * content (ADR-0015). The name comes from T-009, when the default was the v1 staging sample; plan T-071 moved the
+     * default to the real catalog v3, so the assertion now hashes that fixture (ADR-0031). The name is kept because
+     * removing or renaming a `@Test` function of the main branch is blocked in review (L-095).
+     */
     @Test
     fun defaultCatalogPath_isV1Folder_andEndsWithFirst8HexOfSha256OfStagingSample() {
-        val bytes = Fixtures.text("staging-sample.json").toByteArray(Charsets.UTF_8)
+        val bytes = Fixtures.text("catalog-v3-512aa695.json").toByteArray(Charsets.UTF_8)
         val sha = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
-        assertEquals("poses/catalog/v1/catalog-${sha.take(8)}.json", DEFAULT_CATALOG_PATH)
+        assertEquals("poses/catalog/v3/catalog-${sha.take(8)}.json", DEFAULT_CATALOG_PATH)
     }
 
     @Test

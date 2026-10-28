@@ -180,7 +180,7 @@ internal class CameraXController @Inject constructor(
     override suspend fun availableLenses(): Set<Lens> = withContext(Dispatchers.Main) {
         try {
             val provider = ProcessCameraProvider.awaitInstance(context).also { provider = it }
-            lensesOf { lens ->
+            lensesOf(onError = { logger.warn(LOG_TAG, "Camera list unavailable, the open decides", it) }) { lens ->
                 provider.hasCamera(
                     if (lens == Lens.BACK) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA,
                 )
@@ -190,6 +190,7 @@ internal class CameraXController @Inject constructor(
             emptySet()
         } catch (e: Exception) {
             // Unknown: the open says whether the lens is there.
+            logger.warn(LOG_TAG, "Camera provider unavailable, the open decides", e)
             emptySet()
         }
     }

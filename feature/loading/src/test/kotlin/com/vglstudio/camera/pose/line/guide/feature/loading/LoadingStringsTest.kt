@@ -68,13 +68,17 @@ class LoadingStringsTest {
     // The server guidance is shown while the device is online, so it must never ask to check the network (L-077).
     @Test
     fun serverGuidance_doesNotAskToCheckTheNetwork() {
-        NETWORK_WORDS.forEach { (tag, word) ->
+        NETWORK_WORDS.forEach { (tag, words) ->
             val context = context(tag)
             val network = context.getString(R.string.loading_error).lowercase(Locale.ROOT)
             val server = context.getString(R.string.loading_error_server).lowercase(Locale.ROOT)
-            // Control: the word is the one the network guidance of that language uses.
-            assertTrue("$tag loading_error does not contain '$word': $network", word in network)
-            assertFalse("$tag loading_error_server asks to check the network: $server", word in server)
+            // Control: the first two words are the ones the network guidance of that language uses.
+            words.take(2).forEach { word ->
+                assertTrue("$tag loading_error does not contain '$word': $network", word in network)
+            }
+            words.forEach { word ->
+                assertFalse("$tag server has '$word', it asks to check the network: $server", word in server)
+            }
         }
     }
 
@@ -104,15 +108,16 @@ class LoadingStringsTest {
             R.string.loading_footer to "Ảnh chỉ lưu trên máy của bạn",
         )
 
-        // The word for "network" in each release language, as used by loading_error.
+        // Words for the network in each release language (plan T-072): "network" and "connection" first, as used by
+        // loading_error, then "internet" and "wi-fi".
         val NETWORK_WORDS = mapOf(
-            "en" to "network",
-            "vi" to "mạng",
-            "hi" to "नेटवर्क",
-            "pt-BR" to "rede",
-            "es-419" to "red",
-            "id" to "jaringan",
-            "th" to "เครือข่าย",
+            "en" to listOf("network", "connection", "internet", "wi-fi"),
+            "vi" to listOf("mạng", "kết nối", "internet", "wi-fi"),
+            "hi" to listOf("नेटवर्क", "कनेक्शन", "इंटरनेट", "वाई-फ़ाई"),
+            "pt-BR" to listOf("rede", "conexão", "internet", "wi-fi"),
+            "es-419" to listOf("red", "conexión", "internet", "wi-fi"),
+            "id" to listOf("jaringan", "koneksi", "internet", "wi-fi"),
+            "th" to listOf("เครือข่าย", "เชื่อมต่อ", "อินเทอร์เน็ต", "ไวไฟ"),
         )
     }
 }

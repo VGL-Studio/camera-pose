@@ -1,16 +1,16 @@
 ---
 ticket: T-070
 title: Trình chạy kịch bản đóng bảng của hệ thống che app (bảng thông báo, cài đặt nhanh)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 8M           # cỡ S (6.3M, scripts/token-usage.py estimate); code đã có sẵn ở mục 3.1, chỉ cần chép, chạy test và rà soát
 blocking_points: [ci]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn          # bắt buộc khi risk_level là high
+approved_at: 2026-10-28
 ---
 
 # PLAN T-070: TRÌNH CHẠY KỊCH BẢN ĐÓNG BẢNG CỦA HỆ THỐNG CHE APP (BẢNG THÔNG BÁO, CÀI ĐẶT NHANH)
@@ -344,9 +344,9 @@ Không có.
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-28, trả lời câu hỏi 1 của mục 8: không chặn nguồn gây bảng mở ở monkey, đóng ở `fresh` và ở `dump()` là đủ.
 
 ## 10. Nhật ký thực hiện
 

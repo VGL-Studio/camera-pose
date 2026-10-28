@@ -3,7 +3,7 @@ id: T-072
 title: Ghi log khi không hỏi được danh sách camera, làm chặt test chữ của camera và loading
 feature: camera
 spec: features/camera/spec.md
-scenarios: [KB-4]
+scenarios: []                # chỉ thêm log và làm chặt test; KB-4 của camera không đổi hành vi (plan mục 2)
 owner: Nhật
 status: approved
 risk: low

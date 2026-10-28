@@ -1,6 +1,6 @@
 ---
 feature: poses
-status: changed  
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -193,3 +193,4 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `sa
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế trong lưới (đã lưu, gần đây, còn lại); thêm trạng thái thiết kế `ad` có banner |
 | 2026-10-21 | AI | Lập gói bàn giao thiết kế: trạng thái `offline` chuyển sang gói `network` vì hộp thoại do vỏ app hiện, không thuộc `PosesScreen` |
 | 2026-10-28 | AI | Mục 7: cỡ catalog theo bản thật (v3, 350 tư thế, khoảng 1,6 MB), theo câu 4 của plan T-071 mà Nhật duyệt. Không đổi hành vi. Chuyển `changed`, chờ xác nhận lại |
+| 2026-10-28 | Nhật | Xác nhận lại mục 7 (cỡ catalog thật). Chuyển lại `confirmed` |

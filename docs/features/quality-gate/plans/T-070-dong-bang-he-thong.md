@@ -19,7 +19,7 @@ approved_at:
 
 Ở `device-session` cuối RUN-20261027-02 (lần chạy 40576589779), cả sáu tệp kịch bản lỗi ở bước 2 `consent decline 30` vì bảng cài đặt nhanh của hệ thống mở đè lên app (FB-20261027-02). Plan sửa trình chạy kịch bản (`scripts/device-scenario.py`) theo hai lớp:
 
-- **`fresh` đóng bảng trước khi mở app:** `adb shell cmd statusbar collapse`, sau khi đặt ngôn ngữ và trước `am start -W`. Mọi tệp kịch bản bắt đầu bằng `fresh`, nên tệp đầu tiên sau monkey cũng bắt đầu với bảng đã đóng. Không cần thêm một bước riêng giữa monkey và trình chạy, nên không sửa `.github/` hay phần monkey của `device-session.sh`.
+- **`fresh` đóng bảng trước khi mở app:** `adb shell cmd statusbar collapse`, sau khi đặt ngôn ngữ và trước `am start -W`. Sáu tệp kịch bản hiện có đều bắt đầu bằng `fresh`, nên tệp đầu tiên sau monkey cũng bắt đầu với bảng đã đóng; trình chạy không bắt buộc điều đó, tệp không mở đầu bằng `fresh` được lớp đóng bảng trong `dump()` (ý dưới) che. Không cần thêm một bước riêng giữa monkey và trình chạy, nên không sửa `.github/` hay phần monkey của `device-session.sh`.
 - **Dump chỉ có giao diện hệ thống:** mọi node của lần dump có `package="com.android.systemui"` thì trình chạy đóng bảng một lần, đọc lại màn hình và ghi `note ... bảng của hệ thống che app, đã đóng (cmd statusbar collapse)`. Lớp này bắt trường hợp bảng mở giữa tệp, ví dụ do một thông báo của hệ thống.
 
 `summary.md` liệt kê dòng `note` đó ở mục "Ghi chú của trình chạy". Bốn test mới tái hiện lỗi của phiên trên `scripts/tests/fake-adb`; cả bốn đã thất bại trên code hiện tại và qua với code ở mục 3.1 (mục 4). Lệnh `cmd statusbar collapse` chỉ kiểm thật được ở `device-session` sau khi merge, vì `device-session.yml` chỉ chạy trên nhánh chính.
@@ -158,7 +158,7 @@ diff --git a/docs/ops/test-sessions.md b/docs/ops/test-sessions.md
  - Tệp chưa có bước `consent decline` (hoặc vừa `fresh`) thì trình chạy không chạm hộp thoại, nên vẫn viết được kịch bản kiểm chính hộp thoại.
  - Trạng thái này không đi qua ranh giới tệp, và `fresh` đặt lại nó.
  
-+**Bảng của hệ thống.** Monkey chạy ngay trước các tệp kịch bản và có thể vuốt từ mép trên, để bảng thông báo hay cài đặt nhanh mở đè lên app; khi đó mọi lần dump chỉ có node của `com.android.systemui` (camera-pose FB-20261027-02).
++**Bảng của hệ thống.** Monkey chạy ngay trước các tệp kịch bản và có thể vuốt từ mép trên, để bảng thông báo hay cài đặt nhanh mở đè lên app; khi đó mọi lần dump chỉ có node của `com.android.systemui` (camera-pose FB-20261027-02). Màn hình khóa cũng chỉ có node của `com.android.systemui`: khi đó lệnh đóng bảng không có tác dụng, dòng `note` vẫn ghi, và tệp lỗi như trước.
 +- `fresh` đóng bảng (`adb shell cmd statusbar collapse`) trước khi mở app.
 +- Một lần dump chỉ có node của `com.android.systemui`: trình chạy đóng bảng một lần, đọc lại màn hình và ghi `note ... bảng của hệ thống che app, đã đóng (cmd statusbar collapse)` (một lần mỗi bước). Bảng vẫn còn thì bước xử lý màn hình đọc lại như mọi màn hình không có phần tử nó tìm.
 +
@@ -268,7 +268,7 @@ diff --git a/scripts/tests/run.sh b/scripts/tests/run.sh
  
 +# The system shade left open over the app (monkey swipes from the top edge) hides the app from every dump:
 +# fresh closes it before opening the app, and a dump of the system UI only closes it once more (FB-20261027-02).
-+ds_first() { grep -n -m1 -- "$1" "$ds_calls" | cut -d: -f1; } # line of the first adb call that matches
++ds_first() { local n; n="$(grep -n -m1 -- "$1" "$ds_calls" | cut -d: -f1)"; echo "${n:-999999}"; } # line of the first matching adb call, 999999 when none
 +expect "device-scenario: fresh closes the system shade before opening the app" "0 1 yes" \
 +  "$(ds_run "consent.xml welcome.xml home.xml" "$ds_fixtures/scenarios/ok.txt" FAKE_ADB_SHADE="$ds_fixtures/shade.xml") $(ds_count 'result=đạt') $( (( $(ds_first '^shell cmd statusbar collapse$') < $(ds_first '^shell am start -W') )) && echo yes)"
 +ds_script shade.txt 'fresh' 'expect id=home_screen'

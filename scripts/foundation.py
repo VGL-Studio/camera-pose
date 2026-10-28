@@ -34,13 +34,20 @@ def front_matter(text):
 
 
 def split_rules(text):
-    """One bullet per clause: the rule sections are written as clauses joined by semicolons."""
+    """One bullet per clause: the rule sections are written as clauses joined by semicolons.
+
+    A semicolon inside backticks or inside parentheses belongs to the clause, not between clauses.
+    """
     text = " ".join(text.split())
-    parts, depth, current = [], 0, ""
+    parts, depth, parens, current = [], 0, 0, ""
     for ch in text:
         if ch == "`":
             depth ^= 1
-        if ch == ";" and not depth:
+        elif not depth and ch == "(":
+            parens += 1
+        elif not depth and ch == ")" and parens:
+            parens -= 1
+        if ch == ";" and not depth and not parens:
             parts.append(current.strip())
             current = ""
         else:

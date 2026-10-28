@@ -210,6 +210,17 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - mỗi quyết định tự làm ghi vào mục "Quyết định AI đã tự làm" của báo cáo (task, loại, quyết định, lý do, cách hoàn tác), và mục Cần người kiểm tra luôn có dòng `- [ ] Quyết định AI đã tự làm: <N>`
 - rà soát độc lập xét mỗi lệch L1 tới L7, L10, lệch ngoài danh sách là mức chặn
 
+### [ADR-0033](adr/0033-lech-nho-l11-l12.md): Thêm hai lệch nhỏ phiên tự làm rồi báo, L11 sửa phần dựng của test chỉ đỏ vì máy thiếu cấu hình chung và L12 sửa điểm nên sửa chỉ về chú thích hay định dạng
+
+- danh sách lệch nhỏ của ADR-0032 có thêm L11 và L12, theo mọi quy tắc khác của ADR-0032
+- L11 chỉ sửa phần dựng của chính test đang đỏ cho nó tự đặt cấu hình chung mà máy chạy thiếu hay đặt khác (ví dụ git toàn cục, nhánh mặc định, `JAVA_HOME`, `ANDROID_HOME`, `TMPDIR`, múi giờ, ngôn ngữ; danh sách không đóng), khi tái hiện được lỗi bằng cách bỏ hay đổi cấu hình đó, câu khẳng định và giá trị mong đợi không đổi, không bỏ bước của test, với test của task đột biến bỏ code mới vẫn làm test thất bại, với test có sẵn lỗi tái hiện được trên nhánh chính sạch
+- L11 không sửa phần dùng chung của `scripts/tests/run.sh`, `scripts/tests/app.sh` hay bộ chạy test
+- L11 không sửa câu khẳng định, không sửa code đang được kiểm, không thêm cấu hình vào workflow CI hay script dựng môi trường thay cho sửa test
+- L12 sửa điểm nên sửa không cần test viết trước chỉ khi `git diff -w` của phần sửa chỉ có chú thích hay khoảng trắng và chỗ xuống dòng, trong file của mục 3.2 hay phần ngoài mục 3.2 được phép theo ADR-0029, và `scripts/check.sh` vẫn qua
+- L12 không đổi chữ hiển thị, nội dung log, tên trong code hay dòng code chạy
+- mỗi lệch L11, L12 ghi vào mục "Quyết định AI đã tự làm" của báo cáo
+- rà soát độc lập xét L11 kèm lệnh tái hiện như L1 tới L7 và L10, xét L12 ở vòng rà soát lại của điểm nên sửa kèm `git diff -w`, lệch không đủ điều kiện là mức chặn
+
 ## Quyết định riêng của app
 
 ### [ADR-1001](adr/1001-loading-timeout-15s.md): Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config

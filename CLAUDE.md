@@ -40,16 +40,17 @@ Quy tắc phụ thuộc (ADR-0001, kiểm tra tự động bằng `checkModuleDe
 - Xem trước trang tiến độ `docs/STATUS.md` trên máy: `scripts/status.py`. Trang không có trong git; `status-page.yml` sinh nó trên nhánh `status` sau mỗi lần merge tài liệu (`docs/CLAUDE.md`, mục Trang tiến độ).
 - Kiểm thiết lập của app (file R2 bắt buộc, DNS của tên miền file tĩnh, catalog tư thế theo Remote Config và bộ khởi đầu của nó): `scripts/setup-check.sh`; danh sách file ở `docs/ops/required-assets.txt`, phần kiểm riêng của app ở `scripts/setup-check-app.sh`.
 - Merge khi nhánh chậm hơn nhánh chính: `scripts/merge-if-green.sh <số PR> --update` tự cập nhật nhánh, chờ CI rồi merge.
+- Liệt kê test có sẵn kiểm hành vi mà plan đổi, cho mục 3.5 của plan: `scripts/existing-tests.py <plan>` (ADR-0031).
 - Kiểm tra cả danh sách chạy trước khi duyệt (spec đã chốt, phụ thuộc, kịch bản có test, plan cùng sửa một file): `scripts/run-check.py docs/runs/RUN-YYYYMMDD-NN.md` (`docs/ops/pre-run-review.md`).
 - Chờ một workflow GitHub Actions xong trong một lệnh: `scripts/wait-run.sh --pr <số> [--sha <commit>]` hoặc `--workflow <file.yml> --since <giờ UTC>` (`docs/auto-run.md`, bước 8).
 - Tra một lỗi của CI hay script trong bảng tra lỗi đã biết: `scripts/failure-kind.sh --playbook <log>` (`docs/ops/failure-playbook.md`, `docs/auto-run.md` bước 8).
-- Đẩy nhánh task, thử lại khi lỗi mạng, giữ thành bundle khi không đẩy được: `scripts/save-branch.sh <nhánh>` (`docs/auto-run.md`, bước 3 và 7); GitHub từ chối vì quyền `workflow` thì còn ghi patch lên nhánh báo cáo cho người xem (T-068).
-- Xem phiên tự chạy nào đứng im (danh sách `running`, không có commit 60 phút): `scripts/run-watchdog.py`; `run-watchdog.yml` chạy nó mỗi 30 phút và mở issue `session-stalled` (T-068).
+- Đẩy nhánh task, thử lại khi lỗi mạng, giữ thành bundle khi không đẩy được: `scripts/save-branch.sh <nhánh>` (`docs/auto-run.md`, bước 3 và 7); GitHub từ chối vì quyền `workflow` thì còn ghi patch lên nhánh báo cáo cho người xem (PB-14, ADR-0032). Đẩy mỗi commit mới của phiên con trong thời gian có giới hạn: `scripts/push-on-commit.sh <nhánh> --minutes N`, chạy nền.
 - Thử ở đầu phiên có plan sửa `.github/workflows/` xem phiên đẩy được thay đổi workflow không: `scripts/push-probe.sh RUN-YYYYMMDD-NN` (`docs/ops/session-capabilities.md`, `docs/auto-run.md` mục 2).
+- Xem phiên tự chạy nào đứng im (danh sách `running`, không có commit 60 phút): `scripts/run-watchdog.py`; `run-watchdog.yml` chạy nó mỗi 30 phút và mở issue `session-stalled` (`docs/auto-run.md`, mục 4).
 - Chọn ticket cho hàng chờ plan cuối phiên: `scripts/plan-queue.py [--max N]` (`docs/auto-run.md`, mục 4).
 - Đếm token AI theo task của một phiên: `scripts/token-usage.py report --since <giờ bắt đầu>`; số gợi ý cho `token_estimate` của plan: `scripts/token-usage.py estimate` (`docs/ops/token-usage.md`).
 - Môi trường cloud chưa có `ANDROID_HOME` thì đặt `export ANDROID_HOME=$HOME/android-sdk` (SDK do `scripts/cloud-setup.sh` cài).
-- Máy dev chưa có JDK hay Android SDK: `scripts/local-setup.sh` cài vào thư mục người dùng, không cần sudo (JDK Temurin, gói SDK đọc từ `scripts/cloud-setup.sh`, kiểm mã băm), rồi `source` tệp `env.sh` mà script in ra trước `scripts/check.sh`. `scripts/local-setup.sh --check` xem còn thiếu gì, không tải. Chỉ dùng trên máy dev; môi trường cloud dùng `scripts/cloud-setup.sh` và dòng `export ANDROID_HOME` ở trên.
+- Máy dev chưa có JDK hay Android SDK: `scripts/local-setup.sh` cài vào thư mục người dùng, không cần sudo. Script cài JDK Temurin và các gói SDK đọc từ `scripts/cloud-setup.sh`, kiểm mã băm. Sau đó `source` tệp `env.sh` mà script in ra rồi chạy `scripts/check.sh`. Thư mục cài mặc định mang tên repo (`~/.local/share/<tên repo>`). `scripts/local-setup.sh --check` xem còn thiếu gì, không tải. Chỉ dùng trên máy dev; môi trường cloud dùng `scripts/cloud-setup.sh` và dòng `export ANDROID_HOME` ở trên.
 - `app/src/staging/google-services.json` là file cấu hình Firebase giả, chỉ để build qua được; bản build từ file này không gửi số liệu nào (ADR-0012). Không sửa, không thay bằng file thật.
 - Môi trường cloud không có emulator. Test trên emulator (`app/src/androidTest`) chỉ chạy trong CI.
 
@@ -95,4 +96,4 @@ Làm theo đúng mẫu `:feature:sample`:
 - Không merge bằng cách nào khác ngoài `scripts/merge-if-green.sh`. Không đóng, sửa hay bình luận để gỡ issue mang nhãn `main-broken`.
 - Không đọc, in ra hay chuyển đi bí mật của repo. Không tạo hay sửa cấu hình production (ADR-0007, ADR-0009).
 - Không chạm vào `scripts/release.sh`, không đọc hay tạo thư mục phát hành production (ADR-0009, ADR-0017).
-- Không làm cho test qua bằng cách sửa test, xóa test, cập nhật ảnh chuẩn screenshot ngoài plan, hay tắt quy tắc lint. Ngoại lệ duy nhất: test cũ đỏ chỉ vì dữ liệu của nó chưa có phần plan thêm (dòng enum, khóa mới) thì cập nhật dữ liệu đó, test vẫn kiểm phần mới (ADR-0029).
+- Không làm cho test qua bằng cách sửa test, xóa test, cập nhật ảnh chuẩn screenshot ngoài plan, hay tắt quy tắc lint. Ngoại lệ duy nhất: test cũ đỏ chỉ vì dữ liệu của nó chưa có phần plan thêm (dòng enum, khóa mới) thì cập nhật dữ liệu đó, test vẫn kiểm phần mới (ADR-0029); câu khẳng định cũ trái điều plan đã duyệt nói rõ thì viết lại, giữ ý định, không nới, theo đủ sáu điều của ADR-0031.

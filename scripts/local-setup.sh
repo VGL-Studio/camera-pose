@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Installs, on a developer machine (macOS or Linux, no sudo), the JDK and the Android SDK packages that
-# scripts/check.sh needs, so a plan trial runs the same command as the session and CI (L-075, docs/CLAUDE.md).
+# scripts/check.sh needs, so a plan trial runs the same command as the session and CI (docs/CLAUDE.md, writing a
+# plan). From task T-069 of camera-pose.
 # Developer machines only: a cloud environment is built by scripts/cloud-setup.sh, and this script refuses to run
 # there (it finds ~/.cloud-setup-version).
 # Versions have one source each:
@@ -14,10 +15,11 @@
 # the target directory and move into place in one step, so an interrupted run never leaves a half-installed JDK.
 #
 # Usage:   scripts/local-setup.sh [--prefix <dir>] [--sdk <dir>] [--check] [--print-versions]
-#            --prefix          absolute dir for the JDK and env.sh (default ${XDG_DATA_HOME:-~/.local/share}/camera-pose)
+#            --prefix          absolute dir for the JDK and env.sh (default ${XDG_DATA_HOME:-~/.local/share}/<repo>,
+#                              <repo> being the name of the origin remote, else of the repo directory)
 #            --sdk             absolute Android SDK dir (default ~/android-sdk, like scripts/cloud-setup.sh)
 #            --check           only report what is installed, no network; exit 1 when something is missing
-#            --print-versions  print the versions this script installs and exit
+#            --print-versions  print the versions this script installs and the install dirs, then exit
 # Then:    source <prefix>/env.sh && scripts/check.sh
 # Exit:    0 ready, 1 failed or (with --check) something missing, 2 wrong arguments.
 # Test seams (scripts/tests/run.sh): CURL, LOCAL_SETUP_CLOUD_SETUP, LOCAL_SETUP_OS, LOCAL_SETUP_ARCH,
@@ -29,7 +31,7 @@ JDK_RELEASE="jdk-21.0.13+9"
 JDK_LINK_PREFIX="https://github.com/adoptium/"
 PACKAGE_PATTERN='^[a-z-]+(;[A-Za-z0-9._-]+)*$'
 
-prefix="${XDG_DATA_HOME:-${HOME}/.local/share}/camera-pose"
+prefix=""
 sdk_root="${HOME}/android-sdk"
 mode="install"
 usage="Cách dùng: scripts/local-setup.sh [--prefix <thư mục tuyệt đối>] [--sdk <thư mục tuyệt đối>] [--check] [--print-versions]"
@@ -38,6 +40,7 @@ while [ "$#" -gt 0 ]; do
     --prefix | --sdk)
       [ "$#" -ge 2 ] || { echo "LỖI: $1 cần một thư mục. ${usage}" >&2; exit 2; }
       case "$2" in /*) ;; *) echo "LỖI: $1 cần đường dẫn tuyệt đối (được '$2'). ${usage}" >&2; exit 2 ;; esac
+      case "$2" in *$'\n'*) echo "LỖI: $1 không được có ký tự xuống dòng. ${usage}" >&2; exit 2 ;; esac
       if [ "$1" = --prefix ]; then prefix="$2"; else sdk_root="$2"; fi
       shift 2 ;;
     --check) mode="check"; shift ;;
@@ -47,8 +50,25 @@ while [ "$#" -gt 0 ]; do
 done
 cd "$(dirname "$0")/.."
 
+# The default install dir is named after the app's repo, so two apps on one machine never share an env.sh.
+# The origin remote names the repo even in a worktree or in a clone under another directory name.
+repo_name() {
+  local name
+  name="$(git config --get remote.origin.url 2> /dev/null || true)"
+  name="${name%/}"
+  name="${name%.git}"
+  name="${name##*/}"
+  name="${name##*:}"
+  [ -n "$name" ] || name="$(basename "$(git rev-parse --show-toplevel 2> /dev/null || pwd)")"
+  name="$(printf '%s' "$name" | LC_ALL=C tr -c 'A-Za-z0-9._-' '-')"
+  case "$name" in "" | .* | -*) name="android-dev" ;; esac
+  echo "$name"
+}
+[ -n "$prefix" ] || prefix="${XDG_DATA_HOME:-${HOME}/.local/share}/$(repo_name)"
+
 curl_cmd="${CURL:-curl}"
-curl_opts=(-fsSL --proto '=https' --connect-timeout 20 --retry 2)
+# HTTPS only, for every redirect too (the JDK link on GitHub redirects to another download host).
+curl_opts=(-fsSL --proto '=https' --proto-redir '=https' --connect-timeout 20 --retry 2)
 cloud_setup="${LOCAL_SETUP_CLOUD_SETUP:-scripts/cloud-setup.sh}"
 adoptium_api="${LOCAL_SETUP_ADOPTIUM_API:-https://api.adoptium.net/v3}"
 google_repo="${LOCAL_SETUP_GOOGLE_REPO:-https://dl.google.com/android/repository}"
@@ -72,6 +92,8 @@ if [ "$mode" = "versions" ]; then
   echo "JDK: ${JDK_RELEASE} (Temurin)"
   echo "command-line tools: ${tools_build}"
   echo "gói SDK: ${packages}"
+  echo "thư mục cài: ${prefix}"
+  echo "thư mục SDK: ${sdk_root}"
   exit 0
 fi
 
@@ -106,7 +128,8 @@ sdkmanager="${sdk_root}/cmdline-tools/latest/bin/sdkmanager"
 env_file="${prefix}/env.sh"
 
 sha_of() { # <algorithm 1|256> <file>
-  if command -v shasum > /dev/null; then shasum -a "$1" "$2" | cut -d' ' -f1; else "sha${1}sum" "$2" | cut -d' ' -f1; fi
+  # Read from stdin: with a file name that holds a backslash, shasum and sha256sum put a "\" before the sum.
+  if command -v shasum > /dev/null; then shasum -a "$1" < "$2" | cut -d' ' -f1; else "sha${1}sum" < "$2" | cut -d' ' -f1; fi
 }
 jdk_runs() { [ -x "${java_home}/bin/java" ] && "${java_home}/bin/java" -version > /dev/null 2>&1; }
 
@@ -197,16 +220,27 @@ echo "Đã chấp nhận giấy phép Android SDK (sdkmanager --licenses), như 
 "$sdkmanager" --install $packages > "${sdk_tmp}/sdkmanager.log" 2>&1 \
   || { echo "LỖI: sdkmanager không cài được ${packages}. 20 dòng cuối:" >&2; tail -n 20 "${sdk_tmp}/sdkmanager.log" >&2; exit 1; }
 
-# 3. env.sh, rewritten only when its content changes.
+# 3. env.sh, rewritten only when its content changes. Paths go inside double quotes, so the four characters that
+# keep a meaning there (\ " $ `) are escaped: a --prefix like /opt/a"b$c is written as it is, never run.
+dq() {
+  local value="$1" backslash="\\"
+  value="${value//"$backslash"/$backslash$backslash}"
+  value="${value//\"/$backslash\"}"
+  value="${value//\$/$backslash\$}"
+  value="${value//\`/$backslash\`}"
+  printf '%s' "$value"
+}
+q_java_home="$(dq "$java_home")"
+q_sdk_root="$(dq "$sdk_root")"
 cat > "${jdk_tmp}/env.sh" << ENV
-# Written by scripts/local-setup.sh. Use: source ${env_file}
-export JAVA_HOME="${java_home}"
-export ANDROID_HOME="${sdk_root}"
-export ANDROID_SDK_ROOT="${sdk_root}"
-export PATH="${java_home}/bin:${sdk_root}/platform-tools:\${PATH}"
+# Written by scripts/local-setup.sh. Use: source $(printf '%q' "$env_file")
+export JAVA_HOME="${q_java_home}"
+export ANDROID_HOME="${q_sdk_root}"
+export ANDROID_SDK_ROOT="${q_sdk_root}"
+export PATH="${q_java_home}/bin:${q_sdk_root}/platform-tools:\${PATH}"
 ENV
 if ! cmp -s "${jdk_tmp}/env.sh" "$env_file" 2> /dev/null; then cp "${jdk_tmp}/env.sh" "$env_file"; fi
 
 scripts/java-check.sh > /dev/null \
   || { echo "LỖI: scripts/java-check.sh không nhận JDK vừa cài. Xem lại JDK_RELEASE, xóa ${jdk_dir} rồi chạy lại." >&2; exit 1; }
-echo "Sẵn sàng. Chạy: source ${env_file} && scripts/check.sh"
+echo "Sẵn sàng. Chạy: source $(printf '%q' "$env_file") && scripts/check.sh"

@@ -395,9 +395,15 @@ cmd_summary() {
   [[ -d "${dir}" && -f "${dir}/logcat.txt" ]] || fail "không có ${dir}/logcat.txt."
   [[ -n "${pkg}" ]] || pkg="$(sed -n 's/^- Ứng dụng: \([^,]*\),.*/\1/p' "${dir}/session.md" 2>/dev/null | head -n 1)"
   [[ -n "${pkg}" ]] || pkg="$(app_package)"
-  local log="${dir}/logcat.txt" crashes anrs app_errors app_warnings monkey_events monkey_problem blocking offline_skipped
+  local log="${dir}/logcat.txt" crashes anrs ad_anrs app_errors app_warnings monkey_events monkey_problem blocking
+  local offline_skipped ad_activity="com\.google\.android\.gms\.ads\.AdActivity"
   crashes="$(grep -c "AndroidRuntime: Process: ${pkg}," "${log}" || true)"
   anrs="$(grep -c "ANR in ${pkg}" "${log}" || true)"
+  # An ANR inside the ad SDK's own full-screen activity (a test ad under monkey on the emulator without a GPU) is
+  # counted apart and does not block: it came back in 2 of 6 runs with no app code involved (FB-20261025-02).
+  # An ANR in any activity of the app still blocks.
+  ad_anrs="$(grep -cE "ANR in ${pkg//./\\.} \(${pkg//./\\.}/${ad_activity}\)" "${log}" || true)"
+  anrs=$(( anrs - ad_anrs ))
   app_errors="$(grep -cE ' E VGL\.' "${log}" || true)"
   app_warnings="$(grep -cE ' W VGL\.' "${log}" || true)"
   monkey_events=""
@@ -405,6 +411,9 @@ cmd_summary() {
   if [[ -f "${dir}/monkey.txt" ]]; then
     monkey_events="$(sed -n 's/^Events injected: //p' "${dir}/monkey.txt" | tail -n 1)"
     monkey_problem="$(grep -cE '^// (CRASH|NOT RESPONDING)' "${dir}/monkey.txt" || true)"
+    # Monkey prints the ANR line right after "// NOT RESPONDING"; one inside AdActivity does not block (above).
+    monkey_problem=$(( monkey_problem - $(grep -A1 -E '^// NOT RESPONDING' "${dir}/monkey.txt" |
+      grep -cE "^ANR in .*/${ad_activity}\)" || true) ))
   fi
   blocking=$(( crashes + anrs + monkey_problem ))
   offline_skipped=0
@@ -423,6 +432,9 @@ cmd_summary() {
     echo "| App dừng đột ngột (crash) | ${crashes:-0} | $([ "${crashes:-0}" -gt 0 ] && echo chặn || echo '') |"
     echo "| App không phản hồi (ANR) | ${anrs:-0} | $([ "${anrs:-0}" -gt 0 ] && echo chặn || echo '') |"
     echo "| Monkey báo crash hay treo | ${monkey_problem:-0} | $([ "${monkey_problem:-0}" -gt 0 ] && echo chặn || echo '') |"
+    if [[ "${ad_anrs:-0}" -gt 0 ]]; then
+      echo "| ANR trong màn quảng cáo của SDK (\`AdActivity\`, FB-20261025-02) | ${ad_anrs} | xem |"
+    fi
     echo "| Log lỗi của app (\`E VGL.*\`) | ${app_errors:-0} | xem |"
     echo "| Log cảnh báo của app (\`W VGL.*\`) | ${app_warnings:-0} | xem |"
     if [[ "${offline_skipped:-0}" -gt 0 ]]; then

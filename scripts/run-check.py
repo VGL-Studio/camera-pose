@@ -22,7 +22,7 @@ documents behind it, the mistakes that stopped or slowed earlier sessions:
      "Bỏ đề xuất thứ tự: A trước B" (then a warning). A plan that names a file another plan of the list creates,
      without having it in its own section 3.2 and without depending on that plan: an error when it comes first,
      a warning (what it misses if the other plan stops) when it comes after.
-  8. What the way of opening the session can do (L-086 of camera-pose): the list's `open_with` (cloud, routine,
+  8. What the way of opening the session can do (L-112): the list's `open_with` (cloud, routine,
      local) against the table of docs/ops/session-capabilities.md. A plan whose file table (section 3.2, rows only,
      like plan-check.py --touches) has a path matching a capability the method lacks ("không") is an error; one the
      session must probe at its start ("thử") is a warning. A missing or unknown `open_with` is a warning only when
@@ -258,7 +258,7 @@ def capability_problems(run_text, files_of, in_list):
     if method not in OPEN_METHODS:
         tickets = ", ".join(dict.fromkeys(ticket for ticket, *_ in needs))
         warnings.append(f"danh sách chưa ghi open_with (cloud, routine hay local; nhận '{method}') mà {tickets} cần "
-                        "khả năng riêng của cách mở phiên (docs/ops/session-capabilities.md, L-086 của camera-pose).")
+                        "khả năng riêng của cách mở phiên (docs/ops/session-capabilities.md, L-112).")
         return errors, warnings
     for ticket, name, path, values in needs:
         value = values.get(method, "")

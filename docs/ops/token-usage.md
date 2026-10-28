@@ -22,7 +22,7 @@ Claude Code ghi mỗi phiên vào một transcript trên máy chạy phiên: `~/
 ## 2. Ước tính khi viết plan
 
 - Plan ghi `token_estimate` ở phần đầu, dạng `20M` (triệu token tổng), cạnh cỡ `size` của ticket.
-- Lấy số gợi ý bằng `scripts/token-usage.py estimate`: trung vị tổng token của các task đã đo cùng cỡ, đọc từ `docs/metrics/token-usage.csv`. Cỡ nào chưa đủ 5 task đã đo thì dùng số khởi đầu: S 5M, M 15M, L 30M. Các số này đặt tạm, sẽ hiệu chỉnh khi có dữ liệu.
+- Lấy số gợi ý bằng `scripts/token-usage.py estimate`: trung vị tổng token của các task đã đo cùng cỡ, đọc từ `docs/metrics/token-usage.csv`. Task chạy qua nhiều phiên (dừng rồi tiếp tục) có một dòng mỗi phiên; `estimate` cộng các dòng đó thành một mẫu (L-111). Cỡ nào chưa đủ 5 task đã đo thì dùng số khởi đầu: S 5M, M 15M, L 30M. Các số này đặt tạm, sẽ hiệu chỉnh khi có dữ liệu.
 - Số khởi đầu cũ (S 10M, M 20M, L 40M) quá cao so với số đo của sáu phiên đầu ở camera-pose (L-021 của app): trung vị S khoảng 5M (2 task), M khoảng 15M (5 task), L khoảng 11M (10 task, từ 2M tới 60M). Task L xong trọn trong một phiên thường tốn khoảng 40M, task L dừng giữa chừng chỉ vài triệu, nên số L để 30M thay cho trung vị.
 - Task có điểm khác thường (nhiều màn hình, nhiều vòng CI dự kiến, đọc nhiều tài liệu) thì chỉnh số gợi ý và ghi lý do một dòng trong mục 1 của plan.
 - `scripts/plan-check.py` chỉ nhắc (CHÚ Ý) khi thiếu `token_estimate`, không báo lỗi; plan thiếu ước tính vẫn chạy.

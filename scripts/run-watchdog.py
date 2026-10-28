@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tells people when an auto-run session has gone quiet, so someone can continue it (camera-pose L-084, T-068).
+"""Tells people when an auto-run session has gone quiet, so someone can continue it (L-109).
 
-A session opened with `claude --cloud` is not continued by resume-run.yml (L-008): when it stops in the middle
+A session opened with `claude --cloud` is not continued by resume-run.yml (L-044): when it stops in the middle
 (an API error, the quota, the process restarting), the run file stays "running" and nobody knows until they look.
-RUN-20261026-03 waited 2 hours 30 minutes that way. .github/workflows/run-watchdog.yml runs this script every
+A session once waited 2 hours 30 minutes that way. .github/workflows/run-watchdog.yml runs this script every
 30 minutes; it only opens, updates and closes issues labelled session-stalled, and never starts a session.
 
 Usage: scripts/run-watchdog.py
@@ -157,7 +157,7 @@ def body_for(run_id, run_file, latest, quiet, note):
         "```",
         "",
         "Issue này tự đóng khi phiên có commit mới hoặc danh sách chạy không còn `running` "
-        "(scripts/run-watchdog.py, T-068).",
+        "(scripts/run-watchdog.py).",
     ]
     if note:
         lines += ["", note]
@@ -170,7 +170,7 @@ def ensure_label():
     except NotFound:
         try:
             api("labels", method="POST", body={"name": LABEL, "color": "d93f0b",
-                                               "description": "Phiên tự chạy không có commit mới (T-068)"})
+                                               "description": "Phiên tự chạy không có commit mới (scripts/run-watchdog.py)"})
         except LookupError:
             pass  # created meanwhile, or no right to create: the issue is still opened with the name
 

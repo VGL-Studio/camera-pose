@@ -7,11 +7,13 @@
 #   3. with --staging: the STAGING_GOOGLE_SERVICES_JSON secret is not the fake file and has the
 #      <applicationId>.staging app, and every App Distribution group in STAGING_TESTER_GROUPS (default "team")
 #      exists, checked with the STAGING_APP_DISTRIBUTION_CREDENTIALS service account when gcloud is available;
-#   4. the app's own checks in scripts/setup-check-app.sh, when the repository has that file (sourced at the end
-#      with ok, problem, note, http_status, cdn_hint, $STAGING, $work and $base_url; SETUP_CHECK_APP_CHECKS replaces
-#      the path, "none" in the template's own tests).
-# A file that does not answer 200 is asked once more with a cache-busting query: a 200 then means the file is on R2
-# but the CDN still serves an old 404 (camera-pose, 2026-10-27: a 404 cached for a year after the upload).
+#   4. the app's own checks in scripts/setup-check-app.sh, when the app has that file (the template does not). It is
+#      sourced at the end and may use ok, problem, note, http_status, cdn_hint, $STAGING, $work and $base_url.
+#      SETUP_CHECK_APP_CHECKS replaces the path; "none" (no such file) turns it off, as the script tests do.
+# Every R2 request that gets 000 (no connection), 429 or 5xx is asked once more after SETUP_CHECK_RETRY_SECONDS
+# (default 5), so one passing hiccup of R2 does not open setup-broken for a whole day. A required file that answers
+# 404 or 403 is asked once more with a cache-busting query: a 200 then means the file is on R2 but the CDN still
+# serves an old answer (camera-pose, 2026-10-27: a 404 cached for a year after the upload; template lesson L-113).
 #
 # Usage:  scripts/setup-check.sh [--staging]
 #   Without --staging it needs no secret: a developer runs it at the end of docs/ops/setup-new-app.md.
@@ -52,8 +54,8 @@ problem() {
 note() {
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::warning::$*"; else echo "CHÚ Ý - $*"; fi
 }
-# HTTP status of a URL (curl options before the URL). 000, 429 and 5xx are asked once more, so one passing hiccup of
-# R2 does not open setup-broken for a whole day. Prints the code curl gave, empty when curl printed none.
+# HTTP status of a URL (curl options after the URL). 000, 429 and 5xx are asked once more. Prints the code curl
+# gave, empty when curl printed none.
 http_status() { # <url> [curl options]
   local url="$1" code
   shift
@@ -170,7 +172,7 @@ if [ "$STAGING" = "yes" ]; then
   fi
 fi
 
-if [ -f "$app_checks" ]; then
+if [ "$app_checks" != "none" ] && [ -f "$app_checks" ]; then
   # shellcheck source=/dev/null
   . "$app_checks"
 fi

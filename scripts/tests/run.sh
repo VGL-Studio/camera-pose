@@ -10,6 +10,10 @@ cp scripts/tests/fake-gh "$work/bin/gh"
 chmod +x "$work/bin/gh"
 
 failures=0
+# Every machine runs these tests like a GitHub runner, which has no global git configuration: no user name, no
+# init.defaultBranch. A block that passes only with the developer's ~/.gitconfig fails later in CI (L-113).
+export GIT_CONFIG_GLOBAL=/dev/null
+export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
 # merge-if-green.sh, wait-run.sh and env-canary.sh read owner/repo from the origin remote. A new app has no remote
 # until someone pushes it, so give every git command of the tests a fake one (git reads GIT_CONFIG_* as -c options).
 export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.url GIT_CONFIG_VALUE_0=https://github.com/o/r.git
@@ -162,6 +166,18 @@ expect "start-run: main-guard step runs after the run-file checks and before the
   "$(awk '/main-broken/ && !b { b = NR } /scripts\/main-guard-status.sh/ && !s { s = NR }
      /name: Kiểm tra thiết lập staging, file R2 và DNS/ { e = NR } /name: Kích hoạt routine/ { r = NR }
      END { print ((b && s > b && s < e && e < r) ? "yes" : "no") }' "$start_wf") $(grep -qE '^  checks: read$' "$start_wf" && echo yes || echo no) $(grep -c 'continue-on-error' "$start_wf")"
+# start-run.yml closes an old setup-broken issue once the setup check is green and before the routine starts, in a
+# job of its own: only that job may write issues (L-113). The checks never get a GitHub token in .git/config or env.
+expect "start-run: only close-setup-broken writes issues, between the checks and the routine" "yes 1 1 1" \
+  "$(grep -qE '^  issues: read$' "$start_wf" && echo yes || echo no) $(grep -cE '^      issues: write$' "$start_wf") $(awk '/^  close-setup-broken:$/ { c = 1 } c && /^    needs: check$/ { n++ } END { print n + 0 }' "$start_wf") $(grep -cE '^    needs: \[check, close-setup-broken\]$' "$start_wf")"
+expect "start-run: the setup check runs without a GitHub token" "1 1" \
+  "$(grep -c 'persist-credentials: false' "$start_wf") $(grep -c 'env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging' "$start_wf")"
+canary_wf=.github/workflows/env-canary.yml
+# env-canary.yml checks a red setup once more after 90 seconds, and setup_only runs the setup check without the routine.
+expect "env-canary: a red setup check is run again after 90 seconds, without a GitHub token" "1 2 1" \
+  "$(grep -c '^            sleep 90$' "$canary_wf") $(grep -c 'env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging' "$canary_wf") $(grep -c 'persist-credentials: false' "$canary_wf")"
+expect "env-canary: setup_only skips the routine" "1 1" \
+  "$(grep -cE '^      setup_only:$' "$canary_wf") $(awk '/^  fire:$/ { f = 1; next } f && /^    if: \$\{\{ !inputs.setup_only \}\}$/ { n++ } f && /^    steps:$/ { f = 0 } END { print n + 0 }' "$canary_wf")"
 guard_wf=.github/workflows/main-guard.yml
 # Run by hand on another branch, the guard would open main-broken, push a revert or close an issue for that branch.
 expect "main-guard: has workflow_dispatch and keeps the push trigger with the same paths-ignore" "1 1 1 1 1" \
@@ -526,17 +542,22 @@ expect "playbook: PB-07 fake Firebase file -> nguoi" "PB-07 nguoi" "$(pb_head $p
 expect "playbook: PB-08 missing R8 classes -> that" "PB-08 that" "$(pb_head $pb_dir/PB-08.log)"
 expect "playbook: PB-09 library download 429 -> lich-thu-lai" "PB-09 lich-thu-lai" "$(pb_head $pb_dir/PB-09.log)"
 expect "playbook: PB-10 a UI timeout without R2 lines is a real failure" "PB-10 that" "$(pb_head $pb_dir/PB-10.log)"
-expect "playbook: PB-11 Claude org access 403 in a subagent -> cho" "PB-11 cho" "$(pb_head $pb_dir/PB-11.log)"
-expect "playbook: PB-12 an R2 file missing (404) in ui-test -> nguoi, before the rerun of PB-01" "PB-12 nguoi" "$(pb_head $pb_dir/PB-12.log)"
-expect "playbook: PB-13 push refused for a workflow file (OAuth App, workflow scope) -> bo-qua-loai" "PB-13 bo-qua-loai" "$(pb_head $pb_dir/PB-13.log)"
-printf '%s\n' ' ! [remote rejected] claude/T-1 -> claude/T-1 (refusing to allow a GitHub App to create or update workflow `.github/workflows/ci.yml` without `workflows` permission)' > "$work/pb13-app.log"
-expect "playbook: PB-13 also matches the GitHub App wording (workflows permission)" "PB-13 bo-qua-loai" "$(pb_head "$work/pb13-app.log")"
-printf '%s\n' ' ! [remote rejected] claude/T-1 -> claude/T-1 (refusing to allow a Personal Access Token to create or update workflow `.github/workflows/ci.yml` without `workflow` scope)' > "$work/pb13-pat.log"
-expect "playbook: PB-13 also matches the personal access token wording" "PB-13 bo-qua-loai" "$(pb_head "$work/pb13-pat.log")"
-printf '%s\n' ' ! [remote rejected] claude/T-1 -> claude/T-1 (protected branch hook declined)' > "$work/pb13-other.log"
-expect "playbook: a push refused for another reason is not PB-13" "khong-co" "$(pb_head "$work/pb13-other.log")"
+expect "playbook: PB-11 Maven 403 on a GitHub runner -> chay-lai" "PB-11 chay-lai" "$(pb_head $pb_dir/PB-11.log)"
+expect "playbook: PB-12 Claude org access 403 in a subagent -> cho" "PB-12 cho" "$(pb_head $pb_dir/PB-12.log)"
+expect "playbook: PB-13 an R2 file missing (404) in ui-test -> nguoi, before the rerun of PB-01" "PB-13 nguoi" "$(pb_head $pb_dir/PB-13.log)"
+expect "playbook: PB-14 push refused for a workflow file (OAuth App, workflow scope) -> bo-qua-loai" "PB-14 bo-qua-loai" "$(pb_head $pb_dir/PB-14.log)"
+printf '%s\n' ' ! [remote rejected] claude/T-1 -> claude/T-1 (refusing to allow a GitHub App to create or update workflow `.github/workflows/ci.yml` without `workflows` permission)' > "$work/pb14-app.log"
+expect "playbook: PB-14 also matches the GitHub App wording (workflows permission)" "PB-14 bo-qua-loai" "$(pb_head "$work/pb14-app.log")"
+printf '%s\n' ' ! [remote rejected] claude/T-1 -> claude/T-1 (refusing to allow a Personal Access Token to create or update workflow `.github/workflows/ci.yml` without `workflow` scope)' > "$work/pb14-pat.log"
+expect "playbook: PB-14 also matches the personal access token wording" "PB-14 bo-qua-loai" "$(pb_head "$work/pb14-pat.log")"
+printf '%s\n' ' ! [remote rejected] claude/T-1 -> claude/T-1 (protected branch hook declined)' > "$work/pb14-other.log"
+expect "playbook: a push refused for another reason is not PB-14" "khong-co" "$(pb_head "$work/pb14-other.log")"
 expect "playbook: an unknown failure says khong-co" "khong-co" "$(pb_head $pb_dir/none.log)"
 expect "playbook: a missing log says khong-co" "khong-co" "$(pb_head "$work/no-such.log")"
+printf 'unknown flag: --allow-escape-sequences\n\nUsage:  gh api <endpoint> [flags]\n' > "$work/gh-help.log"
+expect "playbook: the help text of a failed gh call says log-hong, not khong-co" "log-hong" "$(pb_head "$work/gh-help.log")"
+printf 'the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway\n' > "$work/gh-esc.log"
+expect "playbook: the escape-sequence refusal of gh says log-hong" "log-hong" "$(pb_head "$work/gh-esc.log")"
 expect "playbook: a missing log exits 0" 0 "$(scripts/failure-kind.sh --playbook "$work/no-such.log" > /dev/null 2>&1; echo $?)"
 expect "playbook: the line carries the action and the source" "PB-02 cho: GitHub không cấp máy. Làm theo \`auto-run.md\` mục 4, dòng \"GitHub không chạy job\" (L-064)" \
   "$(playbook $pb_dir/PB-02.log)"
@@ -567,6 +588,7 @@ expect "playbook: every pattern of the real table is valid" 0 "$(grep -c 'LỖI 
 pb_rows="$(sed -n '/playbook:start/,/playbook:end/p' docs/ops/failure-playbook.md | grep -oE '^\| PB-[0-9]+' | tr -d '| ' | sort)"
 pb_files="$(ls $pb_dir | grep -oE '^PB-[0-9]+' | sort -u)"
 expect "playbook: every row has a log file and every log file a row" "$pb_rows" "$pb_files"
+# Every kind of the table is described for the session, and a bo-qua-loai row says which tasks it skips (ADR-0032, L8).
 pb_kinds="$(sed -n '/playbook:start/,/playbook:end/p' docs/ops/failure-playbook.md | grep -E '^\| PB-[0-9]+ ' | awk -F' \\| ' '{ print $4 }' | tr -d '`' | sort -u)"
 pb_known="$(grep -m1 '^Cột Mẫu là' docs/ops/failure-playbook.md | sed -nE 's/.*Cột Loại là một trong: ([^.]*)\..*/\1/p' | grep -oE '`[a-z-]+`' | tr -d '`' | sort -u || true)"
 expect "playbook: the kinds sentence lists the kinds (that among them)" yes "$(printf '%s\n' "$pb_known" | grep -qx that && echo yes || echo no)"
@@ -824,7 +846,7 @@ expect "resume-check: finds a report branch on page 2 of the branches" docs/runs
   "$(PATH="$work/bin:$PATH" FIXTURE="$work/resume.json" GITHUB_REPOSITORY=o/r RESUME_NOW=2026-10-18T03:00:00Z python3 -I scripts/resume-check.py 2> /dev/null)"
 
 # run-watchdog.py opens an issue when a running session has no commit for 60 minutes, so a person can
-# continue a `claude --cloud` session that resume-run.yml does not continue (T-068).
+# continue a `claude --cloud` session that resume-run.yml does not continue (L-044, L-109).
 wd_time() { python3 -c "import datetime as d; print((d.datetime(2026,10,27,12,0,tzinfo=d.timezone.utc)-d.timedelta(minutes=$1)).strftime('%Y-%m-%dT%H:%M:%SZ'))"; }
 watchdog() { # <run status> <minutes since the last commit> [workflow runs: "min:branch:event:status:name,..." or -] [open issues JSON] [started_at] [errors JSON]
   local last in_progress="" queued="" code=0 spec min branch event status name entry errors="${6:-}"
@@ -1105,6 +1127,78 @@ for args in "--package com.vglstudio.camera.pose.line.guide.notes" "--package No
     expect "new-app.sh rejects '$args'" rejected rejected
   fi
 done
+if [[ -f scripts/new-app.sh ]]; then
+  expect "new-app.sh records the template commit and package for template-sync.sh" \
+    "base=$(git rev-parse HEAD) package=com.example.notes" \
+    "$(tr '\n' ' ' < "$new_app/docs/template-sync.txt" | sed 's/ $//')"
+  expect "new-app.sh leaves out template-sync.sh" absent \
+    "$([ -e "$new_app/scripts/template-sync.sh" ] && echo present || echo absent)"
+fi
+
+# template-sync.sh brings later template commits into an app made by new-app.sh (ADR-0030). It runs on a scratch
+# copy of the template, so the test can add template commits; like new-app.sh it exists only in the template.
+if [[ ! -f scripts/template-sync.sh ]]; then
+  echo "skip - template-sync.sh: chỉ có ở repo dự án mẫu"
+else
+  (
+    failures=0
+    export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
+    tpl="$work/sync-template" app="$work/sync-app"
+    mkdir -p "$tpl"
+    git ls-files -z --cached --others --exclude-standard | xargs -0 tar -cf - 2> /dev/null | tar -xf - -C "$tpl"
+    git -C "$tpl" init --quiet -b main
+    git -C "$tpl" add -A > /dev/null
+    git -C "$tpl" commit --quiet -m "template v1"
+    "$tpl/scripts/new-app.sh" --dest "$app" --package com.example.notes --name "Ghi chú" \
+      --staging-assets-url https://notes.example.vn/staging/ > /dev/null 2>&1
+    v1="$(git -C "$tpl" rev-parse HEAD)"
+    logger_kt="core/logging/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/logging/AppLogger.kt"
+    ads_kt="core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIds.kt"
+    echo "# template v2" >> "$tpl/scripts/wait-run.sh"
+    echo "// template v2: com.vglstudio.camera.pose.line.guide.core.logging" >> "$tpl/$logger_kt"
+    echo "// template v2" >> "$tpl/$ads_kt"
+    echo "template v2" >> "$tpl/docs/lessons.md"
+    git -C "$tpl" commit --quiet -am "template v2"
+    v2="$(git -C "$tpl" rev-parse HEAD)"
+    echo "hold=core/ads $v1" >> "$app/docs/template-sync.txt"
+    git -C "$app" commit --quiet -am "hold ads"
+    app_logger="$app/core/logging/src/main/kotlin/com/example/notes/core/logging/AppLogger.kt"
+    app_ads="$app/core/ads/src/main/kotlin/com/example/notes/core/ads/AdUnitIds.kt"
+
+    code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to "$v2" 2>&1)" || code=$?
+    expect "template-sync.sh merges a template commit without conflicts" "0 1" "$code $(grep -c 'Xong, không có xung đột' <<< "$out")"
+    expect "template-sync.sh works on a new branch of the app" "template-sync/${v2:0:7}" "$(git -C "$app" branch --show-current)"
+    expect "template-sync.sh brings a changed script" 1 "$(grep -cx '# template v2' "$app/scripts/wait-run.sh")"
+    expect "template-sync.sh renames the package in moved sources" 1 \
+      "$(grep -cx '// template v2: com.example.notes.core.logging' "$app_logger")"
+    expect "template-sync.sh leaves the template's lessons out" 0 "$(grep -c 'template v2' "$app/docs/lessons.md")"
+    expect "template-sync.sh keeps a held path at its commit" 0 "$(grep -c 'template v2' "$app_ads")"
+    expect "template-sync.sh moves the base in the same commit" "base=$v2" "$(grep '^base=' "$app/docs/template-sync.txt")"
+    expect "template-sync.sh leaves the app clean" "" "$(git -C "$app" status --porcelain)"
+
+    code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to "$v2" 2>&1)" || code=$?
+    expect "template-sync.sh has nothing to do at the base" "0 1" "$code $(grep -c 'Không có gì mới' <<< "$out")"
+
+    code=0; "$tpl/scripts/template-sync.sh" --app "$app" --take core/ads > /dev/null 2>&1 || code=$?
+    expect "template-sync.sh --take brings a held path up to the base" "0 1 0" \
+      "$code $(grep -cx '// template v2' "$app_ads") $(grep -c '^hold=' "$app/docs/template-sync.txt")"
+
+    sed -i.bak '2s/.*/# app change/' "$app/scripts/wait-run.sh" && rm "$app/scripts/wait-run.sh.bak"
+    git -C "$app" commit --quiet -am "app change"
+    sed -i.bak '2s/.*/# template v3/' "$tpl/scripts/wait-run.sh" && rm "$tpl/scripts/wait-run.sh.bak"
+    # new-app.sh put the app's name on the first line of README.md, so a template change there conflicts too.
+    sed -i.bak '1s/.*/# TEMPLATE V3/' "$tpl/README.md" && rm "$tpl/README.md.bak"
+    git -C "$tpl" commit --quiet -am "template v3"
+    code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to HEAD 2>&1)" || code=$?
+    expect "template-sync.sh stops on a conflict and sorts the files" "1 1 1" \
+      "$code $(sed -n '/Phần của dự án mẫu/,/Phần app cũng sửa/p' <<< "$out" | grep -cx '   scripts/wait-run.sh') $(
+        sed -n '/Phần app cũng sửa/,$p' <<< "$out" | grep -cx '   README.md')"
+
+    code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to HEAD 2>&1)" || code=$?
+    expect "template-sync.sh refuses an app with uncommitted changes" "1 1" "$code $(grep -c 'chưa commit' <<< "$out")"
+    exit "$failures"
+  ) || failures=$((failures + $?))
+fi
 
 # cloud-env-check.sh passes only when the environment was built from the current cloud-setup.sh and can run
 # the project's Gradle (L-075, from app lesson L-056 of camera-pose).
@@ -1180,19 +1274,20 @@ expect "cloud-env-check.sh names compileSdk when it cannot be read" 1 \
   "$(grep -c '^LỖI: không đọc được compileSdk' "$work/env-check.out" || true)"
 
 # local-setup.sh installs on a developer machine the JDK and the SDK packages of cloud-setup.sh, checking every
-# download against its published checksum (T-069). curl, the Adoptium API, Google's package list and sdkmanager
-# are fakes; the JDK in the fake archive answers like fake_java above.
+# download against its published checksum (T-069 of camera-pose). curl, the Adoptium API, Google's package list and
+# sdkmanager are fakes, so no test touches the network; the JDK in the fake archive answers like fake_java above.
 ls_dir="$work/local-setup"
 mkdir -p "$ls_dir/bin" "$ls_dir/build"
 ls_release="$(sed -n 's/^JDK_RELEASE="\(.*\)"$/\1/p' scripts/local-setup.sh)"
 ls_tools="$(sed -nE 's/^CMDLINE_TOOLS_ZIP="commandlinetools-linux-([0-9]+)_latest\.zip"$/\1/p' scripts/cloud-setup.sh)"
-# Fake curl: `curl -fsSL <url> -o <file>`; answers from $ls_dir by the shape of the URL and logs every URL.
+# Fake curl: `curl -fsSL <url> -o <file>`; answers from $ls_dir by the shape of the URL, logs every URL and every
+# argument list.
 cat > "$ls_dir/bin/curl" << 'SH'
 #!/usr/bin/env bash
+echo "$*" >> "$LS_DIR/curl-args.log"
 url="" out=""
-while [ "$#" -gt 0 ]; do case "$1" in -o) out="$2"; shift 2 ;; --proto | --connect-timeout | --retry) shift 2 ;; -*) shift ;; *) url="$1"; shift ;; esac; done
+while [ "$#" -gt 0 ]; do case "$1" in -o) out="$2"; shift 2 ;; --proto | --proto-redir | --connect-timeout | --retry) shift 2 ;; -*) shift ;; *) url="$1"; shift ;; esac; done
 echo "$url" >> "$LS_DIR/curl.log"
-echo "$*" > /dev/null
 case "$url" in
   *assets/release_name/*) src="$LS_DIR/jdk.json" ;;
   *repository2-3.xml) src="$LS_DIR/repository.xml" ;;
@@ -1252,6 +1347,10 @@ ls_run() {
   echo $?
   set -e
 }
+# ls_prefix <home> [script]: the default install dir that local-setup.sh prints for that HOME.
+ls_prefix() {
+  HOME="$1" XDG_DATA_HOME="" "${2:-scripts/local-setup.sh}" --print-versions 2> /dev/null | sed -n 's/^thư mục cài: //p' || true
+}
 ls_jdk mac 21
 ls_repo "$ls_mac_sha1" "$ls_linux_sha1"
 
@@ -1269,13 +1368,35 @@ expect "local-setup.sh names cloud-setup.sh when it cannot read the versions" 1 
   "$(grep -c '^LỖI: không đọc được phiên bản command-line tools' "$ls_dir/out" || true)"
 expect "local-setup.sh refuses an unknown argument" 2 "$(ls_run "$ls_dir/home-args" --prefx /tmp)"
 expect "local-setup.sh refuses --prefix without a directory" 2 "$(ls_run "$ls_dir/home-args" --prefix)"
+expect "local-setup.sh refuses a --prefix with a line break" 2 "$(ls_run "$ls_dir/home-args" --prefix "$ls_dir/a
+b")"
 
+# The default install dir is named after the repo, never after one app: the origin remote (the tests give every
+# git command the remote https://github.com/o/r.git), else the repo directory, cut down to safe characters.
+expect "local-setup.sh names the default install dir after the origin remote" "$ls_dir/home-mac/.local/share/r" \
+  "$(ls_prefix "$ls_dir/home-mac")"
+expect "local-setup.sh reads an ssh origin remote" "$ls_dir/h/.local/share/my-app" \
+  "$(GIT_CONFIG_VALUE_0=git@github.com:org/my-app.git ls_prefix "$ls_dir/h")"
+expect "local-setup.sh puts the install dir under XDG_DATA_HOME" "$ls_dir/xdg/r" \
+  "$(HOME="$ls_dir/h" XDG_DATA_HOME="$ls_dir/xdg" scripts/local-setup.sh --print-versions | sed -n 's/^thư mục cài: //p')"
+ls_named="$ls_dir/named/My App!"
+mkdir -p "$ls_named/scripts"
+cp scripts/local-setup.sh scripts/cloud-setup.sh "$ls_named/scripts/"
+git init -q -b main "$ls_named"
+expect "local-setup.sh falls back to the repo directory name without an origin remote" "$ls_dir/h/.local/share/My-App-" \
+  "$(GIT_CONFIG_COUNT=0 ls_prefix "$ls_dir/h" "$ls_named/scripts/local-setup.sh")"
+expect "local-setup.sh has no app name in its default install dir" 0 \
+  "$(grep -c '^prefix=.*camera-pose' scripts/local-setup.sh || true)"
+
+ls_mac_prefix="$(ls_prefix "$ls_dir/home-mac")"
 expect "local-setup.sh --check on an empty machine reports missing" 1 "$(ls_run "$ls_dir/home-mac" --check)"
 expect "local-setup.sh --check makes no download" 0 "$(ls_calls)"
-rm -f "$ls_dir/curl.log" "$ls_dir/sdkmanager.log"
+rm -f "$ls_dir/curl.log" "$ls_dir/curl-args.log" "$ls_dir/sdkmanager.log"
 expect "local-setup.sh installs on a Mac" 0 "$(ls_run "$ls_dir/home-mac")"
 expect "local-setup.sh downloads the JDK info, the JDK, the package list and the tools" 4 \
   "$(ls_calls)"
+expect "local-setup.sh allows only HTTPS, redirects included, on every download" 4 \
+  "$(grep -c -- "--proto =https --proto-redir =https " "$ls_dir/curl-args.log" || true)"
 expect "local-setup.sh asks Adoptium for the mac aarch64 JDK" 1 \
   "$(grep -c "release_name/eclipse/${ls_release//+/%2B}?architecture=aarch64&image_type=jdk&os=mac" "$ls_dir/curl.log" || true)"
 expect "local-setup.sh downloads the mac command-line tools" 1 \
@@ -1283,9 +1404,9 @@ expect "local-setup.sh downloads the mac command-line tools" 1 \
 expect "local-setup.sh installs the packages of cloud-setup.sh" \
   "--install $(scripts/local-setup.sh --print-versions | sed -n 's/^gói SDK: //p')" \
   "$(grep '^--install' "$ls_dir/sdkmanager.log")"
-ls_env="$ls_dir/home-mac/.local/share/camera-pose/env.sh"
+ls_env="$ls_mac_prefix/env.sh"
 expect "local-setup.sh writes JAVA_HOME to Contents/Home on a Mac" 1 \
-  "$(grep -c "^export JAVA_HOME=\"$ls_dir/home-mac/.local/share/camera-pose/jdk/$ls_release/Contents/Home\"$" "$ls_env" || true)"
+  "$(grep -c "^export JAVA_HOME=\"$ls_mac_prefix/jdk/$ls_release/Contents/Home\"$" "$ls_env" || true)"
 expect "local-setup.sh writes ANDROID_HOME" 1 "$(grep -c "^export ANDROID_HOME=\"$ls_dir/home-mac/android-sdk\"$" "$ls_env" || true)"
 expect "local-setup.sh writes ANDROID_SDK_ROOT" 1 "$(grep -c "^export ANDROID_SDK_ROOT=\"$ls_dir/home-mac/android-sdk\"$" "$ls_env" || true)"
 expect "local-setup.sh puts the JDK and platform-tools on PATH" 1 \
@@ -1293,8 +1414,10 @@ expect "local-setup.sh puts the JDK and platform-tools on PATH" 1 \
 expect "local-setup.sh accepts the SDK licences" 1 "$(grep -c '^--licenses$' "$ls_dir/sdkmanager.log" || true)"
 expect "local-setup.sh leaves no temp dir behind" 0 \
   "$(find "$ls_dir/home-mac" -name '.tmp.*' 2> /dev/null | wc -l | tr -d ' ')"
+# JAVA_HOME points nowhere before env.sh is sourced, so the Java of the machine running the tests cannot pass
+# this test in place of the JDK that env.sh names (RUN-20261027-02 of camera-pose).
 expect "env.sh gives a Java that java-check.sh accepts" 0 \
-  "$(set +e; (. "$ls_env"; scripts/java-check.sh > /dev/null 2>&1); echo $?)"
+  "$(set +e; (export JAVA_HOME="$ls_dir/no-such-jdk"; . "$ls_env"; scripts/java-check.sh > /dev/null 2>&1); echo $?)"
 cp "$ls_env" "$ls_dir/env-first.sh" 2> /dev/null || : > "$ls_dir/env-first.sh"
 rm -f "$ls_dir/curl.log"
 expect "local-setup.sh runs again without error" 0 "$(ls_run "$ls_dir/home-mac")"
@@ -1310,7 +1433,7 @@ expect "local-setup.sh --check fails when one SDK package is missing" 1 "$(ls_ru
 expect "local-setup.sh --check names the missing package" 1 "$(grep -cxF "THIẾU: $ls_pkg" "$ls_dir/out" || true)"
 mv "$ls_dir/pkg-aside" "$ls_dir/home-mac/android-sdk/${ls_pkg//;//}" 2> /dev/null || true
 # A JDK left half-installed (java does not run) is installed again, not taken as present.
-printf '#!/bin/sh\nexit 1\n' > "$ls_dir/home-mac/.local/share/camera-pose/jdk/$ls_release/Contents/Home/bin/java" 2> /dev/null || true
+printf '#!/bin/sh\nexit 1\n' > "$ls_mac_prefix/jdk/$ls_release/Contents/Home/bin/java" 2> /dev/null || true
 rm -f "$ls_dir/curl.log"
 expect "local-setup.sh installs a JDK that does not run again" 0 "$(ls_run "$ls_dir/home-mac")"
 expect "local-setup.sh says the broken JDK is installed again" 1 "$(grep -c 'không chạy được (cài dở?): cài lại' "$ls_dir/out" || true)"
@@ -1344,7 +1467,7 @@ jq '.binaries[0].package.checksum = "0000"' "$ls_dir/jdk.json" > "$ls_dir/jdk.js
 expect "local-setup.sh refuses a JDK with a wrong SHA-256" 1 "$(ls_run "$ls_dir/home-badjdk")"
 expect "local-setup.sh names the SHA-256 mismatch" 1 "$(grep -c '^LỖI: mã SHA-256 của JDK không khớp' "$ls_dir/out" || true)"
 expect "local-setup.sh leaves no JDK after a wrong SHA-256" no \
-  "$([ -e "$ls_dir/home-badjdk/.local/share/camera-pose/jdk/$ls_release" ] && echo yes || echo no)"
+  "$([ -e "$(ls_prefix "$ls_dir/home-badjdk")/jdk/$ls_release" ] && echo yes || echo no)"
 ls_jdk mac 21
 jq '.binaries[0].package.link = "https://evil.example.test/jdk.tar.gz"' "$ls_dir/jdk.json" > "$ls_dir/jdk.json.new" && mv "$ls_dir/jdk.json.new" "$ls_dir/jdk.json"
 expect "local-setup.sh refuses a JDK link outside github.com/adoptium" 1 "$(ls_run "$ls_dir/home-badlink")"
@@ -1367,20 +1490,30 @@ expect "local-setup.sh installs on Linux x86_64" 0 "$(LS_OS=Linux LS_ARCH=x86_64
 expect "local-setup.sh asks Adoptium for the linux x64 JDK" 1 "$(grep -c 'architecture=x64&image_type=jdk&os=linux' "$ls_dir/curl.log" || true)"
 expect "local-setup.sh downloads the linux command-line tools" 1 \
   "$(grep -c "/commandlinetools-linux-${ls_tools}_latest.zip$" "$ls_dir/curl.log" || true)"
+ls_linux_prefix="$(ls_prefix "$ls_dir/home-linux")"
 expect "local-setup.sh writes JAVA_HOME at the top of the JDK on Linux" 1 \
-  "$(grep -c "^export JAVA_HOME=\"$ls_dir/home-linux/.local/share/camera-pose/jdk/$ls_release\"$" \
-    "$ls_dir/home-linux/.local/share/camera-pose/env.sh" || true)"
+  "$(grep -c "^export JAVA_HOME=\"$ls_linux_prefix/jdk/$ls_release\"$" "$ls_linux_prefix/env.sh" || true)"
 expect "local-setup.sh refuses another system" 1 "$(LS_OS=FreeBSD ls_run "$ls_dir/home-bsd")"
 
 # A JDK that java-check.sh does not accept is reported, not left silently in env.sh.
 ls_jdk mac 26
 expect "local-setup.sh stops when java-check.sh refuses the JDK" 1 "$(ls_run "$ls_dir/home-java26")"
 expect "local-setup.sh names java-check.sh and the JDK dir to delete" 1 \
-  "$(grep -c "^LỖI: scripts/java-check.sh không nhận JDK vừa cài. Xem lại JDK_RELEASE, xóa $ls_dir/home-java26/.local/share/camera-pose/jdk/$ls_release" "$ls_dir/out" || true)"
+  "$(grep -c "^LỖI: scripts/java-check.sh không nhận JDK vừa cài. Xem lại JDK_RELEASE, xóa $(ls_prefix "$ls_dir/home-java26")/jdk/$ls_release" "$ls_dir/out" || true)"
 ls_jdk mac 21
 # --prefix and --sdk move the install.
 expect "local-setup.sh honours --prefix and --sdk" 0 "$(ls_run "$ls_dir/home-custom" --prefix "$ls_dir/custom" --sdk "$ls_dir/custom-sdk")"
 expect "local-setup.sh writes env.sh under --prefix" 1 "$(grep -c "^export ANDROID_HOME=\"$ls_dir/custom-sdk\"$" "$ls_dir/custom/env.sh" || true)"
+# A --prefix or --sdk with characters that mean something inside double quotes (" $ ` \) is written to env.sh as
+# it is: sourcing env.sh gives back the same paths and runs nothing.
+ls_odd="$ls_dir/odd \"q\" \$HOME \`touch $ls_dir/ran\` back\\slash"
+expect "local-setup.sh installs under a --prefix with quotes and dollars" 0 \
+  "$(ls_run "$ls_dir/home-odd" --prefix "$ls_odd" --sdk "$ls_odd/sdk")"
+expect "env.sh gives back a JAVA_HOME with quotes and dollars as it is" "$ls_odd/jdk/$ls_release/Contents/Home" \
+  "$(set +e; (. "$ls_odd/env.sh" 2> /dev/null; printf '%s' "${JAVA_HOME:-}"))"
+expect "env.sh gives back an ANDROID_HOME with quotes and dollars as it is" "$ls_odd/sdk" \
+  "$(set +e; (. "$ls_odd/env.sh" 2> /dev/null; printf '%s' "${ANDROID_HOME:-}"))"
+expect "env.sh runs no command hidden in the path" no "$([ -e "$ls_dir/ran" ] && echo yes || echo no)"
 
 # plan-check.py finds, from the plan alone, what would otherwise stop a task during the night (L-020).
 repo="$work/plan-repo"
@@ -1390,8 +1523,11 @@ echo '{}' > "$repo/docs/data/values.json"
 echo 'open("docs/data/values.json")' > "$repo/scripts/reader.py"
 touch "$repo/feature/demo/A.kt" "$repo/core/x/B.kt" "$repo/docs/features/demo/design/screens/DemoScreen_main_light.png"
 write_plan() { # <file> <risk> <status> <rows> [extra text]
-  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: %s\nreviewer: A\ncross_reviewer:\napproved_at: 2026-10-17\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%b\n\n### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện\n\n- **Quyền truy cập:** %s\n- **Thư viện và SDK:** Không thêm.\n\n%s\n\n## 4. Kiểm thử\n' \
-    "$(basename "$1" | cut -d- -f1-2)" "$3" "$2" "$4" "${PERMISSIONS:-Không thêm.}" "${5:-}" > "$1"
+  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: %s\nreviewer: A\ncross_reviewer:\napproved_at: 2026-10-17\n---\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%b\n\n### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện\n\n- **Quyền truy cập:** %s\n- **Thư viện và SDK:** Không thêm.\n\n%s\n\n%s\n\n## 4. Kiểm thử\n' \
+    "$(basename "$1" | cut -d- -f1-2)" "$3" "$2" "$4" "${PERMISSIONS:-Không thêm.}" \
+    "${CHANGED_BEHAVIOUR-### 3.5. Hành vi đã có bị đổi
+
+Không có.}" "${5:-}" > "$1"
 }
 plan_check() { if PLAN_CHECK_ROOT="$repo" python3 -I scripts/plan-check.py "$1" > "$work/plan-check.out" 2>&1; then echo pass; else echo stop; fi; }
 # One row of the file list of a plan; the backticks are Markdown, not command substitution.
@@ -1400,27 +1536,26 @@ row() { printf '| %s | `%s` | x |' "$1" "$2"; }
 plans="$repo/docs/features/demo/plans"
 write_plan "$plans/T-901-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
 expect "plan-check: a correct plan passes" pass "$(plan_check "$plans/T-901-a.md")"
-# --touches: only a row of the file table counts, never prose of section 3.2 (ADR-1005 of camera-pose, PB-13).
+# --touches: only a row of the file table of section 3.2 counts, never prose (ADR-0032, L8; PB-14).
 touches() { python3 -I scripts/plan-check.py --touches "$@" > /dev/null 2>&1; echo $?; }
-write_plan "$plans/T-931-a.md" high draft "$(row Sửa .github/workflows/ci.yml)"
-expect "plan-check --touches: a Sửa row under the prefix -> 0" 0 "$(touches .github/workflows/ "$plans/T-931-a.md")"
-write_plan "$plans/T-932-a.md" high draft "$(row Tạo .github/workflows/new.yml)\n$(row Sửa feature/demo/A.kt)"
-expect "plan-check --touches: a Tạo row among others -> 0" 0 "$(touches .github/workflows/ "$plans/T-932-a.md")"
-write_plan "$plans/T-933-a.md" medium draft "$(row Sửa feature/demo/A.kt)\n\nGhi chú: \`.github/workflows/ci.yml\` chỉ nhắc tới file này, không đọc."
-expect "plan-check --touches: workflows named only in prose -> 1" 1 "$(touches .github/workflows/ "$plans/T-933-a.md")"
+write_plan "$plans/T-961-a.md" high draft "$(row Sửa .github/workflows/ci.yml)"
+expect "plan-check --touches: a Sửa row under the prefix -> 0" 0 "$(touches .github/workflows/ "$plans/T-961-a.md")"
+write_plan "$plans/T-962-a.md" high draft "$(row Tạo .github/workflows/new.yml)\n$(row Sửa feature/demo/A.kt)"
+expect "plan-check --touches: a Tạo row among others -> 0" 0 "$(touches .github/workflows/ "$plans/T-962-a.md")"
+write_plan "$plans/T-963-a.md" medium draft "$(row Sửa feature/demo/A.kt)\n\nGhi chú: \`.github/workflows/ci.yml\` chỉ nhắc tới file này, không đọc."
+expect "plan-check --touches: workflows named only in prose of section 3.2 -> 1" 1 "$(touches .github/workflows/ "$plans/T-963-a.md")"
 expect "plan-check --touches: no such plan -> 2" 2 "$(touches .github/workflows/ "$plans/T-999-none.md")"
-expect "plan-check --touches: an empty prefix -> 2" 2 "$(touches "" "$plans/T-931-a.md")"
-write_plan "$plans/T-934-a.md" high draft "$(row Xóa .github/workflows/old.yml)"
-expect "plan-check --touches: a Xóa row under the prefix -> 0" 0 "$(touches .github/workflows/ "$plans/T-934-a.md")"
-write_plan "$plans/T-935-a.md" medium draft "$(row Sửa docs/.github/workflows/x.md)"
-expect "plan-check --touches: the prefix in the middle of a path -> 1" 1 "$(touches .github/workflows/ "$plans/T-935-a.md")"
-write_plan "$plans/T-936-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
+expect "plan-check --touches: an empty prefix -> 2" 2 "$(touches "" "$plans/T-961-a.md")"
+expect "plan-check --touches: a missing plan argument -> 2" 2 "$(touches .github/workflows/)"
+write_plan "$plans/T-964-a.md" high draft "$(row Xóa .github/workflows/old.yml)"
+expect "plan-check --touches: a Xóa row under the prefix -> 0" 0 "$(touches .github/workflows/ "$plans/T-964-a.md")"
+write_plan "$plans/T-965-a.md" medium draft "$(row Sửa docs/.github/workflows/x.md)"
+expect "plan-check --touches: the prefix in the middle of a path -> 1" 1 "$(touches .github/workflows/ "$plans/T-965-a.md")"
+write_plan "$plans/T-966-a.md" medium draft "$(row Sửa feature/demo/A.kt)" \
   "$(printf '### 3.4. Phương án dự phòng\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n%s' "$(row Sửa .github/workflows/ci.yml)")"
-expect "plan-check --touches: a table outside section 3.2 -> 1" 1 "$(touches .github/workflows/ "$plans/T-936-a.md")"
-expect "plan-check --touches: the real T-067 plan (workflows only in prose) -> 1" 1 \
-  "$(touches .github/workflows/ docs/features/quality-gate/plans/T-067-tu-quyet-roi-bao.md)"
-expect "plan-check --touches: a real plan that changes a workflow (T-062) -> 0" 0 \
-  "$(touches .github/workflows/ docs/features/quality-gate/plans/T-062-camera-gia-tren-emulator-ci.md)"
+expect "plan-check --touches: a table outside section 3.2 -> 1" 1 "$(touches .github/workflows/ "$plans/T-966-a.md")"
+write_plan "$plans/T-967-a.md" high draft "$(row Sửa .github/workflows/)"
+expect "plan-check --touches: a directory row under the prefix counts -> 0" 0 "$(touches .github/workflows/ "$plans/T-967-a.md")"
 write_plan "$plans/T-902-a.md" medium draft "$(row Sửa feature/demo/Missing.kt)"
 expect "plan-check: changing a missing file stops" stop "$(plan_check "$plans/T-902-a.md")"
 write_plan "$plans/T-903-a.md" medium draft "$(row Sửa docs/data/values.json)"
@@ -1638,6 +1773,87 @@ expect "plan-check: an approved plan with \$TMPDIR only warns" "pass 1" \
 write_plan "$plans/T-949-a.md" medium draft "$(row Sửa feature/demo/A.kt)" 'Ghi vào `${TMPDIR:-/tmp}/out.txt` và `$TMPDIR_OLD`.'
 expect "plan-check: \${TMPDIR:-/tmp} passes" "pass 0" "$(plan_check "$plans/T-949-a.md") $(tmpdir_lines)"
 
+# Rule 13 and scripts/existing-tests.py: a plan that changes Kotlin code says which existing tests check behaviour
+# it changes (ADR-0031, L-106: T-041 stopped on an existing test that measured where the card sits).
+CHANGED_BEHAVIOUR="" write_plan "$plans/T-951-a.md" medium draft "$(row Sửa feature/demo/A.kt)"
+expect "plan-check: a draft plan changing Kotlin code without section 3.5 stops" \
+  "stop 1" "$(plan_check "$plans/T-951-a.md") $(grep -c 'LỖI: quy tắc 13' "$work/plan-check.out" || true)"
+CHANGED_BEHAVIOUR="" write_plan "$plans/T-952-a.md" medium approved "$(row Sửa feature/demo/A.kt)"
+expect "plan-check: an approved plan without section 3.5 passes" \
+  "pass 0" "$(plan_check "$plans/T-952-a.md") $(grep -c 'quy tắc 13' "$work/plan-check.out" || true)"
+CHANGED_BEHAVIOUR="" write_plan "$plans/T-953-a.md" medium draft \
+  "$(row Sửa docs/data/values.json)\n$(row Sửa feature/demo/src/test/kotlin/ATest.kt)" 'scripts/reader.py chỉ đọc khóa a.'
+mkdir -p "$repo/feature/demo/src/test/kotlin" && touch "$repo/feature/demo/src/test/kotlin/ATest.kt"
+expect "plan-check: a plan changing only data and tests needs no section 3.5" pass "$(plan_check "$plans/T-953-a.md")"
+
+trepo="$work/tests-repo"
+mkdir -p "$trepo/feature/demo/src/main/kotlin" "$trepo/feature/demo/src/test/kotlin" "$trepo/docs/plans" \
+  "$trepo/feature/other/src/test/kotlin"
+cat > "$trepo/feature/demo/src/main/kotlin/DemoScreen.kt" <<'KOTLIN'
+object DemoTags {
+    const val PAGER = "demo_pager"
+    const val CARD = "demo_card"
+}
+
+@Composable
+fun DemoScreen(modifier: Modifier) {
+    fun localHelper() = Unit
+    val every = 3
+    Box(modifier.testTag(DemoTags.PAGER)) { Card(Modifier.testTag(DemoTags.CARD)) }
+}
+
+private fun hiddenHelper() = Unit
+KOTLIN
+cat > "$trepo/feature/demo/src/test/kotlin/DemoScreenTest.kt" <<'KOTLIN'
+class DemoScreenTest {
+    @Test
+    fun card_belowPager() {
+        assertTrue(bounds(DemoTags.CARD).top >= bounds(DemoTags.PAGER).bottom)
+    }
+
+    @Test
+    fun card_exists() {
+        assertTrue(exists(DemoTags.CARD))
+    }
+
+    @Test
+    fun alreadyNamed_inPlan() {
+        assertTrue(bounds(DemoTags.CARD).height > 0)
+    }
+
+    @Test
+    fun unrelated() {
+        val every = 3
+        localHelper()
+        hiddenHelper()
+    }
+}
+KOTLIN
+cat > "$trepo/feature/other/src/test/kotlin/OtherTest.kt" <<'KOTLIN'
+class OtherTest {
+    @Test
+    fun otherCard_measured() {
+        assertTrue(bounds(OtherTags.CARD).height > 0)
+    }
+}
+KOTLIN
+# Backticks are Markdown here, not command substitution.
+# shellcheck disable=SC2016
+printf '### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| Sửa | `feature/demo/src/main/kotlin/DemoScreen.kt` | thẻ đè lên `PAGER` |\n| Sửa | `feature/demo/src/test/kotlin/DemoScreenTest.kt` | `alreadyNamed_inPlan` |\n\n## 4. Kiểm thử\n' \
+  > "$trepo/docs/plans/T-1.md"
+EXISTING_TESTS_ROOT="$trepo" python3 -I scripts/existing-tests.py "$trepo/docs/plans/T-1.md" > "$work/existing.out"
+expect "existing-tests: the measuring test of a tag the plan names comes first" 1 \
+  "$(sed -n '/^Cần xem trước/,/^Nên xem/p' "$work/existing.out" | grep -c 'DemoScreenTest.card_belowPager.*| có |')"
+expect "existing-tests: a test the plan already names is only counted" "0 1" \
+  "$(grep -c 'alreadyNamed_inPlan' "$work/existing.out" || true) $(grep -c '^Plan đã nhắc tới 1 test' "$work/existing.out")"
+expect "existing-tests: a test using a tag the plan does not name is only counted" "0 1" \
+  "$(grep -c 'DemoScreenTest.card_exists' "$work/existing.out" || true) $(grep -c '^Còn 1 test' "$work/existing.out")"
+expect "existing-tests: local functions, plain vals, private functions and another object's CARD are not names" 0 \
+  "$(grep -c 'unrelated\|OtherTest' "$work/existing.out" || true)"
+EXISTING_TESTS_ROOT="$trepo" python3 -I scripts/existing-tests.py --all "$trepo/docs/plans/T-1.md" > "$work/existing.out"
+expect "existing-tests: --all lists the test using a tag the plan does not name" 1 \
+  "$(grep -c 'DemoScreenTest.card_exists' "$work/existing.out")"
+
 # The latest run list must not get an error from rule 11 (the plans of a run list are approved, so rule 11 only warns).
 latest_run="$(ls docs/runs/RUN-*.md | sort | tail -n 1)"
 python3 -I scripts/run-check.py "$latest_run" > "$work/run-check-latest.out" 2>&1 || true
@@ -1809,7 +2025,7 @@ plan3 '- Đề xuất thứ tự chạy: T-003 chạy trước T-002.'
 expect "run-check: a hint with this plan as subject that the list follows passes" pass "$(run_check)"
 rm -f "$rr/docs/features/demo/tickets/T-003-x.md" "$rr/docs/features/demo/plans/T-003-x.md" "$rr/feature/demo/C.kt"
 
-# Rule 8: what the way of opening the session can do (L-086 of camera-pose).
+# Rule 8: what the way of opening the session can do (L-112).
 mkdir -p "$rr/docs/ops" "$rr/.github/workflows"
 touch "$rr/.github/workflows/ci.yml"
 cap_table() { # <cloud> <routine> <local>: the value of workflow-push for each way of opening
@@ -2083,6 +2299,12 @@ expect "token-usage: estimate falls back to the starting value" 1 \
   "$(token_usage estimate --csv docs/metrics/t.csv | grep -c '^| M | 1 | 2k | 15.0M (tạm')"
 expect "token-usage: starting estimates are S 5M, M 15M, L 30M (L-021)" "5.0M 15.0M 30.0M" \
   "$(token_usage estimate --csv docs/metrics/none.csv | sed -n 's/^| [SML] | 0 | - | \([0-9.]*M\) (tạm.*/\1/p' | xargs)"
+# A task continued in a later run is one sample, the sum of its rows (L-111).
+printf 'run,date,task,size,estimate,requests,input,cache_write,cache_read,output,total,credit_usd\n%s\n%s\n%s\n' \
+  'RUN-1,2026-10-01,T-001,M,,1,1,1,1,1,3000,' 'RUN-2,2026-10-02,T-001,M,,1,1,1,1,1,1000,' \
+  'RUN-2,2026-10-02,T-002,M,,1,1,1,1,1,2000,' > "$tokens/docs/metrics/continued.csv"
+expect "token-usage: a task measured in two runs counts once, with the sum" 1 \
+  "$(token_usage estimate --csv docs/metrics/continued.csv | grep -c '^| M | 2 | 3k | 15.0M (tạm')"
 # The cloud session credit of a run goes on its shared row, once, and survives measuring the run again (L-020).
 expect "token-usage: credit needs a measured run" 1 "$(token_usage credit --run RUN-0 --usd 1 --csv docs/metrics/t.csv > /dev/null; echo $?)"
 expect "token-usage: credit must be a number" 2 "$(token_usage credit --run RUN-20261018-01 --usd abc --csv docs/metrics/t.csv > /dev/null; echo $?)"
@@ -2517,10 +2739,23 @@ expect "java-check: a missing Java stops" 1 \
 mkdir -p "$work/setup-bin" "$work/setup"
 cat > "$work/setup-bin/curl" << 'SH'
 #!/usr/bin/env bash
-# Fake curl: prints the HTTP code listed for the URL (last argument) in $SETUP_FAKE/codes, else 404.
+# Fake curl: prints the HTTP code listed for the URL (last argument) in $SETUP_FAKE/codes, else 404. A list such as
+# "429,200" gives one code per call of that URL (the last one stays). A cache-busting query (?setup-check-nocache=)
+# reads $SETUP_FAKE/nocache instead, else 404. Every call without that query is logged in $SETUP_FAKE/calls.
 url="${*: -1}"
-code="$(awk -v u="$url" '$1 == u {print $2}' "$SETUP_FAKE/codes")"
-printf '%s' "${code:-404}"
+plain="${url%%\?*}"
+if [[ "$url" == *"?setup-check-nocache="* ]]; then
+  code="$(awk -v u="$plain" '$1 == u {print $2}' "$SETUP_FAKE/nocache" 2> /dev/null)"
+  printf '%s' "${code:-404}"
+  exit 0
+fi
+calls="$(grep -cxF -- "$plain" "$SETUP_FAKE/calls" 2> /dev/null || true)"
+echo "$plain" >> "$SETUP_FAKE/calls"
+codes="$(awk -v u="$plain" '$1 == u {print $2}' "$SETUP_FAKE/codes")"
+IFS=',' read -r -a list <<< "${codes:-404}"
+index="${calls:-0}"
+[[ "$index" -lt "${#list[@]}" ]] || index=$((${#list[@]} - 1))
+printf '%s' "${list[$index]}"
 SH
 cat > "$work/setup-bin/dig" << 'SH'
 #!/usr/bin/env bash
@@ -2540,9 +2775,12 @@ base="https://demo.example.com/"
 groups_url="https://firebaseappdistribution.googleapis.com/v1/projects/123/groups"
 setup_check() { # <codes> [args...]; prints the exit code, keeps the output in $work/setup.out
   printf '%b' "$1" > "$work/setup/codes"; shift
+  rm -f "$work/setup/calls"
   local code=0
+  # SETUP_CHECK_APP_CHECKS=none: an app's own scripts/setup-check-app.sh stays out of these tests (scripts/tests/app.sh).
   PATH="$work/setup-bin:$PATH" SETUP_FAKE="$work/setup" SETUP_CHECK_ASSETS_LIST="$work/setup/assets.txt" \
-    SETUP_CHECK_ASSETS_BASE_URL="$base" SETUP_CHECK_PACKAGE=com.demo SETUP_CHECK_APP_CHECKS=none GITHUB_ACTIONS='' \
+    SETUP_CHECK_ASSETS_BASE_URL="$base" SETUP_CHECK_PACKAGE=com.demo GITHUB_ACTIONS='' SETUP_CHECK_RETRY_SECONDS=0 \
+    SETUP_CHECK_APP_CHECKS="${SETUP_APP_CHECKS:-none}" \
     scripts/setup-check.sh "$@" > "$work/setup.out" 2>&1 || code=$?
   echo "$code"
 }
@@ -2581,263 +2819,36 @@ expect "setup-check --staging: a missing secret stops" 1 \
 expect "setup-check: rejects an unknown argument" 1 "$(setup_check "$all_files" --stagin)"
 expect "setup-check: reads the staging address of this repository" 1 \
   "$(grep -cE '"ASSETS_BASE_URL", *"\\"https://[^"]+/\\""' app/build.gradle.kts)"
-
-# camera-pose only (plan T-065): scripts/setup-check-app.sh, sourced at the end of setup-check.sh. The pose catalog
-# that devices download (the default one, and every value of poses_catalog_path on Remote Config staging) and its
-# starter files. curl, dig, gcloud and firebase-tools are fakes driven by files in $sca.
-sca="$work/sca"
-mkdir -p "$work/sca-bin"
-cat > "$work/sca-bin/curl" << 'SH'
-#!/usr/bin/env bash
-# Fake curl. The URL is the last argument; its key is the path with / as _. The code is the first line of
-# $SCA/codes/<key>, consumed one per call (the last line stays); default 200. A cache-busting query
-# (?setup-check-nocache=) reads $SCA/nocache/<key> instead, default 404. With -o <file> and a 200 the body is
-# $SCA/body/<key> when it exists. Every call is logged as "<GET|HEAD> <URL without query>" in $SCA/calls.
-url="${*: -1}"; plain="${url%%\?*}"; key="$(sed -E 's#^https?://[^/]+/##; s#/#_#g' <<< "$plain")"
-out=""; prev=""; method=GET
-for a in "$@"; do [[ "$prev" == "-o" ]] && out="$a"; [[ "$a" == -I ]] && method=HEAD; prev="$a"; done
-if [[ "$url" == *"?setup-check-nocache="* ]]; then
-  code="$(cat "$SCA/nocache/$key" 2> /dev/null || echo 404)"
-else
-  f="$SCA/codes/$key"
-  if [[ -s "$f" ]]; then code="$(head -n 1 "$f")"; [[ "$(wc -l < "$f")" -gt 1 ]] && sed -i.bak 1d "$f" && rm -f "$f.bak"; else code=200; fi
-  echo "$method $plain" >> "$SCA/calls"
-fi
-if [[ "$code" == 200 && -n "$out" && "$out" != /dev/null && -f "$SCA/body/$key" ]]; then cp "$SCA/body/$key" "$out"; fi
-printf '%s' "$code"
+# One passing hiccup of R2 (no connection, 429, 5xx) is asked again; a CDN that keeps an old 404 is named (L-113).
+setup_calls() { grep -cxF -- "$1" "$work/setup/calls" 2> /dev/null || true; }
+expect "setup-check: a 503 that passes on the retry is not a failure" "0 2" \
+  "$(setup_check "${base}test/v1/a.txt 503,200\n${base}test/v1/b.txt 200\n") $(setup_calls "${base}test/v1/a.txt")"
+expect "setup-check: a 429 that passes on the retry is not a failure" 0 \
+  "$(setup_check "${base}test/v1/a.txt 429,200\n${base}test/v1/b.txt 200\n")"
+expect "setup-check: a file that fails to connect once is asked again" "0 2" \
+  "$(setup_check "${base}test/v1/a.txt 000,200\n${base}test/v1/b.txt 200\n") $(setup_calls "${base}test/v1/a.txt")"
+expect "setup-check: a 429 seen twice stops" "1 2" \
+  "$(setup_check "${base}test/v1/a.txt 429,429,200\n${base}test/v1/b.txt 200\n") $(setup_calls "${base}test/v1/a.txt")"
+expect "setup-check: a 404 is not asked again" "1 1" \
+  "$(setup_check "${base}test/v1/a.txt 200\n") $(setup_calls "${base}test/v1/b.txt")"
+expect "setup-check: a file really missing gets no CDN hint" 0 "$(grep -c 'CDN' "$work/setup.out" || true)"
+printf '%s 200\n' "${base}test/v1/b.txt" > "$work/setup/nocache"
+expect "setup-check: a required file the CDN still answers 404 for names the cache" "1 1" \
+  "$(setup_check "${base}test/v1/a.txt 200\n") $(grep -c "^LỖI - ${base}test/v1/b.txt trả '404', cần 200.*CDN còn giữ câu trả lời cũ" "$work/setup.out")"
+expect "setup-check: a 500 gets no CDN hint, even when the file is there" 0 \
+  "$(setup_check "${base}test/v1/a.txt 200\n${base}test/v1/b.txt 500\n" > /dev/null; grep -c 'CDN' "$work/setup.out" || true)"
+rm -f "$work/setup/nocache"
+# An app's own checks (scripts/setup-check-app.sh in the app) are sourced at the end, with the helpers.
+cat > "$work/setup/app-checks.sh" << 'SH'
+ok "app check ran (staging=$STAGING, base=$base_url)"
+[ "$(http_status "${base_url}app/extra.json" -o /dev/null -I)" = "200" ] || problem "app file missing"
 SH
-cat > "$work/sca-bin/dig" << 'SH'
-#!/usr/bin/env bash
-echo 104.21.40.144
-SH
-cat > "$work/sca-bin/gcloud" << 'SH'
-#!/usr/bin/env bash
-[[ "$*" == *print-access-token* ]] && echo fake-token
-exit 0
-SH
-cat > "$work/sca-bin/firebase" << 'SH'
-#!/usr/bin/env bash
-# Fake firebase-tools remoteconfig:get: logs its arguments and whether the credentials file is the Remote Config
-# secret to $SCA/rc.args, prints $SCA/rc-out on stdout and $SCA/rc-err on stderr, sleeps $SCA/rc-sleep seconds,
-# exits with $SCA/rc-exit (default 0) and on 0 copies $SCA/remote-config.json to the -o file.
-gac=no; grep -q RC-MARKER-1 "${GOOGLE_APPLICATION_CREDENTIALS:-/dev/null}" 2> /dev/null && gac=yes
-echo "GAC=$gac $*" >> "$SCA/rc.args"
-out=""; prev=""; for a in "$@"; do [[ "$prev" == "-o" ]] && out="$a"; prev="$a"; done
-cat "$SCA/rc-out" 2> /dev/null || true
-cat "$SCA/rc-err" >&2 2> /dev/null || true
-[[ -f "$SCA/rc-sleep" ]] && sleep "$(cat "$SCA/rc-sleep")"
-code="$(cat "$SCA/rc-exit" 2> /dev/null || echo 0)"
-[[ "$code" == 0 && -f "$SCA/remote-config.json" ]] && cp "$SCA/remote-config.json" "$out"
-exit "$code"
-SH
-chmod +x "$work/sca-bin/"*
-# The default path and the schema come from the app code with the same sed as the script, so a later catalog task
-# that changes them does not turn these tests red.
-poses_kt=core/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/poses/internal/PosesSettings.kt
-parser_kt=core/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/poses/internal/CatalogParser.kt
-v1="$(sed -nE 's/.*DEFAULT_CATALOG_PATH = "([^"]+)".*/\1/p' "$poses_kt" | head -n 1)"
-v1key="${v1//\//_}"
-newer_schema=$(( $(sed -nE 's/.*APP_SCHEMA = ([0-9]+).*/\1/p' "$parser_kt" | head -n 1) + 1 ))
-v3=poses/catalog/v3/catalog-c2e0ce0d.json
-v3key=poses_catalog_v3_catalog-c2e0ce0d.json
-sca_catalog() { # [minAppSchema]: one starter pose and one other pose
-  printf '{"schema": 1, "minAppSchema": %s, "poses": [' "${1:-1}"
-  printf '{"id": "w01", "starter": true, "preview": {"small": "poses/img/v1/w01/preview_540.webp", "large": "poses/img/v1/w01/preview_1200.webp"}, "outline": "poses/img/v1/w01/outline.webp"},'
-  printf '{"id": "w02", "starter": false, "preview": {"small": "poses/img/v1/w02/preview_540.webp"}, "outline": "poses/img/v1/w02/outline.webp"}]}'
-}
-sca_rc() { # <parameter JSON of poses_catalog_path, or "" for no parameter>
-  if [[ -n "$1" ]]; then printf '{"parameters": {"poses_catalog_path": %s}, "conditions": []}' "$1" > "$sca/remote-config.json"
-  else echo '{"parameters": {"other_key": {"defaultValue": {"value": "x"}}}}' > "$sca/remote-config.json"; fi
-}
-sca_reset() { # a ready setup; a test then breaks one thing
-  rm -rf "$sca"; mkdir -p "$sca/codes" "$sca/nocache" "$sca/body"
-  printf '# Required files\n%s\n' "$v1" > "$sca/assets.txt"
-  sca_catalog > "$sca/body/$v1key"
-  sca_catalog > "$sca/body/$v3key"
-  sca_rc "{\"defaultValue\": {\"value\": \"$v1\"}}"
-}
-sca_rc_secret='{"type": "service_account", "private_key": "RC-MARKER-1"}'
-sca_json='{"project_info": {"project_id": "demo-staging", "project_number": "123"}, "client": [{"client_info": {"android_client_info": {"package_name": "com.demo.staging"}}}]}'
-sca_check() { # [args...]; prints the exit code, keeps the output in $work/sca.out
-  local code=0
-  PATH="$work/sca-bin:$PATH" SCA="$sca" SETUP_CHECK_ASSETS_LIST="$sca/assets.txt" \
-    SETUP_CHECK_ASSETS_BASE_URL="https://cdn.example.com/" SETUP_CHECK_PACKAGE=com.demo \
-    SETUP_CHECK_FIREBASE_CMD="$work/sca-bin/firebase" SETUP_CHECK_RETRY_SECONDS=0 GITHUB_ACTIONS='' \
-    GOOGLE_SERVICES="${SCA_GOOGLE-$sca_json}" DISTRIBUTION_CREDENTIALS='{"type": "service_account"}' \
-    REMOTE_CONFIG_CREDENTIALS="${SCA_RC-$sca_rc_secret}" \
-    bash -c '[ -z "${SCA_RC_UNSET:-}" ] || unset REMOTE_CONFIG_CREDENTIALS; exec scripts/setup-check.sh "$@"' _ "$@" \
-    > "$work/sca.out" 2>&1 || code=$?
-  cat "$work/sca.out" >> "$work/sca-all.out"
-  echo "$code"
-}
-sca_lines() { grep -c -- "$1" "$work/sca.out" || true; }
-sca_calls() { grep -c -- "$1" "$sca/calls" 2> /dev/null || true; }
-
-# The default catalog, also without --staging (a developer machine, setup-new-app.md).
-sca_reset
-expect "setup-check app: the default catalog and its starter files pass" "0 1" \
-  "$(sca_check) $(sca_lines "^ok   - catalog mặc định của app $v1 và 2 file khởi đầu trả 200")"
-expect "setup-check app: only the starter files are checked" "1 1 0" \
-  "$(sca_calls '^HEAD .*/w01/preview_540.webp$') $(sca_calls '^HEAD .*/w01/outline.webp$') $(sca_calls '/w02/')"
-expect "setup-check app: without --staging Remote Config is not read" 0 "$(cat "$sca/rc.args" 2> /dev/null | grep -c . || true)"
-sca_reset; echo 404 > "$sca/codes/poses_img_v1_w01_outline.webp"
-expect "setup-check app: a missing starter file of the default catalog stops" 1 "$(sca_check)"
-expect "setup-check app: names the missing starter file" 1 \
-  "$(sca_lines "^LỖI - file khởi đầu poses/img/v1/w01/outline.webp của catalog $v1 trả '404'")"
-expect "setup-check app: no ok line for a catalog with a missing starter file" 0 "$(sca_lines '^ok   - catalog ')"
-expect "setup-check app: a file really missing gets no CDN hint" 0 "$(sca_lines 'CDN')"
-sca_reset; echo 404 > "$sca/codes/poses_img_v1_w01_outline.webp"; echo 200 > "$sca/nocache/poses_img_v1_w01_outline.webp"
-expect "setup-check app: a starter file the CDN still answers 404 for stops" 1 "$(sca_check)"
-expect "setup-check app: says the CDN keeps an old answer" 1 "$(sca_lines '^LỖI - file khởi đầu .*CDN còn giữ câu trả lời cũ')"
-sca_reset; printf '404\n' > "$sca/codes/$v1key"
-expect "setup-check app: a default catalog that answers 404 stops" "1 1" \
-  "$(sca_check) $(sca_lines "^LỖI - catalog mặc định của app $v1 trả '404'")"
-sca_reset; echo 'not a catalog' > "$sca/body/$v1key"
-expect "setup-check app: a catalog that is not JSON stops" "1 1" \
-  "$(sca_check) $(sca_lines "^LỖI - catalog mặc định của app $v1 không phải catalog đọc được")"
-sca_reset; echo '{"poses": ' > "$sca/body/$v1key"
-expect "setup-check app: a catalog cut short is downloaded once more" "1 2" "$(sca_check) $(sca_calls "^GET .*/$v1\$")"
-sca_reset; sca_catalog "$newer_schema" > "$sca/body/$v1key"
-expect "setup-check app: a catalog for a newer app stops" "1 1" "$(sca_check) $(sca_lines '^LỖI - catalog .*cần app mới hơn')"
-sca_reset; printf '{"schema": 1, "minAppSchema": 1, "poses": ["broken", {"id": "w01", "starter": true, "preview": {"small": "poses/img/v1/w01/preview_540.webp"}, "outline": "poses/img/v1/w01/outline.webp"}]}' > "$sca/body/$v1key"
-expect "setup-check app: a pose that is not an object does not hide the starter files" "0 1" \
-  "$(sca_check) $(sca_lines '^ok   - catalog .* và 2 file khởi đầu')"
-sca_reset; printf '503\n200\n' > "$sca/codes/poses_img_v1_w01_outline.webp"
-expect "setup-check app: a 503 that passes on the retry is not a failure" 0 "$(sca_check)"
-sca_reset; printf '429\n200\n' > "$sca/codes/$v1key"
-expect "setup-check: a 429 that passes on the retry is not a failure" 0 "$(sca_check)"
-sca_reset; printf '429\n429\n200\n' > "$sca/codes/$v1key"
-expect "setup-check app: a 429 seen twice counts" 1 "$(sca_check)"
-sca_reset; printf '000\n200\n' > "$sca/codes/$v1key"
-expect "setup-check: a required file that fails to connect once is asked again" "0 2" \
-  "$(sca_check) $(sca_calls "^HEAD .*/$v1\$")"
-sca_reset; echo 404 > "$sca/codes/$v1key"; echo 200 > "$sca/nocache/$v1key"
-expect "setup-check: a required file the CDN still answers 404 for names the cache" 1 \
-  "$(sca_check > /dev/null; sca_lines "^LỖI - https://cdn.example.com/$v1 trả '404', cần 200.*CDN còn giữ")"
-
-# With --staging: every value of poses_catalog_path on Remote Config staging.
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v3\"}}"; echo 404 > "$sca/codes/$v3key"
-expect "setup-check app: a Remote Config catalog that answers 404 stops" 1 "$(sca_check --staging)"
-expect "setup-check app: names the key and the missing catalog" 1 \
-  "$(sca_lines "^LỖI - khóa poses_catalog_path trỏ tới catalog $v3 trả '404'")"
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v3\"}}"
-expect "setup-check app: a Remote Config catalog that exists passes" 0 "$(sca_check --staging)"
-expect "setup-check app: the key's catalog and the default catalog are both downloaded once" "1 1" \
-  "$(sca_calls "^GET .*/$v3\$") $(sca_calls "^GET .*/$v1\$")"
-expect "setup-check app: the staging project is passed to remoteconfig:get" 1 "$(grep -c -- '--project demo-staging' "$sca/rc.args")"
-expect "setup-check app: remoteconfig:get uses the Remote Config secret" 1 "$(grep -c '^GAC=yes ' "$sca/rc.args")"
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v1\"}, \"conditionalValues\": {\"beta\": {\"value\": \"$v3\"}}}"; echo 404 > "$sca/codes/$v3key"
-expect "setup-check app: a conditional value that answers 404 stops" "1 1" \
-  "$(sca_check --staging) $(sca_lines "^LỖI - khóa poses_catalog_path trỏ tới catalog $v3")"
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v1\"}, \"conditionalValues\": {\"half\": {\"rolloutValue\": {\"rolloutId\": \"r1\", \"value\": \"$v3\"}}}}"; echo 404 > "$sca/codes/$v3key"
-expect "setup-check app: a rollout value that answers 404 stops" "1 1" \
-  "$(sca_check --staging) $(sca_lines "^LỖI - khóa poses_catalog_path trỏ tới catalog $v3")"
-sca_reset; printf '{"parameterGroups": {"poses": {"parameters": {"poses_catalog_path": {"defaultValue": {"value": "%s"}}}}}}' "$v3" > "$sca/remote-config.json"; echo 404 > "$sca/codes/$v3key"
-expect "setup-check app: a key inside a parameter group is read" 1 "$(sca_check --staging)"
-sca_reset; sca_rc ""
-expect "setup-check app: no parameter means the default catalog only, without a note" "0 1 0 0" \
-  "$(sca_check --staging) $(sca_calls "^GET .*/$v1\$") $(sca_calls "^GET .*/v3/") $(sca_lines '^CHÚ Ý - ')"
-sca_reset; sca_rc '{"defaultValue": {"useInAppDefault": true}}'; echo 404 > "$sca/codes/$v1key"
-expect "setup-check app: useInAppDefault points the key to the default catalog, without a note" "1 0" \
-  "$(sca_check --staging > /dev/null; sca_lines "^LỖI - khóa poses_catalog_path trỏ tới catalog $v1") $(sca_lines '^CHÚ Ý - ')"
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v3\"}, \"conditionalValues\": {\"old\": {\"value\": \"poses/catalog/latest.json\"}}}"
-expect "setup-check app: an invalid value warns and the key falls back to the default catalog, as the app does" "0 1 1 1" \
-  "$(sca_check --staging) $(sca_lines '^CHÚ Ý - khóa poses_catalog_path có giá trị "poses/catalog/latest.json" không hợp lệ') $(sca_calls "^GET .*/$v1\$") $(sca_lines "^ok   - khóa poses_catalog_path trỏ tới catalog $v1 ")"
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v1\"}, \"conditionalValues\": {\"p\": {\"personalizationValue\": {\"personalizationId\": \"x\"}}}}"
-expect "setup-check app: a personalization value warns" "0 1" "$(sca_check --staging) $(sca_lines '^CHÚ Ý - .*cá nhân hóa')"
-sca_reset; sca_rc '{"defaultValue": {"personalizationValue": {}}}'
-expect "setup-check app: no readable value warns and checks the default catalog" "0 1 1" \
-  "$(sca_check --staging) $(sca_lines '^CHÚ Ý - không đọc được giá trị nào') $(sca_calls "^GET .*/$v1\$")"
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v1\"}, \"conditionalValues\": {\"a\": {\"value\": \"$v1\"}}}"
-expect "setup-check app: a path used by two values is checked once" "0 1 1" \
-  "$(sca_check --staging) $(sca_calls "^GET .*/$v1\$") $(sca_lines '^ok   - khóa poses_catalog_path trỏ tới catalog ')"
-sca_reset
-expect "setup-check app: a missing Remote Config secret stops" "1 1" \
-  "$(SCA_RC='' sca_check --staging) $(sca_lines '^LỖI - thiếu bí mật STAGING_REMOTE_CONFIG_CREDENTIALS')"
-expect "setup-check app: without the secret the default catalog is still checked" 1 "$(sca_calls "^GET .*/$v1\$")"
-sca_reset; echo 1 > "$sca/rc-exit"; echo 'Error: Request had HTTP Error: 403, PERMISSION_DENIED RC-MARKER-1' > "$sca/rc-err"
-expect "setup-check app: a Remote Config account without the role stops" "1 1" \
-  "$(sca_check --staging) $(sca_lines '^LỖI - .*Firebase Remote Config Viewer, hoặc API Remote Config chưa bật')"
-sca_reset; echo 1 > "$sca/rc-exit"; echo 'Error: Authorization failed. This account is missing the following required permissions on project x' > "$sca/rc-out"
-expect "setup-check app: a missing permissions error printed on stdout stops" "1 1" \
-  "$(sca_check --staging) $(sca_lines '^LỖI - .*Firebase Remote Config Viewer')"
-sca_reset; echo 1 > "$sca/rc-exit"; echo 'Error: Server Error. request id 84031, connect ETIMEDOUT' > "$sca/rc-out"
-expect "setup-check app: a transient error with 403 inside a number only warns" "0 1" \
-  "$(sca_check --staging) $(sca_lines '^CHÚ Ý - không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
-sca_reset; echo 1 > "$sca/rc-exit"; echo 'Error: Failed to get Firebase Remote Config template for project x.' > "$sca/rc-out"
-expect "setup-check app: a Remote Config command that cannot run only warns and checks the default catalog" "0 1 1" \
-  "$(sca_check --staging) $(sca_lines '^CHÚ Ý - không đọc được khóa poses_catalog_path (lệnh firebase-tools') $(sca_calls "^GET .*/$v1\$")"
-sca_reset; echo 124 > "$sca/rc-exit"
-expect "setup-check app: a Remote Config command that hits the time limit only warns" "0 1" \
-  "$(sca_check --staging) $(sca_lines '^CHÚ Ý - không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
-if command -v timeout > /dev/null; then
-  sca_reset; echo 5 > "$sca/rc-sleep"
-  expect "setup-check app: a Remote Config command that hangs is stopped and only warns" "0 1" \
-    "$(SETUP_CHECK_RC_TIMEOUT=1 sca_check --staging) $(sca_lines '^CHÚ Ý - không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
-fi
-sca_reset; echo 'not json' > "$sca/remote-config.json"
-expect "setup-check app: a template that is not JSON only warns" "0 1" \
-  "$(sca_check --staging) $(sca_lines '^CHÚ Ý - không đọc được khóa poses_catalog_path (lệnh firebase-tools')"
-sca_reset
-expect "setup-check app: a Firebase secret without project id only warns for Remote Config" "0 1" \
-  "$(SCA_GOOGLE="$(jq -c 'del(.project_info.project_id)' <<< "$sca_json")" sca_check --staging) $(sca_lines '^CHÚ Ý - không đọc được khóa poses_catalog_path: chưa có google-services.json')"
-sca_reset; echo 404 > "$sca/codes/poses_catalog_v9_catalog-00000000.json"
-expect "setup-check app: the extra catalog of a trial run is checked" "1 1" \
-  "$(SETUP_CHECK_EXTRA_CATALOG=poses/catalog/v9/catalog-00000000.json sca_check --staging) $(sca_lines '^LỖI - khóa poses_catalog_path trỏ tới catalog poses/catalog/v9/catalog-00000000.json')"
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v1\"}, \"conditionalValues\": {\"new_app\": {\"value\": \"$v3\"}}}"; sca_catalog "$newer_schema" > "$sca/body/$v3key"
-expect "setup-check app: a conditional-only catalog for a newer app only warns" "0 1" \
-  "$(sca_check --staging) $(sca_lines "^CHÚ Ý - khóa poses_catalog_path trỏ tới catalog $v3 (chỉ giá trị theo điều kiện dùng) cần app mới hơn")"
-sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v3\"}}"; sca_catalog "$newer_schema" > "$sca/body/$v3key"
-expect "setup-check app: the default value pointing to a catalog for a newer app stops" "1 1" \
-  "$(sca_check --staging) $(sca_lines "^LỖI - khóa poses_catalog_path trỏ tới catalog $v3 cần app mới hơn")"
-sca_reset
-expect "setup-check app: a workflow that does not pass the Remote Config variable only warns" "0 1 1" \
-  "$(SCA_RC_UNSET=1 sca_check --staging) $(sca_lines '^CHÚ Ý - .*workflow không truyền biến REMOTE_CONFIG_CREDENTIALS') $(sca_calls "^GET .*/$v1\$")"
-sca_reset; printf '{"schema": 1, "minAppSchema": 1, "poses": [{"id": "a", "starter": true, "preview": "x", "outline": "poses/img/v1/a/outline.webp"}]}' > "$sca/body/$v1key"
-expect "setup-check app: a preview that is not an object checks the outline only" "0 1 0" \
-  "$(sca_check) $(sca_lines '^ok   - catalog .* và 1 file khởi đầu') $(sca_calls '^HEAD .*/x$')"
-sca_reset; printf '{"schema": 1, "minAppSchema": 1, "poses": [{"id": "a", "starter": false, "outline": "poses/img/v1/a/outline.webp"}]}' > "$sca/body/$v1key"
-expect "setup-check app: a catalog without starter poses warns" "0 1 0" \
-  "$(sca_check) $(sca_lines '^CHÚ Ý - catalog mặc định của app .* không có tư thế starter nào') $(sca_lines '^ok   - catalog ')"
-sca_reset; printf '503\n503\n' > "$sca/codes/poses_img_v1_w01_outline.webp"; echo 200 > "$sca/nocache/poses_img_v1_w01_outline.webp"
-expect "setup-check app: a 503 gets no CDN hint" "1 0" "$(sca_check) $(sca_lines 'CDN')"
-sca_reset; printf '{"schema": 1, "minAppSchema": 1, "poses": [' > "$sca/body/$v1key"
-for i in 1 2 3 4; do printf '{"id": "p%s", "starter": true, "outline": "poses/img/v1/p%s/outline.webp"},' "$i" "$i" >> "$sca/body/$v1key"; printf '000\n' > "$sca/codes/poses_img_v1_p${i}_outline.webp"; done
-printf '{"id": "z", "starter": false}]}' >> "$sca/body/$v1key"
-expect "setup-check app: R2 that stops answering ends the catalog part with one line" "1 1 3" \
-  "$(sca_check) $(sca_lines '^LỖI - R2 không trả lời') $(sca_calls '^HEAD .*/p[0-9]/outline.webp$' | awk '{print $1 / 2}')"
-sca_starters() { # <n>: a default catalog with n starter poses p1..pn, outline only
-  local i
-  printf '{"schema": 1, "minAppSchema": 1, "poses": [' > "$sca/body/$v1key"
-  for i in $(seq 1 "$1"); do printf '{"id": "p%s", "starter": true, "outline": "poses/img/v1/p%s/outline.webp"},' "$i" "$i" >> "$sca/body/$v1key"; done
-  printf '{"id": "z", "starter": false}]}' >> "$sca/body/$v1key"
-}
-sca_reset; sca_starters 5; for i in 1 3 5; do echo 000 > "$sca/codes/poses_img_v1_p${i}_outline.webp"; done
-expect "setup-check app: files that answer between silent ones do not count as R2 down" "1 0 5" \
-  "$(sca_check) $(sca_lines 'R2 không trả lời') $(sca_calls '^HEAD .*/p[0-9]/outline.webp$' | awk '{print $1 - 3}')"
-sca_reset; sca_starters 4; for i in 1 2 3 4; do echo 503 > "$sca/codes/poses_img_v1_p${i}_outline.webp"; done
-expect "setup-check app: 5xx in a row also stops the catalog part" "1 1 3" \
-  "$(sca_check) $(sca_lines '^LỖI - R2 không trả lời được') $(sca_calls '^HEAD .*/p[0-9]/outline.webp$' | awk '{print $1 / 2}')"
-sca_reset; echo 403 > "$sca/codes/poses_img_v1_w01_outline.webp"; echo 200 > "$sca/nocache/poses_img_v1_w01_outline.webp"
-expect "setup-check app: a 403 the CDN keeps gets the CDN hint" "1 1" "$(sca_check) $(sca_lines '^LỖI - file khởi đầu .*CDN còn giữ câu trả lời cũ')"
-sca_reset; printf '502\n200\n' > "$sca/codes/poses_img_v1_w01_outline.webp"
-expect "setup-check app: a 502 that passes on the retry is not a failure" 0 "$(sca_check)"
-sca_reset
-expect "setup-check app: the catalog part stops with a note when its time is up" "0 1 0" \
-  "$(SETUP_CHECK_CATALOG_SECONDS=0 sca_check) $(sca_lines '^CHÚ Ý - phần kiểm catalog quá 0 giây') $(sca_calls "^GET .*/$v1\$")"
-sca_reset; printf '200\n200\n404\n' > "$sca/codes/$v1key"; echo '{"poses": ' > "$sca/body/$v1key"
-expect "setup-check app: a catalog that answers 404 when downloaded again reports the 404" "1 1" \
-  "$(sca_check) $(sca_lines "^LỖI - catalog mặc định của app $v1 trả '404' ở lần tải lại")"
-expect "setup-check app: never prints secret values" 0 "$(grep -c 'RC-MARKER-1\|demo-staging\|fake-token' "$work/sca-all.out" || true)"
-printf 'problem "app check ran"\n' > "$work/sca-hook.sh"
-expect "setup-check: sources the app checks file and counts its problems" "1 1" \
-  "$(SETUP_CHECK_APP_CHECKS="$work/sca-hook.sh" sca_check) $(sca_lines '^LỖI - app check ran')"
-for p in poses/catalog/v1/catalog-587b5394.json images/v2/hero.webp levels/v1.3/level-01.json images/hero.v2.webp images/hero-v12.png images/hero.3f2a9c1e.webp sounds/click_0123456789abcdef.ogg; do
-  expect "setup-check app: $p is a valid asset path" 0 "$(bash -c 'eval "$(sed -n "/^valid_asset_path()/,/^}/p" scripts/setup-check-app.sh)"; valid_asset_path "$1"; echo $?' _ "$p")"
-done
-for p in images/hero.webp hero.webp images/v2 images/hero.abc.webp images/latest/hero.webp "" /images/v2/hero.webp images//v2/hero.webp images/v2/../hero.webp ../v2/hero.webp .download/v2/hero.webp https://example.com/v2/hero.webp "images/v2/hero.webp?x=1" "images/v2/hero image.webp"; do
-  expect "setup-check app: '$p' is not a valid asset path" 1 "$(bash -c 'eval "$(sed -n "/^valid_asset_path()/,/^}/p" scripts/setup-check-app.sh)"; valid_asset_path "$1"; echo $?' _ "$p")"
-done
+expect "setup-check: an app's own checks run with the helpers" "0 1" \
+  "$(SETUP_APP_CHECKS="$work/setup/app-checks.sh" setup_check "$all_files${base}app/extra.json 200\n") $(grep -c "^ok   - app check ran (staging=no, base=$base)" "$work/setup.out")"
+expect "setup-check: a problem of an app's own checks stops" "1 1" \
+  "$(SETUP_APP_CHECKS="$work/setup/app-checks.sh" setup_check "$all_files") $(grep -c '^LỖI - app file missing' "$work/setup.out")"
+expect "setup-check: an app without its own checks file still passes" 0 \
+  "$(SETUP_APP_CHECKS="$work/setup/no-such-file.sh" setup_check "$all_files")"
 
 # device-session.sh records a test session and counts crashes and ANRs; adb is replaced by scripts/tests/fake-adb.
 cp scripts/tests/fake-adb "$work/bin/adb"
@@ -2875,6 +2886,31 @@ expect "device-session: leaves out other apps' lines" 0 "$(grep -c 'com.android.
 mkdir -p "$work/clean"
 cp "$fixtures/logcat-clean.txt" "$work/clean/logcat.txt"
 expect "device-session: a clean session is not blocking" 0 "$(session /dev/null summary "$work/clean" com.example.app.staging)"
+# An ANR inside the ad SDK's AdActivity (a test ad under monkey) is counted apart and does not block; one in an
+# activity of the app still blocks (FB-20261025-02).
+mkdir -p "$work/ad-anr" "$work/app-anr"
+{
+  cat "$fixtures/logcat-clean.txt"
+  echo "10-27 05:01:37.028   538  7321 E ActivityManager: ANR in com.example.app.staging (com.example.app.staging/com.google.android.gms.ads.AdActivity)"
+  echo "10-27 05:01:37.033  6539  6554 W Monkey  : ANR in com.example.app.staging (com.example.app.staging/com.google.android.gms.ads.AdActivity)"
+} > "$work/ad-anr/logcat.txt"
+printf '%s\n' '// NOT RESPONDING: com.example.app.staging (pid 5828)' \
+  'ANR in com.example.app.staging (com.example.app.staging/com.google.android.gms.ads.AdActivity)' 'Events injected: 1059' \
+  > "$work/ad-anr/monkey.txt"
+expect "device-session: an ANR only inside AdActivity does not block" 0 \
+  "$(session /dev/null summary "$work/ad-anr" com.example.app.staging)"
+expect "device-session: the AdActivity ANRs have their own row, level xem" "1 1 1" \
+  "$(grep -c '^| ANR trong màn quảng cáo của SDK (`AdActivity`, FB-20261025-02) | 2 | xem |' "$work/ad-anr/summary.md") $(grep -c '^| App không phản hồi (ANR) | 0 |  |' "$work/ad-anr/summary.md") $(grep -c '^| Monkey báo crash hay treo | 0 |  |' "$work/ad-anr/summary.md")"
+{
+  cat "$work/ad-anr/logcat.txt"
+  echo "10-27 05:02:01.000   538  7321 E ActivityManager: ANR in com.example.app.staging (com.example.app.staging/com.example.app.MainActivity)"
+} > "$work/app-anr/logcat.txt"
+printf '%s\n' '// NOT RESPONDING: com.example.app.staging (pid 5828)' \
+  'ANR in com.example.app.staging (com.example.app.staging/com.example.app.MainActivity)' > "$work/app-anr/monkey.txt"
+expect "device-session: an ANR in an activity of the app still blocks" 1 \
+  "$(session /dev/null summary "$work/app-anr" com.example.app.staging)"
+expect "device-session: the app ANR and the monkey hang stay blocking" "1 1" \
+  "$(grep -c '^| App không phản hồi (ANR) | 1 | chặn |' "$work/app-anr/summary.md") $(grep -c '^| Monkey báo crash hay treo | 1 | chặn |' "$work/app-anr/summary.md")"
 # The offline scenario turns every radio off and runs only when the device really has no network (L-031).
 # The plan scenarios (scripts/device-scenario.py) get an empty folder here, so these tests keep counting the standard ones.
 export DEVICE_SESSION_SLEEP=0 FAKE_ADB_CALLS="$work/adb-calls.txt" DEVICE_SCENARIOS_GLOB="$work/no-scenarios/*.txt"
@@ -3679,7 +3715,7 @@ expect "save-branch: refuses a branch outside claude/" 2 "$(sb_run main)"
 expect "save-branch: a branch outside claude/is never pushed" 0 "$(sb_calls_count)"
 expect "save-branch: refuses a branch that does not exist" 2 "$(sb_run claude/T-000-none)"
 # A push that GitHub refuses for lack of the workflow scope is also handed off as a patch on the report branch,
-# pushed there for a person to review and apply (T-068, L-086). Never with --bundle-only, never for another refusal.
+# pushed there for a person to review and apply (PB-14, ADR-0032). Never with --bundle-only, never for another refusal.
 sb_report="$work/sb-report"
 sb_report_branch=claude/RUN-20261027-09-report
 sb_hook_mode none
@@ -3852,10 +3888,44 @@ expect "save-branch patch: ... pick neither" 1 "$(grep -c 'Có nhiều nhánh b�
 expect "save-branch patch: ... and leave no worktree" 1 "$(git -C "$sb_clone" worktree list | grep -c .)"
 git -C "$sb_clone" branch -q -D claude/RUN-20261027-10-report
 git -C "$sb_clone" checkout -q claude/T-999-thu
+
+# push-on-commit.sh pushes a task branch whenever it gets a new commit, for a bounded time (L-090, L-096).
+# A fake push command records its calls, so no remote is needed.
+pc_fake="$work/pc-save.sh"
+printf '#!/bin/sh\necho "$1 $(git rev-parse --short=7 "refs/heads/$1")" >> "%s"\nexit "${PC_SAVE_CODE:-0}"\n' \
+  "$work/pc.calls" > "$pc_fake"
+chmod +x "$pc_fake"
+pc_run() { # <seconds> <args>; runs push-on-commit.sh in the clone, prints the exit code
+  local seconds="$1" code=0
+  shift
+  (cd "$sb_clone" && PUSH_ON_COMMIT_SAVE="$pc_fake" PUSH_ON_COMMIT_SECONDS="$seconds" \
+    "$sb_root/scripts/push-on-commit.sh" "$@") > "$work/pc.out" 2>&1 || code=$?
+  echo "$code"
+}
+pc_calls() { if [ -f "$work/pc.calls" ]; then wc -l < "$work/pc.calls" | tr -d ' '; else echo 0; fi; }
+git -C "$sb_clone" commit -q --allow-empty -m pc-one
+rm -f "$work/pc.calls"
+expect "push-on-commit: a commit the remote does not have is pushed on the first read" "0 1" \
+  "$(pc_run 0 claude/T-999-thu --interval 1) $(pc_calls)"
+git -C "$sb_clone" update-ref refs/remotes/origin/claude/T-999-thu "$(git -C "$sb_clone" rev-parse HEAD)"
+rm -f "$work/pc.calls"
+expect "push-on-commit: nothing new, nothing pushed" "0 0" "$(pc_run 0 claude/T-999-thu --interval 1) $(pc_calls)"
+rm -f "$work/pc.calls"
+( sleep 1; git -C "$sb_clone" commit -q --allow-empty -m three ) &
+expect "push-on-commit: a commit made while it watches is pushed, then it stops when the time is up" "0 1" \
+  "$(pc_run 3 claude/T-999-thu --interval 1) $(pc_calls)"
+wait
+expect "push-on-commit: says when the time is up" 1 "$(grep -c '^HẾT GIỜ' "$work/pc.out")"
+git -C "$sb_clone" commit -q --allow-empty -m four
+rm -f "$work/pc.calls"
+expect "push-on-commit: a failed push (save-branch exit 3) stops it with exit 3" "3 1" \
+  "$(PC_SAVE_CODE=3 pc_run 30 claude/T-999-thu --interval 1) $(pc_calls)"
+expect "push-on-commit: refuses a branch outside claude/" 2 "$(pc_run 0 main)"
+expect "push-on-commit: refuses a bad interval" 2 "$(pc_run 0 claude/T-999-thu --interval x)"
 export GIT_CONFIG_COUNT="${sb_git_config[0]}" GIT_CONFIG_KEY_0="${sb_git_config[1]}" GIT_CONFIG_VALUE_0="${sb_git_config[2]}"
 
-# push-probe.sh tells at the start of a session whether it may push a change to .github/workflows/ (L-086 of
-# camera-pose). A bare repository stands in for GitHub; its pre-receive hook answers as GitHub does.
+# push-probe.sh tells at the start of a session whether it may push a change to .github/workflows/ (L-112).
+# A bare repository stands in for GitHub; its pre-receive hook answers as GitHub does.
 # The probe branch never runs a workflow: every workflow of the repository that runs on push runs on main only.
 push_on_other_branches() { # <dir>: prints the workflows of <dir> with a push trigger not limited to main
   python3 -I - "$1" <<'PY'
@@ -3892,11 +3962,11 @@ git -C "$pp_clone" remote add origin "$pp_origin"
 git -C "$pp_clone" push -q origin main
 git -C "$pp_clone" fetch -q origin
 git -C "$pp_clone" checkout -q -b claude/T-999-task
-# The playbook row of T-067 (PB-13, kind bo-qua-loai) in a table of its own, so the block does not depend on the
+# The playbook row of ADR-0032 (PB-14, kind bo-qua-loai) in a table of its own, so the block does not depend on the
 # real table; one test below reads the real table.
 pp_table="$work/pp-playbook.md"
 printf '%s\n' '<!-- playbook:start -->' '| Mã | Mẫu | Thấy ở | Loại | Việc phải làm | Nguồn |' '| --- | --- | --- | --- | --- | --- |' \
-  '| PB-13 | `refusing to allow an? [A-Za-z ]+ to create or update workflow` | lệnh đẩy | `bo-qua-loai` | bỏ qua loại task | L-086 |' \
+  '| PB-14 | `refusing to allow an? [A-Za-z ]+ to create or update workflow` | lệnh đẩy | `bo-qua-loai` | bỏ qua loại task | L-112 |' \
   '<!-- playbook:end -->' > "$pp_table"
 pp_hook="$pp_origin/hooks/pre-receive"
 pp_files="$work/pp-pushed.files"
@@ -3918,7 +3988,7 @@ pp_hook_mode() { # record | nodelete | scope | app | other | network | flaky
 }
 pp_run() { # <args>; runs push-probe.sh in the clone with the test playbook; output in $work/pp.out, prints the exit code
   local code=0
-  (cd "$pp_clone" && PUSH_PROBE_PLAYBOOK="${PP_TABLE-$pp_table}" PUSH_PROBE_RETRY_SECONDS="${PP_RETRY:-0 0}" \
+  (cd "$pp_clone/${PP_SUBDIR:-}" && PUSH_PROBE_PLAYBOOK="${PP_TABLE-$pp_table}" PUSH_PROBE_RETRY_SECONDS="${PP_RETRY:-0 0}" \
     "$pp_root/scripts/push-probe.sh" "$@") > "$work/pp.out" 2>&1 || code=$?
   echo "$code"
 }
@@ -3942,7 +4012,7 @@ for ref in $(git -C "$pp_origin" for-each-ref --format='%(refname)' refs/heads/c
 pp_hook_mode scope
 expect "push-probe: a push refused for the workflow scope exits 3" 3 "$(pp_run RUN-20261027-02)"
 expect "push-probe: says TỪ CHỐI with the playbook row and what the session does" "1 1" \
-  "$(grep -c '^TỪ CHỐI: PB-13 bo-qua-loai' "$work/pp.out" || true) $(grep -c 'plan-check.py --touches .github/workflows/' "$work/pp.out" || true)"
+  "$(grep -c '^TỪ CHỐI: PB-14 bo-qua-loai' "$work/pp.out" || true) $(grep -c 'plan-check.py --touches .github/workflows/' "$work/pp.out" || true)"
 expect "push-probe: quotes GitHub's line" 1 "$(grep -c 'without .workflow. scope' "$work/pp.out" || true)"
 expect "push-probe: a refusal is not retried" 1 "$(pp_calls_count)"
 expect "push-probe: a refused probe leaves no branch" 0 "$(pp_probe_branches)"
@@ -3950,7 +4020,7 @@ expect "push-probe: a refused probe leaves the checkout as it was" "claude/T-999
 pp_hook_mode app
 expect "push-probe: the GitHub App wording of the same refusal exits 3" 3 "$(pp_run RUN-20261027-02)"
 pp_hook_mode scope
-expect "push-probe: the real playbook (PB-13 of T-067) classifies the refusal" 3 "$(PP_TABLE='' pp_run RUN-20261027-02)"
+expect "push-probe: the real playbook (PB-14) classifies the refusal" 3 "$(PP_TABLE='' pp_run RUN-20261027-02)"
 pp_hook_mode other
 expect "push-probe: another refusal exits 4" 4 "$(pp_run RUN-20261027-02)"
 expect "push-probe: another refusal is not called a missing workflow scope" "0 1" \
@@ -3961,6 +4031,9 @@ pp_hook_mode network
 expect "push-probe: a network error is retried, then unclear" "4 3" "$(pp_run RUN-20261027-02) $(pp_calls_count)"
 pp_hook_mode flaky
 expect "push-probe: a network error that clears goes through" "0 3" "$(pp_run RUN-20261027-02) $(pp_calls_count)"
+pp_hook_mode record
+expect "push-probe: a call from a subdirectory of the repository finds the workflows" "0 .github/workflows/b.yml" \
+  "$(PP_SUBDIR=.github/workflows pp_run RUN-20261027-02) $(cat "$pp_files" 2> /dev/null)"
 pp_hook_mode record
 expect "push-probe: refuses an argument that is not a run id" 2 "$(pp_run RUN-abc)"
 expect "push-probe: a bad argument pushes nothing" 0 "$(pp_calls_count)"
@@ -3984,6 +4057,13 @@ mkdir -p "$work/sed-guard"
 printf '#!/bin/bash\n%s -i "s/a/b/" f\nsed -i.bak "s/a/b/" f && rm -f f.bak\nsed -n 1p f\n' "se""d" > "$work/sed-guard/bad.sh"
 expect "sed guard: finds in-place sed without a suffix in a sample" 1 "$(gnu_sed_in_place "$work/sed-guard" | grep -c .)"
 expect "sed guard: no script edits in place with sed and no suffix" "" "$(gnu_sed_in_place scripts)"
+
+# An app's own script tests (scripts/tests/app.sh in the app; the template has none) run in this same shell, so they
+# use expect, $work and the fakes above, and count in the same total (docs/ops/to-app.md, section 6).
+if [[ -f scripts/tests/app.sh ]]; then
+  # shellcheck source=/dev/null
+  . scripts/tests/app.sh
+fi
 
 if [[ "$failures" -gt 0 ]]; then
   echo "$failures script test(s) failed"

@@ -5,7 +5,7 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: []                # chỉ thêm log và làm chặt test; KB-4 của camera không đổi hành vi (plan mục 2)
 owner: Nhật
-status: approved
+status: on-staging
 risk: low
 size: S
 depends_on: []

@@ -5,7 +5,7 @@ feature: quality-gate
 spec:                        # không có spec nghiệp vụ; yêu cầu là ghi chú rà soát T-054 (RUN-20261026-02) và BR-20261028-01, dòng 6
 scenarios: []
 owner: Nhật
-status: planned
+status: approved
 risk: high
 size: S
 depends_on: []

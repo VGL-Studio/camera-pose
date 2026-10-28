@@ -7,7 +7,7 @@ build: 5443ecd (bản staging của RUN-20261024-02, chạy trên emulator CI)
 feature: poses
 ticket: T-024
 severity: nang
-status: planned
+status: fixed
 created: 2026-10-24
 ---
 
@@ -53,6 +53,6 @@ KB-7 của `features/poses/spec.md`: khi máy gập mở ra, thư viện hiện 
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 - **Loại:** lỗi so với spec (poses KB-7) trên Android 12L đến 15 khi màn lớn nằm ngang. Bằng chứng trên emulator CI của phản hồi này là do kích thước bị cắt (FB-20261025-01, T-049); trên máy thật, màn trong nằm ngang của máy gập và máy tính bảng vẫn bị đóng khung khi app khóa dọc (tài liệu Android về chế độ tương thích).
-- **Xử lý:** Tuấn chọn sửa ở T-056 (2026-10-26): điện thoại vẫn khóa dọc, màn có cạnh ngắn từ 600 dp theo hướng của máy. Spec camera đổi theo (mục 2, KB-11, câu 7, câu 15), chờ người phụ trách sản phẩm xác nhận.
+- **Xử lý:** Tuấn chọn sửa ở T-056 (2026-10-26): điện thoại vẫn khóa dọc, màn có cạnh ngắn từ 600 dp theo hướng của máy. Spec camera đổi theo (mục 2, KB-11, câu 7, câu 15), chờ người phụ trách sản phẩm xác nhận. Đã sửa ở T-056; tệp kịch bản của T-056 đạt trên emulator ở `device-session` của RUN-20261028-01 (40680218968), ảnh `unfolded-landscape.png` có lưới 3 cột theo chiều ngang. Nhóm không có máy gập hay máy tính bảng thật; Nhật nhận kết quả emulator và chuyển `fixed` ngày 2026-10-28 (BR-20261028-01, dòng 3 và 4).
 - **Lý do:** Android 16 đã bỏ qua khóa dọc trên màn từ 600 dp, nên app vốn phải chạy được ở màn lớn nằm ngang; T-056 cho Android 12L đến 15 cùng hành vi đó.
 - **Liên kết:** ticket T-024 (bố cục máy gập), plan T-048 (mục 8, câu 2), ticket và plan T-056

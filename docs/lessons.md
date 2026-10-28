@@ -496,11 +496,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-052: rà soát độc lập và phiên viết code kết luận khác nhau về một điểm chặn
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-015.
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-015.
 - **Chuyện gì:** rà soát độc lập nêu điểm chặn (vùng chạm thanh trượt dưới 48 dp) bằng đọc code; phiên viết code viết test chạm thật ở cả hai phía và không tái hiện được. Phiên chính tin test chạm thật và ghi cho người kiểm tay. Quy trình không có chỗ ghi "đã kiểm, không tái hiện".
 - **Bằng chứng:** nhật ký plan T-015; `AdjustPanelTest.adjustSlider_touchHeight48`.
 - **Đề xuất sửa:** mẫu rà soát độc lập (`auto-run.md` bước 6) cho phép điểm chặn có trạng thái "không tái hiện" kèm bằng chứng và mục kiểm thủ công trong báo cáo.
-- **Áp dụng:**
+- **Áp dụng:** Nhật nhận ngày 2026-10-28. Thuộc quy trình chung (`docs/auto-run.md` bước 6), đề xuất về dự án mẫu: VGL-Studio/app-project-template#250.
 - **Kiểm chứng:**
 
 ### L-053: thư viện mới qua `check.sh` và CI nhưng bản release (R8) hỏng
@@ -595,11 +595,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-063: không có vòng nối từ số liệu của bản staging về thứ tự tính năng
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** retro 2026-10-24.
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** retro 2026-10-24.
 - **Chuyện gì:** phiên làm đúng danh sách, nhưng danh sách lập từ spec ban đầu. Phiên thử, phản hồi và số liệu phân tích của bản staging chưa được dùng để quyết tính năng nào làm tiếp, bỏ hay sửa, nên app có thể đủ tính năng nhưng chưa phải những tính năng hợp lý nhất.
 - **Bằng chứng:** `docs/test-sessions/`, `features/*/feedback/` chưa dẫn tới đề xuất xếp lại backlog nào.
 - **Đề xuất sửa:** sau mỗi bản staging, AI viết một đề xuất xếp lại backlog (thêm, bỏ, đổi thứ tự, sửa spec), mỗi dòng có bằng chứng từ phiên thử, phản hồi hay số liệu; người phụ trách sản phẩm chốt. Mẫu tài liệu mới trong `docs/templates/`.
-- **Áp dụng:**
+- **Áp dụng:** Nhật nhận ngày 2026-10-28. Làm thử lần đầu: đề xuất xếp lại backlog sau bản `0.1.0-staging.15`, lưu ở `docs/backlog-reviews/`. Mẫu tài liệu chung trong `docs/templates/` đề xuất về dự án mẫu sau khi thấy được việc.
 - **Kiểm chứng:**
 
 ### L-064: không có danh sách sẵn sàng phát hành, nên không biết còn bao xa tới bản production
@@ -676,12 +676,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-072: test của script dùng `sed -i` kiểu GNU, bộ test dừng giữa chừng trên macOS
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, sau RUN-20261024-02 (T-047, PR #122).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** phiên có người theo dõi 2026-10-24, sau RUN-20261024-02 (T-047, PR #122).
 - **Chuyện gì:** test `status` mà T-047 thêm vào `scripts/tests/run.sh` gọi `sed -i 's/.../'`. `sed` của macOS (BSD) đọc chữ ngay sau `-i` là đuôi tệp sao lưu, nên báo `invalid command code` và bộ test dừng ở test thứ 395, không in dòng tổng kết: `check.sh` đỏ trên máy dev. CI chạy Linux với `sed` GNU nên xanh; phiên cloud cũng là Linux nên không thấy. Cùng loại với L-069 (bash 3.2): lỗi chỉ lộ ra trên máy dev, sau khi đã merge.
 - **Bằng chứng:** chạy `scripts/tests/run.sh` trên macOS ngày 2026-10-24: `sed: 1: "/var/folders/...": invalid command code f`; PR #124 sửa thành `sed -i.bak ... && rm`.
 - **Đề xuất sửa:** trong script và test chỉ dùng dạng chạy được trên cả hai (`sed -i.bak ... && rm ...bak`, hay ghi ra tệp mới rồi `mv`); thêm vào phần dò tự động của L-069 một quy tắc tìm `sed -i` không có đuôi trong `scripts/`.
-- **Áp dụng:** chưa có. Dự án mẫu: VGL-Studio/app-project-template#150.
-- **Kiểm chứng:**
+- **Áp dụng:** PR #124 sửa thành `sed -i.bak ... && rm`; dự án mẫu đã nhận (VGL-Studio/app-project-template#150, đã đóng). Phần dò tự động trong quy tắc của L-069 không làm (Nhật quyết ngày 2026-10-28).
+- **Kiểm chứng:** 2026-10-28: `grep -rnE "sed -i( |'|\")" scripts/` không còn dòng nào thiếu đuôi; `scripts/check.sh` qua trên macOS ở RUN-20261028-01.
 
 ### L-073: `token-usage.py` gán token của phiên con vào dòng Chung, số theo task thiếu phần lớn
 
@@ -827,11 +827,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Áp dụng:** dự án mẫu đã nhận (đồng bộ dự án mẫu, đợt 2, PR #202): `docs/auto-run.md` bước 8 không dùng `gh api .../jobs/<id>/logs` nữa, `scripts/failure-kind.sh --playbook` in `log-hong` khi tệp là thông báo lỗi hay trợ giúp của `gh` (bài học L-104 của dự án mẫu). Nhật nhận ngày 2026-10-28.
 - **Kiểm chứng:**
 
-### L-089: phiên mở `local` lần đầu: `origin` dùng SSH không đẩy được, `cloud-env-check.sh` không áp dụng ở máy dev
+### L-089: phiên mở `local` không có bước kiểm môi trường, `cloud-env-check.sh` không áp dụng ở máy dev
 
 - **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261028-01.
-- **Chuyện gì:** người yêu cầu chạy phiên trên máy dev (`local`) thay cho `claude --cloud`. `origin` của bản sao trên máy là địa chỉ SSH mà máy không có khóa, nên lần đẩy đầu (nhánh báo cáo) của `scripts/save-branch.sh` trả mã 3 và giữ bundle. `docs/auto-run.md` mục 2 chỉ có `scripts/cloud-env-check.sh` để kiểm môi trường; script này luôn báo lỗi ở máy dev vì đòi tệp phiên bản của `scripts/cloud-setup.sh` và init script mirror Maven, nên phiên phải tự quyết không coi đó là điều kiện dừng.
-- **Bằng chứng:** 10:56 UTC, "git@github.com: Permission denied (publickey)", bundle `~/rescue/claude__RUN-20261028-01-report.bundle`; đổi `remote.origin.url` sang HTTPS với `credential.helper` là `gh auth git-credential` thì đẩy được. `cloud-env-check.sh`: "môi trường dựng từ setup script phiên bản không có ... thiếu ~/.gradle/init.d/maven-central-mirror.gradle".
-- **Đề xuất sửa:** `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md`: phiên `local` chạy `scripts/local-setup.sh --check` (hay `scripts/java-check.sh`) thay cho `cloud-env-check.sh`, và thử `git push --dry-run origin HEAD:refs/heads/<nhánh báo cáo>` trước khi tạo nhánh. `scripts/local-setup.sh` in cách đặt `origin` sang HTTPS với `gh auth git-credential` khi `origin` là SSH mà `ssh -T git@github.com` lỗi.
+- **Chuyện gì:** người yêu cầu chạy phiên trên máy dev (`local`) thay cho `claude --cloud`. `docs/auto-run.md` mục 2 chỉ có `scripts/cloud-env-check.sh` để kiểm môi trường; script này luôn báo lỗi ở máy dev vì đòi tệp phiên bản của `scripts/cloud-setup.sh` và init script mirror Maven, nên phiên phải tự quyết không coi đó là điều kiện dừng và dùng `scripts/check.sh` thay cho bước kiểm.
+- **Bằng chứng:** `cloud-env-check.sh` ngày 2026-10-28: "môi trường dựng từ setup script phiên bản không có ... thiếu ~/.gradle/init.d/maven-central-mirror.gradle"; báo cáo RUN-20261028-01, mục Quyết định AI đã tự làm.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md`: phiên `local` chạy `scripts/local-setup.sh --check` (hay `scripts/java-check.sh`) thay cho `cloud-env-check.sh`.
 - **Áp dụng:**
 - **Kiểm chứng:**

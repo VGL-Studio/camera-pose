@@ -34,7 +34,7 @@ Thiết kế của Camera Pose theo hướng Sticker, thay thiết kế cũ củ
 | Lỗi | Nhãn tiến trình | Tiến độ đã dừng | `labelLarge` |
 | Lỗi | Tiêu đề lỗi | Không thể tải dữ liệu | `titleMedium` |
 | Lỗi, máy không có mạng hay mạng chưa được hệ thống xác nhận | Lời hướng dẫn | Kết nối đang gián đoạn. Vui lòng kiểm tra mạng và thử lại để tiếp tục. | `bodyMedium` |
-| Lỗi, máy vào được Internet (T-057, chờ duyệt cùng spec, câu hỏi 11) | Lời hướng dẫn | Máy chủ chưa phản hồi. Vui lòng thử lại sau ít phút. Cùng bố cục với ảnh `LoadingScreen_failed_*`, không có frame riêng | `bodyMedium` |
+| Lỗi, máy vào được Internet (T-057, spec câu hỏi 11 đã xác nhận 2026-10-26) | Lời hướng dẫn | Máy chủ chưa phản hồi. Vui lòng thử lại sau ít phút. Cùng bố cục với ảnh `LoadingScreen_failed_*`, không có frame riêng | `bodyMedium` |
 | Lỗi | Nút | Thử lại | chữ của nút chính |
 | Mọi trạng thái | Chân trang | Ảnh chỉ lưu trên máy của bạn | `labelSmall` |
 

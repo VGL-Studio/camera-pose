@@ -1,7 +1,7 @@
 ---
 ticket: T-070
 title: Trình chạy kịch bản đóng bảng của hệ thống che app (bảng thông báo, cài đặt nhanh)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -351,3 +351,15 @@ Không có.
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261028-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-28 11:28 UTC, commit `b57cf49` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-070-dong-bang-he-thong`, PR #206.
+- **Đã làm:** phiên chính tự làm (task cỡ S, phiên mở `local`) trong worktree `../task-T-070`. Code và test chép nguyên các khối `diff` của mục 3.1 và mục 4, tệp `shade.xml` chép nguyên khối xml (`git apply` không lỗi; rà soát so từng dòng: trùng).
+- **Test viết trước:** 4 test mới (commit `09a9c64`): cả 4 thất bại đúng lý do, như bảng mục 4 (`fresh closes ...` ra `0 0 `; `a dump of the system UI only ...` ra `0 0 0 0`; `a shade that stays open ...` ra `0 1 0`; `summary lists the system shade ...` ra `0 0`). Không có lỗi cú pháp của bash trong log. Sau code (commit `a400ade`): `GIT_CONFIG_GLOBAL=/dev/null bash scripts/tests/run.sh` `All script tests passed`.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 5 ghi chú. Đột biến bỏ `collapse_shade()` ở `step_fresh` làm 3 test đỏ; bỏ phần đóng rồi đọc lại ở `dump()` làm 2 test đỏ. Ghi chú: test 1 bắt lỗi qua thứ tự lệnh; đọc lại ngay sau khi đóng có thể gặp bảng đang đóng dở (chỉ `expect` đọc một lần); màn hình khóa hay hộp thoại của SystemUI cũng chỉ có node SystemUI, `note` khi đó ghi "đã đóng" dù không có tác dụng; lệnh thật chỉ kiểm ở `device-session`; đề xuất về dự án mẫu.
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA. `pr-check` lần chạy 40679441818: xanh ở vòng đầu. Tổng 1 vòng CI.
+- **Lệch so với plan:** không có. Ngoài mục 3.2: không có.
+- **Việc còn lại:** kiểm thật ở `device-session` cuối phiên (mục 3.4, ghi ở báo cáo phiên). Đề xuất về dự án mẫu (issue `from-app`). Người xóa tay nhánh `claude/T-070-dong-bang-he-thong` (L-092).
+- **Cần người xem:** năm ghi chú của rà soát ở trên.

@@ -1,6 +1,6 @@
 ---
 feature: poses
-status: confirmed
+status: changed  
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -157,7 +157,7 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `sa
 
 | Nhóm file | Dung lượng ước tính | Khi nào tải | Khi không tải được |
 | --- | --- | --- | --- |
-| Catalog (`poses/catalog/v<n>/catalog-<sha8>.json`) | 100 đến 300 KB với 200 tư thế, 7 ngôn ngữ | Ở màn loading (spec `loading`) | Màn loading báo lỗi; nếu đọc lỗi ở thư viện thì trạng thái lỗi (KB-5) |
+| Catalog (`poses/catalog/v<n>/catalog-<sha8>.json`) | Khoảng 1,6 MB với 350 tư thế, 7 ngôn ngữ (catalog v3, đo ngày 2026-10-28; ước tính ban đầu 100 đến 300 KB với 200 tư thế) | Ở màn loading (spec `loading`) | Màn loading báo lỗi; nếu đọc lỗi ở thư viện thì trạng thái lỗi (KB-5) |
 | Ảnh nhỏ (`preview_540.webp`) | 30 đến 60 KB mỗi ảnh | Bộ khởi đầu ở màn loading lần đầu; tư thế khác khi thẻ hiện | Thẻ giữ khung xương, chạm để thử lại |
 | Ảnh lớn (`preview_1200.webp`) | 100 đến 200 KB mỗi ảnh | Khi mở chi tiết | Vùng ảnh báo lỗi, nút "Thử lại" (KB-5) |
 
@@ -192,3 +192,4 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `sa
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: thứ tự tư thế trong lưới (đã lưu, gần đây, còn lại); thêm trạng thái thiết kế `ad` có banner |
 | 2026-10-21 | AI | Lập gói bàn giao thiết kế: trạng thái `offline` chuyển sang gói `network` vì hộp thoại do vỏ app hiện, không thuộc `PosesScreen` |
+| 2026-10-28 | AI | Mục 7: cỡ catalog theo bản thật (v3, 350 tư thế, khoảng 1,6 MB), theo câu 4 của plan T-071 mà Nhật duyệt. Không đổi hành vi. Chuyển `changed`, chờ xác nhận lại |

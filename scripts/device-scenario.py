@@ -33,7 +33,9 @@ Commands:
                                 with am start -W and wait for its process (pidof); without one, fail when the crash
                                 buffer names the app, otherwise start it once more ("mở lại" in the note); after the
                                 device was given back or changed by a device command it waits
-                                DEVICE_SCENARIO_STOP_SETTLE seconds (default 3) after stopping the app
+                                DEVICE_SCENARIO_STOP_SETTLE seconds (default 3) after stopping the app; before
+                                opening the app it closes the system shade (cmd statusbar collapse), which monkey
+                                may leave open
   consent decline [seconds]     tap "Do not consent" when the ad consent form shows (ADR-0013) and wait until it
                                 closes, or see the app root (DEVICE_SCENARIO_FIRST_SCREENS) without a form; consent
                                 is gathered asynchronously, so after the root it keeps looking for a late form for
@@ -111,6 +113,8 @@ TERMINATED_RESET_LIMIT = 25.0
 NIGHT_MODES = ("yes", "no", "auto")
 UNFOLDED_SIZE, UNFOLDED_DENSITY = "1766x2208", "420"  # 673 x 841 dp, the frame of the _unfolded screenshots
 IDLE_ERROR = "could not get idle state"
+SYSTEM_UI = "com.android.systemui"
+SHADE_NOTE = "bảng của hệ thống che app, đã đóng (cmd statusbar collapse)"
 RESULT_PASSED, RESULT_FAILED, RESULT_ENV = "đạt", "lỗi", "bỏ qua (môi trường)"
 RESULT_TIME, RESULT_SYNTAX = "bỏ qua (hết thời gian)", "lỗi tệp"
 RETRY = "chạy lại"  # not a result in the log: the first run of a file whose app the system killed
@@ -578,7 +582,21 @@ class Runner:
         return lines[-1].strip() if code == 0 and lines else ""
 
     def dump(self):
-        """(screen, None) or (None, reason)."""
+        """(screen, None) or (None, reason). A dump of the system UI only (the notification shade or quick settings
+        over the app, camera-pose FB-20261027-02) closes the shade once and reads the screen again."""
+        screen, reason = self.dump_once()
+        if screen is None or not screen.nodes or any(node.get("package") != SYSTEM_UI for node in screen.nodes):
+            return screen, reason
+        self.collapse_shade()
+        if SHADE_NOTE not in self.notes:
+            self.note(SHADE_NOTE)
+        return self.dump_once()
+
+    def collapse_shade(self):
+        """Closes the notification shade and quick settings; a device without the command keeps what it shows."""
+        self.adb("shell", "cmd", "statusbar", "collapse")
+
+    def dump_once(self):
         code, output = self.adb("shell", "uiautomator", "dump", "/sdcard/ds.xml")
         if IDLE_ERROR in output:
             return None, IDLE_ERROR
@@ -680,6 +698,7 @@ class Runner:
         if "/" not in self.activity:
             raise Fail(f"không tìm thấy màn hình khởi động của {self.package}")
         self.set_language()
+        self.collapse_shade()  # monkey runs before the plan scenarios and may leave the shade open over the app
         if self.device_reset:
             # Stopping an app whose Activity the reset is still rebuilding makes the system kill the next start
             # about a second later ("Destroy timeout of remove-task", camera-pose FB-20261025-02): start after that.

@@ -103,7 +103,7 @@ Kết quả nằm trong thư mục phiên: `scenarios.txt` (mỗi bước một 
 - `fresh`, `consent decline` và lệnh `device` ghi điều đã xảy ra (mở lại, đã chạm từ chối, ổn định sau bao nhiêu giây);
 - các bước khác chỉ có `t=`.
 
-Dòng `note` có `hộp thoại đồng ý hiện muộn` hay `mở lại` (chuyện bất thường) được chép vào `summary.md`, mục "Ghi chú của trình chạy:", ngay sau bảng, mỗi dòng `- <tệp>, bước <n>: <chi tiết>`. Không có thì mục này không hiện. Khi đọc một tệp lỗi, xem các dòng `note` của nó cùng `fail.png`.
+Dòng `note` có `hộp thoại đồng ý hiện muộn`, `mở lại` hay `bảng của hệ thống` (chuyện bất thường) được chép vào `summary.md`, mục "Ghi chú của trình chạy:", ngay sau bảng, mỗi dòng `- <tệp>, bước <n>: <chi tiết>`. Không có thì mục này không hiện. Khi đọc một tệp lỗi, xem các dòng `note` của nó cùng `fail.png`.
 
 **Phần đầu** (ba dòng, trước mọi lệnh): `ticket: T-NNN`, `criterion: <điều tệp chứng minh>`, `timeout: <giây>` (mặc định 180, tối đa 300). Dòng trống và dòng bắt đầu bằng `#` bị bỏ qua.
 
@@ -133,7 +133,7 @@ Lý do: chữ của chip Compose nằm trong một nút con, còn `selected` n�
 
 | Lệnh | Việc |
 | --- | --- |
-| `fresh` | Dừng app, xóa dữ liệu, cấp quyền runtime, mở app bằng `am start -W` rồi chờ tiến trình của app (`pidof`, chỉ nhận đầu ra toàn số). Không có tiến trình thì ghi `note`; bộ đệm crash có tên app thì `FAIL app crash ở lần mở đầu`, không thì dừng app và mở lại một lần. Vẫn không có thì `FAIL app không chạy sau 2 lần mở`. Tệp đứng sau một lần trả máy thì chờ `DEVICE_SCENARIO_STOP_SETTLE` giây (mặc định 3) sau khi dừng app rồi mới mở: dừng app khi Activity còn đang dựng lại sau lần trả máy làm hệ thống giết lần mở ngay sau đó (`Destroy timeout of remove-task`). Cũng chờ sau khi dừng app khi tệp đã có lệnh `device` trước đó. Trước khi mở, đặt ngôn ngữ riêng của app là tiếng Anh (`en`), vì `str=` đọc `res/values/` (tiếng Anh); dưới Android 13 máy phải để tiếng Anh, không thì tệp `bỏ qua (môi trường)` (camera-pose T-054) |
+| `fresh` | Dừng app, xóa dữ liệu, cấp quyền runtime, mở app bằng `am start -W` rồi chờ tiến trình của app (`pidof`, chỉ nhận đầu ra toàn số). Không có tiến trình thì ghi `note`; bộ đệm crash có tên app thì `FAIL app crash ở lần mở đầu`, không thì dừng app và mở lại một lần. Vẫn không có thì `FAIL app không chạy sau 2 lần mở`. Tệp đứng sau một lần trả máy thì chờ `DEVICE_SCENARIO_STOP_SETTLE` giây (mặc định 3) sau khi dừng app rồi mới mở: dừng app khi Activity còn đang dựng lại sau lần trả máy làm hệ thống giết lần mở ngay sau đó (`Destroy timeout of remove-task`). Cũng chờ sau khi dừng app khi tệp đã có lệnh `device` trước đó. Trước khi mở, đặt ngôn ngữ riêng của app là tiếng Anh (`en`), vì `str=` đọc `res/values/` (tiếng Anh); dưới Android 13 máy phải để tiếng Anh, không thì tệp `bỏ qua (môi trường)` (camera-pose T-054). Ngay trước khi mở, đóng bảng của hệ thống (`cmd statusbar collapse`, camera-pose T-070) |
 | `consent decline [giây]` | Chạm nút từ chối của hộp thoại đồng ý quảng cáo (ADR-0013) khi nó hiện, rồi chờ hộp thoại đóng; hoặc thấy luôn app mà không có hộp thoại. "Thấy app" là bộ chọn `DEVICE_SCENARIO_FIRST_SCREENS`, mặc định `id=app_root` (tag của `Surface` gốc trong `MainActivity`); app có màn đầu riêng thì đặt bộ chọn theo màn đó. App hỏi đồng ý không đồng bộ nên hộp thoại có thể hiện sau màn đầu vài giây: thấy app rồi, lệnh vẫn tìm hộp thoại thêm `DEVICE_SCENARIO_CONSENT_GRACE` giây (mặc định 8) và từ chối nếu nó hiện. Hộp thoại hiện muộn hơn nữa: xem Hộp thoại đồng ý, dưới |
 | `wait <bộ chọn> [giây]` | Chờ tới khi khớp (mặc định 20 giây) |
 | `need <bộ chọn> [giây]` | Như `wait`, nhưng hết giờ thì tệp kết thúc `bỏ qua (môi trường)`. Dùng cho điều kiện mà emulator CI có thể không có (camera trên máy không có camera, mạng) |
@@ -153,6 +153,10 @@ Sau mỗi lệnh `device`, trình chạy đọc màn hình tới khi hai lần d
 - Hộp thoại hiện lại sau khi đã từ chối là `FAIL hộp thoại đồng ý hiện lại sau khi đã từ chối`: app có thể chưa lưu lựa chọn (ADR-0013). Một bước `consent decline` thứ hai trong cùng `fresh` thấy hộp thoại sau khi đã từ chối cũng lỗi như vậy, không chạm lần nữa. Lỗi này, và `hộp thoại đồng ý không đóng sau khi chạm từ chối`, vẫn là `lỗi` trong bước `need`, không thành `bỏ qua (môi trường)`.
 - Tệp chưa có bước `consent decline` (hoặc vừa `fresh`) thì trình chạy không chạm hộp thoại, nên vẫn viết được kịch bản kiểm chính hộp thoại.
 - Trạng thái này không đi qua ranh giới tệp, và `fresh` đặt lại nó.
+
+**Bảng của hệ thống.** Monkey chạy ngay trước các tệp kịch bản và có thể vuốt từ mép trên, để bảng thông báo hay cài đặt nhanh mở đè lên app; khi đó mọi lần dump chỉ có node của `com.android.systemui` (camera-pose FB-20261027-02). Màn hình khóa cũng chỉ có node của `com.android.systemui`: khi đó lệnh đóng bảng không có tác dụng, dòng `note` vẫn ghi, và tệp lỗi như trước.
+- `fresh` đóng bảng (`adb shell cmd statusbar collapse`) trước khi mở app.
+- Một lần dump chỉ có node của `com.android.systemui`: trình chạy đóng bảng một lần, đọc lại màn hình và ghi `note ... bảng của hệ thống che app, đã đóng (cmd statusbar collapse)` (một lần mỗi bước). Bảng vẫn còn thì bước xử lý màn hình đọc lại như mọi màn hình không có phần tử nó tìm.
 
 Ví dụ ngắn:
 

@@ -26,6 +26,9 @@
 # alive; a hanging subcommand writes its pid to hang.pid and, with FAKE_ADB_ALIVE_AFTER_HANG=1, leaves the process
 # alive first (an app that starts slowly but runs). When $FAKE_ADB_PIDOF_TEXT is set, `pidof` prints it and returns 0
 # (camera-pose T-049: an adb error with digits, or several pids).
+# $FAKE_ADB_SHADE names a dump of the system shade (only com.android.systemui nodes) that covers the app: until
+# `cmd statusbar collapse` runs (file shade-closed in $FAKE_ADB_STATE_DIR), `uiautomator dump` shows it and keeps the
+# place in $FAKE_ADB_UI_SEQ (camera-pose T-070).
 [[ -n "${FAKE_ADB_CALLS:-}" ]] && echo "$*" >> "${FAKE_ADB_CALLS}"
 case "$1" in
   get-state) [[ -n "${FAKE_ADB_NO_DEVICE:-}" ]] && exit 1; echo device ;;
@@ -47,8 +50,15 @@ case "$1" in
       exec sleep 300
     fi
     case "$*" in
+      "cmd statusbar collapse")
+        mkdir -p "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}"
+        : > "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/shade-closed" ;;
       "uiautomator dump"*)
-        if [[ -n "${FAKE_ADB_UI_SEQ:-}" ]]; then
+        if [[ -n "${FAKE_ADB_SHADE:-}" && ! -f "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/shade-closed" ]]; then
+          mkdir -p "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}"
+          echo "${FAKE_ADB_SHADE}" > "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/ui-seq.cur"
+          echo "UI hierarchy dumped to: /sdcard/ds.xml"
+        elif [[ -n "${FAKE_ADB_UI_SEQ:-}" ]]; then
           state="${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}"
           mkdir -p "$state"
           read -r -a files <<<"${FAKE_ADB_UI_SEQ}"

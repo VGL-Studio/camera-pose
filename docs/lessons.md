@@ -811,18 +811,18 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-087: test của script dựa vào cấu hình git toàn cục (và Java) của máy, qua trên cloud nhưng đỏ trên runner
 
-- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261027-02 (T-068, T-069).
+- **Trạng thái:** applied. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261027-02 (T-068, T-069).
 - **Chuyện gì:** khối test `save-branch patch` của T-068 qua trên máy viết plan và trên máy cloud, nhưng đỏ trên runner: `git -C "$sb_origin" commit-tree` trong kho trần giả cần tên người commit, runner không có cấu hình git toàn cục. Cùng khối, kho trần giả tạo bằng `git init --bare` không `-b main`, nên khi git không đặt `init.defaultBranch` (máy cloud, runner) bản sao mới không có nhánh `main` và `git log main..` lỗi. Ở T-069, test `env.sh gives a Java that java-check.sh accepts` qua ngay trên khung rỗng vì máy cloud có `JAVA_HOME` hợp lệ (máy dev của lần chạy thử không có Java).
 - **Bằng chứng:** PR #198, `pr-check` lần chạy 40566657337: `fatal: empty ident name ... not allowed`; tái hiện bằng `GIT_CONFIG_GLOBAL=/dev/null bash scripts/tests/run.sh`; sửa ở commit `9e63b5f`, `37d8e5a`. Nhật ký plan T-069 (ADR-1005/L4).
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan (ý L-075), và `docs/auto-run.md` bước 5: chạy test của script mới cả với `GIT_CONFIG_GLOBAL=/dev/null`; khối test dựng kho git giả luôn dùng `-b main` và tên người commit riêng. Cân nhắc đặt `GIT_CONFIG_GLOBAL=/dev/null` cùng `GIT_AUTHOR_*`, `GIT_COMMITTER_*` ở đầu `scripts/tests/run.sh`, để máy nào chạy cũng như runner.
-- **Áp dụng:**
+- **Áp dụng:** dự án mẫu đã nhận lớp lỗi này (đồng bộ dự án mẫu, đợt 2, PR #202): `scripts/tests/run.sh` đặt `GIT_CONFIG_GLOBAL=/dev/null` cùng `GIT_AUTHOR_*`, `GIT_COMMITTER_*` ở đầu, nên mọi máy chạy test của script như runner. Phần còn lại (biến môi trường khác như `JAVA_HOME`, test Gradle) và cách phiên tự sửa: ADR-1006 (mục L11). Nhật nhận ngày 2026-10-28.
 - **Kiểm chứng:**
 
 ### L-088: `gh` của môi trường cloud không có cờ `--allow-escape-sequences` mà `docs/auto-run.md` bước 8 dùng để tải log job
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261027-02 (T-068).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261027-02 (T-068).
 - **Chuyện gì:** CI của T-068 đỏ; lệnh tải log theo bước 8 (`gh api --allow-escape-sequences "repos/{owner}/{repo}/actions/jobs/<id>/logs"`) trả "unknown flag: --allow-escape-sequences", tệp log chỉ có trợ giúp của `gh`, nên `failure-kind.sh --playbook` ra `khong-co` trên một tệp không phải log. Bỏ cờ thì tải được log (1339 dòng).
 - **Bằng chứng:** job 122409697329, 19:15 UTC.
 - **Đề xuất sửa:** `docs/auto-run.md` bước 8: bỏ cờ `--allow-escape-sequences` (log tải về vẫn đọc được), hay ghi "`gh` báo unknown flag thì bỏ cờ". `scripts/failure-kind.sh --playbook` có thể báo khi tệp không giống log của job.
-- **Áp dụng:**
+- **Áp dụng:** dự án mẫu đã nhận (đồng bộ dự án mẫu, đợt 2, PR #202): `docs/auto-run.md` bước 8 không dùng `gh api .../jobs/<id>/logs` nữa, `scripts/failure-kind.sh --playbook` in `log-hong` khi tệp là thông báo lỗi hay trợ giúp của `gh` (bài học L-104 của dự án mẫu). Nhật nhận ngày 2026-10-28.
 - **Kiểm chứng:**

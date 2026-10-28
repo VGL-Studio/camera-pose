@@ -227,6 +227,13 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - khai báo khóa Remote Config mới như các khóa hiện có trong `:core:config` cho tới khi app có `AppRemoteKeys`
 - không thêm AppsFlyer khi chưa có plan đồng bộ `core` được duyệt
 
+### [ADR-1006](adr/1006-sua-test-vi-moi-truong-runner.md): Phiên tự sửa chi tiết dựng môi trường của test khi test chỉ đỏ trên runner vì máy không có cấu hình chung, rồi báo người sau
+
+- test chỉ đỏ trên runner hay trên máy của phiên vì phần dựng của test dựa vào cấu hình chung của máy (git toàn cục, `JAVA_HOME`, `ANDROID_HOME`, `TMPDIR`, múi giờ, ngôn ngữ) thì sửa phần dựng của test cho nó tự đặt cấu hình cần, ghi `ADR-1006/L11`
+- chỉ là L11 khi tái hiện được lỗi bằng cách bỏ cấu hình đó, câu khẳng định và giá trị mong đợi không đổi, và đột biến bỏ code mới vẫn làm test thất bại
+- không sửa câu khẳng định, không bỏ bước của test, không sửa code cho test qua, không thêm cấu hình vào workflow CI thay cho L11
+- rà soát độc lập xét lệch L11 như L1 tới L7 và L10
+
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 
 ### [ADR-0020](adr/0020-design-handoff-and-conformance.md): Thiết kế trên Claude Design hoặc Figma, bàn giao bằng ảnh khung chuẩn trong repo, đối chiếu bằng ảnh so sánh

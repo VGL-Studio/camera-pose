@@ -66,8 +66,10 @@ parser_kt=core/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/p
 v1="$(sed -nE 's/.*DEFAULT_CATALOG_PATH = "([^"]+)".*/\1/p' "$poses_kt" | head -n 1)"
 v1key="${v1//\//_}"
 newer_schema=$(( $(sed -nE 's/.*APP_SCHEMA = ([0-9]+).*/\1/p' "$parser_kt" | head -n 1) + 1 ))
-v3=poses/catalog/v3/catalog-c2e0ce0d.json
-v3key=poses_catalog_v3_catalog-c2e0ce0d.json
+# Stand-in for a catalog that only Remote Config points to. It sits in a folder the default catalog does not use
+# (the default moved to v3 in T-071), so a download of it is told apart from the default by folder.
+v3=poses/catalog/v9/catalog-c2e0ce0d.json
+v3key=poses_catalog_v9_catalog-c2e0ce0d.json
 sca_catalog() { # [minAppSchema]: one starter pose and one other pose
   printf '{"schema": 1, "minAppSchema": %s, "poses": [' "${1:-1}"
   printf '{"id": "w01", "starter": true, "preview": {"small": "poses/img/v1/w01/preview_540.webp", "large": "poses/img/v1/w01/preview_1200.webp"}, "outline": "poses/img/v1/w01/outline.webp"},'
@@ -164,7 +166,7 @@ sca_reset; printf '{"parameterGroups": {"poses": {"parameters": {"poses_catalog_
 expect "setup-check app: a key inside a parameter group is read" 1 "$(sca_check --staging)"
 sca_reset; sca_rc ""
 expect "setup-check app: no parameter means the default catalog only, without a note" "0 1 0 0" \
-  "$(sca_check --staging) $(sca_calls "^GET .*/$v1\$") $(sca_calls "^GET .*/v3/") $(sca_lines '^CHÚ Ý - ')"
+  "$(sca_check --staging) $(sca_calls "^GET .*/$v1\$") $(sca_calls "^GET .*/${v3%/*}/") $(sca_lines '^CHÚ Ý - ')"
 sca_reset; sca_rc '{"defaultValue": {"useInAppDefault": true}}'; echo 404 > "$sca/codes/$v1key"
 expect "setup-check app: useInAppDefault points the key to the default catalog, without a note" "1 0" \
   "$(sca_check --staging > /dev/null; sca_lines "^LỖI - khóa poses_catalog_path trỏ tới catalog $v1") $(sca_lines '^CHÚ Ý - ')"

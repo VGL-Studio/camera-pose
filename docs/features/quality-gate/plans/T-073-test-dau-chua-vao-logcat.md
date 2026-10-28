@@ -1,7 +1,7 @@
 ---
 ticket: T-073
 title: Test nhánh "dấu của lần chạy chưa vào logcat.txt" khi trình chạy kịch bản tìm app bị hệ thống giết
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -148,3 +148,15 @@ Không có.
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261028-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-28 16:50 UTC, commit `da8a6ee` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-073-test-dau-chua-vao-logcat`, PR #215.
+- **Đã làm:** phiên con làm bước 3 đến 5 trong worktree `../task-T-073`; đoạn `fake-adb`, chú thích đầu tệp và test chép nguyên mục 3.1. Một commit (`cd77bf1`) gồm cả `fake-adb` và test, như plan chia; không có commit code.
+- **Test viết trước:** test mới kiểm hành vi đã có (ngoại lệ của plan): trên code hiện tại `ok`; đột biến tạm bỏ `if len(starts) < attempt: return None` ở `scripts/device-scenario.py` thì đỏ `expected '0 1 1 1 0 2 1', got '0 1 0 0 1 2 1'`, là test duy nhất đỏ (test T-054 cũ không bắt đột biến này). Chạy cả bộ với `GIT_CONFIG_GLOBAL=/dev/null`.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, ghi chú: `FAKE_ADB_KILL_ONCE=1` thừa trong test này (đúng mục 3.1); `FAKE_ADB_LOG_LINES` không phải số thì bị đọc như biểu thức số học (chỉ test đặt biến này).
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA. `pr-check` lần chạy 40728464869: xanh ở vòng đầu. Tổng 1 vòng CI.
+- **Lệch so với plan:** không có. Ngoài mục 3.2: không có.
+- **Việc còn lại:** người xóa tay nhánh `claude/T-073-test-dau-chua-vao-logcat` (L-092).
+- **Cần người xem:** không có.

@@ -1,7 +1,7 @@
 ---
 ticket: T-072
 title: Ghi log khi không hỏi được danh sách camera, làm chặt test chữ của camera và loading
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 3                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: low              # low | medium | high
@@ -174,3 +174,15 @@ Kết quả `scripts/existing-tests.py` (2026-10-28): 35 test dùng tên hay tag
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261028-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-28 16:21 UTC, commit `f211adf` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-072-log-camera-test-chu`, PR #214.
+- **Đã làm:** phiên con làm bước 3 đến 5 trong worktree `../task-T-072`; code theo đúng mục 3.1.
+- **Test viết trước:** commit `3a90b21`. `CameraLensesTest.lensesOf_error_isReportedToCaller` không biên dịch trên code cũ (`No parameter with name 'onError' found`); với tham số `onError` không được gọi thì đỏ `expected:<1> but was:<0>`. `CameraXControllerTest.lensQueryFails_logsWarn_andLensesAreUnknown` và `providerFails_logsWarn_andLensesAreUnknown` đỏ `[] expected:<1> but was:<0>`; `lensQueryOk_noWarn` là đối chứng, qua. Test JVM mọi module trên code cũ: 3 đỏ, đều là 3 test trên. Hai test chữ làm chặt qua với chữ hiện tại (ngoại lệ viết test trước); đột biến tạm, không commit: `values-hi` `पारदर्शी स्तर`, `values-vi` `Độ mờ` dạng NFD, `values-vi` `loading_error_server` thêm "kết nối", cả ba làm test mới đỏ, test cũ vẫn xanh.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 2 ghi chú: `LoadingStringsTest` hạ chữ thường bằng `Locale.ROOT` nhưng không chuẩn hóa NFC như `CameraStringsTest` (biến thể `वाई-फ़ाई` hay "WiFi" có thể lọt); nhánh `CancellationException` khi coroutine còn chạy trả rỗng không ghi log (code cũ, ngoài phạm vi).
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA (1187 test JVM). `pr-check` lần chạy 40723090211: xanh ở vòng đầu. Tổng 1 vòng CI.
+- **Lệch so với plan:** test log so thẻ với chuỗi `"Camera"` thay cho `CameraXController.LOG_TAG` (hằng số nằm trong companion `private`); sửa trước commit test, điều test kiểm không đổi. Ngoài mục 3.2: không có.
+- **Việc còn lại:** người xóa tay nhánh `claude/T-072-log-camera-test-chu` (L-092).
+- **Cần người xem:** hai ghi chú của rà soát ở trên.

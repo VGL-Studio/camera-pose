@@ -1,7 +1,7 @@
 ---
 ticket: T-071
 title: Catalog mặc định của app là catalog tư thế thật (v3), bỏ 6 tư thế mượn
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -163,3 +163,15 @@ Ba test đầu qua ngay trên code hiện tại vì chỉ đọc file mẫu (ngo
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261028-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (2026-10-28 17:49 UTC, commit `7030a84` trên nhánh chính).
+- **Nhánh, PR:** `claude/T-071-catalog-mac-dinh-v3`, PR #216.
+- **Đã làm:** phiên con làm bước 3 đến 5 trong worktree `../task-T-071`. File mẫu tải bằng `curl` (HTTP 200), 1 663 106 byte, SHA-256 bắt đầu `512aa6951f7d92c2`; chỉ kiểm bằng `shasum` và `wc -c`, không mở file; rà soát nhận diff có loại file mẫu (danh sách chạy, Kiểm tra trước khi duyệt).
+- **Test viết trước:** commit `4ddcbef`. `RealCatalogV3Test.defaultCatalog_isTheRealCatalogV3` đỏ trên code cũ: `expected:<poses/catalog/v[3/catalog-512aa695].json> but was:<poses/catalog/v[1/catalog-587b5394].json>`. Ba test `realCatalog_*` qua ngay như mục 4; đối chứng trên bản sửa tạm của file mẫu: `starter` đầu tiên thành `false` thì `expected:<50> but was:<49>`; thêm `borrowed/` vào một `outline` thì test liệt kê đường dẫn đó; một tư thế sang nhóm `kids` thì `kids` hiện ra. Test JVM mọi module trên code cũ: 1191 test, đúng 2 đỏ (test mới và câu viết lại).
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, ghi chú: phần sửa `scripts/tests/app.sh` đúng là cập nhật dữ liệu (ADR-0029); tên hàm test cũ không còn đúng nghĩa (giữ theo mục 9, câu 2) và nay trùng ý với `defaultCatalog_isTheRealCatalogV3`; "Ngày thay" của `docs/borrowed-assets.md` ghi 2026-10-28 (PR merge đúng ngày đó).
+- **Kết quả CI:** `scripts/check.sh` trên máy: QUA (1191 test JVM). `pr-check` lần chạy 40732497719 trên `9e99559`: xanh (`ui-test` 8 phút với 100 file khởi đầu). Sau `merge-if-green.sh --update` (`8f68e3f`, lần chạy 40734943741): `ui-test` đỏ hai lần vì runner tải gói Android Emulator lỗi (`Error on ZipFile unknown archive`, `could not connect to TCP port 5554`), không có test nào chạy; `failure-kind.sh` báo `khong-co`. Chạy lại lần 1 ngay (lỗi chập chờn), lần 2 sau 2 phút theo lịch lỗi hạ tầng: xanh (`ui-test` 9 phút). Không sửa code. Phương án dự phòng 3.4 không dùng.
+- **Lệch so với plan:** ngoài mục 3.2: `scripts/tests/app.sh` (commit `9e99559`, loại dữ liệu test). Test `setup-check app: no parameter means the default catalog only, without a note` đếm `GET .*/v3/` để chứng minh chỉ tải catalog mặc định; catalog mặc định nay cũng nằm dưới `v3/`, nên đỏ `expected '0 1 0 0', got '0 1 1 0'`. Catalog giả chỉ Remote Config trỏ tới chuyển sang `v9/`, lệnh đếm dùng thư mục của chính catalog giả; câu khẳng định và giá trị mong đợi không đổi. Câu khẳng định cũ viết lại (ADR-0031): `StagingSampleCatalogTest.defaultCatalogPath_isV1Folder_andEndsWithFirst8HexOfSha256OfStagingSample`, câu cũ `assertEquals("poses/catalog/v1/catalog-${sha.take(8)}.json", DEFAULT_CATALOG_PATH)` với `sha` của `staging-sample.json`, câu mới cùng dạng với thư mục `v3` và `sha` của file mẫu v3; câu của plan: mục 3.1 "Đổi `DEFAULT_CATALOG_PATH` ... sang `poses/catalog/v3/catalog-512aa695.json`"; ý định (KDoc): đường dẫn catalog mặc định gọi tên đúng file catalog mà repo giữ bản sao, theo mã băm nội dung (ADR-0015); đối chứng: đổi một byte của file mẫu thì đỏ `expected:<.../catalog-[3cd0e649].json> but was:<.../catalog-[512aa695].json>`.
+- **Việc còn lại:** người xóa tay nhánh `claude/T-071-catalog-mac-dinh-v3` (L-092). Đưa catalog thật lên bucket production trước khi phát hành vẫn là việc của người (mục 8, câu 5).
+- **Cần người xem:** phần ngoài mục 3.2 và câu khẳng định viết lại ở trên.

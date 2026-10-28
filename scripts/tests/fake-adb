@@ -20,6 +20,8 @@
 # (default en-US); `cmd locale set-app-locales ... --locales` fails when $FAKE_ADB_LOCALE_FAILS is set (camera-pose T-054).
 # `log -t <tag> <text>` appends a logcat line to $FAKE_ADB_LOGCAT_FILE when set, then $FAKE_ADB_KILL_LINE when set
 # (with FAKE_ADB_KILL_ONCE=1 only after the first line, counted in $FAKE_ADB_STATE_DIR/kills.n).
+# With $FAKE_ADB_LOG_LINES set, only the first that many `log -t` lines reach the file, as a logcat that lags behind
+# (counted in $FAKE_ADB_STATE_DIR/log.n; camera-pose T-073).
 # The app process (camera-pose T-048) is only simulated when $FAKE_ADB_STATE_DIR is set; without it `pidof` prints nothing.
 # With it: `am start -W` counts the starts in starts.n and leaves the process alive (file `alive`) once the count is
 # above $FAKE_ADB_DEAD_STARTS (default 0); `pm clear` and `am force-stop` kill it; `pidof` prints 4242 while it is
@@ -76,6 +78,13 @@ case "$1" in
       "getprop persist.sys.locale") echo "${FAKE_ADB_LOCALE:-en-US}" ;;
       "log -t "*)
         [[ -z "${FAKE_ADB_LOGCAT_FILE:-}" ]] && exit 0
+        if [[ -n "${FAKE_ADB_LOG_LINES:-}" ]]; then
+          state="${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}"
+          mkdir -p "$state"
+          logged="$(cat "$state/log.n" 2>/dev/null || echo 0)"
+          echo $(( logged + 1 )) > "$state/log.n"
+          (( logged >= FAKE_ADB_LOG_LINES )) && exit 0
+        fi
         echo "10-25 19:53:04.500  1000  1000 I $3: ${*:4}" >> "${FAKE_ADB_LOGCAT_FILE}"
         if [[ -n "${FAKE_ADB_KILL_LINE:-}" ]]; then
           state="${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}"

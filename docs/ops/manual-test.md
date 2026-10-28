@@ -1,12 +1,12 @@
 # KỊCH BẢN KIỂM THỬ THỦ CÔNG TRÊN MÁY THẬT: CAMERA POSE (BẢN STAGING)
 
-Soạn ngày 2026-10-26 cho bản `0.1.0-staging.10` (sau RUN-20261026-01), từ spec của 6 feature đã lên staging (loading, onboarding, camera, poses, settings, network) và các dòng "Kiểm tra thủ công" trong plan T-001 đến T-031, T-050, T-051. Mỗi mục ghi: điều kiện đầu, các bước, kết quả mong đợi. Đánh dấu `[x]` khi đạt; không đạt thì ghi giờ và điều thấy được vào `notes.md` của phiên thử.
+Soạn ngày 2026-10-26 cho bản `0.1.0-staging.10` (sau RUN-20261026-01), từ spec của 6 feature đã lên staging (loading, onboarding, camera, poses, settings, network) và các dòng "Kiểm tra thủ công" trong plan T-001 đến T-031, T-050, T-051. Cập nhật ngày 2026-10-28 cho bản `0.1.0-staging.15` (BR-20261028-01, dòng 7). Mỗi mục ghi: điều kiện đầu, các bước, kết quả mong đợi. Đánh dấu `[x]` khi đạt; không đạt thì ghi giờ và điều thấy được vào `notes.md` của phiên thử.
 
 Tổng thời gian ước tính: khoảng 2 giờ cho phần bắt buộc (mục 1 đến 9), thêm 30 phút cho phần tùy máy (mục 10).
 
 ## 0. Chuẩn bị
 
-- **Bản build:** bản staging mới nhất từ Firebase App Distribution, từ `0.1.0-staging.10` trở lên. Gói `com.vglstudio.camera.pose.line.guide`. Ghi số phiên bản (Cài đặt > Phiên bản, dạng `0.1.0-staging.NN`).
+- **Bản build:** bản staging mới nhất từ Firebase App Distribution, từ `0.1.0-staging.15` trở lên (bản có T-056, T-064). Gói `com.vglstudio.camera.pose.line.guide`. Ghi số phiên bản (Cài đặt > Phiên bản, dạng `0.1.0-staging.NN`).
 - **Máy:** ghi hãng, mẫu, bản Android. Có ống kính góc rộng không. Máy có Google Play không.
 - **Ghi log:** nối `adb` theo [test-sessions.md](test-sessions.md) mục 1, rồi:
 
@@ -25,8 +25,7 @@ Tổng thời gian ước tính: khoảng 2 giờ cho phần bắt buộc (mục
 
 | Hiện tượng | Lý do |
 | --- | --- |
-| Máy gập mở ra: app bị đóng khung, thư viện chỉ 2 cột | App khóa hướng dọc, FB-20261024-01 (`new`) |
-| Không thấy quảng cáo nào, kể cả sau khi đồng ý | Bản staging dùng cấu hình Firebase giả, không nhận Remote Config, nên mọi vị trí quảng cáo đều tắt (ADR-0012, ADR-0014) |
+| Không thấy quảng cáo nào, kể cả sau khi đồng ý | Vị trí quảng cáo mặc định tắt, chỉ hiện khi khóa `ads_<vị trí>_enabled` được bật trên Remote Config của project staging (ADR-0014). Bản build trên máy dev dùng file Firebase giả, không nhận Remote Config (ADR-0012) |
 | Không thấy hộp đánh giá của Google Play | Hộp chỉ hiện với bản cài từ Google Play; staging chỉ kiểm được bằng log (mục 6.6) |
 
 ## 1. Mở lần đầu khi không có mạng (loading KB-2)
@@ -306,7 +305,7 @@ Làm phần nào máy có điều kiện; không làm được thì ghi "không 
 ### 10.4 Máy gập (máy thật hoặc emulator Pixel Fold)
 
 1. Ở màn ngoài: camera chọn tư thế, kéo nét viền, bật lưới và hẹn giờ. Mở máy.
-   - [ ] Cùng tư thế, cùng vị trí nét viền, camera chạy lại, lựa chọn giữ. (Bố cục bị đóng khung: điều đã biết, FB-20261024-01.)
+   - [ ] Cùng tư thế, cùng vị trí nét viền, camera chạy lại, lựa chọn giữ. Bố cục dùng cả màn hình mở, không bị đóng khung; thư viện nằm ngang có 3 cột (T-056, FB-20261024-01 đã sửa).
 2. Chụp, ở màn xem lại chưa lưu, gập lại.
    - [ ] Ảnh còn; rời màn xem lại vẫn hỏi "Bỏ ảnh này?".
 3. Thư viện: chọn chip, cuộn xuống, gập, mở.

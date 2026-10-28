@@ -7,7 +7,7 @@ build: nhánh thử của T-062 từ f464d7f (device-session.yml, lần chạy 4
 feature: camera
 ticket: T-064
 severity: nang
-status: planned
+status: fixed
 created: 2026-10-27
 ---
 
@@ -49,6 +49,6 @@ Không đính kèm. Log nằm trong artifact `device-session` của lần chạy
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 - **Loại:** đề xuất của AI: lỗi so với spec (KB-4 "Khi bấm nút đổi camera thì camera đổi giữa trước và sau" ngầm giả định máy có hai camera), cần thêm tiêu chí cho máy một camera.
-- **Xử lý:** ticket T-064. Tuấn chọn tạo ticket ngày 2026-10-27 (giờ UTC; 2026-10-26 giờ máy). Spec camera đổi KB-4 và thêm câu hỏi 17, chờ xác nhận.
+- **Xử lý:** ticket T-064. Tuấn chọn tạo ticket ngày 2026-10-27 (giờ UTC; 2026-10-26 giờ máy). Spec camera đổi KB-4 và thêm câu hỏi 17, chờ xác nhận. Đã sửa ở T-064; tệp kịch bản của T-064 đạt trên emulator ở `device-session` của RUN-20261028-01 (40680218968). Nhóm không có máy thật một camera; Nhật nhận kết quả emulator và chuyển `fixed` ngày 2026-10-28 (BR-20261028-01, dòng 3).
 - **Lý do:** máy tính bảng giá rẻ, Chromebook, một số máy chỉ có một camera; lỗi kẹt lại sau khi mở lại app.
 - **Liên kết:** [T-064](../tickets/T-064-mot-camera.md), [plan T-064](../plans/T-064-mot-camera.md), plan T-062 mục 4.1 và câu hỏi 3

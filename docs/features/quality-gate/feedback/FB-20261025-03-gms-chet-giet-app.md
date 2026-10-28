@@ -7,7 +7,7 @@ build: nhánh chính cc5822f (device-session.yml, lần chạy 40226750845)
 feature: quality-gate
 ticket: T-022                # tệp kịch bản lỗi; trình chạy kịch bản của T-048, T-052
 severity: nhe
-status: planned
+status: fixed
 created: 2026-10-25
 ---
 
@@ -56,6 +56,6 @@ Không đính kèm. `fail.png`, `fail.xml` và `logcat.txt` nằm trong artifact
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
 
 - **Loại:** đề xuất của AI: lỗi môi trường của emulator, không phải lỗi của app hay của cách sửa T-052. Nếu lặp lại ở phiên sau thì xem có nên để trình chạy nhận ra dòng `depends on provider ... in dying proc` và ghi `bỏ qua (môi trường)`, hay kiểm app có thật cần `FontsProvider` của Google Play services không.
-- **Xử lý:** Tuấn chọn ngày 2026-10-26: lỗi môi trường. Trình chạy kịch bản nhận ra dòng `Killing <pid>:<gói>/... depends on provider ... in dying proc` của app sau dấu của tệp thì chạy lại tệp đó một lần từ đầu; lặp lại thì ghi `bỏ qua (môi trường)`. Làm trong ticket trình chạy của phiên sau.
+- **Xử lý:** Tuấn chọn ngày 2026-10-26: lỗi môi trường. Trình chạy kịch bản nhận ra dòng `Killing <pid>:<gói>/... depends on provider ... in dying proc` của app sau dấu của tệp thì chạy lại tệp đó một lần từ đầu; lặp lại thì ghi `bỏ qua (môi trường)`. Làm trong ticket trình chạy của phiên sau. Đã sửa ở T-054; `device-session` của RUN-20261028-01 (40680218968) đạt 6/6, kể cả tệp của T-022 (128 giây, không lần chạy lại nào). Nhật chuyển `fixed` ngày 2026-10-28 (BR-20261028-01, dòng 3).
 - **Lý do:** app không dùng phông tải về; provider phông chữ của Google Play services do thư viện `androidx.emoji2` mà Compose kéo theo hỏi lúc khởi động (`EmojiCompatInitializer`). Google Play services chết thì Android giết mọi app giữ provider đó, nên đây là hành vi chung của app Compose, không phải lỗi của app (giả thuyết mạnh, chưa kiểm trên cây phụ thuộc). Trên máy thật chỉ gặp khi Google Play services cập nhật. Lần đầu gặp; T-022 đạt ở hai phiên trước.
 - **Liên kết:** ticket và plan T-054 (`docs/features/quality-gate/plans/T-054-trinh-chay-kich-ban-gms-ngon-ngu.md`); plan T-052 (chờ sau khi dừng app), FB-20261025-02, plan T-048 (mở lại khi `fresh` không có tiến trình).

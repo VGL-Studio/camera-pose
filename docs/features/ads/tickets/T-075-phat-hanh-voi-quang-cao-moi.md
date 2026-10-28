@@ -10,7 +10,7 @@ risk: high
 size: S
 depends_on: [T-074]
 sprint:
-plan:
+plan:                        # không có plan cho phiên tự chạy; người làm hay AI có người theo dõi (mục Rủi ro sơ bộ)
 created: 2026-10-28
 ---
 
@@ -33,7 +33,7 @@ created: 2026-10-28
 
 ## Rủi ro sơ bộ
 
-Chạm `scripts/release.sh` và quy trình phát hành production (ADR-0009, ADR-0017). Phiên tự chạy không được chạm file này nếu không có plan rủi ro cao được duyệt chéo. Ticket nhỏ nhưng rủi ro cao.
+Chạm `scripts/release.sh` và quy trình phát hành production (ADR-0009, ADR-0017). `CLAUDE.md` ("Không chạm vào `scripts/release.sh`") và `docs/auto-run.md` ("Phiên không chạm vào `scripts/release.sh`") không có ngoại lệ. Vì vậy ticket này **không bao giờ vào danh sách chạy tự động**: người làm, hoặc AI trong phiên có người theo dõi chạy `template-sync.sh --take` theo `docs/ops/to-app.md` của dự án mẫu. Rủi ro cao.
 
 ## Định nghĩa hoàn thành
 

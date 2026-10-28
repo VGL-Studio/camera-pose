@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.vglstudio.camera.pose.line.guide.core.logging.LogLevel
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import com.vglstudio.camera.pose.line.guide.feature.camera.MainDispatcherRule
 import com.vglstudio.camera.pose.line.guide.feature.camera.match.BodyPose
@@ -91,11 +92,11 @@ class CameraXControllerTest {
 
     private fun useCasesOf(arg: Any?): List<UseCase> = (arg as Array<*>).map { it as UseCase }
 
-    private fun controller(flagOn: Boolean) = CameraXController(
+    private fun controller(flagOn: Boolean, logger: RecordingAppLogger = RecordingAppLogger()) = CameraXController(
         context = context,
         fileStore = CaptureFileStore(File(context.cacheDir, "captures")),
         clock = { 0L },
-        logger = RecordingAppLogger(),
+        logger = logger,
         poseAnalyzer = analyzer,
         featureFlags = FakeFeatureFlags(flagOn),
     )
@@ -195,5 +196,48 @@ class CameraXControllerTest {
         runCurrent()
 
         assertEquals(listOf<BodyPose?>(null), frames)
+    }
+
+    // Spec camera, KB-4 (plan T-072): a lens list the device cannot give is unknown, and the caught error is logged
+    // (ADR-0019).
+
+    @Test
+    fun lensQueryFails_logsWarn_andLensesAreUnknown() = runTest {
+        every { provider.hasCamera(any()) } throws IllegalStateException("camera info unavailable")
+        val logger = RecordingAppLogger()
+
+        val lenses = controller(flagOn = false, logger = logger).availableLenses()
+
+        assertEquals(emptySet<Lens>(), lenses)
+        val warnings = logger.entries.filter { it.level == LogLevel.WARN }
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertEquals("Camera", warnings.single().tag)
+        assertTrue(warnings.single().error is IllegalStateException)
+    }
+
+    @Test
+    fun providerFails_logsWarn_andLensesAreUnknown() = runTest {
+        coEvery { ProcessCameraProvider.awaitInstance(any()) } throws IllegalStateException("no camera service")
+        val logger = RecordingAppLogger()
+
+        val lenses = controller(flagOn = false, logger = logger).availableLenses()
+
+        assertEquals(emptySet<Lens>(), lenses)
+        val warnings = logger.entries.filter { it.level == LogLevel.WARN }
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertEquals("Camera", warnings.single().tag)
+        assertTrue(warnings.single().error is IllegalStateException)
+    }
+
+    // Counter-check (L-035): a lens list the device gives logs no warning.
+    @Test
+    fun lensQueryOk_noWarn() = runTest {
+        every { provider.hasCamera(any()) } returns true
+        val logger = RecordingAppLogger()
+
+        val lenses = controller(flagOn = false, logger = logger).availableLenses()
+
+        assertEquals(setOf(Lens.BACK, Lens.FRONT), lenses)
+        assertEquals(emptyList<Any>(), logger.entries.filter { it.level == LogLevel.WARN })
     }
 }

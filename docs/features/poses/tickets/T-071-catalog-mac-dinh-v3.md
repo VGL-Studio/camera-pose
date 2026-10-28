@@ -5,7 +5,7 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: [KB-1, KB-5]      # kịch bản trong spec mà ticket này xử lý
 owner: Nhật
-status: planned              # backlog | ready | planned | approved | on-staging | accepted | released | stopped | cancelled
+status: approved              # backlog | ready | planned | approved | on-staging | accepted | released | stopped | cancelled
 risk: high                   # chạm module core (:core:poses), risk-scoring.md mục 1, điểm 7
 size: S                      # S | M | L, xem giải thích ở cuối
 depends_on: []               # các ticket phải xong trước, ví dụ [T-010]

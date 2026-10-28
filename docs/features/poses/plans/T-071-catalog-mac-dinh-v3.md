@@ -1,16 +1,16 @@
 ---
 ticket: T-071
 title: Catalog mặc định của app là catalog tư thế thật (v3), bỏ 6 tư thế mượn
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 5.8M         # cỡ S, số gợi ý của scripts/token-usage.py estimate (21 task)
 blocking_points: [core]      # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-10-28
 ---
 
 # PLAN T-071: CATALOG MẶC ĐỊNH CỦA APP LÀ CATALOG TƯ THẾ THẬT (V3), BỎ 6 TƯ THẾ MƯỢN
@@ -156,9 +156,9 @@ Ba test đầu qua ngay trên code hiện tại vì chỉ đọc file mẫu (ngo
 
 <!-- Người duyệt điền. AI không điền mục này. -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
+- **Ghi chú:** Ngày 2026-10-28, trả lời mục 8 theo đề xuất của AI: (1) commit bản sao nguyên byte của catalog v3 làm file mẫu cho test; (2) giữ tên hàm test cũ; (3) nhận phương án dự phòng của mục 3.4 (120 giây, chỉ khi `ui-test` hết giờ hai lần liên tiếp); (4) cập nhật ước tính cỡ catalog ở spec `poses` mục 7 (spec chuyển `changed`, Nhật xác nhận lại); (5) bucket production vẫn là việc của người.
 
 ## 10. Nhật ký thực hiện
 

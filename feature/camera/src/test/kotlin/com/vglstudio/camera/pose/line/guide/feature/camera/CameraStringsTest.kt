@@ -76,14 +76,20 @@ class CameraStringsTest {
     /**
      * The slider shows how solid the outline is, 100% when it is fully drawn: a word for "transparency", or Vietnamese
      * "mờ" (faint), would read the other way round (independent review of T-050; plan T-055). Words are matched by their
-     * stem, so the noun and the adjective are both caught.
+     * stem, so the noun and the adjective are both caught, and both sides are NFC, so a letter written as a base and a
+     * combining mark is caught too (plan T-072).
      */
     @Test
     fun opacityLabel_isNotTransparency() {
-        OPPOSITE_WORDS.forEach { (tag, word) ->
-            val label = context(tag).getString(R.string.camera_adjust_opacity)
+        OPPOSITE_WORDS.forEach { (tag, stem) ->
+            val label = Normalizer.normalize(
+                context(tag).getString(R.string.camera_adjust_opacity),
+                Normalizer.Form.NFC,
+            )
+            val word = Normalizer.normalize(stem, Normalizer.Form.NFC)
             // Thai is written without spaces between words, so its stem may be anywhere. Elsewhere the stem starts a
-            // word: Hindi अपारदर्शिता (opacity) is पारदर्शिता (transparency) with the prefix of negation.
+            // word: Hindi अपारदर्शिता (opacity) is पारदर्शिता (transparency) with the prefix of negation, and the stem
+            // पारदर्श starts both पारदर्शिता (transparency) and पारदर्शी (transparent).
             val pattern = if (tag == "th") Regex.escape(word) else "(?<![\\p{L}\\p{M}])" + Regex.escape(word)
             val opposite = Regex(pattern, RegexOption.IGNORE_CASE).containsMatchIn(label)
             assertFalse("$tag camera_adjust_opacity reads the other way round: $label", opposite)
@@ -114,11 +120,12 @@ class CameraStringsTest {
 
         /**
          * Stems that read the other way round on the slider (plan T-055): "transparency" in each language, as the
-         * onboarding uses it for the outline, and Vietnamese "mờ" (faint).
+         * onboarding uses it for the outline, and Vietnamese "mờ" (faint). Each stem starts the noun and the adjective
+         * (Hindi पारदर्श: पारदर्शिता, पारदर्शी; plan T-072).
          */
         val OPPOSITE_WORDS = listOf(
             "en" to "transparen",
-            "hi" to "पारदर्शिता",
+            "hi" to "पारदर्श",
             "pt-BR" to "transparência",
             "pt-BR" to "transparente",
             "es-419" to "transparencia",

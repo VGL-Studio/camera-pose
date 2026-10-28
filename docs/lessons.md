@@ -835,3 +835,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md`: phiên `local` chạy `scripts/local-setup.sh --check` (hay `scripts/java-check.sh`) thay cho `cloud-env-check.sh`.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-090: `ui-test` đỏ vì runner tải gói Android Emulator lỗi, bảng tra lỗi chưa có dòng cho lỗi này
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261028-02 (T-071, PR #216).
+- **Chuyện gì:** sau `merge-if-green.sh --update`, job `ui-test` đỏ sau khoảng 2 phút: runner tải gói Android Emulator lỗi nên emulator không khởi động, không có test nào chạy. `scripts/failure-kind.sh --playbook` trả `khong-co`, nên theo `docs/auto-run.md` bước 8 phiên phải xử lý như lỗi thật (chạy lại một lần, rồi tối đa 3 lần sửa) dù không có gì để sửa trong code. Lần chạy lại ngay cũng lỗi; phiên tự xếp là lỗi hạ tầng và chạy lại theo lịch của bước 5, lần sau 2 phút thì xanh.
+- **Bằng chứng:** lần chạy 40734943741 (17:21 và 17:35 UTC): "Warning: An error occurred while preparing SDK package Android Emulator: Error on ZipFile unknown archive.", "error: could not connect to TCP port 5554: Connection refused", "Không có test nào chạy trên emulator."; lần chạy lại 17:39 xanh, `ui-test` 9 phút.
+- **Đề xuất sửa:** `docs/ops/failure-playbook.md` thêm một dòng loại `lich-thu-lai` cho "Error on ZipFile unknown archive" (hay "could not connect to TCP port 5554") đi cùng "Không có test nào chạy trên emulator": chạy lại job theo lịch 1, 2, 4, 8, 15 phút, không tính vào 3 lần sửa; kèm log thật trong `scripts/tests/playbook/`.
+- **Áp dụng:**
+- **Kiểm chứng:**

@@ -51,7 +51,10 @@ Ba vị trí của màn: theo `features/camera/spec.md` và `features/poses/spec
 
 ## 6. Dữ liệu và phân tích
 
-AppsFlyer chưa bật (câu 3): không gửi dữ liệu nào tới AppsFlyer, không có quyền mà SDK kéo vào. Sự kiện phân tích mà khung ghi qua Firebase Analytics (nếu có) được plan liệt kê và chép vào mục 6 của spec màn có vị trí trong PR của T-074.
+AppsFlyer chưa bật (câu 3): không gửi dữ liệu nào tới AppsFlyer, không có quyền mà SDK AppsFlyer kéo vào.
+
+Quyền mà SDK quảng cáo kéo vào manifest gộp: `VIBRATE` (adapter AppLovin rung mà không kiểm quyền; gỡ quyền thì app có thể dừng đột ngột khi hiện quảng cáo AppLovin). Đây là quyền thường, không cần hỏi người dùng, không thuộc mục An toàn dữ liệu (câu 4 của plan T-074). Plan T-074 kiểm danh sách quyền thật của manifest gộp ở mục 4.1; có quyền khác thì quay lại spec này trước khi merge.
+ Sự kiện phân tích mà khung ghi qua Firebase Analytics (nếu có) được plan liệt kê và chép vào mục 6 của spec màn có vị trí trong PR của T-074.
 
 ## 7. File tĩnh trên R2
 
@@ -120,4 +123,6 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-28 | Nhật | Trả lời sáu câu của mục 9 (AI ghi). Sửa mục 1, 2, 5, 6 theo câu 3, 4, 6: AppsFlyer chưa bật, bỏ màn xem thử, bật quảng cáo mở app (sau loading) và khi quay lại app (trừ camera) |
 | 2026-10-28 | Nhật | Chốt thêm câu 6 (AI ghi): `show_open_ads_first_open` tắt; quảng cáo khi quay lại app hiện ở mọi màn, kể cả camera, thay cho "trừ camera" |
 | 2026-10-28 | AI | Chép câu trả lời vào mục 5 của spec camera, loading, poses ngay trong PR xác nhận này (không đợi T-074), theo lựa chọn của Nhật |
+| 2026-10-28 | AI | Mục 6: quyền `VIBRATE` do adapter AppLovin kéo vào (câu 4 của plan T-074). Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-28 | Nhật | Xác nhận spec (`confirmed`) sau khi xem kết quả kiểm: "Chuyển spec ads sang confirmed cho tôi", rồi "Đồng ý, mở PR" |
+| 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |

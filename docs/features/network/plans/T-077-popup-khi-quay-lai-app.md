@@ -191,7 +191,7 @@ Test viết trước: mọi unit test và `AppForegroundObserverTest` ở trên 
 - File hoặc thành phần dùng chung bị chạm: `NetworkDialogController` (dùng bởi `MainActivity`, `NetworkDialogHost`; `NetworkStatus`, `NetworkFailureReporter` mà feature dùng không đổi), `NetworkSettings` (thêm hằng `internal`, không đổi `all()`), `MainActivity.onCreate`.
 - Task khác có thể xung đột: **T-076** (plan `features/network/plans/T-076-co-mang-da-xac-nhan.md`, đã chọn hướng (a): "có mạng" là mạng mặc định có `INTERNET` và `VALIDATED`). Mục 3.2 của plan T-076 sửa `ConnectivitySource.kt` và test của nó; không sửa `NetworkDialogController.kt`, `NetworkDialogControllerTest.kt`, `Fakes.kt`, `NetworkSettings.kt` hay `MainActivity.kt`, nên hai plan không cùng sửa file nào. Ảnh hưởng về hành vi: sau T-076, `isConnected()` chỉ trả `true` khi mạng đã được xác nhận, nên lần kiểm khi quay lại cần đủ thời gian cho xác nhận; vì vậy plan chọn 2 giây (câu hỏi 2).
 - T-074 (đã merge): plan dựa vào `setFullScreenAdShowing` của lượt 2 và quảng cáo `resume` của lượt 2; không sửa file của T-074 ngoài `MainActivity.kt` (một dòng trong `onCreate`, không chạm `AppAdsRoot`).
-- Đề xuất thứ tự chạy: không phụ thuộc nhau về code; chạy T-076 trước để kiểm tra thủ công của T-077 chạy trên định nghĩa "có mạng" cuối cùng, chạy ngược thứ tự cũng được.
+- Đề xuất thứ tự chạy: T-076 trước T-077 trong cùng danh sách. Không phụ thuộc nhau về code, nhưng 2 giây kiểm lại của T-077 được chọn theo định nghĩa "có mạng" của T-076 (đòi `VALIDATED`), và kiểm tra thủ công của T-077 phải chạy trên định nghĩa đó.
 
 ## 7. Điều kiện dừng riêng
 

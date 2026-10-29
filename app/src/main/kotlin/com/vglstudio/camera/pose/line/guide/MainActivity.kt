@@ -14,8 +14,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsController
@@ -44,6 +46,7 @@ import com.vglstudio.camera.pose.line.guide.ui.applyScreenOrientation
 import com.vglstudio.camera.pose.line.guide.ui.exposeTestTagsForUiAutomator
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -107,7 +110,13 @@ class MainActivity : ComponentActivity() {
                 )
                 onDispose {}
             }
-            AppAdsRoot(ads = ads, inAppReview = inAppReview, breakGate = interstitialBreakGate) {
+            AppAdsRoot(
+                ads = ads,
+                inAppReview = inAppReview,
+                breakGate = interstitialBreakGate,
+                fullScreenAdShowing = ads.fullScreenAdShowing,
+                onFullScreenAdShowingChange = networkDialog::setFullScreenAdShowing,
+            ) {
                 AppTheme(darkTheme = darkTheme) {
                     // The surface fills the whole window, including the area behind the system bars,
                     // so those areas take the theme background in both light and dark mode.
@@ -150,16 +159,24 @@ class MainActivity : ComponentActivity() {
 /**
  * The root of the app's UI for ads (plan T-074): [AdsHost] provides the ads controller and reports the hold of the ads
  * that show by themselves (G-04); inside it every screen reads the break limits of review_interstitial and the review
- * entry. MainActivity sets it on every create, so a recreated activity has it too (L-061).
+ * entry. MainActivity sets it on every create, so a recreated activity has it too (L-061). It reports
+ * [fullScreenAdShowing] (AdsController.fullScreenAdShowing) to [onFullScreenAdShowingChange]
+ * (NetworkDialogController.setFullScreenAdShowing), the current value first.
  */
 @Composable
 internal fun AppAdsRoot(
     ads: AdsController?,
     inAppReview: InAppReview,
     breakGate: InterstitialBreakGate,
+    fullScreenAdShowing: StateFlow<Boolean>,
+    onFullScreenAdShowingChange: (Boolean) -> Unit,
     content: @Composable () -> Unit,
 ) {
     AdsHost(ads) {
+        // The network dialog waits while a full-screen ad is on screen (plan T-074, pass 2; spec network, KB-2).
+        val adShowing by fullScreenAdShowing.collectAsState()
+        val currentOnChange by rememberUpdatedState(onFullScreenAdShowingChange)
+        LaunchedEffect(adShowing) { currentOnChange(adShowing) }
         CompositionLocalProvider(
             LocalInAppReview provides inAppReview,
             LocalInterstitialBreakGate provides breakGate,

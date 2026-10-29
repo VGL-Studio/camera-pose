@@ -16,6 +16,7 @@ import com.vglstudio.camera.pose.line.guide.core.ads.LocalAdsController
 import com.vglstudio.camera.pose.line.guide.core.ads.LocalInterstitialBreakGate
 import com.vglstudio.camera.pose.line.guide.core.review.InAppReview
 import com.vglstudio.camera.pose.line.guide.core.review.LocalInAppReview
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
@@ -29,6 +30,9 @@ import org.robolectric.Shadows.shadowOf
  * The root of the app's UI that MainActivity sets on every create ([AppAdsRoot], plan T-074, section 4; L-061): the
  * content reads the break gate and the review entry, also in an activity made again (rotation, process restored).
  * The activity sets the root in onCreate as MainActivity does; with no controller (tests) [LocalAdsController] is null.
+ * The root also tells the network dialog whether a full-screen ad is on screen (plan T-074, pass 2), from the
+ * StateFlow MainActivity passes (AdsController.fullScreenAdShowing) to the action it passes
+ * (NetworkDialogController.setFullScreenAdShowing).
  */
 @RunWith(AndroidJUnit4::class)
 class AppAdsRootTest {
@@ -39,8 +43,11 @@ class AppAdsRootTest {
         override fun onShown(ticket: BreakTicket) = Unit
     }
     private val review = object : InAppReview {
-        override fun requestIfDue(activity: Activity, savedPhotos: Int) = Unit
+        override fun requestIfDue(activity: Activity, savedPhotos: Int, onDone: () -> Unit) = Unit
     }
+
+    private val fullScreenAdShowing = MutableStateFlow(false)
+    private val reported = mutableListOf<Boolean>()
 
     private class Read(val activity: Activity, val gate: InterstitialBreakGate?, val review: InAppReview?)
 
@@ -49,7 +56,13 @@ class AppAdsRootTest {
     private val setRootOnCreate = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
             (activity as ComponentActivity).setContent {
-                AppAdsRoot(ads = null, inAppReview = review, breakGate = gate) {
+                AppAdsRoot(
+                    ads = null,
+                    inAppReview = review,
+                    breakGate = gate,
+                    fullScreenAdShowing = fullScreenAdShowing,
+                    onFullScreenAdShowingChange = { reported += it },
+                ) {
                     reads += Read(activity, LocalInterstitialBreakGate.current, LocalInAppReview.current)
                     // Control: the ads controller of the test is the one given, so the locals read are the root's.
                     assertNull(LocalAdsController.current)
@@ -98,4 +111,23 @@ class AppAdsRootTest {
             assertEquals(2, reads.map { it.activity }.distinct().size)
         }
     }
+
+    @Test
+    fun fullScreenAdShowing_isReportedToNetworkDialog() {
+        ActivityScenario.launch(ComponentActivity::class.java).use { scenario ->
+            scenario.moveToState(Lifecycle.State.RESUMED)
+            idle()
+            // The value at the start is reported too, so a dialog never waits for an ad that is not there.
+            assertEquals(listOf(false), reported)
+
+            fullScreenAdShowing.value = true
+            idle()
+            fullScreenAdShowing.value = false
+            idle()
+
+            assertEquals(listOf(false, true, false), reported)
+        }
+    }
+
+    private fun idle() = shadowOf(android.os.Looper.getMainLooper()).idle()
 }

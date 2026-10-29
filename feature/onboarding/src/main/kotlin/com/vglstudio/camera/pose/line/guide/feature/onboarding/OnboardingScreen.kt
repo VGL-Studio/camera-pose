@@ -4,7 +4,6 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -50,6 +49,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberAdHoldingLauncher
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
@@ -73,7 +73,8 @@ internal fun OnboardingRoute(
     val currentOnStarted by rememberUpdatedState(onStarted)
     val currentOnFinished by rememberUpdatedState(onFinished)
     var rationaleBefore by rememberSaveable { mutableStateOf(false) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    // The resume ad is held while the system dialog is up (spec ads, question 6; plan T-074, pass 2).
+    val permissionLauncher = rememberAdHoldingLauncher(ActivityResultContracts.RequestPermission()) { granted ->
         // No activity (previews only): count the dialog as shown.
         val dialogShown = activity == null ||
             permissionDialogShown(granted, rationaleBefore, activity.shouldShowRationale())

@@ -5,6 +5,7 @@ import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteSettings
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.core.network.di.NetworkScope
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +50,12 @@ class NetworkDialogController @Inject internal constructor(
     // Past loading and flag on; failures reported while false are dropped, not kept for later.
     private val armed = MutableStateFlow(false)
 
+    // True while a full-screen ad is on screen ([setFullScreenAdShowing]); the dialog then waits for it.
+    private val adShowing = MutableStateFlow(false)
+
+    // The reason of a show that waits for the full-screen ad to close; null when none. Any thread.
+    private val pendingShow = AtomicReference<String?>(null)
+
     private val _state = MutableStateFlow<NetworkDialogState>(NetworkDialogState.Hidden)
 
     /** What :app draws over the current screen. */
@@ -84,6 +91,30 @@ class NetworkDialogController @Inject internal constructor(
     fun setActive(active: Boolean) {
         if (this.active.value != active) logger.info(TAG, "Active: $active")
         this.active.value = active
+    }
+
+    /**
+     * Called by :app while a full-screen ad is on screen (plan T-074, pass 2; T-017 of the template): the dialog waits
+     * for it and shows when it closes. An ad that starts while the dialog shows hides it and stops a running check;
+     * the dialog shows again when the ad closes. Main thread.
+     */
+    fun setFullScreenAdShowing(showing: Boolean) {
+        if (adShowing.value == showing) return
+        adShowing.value = showing
+        if (showing) {
+            var hidden = false
+            _state.update { current ->
+                hidden = current is NetworkDialogState.Shown
+                if (hidden) NetworkDialogState.Hidden else current
+            }
+            if (hidden) {
+                retryJob?.cancel()
+                pendingShow.set(AFTER_AD)
+                logger.info(TAG, "Dialog hidden: full_screen_ad")
+            }
+        } else {
+            pendingShow.getAndSet(null)?.let(::showNow)
+        }
     }
 
     /**
@@ -125,7 +156,18 @@ class NetworkDialogController @Inject internal constructor(
         show("device_offline delay=${seconds}s")
     }
 
+    /** Shows the dialog, or keeps [reason] for later while a full-screen ad is on screen. Any thread. */
     private fun show(reason: String) {
+        if (!adShowing.value) {
+            showNow(reason)
+            return
+        }
+        if (pendingShow.getAndSet(reason) == null) logger.info(TAG, "Dialog waits: full_screen_ad")
+        // The ad may have closed meanwhile, after it looked for a waiting show: show it now, once.
+        if (!adShowing.value) pendingShow.getAndSet(null)?.let(::showNow)
+    }
+
+    private fun showNow(reason: String) {
         var shown = false
         _state.update { current ->
             shown = current == NetworkDialogState.Hidden
@@ -136,6 +178,8 @@ class NetworkDialogController @Inject internal constructor(
 
     private fun disarm(flagOff: Boolean) {
         retryJob?.cancel()
+        // A show waiting for the ad is dropped like any failure on the loading screen.
+        pendingShow.set(null)
         if (_state.value != NetworkDialogState.Hidden) {
             logger.info(TAG, "Dialog hidden: ${if (flagOff) "flag_off" else "inactive"}")
         }
@@ -145,6 +189,7 @@ class NetworkDialogController @Inject internal constructor(
     private companion object {
         const val TAG = "Network"
         const val MILLIS_PER_SECOND = 1_000L
+        const val AFTER_AD = "after_full_screen_ad"
         val CHECKING = NetworkDialogState.Shown(checking = true, stillOffline = false)
         val STILL_OFFLINE = NetworkDialogState.Shown(checking = false, stillOffline = true)
     }

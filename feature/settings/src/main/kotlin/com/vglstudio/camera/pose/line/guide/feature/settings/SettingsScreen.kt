@@ -1,7 +1,5 @@
 package com.vglstudio.camera.pose.line.guide.feature.settings
 
-import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -46,6 +44,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.vglstudio.camera.pose.line.guide.core.ads.PrivacyOptionsButton
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberStartOutsideApp
 import com.vglstudio.camera.pose.line.guide.core.data.AppLanguages
 import com.vglstudio.camera.pose.line.guide.core.data.ThemeMode
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ChoiceDialog
@@ -71,18 +70,20 @@ fun SettingsRoute(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMod
     val context = LocalContext.current
     val activity = LocalActivity.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    // A system page opened from here is a leave on purpose: no resume ad on the way back (plan T-074, pass 2).
+    val startOutsideApp = rememberStartOutsideApp()
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.events.collect { event ->
                 when (event) {
-                    SettingsEvent.OpenSystemLanguageSettings -> context.openOrReport(
+                    SettingsEvent.OpenSystemLanguageSettings -> startOutsideApp.openOrReport(
                         Intent(
                             Settings.ACTION_APP_LOCALE_SETTINGS,
                             Uri.fromParts("package", context.packageName, null),
                         ),
                         onUnavailable = { viewModel.onExternalPageUnavailable("language settings") },
                     )
-                    is SettingsEvent.OpenUrl -> context.openOrReport(
+                    is SettingsEvent.OpenUrl -> startOutsideApp.openOrReport(
                         Intent(Intent.ACTION_VIEW, event.url.toUri()),
                         onUnavailable = { viewModel.onExternalPageUnavailable("privacy policy") },
                     )
@@ -108,12 +109,9 @@ fun SettingsRoute(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMod
     )
 }
 
-private fun Context.openOrReport(intent: Intent, onUnavailable: () -> Unit) {
-    try {
-        startActivity(intent)
-    } catch (e: ActivityNotFoundException) {
-        onUnavailable()
-    }
+/** Opens [intent] through the start action of :core:ads; a device without an app for it calls [onUnavailable]. */
+private fun ((Intent) -> Boolean).openOrReport(intent: Intent, onUnavailable: () -> Unit) {
+    if (!this(intent)) onUnavailable()
 }
 
 /**

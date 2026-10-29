@@ -210,6 +210,34 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - mỗi quyết định tự làm ghi vào mục "Quyết định AI đã tự làm" của báo cáo (task, loại, quyết định, lý do, cách hoàn tác), và mục Cần người kiểm tra luôn có dòng `- [ ] Quyết định AI đã tự làm: <N>`
 - rà soát độc lập xét mỗi lệch L1 tới L7, L10, lệch ngoài danh sách là mức chặn
 
+### [ADR-0033](adr/0033-lech-nho-l11-l12.md): Thêm hai lệch nhỏ phiên tự làm rồi báo, L11 sửa phần dựng của test chỉ đỏ vì máy thiếu cấu hình chung và L12 sửa điểm nên sửa chỉ về chú thích hay định dạng
+
+- danh sách lệch nhỏ của ADR-0032 có thêm L11 và L12, theo mọi quy tắc khác của ADR-0032
+- L11 chỉ sửa phần dựng của chính test đang đỏ cho nó tự đặt cấu hình chung mà máy chạy thiếu hay đặt khác (ví dụ git toàn cục, nhánh mặc định, `JAVA_HOME`, `ANDROID_HOME`, `TMPDIR`, múi giờ, ngôn ngữ; danh sách không đóng), khi tái hiện được lỗi bằng cách bỏ hay đổi cấu hình đó, câu khẳng định và giá trị mong đợi không đổi, không bỏ bước của test, với test của task đột biến bỏ code mới vẫn làm test thất bại, với test có sẵn lỗi tái hiện được trên nhánh chính sạch
+- L11 không sửa phần dùng chung của `scripts/tests/run.sh`, `scripts/tests/app.sh` hay bộ chạy test
+- L11 không sửa câu khẳng định, không sửa code đang được kiểm, không thêm cấu hình vào workflow CI hay script dựng môi trường thay cho sửa test
+- L12 sửa điểm nên sửa không cần test viết trước chỉ khi `git diff -w` của phần sửa chỉ có chú thích hay khoảng trắng và chỗ xuống dòng, trong file của mục 3.2 hay phần ngoài mục 3.2 được phép theo ADR-0029, và `scripts/check.sh` vẫn qua
+- L12 không đổi chữ hiển thị, nội dung log, tên trong code hay dòng code chạy
+- mỗi lệch L11, L12 ghi vào mục "Quyết định AI đã tự làm" của báo cáo
+- rà soát độc lập xét L11 kèm lệnh tái hiện như L1 tới L7 và L10, xét L12 ở vòng rà soát lại của điểm nên sửa kèm `git diff -w`, lệch không đủ điều kiện là mức chặn
+
+### [ADR-0034](adr/0034-lam-nhanh-co-nguoi-theo-doi.md): Việc nhỏ, rủi ro thấp của code app được làm ngay ban ngày theo đường làm nhanh, AI làm cùng dev, vẫn đủ yêu cầu, ticket, plan, nhật ký, CI và merge-if-green.sh
+
+- đường làm nhanh chỉ cho code app, chỉ khi dev ngồi cùng suốt task tới khi `main-guard` xanh, plan không chạm điểm chặn nào kể cả điểm 7, không thêm quyền, thư viện hay SDK, mức rủi ro Thấp và tiêu chí E dưới 2, ticket cỡ S hoặc M khi dev đồng ý, kịch bản có trong spec `confirmed` hoặc dev ngồi cùng là người xác nhận spec của feature
+- không bắt đầu khi có phiên tự chạy đang chạy hay issue `main-broken`, `env-broken` đang mở
+- vẫn ghi yêu cầu, ticket, plan đủ mục theo mẫu với `lane: quick`, chạy `scripts/plan-check.py` khi plan còn `draft` và sửa hết lỗi
+- chỉ chuyển plan sang `approved`, ghi mục 9, hay chuyển spec sang `confirmed` sau khi dev đồng ý rõ ràng trong chính phiên đó, ghi người duyệt, ngày và lời đồng ý
+- dev nào ngồi cùng cũng duyệt được plan làm nhanh, ghi khi người duyệt không phải `owner` của ticket
+- vẫn viết test trước, chạy `scripts/check.sh`, rà soát độc lập bằng agent con ngữ cảnh mới theo bước 6 của `docs/auto-run.md`, lời giao có dòng `Task: T-NNN`
+- chờ CI và merge chỉ bằng `scripts/merge-if-green.sh`, chờ `main-guard`
+- một PR cho cả task trên nhánh `claude/quick-T-NNN-<tu-khoa>`, mô tả ghi "Đường làm nhanh (ADR-0034)" và những gì đường thường ghi vào báo cáo phiên
+- nhật ký, plan `done`, ticket `on-staging` ghi trong lần đẩy cuối trước CI
+- trước khi merge chạy `scripts/plan-check.py` và `scripts/run-check.py` cho các danh sách chạy chưa chạy trên nhánh làm nhanh và báo dev lỗi mới
+- hỏi dev trước mọi lệch mà phiên tự chạy được tự làm rồi báo, ghi vào nhật ký
+- dừng hay bỏ task thì đóng PR làm nhanh và đưa yêu cầu, ticket `stopped`, plan có nhật ký lần dừng lên nhánh chính bằng PR tài liệu, làm tiếp thì theo đường thường trên nhánh `claude/T-NNN-<tu-khoa>`
+- nhánh chính đỏ vì commit merge của PR làm nhanh thì revert theo ADR-0025 cùng dev, rồi ticket `stopped` và nhật ký ghi "đã merge rồi revert"
+- đánh dấu token bằng `scripts/token-usage.py mark` và ghi CSV với `--run QUICK-YYYYMMDD-T-NNN`
+
 ## Quyết định riêng của app
 
 ### [ADR-1001](adr/1001-loading-timeout-15s.md): Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config
@@ -226,13 +254,6 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - khóa quảng cáo dạng `ads_<vị trí>_enabled`, vị trí mới mặc định tắt
 - khai báo khóa Remote Config mới như các khóa hiện có trong `:core:config` cho tới khi app có `AppRemoteKeys`
 - không thêm AppsFlyer khi chưa có plan đồng bộ `core` được duyệt
-
-### [ADR-1006](adr/1006-sua-test-vi-moi-truong-runner.md): Phiên tự sửa chi tiết dựng môi trường của test khi test chỉ đỏ trên runner vì máy không có cấu hình chung, rồi báo người sau
-
-- test chỉ đỏ trên runner hay trên máy của phiên vì phần dựng của test dựa vào cấu hình chung của máy (git toàn cục, `JAVA_HOME`, `ANDROID_HOME`, `TMPDIR`, múi giờ, ngôn ngữ) thì sửa phần dựng của test cho nó tự đặt cấu hình cần, ghi `ADR-1006/L11`
-- chỉ là L11 khi tái hiện được lỗi bằng cách bỏ cấu hình đó, câu khẳng định và giá trị mong đợi không đổi, và đột biến bỏ code mới vẫn làm test thất bại
-- không sửa câu khẳng định, không bỏ bước của test, không sửa code cho test qua, không thêm cấu hình vào workflow CI thay cho L11
-- rà soát độc lập xét lệch L11 như L1 tới L7 và L10
 
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 

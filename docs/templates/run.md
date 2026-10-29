@@ -69,7 +69,7 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 
 ### Quyết định AI đã tự làm
 
-<!-- auto-run.md, mục 5; ADR-0032. Lệch nhỏ L1 tới L10, phần ngoài mục 3.2 (ADR-0029), câu khẳng định cũ viết lại (ADR-0031), phương án dự phòng, task bỏ qua vì lỗi môi trường. Ghi "Không có" nếu không có. -->
+<!-- auto-run.md, mục 5; ADR-0032. Lệch nhỏ L1 tới L10 (ADR-0032), L11 và L12 (ADR-0033), phần ngoài mục 3.2 (ADR-0029), câu khẳng định cũ viết lại (ADR-0031), phương án dự phòng, task bỏ qua vì lỗi môi trường. Ghi "Không có" nếu không có. -->
 
 | Task | Loại | Quyết định | Lý do | Cách hoàn tác |
 | --- | --- | --- | --- | --- |

@@ -31,13 +31,14 @@ Quy tắc phụ thuộc (ADR-0001, kiểm tra tự động bằng `checkModuleDe
 ## Lệnh
 
 - Kiểm tra toàn bộ, giống hệt CI: `scripts/check.sh`.
-- Ghi lại ảnh chuẩn screenshot khi plan cho phép: `./gradlew recordRoborazziDebug`.
+- Ghi lại ảnh chuẩn screenshot khi plan cho phép: `./gradlew :<module>:recordRoborazziDebug :<module>:testDebugUnitTest --rerun` (`:app`: `:app:recordRoborazziStagingDebug :app:testStagingDebugUnitTest --rerun`), rồi `git status --short -- '*/src/test/screenshots/'` để thấy ảnh nào đã đổi. Thiếu `--rerun` thì Gradle có thể coi task test là đã cập nhật, không chạy lại test, và ảnh chuẩn giữ bản cũ (L-114).
 - Xem log của app trên máy thật hoặc emulator: `adb logcat -v threadtime | grep ' VGL\.'` (ADR-0019).
 - Khảo sát app mẫu cho app clone (điều khiển máy có chặn quảng cáo và nút mua): `scripts/app-explore/ax.sh check`, rồi làm theo `docs/ops/clone-study.md` (ADR-0021).
 - Tìm mã quảng cáo thật, khóa hay token lọt vào repo (test của script cũng chạy nó): `scripts/secret-scan.py`.
 - Ghi một phiên thử trên máy để AI phân tích: `scripts/device-session.sh start <tên>`, thử app, `scripts/device-session.sh stop` (`docs/ops/test-sessions.md`).
 - Sinh lại trang quy tắc nền tảng `docs/foundation.md` sau khi thêm hay đổi trạng thái ADR: `scripts/foundation.py` (`docs/CLAUDE.md`, mục Khi viết ADR).
 - Xem trước trang tiến độ `docs/STATUS.md` trên máy: `scripts/status.py`. Trang không có trong git; `status-page.yml` sinh nó trên nhánh `status` sau mỗi lần merge tài liệu (`docs/CLAUDE.md`, mục Trang tiến độ).
+- Sinh file Excel kế hoạch quảng cáo, Remote Config và sự kiện của app từ code (`AdPlacement`, `docs/remote-config-keys.md`, hằng `EVENT_`): `scripts/ads-plan.py`, ghi vào `build/ads-plan/`; `--keep <file cũ>` giữ phần nhóm đã điền (`docs/ops/ads-plan.md`). Ở app này chạy được sau T-074 (khung quảng cáo mới và bảng khóa `docs/remote-config-keys.md`).
 - Kiểm thiết lập của app (file R2 bắt buộc, DNS của tên miền file tĩnh, catalog tư thế theo Remote Config và bộ khởi đầu của nó): `scripts/setup-check.sh`; danh sách file ở `docs/ops/required-assets.txt`, phần kiểm riêng của app ở `scripts/setup-check-app.sh`.
 - Merge khi nhánh chậm hơn nhánh chính: `scripts/merge-if-green.sh <số PR> --update` tự cập nhật nhánh, chờ CI rồi merge.
 - Liệt kê test có sẵn kiểm hành vi mà plan đổi, cho mục 3.5 của plan: `scripts/existing-tests.py <plan>` (ADR-0031).
@@ -96,4 +97,4 @@ Làm theo đúng mẫu `:feature:sample`:
 - Không merge bằng cách nào khác ngoài `scripts/merge-if-green.sh`. Không đóng, sửa hay bình luận để gỡ issue mang nhãn `main-broken`.
 - Không đọc, in ra hay chuyển đi bí mật của repo. Không tạo hay sửa cấu hình production (ADR-0007, ADR-0009).
 - Không chạm vào `scripts/release.sh`, không đọc hay tạo thư mục phát hành production (ADR-0009, ADR-0017).
-- Không làm cho test qua bằng cách sửa test, xóa test, cập nhật ảnh chuẩn screenshot ngoài plan, hay tắt quy tắc lint. Ngoại lệ duy nhất: test cũ đỏ chỉ vì dữ liệu của nó chưa có phần plan thêm (dòng enum, khóa mới) thì cập nhật dữ liệu đó, test vẫn kiểm phần mới (ADR-0029); câu khẳng định cũ trái điều plan đã duyệt nói rõ thì viết lại, giữ ý định, không nới, theo đủ sáu điều của ADR-0031.
+- Không làm cho test qua bằng cách sửa test, xóa test, cập nhật ảnh chuẩn screenshot ngoài plan, hay tắt quy tắc lint. Ngoại lệ duy nhất: test cũ đỏ chỉ vì dữ liệu của nó chưa có phần plan thêm (dòng enum, khóa mới) thì cập nhật dữ liệu đó, test vẫn kiểm phần mới (ADR-0029); câu khẳng định cũ trái điều plan đã duyệt nói rõ thì viết lại, giữ ý định, không nới, theo đủ sáu điều của ADR-0031; test chỉ đỏ vì máy chạy thiếu cấu hình chung thì sửa phần dựng của test, không đổi câu khẳng định (ADR-0033/L11).

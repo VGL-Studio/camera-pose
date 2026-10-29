@@ -93,6 +93,12 @@ Bước cuối của thiết lập: workflow `env-canary` xanh ở cả hai job.
 
 Khi app có feature cần thiết kế: dựng hệ thống thiết kế trên Claude Design hoặc Figma từ ảnh catalog và `docs/design-system/tokens.json` của app, theo `docs/ops/design-workflow.md`, mục 1. Trước đó, đổi màu thương hiệu của app trong `:core:designsystem` (plan riêng).
 
+## 6c. Kế hoạch quảng cáo, Remote Config và sự kiện
+
+Trước khi bàn quảng cáo với nhóm kinh doanh: cài `openpyxl` (`python3 -m pip install --user openpyxl`), chạy `python3 scripts/ads-plan.py`, đưa file Excel nó sinh (trong `build/ads-plan/`) lên Google Drive của nhóm. Sau mỗi lần đổi vị trí, khóa hay sự kiện trong code, sinh lại bằng `--keep <file đang dùng>`. Chi tiết ở [ads-plan.md](ads-plan.md).
+
+Kiểm tra: file có sheet Vị trí QC với năm vị trí toàn app (`open_app`, `open_app_inter`, `resume`, `resume_inter`, `native_combo`), và sheet Remote Config có `show_open_ads`, `ads_interval`.
+
 ## 7. Phiên tự chạy đầu tiên
 
 Quy trình đầy đủ ở `docs/README.md` và `docs/auto-run.md`. Thứ tự một vòng:

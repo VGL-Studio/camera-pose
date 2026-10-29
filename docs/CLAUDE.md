@@ -53,7 +53,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Không tự thêm vị trí quảng cáo, sự kiện phân tích hay dữ liệu thu thập. Chỉ ghi những gì yêu cầu nêu; nếu thấy cần, đặt thành câu hỏi.
 - Ghi quyền của app và dịch vụ bên ngoài mà feature cần ở mục 6 của spec. Hành vi trong yêu cầu mà trên một số phiên bản Android cần quyền (ví dụ lưu ảnh vào thư viện máy trên Android 9 trở xuống) thì nêu ngay ở spec, hoặc đặt thành câu hỏi kèm phương án, không để tới lúc viết plan hay chạy phiên mới thấy.
 - Chỗ nào yêu cầu chưa rõ, ghi thành câu hỏi trong mục câu hỏi còn mở, kèm phương án AI đề xuất. Không đoán.
-- Spec mới luôn có trạng thái `draft`. Spec đã `confirmed` mà có yêu cầu mới thì cập nhật nội dung, chuyển sang `changed` và ghi vào mục lịch sử. Chỉ người mới chuyển sang `confirmed`.
+- Spec mới luôn có trạng thái `draft`. Spec đã `confirmed` mà có yêu cầu mới thì cập nhật nội dung, chuyển sang `changed` và ghi vào mục lịch sử. Chỉ người mới chuyển sang `confirmed`, trừ đường làm nhanh khi dev ngồi cùng là người xác nhận spec và đã xác nhận trong phiên (ADR-0034).
 
 ## Khi tách spec thành ticket
 
@@ -61,6 +61,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Mã ticket lấy số tiếp theo của cả app: tìm mã lớn nhất trong mọi thư mục `features/*/tickets/` rồi cộng một.
 - Ghi rõ ticket xử lý kịch bản nào của spec và phụ thuộc ticket nào.
 - Chấm rủi ro sơ bộ và ước lượng cỡ (S, M, L) theo [mẫu ticket](templates/ticket.md).
+- Ticket mà phiên tự chạy không được làm (chạm `scripts/release.sh`, cấu hình production, hay việc chỉ người làm được) ghi `auto_run: false`: `scripts/plan-queue.py` không soạn plan cho nó, `scripts/run-check.py` từ chối danh sách chạy có nó. Ticket phụ thuộc nó chờ tới khi nó có plan hay đã xong.
 
 ## Khi viết plan
 
@@ -102,7 +103,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Plan chép code từ dự án mẫu về app: dán nguyên đoạn code (hay `diff`) vào mục 3.1, kèm commit nguồn. Phiên `claude --cloud` của app chỉ có quyền đọc repo của app, không đọc được repo mẫu (L-078, `docs/ops/from-app.md`).
 - Plan thêm file trên R2 mà app bắt buộc phải có (catalog, ảnh của bộ khởi đầu): thêm đường dẫn vào `docs/ops/required-assets.txt` và ghi file này ở mục 3.2, để `scripts/setup-check.sh` kiểm file đó mỗi sáng (`env-canary.yml`, job `setup-check`) và trước mỗi phiên (`start-run.yml`) (L-011, `docs/ops/staging-and-runs.md`).
 - Viết xong thì chạy `scripts/plan-check.py <plan>`, sửa hết lỗi trước khi đưa người duyệt, dán kết quả vào mô tả PR. Phiên tự chạy chạy lại script này ngay trước task và bỏ qua plan có lỗi.
-- Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`.
+- Plan mới có trạng thái `draft`. Không bao giờ tự chuyển sang `approved`, trừ plan của đường làm nhanh sau khi dev đồng ý trong chính phiên đó (mục Khi làm nhanh có người theo dõi).
 
 ## Khi lập danh sách chạy
 
@@ -116,7 +117,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Lập xong thì kiểm tra cả danh sách theo [ops/pre-run-review.md](ops/pre-run-review.md): chạy `scripts/run-check.py <danh sách chạy>` và sửa hết lỗi, rồi giao một phiên AI riêng (ngữ cảnh mới, chỉ đọc) rà soát mâu thuẫn, test chưa đủ tốt và khả năng chạy được trong phiên. Ghi kết quả vào mục Kiểm tra trước khi duyệt của danh sách. Điểm chặn thì soạn plan phiên bản mới hay đề xuất sửa spec, hoặc đề xuất bỏ task; không tự sửa plan `approved` hay spec `confirmed`.
 - Ghi tổng `token_estimate` của danh sách trong mục Lý do của thứ tự chạy, so với tổng token thật của vài phiên gần nhất (`docs/metrics/token-usage.csv`), để người duyệt thấy danh sách có vừa một phiên không. Chỉ để tham khảo, không bỏ task vì vượt.
 - `plan_queue` mặc định 2 (số plan soạn sẵn cuối phiên); dev đổi hay đặt `0`.
-- Hàng chờ plan cuối phiên (`scripts/plan-queue.py`) nhận ticket `backlog` hay `ready`, miễn là ticket chưa có plan, spec đã chốt và không còn câu hỏi mở, phụ thuộc đã có plan và không dừng hay hủy. Dev không cần chuyển ticket sang `ready` để nó vào hàng chờ; `ready` chỉ là dấu tùy chọn. Muốn giữ một ticket ra khỏi hàng chờ thì để câu hỏi mở trong spec, hay đặt `plan_queue: 0`.
+- Hàng chờ plan cuối phiên (`scripts/plan-queue.py`) nhận ticket `backlog` hay `ready`, miễn là ticket chưa có plan, spec đã chốt và không còn câu hỏi mở, phụ thuộc đã có plan và không dừng hay hủy. Dev không cần chuyển ticket sang `ready` để nó vào hàng chờ; `ready` chỉ là dấu tùy chọn. Ticket ghi `auto_run: false` không bao giờ vào hàng chờ. Muốn giữ một ticket ra khỏi hàng chờ thì để câu hỏi mở trong spec, hay đặt `plan_queue: 0`.
 - Danh sách chạy có trạng thái `draft`. Chỉ dev mới chuyển sang `approved` và kích hoạt phiên.
 
 ## Trong phiên tự chạy
@@ -128,6 +129,24 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Chỉ merge bằng `scripts/merge-if-green.sh`. Không dùng nút merge, `gh pr merge` hay gọi thẳng API để merge. Không đóng hay sửa issue mang nhãn `main-broken`; việc đó thuộc về người. Nhánh chính đỏ vì commit merge của chính phiên thì revert theo `auto-run.md`, mục 3, Khi nhánh chính đỏ vì task của phiên (ADR-0025).
 - Sau mỗi task, ghi nhật ký vào cuối plan và cập nhật trạng thái ticket: `on-staging` khi đã merge, `stopped` khi dừng.
 - Cuối phiên, viết báo cáo vào file phiên chạy, rồi soạn plan `draft` cho hàng chờ theo `auto-run.md`, mục 4, bước 5. PR plan là nháp có nhãn `needs-human`; phiên không chuyển nó sang sẵn sàng, không duyệt, không merge.
+
+## Khi làm nhanh có người theo dõi
+
+Việc nhỏ của code app ban ngày, dev ngồi cùng AI, theo ADR-0034. AI làm gần như mọi việc; dev trả lời câu hỏi, đồng ý plan một lần và xem kết quả. Việc về script, tài liệu, quy trình vẫn làm bằng PR thường trong phiên có người theo dõi như trước.
+
+- Chỉ vào đường làm nhanh khi đủ: dev ngồi cùng suốt task, tới khi `main-guard` của commit merge xanh; plan không chạm điểm chặn nào ở mục 1 của [risk-scoring.md](risk-scoring.md), kể cả điểm 7; không thêm quyền, thư viện, SDK; mức rủi ro Thấp và tiêu chí E dưới 2; ticket cỡ S, hoặc M khi dev đồng ý; kịch bản có trong spec `confirmed`, hoặc dev ngồi cùng là người xác nhận spec của feature. Thiếu một điều thì nói với dev và đi đường thường.
+- Lúc bắt đầu: không có phiên tự chạy đang chạy (danh sách `running` trên nhánh `claude/RUN-*-report`, tra như `scripts/merge-if-green.sh`), không có issue `main-broken` hay `env-broken` đang mở. Nhắc dev không kích hoạt phiên tự chạy khi PR làm nhanh còn mở.
+- Vẫn đủ tài liệu như đường thường: ghi lời dev thành file yêu cầu trong `features/<feature>/requests/`; ticket theo mẫu; plan theo đúng mẫu, đủ các mục, frontmatter `lane: quick`, chạy `scripts/existing-tests.py` cho mục 3.5 và `scripts/plan-check.py` khi plan còn `draft`, sửa hết lỗi. Mã ticket hay số bài học đã có người dùng (PR song song) thì lấy số sau, sửa mọi chỗ dẫn.
+- Việc chưa có trong spec: AI sửa spec, dev ngồi cùng (người xác nhận spec của feature) xác nhận rõ ràng; AI ghi `status: confirmed`, `confirmed:` và mục lịch sử kèm lời xác nhận.
+- Đưa dev tóm tắt plan: phạm vi, danh sách file, test, điểm rủi ro, câu hỏi. Dev nào ngồi cùng cũng duyệt được. Dev đồng ý rõ ràng thì chuyển plan sang `approved`, ghi `reviewer`, `approved_at`, mục 9 ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý, và ghi khi người duyệt không phải `owner` của ticket; ticket theo plan (`scripts/status.py --sync`).
+- Làm task theo các bước 3 tới 9 của [auto-run.md](auto-run.md): test viết trước, `scripts/check.sh`, rà soát độc lập bằng agent con ngữ cảnh mới (lời giao có dòng `Task: T-NNN`), CI, merge chỉ bằng `scripts/merge-if-green.sh`, chờ `main-guard`. `scripts/token-usage.py mark T-NNN` khi bắt đầu, `mark chung` khi xong, rồi `report --since <giờ bắt đầu> --run QUICK-YYYYMMDD-T-NNN --csv docs/metrics/token-usage.csv`; tệp CSV đi cùng PR tài liệu kế tiếp.
+- Một PR cho cả task, ngoại lệ của bước 7 và bước 10: nhánh `claude/quick-T-NNN-<tu-khoa>` từ nhánh chính mới nhất (không dùng `claude/T-`, để `merge-if-green.sh` từ chối khi phiên tự chạy đang chạy). PR chứa yêu cầu, spec nếu đổi, ticket, plan, test, code, ảnh chuẩn và nhật ký. Mô tả PR ghi "Đường làm nhanh (ADR-0034)", người duyệt plan, kết quả `plan-check.py` và rà soát độc lập, và những gì đường thường ghi vào báo cáo phiên: "Ngoài mục 3.2", "Đã sửa theo rà soát", "Test cũ viết lại (ADR-0031)", điểm nên sửa chưa sửa, việc cần người kiểm.
+- Nhật ký (tiêu đề `Làm nhanh YYYY-MM-DD, phiên bản plan N`), plan `done`, ticket `on-staging` ghi trong lần đẩy cuối, sau rà soát độc lập và trước CI, để CI chỉ chạy một vòng. Dòng kết quả ghi "merge bằng PR này", dòng CI ghi "CI của PR này". CI đỏ thì sửa và cập nhật nhật ký trong cùng lần đẩy.
+- Trước khi gọi `merge-if-green.sh`: trên nhánh làm nhanh, chạy `scripts/plan-check.py` cho mọi plan của danh sách chạy `draft` hay `approved` chưa chạy và `scripts/run-check.py` cho các danh sách đó. Lỗi mới so với nhánh chính thì báo dev; dev chọn sửa plan đó trước, merge rồi soạn plan phiên bản mới, hay chờ. Danh sách `draft` đã rà soát thì báo cần rà soát lại.
+- Lệch mà phiên tự chạy được tự làm rồi báo (ADR-0029, ADR-0032, ADR-0033): hỏi dev trước, ghi vào dòng "Lệch so với plan" của nhật ký.
+- Gặp điều kiện dừng (`risk-scoring.md`, mục 4), thấy task chạm điểm chặn, hay dev bỏ task: đóng PR làm nhanh, giữ nhánh; mở PR tài liệu từ nhánh chính gồm yêu cầu, spec nếu đã xác nhận, ticket `stopped`, plan có nhật ký lần dừng. Muốn làm tiếp thì plan có phiên bản mới `draft` như `auto-run.md`, mục Chuẩn bị cho người khi task dừng, mục 3.1 ghi cách tiếp tục trên nhánh `claude/T-NNN-<tu-khoa>` tạo từ nhánh làm nhanh hay làm lại từ đầu; task đi đường thường.
+- Nhánh chính đỏ vì commit merge của PR làm nhanh: revert cùng dev như `auto-run.md`, mục Khi nhánh chính đỏ vì task của phiên (ADR-0025), rồi PR tài liệu chuyển ticket `stopped`, nhật ký ghi "đã merge rồi revert". Commit gây lỗi của người khác thì không revert, báo dev.
+- Dòng kiểm tra thủ công của plan: `emulator` thì chạy tay `device-session.yml` sau khi merge hoặc dev thử ngay trên máy; `máy thật` và `người` thì dev kiểm trong phiên khi được. Ghi kết quả vào nhật ký. Muốn có bản staging ngay thì chạy tay `staging.yml`.
 
 ## Khi phân tích một phiên thử
 
@@ -174,7 +193,7 @@ Phiên thử là log của một lần dùng thử bản staging trên máy th�
 - Không sửa nội dung đã xác nhận: spec `confirmed`, plan `approved`, ADR `accepted`. Muốn thay đổi thì thêm mục mới hoặc tạo bản thay thế.
 - Không xóa tài liệu. Tài liệu hết hiệu lực được chuyển trạng thái, không bị xóa.
 - Không đưa vào tài liệu bất kỳ khóa bí mật, mã quảng cáo thật, thông tin đăng nhập hay dữ liệu cá nhân của người dùng.
-- Không tự cấp quyền duyệt, không tự chuyển trạng thái thay cho người.
+- Không tự cấp quyền duyệt, không tự chuyển trạng thái thay cho người. Ngoại lệ duy nhất: plan và spec của đường làm nhanh, khi dev đã đồng ý rõ ràng trong chính phiên đó (ADR-0034).
 
 ## Cách viết
 

@@ -49,7 +49,7 @@ Feature không đọc Remote Config trực tiếp (ADR-0003); nó đọc cờ qu
 
 Đổi giá trị là đổi hành vi của app đang chạy ở máy người dùng: làm như một lần phát hành nhỏ (ADR-0023).
 
-1. **Ghi trước:** khóa, giá trị cũ, giá trị mới, điều kiện, lý do, người đổi, vào sổ đổi cấu hình của app (`docs/ops/` của app, mỗi lần một dòng).
+1. **Ghi trước:** khóa, giá trị cũ, giá trị mới (giá trị dự định nằm ở cột Giá trị phát hành của file kế hoạch, [ads-plan.md](ads-plan.md)), điều kiện, lý do, người đổi, vào sổ đổi cấu hình của app (`docs/ops/` của app, mỗi lần một dòng).
 2. **Dùng điều kiện để bật dần:** theo phiên bản app (chỉ bản đã có code đọc khóa), quốc gia, hay phần trăm người dùng. Vị trí quảng cáo mới: bật cho phần nhỏ người dùng trước, xem giữ chân và điểm Play rồi mới mở rộng.
 3. **Kiểu giá trị trên Firebase khớp kiểu trong code** (boolean là `true`/`false`, số không có đơn vị).
 4. **Bấm Publish** và kiểm trên một máy (DebugView hay log của app).

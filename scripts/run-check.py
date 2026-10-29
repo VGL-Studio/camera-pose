@@ -6,7 +6,8 @@ Exit 0: no error (warnings may be printed). Exit 1: at least one error.
 
 plan-check.py looks at one plan at a time. This script looks at what only shows across the list and the
 documents behind it, the mistakes that stopped or slowed earlier sessions:
-  1. Every plan of the list exists, passes plan-check.py, and it and its ticket are approved (L-045).
+  1. Every plan of the list exists, passes plan-check.py, and it and its ticket are approved (L-045); a ticket marked
+     `auto_run: false` (people do it, for example scripts/release.sh) is never in a list.
   2. The spec of every ticket is confirmed, has no unanswered question, and has no history row still
      waiting for confirmation; a plan approved before the spec's last change is a warning (stale plan).
   3. Every dependency of a ticket is merged already, or comes earlier in the list.
@@ -307,6 +308,8 @@ def check(run_path):
         fields = front_matter(ticket_path.read_text())
         if fields.get("status") != "approved":
             errors.append(f"{ticket}: ticket đang '{fields.get('status')}', chưa approved (L-045).")
+        if fields.get("auto_run", "").lower() == "false":
+            errors.append(f"{ticket}: ticket ghi auto_run: false, người làm; không đưa vào danh sách chạy.")
         depends[ticket] = [t for t in ids(fields.get("depends_on")) if t.startswith("T-")]
         for dependency in depends[ticket]:
             if dependency in in_list[:position]:

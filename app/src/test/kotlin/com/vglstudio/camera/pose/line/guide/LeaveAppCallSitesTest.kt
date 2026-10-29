@@ -7,8 +7,8 @@ import org.junit.Test
 
 /**
  * Every way a feature leaves the app on purpose goes through the helpers of :core:ads (plan T-074, pass 2; G-03,
- * G-05): no source of `feature/<name>/src/main` nor `core/review/src/main` calls `rememberLauncherForActivityResult`
- * or starts an activity itself, so the resume ad never shows right after a permission dialog, the share sheet or a
+ * G-05): no source of `feature/<name>/src/main` nor `core/review/src/main` calls `rememberLauncherForActivityResult`,
+ * `registerForActivityResult`, `requestPermissions` or `openUri`, or starts an activity itself, so the resume ad never shows right after a permission dialog, the share sheet or a
  * system page. Read by symbol, in code only: comments and string literals are left out. The working directory of a
  * unit test is the module directory.
  */
@@ -35,12 +35,20 @@ class LeaveAppCallSitesTest {
             val launcher = rememberLauncherForActivityResult(RequestPermission()) { }
             fun open() { context.startActivity(intent) }
             fun other() { activity?.startActivityForResult(intent, 1) }
+            fun link() { uriHandler.openUri(url) }
+            val result = registerForActivityResult(StartActivityForResult()) { }
+            fun ask() { ActivityCompat.requestPermissions(activity, permissions, 1) }
+            val go = ::startActivity
         """.trimIndent()
         assertEquals(
             listOf(
                 "1 rememberLauncherForActivityResult",
                 "2 startActivity",
                 "3 startActivityForResult",
+                "4 openUri",
+                "5 registerForActivityResult",
+                "6 requestPermissions",
+                "7 startActivity",
             ),
             directCalls(codeOnly(raw)),
         )
@@ -73,14 +81,18 @@ class LeaveAppCallSitesTest {
         const val MIN_FEATURE_MODULES = 5
 
         /** The calls that leave the app or open a system screen without the helpers of :core:ads. */
-        val DIRECT_CALL = Regex(
-            """\b(rememberLauncherForActivityResult|startActivity|startActivityForResult|startActivities|""" +
-                """startIntentSender|startIntentSenderForResult)\s*(\(|\{|<)""",
-        )
+        private const val NAMES = "rememberLauncherForActivityResult|registerForActivityResult|startActivity|" +
+            "startActivityForResult|startActivities|startIntentSender|startIntentSenderForResult|openUri|" +
+            "requestPermissions"
+
+        /** A call (`name(`, `name {`, `name<`) or a function reference (`::name`) of one of [NAMES]. */
+        val DIRECT_CALL = Regex("""\b($NAMES)\s*(?=[({<])|::($NAMES)\b""")
 
         /** "line symbol" of each direct call in [code], lines counted from 1. */
         fun directCalls(code: String): List<String> = code.lines().flatMapIndexed { index, line ->
-            DIRECT_CALL.findAll(line).map { "${index + 1} ${it.groupValues[1]}" }.toList()
+            DIRECT_CALL.findAll(line).map { match ->
+                "${index + 1} ${match.groupValues[1].ifEmpty { match.groupValues[2] }}"
+            }.toList()
         }
 
         /**

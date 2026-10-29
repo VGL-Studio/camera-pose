@@ -629,7 +629,8 @@ class NativeFlowStepTest {
         val area = bounds(STEP_AREA)
         val page = bounds(NativeFlowStepTestTags.FULL_PAGE)
         val cta = bounds(NativeFullScreenAdTestTags.CTA)
-        assertEquals(52f, (withAd.bottom - withAd.top).value, 0.5f)
+        // The PrimaryButton of this app is 56 dp high (core/designsystem), the template's 52 dp (plan T-074, ADR-0029).
+        assertEquals(56f, (withAd.bottom - withAd.top).value, 0.5f)
         assertEquals("the page fills the area of the step", area, page)
         assertFalse("CTA $cta covers Next $withAd", overlaps(cta, withAd))
         assertFalse("page $page covers Next $withAd", overlaps(page, withAd))

@@ -8,7 +8,7 @@ import org.junit.Test
 /** The numbers of the pose matching read from Remote Config (spec camera, KB-5; plan T-017, section 4). */
 class DefaultPoseMatchingSettingsTest {
     private val remote = FakeRemoteFlagSource()
-    private val settings = DefaultPoseMatchingSettings(DefaultRemoteSettings(remote))
+    private val settings = DefaultPoseMatchingSettings(DefaultRemoteSettings(remote, emptySet()))
 
     @Test
     fun defaults_are80And50() = runTest {

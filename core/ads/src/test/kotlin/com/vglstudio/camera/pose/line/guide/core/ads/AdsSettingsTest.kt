@@ -240,14 +240,4 @@ class AdsSettingsTest {
         assertTrue("Only $names", names.size >= 14 + AdPlacement.entries.count { !it.appWide })
         assertEquals(names.distinct(), names)
     }
-
-    @Test
-    fun reviewInterstitialCapDefaults() {
-        assertEquals(BreakCap(2, 3, 120), AdsSettings.breakCapDefaults(AdPlacement.REVIEW_INTERSTITIAL))
-        assertEquals(BreakCap.NONE, AdsSettings.breakCapDefaults(AdPlacement.SAMPLE_BOTTOM_BANNER))
-        val placement = AdPlacement.REVIEW_INTERSTITIAL
-        assertEquals("ads_review_interstitial_first_break", AdsSettings.placementFirstBreakKey(placement))
-        assertEquals("ads_review_interstitial_breaks_between", AdsSettings.placementBreaksBetweenKey(placement))
-        assertEquals("ads_review_interstitial_min_interval_seconds", AdsSettings.placementMinIntervalKey(placement))
-    }
 }

@@ -4,9 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -15,9 +13,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.LoadAdError
+import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -27,8 +24,9 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The banner slot (spec poses, KB-6; plan T-023, section 4). A real [AdView] is drawn (it never loads: no request is
- * sent); the load callbacks are called by hand. Native graphics: sizes are measured.
+ * The banner slot of this app with a separator (spec poses, KB-6; plan T-023, section 4; plan T-074, section 3.1): the
+ * slot of the framework ([BannerSlotHost]) with a fake banner of the SDK, whose load results are given by hand.
+ * Native graphics: sizes are measured.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -36,28 +34,31 @@ class AdSlotTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private var adView: AdView? = null
+    private val views = FakeBannerAdViews()
+    private val reported = mutableListOf<Boolean>()
 
     private fun setBanner(separator: Boolean = true) {
         composeRule.setContent {
-            val context = LocalContext.current
-            val view = remember {
-                AdView(context).apply {
-                    adUnitId = GoogleTestAdUnitIds.of(AdPlacement.SAMPLE_BOTTOM_BANNER)
-                    setAdSize(AdSize.BANNER)
-                }
-            }
-            adView = view
             Column {
-                BannerView(
-                    adView = view,
+                BannerSlotHost(
+                    gateOpen = true,
+                    enabled = true,
+                    unitId = "u",
                     heightDp = BANNER_HEIGHT,
+                    refresh = BannerRefresh.BY_AD_UNIT,
+                    visible = MutableStateFlow(true),
+                    mayRequestNow = { true },
+                    retryResets = MutableStateFlow(0),
+                    logger = RecordingAppLogger(),
+                    placementKey = AdPlacement.POSES_BANNER.key,
+                    newView = views::newView,
+                    modifier = Modifier.testTag(SLOT),
                     separator = if (separator) {
                         { Box(Modifier.fillMaxWidth().height(SEPARATOR_HEIGHT.dp).testTag(SEPARATOR)) }
                     } else {
                         null
                     },
-                    modifier = Modifier.testTag(SLOT),
+                    onLoadResult = { reported += it },
                 )
                 Box(Modifier.fillMaxWidth().height(10.dp).testTag(BELOW))
             }
@@ -65,12 +66,12 @@ class AdSlotTest {
         composeRule.waitForIdle()
     }
 
-    private fun callListener(action: AdView.() -> Unit) {
-        composeRule.runOnUiThread { adView!!.action() }
+    private fun result(action: FakeBannerAdView.() -> Unit) {
+        composeRule.runOnUiThread { views.last.action() }
         composeRule.waitForIdle()
     }
 
-    private fun failLoad() = callListener { adListener.onAdFailedToLoad(NO_FILL) }
+    private fun failLoad() = result { emitFailed(NO_FILL) }
 
     private fun slotHeight() = composeRule.onNodeWithTag(SLOT).getUnclippedBoundsInRoot().height.value
 
@@ -105,7 +106,11 @@ class AdSlotTest {
         failLoad()
         assertEquals(0f, slotHeight(), 0.5f)
         assertFalse(hasSeparator())
-        callListener { adListener.onAdLoaded() }
+        // The retry of B-02 is still sent from the collapsed slot (the view stays in the tree).
+        composeRule.mainClock.advanceTimeBy(RETRY_WAIT_MILLIS)
+        composeRule.waitForIdle()
+        assertEquals(2, views.last.sendCount)
+        result { emitLoaded() }
         assertEquals((SEPARATOR_HEIGHT + BANNER_HEIGHT).toFloat(), slotHeight(), 0.5f)
         assertTrue(hasSeparator())
         assertEquals((SEPARATOR_HEIGHT + BANNER_HEIGHT).toFloat(), belowTop(), 0.5f)
@@ -116,7 +121,7 @@ class AdSlotTest {
         composeRule.setContent {
             Column {
                 AdSlot(
-                    placement = AdPlacement.SAMPLE_BOTTOM_BANNER,
+                    placement = AdPlacement.POSES_BANNER,
                     modifier = Modifier.testTag(SLOT),
                     separator = { Box(Modifier.fillMaxWidth().height(SEPARATOR_HEIGHT.dp).testTag(SEPARATOR)) },
                 )
@@ -131,11 +136,11 @@ class AdSlotTest {
 
     @Test
     fun bannerListener_reportsFailedThenLoaded() {
-        val reported = mutableListOf<Boolean>()
-        val listener = bannerListener { reported += it }
-        listener.onAdFailedToLoad(NO_FILL)
-        listener.onAdLoaded()
-        assertEquals(listOf(true, false), reported)
+        setBanner()
+        failLoad()
+        result { emitLoaded() }
+        // Each result of a load is reported: false for the failure, true for the load.
+        assertEquals(listOf(false, true), reported)
     }
 
     private companion object {
@@ -144,6 +149,9 @@ class AdSlotTest {
         const val BELOW = "below"
         const val BANNER_HEIGHT = 50
         const val SEPARATOR_HEIGHT = 2
-        val NO_FILL = LoadAdError(3, "No fill", "com.google.android.gms.ads", null, null)
+        const val NO_FILL = 3
+
+        /** The first retry of B-02 comes 2 s after the first failure. */
+        const val RETRY_WAIT_MILLIS = 2_000L
     }
 }

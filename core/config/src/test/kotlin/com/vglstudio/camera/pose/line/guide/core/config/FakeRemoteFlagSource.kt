@@ -8,11 +8,14 @@ import kotlinx.coroutines.flow.map
 internal class FakeRemoteFlagSource : RemoteFlagSource {
     val booleans = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val longs = MutableStateFlow<Map<String, Long>>(emptyMap())
+    val doubles = MutableStateFlow<Map<String, Double>>(emptyMap())
     val strings = MutableStateFlow<Map<String, String>>(emptyMap())
 
     override fun boolean(key: String): Flow<Boolean?> = booleans.map { it[key] }
 
     override fun long(key: String): Flow<Long?> = longs.map { it[key] }
+
+    override fun double(key: String): Flow<Double?> = doubles.map { it[key] }
 
     override fun string(key: String): Flow<String?> = strings.map { it[key] }
 }

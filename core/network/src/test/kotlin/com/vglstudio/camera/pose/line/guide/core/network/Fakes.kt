@@ -2,6 +2,7 @@ package com.vglstudio.camera.pose.line.guide.core.network
 
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
+import com.vglstudio.camera.pose.line.guide.core.config.RemoteKey
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,9 +29,10 @@ internal class FakeFeatureFlags(enabled: Set<FeatureFlag> = emptySet()) : Featur
 internal class FakeRemoteSettings : RemoteSettings {
     val longs = MutableStateFlow<Map<String, Long>>(emptyMap())
 
-    override fun boolean(key: String, default: Boolean): Flow<Boolean> = MutableStateFlow(default)
-
-    override fun long(key: String, default: Long): Flow<Long> = longs.map { it[key] ?: default }
-
-    override fun string(key: String, default: String): Flow<String> = MutableStateFlow(default)
+    // Safe cast: a LONG key is a RemoteKey<Long> (factories of RemoteKey).
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> value(key: RemoteKey<T>): Flow<T> = when (key.type) {
+        RemoteKey.Type.LONG -> longs.map { (it[key.name] ?: key.default) as T }
+        else -> MutableStateFlow(key.default)
+    }
 }

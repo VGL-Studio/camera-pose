@@ -357,6 +357,88 @@ class NetworkDialogControllerTest {
         assertTrue("$messages", messages.none { "/" in it })
     }
 
+    // A full-screen ad on screen (plan T-074, pass 2; T-017 of the template): the dialog waits for it to close.
+
+    @Test
+    fun lostWhileAdShowing_dialogWaits_thenShowsWhenAdCloses() = runTest {
+        val controller = controller()
+        controller.setFullScreenAdShowing(true)
+
+        connectivity.connected.value = false
+        advanceTimeBy(3_001)
+        controller.reportNetworkFailure("assets")
+        runCurrent()
+        assertEquals(HIDDEN, controller.state.value)
+        assertTrue(logger.entries.any { it.tag == "Network" && it.message == "Dialog waits: full_screen_ad" })
+
+        controller.setFullScreenAdShowing(false)
+        runCurrent()
+
+        assertEquals(SHOWN, controller.state.value)
+    }
+
+    @Test
+    fun adStartsWhileDialogShown_hidesThenShowsAgainOnClose() = runTest {
+        connectivity.connected.value = false
+        val controller = controller()
+        controller.reportNetworkFailure("assets")
+        runCurrent()
+        controller.retry()
+        runCurrent()
+        assertEquals(CHECKING, controller.state.value)
+
+        controller.setFullScreenAdShowing(true)
+        runCurrent()
+        assertEquals(HIDDEN, controller.state.value)
+        // The check that was running is stopped: it does not bring the dialog back over the ad.
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+
+        controller.setFullScreenAdShowing(false)
+        runCurrent()
+
+        // Shown again, as a new dialog: not stuck in the check stopped by the ad.
+        assertEquals(SHOWN, controller.state.value)
+    }
+
+    @Test
+    fun adCloses_withoutLoss_staysHidden() = runTest {
+        val controller = controller()
+
+        controller.setFullScreenAdShowing(true)
+        runCurrent()
+        controller.setFullScreenAdShowing(false)
+        advanceTimeBy(10_000)
+        assertEquals(HIDDEN, controller.state.value)
+
+        // Control: once the ad is closed, a failure shows the dialog at once, as before.
+        controller.reportNetworkFailure("assets")
+        runCurrent()
+        assertEquals(SHOWN, controller.state.value)
+    }
+
+    @Test
+    fun inactiveWhileWaiting_dropsPending() = runTest {
+        val controller = controller()
+        controller.setFullScreenAdShowing(true)
+        controller.reportNetworkFailure("assets")
+        runCurrent()
+        assertEquals(HIDDEN, controller.state.value)
+
+        // Back to loading while the ad shows: the failure waiting for the ad is dropped, as any failure there.
+        controller.setActive(false)
+        runCurrent()
+        controller.setFullScreenAdShowing(false)
+        controller.setActive(true)
+        runCurrent()
+        assertEquals(HIDDEN, controller.state.value)
+
+        // Control: with no ad on screen the dialog shows at once, as before.
+        controller.reportNetworkFailure("assets")
+        runCurrent()
+        assertEquals(SHOWN, controller.state.value)
+    }
+
     private companion object {
         val HIDDEN = NetworkDialogState.Hidden
         val SHOWN = NetworkDialogState.Shown(checking = false, stillOffline = false)

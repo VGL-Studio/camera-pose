@@ -9,6 +9,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:ads"))
     implementation(project(":core:config"))
     implementation(project(":core:data"))
     implementation(project(":core:logging"))

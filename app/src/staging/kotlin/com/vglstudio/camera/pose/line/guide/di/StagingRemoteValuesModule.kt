@@ -31,11 +31,17 @@ object StagingRemoteValuesModule {
         AdPlacement.REVIEW_INTERSTITIAL,
     ).map { LocalRemoteValue.of(AdsSettings.placementEnabled(it), true) }.toSet()
 
-    /** The ad lifecycle logs are on for testers (spec ads, question 6). */
+    /**
+     * The app open ad from the second open and the resume ad on every screen, and the ad lifecycle logs for testers
+     * (spec ads, question 6; plan T-074, pass 2). Not set, so off as their default: show_open_ads_first_open,
+     * is_show_native_after_inter, is_show_native_bottom.
+     */
     @Provides
     @ElementsIntoSet
     @LocalRemoteValues
-    fun adLogsOn(): Set<LocalRemoteValue> = listOf(
+    fun globalAdSwitchesOn(): Set<LocalRemoteValue> = listOf(
+        AdsSettings.SHOW_OPEN_ADS,
+        AdsSettings.SHOW_RESUM_ADS,
         AdsSettings.IS_LOG_AD_FULLSCREEN_EVENTS,
         AdsSettings.IS_LOG_AD_SLOT_EVENTS,
     ).map { LocalRemoteValue.of(it, true) }.toSet()

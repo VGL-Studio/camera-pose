@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        The AppsFlyer SDK (plan T-033, ADR-0027) merges two permissions that read the install referrer of the
+        preinstalled Samsung and Huawei stores, and the Samsung package that goes with the first one. The app ships on
+        Google Play only, so all three are removed. When upgrading the SDK, check these names in its AAR manifest again
+        and run MergedManifestTest in :app.
+    -->
+    <uses-permission
+        android:name="com.samsung.android.mapsagent.permission.READ_APP_INFO"
+        tools:node="remove" />
+    <uses-permission
+        android:name="com.huawei.appmarket.service.commondata.permission.GET_COMMON_DATA"
+        tools:node="remove" />
+
+    <queries>
+        <package
+            android:name="com.samsung.android.mapsagent"
+            tools:node="remove" />
+    </queries>
+
+</manifest>

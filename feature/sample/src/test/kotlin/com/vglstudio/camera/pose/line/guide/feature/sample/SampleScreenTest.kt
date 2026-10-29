@@ -10,6 +10,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -64,5 +66,15 @@ class SampleScreenTest {
             AppTheme { SampleScreen(uiState = SampleUiState.Disabled, onIncrement = {}) }
         }
         composeRule.onNodeWithText(string(R.string.sample_disabled)).assertIsDisplayed()
+    }
+
+    @Test
+    fun noSampleBottomBanner() {
+        // Spec ads, question 4: the sample screen has no banner placement. Read by symbol from the source (L-062);
+        // the working directory of a unit test is the module directory.
+        val source = java.io.File("src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/sample/SampleScreen.kt")
+        // Control: the file is the screen, so a missing symbol means something.
+        assertTrue("Missing ${source.absolutePath}", source.readText().contains("fun SampleScreen("))
+        assertFalse(source.readText().contains("AdPlacement.SAMPLE_BOTTOM_BANNER"))
     }
 }

@@ -16,6 +16,6 @@ internal class DefaultFeatureFlags @Inject constructor(
     override fun enabled(flag: FeatureFlag): Flow<Boolean> = if (flag in locallyEnabled) {
         flowOf(true)
     } else {
-        remote.boolean(flag.key).map { it ?: flag.defaultValue }
+        remote.boolean(flag.remoteKey.name).map { it ?: flag.remoteKey.default }
     }
 }

@@ -44,14 +44,8 @@ internal class DefaultInAppReview @Inject constructor(
                 logger.info(LOG_TAG, "Review skipped: flag_off")
                 return false
             }
-            val minSaved = settings.long(
-                ReviewSettings.MIN_SAVED_PHOTOS,
-                ReviewSettings.MIN_SAVED_PHOTOS_DEFAULT,
-            ).first()
-            val minDays = settings.long(
-                ReviewSettings.MIN_DAYS_BETWEEN,
-                ReviewSettings.MIN_DAYS_BETWEEN_DEFAULT,
-            ).first()
+            val minSaved = settings.value(ReviewSettings.MIN_SAVED_PHOTOS_KEY).first()
+            val minDays = settings.value(ReviewSettings.MIN_DAYS_BETWEEN_KEY).first()
             if (!isReviewDue(savedPhotos, minSaved, history.lastAskedAt(), clock.nowMillis(), minDays)) {
                 logger.info(LOG_TAG, "Review skipped: not_due saved=$savedPhotos")
                 return false

@@ -8,7 +8,7 @@ import org.junit.Test
 /** The privacy policy address read from Remote Config (spec settings, KB-5; plan T-025, section 4). */
 class DefaultAppLinksTest {
     private val remote = FakeRemoteFlagSource()
-    private val links = DefaultAppLinks(DefaultRemoteSettings(remote))
+    private val links = DefaultAppLinks(DefaultRemoteSettings(remote, emptySet()))
 
     @Test
     fun withoutRemoteValue_usesDefault() = runTest {

@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.config
 import app.cash.turbine.test
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -51,6 +52,15 @@ class DefaultFeatureFlagsTest {
             assertTrue(awaitItem())
             remote.booleans.value = emptyMap()
             assertFalse(awaitItem())
+        }
+    }
+
+    @Test
+    fun everyFlag_remoteKeyMatchesKeyAndDefault() {
+        FeatureFlag.entries.forEach { flag ->
+            assertEquals(flag.key, flag.remoteKey.name)
+            assertEquals(false, flag.remoteKey.default)
+            assertEquals(RemoteKey.Type.BOOLEAN, flag.remoteKey.type)
         }
     }
 

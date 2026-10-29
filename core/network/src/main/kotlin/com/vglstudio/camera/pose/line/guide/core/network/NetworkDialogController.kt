@@ -120,8 +120,7 @@ class NetworkDialogController @Inject internal constructor(
     }
 
     private suspend fun showAfterDelay() {
-        val seconds = settings.long(NetworkSettings.LOST_DELAY_SECONDS, NetworkSettings.LOST_DELAY_SECONDS_DEFAULT)
-            .first()
+        val seconds = settings.value(NetworkSettings.LOST_DELAY).first()
         delay(seconds * MILLIS_PER_SECOND)
         show("device_offline delay=${seconds}s")
     }

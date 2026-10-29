@@ -4,6 +4,7 @@ import com.vglstudio.camera.pose.line.guide.BuildConfig
 import com.vglstudio.camera.pose.line.guide.core.ads.AdUnitIds
 import com.vglstudio.camera.pose.line.guide.core.ads.ConfiguredAdUnitIds
 import com.vglstudio.camera.pose.line.guide.core.ads.ConsentDebugOptions
+import com.vglstudio.camera.pose.line.guide.core.ads.ConsentShortcutConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,4 +19,8 @@ object ProductionAdsModule {
 
     @Provides
     fun consentDebugOptions(): ConsentDebugOptions = ConsentDebugOptions.NONE
+
+    /** The consent shortcut is off in production builds (S-12). */
+    @Provides
+    fun consentShortcutConfig(): ConsentShortcutConfig = ConsentShortcutConfig.OFF
 }

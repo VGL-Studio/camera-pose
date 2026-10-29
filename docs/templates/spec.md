@@ -68,7 +68,7 @@ Tiêu chí chấp nhận:
 
 ## 5. Quảng cáo
 
-<!-- Vị trí quảng cáo là quyết định kinh doanh. AI không tự thêm vị trí ở đây. Theo docs/ops/ads-guide.md: định dạng ở mục 3, bảng "luôn giữ" ở mục 2; hành vi và tên khóa ở docs/ops/ads-business-rules.md (ADR-0026). -->
+<!-- Vị trí quảng cáo là quyết định kinh doanh. AI không tự thêm vị trí ở đây. Theo docs/ops/ads-guide.md: định dạng ở mục 3, bảng "luôn giữ" ở mục 2; hành vi và tên khóa ở docs/ops/ads-business-rules.md (ADR-0026). Vị trí đã hoạch định trên file Excel của app (docs/ops/ads-plan.md) thì chép từ sheet Vị trí QC. -->
 
 **Màn hình không có quảng cáo (nếu spec muốn giữ):** <tên màn hình, hoặc "Không có">
 

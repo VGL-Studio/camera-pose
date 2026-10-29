@@ -3,7 +3,7 @@
 
 Usage: scripts/plan-queue.py [--max N]      (N defaults to 2)
 
-A ticket is picked when it is `backlog` or `ready`, has no `plan:`, and
+A ticket is picked when it is `backlog` or `ready`, has no `plan:`, is not marked `auto_run: false` (people do it), and
   - its spec (when it has one) exists, is confirmed and has no unanswered question; a ticket with scenarios needs a spec;
   - every `depends_on` ticket exists, is not stopped or cancelled, and is merged, has a plan,
     or was picked earlier in the same pass;
@@ -143,6 +143,13 @@ def spec_problem(ticket):
     return "; ".join(errors)
 
 
+def manual(ticket):
+    """A ticket that people do by hand (for example scripts/release.sh) gets no plan from a session."""
+    if ticket.get("auto_run", "").lower() == "false":
+        return "ticket ghi auto_run: false (người làm, không soạn plan cho phiên tự chạy)"
+    return ""
+
+
 def main(argv):
     limit = 2
     if argv:
@@ -158,7 +165,8 @@ def main(argv):
     chosen = []
     for ticket in candidates:
         reason = (
-            holder(ticket["id"], branches, pr_files)
+            manual(ticket)
+            or holder(ticket["id"], branches, pr_files)
             or spec_problem(ticket)
             or dependency_problem(ticket, tickets, chosen)
         )

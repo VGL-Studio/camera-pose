@@ -11,6 +11,7 @@ size: M                      # S | M | L, xem giải thích ở cuối
 depends_on: []               # các ticket phải xong trước, ví dụ [T-010]
 sprint:                      # điền khi được chọn vào sprint
 plan:                        # đường dẫn plan khi đã có
+auto_run:                    # để trống; ghi false khi ticket do người làm (ví dụ chạm scripts/release.sh): plan-queue.py không soạn plan, run-check.py từ chối đưa vào danh sách chạy
 created: YYYY-MM-DD
 ---
 

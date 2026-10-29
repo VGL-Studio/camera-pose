@@ -82,6 +82,8 @@ Small, medium và đầy đủ trong `:core:ads` (plan T-010, T-027, T-028, số
 
 Vị trí là quyết định kinh doanh: chỉ thêm khi spec đã duyệt có vị trí đó (ADR-0004). Vị trí theo mô hình chung (`ads-business-rules.md`, mục Mô hình chung): thêm vị trí cho một tính năng mới **không** thêm code vào `:core:ads`.
 
+Nhóm kinh doanh hoạch định vị trí, khóa và sự kiện trên file Excel do `scripts/ads-plan.py` sinh từ code của app, rồi mới chép vào spec (bước 1 dưới đây). Cách sinh, điền và sinh lại sau mỗi lần đổi code: [ads-plan.md](ads-plan.md).
+
 1. **Spec của app:** mục Quảng cáo ghi cho mỗi vị trí:
    - Mã vị trí (chữ thường, gạch dưới), cũng là giá trị `ad_placement` trong số liệu.
    - Định dạng, chọn trong danh sách của `:core:ads`: `app_open`, `interstitial`, `rewarded`, `banner`, `banner_collapsible`, `native_small`, `native_collap`, `native_fullscreen`, `native_step`, `native_medium`, `native_in_collection`.

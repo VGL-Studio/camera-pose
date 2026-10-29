@@ -61,6 +61,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Mã ticket lấy số tiếp theo của cả app: tìm mã lớn nhất trong mọi thư mục `features/*/tickets/` rồi cộng một.
 - Ghi rõ ticket xử lý kịch bản nào của spec và phụ thuộc ticket nào.
 - Chấm rủi ro sơ bộ và ước lượng cỡ (S, M, L) theo [mẫu ticket](templates/ticket.md).
+- Ticket mà phiên tự chạy không được làm (chạm `scripts/release.sh`, cấu hình production, hay việc chỉ người làm được) ghi `auto_run: false`: `scripts/plan-queue.py` không soạn plan cho nó, `scripts/run-check.py` từ chối danh sách chạy có nó. Ticket phụ thuộc nó chờ tới khi nó có plan hay đã xong.
 
 ## Khi viết plan
 
@@ -116,7 +117,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 - Lập xong thì kiểm tra cả danh sách theo [ops/pre-run-review.md](ops/pre-run-review.md): chạy `scripts/run-check.py <danh sách chạy>` và sửa hết lỗi, rồi giao một phiên AI riêng (ngữ cảnh mới, chỉ đọc) rà soát mâu thuẫn, test chưa đủ tốt và khả năng chạy được trong phiên. Ghi kết quả vào mục Kiểm tra trước khi duyệt của danh sách. Điểm chặn thì soạn plan phiên bản mới hay đề xuất sửa spec, hoặc đề xuất bỏ task; không tự sửa plan `approved` hay spec `confirmed`.
 - Ghi tổng `token_estimate` của danh sách trong mục Lý do của thứ tự chạy, so với tổng token thật của vài phiên gần nhất (`docs/metrics/token-usage.csv`), để người duyệt thấy danh sách có vừa một phiên không. Chỉ để tham khảo, không bỏ task vì vượt.
 - `plan_queue` mặc định 2 (số plan soạn sẵn cuối phiên); dev đổi hay đặt `0`.
-- Hàng chờ plan cuối phiên (`scripts/plan-queue.py`) nhận ticket `backlog` hay `ready`, miễn là ticket chưa có plan, spec đã chốt và không còn câu hỏi mở, phụ thuộc đã có plan và không dừng hay hủy. Dev không cần chuyển ticket sang `ready` để nó vào hàng chờ; `ready` chỉ là dấu tùy chọn. Muốn giữ một ticket ra khỏi hàng chờ thì để câu hỏi mở trong spec, hay đặt `plan_queue: 0`.
+- Hàng chờ plan cuối phiên (`scripts/plan-queue.py`) nhận ticket `backlog` hay `ready`, miễn là ticket chưa có plan, spec đã chốt và không còn câu hỏi mở, phụ thuộc đã có plan và không dừng hay hủy. Dev không cần chuyển ticket sang `ready` để nó vào hàng chờ; `ready` chỉ là dấu tùy chọn. Ticket ghi `auto_run: false` không bao giờ vào hàng chờ. Muốn giữ một ticket ra khỏi hàng chờ thì để câu hỏi mở trong spec, hay đặt `plan_queue: 0`.
 - Danh sách chạy có trạng thái `draft`. Chỉ dev mới chuyển sang `approved` và kích hoạt phiên.
 
 ## Trong phiên tự chạy

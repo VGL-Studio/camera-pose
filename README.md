@@ -15,6 +15,7 @@ App Camera Pose: Lines and Guides, tạo từ dự án mẫu của nhóm ngày 2
 | Tiến độ: yêu cầu, ticket, phiên chạy, việc chờ người | [docs/STATUS.md trên nhánh status](../../blob/status/docs/STATUS.md) |
 | Quy trình làm việc, cấu trúc tài liệu | [docs/README.md](docs/README.md) |
 | Phiên AI tự chạy | [docs/auto-run.md](docs/auto-run.md) |
+| Làm ngay việc nhỏ trong ngày cùng AI, không chờ phiên tự chạy | [docs/ops/quick-lane.md](docs/ops/quick-lane.md) |
 | Thang điểm rủi ro, điều kiện dừng | [docs/risk-scoring.md](docs/risk-scoring.md) |
 | Các quyết định kỹ thuật | [docs/adr/](docs/adr/) |
 | Hướng dẫn cho AI về code | [CLAUDE.md](CLAUDE.md) |

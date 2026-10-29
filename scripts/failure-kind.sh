@@ -47,12 +47,14 @@ for line in open(table, encoding="utf-8"):
     if len(cells) < 6:
         continue
     code, pattern, _, kind, action, source = cells[:6]
-    pattern = pattern.strip("`").replace("\\|", "|")
+    # A cell may hold several patterns in backticks joined by "và": the row matches only when the log has every one.
+    patterns = [p.replace("\\|", "|") for p in re.findall(r"`([^`]+)`", pattern)] or [pattern.replace("\\|", "|")]
     kind = kind.strip("`")
-    result = subprocess.run(["grep", "-Eq", "--", pattern, log], capture_output=True)
-    if result.returncode == 2:
-        print(f"LỖI BẢNG: {code}: mẫu không hợp lệ với grep -E: {pattern}", file=sys.stderr)
-    elif result.returncode == 0:
+    codes = [subprocess.run(["grep", "-Eq", "--", p, log], capture_output=True).returncode for p in patterns]
+    for p, rc in zip(patterns, codes):
+        if rc == 2:
+            print(f"LỖI BẢNG: {code}: mẫu không hợp lệ với grep -E: {p}", file=sys.stderr)
+    if all(rc == 0 for rc in codes):
         print(f"{code} {kind}: {action} ({source})")
         sys.exit(0)
 print("khong-co: lỗi chưa có trong docs/ops/failure-playbook.md. Đọc log, xử lý như lỗi thật (auto-run.md bước 8, tối đa 3 lần sửa).")

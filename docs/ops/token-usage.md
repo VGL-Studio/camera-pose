@@ -43,6 +43,8 @@ scripts/token-usage.py report --since <started_at> --run RUN-YYYYMMDD-NN --csv d
 
 Phiên có người theo dõi (viết spec, plan, retro) cũng dùng được lệnh này với `--since` để xem mức dùng, không cần `--run`.
 
+**Đường làm nhanh** (ADR-0034, [quick-lane.md](quick-lane.md)): phiên chính chạy `scripts/token-usage.py mark T-NNN` khi bắt đầu task và `mark chung` khi xong. Nhánh `claude/quick-T-NNN-...` không phải nhánh task theo mục 1, nên request của phiên chính trên nhánh đó tính vào task nhờ dấu mốc; lời giao cho agent rà soát có dòng `Task: T-NNN`. Xong task thì chạy `report --since <giờ bắt đầu> --run QUICK-YYYYMMDD-T-NNN --csv docs/metrics/token-usage.csv`; file CSV đi cùng PR tài liệu kế tiếp. `estimate` đọc các dòng này như dòng của phiên tự chạy. Chạy `mark T-NNN` ngay khi có mã ticket thì token viết ticket và plan cũng tính vào task, khác với phiên tự chạy; phần trước đó vào dòng Chung. Mã ticket phải đổi vì trùng với PR song song thì chạy lại `mark` với mã mới; request trước đó vẫn nằm ở mã cũ. Agent con không có dòng `Task: T-NNN` thì vào dòng Chung, vì dấu mốc chỉ áp cho phiên chính.
+
 ## 4. Dùng số liệu ở retro và họp đánh giá rủi ro
 
 - **Lập danh sách chạy:** cộng `token_estimate` của các plan để xem danh sách có vừa một phiên không, so với tổng thật của các phiên trước.

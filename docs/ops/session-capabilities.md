@@ -6,7 +6,7 @@ Phiên tự chạy mở theo một trong ba cách. Mỗi cách chạy trong mộ
 | --- | --- |
 | `cloud` | `claude --cloud` từ terminal của dev, dùng cloud session credits. Không tự tiếp tục khi hết hạn mức (L-044) |
 | `routine` | `start-run.yml` hay Run now của routine (`docs/auto-run.md`, mục 1). `resume-run.yml` tự tiếp tục khi hết hạn mức |
-| `local` | Claude Code chạy trên máy của dev, trong thư mục repo, dùng git và `gh` của máy đó. Kiểm môi trường đầu phiên bằng `scripts/local-setup.sh --check`, không bằng `cloud-env-check.sh` (`docs/auto-run.md`, mục 2; L-089) |
+| `local` | Claude Code chạy trên máy của dev, trong thư mục repo, dùng git và `gh` của máy đó. Kiểm môi trường đầu phiên bằng `scripts/local-setup.sh --check`, không bằng `cloud-env-check.sh` (`docs/auto-run.md`, mục 2; L-116) |
 
 Danh sách chạy ghi cách mở ở dòng `open_with:` (`docs/templates/run.md`). `scripts/run-check.py` (quy tắc 8) đọc bảng dưới. Plan có đường dẫn ở mục 3.2 khớp cột Mẫu của một khả năng mà cách mở ghi `không` là lỗi. Ghi `thử` là chú ý, và phiên thử khả năng đó ở đầu phiên (`docs/auto-run.md`, mục 2). Script chỉ tính các hàng của bảng file ở mục 3.2 (như `scripts/plan-check.py --touches`), không tính chữ. Dòng có Mẫu `-` là để người đọc, script không kiểm. Mẫu viết sai thì script báo chú ý và bỏ qua dòng đó. Giá trị: `có`, `không`, `thử`.
 

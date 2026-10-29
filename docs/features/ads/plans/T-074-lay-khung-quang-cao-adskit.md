@@ -1,7 +1,7 @@
 ---
 ticket: T-074
 title: Lấy khung quảng cáo AdsKit của dự án mẫu về app (chưa bật AppsFlyer), chuyển ba vị trí quảng cáo hiện có sang khung mới, bật quảng cáo mở app và quay lại app
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -10,7 +10,7 @@ blocking_points: [ads, sdk, permission, analytics, consent, core, build]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Tuấn               # người duyệt
 cross_reviewer: Nhật         # bắt buộc khi risk_level là high
-approved_at:
+approved_at: 2026-10-29
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -596,12 +596,12 @@ Kết quả `python3 scripts/existing-tests.py docs/features/ads/plans/T-074-lay
 
 <!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
 
-- **Quyết định:** chưa. Chờ Tuấn (người duyệt).
-- **Người duyệt:** Tuấn (chưa), **duyệt chéo:** Nhật, 2026-10-29 (AI ghi theo lời Nhật: "Ghi tôi duyệt chéo, chờ Tuấn").
+- **Quyết định:** Duyệt, 2026-10-29.
+- **Người duyệt:** Tuấn, 2026-10-29 (AI ghi theo lời Nhật báo lại: "Tuấn đã duyệt, tôi báo lại"; lời duyệt của Nhật: "Duyệt"), **duyệt chéo:** Nhật, 2026-10-29 (AI ghi theo lời Nhật: "Ghi tôi duyệt chéo, chờ Tuấn").
 - **Ghi chú:**
   - Nhật đồng ý câu 10 của mục 8: các test `InterstitialBreaksTest.afterShown_waitsMinInterval`, `allowed_onlyWithConsentFlagAndNoNetworkDialog`, cả `InterstitialFlowTest` và `AppsFlyerSdkUseTest` được xóa vì hành vi bị bỏ theo câu 1, câu 3 của spec ads, không phải để làm test qua.
-  - Mục 4.1 chạy thử phần nhỏ theo lựa chọn của Nhật; `scripts/check.sh`, test của khung và `:app:assembleStagingRelease` (R8) để lượt 1. Đây là lệch so với `docs/CLAUDE.md` (mục Khi viết plan: tiêu chí E từ 2 và thư viện mới cần `check.sh` và R8 ở mục 4.1 trước khi duyệt); Tuấn quyết có nhận khi duyệt không.
-  - Câu 12 (hai kho Maven trong môi trường `claude --cloud`) còn mở; không chặn phiên `local` của T-074.
+  - Mục 4.1 chạy thử phần nhỏ theo lựa chọn của Nhật; `scripts/check.sh`, test của khung và `:app:assembleStagingRelease` (R8) để lượt 1. Đây là lệch so với `docs/CLAUDE.md` (mục Khi viết plan: tiêu chí E từ 2 và thư viện mới cần `check.sh` và R8 ở mục 4.1 trước khi duyệt); Người duyệt nhận lệch này khi duyệt: lượt 1 chạy `scripts/check.sh` và `:app:assembleStagingRelease` ở bước 5; R8 hay test của khung không qua sau ba lần sửa thì dừng theo mục 7.
+  - Câu 12 (hai kho Maven trong môi trường `claude --cloud`) còn mở; không chặn phiên `local` của T-074. Danh sách chạy của T-074 mở bằng `local`; phiên `cloud` hay `routine` sau khi lượt 1 merge cần người kiểm hai kho trước.
 
 ## 10. Nhật ký thực hiện
 

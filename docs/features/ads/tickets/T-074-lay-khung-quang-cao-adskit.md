@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-28; vị trí của từng màn vẫn ở mục 5 của features/camera/spec.md và features/poses/spec.md
 scenarios: []
 owner: Tuấn
-status: backlog
+status: approved
 risk: high
 size: L
 depends_on: []               # đồng bộ đợt 4 (VGL-Studio/camera-pose#224) đã merge, base của docs/template-sync.txt là 47782ec

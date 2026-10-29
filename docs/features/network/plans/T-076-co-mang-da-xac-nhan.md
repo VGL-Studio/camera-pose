@@ -208,7 +208,7 @@ Ngân sách `device-session`: tệp có `timeout: 180`; T-022 chạy phần tư�
   - Lần đầu thiếu `robolectric.properties`: `AndroidConnectivitySourceTest > initializationError FAILED`, `IllegalArgumentException at DefaultSdkPicker.java:119` (Robolectric 4.15.1 không có SDK 36). Thêm `sdk=35` thì chạy được; vì vậy tệp này có ở mục 3.2.
   - Code hiện tại: 2 test, 2 thất bại đúng lý do: `isConnected_needsInternetAndValidated` ở dòng `assertFalse(source.isConnected())` với chỉ `INTERNET` (code cũ trả `true`); `connectivity_...` ở câu giá trị đầu `assertFalse(awaitItem())` (code cũ phát `true`).
   - Sau diff của mục 3.1: `BUILD SUCCESSFUL`; `:core:network` 32 test, 0 thất bại (`AndroidConnectivitySourceTest` 2, `NetworkDialogControllerTest` 24, `NetworkErrorsTest` 3, `NetworkSettingsTest` 2, `DefaultInternetConnectivityTest` 1).
-  - `scripts/check.sh`: KẾT_QUẢ_CHECK
+  - `scripts/check.sh`: Chạy thử: chưa chạy xong (hết thời gian soạn plan 40 phút; lúc dừng, `check.sh` mới qua phần test của script, chưa tới phần Gradle; không có lỗi nào trong 830 dòng log đầu). Câu 5 ở mục 8.
   - `scripts/device-scenario.py check` tệp kịch bản: mã 0.
   - Emulator CI (bằng chứng có sẵn, không chạy mới): artifact `device-session` của lần chạy `40905234848` (TS-20261029-01, 2026-10-29). `logcat.txt`: mạng Wi-Fi của emulator có `VALIDATED` từ đầu (`[100 WIFI] validation passed` lúc 15:59:58, trước khi app chạy; dòng `GnssNetworkConnectivityHandler` liệt kê `INTERNET&...&VALIDATED`). Trong T-022, `network on` lúc 16:08:03.925 đổi mạng mặc định sang di động, `[104 CELLULAR] validation passed` lúc 16:08:04.067 (khoảng 0,14 giây); Wi-Fi được xác nhận (16:08:07.166) trước khi thành mạng mặc định (16:08:07.167). Sau kịch bản mất mạng lúc mở app: di động được xác nhận lúc 16:01:20.481, 0,13 giây sau khi thành mặc định (16:01:20.351). Hộp thoại hiện 3 giây sau khi mất mạng (`Lost default Internet network: 103` 16:07:56.288, `VGL.Network: Dialog shown: device_offline delay=3s` 16:07:59.286). Nên trên emulator CI, đòi `VALIDATED` không làm hộp thoại hiện oan; không cần quay về hướng (b). Tệp kịch bản của task xác nhận lại trên code mới sau merge (mục 3.4).
   - Máy thật: chưa kiểm (không có máy nối với máy dev lúc viết plan); dòng máy thật ở mục 4.
@@ -247,6 +247,9 @@ Ngân sách `device-session`: tệp có `timeout: 180`; T-022 chạy phần tư�
    - Đề xuất của AI: dev kiểm bản staging trên một hai máy thật theo hai dòng máy thật của mục 4; thấy hộp thoại hiện oan thì ghi phản hồi và soạn plan phiên bản 2 theo hướng (b).
 4. **Có đưa test và `robolectric.properties` của `:core:network` về dự án mẫu không?** Mẫu đã có test tương tự; app thêm `robolectric.properties` vì `targetSdk 36` (mẫu có thể cùng cần).
    - Đề xuất của AI: không cần issue `from-app` cho code (code lấy từ mẫu). Chỉ ghi trong mô tả PR rằng `robolectric.properties` cần cho `:core:network` khi `targetSdk` là 36, để mẫu xem lại nếu mẫu đổi `targetSdk`.
+
+5. **`scripts/check.sh` trên nhánh có code chưa chạy xong lúc soạn plan** (mục 4.1). Chỉ `:core:network:testDebugUnitTest` đã qua (32 test). E là 1 nên mục này không bắt buộc, nhưng `build.gradle.kts` của `:core:network` đổi (thêm `testImplementation`) và `robolectric.properties` là tệp mới.
+   - Đề xuất của AI: người duyệt (hay phiên soạn plan kế) chạy lại `scripts/check.sh` trên một worktree tạm có diff của mục 3.1 và test của mục 4 trước khi duyệt, ghi kết quả vào mục 4.1; phiên tự chạy vẫn chạy `check.sh` ở bước 5 như mọi task.
 
 ## 9. Quyết định duyệt
 

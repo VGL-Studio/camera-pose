@@ -10,7 +10,7 @@ risk: high
 size: L
 depends_on: []               # PR đồng bộ đợt 3 (VGL-Studio/camera-pose#208) đã merge, base của docs/template-sync.txt là 0444fbe
 sprint:
-plan:
+plan: features/ads/plans/T-074-lay-khung-quang-cao-adskit.md   # draft, 2026-10-28
 created: 2026-10-28
 ---
 
@@ -34,8 +34,11 @@ Sau ticket này, app dùng khung mới. Ba vị trí hiện có (`review_interst
 - **Lấy code của dự án mẫu** theo `docs/ops/to-app.md` của dự án mẫu, mục 5. Người hay AI có người theo dõi chạy `scripts/template-sync.sh --app <camera-pose> --take <đường dẫn>` cho từng phần, gộp xung đột, đẩy nhánh `template-sync/take-...`. Plan lấy nhánh đó làm điểm bắt đầu.
   - `core/ads`: 254 file đổi từ `0eaeadb`.
   - `core/analytics`: lấy khung nhưng không đưa SDK AppsFlyer vào app (câu 3 của spec). Plan kiểm làm được không; không được thì giữ `core/analytics` cũ (`hold=`) và báo trong plan trước khi duyệt.
-  - `core/config`: `RemoteSettings`, bảng khóa, ADR-0023.
-  - Các core mà `core/ads` cần ở bản mới: `core/network`, `core/designsystem`, `core/data`, `core/logging`. Plan kiểm bằng build và ghi phần nào phải lấy.
+  - `core/analytics` làm được không cần SDK (plan, mục 3.1): bỏ `implementation(libs.appsflyer)`, thay `AppsFlyerLibSink` (chỗ duy nhất import SDK, `AppsFlyerSink.kt:4`) bằng một sink rỗng gắn trong `AnalyticsModule`, bỏ `AppsFlyerSdkUseTest`, `:app` cấp `AppsFlyerConfig("")`. Đây là sửa code core dùng chung: ghi trong PR và đề xuất về dự án mẫu (`docs/ops/from-app.md`).
+  - `core/config`: gộp tay T-007 (`RemoteKey`, `RemoteSettings.value(key)`, `FeatureFlag.description`) và T-008 (`LocalRemoteValues`, `@Multibinds` ở `ConfigModule`), không `--take`: app có `AppLinks`, `PoseMatchingSettings`, 7 cờ thêm, `REFRESH_TIMEOUT_MILLIS = 15_000` (ADR-1001). Đổi API làm sáu chỗ gọi phải sửa: `DefaultPoseCatalogRepository.kt:127` (`core/poses`), `InAppReview.kt:47,51` (`core/review`), `NetworkDialogController.kt:123` (`core/network`), `AppLinks`, `PoseMatchingSettings`, `core/ads` cũ.
+  - Các core mà `core/ads` cần ở bản mới: `core/network` chỉ lấy interface `InternetConnectivity` và binding của nó (T-020 của mẫu) cùng `setFullScreenAdShowing` (một phần T-017), không lấy phần còn lại của `core/network` mẫu; `core/designsystem`, `core/assets` không lấy (app đã có bản riêng); `core/data`, `core/logging`, `build-logic` mẫu không đổi từ `0eaeadb`. Ghi chú: T-076 (`VALIDATED`) đổi ý nghĩa của `InternetConnectivity`; T-074 không phụ thuộc T-076, T-077.
+  - `feature/loading`: chép tay T-024 của mẫu (`StartupAds` trong `LoadingViewModel`, `LoadingRoute`), vì loading của app khác (catalog R2, bộ khởi đầu, chờ 15 giây, chữ và ảnh chuẩn riêng); test theo `LoadingRouteTest` và `FakeStartupAds` của mẫu; kiểm tổng thời gian loading với giới hạn của `StartupAds` (đồng ý 10 giây, SDK 35 giây, quảng cáo 40 giây, tính từ lúc mở app).
+  - `docs/template-sync.txt`: tách `hold=core` theo module trước khi `--take` (script chỉ nhận đúng một dòng `hold=<đường dẫn>`).
   - `gradle/libs.versions.toml`: chín adapter mediation, Unity Ads. Không thêm AppsFlyer.
   - `settings.gradle.kts`: kho Maven của Pangle và Mintegral.
   - Phần `app/` mà khung cần:
@@ -45,6 +48,9 @@ Sau ticket này, app dùng khung mới. Ba vị trí hiện có (`review_interst
     - không mang màn xem thử quảng cáo `AdGalleryActivity` (câu 4 của spec);
     - `StagingRemoteValuesModule` của app **không** lấy nguyên bản mẫu: bản mẫu bật sẵn quảng cáo mở app, quay lại app, combo native sau interstitial và native đáy ở staging. Theo câu 6 của spec, app bật `show_open_ads` và `show_resum_ads`, không bật `is_show_native_after_inter`, `is_show_native_bottom`; không bật `show_open_ads_first_open` (câu 6). Có test kiểm các giá trị này.
     - Quảng cáo mở app do màn loading gọi `StartupAds` của khung, hiện khi loading xong, trước khi vào camera; không hiện ở lần mở đầu sau khi cài. Cần `feature_loading_enabled` bật. Quảng cáo khi quay lại app theo cổng của khung (luật A-11), không có cổng theo màn: không sửa `core/ads` cho việc này. Có test cho phần của app.
+    - Đánh dấu các lần rời app có chủ đích bằng `rememberAdSuppression` và `rememberMarkLeavingApp` của khung (`AdSuppression.kt`, luật G-03, G-05): hộp thoại quyền camera (camera, màn chào), quyền lưu, chia sẻ ảnh, mở cài đặt hệ thống, mở link và trang ngôn ngữ từ cài đặt, hộp đánh giá In-App Review. Thiếu thì quảng cáo quay lại app hiện ngay sau hộp thoại quyền.
+    - Đổi hành vi: bộ cũ không mở quảng cáo toàn màn hình khi popup mạng đang hiện (`AdsController.kt:125`, `networkStatus.dialogShown`); khung mới chỉ theo `InternetConnectivity`, popup chờ quảng cáo đóng (`setFullScreenAdShowing`).
+    - Firebase staging thật (bí mật `STAGING_GOOGLE_SERVICES_JSON`) thắng giá trị cục bộ của `StagingRemoteValuesModule`; người kiểm các khóa trên Firebase staging trước khi phát (plan, mục 3.1).
 - **Chuyển ba vị trí của app sang `AdPlacement` mới.**
   - `review_interstitial`: interstitial.
   - `poses_banner`, `poses_detail_banner`: banner.

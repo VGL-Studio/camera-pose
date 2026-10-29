@@ -18,8 +18,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
-import com.vglstudio.camera.pose.line.guide.core.ads.AdSlot
 import com.vglstudio.camera.pose.line.guide.core.ads.PrivacyOptionsButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
@@ -69,7 +67,6 @@ internal fun SampleScreen(uiState: SampleUiState, onIncrement: () -> Unit, modif
                     }
                 }
             }
-            AdSlot(placement = AdPlacement.SAMPLE_BOTTOM_BANNER, modifier = Modifier.fillMaxWidth())
             // Only visible where the consent form applies; an app usually puts it in its settings screen.
             PrivacyOptionsButton()
         }

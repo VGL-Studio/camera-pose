@@ -52,6 +52,9 @@ internal class FirebaseRemoteFlagSource @Inject constructor() : RemoteFlagSource
 
     override fun long(key: String): Flow<Long?> = values(key) { it.asLong() }
 
+    override fun double(key: String): Flow<Double?> = values(key) { it.asDouble() }
+
+    // asString never throws: a string key is null only while it has no remote value.
     override fun string(key: String): Flow<String?> = values(key) { it.asString() }
 
     private fun <T> values(key: String, convert: (FirebaseRemoteConfigValue) -> T): Flow<T?> = activations
@@ -61,16 +64,32 @@ internal class FirebaseRemoteFlagSource @Inject constructor() : RemoteFlagSource
 
     private fun <T> read(key: String, convert: (FirebaseRemoteConfigValue) -> T): T? {
         val value = remoteConfig.getValue(key)
-        if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) return null
-        return try {
-            convert(value)
-        } catch (e: IllegalArgumentException) {
+        return activeValueOrNull(value.source, { convert(value) }) { e ->
             Log.w(TAG, "Remote value of $key has the wrong type, using the default", e)
-            null
         }
     }
 
     private companion object {
         const val TAG = "RemoteFlags"
+    }
+}
+
+/**
+ * The decision of [FirebaseRemoteFlagSource] for one value, apart from Firebase and Android logging, so it can
+ * be tested on the JVM. Returns null when the key has no remote value ([source] is
+ * [FirebaseRemoteConfig.VALUE_SOURCE_STATIC]) or when [convert] finds the wrong type, which is passed to
+ * [onWrongType].
+ */
+internal fun <T> activeValueOrNull(
+    source: Int,
+    convert: () -> T,
+    onWrongType: (IllegalArgumentException) -> Unit,
+): T? {
+    if (source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) return null
+    return try {
+        convert()
+    } catch (e: IllegalArgumentException) {
+        onWrongType(e)
+        null
     }
 }

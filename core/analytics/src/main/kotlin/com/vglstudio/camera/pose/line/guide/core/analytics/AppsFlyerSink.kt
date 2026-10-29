@@ -1,8 +1,5 @@
 package com.vglstudio.camera.pose.line.guide.core.analytics
 
-import android.content.Context
-import com.appsflyer.AppsFlyerLib
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 /**
@@ -17,24 +14,13 @@ internal interface AppsFlyerSink {
 }
 
 /**
- * The AppsFlyer SDK: the only file of the repo that uses it (AppsFlyerSdkUseTest). `init` reads the TCF consent
- * string of UMP (ADR-0013) and sets no customer id, no conversion listener and no debug log; events go through the
- * plain event call of the SDK, never its ad revenue module (section 8.3).
+ * AppsFlyer is not in this app (spec ads, question 3): no SDK, no permission, nothing sent. Every call does
+ * nothing. Turning AppsFlyer on needs its own spec and ticket, which bring back the SDK sink of the template.
  */
-internal class AppsFlyerLibSink @Inject constructor(@param:ApplicationContext private val context: Context) :
-    AppsFlyerSink {
-    override fun init(devKey: String) {
-        val lib = AppsFlyerLib.getInstance()
-        // Before init, so the SDK reads the consent string from its first request (ADR-0027, decision 3).
-        lib.enableTCFDataCollection(true)
-        lib.init(devKey, null, context)
-    }
+internal class NoOpAppsFlyerSink @Inject constructor() : AppsFlyerSink {
+    override fun init(devKey: String) = Unit
 
-    override fun start() {
-        AppsFlyerLib.getInstance().start(context)
-    }
+    override fun start() = Unit
 
-    override fun logEvent(name: String, params: Map<String, Any>?) {
-        AppsFlyerLib.getInstance().logEvent(context, name, params)
-    }
+    override fun logEvent(name: String, params: Map<String, Any>?) = Unit
 }

@@ -41,7 +41,10 @@ class NoAppsFlyerSdkTest {
         }.readText()
         // Control: the module binds a sink at all, so the check below reads the right line.
         assertTrue("No bindAppsFlyerSink in AnalyticsModule", "fun bindAppsFlyerSink(" in module)
-        assertTrue("AnalyticsModule must bind NoOpAppsFlyerSink", "bindAppsFlyerSink(impl: NoOpAppsFlyerSink)" in module)
+        assertTrue(
+            "AnalyticsModule must bind NoOpAppsFlyerSink",
+            "bindAppsFlyerSink(impl: NoOpAppsFlyerSink)" in module,
+        )
         val sink: AppsFlyerSink = NoOpAppsFlyerSink()
         // None of the calls throws, and none can reach an SDK (there is none).
         sink.init("dev-key")

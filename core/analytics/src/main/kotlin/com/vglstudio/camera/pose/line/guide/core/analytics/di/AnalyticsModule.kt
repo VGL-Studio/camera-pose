@@ -4,7 +4,6 @@ import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnel
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.Analytics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AndroidCountrySource
-import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerLibSink
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerSink
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerStartup
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerTracker
@@ -12,6 +11,7 @@ import com.vglstudio.camera.pose.line.guide.core.analytics.CountrySource
 import com.vglstudio.camera.pose.line.guide.core.analytics.FanOutAdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.FirebaseAdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.FirebaseAnalyticsLogger
+import com.vglstudio.camera.pose.line.guide.core.analytics.NoOpAppsFlyerSink
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import dagger.Binds
 import dagger.Module
@@ -33,7 +33,7 @@ internal abstract class AnalyticsModule {
     abstract fun bindAppsFlyerStartup(impl: AppsFlyerTracker): AppsFlyerStartup
 
     @Binds
-    abstract fun bindAppsFlyerSink(impl: AppsFlyerLibSink): AppsFlyerSink
+    abstract fun bindAppsFlyerSink(impl: NoOpAppsFlyerSink): AppsFlyerSink
 
     @Binds
     abstract fun bindCountrySource(impl: AndroidCountrySource): CountrySource

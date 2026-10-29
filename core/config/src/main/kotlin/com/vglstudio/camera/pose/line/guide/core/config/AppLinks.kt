@@ -8,6 +8,18 @@ import kotlinx.coroutines.flow.map
 interface AppLinks {
     /** The privacy policy page; always an https address. */
     val privacyPolicyUrl: Flow<String>
+
+    /** The Remote Config keys of the links, declared once here (ADR-0023). */
+    companion object {
+        val PRIVACY_POLICY_URL: RemoteKey<String> = RemoteKey.string(
+            "privacy_policy_url",
+            "https://studio.vgl.io.vn/privacy-policy",
+            "Address of the privacy policy page opened from settings.",
+        )
+
+        /** Every key of this file, for the list of the app's keys. */
+        val KEYS: List<RemoteKey<*>> = listOf(PRIVACY_POLICY_URL)
+    }
 }
 
 /**
@@ -16,12 +28,10 @@ interface AppLinks {
  */
 internal class DefaultAppLinks @Inject constructor(private val remoteSettings: RemoteSettings) : AppLinks {
     override val privacyPolicyUrl: Flow<String> = remoteSettings
-        .string(PRIVACY_POLICY_URL_KEY, DEFAULT_PRIVACY_POLICY_URL)
-        .map { url -> url.takeIf { it.startsWith(HTTPS) } ?: DEFAULT_PRIVACY_POLICY_URL }
+        .value(AppLinks.PRIVACY_POLICY_URL)
+        .map { url -> url.takeIf { it.startsWith(HTTPS) } ?: AppLinks.PRIVACY_POLICY_URL.default }
 
     private companion object {
-        const val PRIVACY_POLICY_URL_KEY = "privacy_policy_url"
-        const val DEFAULT_PRIVACY_POLICY_URL = "https://studio.vgl.io.vn/privacy-policy"
         const val HTTPS = "https://"
     }
 }

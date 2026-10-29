@@ -167,6 +167,17 @@ enum class AdPlacement(
     RESUME("resume", AdFormat.APP_OPEN, appWide = true),
     RESUME_INTER("resume_inter", AdFormat.INTERSTITIAL, ignoreInterval = true, appWide = true),
 
+    // The placements of this app (spec ads, questions 1 and 2): one line each, as scripts/release.sh reads them.
+
+    /** Bottom of the pose library (spec poses, section 5). */
+    POSES_BANNER("poses_banner", AdFormat.BANNER),
+
+    /** Bottom of the pose detail, below the main button (spec poses, section 5). */
+    POSES_DETAIL_BANNER("poses_detail_banner", AdFormat.BANNER),
+
+    /** Leaving the review screen after a saved photo (spec camera, section 5; breaks: InterstitialBreaks). */
+    REVIEW_INTERSTITIAL("review_interstitial", AdFormat.INTERSTITIAL),
+
     // Staging ad gallery only (plans T-014, T-036): placements of every format, see [stagingOnly]. The collapsible
     // layer has none of its own: it loads through the placement of its bottom bar (GALLERY_NATIVE_SMALL, T-030).
     GALLERY_NATIVE_SMALL("gallery_native_small", AdFormat.NATIVE_SMALL),

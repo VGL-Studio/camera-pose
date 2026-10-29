@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
@@ -55,10 +56,14 @@ val LocalAdsController = staticCompositionLocalOf<AdsController?> { null }
  *   reload due meanwhile waits for the screen to show again (B-05, AR-03). The banner is paused while hidden.
  * - Consent withdrawn after the banner had an ad: the frame keeps its height, the ad is hidden and paused; consent
  *   given again loads a new ad in the same frame (B-06).
+ * - With a [separator] (a line above the banner, for example; spec poses, KB-6 of this app): the separator is drawn
+ *   above the frame while the frame takes room. When the last load failed, the frame shrinks to 0 dp and the
+ *   separator goes, so no empty strip stays; the view stays in the tree, so the retry of B-02 still runs and a load
+ *   that succeeds brings both back. Without a separator the frame keeps its height after a failure (B-02).
  */
 @Composable
-fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier) {
-    BannerSlot(placement, placement.format, modifier)
+fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier, separator: (@Composable () -> Unit)? = null) {
+    BannerSlot(placement, placement.format, modifier, separator = separator)
 }
 
 /**
@@ -73,6 +78,7 @@ private fun BannerSlot(
     modifier: Modifier,
     onAdAvailabilityChange: (Boolean) -> Unit = {},
     onHeight: (Dp) -> Unit = {},
+    separator: (@Composable () -> Unit)? = null,
 ) {
     val refresh = bannerRefreshOf(format)
     val ads = LocalAdsController.current
@@ -122,6 +128,7 @@ private fun BannerSlot(
                     )
                 },
                 onAdAvailabilityChange = onAdAvailabilityChange,
+                separator = separator,
             )
         }
     }
@@ -132,6 +139,7 @@ private fun BannerSlot(
  * pause and resume ([bannerShouldRun]) and the sends ([runBannerLoads]) while the frame is active.
  * [onAdAvailabilityChange] gets true on the first ad of a frame, and false once when the frame goes after that; a
  * frame kept with its height (B-06) reports nothing, so a bottom bar keeps the space.
+ * [separator]: see [AdSlot]; [onLoadResult] gets every load result of the view (true loaded, false failed).
  */
 @Composable
 internal fun BannerSlotHost(
@@ -148,6 +156,8 @@ internal fun BannerSlotHost(
     newView: () -> BannerAdView,
     modifier: Modifier = Modifier,
     onAdAvailabilityChange: (Boolean) -> Unit = {},
+    separator: (@Composable () -> Unit)? = null,
+    onLoadResult: (loaded: Boolean) -> Unit = {},
 ) {
     var hadAd by remember { mutableStateOf(false) }
     val currentOnAvailability by rememberUpdatedState(onAdAvailabilityChange)
@@ -180,6 +190,8 @@ internal fun BannerSlotHost(
                         currentOnAvailability(true)
                     }
                 },
+                separator = separator,
+                onLoadResult = onLoadResult,
             )
         }
     }
@@ -197,6 +209,8 @@ private fun BannerFrameContent(
     placementKey: String,
     newView: () -> BannerAdView,
     onLoaded: () -> Unit,
+    separator: (@Composable () -> Unit)?,
+    onLoadResult: (loaded: Boolean) -> Unit,
 ) {
     val view = remember { newView() }
     DisposableEffect(view) {
@@ -219,6 +233,17 @@ private fun BannerFrameContent(
     val active = frame == BannerFrame.ACTIVE
     val currentMayRequestNow by rememberUpdatedState(mayRequestNow)
     val currentOnLoaded by rememberUpdatedState(onLoaded)
+    // The result of the last load, for the separator of this app (AdSlot): placed before the sends, so the result of
+    // the first one is seen.
+    var lastLoadFailed by remember(view) { mutableStateOf(false) }
+    val currentOnLoadResult by rememberUpdatedState(onLoadResult)
+    LaunchedEffect(view) {
+        view.results.collect { result ->
+            val loaded = result == BannerLoadResult.Loaded
+            lastLoadFailed = !loaded
+            currentOnLoadResult(loaded)
+        }
+    }
     LaunchedEffect(view, active) {
         if (active) {
             runBannerLoads(
@@ -233,7 +258,17 @@ private fun BannerFrameContent(
             )
         }
     }
-    view.Content(showAd = active, modifier = Modifier.fillMaxWidth().height(heightDp.dp))
+    if (separator == null) {
+        view.Content(showAd = active, modifier = Modifier.fillMaxWidth().height(heightDp.dp))
+    } else {
+        Column {
+            if (!lastLoadFailed) separator()
+            view.Content(
+                showAd = active,
+                modifier = Modifier.fillMaxWidth().height(if (lastLoadFailed) 0.dp else heightDp.dp),
+            )
+        }
+    }
 }
 
 /**
@@ -273,12 +308,22 @@ fun rememberShowInterstitial(placement: AdPlacement): () -> Unit {
  */
 @Composable
 fun PrivacyOptionsButton(modifier: Modifier = Modifier) {
-    val ads = LocalAdsController.current ?: return
-    val activity = LocalActivity.current ?: return
-    val required by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
-    if (required) {
-        TextButton(onClick = { ads.showPrivacyOptionsForm(activity) }, modifier = modifier) {
+    PrivacyOptionsButton(modifier = modifier) { onClick ->
+        TextButton(onClick = onClick) {
             Text(text = stringResource(R.string.ads_privacy_options))
         }
     }
+}
+
+/**
+ * The same entry point drawn by the caller, for example as a settings row (plan T-025): [content] receives the action
+ * that shows the consent form again. As the button, it decides alone whether to show: nothing is drawn where consent
+ * options are not required, nor without an ads controller (tests, previews).
+ */
+@Composable
+fun PrivacyOptionsButton(modifier: Modifier = Modifier, content: @Composable (onClick: () -> Unit) -> Unit) {
+    val ads = LocalAdsController.current ?: return
+    val activity = LocalActivity.current ?: return
+    val required by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
+    if (required) Box(modifier) { content { ads.showPrivacyOptionsForm(activity) } }
 }

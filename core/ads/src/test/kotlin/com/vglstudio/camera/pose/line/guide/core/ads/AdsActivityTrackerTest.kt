@@ -121,7 +121,9 @@ class AdsActivityTrackerTest {
         assertFalse(filter.isAppActivity(sdk))
         val appPackage = "com.vglstudio.camera.pose.line.guide.core.ads"
         assertTrue(isClassInPackage("com.vglstudio.camera.pose.line.guide.core.ads.AppTestActivity", appPackage))
-        assertTrue(isClassInPackage("com.vglstudio.camera.pose.line.guide.core.ads.gallery.GalleryActivity", appPackage))
+        assertTrue(
+            isClassInPackage("com.vglstudio.camera.pose.line.guide.core.ads.gallery.GalleryActivity", appPackage),
+        )
         assertFalse(isClassInPackage("com.vglstudio.camera.pose.line.guide.core.adsx.AdActivity", appPackage))
         assertFalse(isClassInPackage("com.google.android.gms.ads.AdActivity", appPackage))
     }

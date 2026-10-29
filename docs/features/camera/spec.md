@@ -1,6 +1,6 @@
 ---
 feature: camera
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -171,8 +171,8 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi người dùng rời màn xem lại (bằng Chụp lại, Tư thế tiếp hay nút quay lại) sau khi đã lưu ảnh, và đủ điều kiện ở mục 5, thì một quảng cáo toàn màn hình hiện trước khi về camera.
 - [ ] Khi chưa lưu ảnh nào trong lần xem lại đó thì không hiện quảng cáo.
-- [ ] Khi cờ `ads_review_interstitial_enabled` tắt hoặc người dùng chưa đồng ý quảng cáo theo hộp thoại đồng ý thì không hiện quảng cáo (ADR-0013, ADR-0014).
-- [ ] Khi ở camera và trong lúc xem lại thì không có vị trí quảng cáo nào của màn camera hay màn xem lại. Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6). Áp dụng từ T-074; trước đó không có quảng cáo nào trên màn hình.
+- [ ] Khi khóa `is_show_review_interstitial` tắt hoặc người dùng chưa đồng ý quảng cáo theo hộp thoại đồng ý thì không hiện quảng cáo (ADR-0013, ADR-0014).
+- [ ] Khi ở camera và trong lúc xem lại thì không có vị trí quảng cáo nào của màn camera hay màn xem lại. Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6).
 
 ### KB-10. Hỏi đánh giá app
 
@@ -207,11 +207,11 @@ Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
-| `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình), khóa `ads_review_interstitial_first_break`; tối đa 1 lần mỗi 3 ảnh lưu, khóa `ads_review_interstitial_breaks_between`; nhịp chung của mọi quảng cáo toàn màn hình `ads_interval` (mặc định 45 giây). Không còn luật 120 giây riêng (`features/ads/spec.md`, câu 1, 2). Áp dụng từ T-074; trước đó app chạy theo luật cũ (120 giây, khóa `ads_review_interstitial_enabled`) | `is_show_review_interstitial` |
+| `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình), khóa `ads_review_interstitial_first_break`; tối đa 1 lần mỗi 3 ảnh lưu, khóa `ads_review_interstitial_breaks_between`; nhịp chung của mọi quảng cáo toàn màn hình `ads_interval` (mặc định 45 giây). Không còn luật 120 giây riêng (`features/ads/spec.md`, câu 1, 2). | `is_show_review_interstitial` |
 
 Màn camera và màn xem lại không có vị trí quảng cáo nào của màn (bài học 3).
 
-Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) hiện ở mọi màn, nên có thể phủ lên camera hay màn xem lại khi người dùng quay lại app lúc đang ở đó. Đây là lựa chọn có chủ đích, đi ngược một phần bài học 3; Nhật chốt ngày 2026-10-28. Khung không hiện quảng cáo này khi người dùng vừa rời app có chủ đích (hộp thoại quyền, chia sẻ ảnh); app đánh dấu các chỗ đó trong T-074. Đóng quảng cáo thì camera mở lại như khi quay lại app thường. Áp dụng từ T-074.
+Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) hiện ở mọi màn, nên có thể phủ lên camera hay màn xem lại khi người dùng quay lại app lúc đang ở đó. Đây là lựa chọn có chủ đích, đi ngược một phần bài học 3; Nhật chốt ngày 2026-10-28. Khung không hiện quảng cáo này khi người dùng vừa rời app có chủ đích (hộp thoại quyền, chia sẻ ảnh); app đánh dấu các chỗ đó (T-074). Đóng quảng cáo thì camera mở lại như khi quay lại app thường.
 
 ## 6. Dữ liệu và phân tích
 
@@ -225,6 +225,8 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | Hẹn giờ, lưới, flash, camera trước sau | Giữ lựa chọn giữa các lần dùng | Đến khi người dùng xóa dữ liệu app |
 | Số ảnh đã lưu, ngày gọi hộp đánh giá gần nhất | Điều kiện hỏi đánh giá | Đến khi người dùng xóa dữ liệu app |
 | Mốc quảng cáo của phiên (số ảnh đã lưu trong phiên, lần hiện quảng cáo gần nhất) | Giới hạn quảng cáo | Trong bộ nhớ, hết khi app đóng; không lưu xuống máy |
+| Đã mở app lần đầu (`ads_first_open_done`) | Không có quảng cáo mở app ở lần mở đầu sau khi cài | Đến khi người dùng xóa dữ liệu app |
+| Số quảng cáo toàn màn hình đã hiện từ khi cài (`ads_inter_display_count`) | Luật đếm của khung | Đến khi người dùng xóa dữ liệu app |
 | Ảnh đã lưu | Ảnh của người dùng, trong thư viện máy | Đến khi người dùng tự xóa; gỡ app không xóa |
 
 Ảnh chỉ lưu trên máy, không tải lên đâu (câu 9.3). Phân tích dáng chạy hoàn toàn trên máy.
@@ -242,6 +244,8 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | `photo_saved` | Khi lưu ảnh thành công | `pose_id` | Tỷ lệ lưu trên chụp |
 | `content_load_failed` | Khi tải ảnh tư thế ở dải thất bại | `content`: `thumbnail`, `outline`; `reason`: `network`, `not_found`, `other` | Lỗi tải nội dung có nhiều không (bài học 7) |
 
+**Sự kiện quảng cáo do khung ghi** (`:core:analytics`, `FirebaseAdMetrics`; chung cho mọi vị trí, không riêng màn này; mỗi sự kiện có `ad_format`, `ad_placement`): `ad_impression_placement` (luôn ghi; thêm `value`, `currency`, `ad_source`, `ad_unit_name`, `ad_platform`), `ad_opportunity` (luôn ghi; `opportunity_result`, `load_state`), `ad_load_success`, `ad_load_fail`, `ad_show_fail`, `ad_clicked` (chỉ ghi khi khóa `is_log_ad_fullscreen_events` hay `is_log_ad_slot_events` bật; mặc định tắt, bản staging bật). Dùng để đo doanh thu và tỷ lệ hiện của từng vị trí. Không gửi gì tới AppsFlyer (`features/ads/spec.md` câu 3).
+
 ## 7. File tĩnh trên R2
 
 | Nhóm file | Dung lượng ước tính | Khi nào tải | Khi không tải được |
@@ -258,7 +262,7 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | `feature_camera_enabled` | tắt | Bật để dùng camera làm màn chính. Bản staging bật sẵn |
 | `feature_pose_matching_enabled` | tắt | Bật nhận dạng dáng và điểm khớp; tắt từ xa nếu máy chậm hay báo sai nhiều |
 | `feature_in_app_review_enabled` | tắt | Bật hỏi đánh giá app trong app |
-| `ads_review_interstitial_enabled` | tắt | Bật quảng cáo `review_interstitial` (ADR-0014) |
+| `is_show_review_interstitial` | tắt | Bật quảng cáo `review_interstitial` (`features/ads/spec.md` câu 2; khóa cũ `ads_review_interstitial_enabled` bỏ từ T-074). Khóa chung `is_show_ads` (mặc định bật) tắt thì mọi quảng cáo tắt |
 
 ## 9. Câu hỏi còn mở
 
@@ -339,3 +343,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5 (chọn "Giữ: mọi màn" cho quảng cáo khi quay lại app), cùng lúc xác nhận spec ads. Giữ `confirmed` |
 | 2026-10-28 | AI | KB-9, tiêu chí 4 theo mục 5 và câu 6 của spec ads (câu 3 của plan T-074): camera và màn xem lại không có vị trí quảng cáo của màn, quảng cáo toàn app khi quay lại app có thể phủ lên. Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
+| 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "Áp dụng từ T-074", "trước đó ..."; tên khóa mới ở KB-9 và mục 8; mục 6 thêm dữ liệu trên máy và sự kiện quảng cáo do khung ghi. Chuyển `changed`, chờ Nhật xác nhận lại |

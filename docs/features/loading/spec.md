@@ -1,6 +1,6 @@
 ---
 feature: loading
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -115,7 +115,7 @@ Tiêu chí chấp nhận:
 
 Màn loading không có vị trí quảng cáo của màn, và không hiện quảng cáo trong lúc đang tải.
 
-Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6): khi tải xong, màn loading gọi quảng cáo mở app của khung (`StartupAds`) rồi mới vào màn chính (camera, onboarding hay màn dự phòng). Chỉ từ lần mở thứ hai sau khi cài (`show_open_ads` bật, `show_open_ads_first_open` tắt), và chỉ khi màn loading bật (`feature_loading_enabled`). Thời gian chờ quảng cáo có giới hạn của khung, tính từ lúc mở app chứ không cộng sau thời gian tải: chờ đồng ý tối đa 10 giây, SDK 35 giây, quảng cáo 40 giây kể từ lúc mở app. Tải xong mà quá các hạn đó, hay không có quảng cáo, thì vào màn chính ngay. Áp dụng từ T-074.
+Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6): khi tải xong, màn loading gọi quảng cáo mở app của khung (`StartupAds`) rồi mới vào màn chính (camera, onboarding hay màn dự phòng). Chỉ từ lần mở thứ hai sau khi cài (`show_open_ads` bật, `show_open_ads_first_open` tắt), và chỉ khi màn loading bật (`feature_loading_enabled`). Thời gian chờ quảng cáo có giới hạn của khung, tính từ lúc mở app chứ không cộng sau thời gian tải: chờ đồng ý tối đa 10 giây, SDK 35 giây, quảng cáo 40 giây kể từ lúc mở app. Tải xong mà quá các hạn đó, hay không có quảng cáo, thì vào màn chính ngay.
 
 ## 6. Dữ liệu và phân tích
 
@@ -124,12 +124,16 @@ Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6):
 | Dữ liệu | Mục đích | Giữ trong bao lâu |
 | --- | --- | --- |
 | Catalog và bộ khởi đầu tải từ R2 | Lần mở sau không phải tải lại; camera và thư viện hiện ngay | Đến khi người dùng xóa dữ liệu app |
+| Đã mở app lần đầu (`ads_first_open_done`) | Không có quảng cáo mở app ở lần mở đầu sau khi cài | Đến khi người dùng xóa dữ liệu app |
+| Số quảng cáo toàn màn hình đã hiện từ khi cài (`ads_inter_display_count`) | Luật đếm của khung | Đến khi người dùng xóa dữ liệu app |
 
 **Sự kiện phân tích:**
 
 | Tên sự kiện | Khi nào ghi | Tham số | Dùng để trả lời câu hỏi gì |
 | --- | --- | --- | --- |
-| `loading_completed` | Khi màn hình loading chuyển sang màn hình chính | `duration_ms`: thời gian từ lúc hiện màn hình loading tới lúc chuyển, tính cả 2 giây tối thiểu; `retry_count`: số lần bấm "Thử lại" | Bao nhiêu lần mở app chuẩn bị xong, mất bao lâu, có phải thử lại không |
+| `loading_completed` | Khi màn hình loading chuyển sang màn hình chính | `duration_ms`: thời gian từ lúc hiện màn hình loading tới lúc chuyển, tính cả 2 giây tối thiểu và thời gian quảng cáo mở app nếu có; `retry_count`: số lần bấm "Thử lại" | Bao nhiêu lần mở app chuẩn bị xong, mất bao lâu, có phải thử lại không |
+
+**Sự kiện quảng cáo do khung ghi** (`:core:analytics`, `FirebaseAdMetrics`; chung cho mọi vị trí, không riêng màn này; mỗi sự kiện có `ad_format`, `ad_placement`): `ad_impression_placement` (luôn ghi; thêm `value`, `currency`, `ad_source`, `ad_unit_name`, `ad_platform`), `ad_opportunity` (luôn ghi; `opportunity_result`, `load_state`), `ad_load_success`, `ad_load_fail`, `ad_show_fail`, `ad_clicked` (chỉ ghi khi khóa `is_log_ad_fullscreen_events` hay `is_log_ad_slot_events` bật; mặc định tắt, bản staging bật). Dùng để đo doanh thu và tỷ lệ hiện của từng vị trí. Không gửi gì tới AppsFlyer (`features/ads/spec.md` câu 3).
 
 ## 7. File tĩnh trên R2
 
@@ -189,3 +193,4 @@ Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6):
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5, cùng lúc xác nhận spec ads. Giữ `confirmed` |
 | 2026-10-28 | AI | Mục 5: thời gian chờ quảng cáo mở app tính từ lúc mở app, không cộng sau thời gian tải (theo khung, `StartupAdWait`; câu 6 của plan T-074). Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
+| 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "Áp dụng từ T-074"; mục 6 thêm dữ liệu trên máy, sự kiện quảng cáo do khung ghi, và ghi rõ `loading_completed.duration_ms` gồm cả thời gian quảng cáo mở app (ghi chú rà soát lượt 2). Chuyển `changed`, chờ Nhật xác nhận lại |

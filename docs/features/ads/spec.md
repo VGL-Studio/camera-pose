@@ -6,7 +6,7 @@ product_owner: Nhật
 requests:
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed: 2026-10-28
+confirmed: 2026-10-29
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
@@ -51,7 +51,19 @@ Ba vị trí của màn: theo `features/camera/spec.md` và `features/poses/spec
 
 ## 6. Dữ liệu và phân tích
 
-AppsFlyer chưa bật (câu 3): không gửi dữ liệu nào tới AppsFlyer, không có quyền mà SDK kéo vào. Sự kiện phân tích mà khung ghi qua Firebase Analytics (nếu có) được plan liệt kê và chép vào mục 6 của spec màn có vị trí trong PR của T-074.
+AppsFlyer chưa bật (câu 3): không gửi dữ liệu nào tới AppsFlyer, không có quyền mà SDK AppsFlyer kéo vào.
+
+Quyền mà SDK quảng cáo kéo vào manifest gộp: `VIBRATE` (adapter AppLovin rung mà không kiểm quyền; gỡ quyền thì app có thể dừng đột ngột khi hiện quảng cáo AppLovin). Đây là quyền thường, không cần hỏi người dùng, không thuộc mục An toàn dữ liệu (câu 4 của plan T-074). Plan T-074 kiểm danh sách quyền thật của manifest gộp ở mục 4.1; có quyền khác thì quay lại spec này trước khi merge.
+
+Khai báo `queries` (thấy gói khác trên máy) mà SDK mediation kéo vào manifest gộp, theo lần chạy thử ở mục 4.1 của plan T-074 (2026-10-28). Không phải quyền, nhưng Play xét theo chính sách Package visibility; người kiểm và khai khi chuẩn bị Play Console trước production:
+- gói `com.facebook.katana` (Meta Audience Network);
+- intent `com.attribution.REFERRAL_PROVIDER` và tám gói chợ ứng dụng: `com.android.vending`, `com.google.market`, `com.amazon.venezia`, `com.sec.android.app.samsungapps`, `com.xiaomi.market`, `com.huawei.appmarket`, `com.oppo.market`, `com.bbk.appstore`;
+- intent `android.intent.action.MAIN` (thấy mọi app có màn chính) và năm gói dò root: `com.topjohnwu.magisk`, `eu.chainfire.supersu`, `com.noshufou.android.su`, `com.koushikdutta.superuser`, `com.thirdparty.superuser`;
+- intent `com.digitalturbine.ignite.cl.IgniteRemoteService` và `android.intent.action.VIEW` (DT Exchange);
+- intent `androidx.browser.customtabs.CustomTabsService`, `VIEW` với `http` và `market` (Unity, InMobi).
+
+Nguồn: AppLovin, Meta, DT Exchange, InMobi, Unity. App nhận các mục này như dự án mẫu, không gỡ (Nhật, 2026-10-28). Lượt 1 của T-074 có thêm mục nào khác thì quay lại spec này trước khi merge.
+ Sự kiện phân tích mà khung ghi qua Firebase Analytics (nếu có) được plan liệt kê và chép vào mục 6 của spec màn có vị trí trong PR của T-074.
 
 ## 7. File tĩnh trên R2
 
@@ -120,4 +132,8 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-28 | Nhật | Trả lời sáu câu của mục 9 (AI ghi). Sửa mục 1, 2, 5, 6 theo câu 3, 4, 6: AppsFlyer chưa bật, bỏ màn xem thử, bật quảng cáo mở app (sau loading) và khi quay lại app (trừ camera) |
 | 2026-10-28 | Nhật | Chốt thêm câu 6 (AI ghi): `show_open_ads_first_open` tắt; quảng cáo khi quay lại app hiện ở mọi màn, kể cả camera, thay cho "trừ camera" |
 | 2026-10-28 | AI | Chép câu trả lời vào mục 5 của spec camera, loading, poses ngay trong PR xác nhận này (không đợi T-074), theo lựa chọn của Nhật |
+| 2026-10-28 | AI | Mục 6: quyền `VIBRATE` do adapter AppLovin kéo vào (câu 4 của plan T-074). Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-28 | Nhật | Xác nhận spec (`confirmed`) sau khi xem kết quả kiểm: "Chuyển spec ads sang confirmed cho tôi", rồi "Đồng ý, mở PR" |
+| 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
+| 2026-10-28 | AI | Mục 6: khai báo `queries` mà SDK mediation kéo vào (chạy thử mục 4.1 và câu 14 của plan T-074; Nhật chọn nhận, ghi vào spec). Chuyển `changed`, chờ xác nhận lại |
+| 2026-10-29 | Nhật | Xác nhận mục 6 (khai báo `queries`), lời của Nhật: "Xác nhận và merge" (PR #225). Chuyển lại `confirmed` |

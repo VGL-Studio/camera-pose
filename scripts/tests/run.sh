@@ -546,6 +546,18 @@ expect "playbook: PB-11 Maven 403 on a GitHub runner -> chay-lai" "PB-11 chay-la
 expect "playbook: PB-12 Claude org access 403 in a subagent -> cho" "PB-12 cho" "$(pb_head $pb_dir/PB-12.log)"
 expect "playbook: PB-13 an R2 file missing (404) in ui-test -> nguoi, before the rerun of PB-01" "PB-13 nguoi" "$(pb_head $pb_dir/PB-13.log)"
 expect "playbook: PB-14 push refused for a workflow file (OAuth App, workflow scope) -> bo-qua-loai" "PB-14 bo-qua-loai" "$(pb_head $pb_dir/PB-14.log)"
+expect "playbook: PB-15 the emulator package failed to download and no test ran -> lich-thu-lai" "PB-15 lich-thu-lai" \
+  "$(pb_head $pb_dir/PB-15.log)"
+# A row with two patterns joined by "và" matches only when the log has both: the same download warning on a run whose
+# tests did run and fail is a real failure, not infrastructure.
+grep -v 'Không có test nào chạy' $pb_dir/PB-15.log > "$work/pb15-tests-ran.log"
+echo "FAILED tests: com.example.SomeTest > opensHome[test(AVD) - 14] FAILED" >> "$work/pb15-tests-ran.log"
+expect "playbook: PB-15 needs both lines: the warning alone is not PB-15" khong-co "$(pb_head "$work/pb15-tests-ran.log")"
+printf '%s\n' '<!-- playbook:start -->' '| PB-01 | `aaa` và `bbb` | x | `cho` | y | z |' '<!-- playbook:end -->' > "$work/pb-and.md"
+printf 'aaa\nbbb\n' > "$work/pb-and-both.log"
+printf 'aaa\n' > "$work/pb-and-one.log"
+expect "playbook: a row with two patterns matches a log with both" "PB-01 cho" "$(pb_head "$work/pb-and-both.log" "$work/pb-and.md")"
+expect "playbook: a row with two patterns does not match a log with one" khong-co "$(pb_head "$work/pb-and-one.log" "$work/pb-and.md")"
 printf '%s\n' ' ! [remote rejected] claude/T-1 -> claude/T-1 (refusing to allow a GitHub App to create or update workflow `.github/workflows/ci.yml` without `workflows` permission)' > "$work/pb14-app.log"
 expect "playbook: PB-14 also matches the GitHub App wording (workflows permission)" "PB-14 bo-qua-loai" "$(pb_head "$work/pb14-app.log")"
 printf '%s\n' ' ! [remote rejected] claude/T-1 -> claude/T-1 (refusing to allow a Personal Access Token to create or update workflow `.github/workflows/ci.yml` without `workflow` scope)' > "$work/pb14-pat.log"

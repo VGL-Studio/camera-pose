@@ -11,6 +11,8 @@ superseded_by:
 
 # ADR-0027: DÙNG APPSFLYER TRONG :CORE:ANALYTICS CHO DOANH THU QUẢNG CÁO VÀ PHỄU QUẢNG CÁO, KHÓA DEV ĐƯA VÀO LÚC BUILD, STAGING KHÔNG GỬI
 
+> **Ghi chú 2026-10-29:** quyết định 2 chỉ áp dụng khi app có SDK AppsFlyer (issue #261, L-119). App giữ khung `:core:analytics` mà chưa bật AppsFlyer (không có thư viện `com.appsflyer` trong build) thì phát hành không cần khóa dev: `scripts/release.sh` đòi `appsFlyerDevKey` chỉ khi một file `*.gradle.kts` khai báo SDK, và build production đòi `-PappsFlyerDevKey` chỉ khi SDK có trong classpath của bản build. App có SDK mà thiếu khóa vẫn dừng như cũ. Phần còn lại giữ nguyên.
+
 ## Bối cảnh
 
 ADR-0026 cho hành vi quảng cáo theo bộ PARTNER của AdsKit. Các app dùng AdsKit gửi doanh thu quảng cáo và phễu quảng cáo sang AppsFlyer: nhóm đo hiệu quả chiến dịch thu hút người dùng (doanh thu trên chi phí) và đối tác kiểm SDK bằng các sự kiện này. Dự án mẫu chưa có AppsFlyer; số liệu chỉ ở Firebase (ADR-0012).

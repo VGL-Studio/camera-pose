@@ -1,20 +1,22 @@
 base=47782ec35ebe9d1f441460ed258abe1be27cf3a7
 package=com.vglstudio.camera.pose.line.guide
+# app/ and feature/loading took parts of template T-007, T-008, T-024 by hand (plan T-074): MainActivity.kt,
+# TemplateApplication.kt, di/AnalyticsConfigModule.kt, config/AppRemoteKeys.kt, the remoteConfigKeys block of
+# app/build.gradle.kts, app/lint.xml, staging di/StagingAdsModule.kt and di/StagingRemoteValuesModule.kt, production
+# di/ProductionAdsModule.kt, their tests (AppAdsRootTest, LeaveAppCallSitesTest, LocalRemoteValuesSourceSetTest,
+# MergedManifestTest, NoAppsFlyerDependencyTest, RemoteConfigKeysTest, StagingRemoteValuesModuleTest), and
+# feature/loading LoadingViewModel.kt, LoadingScreen.kt with their tests. No AdGalleryActivity (spec ads, question 4).
 hold=app 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=core/assets 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-hold=core/config 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-hold=core/data 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=core/designsystem 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-hold=core/logging 0eaeadbc2b04a94c81d9877aec4681b05a11587a
+# core/network took only InternetConnectivity and setFullScreenAdShowing of the network dialog (plan T-074).
 hold=core/network 0eaeadbc2b04a94c81d9877aec4681b05a11587a
+# core/analytics is taken without the AppsFlyer SDK: NoOpAppsFlyerSink replaces AppsFlyerLibSink and
+# core/analytics/build.gradle.kts has no libs.appsflyer (ADR-1007). gradle/libs.versions.toml has no appsflyer
+# entry either: a later sync that brings the appsflyer line or AppsFlyerLibSink back drops it.
 hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-hold=gradle 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-hold=build-logic 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-hold=build.gradle.kts 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-hold=settings.gradle.kts 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-hold=gradle.properties 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # release.sh and release.md stay at the old template commit: the new version needs AppsFlyer and AdsKit test units,
-# which the app does not have yet (ADR-1004). Take them with core/ads in a later sync, through an approved plan.
+# which the app does not have yet (ADR-1007). Take them in T-075, through an approved plan.
 hold=scripts/release.sh 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6

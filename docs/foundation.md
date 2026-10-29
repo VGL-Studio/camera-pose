@@ -252,15 +252,15 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - ở app này, màn loading chờ tối đa 15 giây cho cấu hình, catalog và từng file của bộ khởi đầu
 - các quy tắc khác của ADR-0018 vẫn áp dụng
 
-### [ADR-1004](adr/1004-chua-ap-dung-quang-cao-adskit.md): App chưa áp dụng quảng cáo theo AdsKit và AppsFlyer cho tới đợt đồng bộ core, trong lúc đó giữ quy tắc quảng cáo cũ
+### [ADR-1007](adr/1007-khung-adskit-chua-bat-appsflyer.md): App dùng khung quảng cáo AdsKit của dự án mẫu, không có SDK AppsFlyer, với các chỗ lệch có chủ đích ghi trong ADR này
 
-- chưa áp dụng ADR-0026, ADR-0027, các vế mà ghi chú ngày 2026-10-23 đổi trong ADR-0004, ADR-0013, ADR-0014, và vế "sinh lại bảng khóa" của ADR-0023, cho tới khi `core/ads` được đồng bộ qua plan đã duyệt
-- không khởi tạo SDK quảng cáo trước khi xử lý xong sự đồng ý của người dùng
-- feature chỉ dùng `AdSlot`, `rememberShowInterstitial` và `PrivacyOptionsButton`
-- gọi quảng cáo toàn màn hình chỉ ở điểm dừng tự nhiên, không bao giờ lúc mở hay đóng app
-- khóa quảng cáo dạng `ads_<vị trí>_enabled`, vị trí mới mặc định tắt
-- khai báo khóa Remote Config mới như các khóa hiện có trong `:core:config` cho tới khi app có `AppRemoteKeys`
-- không thêm AppsFlyer khi chưa có plan đồng bộ `core` được duyệt
+- không thêm SDK AppsFlyer hay `libs.appsflyer`, giữ `NoOpAppsFlyerSink` và `AppsFlyerConfig("")`
+- không gọi vị trí `gallery_*` hay `sample_native_small` từ màn nào, không bật chúng ở staging
+- giữ luật đếm của `review_interstitial` trong `InterstitialBreakGate` trước cổng của khung
+- màn cần banner thu về 0 dp khi lỗi tải thì truyền `separator` cho `AdSlot`
+- test chỉ kiểm giá trị cục bộ, điều Firebase staging trả là kiểm thủ công
+- không đổi tên khóa Remote Config đã phát hành, khóa mới theo ADR-0023
+- không phát bản production trước khi T-075 lấy `scripts/release.sh` mới
 
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 

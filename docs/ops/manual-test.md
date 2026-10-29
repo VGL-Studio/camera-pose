@@ -2,7 +2,7 @@
 
 Soạn ngày 2026-10-26 cho bản `0.1.0-staging.10` (sau RUN-20261026-01), từ spec của 6 feature đã lên staging (loading, onboarding, camera, poses, settings, network) và các dòng "Kiểm tra thủ công" trong plan T-001 đến T-031, T-050, T-051. Cập nhật ngày 2026-10-28 cho bản `0.1.0-staging.15` (BR-20261028-01, dòng 7). Mỗi mục ghi: điều kiện đầu, các bước, kết quả mong đợi. Đánh dấu `[x]` khi đạt; không đạt thì ghi giờ và điều thấy được vào `notes.md` của phiên thử.
 
-Tổng thời gian ước tính: khoảng 2 giờ cho phần bắt buộc (mục 1 đến 9), thêm 30 phút cho phần tùy máy (mục 10).
+Tổng thời gian ước tính: khoảng 2 giờ cho phần bắt buộc (mục 1 đến 9), thêm 30 phút cho phần tùy máy (mục 10) và 30 phút cho quảng cáo (mục 11).
 
 ## 0. Chuẩn bị
 
@@ -25,7 +25,7 @@ Tổng thời gian ước tính: khoảng 2 giờ cho phần bắt buộc (mục
 
 | Hiện tượng | Lý do |
 | --- | --- |
-| Không thấy quảng cáo nào, kể cả sau khi đồng ý | Vị trí quảng cáo mặc định tắt, chỉ hiện khi khóa `ads_<vị trí>_enabled` được bật trên Remote Config của project staging (ADR-0014). Bản build trên máy dev dùng file Firebase giả, không nhận Remote Config (ADR-0012) |
+| Không thấy quảng cáo nào, kể cả sau khi đồng ý | Từ T-074 bản staging bật sẵn ba vị trí của app, quảng cáo mở app và quay lại app bằng giá trị cục bộ; một khóa đặt `false` trên Firebase staging thắng giá trị đó (mục 11). Bản build trên máy dev dùng file Firebase giả, không nhận Remote Config (ADR-0012) |
 | Không thấy hộp đánh giá của Google Play | Hộp chỉ hiện với bản cài từ Google Play; staging chỉ kiểm được bằng log (mục 6.6) |
 
 ## 1. Mở lần đầu khi không có mạng (loading KB-2)
@@ -323,17 +323,70 @@ Làm phần nào máy có điều kiện; không làm được thì ghi "không 
 
 - [ ] Cài đặt máy > Ứng dụng > Camera Pose > Quyền: chỉ có Camera; không có quyền bộ nhớ, ảnh hay vị trí.
 
-## 11. Không kiểm được trên staging
+## 11. Quảng cáo (T-074)
+
+Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo thử của các mạng (chữ "Test Ad" hay tương tự). **Không bấm vào quảng cáo.** Xem log riêng: `adb logcat -v threadtime | grep ' VGL\.Ads'`.
+
+**Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
+
+- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_banner`, `is_show_poses_detail_banner`, `is_show_review_interstitial` đặt `false`.
+- [ ] Không có `show_open_ads_first_open`, `is_show_native_after_inter`, `is_show_native_bottom` đặt `true`.
+- [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
+- [ ] Không nhập `docs/remote-config-template.json` vào project staging (`remote-config.md`, mục 5, bước 7).
+- [ ] Ghi kết quả vào danh sách chạy của T-074.
+
+### 11.1 Banner ở thư viện và chi tiết, quảng cáo khi rời màn xem lại
+
+Điều kiện: đã đồng ý quảng cáo ở hộp thoại đồng ý.
+
+1. Mở thư viện, rồi chi tiết một tư thế.
+   - [ ] Cả hai màn có banner thử của Google ở đáy; nút chính ("Chụp với tư thế này") không bị che.
+2. Mở lại app (để bắt đầu phiên mới). Chụp, lưu ảnh 1, rời màn xem lại.
+   - [ ] Không có quảng cáo toàn màn hình; về camera.
+3. Chụp, lưu ảnh 2, rời màn xem lại.
+   - [ ] Có quảng cáo toàn màn hình (log `VGL.Ads`); đóng quảng cáo thì về camera.
+4. Lưu ảnh 3 và ảnh 4, mỗi lần rời màn xem lại.
+   - [ ] Không có quảng cáo.
+5. Lưu ảnh 5, rời màn xem lại.
+   - [ ] Có quảng cáo nếu đã qua 45 giây từ lần trước (nhịp `ads_interval`); chưa qua thì không.
+
+### 11.2 Quảng cáo mở app từ lần mở thứ hai
+
+1. `scripts/device-session.sh reset`, mở app.
+   - [ ] Loading rồi màn chào, không có quảng cáo mở app; log `startup ad: key off`.
+2. Đóng hẳn app (vuốt khỏi danh sách app gần đây), mở lại.
+   - [ ] Loading tới 100%, quảng cáo mở app thử hiện; đóng quảng cáo thì vào camera.
+
+Màn loading tắt thì không có quảng cáo mở app. Bản staging bật sẵn `feature_loading_enabled` trong code (`StagingFeatureFlagsModule`), Firebase không tắt được cờ này, nên phần đó không kiểm trên staging (mục 12).
+
+### 11.3 Quảng cáo khi quay lại app
+
+1. Ở thư viện: bấm Home, mở lại app.
+   - [ ] Quảng cáo mở app thử hiện; log `Resume ad SHOW: resume`.
+2. Ở camera: bấm Home, mở lại app.
+   - [ ] Quảng cáo hiện; đóng quảng cáo thì khung camera chạy lại.
+3. Xóa quyền camera (Cài đặt máy > Ứng dụng > Camera Pose > Quyền), mở app, cho quyền khi được hỏi.
+   - [ ] Không có quảng cáo sau hộp hỏi quyền; log `Resume ad SUPPRESSED`.
+4. Chụp, chia sẻ ảnh qua một app khác, quay lại.
+   - [ ] Không có quảng cáo khi quay lại từ hộp chia sẻ.
+   - [ ] Bấm Home, mở lại lần nữa: có quảng cáo.
+
+### 11.4 Hộp thoại mạng khi có quảng cáo toàn màn hình
+
+1. Khi quảng cáo mở app (mục 11.2 hay 11.3) đang hiện, bật chế độ máy bay.
+   - [ ] Hộp "Mất kết nối mạng" không đè lên quảng cáo.
+   - [ ] Đóng quảng cáo: hộp thoại hiện. Tắt chế độ máy bay, "Thử lại".
+
+## 12. Không kiểm được trên staging
 
 | Tiêu chí | Lý do | Cách kiểm thay |
 | --- | --- | --- |
-| Quảng cáo toàn màn hình khi rời màn xem lại, banner ở thư viện và chi tiết (camera KB-9, poses KB-6) | Staging không nhận Remote Config, khóa `ads_*_enabled` luôn tắt | Bản build nhận Remote Config thật; theo plan T-018 mục 4 và T-023 mục 4 |
 | Hộp đánh giá thật (camera KB-10) | Chỉ hiện với bản cài từ Google Play | Internal app sharing; trên staging chỉ kiểm log (mục 6.10) |
-| Tắt từ xa loading, màn chào, hộp thoại mạng, điểm khớp | Cờ bật sẵn ở bản staging | Unit test; kiểm trên production khi bật cờ |
+| Tắt từ xa loading, màn chào, hộp thoại mạng, điểm khớp; không có quảng cáo mở app khi loading tắt | Cờ bật sẵn ở bản staging | Unit test; kiểm trên production khi bật cờ |
 | Hết bộ nhớ khi lưu | Khó tạo trên máy thật | Emulator bộ nhớ nhỏ (plan T-016) |
 | Dòng "Tùy chọn quyền riêng tư" ẩn ở Việt Nam | Staging ép vùng EEA | Bản production đầu tiên |
 
-## 12. Sau khi thử
+## 13. Sau khi thử
 
 1. `scripts/device-session.sh stop`, xem `summary.md` (crash, ANR).
 2. Trong `notes.md`: tên máy, bản Android, số phiên bản app, danh sách mục không đạt kèm giờ, mục bỏ qua kèm lý do.

@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.LocalActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.foundation.background
@@ -46,6 +45,8 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberAdHoldingLauncher
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberStartOutsideApp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.appColors
@@ -118,7 +119,10 @@ internal fun CameraRoute(
     // Read before the request; with the value read after it, tells whether the system dialog was shown (T-026).
     // No activity (previews only): count the dialog as shown.
     var rationaleBefore by remember { mutableStateOf(false) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    // The resume ad is held while the system dialog is up, and the visit to the system settings is a leave on
+    // purpose (spec ads, question 6; plan T-074, pass 2).
+    val startOutsideApp = rememberStartOutsideApp()
+    val permissionLauncher = rememberAdHoldingLauncher(ActivityResultContracts.RequestPermission()) { granted ->
         val dialogShown = activity == null ||
             permissionDialogShown(granted, rationaleBefore, activity.shouldShowRationale())
         viewModel.onPermissionResult(granted, dialogShown)
@@ -159,7 +163,7 @@ internal fun CameraRoute(
             onRetry = viewModel::onRetry,
             onOpenAppSettings = {
                 val uri = Uri.fromParts("package", context.packageName, null)
-                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri))
+                startOutsideApp(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri))
             },
             onOpenPoses = onOpenPoses,
             onOpenSettings = onOpenSettings,

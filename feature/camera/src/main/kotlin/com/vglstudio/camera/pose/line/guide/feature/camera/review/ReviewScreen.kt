@@ -7,7 +7,6 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -41,7 +40,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberAdHoldingLauncher
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberShowInterstitial
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberStartOutsideApp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
@@ -80,7 +81,10 @@ internal fun ReviewRoute(onLeave: () -> Unit, viewModel: ReviewViewModel = hiltV
         afterReviewAd(shown, currentOnLeave, askReview)
     }
     val shareTitle = stringResource(R.string.review_share_title)
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    // The resume ad is held while the system dialog is up; the share sheet and the system settings are leaves on
+    // purpose (spec ads, question 6; plan T-074, pass 2).
+    val startOutsideApp = rememberStartOutsideApp()
+    val permissionLauncher = rememberAdHoldingLauncher(ActivityResultContracts.RequestPermission()) { granted ->
         // No activity (previews only): count asking again as possible.
         val rationaleAfter = activity?.let {
             ActivityCompat.shouldShowRequestPermissionRationale(it, STORAGE_PERMISSION)
@@ -96,11 +100,11 @@ internal fun ReviewRoute(onLeave: () -> Unit, viewModel: ReviewViewModel = hiltV
             viewModel.events.collect { event ->
                 when (event) {
                     is ReviewEvent.Leave -> leaveReview(event.savedThisVisit, showAd, currentOnLeave, askReview)
-                    is ReviewEvent.Share -> share(context, event.location, shareTitle, viewModel)
+                    is ReviewEvent.Share -> share(context, startOutsideApp, event.location, shareTitle, viewModel)
                     ReviewEvent.RequestStoragePermission -> permissionLauncher.launch(STORAGE_PERMISSION)
                     ReviewEvent.OpenAppSettings -> {
                         val uri = Uri.fromParts("package", context.packageName, null)
-                        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri))
+                        startOutsideApp(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, uri))
                     }
                 }
             }
@@ -128,17 +132,26 @@ internal fun ReviewRoute(onLeave: () -> Unit, viewModel: ReviewViewModel = hiltV
     }
 }
 
-/** A cache file goes through the FileProvider of this module; a saved photo is shared by its MediaStore uri. */
-private fun share(context: Context, location: String, title: String, viewModel: ReviewViewModel) {
+/**
+ * A cache file goes through the FileProvider of this module; a saved photo is shared by its MediaStore uri. The share
+ * sheet opens through [startOutsideApp], which returns false when no activity handles it.
+ */
+private fun share(
+    context: Context,
+    startOutsideApp: (Intent) -> Boolean,
+    location: String,
+    title: String,
+    viewModel: ReviewViewModel,
+) {
     try {
         val uri = if (location.startsWith("content://")) {
             Uri.parse(location)
         } else {
             FileProvider.getUriForFile(context, "${context.packageName}$CAPTURES_AUTHORITY_SUFFIX", File(location))
         }
-        context.startActivity(shareChooser(uri, title))
-    } catch (e: ActivityNotFoundException) {
-        viewModel.onShareFailed(e)
+        if (!startOutsideApp(shareChooser(uri, title))) {
+            viewModel.onShareFailed(ActivityNotFoundException("No activity for the share sheet"))
+        }
     } catch (e: IllegalArgumentException) {
         viewModel.onShareFailed(e)
     }

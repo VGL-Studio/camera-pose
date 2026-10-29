@@ -14,8 +14,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsController
@@ -157,19 +159,24 @@ class MainActivity : ComponentActivity() {
 /**
  * The root of the app's UI for ads (plan T-074): [AdsHost] provides the ads controller and reports the hold of the ads
  * that show by themselves (G-04); inside it every screen reads the break limits of review_interstitial and the review
- * entry. MainActivity sets it on every create, so a recreated activity has it too (L-061).
+ * entry. MainActivity sets it on every create, so a recreated activity has it too (L-061). It reports
+ * [fullScreenAdShowing] (AdsController.fullScreenAdShowing) to [onFullScreenAdShowingChange]
+ * (NetworkDialogController.setFullScreenAdShowing), the current value first.
  */
 @Composable
 internal fun AppAdsRoot(
     ads: AdsController?,
     inAppReview: InAppReview,
     breakGate: InterstitialBreakGate,
-    // Skeleton for the tests written first (plan T-074, pass 2): not followed yet.
-    @Suppress("UNUSED_PARAMETER") fullScreenAdShowing: StateFlow<Boolean>,
-    @Suppress("UNUSED_PARAMETER") onFullScreenAdShowingChange: (Boolean) -> Unit,
+    fullScreenAdShowing: StateFlow<Boolean>,
+    onFullScreenAdShowingChange: (Boolean) -> Unit,
     content: @Composable () -> Unit,
 ) {
     AdsHost(ads) {
+        // The network dialog waits while a full-screen ad is on screen (plan T-074, pass 2; spec network, KB-2).
+        val adShowing by fullScreenAdShowing.collectAsState()
+        val currentOnChange by rememberUpdatedState(onFullScreenAdShowingChange)
+        LaunchedEffect(adShowing) { currentOnChange(adShowing) }
         CompositionLocalProvider(
             LocalInAppReview provides inAppReview,
             LocalInterstitialBreakGate provides breakGate,

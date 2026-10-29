@@ -18,7 +18,11 @@ import kotlinx.coroutines.launch
  * [rememberRequestInAppReview], never directly.
  */
 interface InAppReview {
-    /** Returns at once; the request goes on in the scope of the app, so it outlives the screen that asked. */
+    /**
+     * Returns at once; the request goes on in the scope of the app, so it outlives the screen that asked. [onDone]
+     * runs once, on the main thread, when the request has ended, asked or not, also after an error (plan T-074,
+     * pass 2: the ads that show by themselves are held until then).
+     */
     fun requestIfDue(activity: Activity, savedPhotos: Int, onDone: () -> Unit = {})
 }
 
@@ -32,9 +36,15 @@ internal class DefaultInAppReview @Inject constructor(
     private val logger: AppLogger,
     @param:ReviewScope private val scope: CoroutineScope,
 ) : InAppReview {
-    // Skeleton for the tests written first (plan T-074, pass 2): onDone is not called yet.
     override fun requestIfDue(activity: Activity, savedPhotos: Int, onDone: () -> Unit) {
-        scope.launch { ask(activity, savedPhotos) }
+        // The scope runs on the main thread, so onDone does too.
+        scope.launch {
+            try {
+                ask(activity, savedPhotos)
+            } finally {
+                onDone()
+            }
+        }
     }
 
     /** True when the review flow ran to its end without an error. Never throws, so the app never stops for it. */

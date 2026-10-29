@@ -14,6 +14,7 @@ import com.vglstudio.camera.pose.line.guide.feature.loading.data.PreparationRepo
 import com.vglstudio.camera.pose.line.guide.feature.loading.data.PreparationTask
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -37,6 +39,9 @@ fun interface LoadingClock {
  * The screen stays at least [MIN_DURATION_MILLIS] and, if a task fails, waits for the user to retry.
  * The flag is read once when the screen opens: it only decides whether the app shows loading at start-up,
  * so watching it afterwards would mean nothing (plan T-001, question 3).
+ * Once the tasks are done and the minimum time is over, the screen asks :core:ads for the startup ad (spec ads,
+ * question 6; plan T-074, pass 2, from T-024 of the template): with none it finishes, with one it stays at 100% until
+ * [LoadingRoute] has shown it.
  */
 @HiltViewModel
 class LoadingViewModel @Inject constructor(
@@ -46,18 +51,31 @@ class LoadingViewModel @Inject constructor(
     private val featureFlags: FeatureFlags,
     private val clock: LoadingClock,
     private val internet: InternetCheck,
-    @Suppress("unused") private val startupAds: StartupAds,
+    private val startupAds: StartupAds,
 ) : ViewModel() {
     private val state = MutableStateFlow<LoadingUiState>(LoadingUiState.InProgress(0f))
     val uiState: StateFlow<LoadingUiState> = state.asStateFlow()
 
-    // Skeleton for the tests written first (plan T-074, pass 2).
-    val pendingAd: StateFlow<StartupAdTurn?> = MutableStateFlow(null)
+    private val pending = MutableStateFlow<StartupAdTurn?>(null)
 
-    fun takePendingAd(): StartupAdTurn? = null
+    /** The app open ad waiting to be shown by [LoadingRoute]; null when none. */
+    val pendingAd: StateFlow<StartupAdTurn?> = pending.asStateFlow()
 
-    @Suppress("UNUSED_PARAMETER")
-    fun onAdFinished(interShown: Boolean) = Unit
+    private val adFinished = AtomicBoolean(false)
+    private val finished = AtomicBoolean(false)
+
+    /** Returns the waiting turn once, then null, so a recreated activity does not show it again. */
+    fun takePendingAd(): StartupAdTurn? = pending.getAndUpdate { null }
+
+    /**
+     * The startup ad has closed, or nothing showed: the screen finishes. Any thread; a second call does nothing.
+     * [interShown] is only logged.
+     */
+    fun onAdFinished(interShown: Boolean) {
+        if (adFinished.getAndSet(true)) return
+        logger.info(LOG_TAG, "Startup ad finished, inter shown: $interShown")
+        finish()
+    }
 
     // Read by progress() from the threads that load files, so a concurrent set.
     private val doneTasks: MutableSet<PreparationTask> = ConcurrentHashMap.newKeySet()
@@ -102,6 +120,28 @@ class LoadingViewModel @Inject constructor(
         }
         val remaining = MIN_DURATION_MILLIS - (clock.elapsedRealtimeMillis() - startedAt)
         if (remaining > 0) delay(remaining)
+        val turn = startupAd()
+        if (turn == null) {
+            finish()
+        } else {
+            // The screen stays at 100% while LoadingRoute shows the ad; onAdFinished then finishes it.
+            pending.value = turn
+        }
+    }
+
+    /** The startup ad of :core:ads, or null; an unexpected error is no ad, not a crash. */
+    private suspend fun startupAd(): StartupAdTurn? = try {
+        startupAds.awaitStartupAd()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        logger.warn(LOG_TAG, "Startup ad failed, going on without it", e)
+        null
+    }
+
+    /** Logs `loading_completed` once, at the move to the start screen, after the startup ad if any; then finishes. */
+    private fun finish() {
+        if (finished.getAndSet(true)) return
         val durationMillis = clock.elapsedRealtimeMillis() - startedAt
         analytics.log(
             AnalyticsEvent(

@@ -8,6 +8,10 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:config"))
+    implementation(project(":core:logging"))
+
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+    implementation(libs.appsflyer)
 }

@@ -496,11 +496,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-052: rà soát độc lập và phiên viết code kết luận khác nhau về một điểm chặn
 
-- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-015.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261023-04, T-015.
 - **Chuyện gì:** rà soát độc lập nêu điểm chặn (vùng chạm thanh trượt dưới 48 dp) bằng đọc code; phiên viết code viết test chạm thật ở cả hai phía và không tái hiện được. Phiên chính tin test chạm thật và ghi cho người kiểm tay. Quy trình không có chỗ ghi "đã kiểm, không tái hiện".
 - **Bằng chứng:** nhật ký plan T-015; `AdjustPanelTest.adjustSlider_touchHeight48`.
 - **Đề xuất sửa:** mẫu rà soát độc lập (`auto-run.md` bước 6) cho phép điểm chặn có trạng thái "không tái hiện" kèm bằng chứng và mục kiểm thủ công trong báo cáo.
-- **Áp dụng:** Nhật nhận ngày 2026-10-28. Thuộc quy trình chung (`docs/auto-run.md` bước 6), đề xuất về dự án mẫu: VGL-Studio/app-project-template#250.
+- **Áp dụng:** Nhật nhận ngày 2026-10-28. Thuộc quy trình chung (`docs/auto-run.md` bước 6), đề xuất về dự án mẫu: VGL-Studio/app-project-template#250. Dự án mẫu nhận: ADR-0035 (VGL-Studio/app-project-template#264), app nhận qua đợt đồng bộ 4 (PR #224).
 - **Kiểm chứng:**
 
 ### L-053: thư viện mới qua `check.sh` và CI nhưng bản release (R8) hỏng
@@ -829,18 +829,18 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-089: phiên mở `local` không có bước kiểm môi trường, `cloud-env-check.sh` không áp dụng ở máy dev
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261028-01.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261028-01.
 - **Chuyện gì:** người yêu cầu chạy phiên trên máy dev (`local`) thay cho `claude --cloud`. `docs/auto-run.md` mục 2 chỉ có `scripts/cloud-env-check.sh` để kiểm môi trường; script này luôn báo lỗi ở máy dev vì đòi tệp phiên bản của `scripts/cloud-setup.sh` và init script mirror Maven, nên phiên phải tự quyết không coi đó là điều kiện dừng và dùng `scripts/check.sh` thay cho bước kiểm.
 - **Bằng chứng:** `cloud-env-check.sh` ngày 2026-10-28: "môi trường dựng từ setup script phiên bản không có ... thiếu ~/.gradle/init.d/maven-central-mirror.gradle"; báo cáo RUN-20261028-01, mục Quyết định AI đã tự làm.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md`: phiên `local` chạy `scripts/local-setup.sh --check` (hay `scripts/java-check.sh`) thay cho `cloud-env-check.sh`.
-- **Áp dụng:** Nhật nhận ngày 2026-10-28. app: `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md` (dòng `local`), cùng PR với việc nhận bài này; máy dev cài JDK và SDK cố định bằng `scripts/local-setup.sh` trước (bản cũ nằm trong thư mục tạm của phiên Claude nên `--check` báo thiếu). dự án mẫu: VGL-Studio/app-project-template#258.
+- **Áp dụng:** Nhật nhận ngày 2026-10-28. app: `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md` (dòng `local`), cùng PR với việc nhận bài này; máy dev cài JDK và SDK cố định bằng `scripts/local-setup.sh` trước (bản cũ nằm trong thư mục tạm của phiên Claude nên `--check` báo thiếu). dự án mẫu: VGL-Studio/app-project-template#258. Dự án mẫu nhận: L-116 của mẫu (VGL-Studio/app-project-template#262), app nhận qua đợt đồng bộ 4 (PR #224).
 - **Kiểm chứng:**
 
 ### L-090: `ui-test` đỏ vì runner tải gói Android Emulator lỗi, bảng tra lỗi chưa có dòng cho lỗi này
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261028-02 (T-071, PR #216).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261028-02 (T-071, PR #216).
 - **Chuyện gì:** sau `merge-if-green.sh --update`, job `ui-test` đỏ sau khoảng 2 phút: runner tải gói Android Emulator lỗi nên emulator không khởi động, không có test nào chạy. `scripts/failure-kind.sh --playbook` trả `khong-co`, nên theo `docs/auto-run.md` bước 8 phiên phải xử lý như lỗi thật (chạy lại một lần, rồi tối đa 3 lần sửa) dù không có gì để sửa trong code. Lần chạy lại ngay cũng lỗi; phiên tự xếp là lỗi hạ tầng và chạy lại theo lịch của bước 5, lần sau 2 phút thì xanh.
 - **Bằng chứng:** lần chạy 40734943741 (17:21 và 17:35 UTC): "Warning: An error occurred while preparing SDK package Android Emulator: Error on ZipFile unknown archive.", "error: could not connect to TCP port 5554: Connection refused", "Không có test nào chạy trên emulator."; lần chạy lại 17:39 xanh, `ui-test` 9 phút.
 - **Đề xuất sửa:** `docs/ops/failure-playbook.md` thêm một dòng loại `lich-thu-lai` cho "Error on ZipFile unknown archive" (hay "could not connect to TCP port 5554") đi cùng "Không có test nào chạy trên emulator": chạy lại job theo lịch 1, 2, 4, 8, 15 phút, không tính vào 3 lần sửa; kèm log thật trong `scripts/tests/playbook/`.
-- **Áp dụng:** Nhật nhận ngày 2026-10-28, đề xuất về dự án mẫu: VGL-Studio/app-project-template#259. App nhận lại qua đợt đồng bộ sau, không sửa `failure-playbook.md` riêng.
+- **Áp dụng:** Nhật nhận ngày 2026-10-28, đề xuất về dự án mẫu: VGL-Studio/app-project-template#259. App nhận lại qua đợt đồng bộ sau, không sửa `failure-playbook.md` riêng. Dự án mẫu nhận: L-117 của mẫu, dòng PB-15 (VGL-Studio/app-project-template#263), app nhận qua đợt đồng bộ 4 (PR #224).
 - **Kiểm chứng:**

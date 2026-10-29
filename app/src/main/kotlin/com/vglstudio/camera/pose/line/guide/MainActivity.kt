@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -18,7 +19,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsController
-import com.vglstudio.camera.pose.line.guide.core.ads.LocalAdsController
+import com.vglstudio.camera.pose.line.guide.core.ads.AdsHost
+import com.vglstudio.camera.pose.line.guide.core.ads.InterstitialBreakGate
+import com.vglstudio.camera.pose.line.guide.core.ads.LocalInterstitialBreakGate
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.data.ThemeMode
@@ -66,6 +69,9 @@ class MainActivity : ComponentActivity() {
     lateinit var inAppReview: InAppReview
 
     @Inject
+    lateinit var interstitialBreakGate: InterstitialBreakGate
+
+    @Inject
     lateinit var userPreferences: UserPreferences
 
     @Inject
@@ -101,7 +107,7 @@ class MainActivity : ComponentActivity() {
                 )
                 onDispose {}
             }
-            CompositionLocalProvider(LocalAdsController provides ads, LocalInAppReview provides inAppReview) {
+            AppAdsRoot(ads = ads, inAppReview = inAppReview, breakGate = interstitialBreakGate) {
                 AppTheme(darkTheme = darkTheme) {
                     // The surface fills the whole window, including the area behind the system bars,
                     // so those areas take the theme background in both light and dark mode.
@@ -132,16 +138,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onUserInteraction() {
-        super.onUserInteraction()
-        ads.onUserInteraction()
-    }
-
     private companion object {
         const val THEME_READ_TIMEOUT_MILLIS = 200L
 
         // The navigation bar scrims of enableEdgeToEdge() (androidx.activity defaults, not exposed by the library).
         val LIGHT_SCRIM = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
         val DARK_SCRIM = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+    }
+}
+
+/**
+ * The root of the app's UI for ads (plan T-074): [AdsHost] provides the ads controller and reports the hold of the ads
+ * that show by themselves (G-04); inside it every screen reads the break limits of review_interstitial and the review
+ * entry. MainActivity sets it on every create, so a recreated activity has it too (L-061).
+ */
+@Composable
+internal fun AppAdsRoot(
+    ads: AdsController?,
+    inAppReview: InAppReview,
+    breakGate: InterstitialBreakGate,
+    content: @Composable () -> Unit,
+) {
+    AdsHost(ads) {
+        CompositionLocalProvider(
+            LocalInAppReview provides inAppReview,
+            LocalInterstitialBreakGate provides breakGate,
+        ) {
+            content()
+        }
     }
 }

@@ -12,5 +12,7 @@ internal interface RemoteFlagSource {
 
     fun long(key: String): Flow<Long?>
 
+    fun double(key: String): Flow<Double?>
+
     fun string(key: String): Flow<String?>
 }

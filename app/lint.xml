@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!--
+        Picasso, required by the InMobi SDK (plan T-034), has code that posts notifications
+        (RemoteViewsAction.NotificationAction). Neither InMobi nor the app calls it, and the app does not ask for
+        POST_NOTIFICATIONS. Only findings that name Picasso are ignored; the check still covers every other class.
+    -->
+    <issue id="NotificationPermission">
+        <ignore regexp="com\.squareup\.picasso\." />
+    </issue>
+</lint>

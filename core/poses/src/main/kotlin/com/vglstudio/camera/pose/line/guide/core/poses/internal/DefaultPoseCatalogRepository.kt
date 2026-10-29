@@ -124,7 +124,7 @@ internal class DefaultPoseCatalogRepository(
     }
 
     private suspend fun currentCatalogPath(): AssetPath {
-        val configured = settings.string(CATALOG_PATH_KEY, DEFAULT_CATALOG_PATH).first()
+        val configured = settings.value(CATALOG_PATH).first()
         return try {
             AssetPath(configured)
         } catch (e: IllegalArgumentException) {

@@ -1,12 +1,12 @@
 ---
 feature: ads
-status: changed          # draft | confirmed | changed
+status: confirmed        # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed: 2026-10-28
+confirmed: 2026-10-29
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
@@ -136,3 +136,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-28 | Nhật | Xác nhận spec (`confirmed`) sau khi xem kết quả kiểm: "Chuyển spec ads sang confirmed cho tôi", rồi "Đồng ý, mở PR" |
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
 | 2026-10-28 | AI | Mục 6: khai báo `queries` mà SDK mediation kéo vào (chạy thử mục 4.1 và câu 14 của plan T-074; Nhật chọn nhận, ghi vào spec). Chuyển `changed`, chờ xác nhận lại |
+| 2026-10-29 | Nhật | Xác nhận mục 6 (khai báo `queries`), lời của Nhật: "Xác nhận và merge" (PR #225). Chuyển lại `confirmed` |

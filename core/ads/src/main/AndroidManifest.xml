@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        The mediation SDKs merge permissions and components into the app. Removed here:
+        - plan T-015 (AppLovin): the CHECK_LICENSE and ACCESS_WIFI_STATE permissions and AppLovinInitProvider.
+          VIBRATE is kept: the AppLovin SDK vibrates without checking the permission or catching the error.
+        - plan T-034: the Meta AudienceNetworkContentProvider and the exported Mintegral NetWorkChangeReceiver.
+        When upgrading a mediation adapter or SDK, check these names in its AAR manifest again and run
+        MergedManifestTest in :app.
+    -->
+    <uses-permission
+        android:name="com.android.vending.CHECK_LICENSE"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_WIFI_STATE"
+        tools:node="remove" />
+
+    <application>
+        <!--
+            AppLovinInitProvider runs at process start, before consent. Removed so that no AppLovin code runs before
+            MobileAds.initialize, which starts the adapter only after consent (ADR-0004, ADR-0013).
+        -->
+        <provider
+            android:name="com.applovin.sdk.AppLovinInitProvider"
+            android:authorities="${applicationId}.applovininitprovider"
+            tools:node="remove" />
+
+        <!--
+            AudienceNetworkContentProvider starts the Meta SDK at process start, before consent. Removed so that Meta
+            starts only through MobileAds.initialize (ADR-0004, ADR-0026 section 3).
+        -->
+        <provider
+            android:name="com.facebook.ads.AudienceNetworkContentProvider"
+            android:authorities="${applicationId}.AudienceNetworkContentProvider"
+            tools:node="remove" />
+
+        <!--
+            Exported receiver that filters CONNECTIVITY_CHANGE, which the system has not sent to manifest-declared
+            receivers since API 24. Removed: it never runs from the system and other apps could call it.
+        -->
+        <receiver
+            android:name="com.mbridge.msdk.foundation.same.broadcast.NetWorkChangeReceiver"
+            tools:node="remove" />
+    </application>
+
+</manifest>

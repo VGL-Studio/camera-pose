@@ -1,6 +1,6 @@
 ---
 feature: loading
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -115,7 +115,7 @@ Tiêu chí chấp nhận:
 
 Màn loading không có vị trí quảng cáo của màn, và không hiện quảng cáo trong lúc đang tải.
 
-Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6): khi tải xong, màn loading gọi quảng cáo mở app của khung (`StartupAds`) rồi mới vào màn chính (camera, onboarding hay màn dự phòng). Chỉ từ lần mở thứ hai sau khi cài (`show_open_ads` bật, `show_open_ads_first_open` tắt), và chỉ khi màn loading bật (`feature_loading_enabled`). Thời gian chờ quảng cáo có giới hạn của khung, cộng sau thời gian tải; không có quảng cáo thì vào màn chính ngay. Áp dụng từ T-074.
+Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6): khi tải xong, màn loading gọi quảng cáo mở app của khung (`StartupAds`) rồi mới vào màn chính (camera, onboarding hay màn dự phòng). Chỉ từ lần mở thứ hai sau khi cài (`show_open_ads` bật, `show_open_ads_first_open` tắt), và chỉ khi màn loading bật (`feature_loading_enabled`). Thời gian chờ quảng cáo có giới hạn của khung, tính từ lúc mở app chứ không cộng sau thời gian tải: chờ đồng ý tối đa 10 giây, SDK 35 giây, quảng cáo 40 giây kể từ lúc mở app. Tải xong mà quá các hạn đó, hay không có quảng cáo, thì vào màn chính ngay. Áp dụng từ T-074.
 
 ## 6. Dữ liệu và phân tích
 
@@ -187,3 +187,4 @@ Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6):
 | 2026-10-26 | Tuấn | Xác nhận KB-5, câu hỏi 11 và chữ 7 ngôn ngữ của plan T-057. Chuyển lại `confirmed` |
 | 2026-10-28 | AI | Mục 5 theo `features/ads/spec.md` câu 6: quảng cáo mở app hiện khi loading xong, trước màn chính, từ lần mở thứ hai |
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5, cùng lúc xác nhận spec ads. Giữ `confirmed` |
+| 2026-10-28 | AI | Mục 5: thời gian chờ quảng cáo mở app tính từ lúc mở app, không cộng sau thời gian tải (theo khung, `StartupAdWait`; câu 6 của plan T-074). Chuyển `changed`, chờ xác nhận lại |

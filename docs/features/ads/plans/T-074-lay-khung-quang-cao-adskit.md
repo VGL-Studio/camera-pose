@@ -557,18 +557,31 @@ Kết quả `python3 scripts/existing-tests.py docs/features/ads/plans/T-074-lay
 ## 8. Câu hỏi cho người duyệt
 
 1. **Vị trí `gallery_*` và `sample_native_small` của khung.** 35 file test của `core/ads` dùng chúng (`AdPlacementTest` đòi vị trí `gallery_*` phủ mọi định dạng). Đề xuất: giữ nguyên trong `AdPlacement`, không màn nào gọi, staging không bật, ghi ở ADR-1007; `release.sh` mới (T-075) bỏ qua `gallery_*` và dùng mã thử cho `sample_native_small` (`docs/ops/release.md` của mẫu, dòng 72). Phương án khác: bỏ `SAMPLE_NATIVE_SMALL` và đổi 49 chỗ dùng trong 17 file test sang `GALLERY_NATIVE_SMALL` (sửa test của khung, xa mẫu hơn), hoặc xóa các test đó như `docs/ops/new-app.md` của mẫu gợi ý (mất độ phủ).
+   - Trả lời (Nhật, 2026-10-28): theo đề xuất: giữ `gallery_*` và `sample_native_small` trong `AdPlacement`, không màn nào gọi, staging không bật.
 2. **Staging bật ba vị trí của app bằng giá trị cục bộ** (`is_show_poses_banner`, `is_show_poses_detail_banner`, `is_show_review_interstitial`), ngoài các khóa câu 6 nêu. Đề xuất: bật, để staging có quảng cáo thử ở ba vị trí như bản mẫu, không phụ thuộc Firebase staging; Firebase staging vẫn tắt được từng vị trí.
+   - Trả lời (Nhật, 2026-10-28): theo đề xuất: staging bật ba vị trí của app bằng giá trị cục bộ.
 3. **Camera KB-9, tiêu chí 4** ("Khi ở camera và trong lúc xem lại thì không có quảng cáo nào trên màn hình") trái câu 6 (quảng cáo quay lại app có thể đè camera). Đề xuất: Nhật sửa tiêu chí thành "không có vị trí quảng cáo nào của màn camera và màn xem lại; quảng cáo toàn app khi quay lại app có thể phủ lên (mục 5)" trước khi duyệt plan, để phiên không gặp mâu thuẫn (điều kiện dừng 3). Cùng lúc: các spec `changed` ở lượt 3 (khóa mới ở KB-6, KB-9, mục 8; mục 6) Nhật xác nhận sau phiên.
+   - Trả lời (Nhật, 2026-10-28): sửa spec trước khi duyệt plan, PR #222 (camera KB-9 tiêu chí 4).
 4. **Quyền `VIBRATE`** (AppLovin, quyền thường, không cần hỏi người dùng, không thuộc mục An toàn dữ liệu). Đề xuất: Nhật thêm vào `features/ads/spec.md` mục 6 câu "Quyền mà SDK quảng cáo kéo vào: `VIBRATE` (AppLovin rung mà không kiểm quyền; gỡ thì app có thể dừng đột ngột khi hiện quảng cáo AppLovin)" và xác nhận lại spec trước khi duyệt. Phương án khác: bỏ adapter AppLovin (đổi câu của spec về tám mạng, giảm doanh thu).
+   - Trả lời (Nhật, 2026-10-28): ghi `VIBRATE` vào mục 6 của spec ads, PR #222. Không bỏ adapter AppLovin.
 5. **Khóa số đặt tên trước ADR-0023** (`in_app_review_min_saved_photos`, `in_app_review_min_days_between`, `pose_match_threshold`) không có đuôi đơn vị mà `RemoteConfigKeysTest.everyNumberKey_endsWithUnit` của mẫu đòi. Đề xuất: giữ tên (đã có trên Firebase staging), test có tập ngoại lệ ghi rõ ba tên; khóa mới vẫn theo quy ước.
+   - Trả lời (Nhật, 2026-10-28): theo đề xuất: giữ ba tên khóa cũ, test có tập ngoại lệ ghi rõ ba tên.
 6. **Thời gian của màn loading.** Mục 5 của spec loading ghi thời gian chờ quảng cáo "cộng sau thời gian tải"; khung tính hạn chót từ lúc mở app (tối đa 40 giây kể từ lúc mở, không cộng thêm). Đề xuất: giữ cách của khung, sửa câu của spec ở lượt 3.
+   - Trả lời (Nhật, 2026-10-28): theo cách của khung; câu của spec loading đã sửa ở PR #222, không đợi lượt 3.
 7. **`FullScreenAdHost`** (native toàn màn hình) không đặt vào `MainActivity` vì app không có vị trí native toàn màn hình và combo tắt. Bật `is_show_native_after_inter` trên Firebase thì combo không hiện được (khung ghi `NOT_READY`). Đề xuất: không đặt; ticket bật combo đặt sau. Phương án khác: đặt luôn như mẫu (vô hại khi không có lượt).
+   - Trả lời (Nhật, 2026-10-28): theo đề xuất: không đặt `FullScreenAdHost`.
 8. **`app/lint.xml`** bỏ qua `NotificationPermission` chỉ cho lớp `com.squareup.picasso.` (InMobi kéo vào, không ai gọi). `CLAUDE.md` cấm tắt quy tắc lint để test qua; đây là quyết định của mẫu ở T-034, phạm vi một gói. Đề xuất: nhận, ghi trong ADR-1007.
+   - Trả lời (Nhật, 2026-10-28): theo đề xuất: nhận `app/lint.xml`, ghi trong ADR-1007.
 9. **Khóa trên Firebase production** (`is_show_*` thay `ads_*_enabled`, theo câu 2) là việc của người trước khi phát production (T-075); T-074 không chạm cấu hình production. Đúng không?
+   - Trả lời (Nhật, 2026-10-28): đúng: khóa trên Firebase production là việc của người trước khi phát production (T-075).
 10. **Test xóa theo plan:** `InterstitialBreaksTest.afterShown_waitsMinInterval`, `allowed_onlyWithConsentFlagAndNoNetworkDialog`, cả `InterstitialFlowTest`, `AppsFlyerSdkUseTest` (từ take). Đề xuất: người duyệt đồng ý ở mục 9 rằng các test này xóa vì hành vi bị bỏ theo câu 1, câu 3 của spec, không phải để làm test qua.
+   - Trả lời (Nhật, 2026-10-28): theo đề xuất: các test đó xóa vì hành vi bị bỏ theo câu 1, câu 3 của spec, không phải để làm test qua. Người duyệt ghi lại ở mục 9 khi duyệt.
 11. **Interstitial và popup mạng.** Bộ cũ không mở interstitial khi popup mạng đang hiện; khung chỉ theo `InternetConnectivity` (mất mạng thì không nạp; quảng cáo đã nạp vẫn có thể hiện), còn popup chờ quảng cáo đóng (lượt 2). Đề xuất: nhận hành vi của khung.
+   - Trả lời (Nhật, 2026-10-28): theo đề xuất: nhận hành vi của khung.
 12. **Hai kho Maven trong môi trường cloud.** Phiên `cloud` và `routine` của app sau khi merge lượt 1 cần tải từ `artifact.bytedance.com` và `dl-maven-android.mintegral.com`. Người kiểm (mục 4.1) và thêm vào chính sách mạng nếu bị chặn, trước khi duyệt.
+   - Trả lời (Nhật, 2026-10-28): theo đề xuất: người kiểm ở mục 4.1, thêm vào chính sách mạng của môi trường cloud nếu bị chặn, trước khi duyệt.
 13. **Chạy thử (mục 4.1)** cần nhánh take; đề xuất Tuấn làm nhánh take và chạy các lệnh của mục 4.1 trước họp duyệt, ghi kết quả, rồi mới duyệt.
+   - Trả lời: chờ Tuấn (nhánh take và chạy thử mục 4.1).
 
 ## 9. Quyết định duyệt
 

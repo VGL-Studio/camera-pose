@@ -1,0 +1,320 @@
+{
+  "conditions": [],
+  "parameters": {
+    "feature_camera_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the camera screen with pose outlines as the start screen.",
+      "valueType": "BOOLEAN"
+    },
+    "feature_in_app_review_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Asks for a Play review after enough saved photos (core/review rules).",
+      "valueType": "BOOLEAN"
+    },
+    "feature_loading_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the loading screen that prepares the app before the start screen.",
+      "valueType": "BOOLEAN"
+    },
+    "feature_network_dialog_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the dialog that blocks the app while the device has no usable Internet.",
+      "valueType": "BOOLEAN"
+    },
+    "feature_onboarding_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the welcome screens and the camera permission request on first open.",
+      "valueType": "BOOLEAN"
+    },
+    "feature_pose_matching_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the live pose match score on the camera.",
+      "valueType": "BOOLEAN"
+    },
+    "feature_poses_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the pose library button on the camera and the library screens.",
+      "valueType": "BOOLEAN"
+    },
+    "feature_sample_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the sample feature screen, the reference pattern for new features.",
+      "valueType": "BOOLEAN"
+    },
+    "feature_settings_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the settings button and the settings screen.",
+      "valueType": "BOOLEAN"
+    },
+    "pose_match_min_in_frame_percent": {
+      "defaultValue": { "value": "50" },
+      "description": "Confidence in percent, 1 to 99, from which a body point counts as in the frame; out of range uses 50.",
+      "valueType": "NUMBER"
+    },
+    "pose_match_threshold": {
+      "defaultValue": { "value": "80" },
+      "description": "Score, 1 to 100, from which the pose on the camera counts as matched; out of range uses 80.",
+      "valueType": "NUMBER"
+    },
+    "privacy_policy_url": {
+      "defaultValue": { "value": "https://studio.vgl.io.vn/privacy-policy" },
+      "description": "Address of the privacy policy page opened from settings.",
+      "valueType": "STRING"
+    },
+    "ads_interval": {
+      "defaultValue": { "value": "45" },
+      "description": "Minimum time between two full-screen ads of the default interval group, in seconds.",
+      "valueType": "NUMBER"
+    },
+    "ads_review_interstitial_breaks_between": {
+      "defaultValue": { "value": "3" },
+      "description": "Saved photos (items) between two review_interstitial ads. Name set by the app, not an AdsKit key.",
+      "valueType": "NUMBER"
+    },
+    "ads_review_interstitial_first_break": {
+      "defaultValue": { "value": "2" },
+      "description": "First saved photo of the session (counted in items) that may show review_interstitial. Name set by the app, not an AdsKit key.",
+      "valueType": "NUMBER"
+    },
+    "is_enable_consent_shortcut": {
+      "defaultValue": { "value": "false" },
+      "description": "Remote switch of the consent shortcut (CACHED_EARLY, ERROR_ALLOWED); also needs the build setting of the app. False takes ERROR_ALLOWED back at once. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_ad_fullscreen_events": {
+      "defaultValue": { "value": "false" },
+      "description": "Logs the Firebase lifecycle events of full-screen ads. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_ad_slot_events": {
+      "defaultValue": { "value": "false" },
+      "description": "Logs the Firebase lifecycle events of ad slots (banner, native). Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_ads": {
+      "defaultValue": { "value": "true" },
+      "description": "Master switch for every ad. When false, the app loads and shows no ad at all. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_app_open": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_app_open (app_open).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_banner": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_banner (banner).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_banner_collapsible": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_banner_collapsible (banner_collapsible).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_in_collection": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_in_collection (native_in_collection).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_inlist_medium": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_inlist_medium (native_medium).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_inlist_small": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_inlist_small (native_small).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_interstitial": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_interstitial (interstitial).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_native_full_screen": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_native_full_screen (native_fullscreen).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_native_medium": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_native_medium (native_medium).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_native_small": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_native_small (native_small).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_native_step": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_native_step (native_step).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_native_step_full": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_native_step_full (native_fullscreen).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_rw_action": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_rw_action (rewarded).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_native_after_inter": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows a full-screen native ad right after an interstitial (combo).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_native_bottom": {
+      "defaultValue": { "value": "false" },
+      "description": "Bottom slot of every bottom ad bar: a small native ad when true, a banner when false.",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_native_collap": {
+      "defaultValue": { "value": "true" },
+      "description": "Collapsible native layer on the bottom ad bar, only when is_show_native_bottom is also true. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_poses_banner": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement poses_banner (banner).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_poses_detail_banner": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement poses_detail_banner (banner).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_review_interstitial": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_sample_native_small": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement sample_native_small (native_small).",
+      "valueType": "BOOLEAN"
+    },
+    "native_every_gallery_in_collection": {
+      "defaultValue": { "value": "4" },
+      "description": "Number of items between two native ads of this placement, in items. Derived key of placement gallery_in_collection (native_in_collection).",
+      "valueType": "NUMBER"
+    },
+    "native_every_gallery_inlist_medium": {
+      "defaultValue": { "value": "8" },
+      "description": "Number of items between two native ads of this placement, in items. Derived key of placement gallery_inlist_medium (native_medium).",
+      "valueType": "NUMBER"
+    },
+    "native_every_gallery_inlist_small": {
+      "defaultValue": { "value": "8" },
+      "description": "Number of items between two native ads of this placement, in items. Derived key of placement gallery_inlist_small (native_small).",
+      "valueType": "NUMBER"
+    },
+    "open_ad_type": {
+      "defaultValue": { "value": "aoa" },
+      "description": "Ad shown when the app opens: inter for an interstitial, any other value for an app open ad.",
+      "valueType": "STRING"
+    },
+    "resume_ad_type": {
+      "defaultValue": { "value": "aoa" },
+      "description": "Ad shown when the user comes back: only inter gives an interstitial, any other value an app open ad.",
+      "valueType": "STRING"
+    },
+    "show_open_ads": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the ad when the app opens, from the second open on.",
+      "valueType": "BOOLEAN"
+    },
+    "show_open_ads_first_open": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows the ad when the app opens for the first time after install.",
+      "valueType": "BOOLEAN"
+    },
+    "show_resum_ads": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows an ad when the user comes back to the app. Name kept with the AdsKit typo.",
+      "valueType": "BOOLEAN"
+    },
+    "time_expand_collap_ad": {
+      "defaultValue": { "value": "30" },
+      "description": "Time after the user collapses the collapsible native ad before it expands again, in seconds; 0 means never. Name set by the template, not an AdsKit key.",
+      "valueType": "NUMBER"
+    },
+    "is_log_af_ad_revenue": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_ad_revenue for every paid ad impression. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_inters_ad_eligible": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_inters_ad_eligible. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_inters_api_called": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_inters_api_called. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_inters_displayed": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_inters_displayed. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_inters_displayed_n_times": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_inters_displayed_{N}_times. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_native_ad_displayed": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_native_ad_displayed. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_native_ad_eligible": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_native_ad_eligible. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_native_api_called": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_native_api_called. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_rewarded_ad_displayed": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_rewarded_ad_displayed. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_rewarded_ad_eligible": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_rewarded_ad_eligible. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_af_rewarded_api_called": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends af_rewarded_api_called. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "network_lost_delay_seconds": {
+      "defaultValue": { "value": "3" },
+      "description": "Seconds the device must report no network before the dialog that blocks the app shows.",
+      "valueType": "NUMBER"
+    },
+    "poses_catalog_path": {
+      "defaultValue": { "value": "poses/catalog/v3/catalog-512aa695.json" },
+      "description": "Path on R2 of the pose catalog; an invalid path falls back to the default.",
+      "valueType": "STRING"
+    },
+    "in_app_review_min_days_between": {
+      "defaultValue": { "value": "30" },
+      "description": "Days between two requests of the Play review dialog.",
+      "valueType": "NUMBER"
+    },
+    "in_app_review_min_saved_photos": {
+      "defaultValue": { "value": "3" },
+      "description": "Photos saved since install before the Play review dialog may be asked for.",
+      "valueType": "NUMBER"
+    }
+  }
+}

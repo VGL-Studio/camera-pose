@@ -94,6 +94,17 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
     outputs.doNotCacheIf("google-services.json is chosen at execution time") { true }
 }
 
+// RemoteConfigKeysTest rewrites the two generated key files when run with -PremoteConfigKeys.update=true (ADR-0023).
+// The files are inputs, so editing one by hand runs the test again instead of leaving it UP-TO-DATE.
+val remoteConfigKeysMarkdown = rootProject.file("docs/remote-config-keys.md")
+val remoteConfigKeysTemplate = rootProject.file("docs/remote-config-template.json")
+tasks.withType<Test>().configureEach {
+    systemProperty("remoteConfigKeys.update", providers.gradleProperty("remoteConfigKeys.update").getOrElse("false"))
+    systemProperty("remoteConfigKeys.markdown", remoteConfigKeysMarkdown.absolutePath)
+    systemProperty("remoteConfigKeys.template", remoteConfigKeysTemplate.absolutePath)
+    inputs.files(remoteConfigKeysMarkdown, remoteConfigKeysTemplate).withPropertyName("remoteConfigKeysDocs")
+}
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:data"))

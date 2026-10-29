@@ -2,7 +2,7 @@
 id: T-074
 title: Lấy khung quảng cáo AdsKit của dự án mẫu về app (chưa bật AppsFlyer), chuyển ba vị trí quảng cáo hiện có sang khung mới, bật quảng cáo mở app và quay lại app
 feature: ads
-spec: features/ads/spec.md   # draft tới khi mục 9 có đủ câu trả lời; vị trí của từng màn vẫn ở mục 5 của features/camera/spec.md và features/poses/spec.md
+spec: features/ads/spec.md   # confirmed 2026-10-28; vị trí của từng màn vẫn ở mục 5 của features/camera/spec.md và features/poses/spec.md
 scenarios: []
 owner: Tuấn
 status: backlog
@@ -53,10 +53,9 @@ Sau ticket này, app dùng khung mới. Ba vị trí hiện có (`review_interst
   - Luật tần suất của `review_interstitial` theo câu 1 của spec: giữ "không trước ảnh lưu thứ 2" và "tối đa 1 lần mỗi 3 ảnh" (khóa `ads_review_interstitial_first_break`, `ads_review_interstitial_breaks_between`), bỏ 120 giây riêng; nhịp chung `ads_interval`.
   - Khóa Remote Config đổi từ `ads_<vị trí>_enabled` sang `is_show_<vị trí>`.
   - Bảng khóa sinh lại theo `docs/ops/remote-config.md`.
-- **Chép câu trả lời của `features/ads/spec.md` mục 9 vào spec màn:**
-  - mục 5 của `features/camera/spec.md` và `features/poses/spec.md`: khóa, luật tần suất;
-  - mục 5 của `features/loading/spec.md`: quảng cáo mở app hiện sau loading; mục 5 của `features/camera/spec.md`: đổi câu "Không vị trí quảng cáo nào ở camera" thành camera không có vị trí của màn, nhưng quảng cáo khi quay lại app có thể phủ lên camera;
-  - mục 6 của spec màn có vị trí: sự kiện phân tích mà khung ghi (không có AppsFlyer).
+- **Câu trả lời của `features/ads/spec.md` mục 9 đã chép vào mục 5 của spec camera, loading, poses** trong PR xác nhận spec ads (2026-10-28). T-074 chỉ còn:
+  - bỏ các ghi chú "Áp dụng từ T-074" và "trước đó ..." ở mục 5 của ba spec khi code đã đổi;
+  - mục 6 của spec màn có vị trí: sự kiện phân tích mà khung ghi (không có AppsFlyer). Phần này đổi spec đã xác nhận, nên plan nêu rõ để người xác nhận lại.
 - **Ảnh chuẩn screenshot.** Ảnh của màn có quảng cáo ghi lại theo plan, lệnh có `--rerun` (L-114 của dự án mẫu). Ảnh mới của khung (catalog native, màn xem thử) theo plan.
 - **ADR và tài liệu.**
   - ADR-1004 chuyển `superseded`.
@@ -90,7 +89,7 @@ Mỗi lượt có PR riêng.
 
 ## Câu hỏi cho người
 
-Sáu câu ở mục 9 của `features/ads/spec.md` đã có câu trả lời (Nhật, 2026-10-28). Spec chờ người phụ trách sản phẩm chuyển `confirmed`; trước đó `scripts/plan-queue.py` không chọn ticket này (và T-075 phụ thuộc nó).
+Sáu câu ở mục 9 của `features/ads/spec.md` đã có câu trả lời (Nhật, 2026-10-28). Nhật xác nhận spec ngày 2026-10-28.
 
 ## Định nghĩa hoàn thành
 

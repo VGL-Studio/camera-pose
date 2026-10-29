@@ -1,19 +1,19 @@
 ---
 feature: ads
-status: draft            # draft | confirmed | changed
+status: confirmed        # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed:
+confirmed: 2026-10-28
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
 
 Spec này chốt các quyết định kinh doanh cần trước khi soạn plan T-074 (lấy khung quảng cáo AdsKit của dự án mẫu, chưa bật AppsFlyer) và T-075 (`release.sh` theo khung mới). Vị trí quảng cáo của từng màn vẫn nằm ở mục 5 của spec màn đó (`features/camera/spec.md`, `features/poses/spec.md`). Khi spec này được xác nhận, các câu trả lời được chép vào hai spec đó trong PR của T-074, cùng lúc với code.
 
-Spec để `draft` cho tới khi mục 9 có đủ câu trả lời, nên `scripts/plan-queue.py` bỏ qua T-074 và T-075.
+Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-28.
 
 ## 1. Mục tiêu
 
@@ -105,8 +105,8 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
    - Lấy nguyên phần `app/` thì bản staging trái mục 5 của spec camera ("Không vị trí quảng cáo nào ở camera").
    - Đề xuất của AI: giữ tắt mọi vị trí toàn app. `StagingRemoteValuesModule` của app không bật các khóa đó, chỉ giữ hai khóa ghi log (`is_log_ad_fullscreen_events`, `is_log_ad_slot_events`), có test kiểm. Muốn dùng vị trí nào thì thêm vào spec màn đó qua một ticket riêng.
    - Trả lời: bật quảng cáo mở app và quảng cáo khi quay lại app; native sau interstitial và native đáy giữ tắt. Nhật, 2026-10-28.
-     - Quảng cáo mở app (`open_app`): hiện một lần khi loading xong, trước khi vào camera. Không hiện trong lúc ở màn chào hay loading.
-     - Quảng cáo khi quay lại app (`resume`): hiện ở mọi màn, kể cả khi người dùng quay lại app lúc đang ở camera (Nhật điều chỉnh, 2026-10-28). Khung không có cổng theo màn (luật A-11 của `docs/ops/ads-business-rules.md`), nên không cần sửa `core/ads`. Mục 5 của spec camera đổi câu "Không vị trí quảng cáo nào ở camera": camera vẫn không có vị trí của màn, nhưng quảng cáo toàn app khi quay lại app có thể phủ lên camera.
+     - Quảng cáo mở app (`open_app`): hiện một lần khi loading xong, trước khi vào màn chính (thường là camera; onboarding hay màn dự phòng khi camera tắt). Không hiện trong lúc ở màn chào hay loading.
+     - Quảng cáo khi quay lại app (`resume`): hiện ở mọi màn, kể cả khi người dùng quay lại app lúc đang ở camera (Nhật điều chỉnh, 2026-10-28; Nhật giữ lựa chọn này sau khi được nhắc nó đi ngược bài học 3 của spec camera). Khung không có cổng theo màn (luật A-11 của `docs/ops/ads-business-rules.md`), nên không cần sửa `core/ads`. Mục 5 của spec camera đổi câu "Không vị trí quảng cáo nào ở camera": camera vẫn không có vị trí của màn, nhưng quảng cáo toàn app khi quay lại app có thể phủ lên camera.
      - Bản staging: `StagingRemoteValuesModule` của app bật `show_open_ads` và `show_resum_ads`; không bật `is_show_native_after_inter`, `is_show_native_bottom`. Production theo Remote Config, mặc định tắt.
      - `show_open_ads_first_open` (lần mở đầu tiên, còn hộp thoại đồng ý và onboarding): tắt, cả ở staging (Nhật, 2026-10-28). Từ lần mở thứ hai mới có quảng cáo mở app (`show_open_ads`).
      - Quảng cáo mở app chỉ có khi màn loading bật (`feature_loading_enabled`), vì màn loading gọi `StartupAds` của khung (`docs/ops/ads-guide.md`).
@@ -119,3 +119,5 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-28 | AI | Tạo bản đầu cho T-074, T-075 theo rà soát PR #209: chuyển câu hỏi từ ticket vào spec, thêm câu 6 (quảng cáo toàn app), sửa chỗ đặt luật tần suất và khóa ở câu 1, 2 |
 | 2026-10-28 | Nhật | Trả lời sáu câu của mục 9 (AI ghi). Sửa mục 1, 2, 5, 6 theo câu 3, 4, 6: AppsFlyer chưa bật, bỏ màn xem thử, bật quảng cáo mở app (sau loading) và khi quay lại app (trừ camera) |
 | 2026-10-28 | Nhật | Chốt thêm câu 6 (AI ghi): `show_open_ads_first_open` tắt; quảng cáo khi quay lại app hiện ở mọi màn, kể cả camera, thay cho "trừ camera" |
+| 2026-10-28 | AI | Chép câu trả lời vào mục 5 của spec camera, loading, poses ngay trong PR xác nhận này (không đợi T-074), theo lựa chọn của Nhật |
+| 2026-10-28 | Nhật | Xác nhận spec (`confirmed`) sau khi xem kết quả kiểm: "Chuyển spec ads sang confirmed cho tôi", rồi "Đồng ý, mở PR" |

@@ -1,4 +1,4 @@
-base=b80a57ed92b3ad272b98e151cc23db9e8dde8de0
+base=0444fbef2f7b15550d1639c61ee7b49c52b66827
 package=com.vglstudio.camera.pose.line.guide
 hold=app 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=core 0eaeadbc2b04a94c81d9877aec4681b05a11587a

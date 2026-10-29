@@ -4181,12 +4181,17 @@ expect "ads-plan: two AdPlacement.kt stop the script" 1 "$(ads_plan --dump > /de
 rm "$ap/core/ads/src/main/kotlin/AdPlacement.kt"
 # Every enum line of this repo's AdPlacement.kt is a placement the workbook lists: a declaration the script cannot
 # read would be dropped without a word.
-ap_real_file="$(find core/ads/src/main -name AdPlacement.kt)"
-ap_real_lines="$(awk '/^enum class AdPlacement/ {in_enum = 1} in_enum && /^    [A-Z_]+\("/ {n++} in_enum && /^    ;/ {exit} END {print n}' "$ap_real_file")"
-expect "ads-plan: every placement of this repo is read" "$ap_real_lines" \
-  "$(python3 -I scripts/ads-plan.py --dump --with-staging --no-examples | python3 -I -c 'import json,sys; print(len(json.load(sys.stdin)["placements"]))')"
-expect "ads-plan: this repo lists its app-wide placements" True \
-  "$(python3 -I scripts/ads-plan.py --dump | python3 -I -c 'import json,sys; c={p["code"] for p in json.load(sys.stdin)["placements"]}; print({"open_app","open_app_inter","resume","resume_inter","native_combo"} <= c)')"
+# An app that still holds an older core/ads (hold= in docs/template-sync.txt) has no key table yet, so it skips these.
+if [[ ! -f docs/remote-config-keys.md ]]; then
+  echo "skip - ads-plan: repo chưa có docs/remote-config-keys.md (app còn giữ core/ads cũ)"
+else
+  ap_real_file="$(find core/ads/src/main -name AdPlacement.kt)"
+  ap_real_lines="$(awk '/^enum class AdPlacement/ {in_enum = 1} in_enum && /^    [A-Z_]+\("/ {n++} in_enum && /^    ;/ {exit} END {print n}' "$ap_real_file")"
+  expect "ads-plan: every placement of this repo is read" "$ap_real_lines" \
+    "$(python3 -I scripts/ads-plan.py --dump --with-staging --no-examples | python3 -I -c 'import json,sys; print(len(json.load(sys.stdin)["placements"]))')"
+  expect "ads-plan: this repo lists its app-wide placements" True \
+    "$(python3 -I scripts/ads-plan.py --dump | python3 -I -c 'import json,sys; c={p["code"] for p in json.load(sys.stdin)["placements"]}; print({"open_app","open_app_inter","resume","resume_inter","native_combo"} <= c)')"
+fi
 if python3 -I -c 'import openpyxl' 2> /dev/null; then
   ads_plan --out "$work/ap-1.xlsx" > /dev/null
   expect "ads-plan: the workbook has its sheets in order" "Hướng dẫn,Vị trí QC,Remote Config,Sự kiện,Định dạng,Hằng số,Danh mục" \

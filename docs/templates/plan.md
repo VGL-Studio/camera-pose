@@ -11,6 +11,7 @@ run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer:                    # người duyệt
 cross_reviewer:              # bắt buộc khi risk_level là high
 approved_at:
+lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
 # PLAN T-NNN: <TÊN TASK>
@@ -163,7 +164,7 @@ Ghi "Không cần (E dưới 2)" nếu không áp dụng. scripts/plan-check.py 
 
 ## 9. Quyết định duyệt
 
-<!-- Người duyệt điền. AI không điền mục này. -->
+<!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
 
 - **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
 - **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
@@ -171,7 +172,8 @@ Ghi "Không cần (E dưới 2)" nếu không áp dụng. scripts/plan-check.py 
 
 ## 10. Nhật ký thực hiện
 
-<!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+<!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ.
+Đường làm nhanh (ADR-0034): tiêu đề "Làm nhanh YYYY-MM-DD, phiên bản plan N", ghi trong lần đẩy cuối của PR, sau rà soát độc lập và trước CI; Kết quả ghi "merge bằng PR này", Kết quả CI ghi "CI của PR này", bỏ dòng Cần người xem sáng nay, ghi việc cần người kiểm. -->
 
 ### RUN-YYYYMMDD-NN, phiên bản plan 1
 

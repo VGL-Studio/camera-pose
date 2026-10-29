@@ -36,6 +36,8 @@ Với plan không chạm điểm chặn, AI chấm từng tiêu chí từ 0 đ�
 | 5 đến 8 | **Trung bình** | Chủ feature duyệt | Trình bày trong họp, dev còn lại được quyền yêu cầu duyệt chéo |
 | 9 trở lên, hoặc chạm điểm chặn | **Cao** | Bắt buộc dev còn lại duyệt chéo | Cân nhắc tách thành task nhỏ hơn trước khi duyệt |
 
+Đường làm nhanh có người theo dõi (ADR-0034) chỉ nhận plan mức Thấp không chạm điểm chặn; dev nào ngồi cùng cũng duyệt được, ngay trong phiên, không cần họp.
+
 Ngoại lệ khi nhóm chỉ có một dev: người đó vừa duyệt vừa duyệt chéo plan rủi ro cao, ghi rõ lý do ở mục 9 của plan. Phiên tự chạy không coi đây là lý do bỏ qua task. Khi nhóm có dev thứ hai, quy tắc duyệt chéo áp dụng lại đầy đủ.
 
 Thêm hai quy tắc:
@@ -102,3 +104,4 @@ Khi bắt đầu làm việc lại, nhóm trả lời câu hỏi "vì sao plan c
 | 2026-10-25 | Mục 4, điều kiện 1 và 5, đoạn "Không phải dừng": phần ngoài mục 3.2 cần cho task thì sửa tiếp, merge, báo sau, không giới hạn số file hay module; chỉ file "Không được làm" của `CLAUDE.md` còn làm dừng theo điều kiện 1; test cũ được cập nhật dữ liệu theo phần plan thêm (ADR-0029, thay ADR-0028) | 3 trên 4 lần dừng gần nhất vì mục 3.2 thiếu file hay test (T-014, T-024 hai lần); người quyết không dựng thử lúc soạn plan |
 | 2026-10-28 | Mục 4, đoạn "Không phải dừng: lệch nhỏ đã liệt kê": mười lệch nhỏ L1 tới L10 phiên tự làm rồi báo sau, kể cả bỏ qua loại task mà môi trường không làm được (ADR-0032) | Ở app camera-pose, phiên phải hỏi người, soạn plan phiên bản mới hay đoán vì những lệch người sẽ đồng ý ngay (camera-pose ADR-1005, T-067, L-112) |
 | 2026-10-28 | Mục 4, đoạn "Không phải dừng: lệch nhỏ đã liệt kê": thêm L11 (phần dựng của test chỉ đỏ vì máy thiếu cấu hình chung) và L12 (điểm nên sửa chỉ về chú thích hay định dạng) (ADR-0033) | App camera-pose sửa test chỉ đỏ trên runner mà không có mục nào cho phép (issue #243); rà soát T-049 xếp nên sửa một dòng KDoc mà luật Nên sửa không cho sửa (L-115) |
+| 2026-10-29 | Mục 3: đường làm nhanh có người theo dõi chỉ nhận plan mức Thấp không chạm điểm chặn, dev nào ngồi cùng cũng duyệt được trong phiên (ADR-0034) | Việc nhỏ ban ngày phải chờ phiên tự chạy và nhiều PR duyệt |

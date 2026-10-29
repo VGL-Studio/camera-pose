@@ -221,6 +221,23 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - mỗi lệch L11, L12 ghi vào mục "Quyết định AI đã tự làm" của báo cáo
 - rà soát độc lập xét L11 kèm lệnh tái hiện như L1 tới L7 và L10, xét L12 ở vòng rà soát lại của điểm nên sửa kèm `git diff -w`, lệch không đủ điều kiện là mức chặn
 
+### [ADR-0034](adr/0034-lam-nhanh-co-nguoi-theo-doi.md): Việc nhỏ, rủi ro thấp của code app được làm ngay ban ngày theo đường làm nhanh, AI làm cùng dev, vẫn đủ yêu cầu, ticket, plan, nhật ký, CI và merge-if-green.sh
+
+- đường làm nhanh chỉ cho code app, chỉ khi dev ngồi cùng suốt task tới khi `main-guard` xanh, plan không chạm điểm chặn nào kể cả điểm 7, không thêm quyền, thư viện hay SDK, mức rủi ro Thấp và tiêu chí E dưới 2, ticket cỡ S hoặc M khi dev đồng ý, kịch bản có trong spec `confirmed` hoặc dev ngồi cùng là người xác nhận spec của feature
+- không bắt đầu khi có phiên tự chạy đang chạy hay issue `main-broken`, `env-broken` đang mở
+- vẫn ghi yêu cầu, ticket, plan đủ mục theo mẫu với `lane: quick`, chạy `scripts/plan-check.py` khi plan còn `draft` và sửa hết lỗi
+- chỉ chuyển plan sang `approved`, ghi mục 9, hay chuyển spec sang `confirmed` sau khi dev đồng ý rõ ràng trong chính phiên đó, ghi người duyệt, ngày và lời đồng ý
+- dev nào ngồi cùng cũng duyệt được plan làm nhanh, ghi khi người duyệt không phải `owner` của ticket
+- vẫn viết test trước, chạy `scripts/check.sh`, rà soát độc lập bằng agent con ngữ cảnh mới theo bước 6 của `docs/auto-run.md`, lời giao có dòng `Task: T-NNN`
+- chờ CI và merge chỉ bằng `scripts/merge-if-green.sh`, chờ `main-guard`
+- một PR cho cả task trên nhánh `claude/quick-T-NNN-<tu-khoa>`, mô tả ghi "Đường làm nhanh (ADR-0034)" và những gì đường thường ghi vào báo cáo phiên
+- nhật ký, plan `done`, ticket `on-staging` ghi trong lần đẩy cuối trước CI
+- trước khi merge chạy `scripts/plan-check.py` và `scripts/run-check.py` cho các danh sách chạy chưa chạy trên nhánh làm nhanh và báo dev lỗi mới
+- hỏi dev trước mọi lệch mà phiên tự chạy được tự làm rồi báo, ghi vào nhật ký
+- dừng hay bỏ task thì đóng PR làm nhanh và đưa yêu cầu, ticket `stopped`, plan có nhật ký lần dừng lên nhánh chính bằng PR tài liệu, làm tiếp thì theo đường thường trên nhánh `claude/T-NNN-<tu-khoa>`
+- nhánh chính đỏ vì commit merge của PR làm nhanh thì revert theo ADR-0025 cùng dev, rồi ticket `stopped` và nhật ký ghi "đã merge rồi revert"
+- đánh dấu token bằng `scripts/token-usage.py mark` và ghi CSV với `--run QUICK-YYYYMMDD-T-NNN`
+
 ## Quyết định riêng của app
 
 ### [ADR-1001](adr/1001-loading-timeout-15s.md): Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config

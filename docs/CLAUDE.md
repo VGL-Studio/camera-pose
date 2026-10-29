@@ -132,7 +132,7 @@ Theo [ops/design-workflow.md](ops/design-workflow.md), mục 8.
 
 ## Khi làm nhanh có người theo dõi
 
-Việc nhỏ của code app ban ngày, dev ngồi cùng AI, theo ADR-0034. AI làm gần như mọi việc; dev trả lời câu hỏi, đồng ý plan một lần và xem kết quả. Việc về script, tài liệu, quy trình vẫn làm bằng PR thường trong phiên có người theo dõi như trước.
+Việc nhỏ của code app ban ngày, dev ngồi cùng AI, theo ADR-0034. Hướng dẫn cho dev ở [ops/quick-lane.md](ops/quick-lane.md). AI làm gần như mọi việc; dev trả lời câu hỏi, đồng ý plan một lần và xem kết quả. Việc về script, tài liệu, quy trình vẫn làm bằng PR thường trong phiên có người theo dõi như trước.
 
 - Chỉ vào đường làm nhanh khi đủ: dev ngồi cùng suốt task, tới khi `main-guard` của commit merge xanh; plan không chạm điểm chặn nào ở mục 1 của [risk-scoring.md](risk-scoring.md), kể cả điểm 7; không thêm quyền, thư viện, SDK; mức rủi ro Thấp và tiêu chí E dưới 2; ticket cỡ S, hoặc M khi dev đồng ý; kịch bản có trong spec `confirmed`, hoặc dev ngồi cùng là người xác nhận spec của feature. Thiếu một điều thì nói với dev và đi đường thường.
 - Lúc bắt đầu: không có phiên tự chạy đang chạy (danh sách `running` trên nhánh `claude/RUN-*-report`, tra như `scripts/merge-if-green.sh`), không có issue `main-broken` hay `env-broken` đang mở. Nhắc dev không kích hoạt phiên tự chạy khi PR làm nhanh còn mở.

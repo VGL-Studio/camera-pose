@@ -69,7 +69,7 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 
 ### Quyết định AI đã tự làm
 
-<!-- auto-run.md, mục 5; ADR-0032. Lệch nhỏ L1 tới L10 (ADR-0032), L11 và L12 (ADR-0033), phần ngoài mục 3.2 (ADR-0029), câu khẳng định cũ viết lại (ADR-0031), phương án dự phòng, task bỏ qua vì lỗi môi trường. Ghi "Không có" nếu không có. -->
+<!-- auto-run.md, mục 5; ADR-0032. Lệch nhỏ L1 tới L10 (ADR-0032), L11 và L12 (ADR-0033), điểm chặn của rà soát ghi "không tái hiện" (ADR-0035: nguyên văn điểm chặn, tên test, lần đột biến, kết quả rà soát lại), phần ngoài mục 3.2 (ADR-0029), câu khẳng định cũ viết lại (ADR-0031), phương án dự phòng, task bỏ qua vì lỗi môi trường. Ghi "Không có" nếu không có. -->
 
 | Task | Loại | Quyết định | Lý do | Cách hoàn tác |
 | --- | --- | --- | --- | --- |
@@ -84,6 +84,7 @@ Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 - [ ] Phần ngoài mục 3.2 đã merge (ADR-0029): <ticket, file, vì sao cần, PR>, hoặc "Không có"
 - [ ] Câu khẳng định cũ viết lại (ADR-0031): <ticket, test, câu cũ và câu mới, câu của plan nói điều mới, PR>, hoặc "Không có"
 - [ ] Quyết định AI đã tự làm: <N, xem mục trên>, hoặc "Không có"
+- [ ] Điểm chặn của rà soát ghi "không tái hiện" (ADR-0035), kiểm tay trên máy: <ticket, nguyên văn điểm chặn, tên test, cách kiểm>, hoặc "Không có"
 - [ ] Điểm rà soát mức ghi chú: <ticket, nội dung>
 - [ ] Test chập chờn: <issue `flaky` đang mở, tên test>, hoặc "Không có" (ADR-0025)
 - [ ] Task bị revert: <ticket, issue `main-broken`, PR revert>, hoặc "Không có" (ADR-0025)

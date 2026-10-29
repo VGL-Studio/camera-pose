@@ -1,0 +1,34 @@
+2026-10-28T17:23:15.2426199Z ##[group]Install Android SDK
+2026-10-28T17:23:15.2569586Z [command]/usr/bin/sh -c \yes | sdkmanager --licenses > /dev/null
+2026-10-28T17:23:22.3452740Z Installing latest build tools, platform tools, and platform.
+2026-10-28T17:23:22.3469893Z [command]/usr/bin/sh -c \sdkmanager --install 'build-tools;37.0.0' platform-tools 'platforms;android-34'> /dev/null
+2026-10-28T17:23:24.0570573Z Installing latest emulator.
+2026-10-28T17:23:24.0589399Z [command]/usr/bin/sh -c \sdkmanager --install emulator --channel=0 > /dev/null
+2026-10-28T17:23:38.5836033Z Warning: An error occurred while preparing SDK package Android Emulator: Error on ZipFile unknown archive.
+2026-10-28T17:23:38.6186995Z ##[endgroup]
+2026-10-28T17:23:38.6187956Z ##[group]Terminate Emulator
+2026-10-28T17:23:38.6201368Z [command]/usr/local/lib/android/sdk/platform-tools/adb -s emulator-5554 emu kill
+2026-10-28T17:23:38.8059698Z error: could not connect to TCP port 5554: Connection refused
+2026-10-28T17:23:38.8060968Z The process '/usr/local/lib/android/sdk/platform-tools/adb' failed with exit code 1
+2026-10-28T17:23:38.8062118Z ##[endgroup]
+2026-10-28T17:23:38.8084926Z ##[error]The process '/usr/bin/sh' failed with exit code 1
+2026-10-28T17:23:38.8167471Z ##[group]Run scripts/test-summary.sh android 2>&1 | tee ui-summary.log
+2026-10-28T17:23:38.8167923Z scripts/test-summary.sh android 2>&1 | tee ui-summary.log
+2026-10-28T17:23:38.8223259Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-28T17:23:38.8223580Z env:
+2026-10-28T17:23:38.8223880Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64
+2026-10-28T17:23:38.8224313Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64
+2026-10-28T17:23:38.8224671Z   MAVEN_ARGS: -ntp
+2026-10-28T17:23:38.8224917Z   GRADLE_ACTION_ID: gradle/actions/setup-gradle
+2026-10-28T17:23:38.8225203Z   GRADLE_USER_HOME: /home/runner/.gradle
+2026-10-28T17:23:38.8225475Z   GRADLE_BUILD_ACTION_SETUP_COMPLETED: true
+2026-10-28T17:23:38.8225766Z   GRADLE_BUILD_ACTION_CACHE_RESTORED: true
+2026-10-28T17:23:38.8226158Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+2026-10-28T17:23:38.8226639Z   DEVELOCITY_INJECTION_CUSTOM_VALUE: gradle-actions
+2026-10-28T17:23:38.8226946Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+2026-10-28T17:23:38.8227233Z   ANDROID_AVD_HOME: /home/runner/.android/avd
+2026-10-28T17:23:38.8227502Z ##[endgroup]
+2026-10-28T17:23:38.8462923Z Test emulator: 0 test, 0 lỗi. không có kết quả
+2026-10-28T17:23:38.8466400Z ##[notice]Test emulator: 0 test, 0 lỗi. không có kết quả
+2026-10-28T17:23:38.8470124Z ##[error]Không có test nào chạy trên emulator.
+2026-10-28T17:23:38.8472732Z ##[error]Process completed with exit code 1.

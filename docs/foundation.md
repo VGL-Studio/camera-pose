@@ -238,6 +238,13 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - nhánh chính đỏ vì commit merge của PR làm nhanh thì revert theo ADR-0025 cùng dev, rồi ticket `stopped` và nhật ký ghi "đã merge rồi revert"
 - đánh dấu token bằng `scripts/token-usage.py mark` và ghi CSV với `--run QUICK-YYYYMMDD-T-NNN`
 
+### [ADR-0035](adr/0035-diem-chan-khong-tai-hien.md): Điểm chặn của rà soát độc lập nói code chạy sai mà test chạy thật không tái hiện được thì phiên ghi "không tái hiện" và đi tiếp, có người kiểm sau
+
+- - Chỉ ghi "không tái hiện" cho điểm chặn nói code của task chạy sai, khi đủ bốn điều: - test mới chạy code, khẳng định đúng điều và ngưỡng mà điểm chặn nêu
+- - test qua mà không sửa code của task
+- - đột biến theo hướng điểm chặn làm test thất bại, ghi vào nhật ký plan
+- - test nằm trong file được phép và vào commit của task. - Không áp dụng cho điểm chặn về lệch plan, file ngoài phạm vi, test bị đổi hay xóa, ADR-0031, cấu hình production, bí mật, mã quảng cáo thật, thiết kế hay hiểu spec khác nhau. - Test và lần đột biến đi qua vòng rà soát lại, tính vào giới hạn 2 vòng. Rà soát lại không đồng ý thì điểm là Chặn như cũ. - Mỗi điểm chỉ ghi "không tái hiện" một lần. - Ghi vào mục "Quyết định AI đã tự làm", thêm một dòng `- [ ]` ở "Cần người kiểm tra", và ghi trong mô tả PR
+
 ## Quyết định riêng của app
 
 ### [ADR-1001](adr/1001-loading-timeout-15s.md): Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config

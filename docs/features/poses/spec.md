@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-thu-vien-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-21
+confirmed: 2026-10-28
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -132,8 +132,10 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `sa
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
-| `poses_banner` | banner | Neo đáy màn thư viện, khi màn hình đang mở | Làm mới theo mặc định của AdMob | `ads_poses_banner_enabled` |
-| `poses_detail_banner` | banner | Đáy màn chi tiết tư thế, dưới nút chính | Làm mới theo mặc định của AdMob | `ads_poses_detail_banner_enabled` |
+| `poses_banner` | banner | Neo đáy màn thư viện, khi màn hình đang mở | Làm mới theo mặc định của AdMob | `is_show_poses_banner` (từ T-074; trước đó `ads_poses_banner_enabled`) |
+| `poses_detail_banner` | banner | Đáy màn chi tiết tư thế, dưới nút chính | Làm mới theo mặc định của AdMob | `is_show_poses_detail_banner` (từ T-074; trước đó `ads_poses_detail_banner_enabled`) |
+
+Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) có thể hiện khi người dùng quay lại app lúc đang ở thư viện hay chi tiết tư thế. Áp dụng từ T-074.
 
 ## 6. Dữ liệu và phân tích
 
@@ -194,3 +196,5 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `sa
 | 2026-10-21 | AI | Lập gói bàn giao thiết kế: trạng thái `offline` chuyển sang gói `network` vì hộp thoại do vỏ app hiện, không thuộc `PosesScreen` |
 | 2026-10-28 | AI | Mục 7: cỡ catalog theo bản thật (v3, 350 tư thế, khoảng 1,6 MB), theo câu 4 của plan T-071 mà Nhật duyệt. Không đổi hành vi. Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-28 | Nhật | Xác nhận lại mục 7 (cỡ catalog thật). Chuyển lại `confirmed` |
+| 2026-10-28 | AI | Mục 5: tên khóa bật tắt đổi theo `features/ads/spec.md` câu 2 (từ T-074). Màn thư viện và chi tiết có thể bị phủ bởi quảng cáo toàn app khi quay lại app (câu 6) |
+| 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5, cùng lúc xác nhận spec ads. Giữ `confirmed` |

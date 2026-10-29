@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-27
+confirmed: 2026-10-28
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -172,7 +172,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi người dùng rời màn xem lại (bằng Chụp lại, Tư thế tiếp hay nút quay lại) sau khi đã lưu ảnh, và đủ điều kiện ở mục 5, thì một quảng cáo toàn màn hình hiện trước khi về camera.
 - [ ] Khi chưa lưu ảnh nào trong lần xem lại đó thì không hiện quảng cáo.
 - [ ] Khi cờ `ads_review_interstitial_enabled` tắt hoặc người dùng chưa đồng ý quảng cáo theo hộp thoại đồng ý thì không hiện quảng cáo (ADR-0013, ADR-0014).
-- [ ] Khi ở camera và trong lúc xem lại thì không có quảng cáo nào trên màn hình.
+- [ ] Khi ở camera và trong lúc xem lại thì không có vị trí quảng cáo nào của màn camera hay màn xem lại. Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6). Áp dụng từ T-074; trước đó không có quảng cáo nào trên màn hình.
 
 ### KB-10. Hỏi đánh giá app
 
@@ -207,9 +207,11 @@ Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
-| `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình); cách lần trước ít nhất 120 giây; tối đa 1 lần mỗi 3 ảnh lưu. Các con số đặt trong `RemoteSettings` để chỉnh từ xa | `ads_review_interstitial_enabled` |
+| `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình), khóa `ads_review_interstitial_first_break`; tối đa 1 lần mỗi 3 ảnh lưu, khóa `ads_review_interstitial_breaks_between`; nhịp chung của mọi quảng cáo toàn màn hình `ads_interval` (mặc định 45 giây). Không còn luật 120 giây riêng (`features/ads/spec.md`, câu 1, 2). Áp dụng từ T-074; trước đó app chạy theo luật cũ (120 giây, khóa `ads_review_interstitial_enabled`) | `is_show_review_interstitial` |
 
-Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài học 3).
+Màn camera và màn xem lại không có vị trí quảng cáo nào của màn (bài học 3).
+
+Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) hiện ở mọi màn, nên có thể phủ lên camera hay màn xem lại khi người dùng quay lại app lúc đang ở đó. Đây là lựa chọn có chủ đích, đi ngược một phần bài học 3; Nhật chốt ngày 2026-10-28. Khung không hiện quảng cáo này khi người dùng vừa rời app có chủ đích (hộp thoại quyền, chia sẻ ảnh); app đánh dấu các chỗ đó trong T-074. Đóng quảng cáo thì camera mở lại như khi quay lại app thường. Áp dụng từ T-074.
 
 ## 6. Dữ liệu và phân tích
 
@@ -333,3 +335,7 @@ Không vị trí quảng cáo nào ở camera và trong lúc xem lại (bài h�
 | 2026-10-26 | AI | Đề xuất theo phản hồi dùng trên máy thật của Tuấn: chạm thẻ bước để ẩn (KB-2, câu hỏi 2 phần bổ sung, FB-20261026-02); nét viền không vẽ ra ngoài khung (KB-3, FB-20261026-03); khóa nút và dừng đếm khi đang đếm ngược (KB-6, câu hỏi 16, FB-20261026-04); KB-3 sửa chữ "độ mờ" còn sót thành "độ đậm". Chờ người phụ trách sản phẩm xác nhận |
 | 2026-10-26 | Tuấn | Xác nhận phần đổi theo FB-20261026-02 đến -04 (KB-2, KB-3, KB-6, câu hỏi 2 phần bổ sung, câu hỏi 16). Chuyển lại `confirmed` |
 | 2026-10-27 | AI | Đề xuất theo FB-20261027-01 (plan T-064): máy chỉ có một camera thì nút đổi camera mờ đi, camera mở bằng camera máy có (KB-4, câu hỏi 17). Chờ người phụ trách sản phẩm xác nhận |
+| 2026-10-28 | AI | Mục 5 theo `features/ads/spec.md` (câu 1, 2, 6): luật và khóa mới của `review_interstitial`; quảng cáo toàn app khi quay lại app có thể phủ lên camera và màn xem lại |
+| 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5 (chọn "Giữ: mọi màn" cho quảng cáo khi quay lại app), cùng lúc xác nhận spec ads. Giữ `confirmed` |
+| 2026-10-28 | AI | KB-9, tiêu chí 4 theo mục 5 và câu 6 của spec ads (câu 3 của plan T-074): camera và màn xem lại không có vị trí quảng cáo của màn, quảng cáo toàn app khi quay lại app có thể phủ lên. Chuyển `changed`, chờ xác nhận lại |
+| 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |

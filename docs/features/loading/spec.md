@@ -8,7 +8,7 @@ requests:
   - requests/2026-10-21-loading-cua-camera-pose.md
 design: features/loading/design/README.md
 created: 2026-10-15
-confirmed: 2026-10-15
+confirmed: 2026-10-28
 ---
 
 # SPEC: MÀN HÌNH LOADING
@@ -113,7 +113,9 @@ Tiêu chí chấp nhận:
 
 ## 5. Quảng cáo
 
-Không có. Màn hình loading không hiện quảng cáo.
+Màn loading không có vị trí quảng cáo của màn, và không hiện quảng cáo trong lúc đang tải.
+
+Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6): khi tải xong, màn loading gọi quảng cáo mở app của khung (`StartupAds`) rồi mới vào màn chính (camera, onboarding hay màn dự phòng). Chỉ từ lần mở thứ hai sau khi cài (`show_open_ads` bật, `show_open_ads_first_open` tắt), và chỉ khi màn loading bật (`feature_loading_enabled`). Thời gian chờ quảng cáo có giới hạn của khung, tính từ lúc mở app chứ không cộng sau thời gian tải: chờ đồng ý tối đa 10 giây, SDK 35 giây, quảng cáo 40 giây kể từ lúc mở app. Tải xong mà quá các hạn đó, hay không có quảng cáo, thì vào màn chính ngay. Áp dụng từ T-074.
 
 ## 6. Dữ liệu và phân tích
 
@@ -183,3 +185,7 @@ Không có. Màn hình loading không hiện quảng cáo.
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: chờ tối đa 15 giây cho mỗi thứ cần tải (KB-2); viết ADR-1001 vì ADR-0018 của dự án mẫu ghi 10 giây cho cấu hình |
 | 2026-10-26 | AI | Theo FB-20261022-03 (Tuấn đưa vào phiên sau): thêm kịch bản KB-5 (máy có mạng mà không tải được, lời hướng dẫn thứ hai), một dòng trong KB-2 trỏ sang KB-5, câu hỏi 11. Chuyển sang `changed`, chờ xác nhận lại |
 | 2026-10-26 | Tuấn | Xác nhận KB-5, câu hỏi 11 và chữ 7 ngôn ngữ của plan T-057. Chuyển lại `confirmed` |
+| 2026-10-28 | AI | Mục 5 theo `features/ads/spec.md` câu 6: quảng cáo mở app hiện khi loading xong, trước màn chính, từ lần mở thứ hai |
+| 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5, cùng lúc xác nhận spec ads. Giữ `confirmed` |
+| 2026-10-28 | AI | Mục 5: thời gian chờ quảng cáo mở app tính từ lúc mở app, không cộng sau thời gian tải (theo khung, `StartupAdWait`; câu 6 của plan T-074). Chuyển `changed`, chờ xác nhận lại |
+| 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |

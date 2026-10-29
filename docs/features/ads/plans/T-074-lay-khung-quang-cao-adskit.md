@@ -590,6 +590,7 @@ Kết quả `python3 scripts/existing-tests.py docs/features/ads/plans/T-074-lay
    - Trả lời (Nhật, 2026-10-28): AI có Nhật theo dõi làm nhánh take và chạy thử phần nhỏ của mục 4.1; `scripts/check.sh`, test của khung và R8 để lượt 1.
 
 14. **`queries` mà các SDK mediation kéo vào** (mục 4.1, Kết quả): chợ ứng dụng, Facebook, intent `MAIN` (thấy mọi app có màn chính), gói dò root, DT Ignite. Đề xuất: nhận như dự án mẫu đang có, ghi vào mục 6 của spec ads cùng `VIBRATE`, và người kiểm phần Package visibility khi khai Play Console trước production. Phương án khác: gỡ từng mục bằng `tools:node="remove"` trong manifest của `:app` (SDK có thể hỏng chức năng đo hay chống gian lận; cần chạy thử từng mục).
+   - Trả lời (Nhật, 2026-10-28): nhận; danh sách ghi vào mục 6 của spec ads (PR spec riêng), người kiểm Package visibility khi khai Play Console trước production.
 
 ## 9. Quyết định duyệt
 

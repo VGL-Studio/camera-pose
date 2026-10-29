@@ -1,15 +1,17 @@
 ---
 id: ADR-1004
 title: App chưa áp dụng quảng cáo theo AdsKit và AppsFlyer cho tới đợt đồng bộ core, trong lúc đó giữ quy tắc quảng cáo cũ
-status: accepted             # proposed | accepted | superseded
+status: superseded           # proposed | accepted | superseded
 origin: app                  # template: ADR của dự án mẫu (mã dưới 1000) | app: ADR riêng của app (mã từ 1001)
 date: 2026-10-27
 deciders: [Tuấn]
 supersedes:                  # tạm không áp dụng ADR-0026, ADR-0027 và các vế đổi của ADR-0004, ADR-0013, ADR-0014, ADR-0023; xem mục Quyết định
-superseded_by:
+superseded_by: ADR-1007      # T-074 lấy core/ads, core/analytics của dự án mẫu (không có SDK AppsFlyer)
 ---
 
 # ADR-1004: APP CHƯA ÁP DỤNG QUẢNG CÁO THEO ADSKIT VÀ APPSFLYER CHO TỚI ĐỢT ĐỒNG BỘ CORE
+
+> **Ghi chú 2026-10-29:** T-074 lấy `core/ads`, `core/analytics` của dự án mẫu. ADR-1007 thay ADR này: app dùng khung AdsKit, không có SDK AppsFlyer.
 
 ## Bối cảnh
 

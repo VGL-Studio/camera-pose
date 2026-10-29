@@ -5,12 +5,12 @@ feature: network
 spec: features/network/spec.md
 scenarios: [KB-1, KB-3]
 owner: Nhật
-status: backlog
+status: planned
 risk: medium
 size: S
 depends_on: []
 sprint:
-plan:
+plan: features/network/plans/T-077-popup-khi-quay-lai-app.md
 auto_run:
 created: 2026-10-28
 ---

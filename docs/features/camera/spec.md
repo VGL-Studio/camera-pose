@@ -172,7 +172,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi người dùng rời màn xem lại (bằng Chụp lại, Tư thế tiếp hay nút quay lại) sau khi đã lưu ảnh, và đủ điều kiện ở mục 5, thì một quảng cáo toàn màn hình hiện trước khi về camera.
 - [ ] Khi chưa lưu ảnh nào trong lần xem lại đó thì không hiện quảng cáo.
 - [ ] Khi cờ `ads_review_interstitial_enabled` tắt hoặc người dùng chưa đồng ý quảng cáo theo hộp thoại đồng ý thì không hiện quảng cáo (ADR-0013, ADR-0014).
-- [ ] Khi ở camera và trong lúc xem lại thì không có quảng cáo nào trên màn hình.
+- [ ] Khi ở camera và trong lúc xem lại thì không có vị trí quảng cáo nào của màn camera hay màn xem lại. Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6). Áp dụng từ T-074; trước đó không có quảng cáo nào trên màn hình.
 
 ### KB-10. Hỏi đánh giá app
 
@@ -337,3 +337,5 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-27 | AI | Đề xuất theo FB-20261027-01 (plan T-064): máy chỉ có một camera thì nút đổi camera mờ đi, camera mở bằng camera máy có (KB-4, câu hỏi 17). Chờ người phụ trách sản phẩm xác nhận |
 | 2026-10-28 | AI | Mục 5 theo `features/ads/spec.md` (câu 1, 2, 6): luật và khóa mới của `review_interstitial`; quảng cáo toàn app khi quay lại app có thể phủ lên camera và màn xem lại |
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5 (chọn "Giữ: mọi màn" cho quảng cáo khi quay lại app), cùng lúc xác nhận spec ads. Giữ `confirmed` |
+| 2026-10-28 | AI | KB-9, tiêu chí 4 theo mục 5 và câu 6 của spec ads (câu 3 của plan T-074): camera và màn xem lại không có vị trí quảng cáo của màn, quảng cáo toàn app khi quay lại app có thể phủ lên. Chuyển `changed`, chờ xác nhận lại |
+| 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |

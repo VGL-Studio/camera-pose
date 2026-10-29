@@ -111,7 +111,7 @@ internal fun ComponentActivity.observeAppForeground(onStarted: () -> Unit, onSto
 | Tạo | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/network/AppForegroundObserverTest.kt` | Test Robolectric của mục 4 |
 | Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt` | Gọi `observeAppForeground(...)` trong `onCreate` |
 
-Không đổi file mà nơi khác đọc: không thêm khóa Remote Config (bảng `docs/remote-config-keys.md`, `RemoteConfigKeysTest` giữ nguyên), không ảnh chuẩn, không tài nguyên chuỗi.
+`scripts/tests/run.sh` có nhắc `MainActivity.kt` (dòng đếm `exposeTestTagsForUiAutomator()` bằng 1): không bị ảnh hưởng, vì plan chỉ thêm một lời gọi `observeAppForeground(...)` và không thêm hay bớt `exposeTestTagsForUiAutomator()` (L-020). Không đổi file khác mà nơi khác đọc: không thêm khóa Remote Config (bảng `docs/remote-config-keys.md`, `RemoteConfigKeysTest` giữ nguyên), không ảnh chuẩn, không tài nguyên chuỗi.
 
 ### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
 
@@ -120,7 +120,7 @@ Không đổi file mà nơi khác đọc: không thêm khóa Remote Config (bả
 - Sự kiện phân tích: Không chạm (spec, câu hỏi 5).
 - File R2: Không chạm.
 - **Quyền truy cập:** Không thêm. `ConnectivityManager.getActiveNetwork`/`getNetworkCapabilities` đã dùng `ACCESS_NETWORK_STATE` có sẵn của `:core:network` (T-011); `Activity.isChangingConfigurations` và `Lifecycle.addObserver` không cần quyền.
-- **Thư viện và SDK:** Không thêm. `DefaultLifecycleObserver`, `LifecycleOwner` thuộc `androidx.lifecycle:lifecycle-common`, có trên classpath biên dịch của `:app` qua `androidx.activity` (phụ thuộc `api`); chạy thử ở 4.1 biên dịch đúng hai lớp này trong source set test của `:app`. `:core:network` chỉ dùng `kotlinx.coroutines` có sẵn.
+- **Thư viện và SDK:** Không thêm. `DefaultLifecycleObserver`, `LifecycleOwner` thuộc thư viện lifecycle của AndroidX (cùng phiên bản `androidxLifecycle` của `gradle/libs.versions.toml`), đã có trên classpath biên dịch của `:app` qua `androidx.activity` (phụ thuộc `api`, `ComponentActivity.lifecycle` trả kiểu của thư viện này); chạy thử ở 4.1 biên dịch đúng hai lớp này trong source set test của `:app`. `:core:network` chỉ dùng `kotlinx.coroutines` có sẵn.
 
 ### 3.4. Phương án dự phòng
 
@@ -128,7 +128,7 @@ Không có. Phần chưa chắc duy nhất (Robolectric có báo `isChangingConf
 
 ### 3.5. Hành vi đã có bị đổi
 
-`scripts/existing-tests.py` (kết quả ở dưới) chỉ ra `NetworkDialogControllerTest`, `AppAdsRootTest` và các test khác của `:core:network`, `:app`. Đã đọc từng test ở nhóm "Cần xem trước" và "Nên xem": không câu khẳng định nào bị đổi, vì plan chỉ thêm đường mới. Đường cũ (mất mạng quá 3 giây, lỗi tải, thử lại, chờ quảng cáo, cờ tắt) không đổi, và không test cũ nào gọi `onAppStarted`/`onAppStopped`.
+`scripts/existing-tests.py` (2026-10-29): 140 test dùng tên của các file plan sửa; "Cần xem trước" 0; "Nên xem" 11: `MergedManifestTest.mergedManifest_hasNoAdGalleryActivity`, `ScreenOrientationTest.manifest_keepsPortrait_soPhonesStartWithoutARelaunch` (manifest của `MainActivity`, plan không đổi manifest), `RemoteConfigKeysTest.networkKeys_areListed` (so `NetworkSettings.all()`, plan không đổi `all()`), `NetworkSettingsTest.lostDelayIs3SecondsByDefault`, `NetworkSettingsTest.retryWaitsAtMost2Seconds` (hai hằng cũ giữ giá trị), `NetworkDialogControllerTest.adCloses_withoutLoss_staysHidden`, `adStartsWhileDialogShown_hidesThenShowsAgainOnClose`, `lostWhileAdShowing_dialogWaits_thenShowsWhenAdCloses` (đường chờ quảng cáo không đổi, test mới dùng lại nó), `NativeFullScreenOverlayTest.recreate_keepsDeadline_notRestarted`, `PhotoStoreTest.save_insertThrowsIllegalArgument_isIOException`, `LoadingRouteTest.backgroundWhileWaiting_thenResumed_showsOnce` (chỉ trùng chữ `onCreate`, không dùng `MainActivity`). Đã đọc từng test: không câu khẳng định nào bị đổi, vì plan chỉ thêm đường mới. Đường cũ (mất mạng quá 3 giây, lỗi tải, thử lại, chờ quảng cáo, cờ tắt) không đổi, và không test cũ nào gọi `onAppStarted`/`onAppStopped`.
 
 | Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
 | --- | --- | --- | --- |
@@ -150,7 +150,7 @@ Unit test thêm vào `NetworkDialogControllerTest` (thời gian ảo, helper `co
 | Một lần ra nền chỉ cho một lần kiểm | Unit test | `secondStartWithoutStop_isNotAReturn`: ra nền; quay lại có mạng; `advanceTimeBy(1_500)`; `connected = false`; `onAppStarted()` lần nữa (không ra nền); `advanceTimeBy(1_500)` → `HIDDEN` (tổng 1 500 ms từ lúc mất mạng, chưa tới 3 giây) |
 | Màn loading không tính (KB-3 mới, "sau màn loading") | Unit test | `returnOnLoadingScreen_ignored`: `controller(active = false)`; ra nền; offline; quay lại; `advanceTimeBy(5_000)` → `HIDDEN` |
 | KB-4: cờ tắt thì không hiện | Unit test | `returnWithFlagOff_ignored`: `flags.enabled.value = emptySet()` trước khi dựng; ra nền; offline; quay lại; `advanceTimeBy(5_000)` → `HIDDEN` |
-| Cờ tắt hay về loading giữa lúc kiểm lại (L-061) | Unit test | `flagTurnedOffDuringGrace_dropsShow`: ra nền; offline; quay lại; `advanceTimeBy(500)`; `flags.enabled.value = emptySet()`; `runCurrent()`; bật lại cờ ở `advanceTimeBy(100)` sau đó thì đường 3 giây bắt đầu lại: khẳng định `HIDDEN` ở 1 100 ms (lần kiểm khi quay lại đã bị hủy) và không dòng `offline_on_foreground` nào trong log. `deactivatedDuringGrace_dropsShow`: như trên với `setActive(false)`, `advanceTimeBy(5_000)` → `HIDDEN` |
+| Cờ tắt hay về loading giữa lúc kiểm lại (L-061) | Unit test | `flagTurnedOffDuringGrace_dropsShow`: ra nền; offline; quay lại; `advanceTimeBy(500)`; `flags.enabled.value = emptySet()`; `advanceTimeBy(100)`; bật lại cờ (`setOf(FeatureFlag.NETWORK_DIALOG)`): khẳng định `HIDDEN` ở 1 100 ms (lần kiểm khi quay lại đã bị hủy, không thì hộp thoại hiện ở 1 000 ms) và log không có `offline_on_foreground`; đối chứng: `advanceTimeBy(3_000)` → `SHOWN` với lý do `device_offline` (đường 3 giây bắt đầu lại từ lúc bật cờ). `deactivatedDuringGrace_dropsShow`: như trên với `setActive(false)`, `advanceTimeBy(5_000)` → `HIDDEN` |
 | KB-1: chỉ một hộp thoại khi hai đường cùng hiện | Unit test | `returnOffline_andLostDelay_singleDialog`: ra nền; offline; quay lại; `advanceTimeBy(5_000)`; `seenStates` có đúng một `Shown(checking = false, stillOffline = false)`; log có đúng một dòng bắt đầu bằng `Dialog shown` |
 | KB-3 có sẵn: hộp thoại đã hiện trước khi ra nền vẫn hiện, không hiện lại lần hai | Unit test | `shownBeforeBackground_staysOnReturn`: offline, `advanceTimeBy(3_001)` → `SHOWN`; ra nền; quay lại; `advanceTimeBy(1_500)` → vẫn `SHOWN`, log có đúng một `Dialog shown` |
 | Ra nền giữa lúc kiểm lại (L-091) | Unit test | `backgroundDuringGrace_dialogStaysOnReturn`: ra nền; offline; quay lại; `advanceTimeBy(500)`; ra nền; `advanceTimeBy(600)` → `SHOWN` (job vẫn chạy khi ở nền, mục 3.1); quay lại; `advanceTimeBy(1_500)` → `SHOWN`, đúng một dòng `Dialog shown` |
@@ -206,7 +206,7 @@ Test viết trước: mọi unit test và `AppForegroundObserverTest` ở trên 
 3. **"Quay lại app" tính thế nào.** Ticket ghi `MainActivity.onStart` gọi hàm và bỏ qua lần bắt đầu đầu tiên (đếm như bản mẫu). Plan tính "quay lại" là `MainActivity` bắt đầu sau một lần dừng không do đổi cấu hình (`onAppStopped(false)`), gắn bằng observer vòng đời: lần đầu tự bị bỏ qua, xoay màn hình trên màn lớn (T-056) không bị tính. Hệ quả: trở về từ app khác mở từ app (chia sẻ ảnh, cài đặt hệ thống) và từ quảng cáo toàn màn hình mở dạng activity riêng của SDK cũng là một lần quay lại. Đề xuất của AI: đồng ý cách này, coi đó là thay cho câu "MainActivity.onStart gọi hàm này" của ticket.
 4. **Thứ tự với quảng cáo quay lại app khi không có mạng.** Khung không tải quảng cáo mới khi mất mạng, nhưng quảng cáo `resume` nạp sẵn vẫn hiện. Đề xuất của AI: quảng cáo hiện trước, hộp thoại hiện sau khi quảng cáo đóng (đúng mục 5 của spec, không đổi `:core:ads`); nhờ 1 giây kiểm lại, hộp thoại không lóe lên trước quảng cáo. Mạng có lại trong lúc quảng cáo hiện thì hộp thoại vẫn hiện khi quảng cáo đóng, như đường "mất mạng quá 3 giây" hiện nay; người dùng bấm "Thử lại" là đóng (KB-2). Nếu muốn kiểm lại mạng lúc quảng cáo đóng thì đó là đổi chung cho mọi lý do hiện, nên để ticket riêng.
 5. **Ra nền giữa lúc kiểm lại.** Đề xuất của AI: không hủy lần kiểm; nếu vẫn không có mạng thì hộp thoại hiện khi app ở nền (giống đường 3 giây hiện nay) và còn đó khi quay lại (KB-3). Đồng ý không?
-6. **Lỗi của `plan-check.py` chỉ người sửa được:** xem kết quả ở mô tả PR; plan chờ spec `confirmed` (câu hỏi 1) rồi mới duyệt.
+6. **Thứ tự duyệt.** `scripts/plan-check.py` qua (2026-10-29), không có lỗi chỉ người sửa được. Plan chờ spec network `confirmed` có tiêu chí của câu hỏi 1 rồi mới duyệt; người duyệt chéo bắt buộc (điểm chặn 7). Đề xuất của AI: Nhật sửa spec và xác nhận lại cùng lúc với lần xác nhận đang chờ sau T-074.
 
 ## 9. Quyết định duyệt
 

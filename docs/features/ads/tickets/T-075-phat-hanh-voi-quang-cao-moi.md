@@ -1,6 +1,6 @@
 ---
 id: T-075
-title: Lấy release.sh và release.md của dự án mẫu theo khung quảng cáo mới (mã quảng cáo thật, khóa AppsFlyer production)
+title: Lấy release.sh và release.md của dự án mẫu theo khung quảng cáo mới (mã quảng cáo thật; chưa có AppsFlyer)
 feature: ads
 spec:                        # không có spec nghiệp vụ; làm theo ADR-0009, ADR-0017, ADR-0027 của dự án mẫu
 scenarios: []
@@ -19,13 +19,13 @@ created: 2026-10-28
 
 ## Mô tả
 
-`scripts/release.sh` và `docs/ops/release.md` của app đang giữ ở commit `0eaeadb` của dự án mẫu (dòng `hold=` trong `docs/template-sync.txt`). Bản mới của dự án mẫu kiểm cả mã quảng cáo thật cho mọi vị trí của `AdPlacement` lẫn khóa AppsFlyer production, mà app chưa có khi chưa xong T-074. Sau ticket này, app phát bản production bằng đúng script của dự án mẫu.
+`scripts/release.sh` và `docs/ops/release.md` của app đang giữ ở commit `0eaeadb` của dự án mẫu (dòng `hold=` trong `docs/template-sync.txt`). Bản mới của dự án mẫu kiểm cả mã quảng cáo thật cho mọi vị trí của `AdPlacement` lẫn khóa AppsFlyer production, mà app chưa có khi chưa xong T-074. Sau ticket này, app phát bản production bằng đúng script của dự án mẫu. AppsFlyer chưa bật ở app (câu 3 của `features/ads/spec.md`): plan xử lý phần kiểm khóa AppsFlyer production của script mẫu cho app không có AppsFlyer, và ghi cách làm vào plan.
 
 ## Phạm vi
 
 - Chạy `scripts/template-sync.sh --app <camera-pose> --take scripts/release.sh` rồi `--take docs/ops/release.md`. Bỏ hai dòng `hold=` cùng ghi chú đi kèm trong `docs/template-sync.txt`.
 - Khối test `release.sh` trong `scripts/tests/run.sh`: lấy bản của dự án mẫu thay cho khối của app, đang giữ để khớp `release.sh` cũ (to-app.md mục 6).
-- Danh sách mã quảng cáo thật và khóa AppsFlyer production mà người phụ trách phải chuẩn bị, theo `docs/ops/release.md` mới. AI chỉ ghi danh sách tên, không đọc hay ghi giá trị.
+- Danh sách mã quảng cáo thật (không có khóa AppsFlyer, vì app chưa bật AppsFlyer) mà người phụ trách phải chuẩn bị, theo `docs/ops/release.md` mới. AI chỉ ghi danh sách tên, không đọc hay ghi giá trị.
 
 **Không bao gồm:**
 

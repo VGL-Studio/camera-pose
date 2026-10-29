@@ -8,7 +8,7 @@ owner: Tuấn
 status: backlog
 risk: high
 size: L
-depends_on: []               # cần PR đồng bộ đợt 3 (VGL-Studio/camera-pose#208) đã merge, để base của docs/template-sync.txt là f674414
+depends_on: []               # PR đồng bộ đợt 3 (VGL-Studio/camera-pose#208) đã merge, base của docs/template-sync.txt là 0444fbe
 sprint:
 plan:
 created: 2026-10-28
@@ -25,7 +25,7 @@ App đang dùng bộ quảng cáo cũ của dự án mẫu (commit `0eaeadb`): b
 
 Bộ này đã lên staging và được thử trên máy thật tới T-049 của dự án mẫu (`0.1.0-staging.18`).
 
-Theo câu trả lời ở mục 9 của `features/ads/spec.md` (Nhật, 2026-10-28): AppsFlyer chưa bật, không mang màn xem thử quảng cáo, bật quảng cáo mở app (sau loading, trước camera) và khi quay lại app (trừ camera).
+Theo câu trả lời ở mục 9 của `features/ads/spec.md` (Nhật, 2026-10-28): AppsFlyer chưa bật, không mang màn xem thử quảng cáo, bật quảng cáo mở app (sau loading, trước camera, không ở lần mở đầu) và khi quay lại app (ở mọi màn, kể cả camera).
 
 Sau ticket này, app dùng khung mới. Ba vị trí hiện có (`review_interstitial`, `poses_banner`, `poses_detail_banner`) chạy qua `AdPlacement` và khóa `is_show_<vị trí>`, theo luật của `docs/ops/ads-business-rules.md`. Bản staging dùng mã thử của Google. ADR-1004 chuyển `superseded`.
 
@@ -43,8 +43,8 @@ Sau ticket này, app dùng khung mới. Ba vị trí hiện có (`review_interst
     - khởi tạo sau đồng ý;
     - `app/lint.xml`;
     - không mang màn xem thử quảng cáo `AdGalleryActivity` (câu 4 của spec);
-    - `StagingRemoteValuesModule` của app **không** lấy nguyên bản mẫu: bản mẫu bật sẵn quảng cáo mở app, quay lại app, combo native sau interstitial và native đáy ở staging. Theo câu 6 của spec, app bật `show_open_ads` và `show_resum_ads`, không bật `is_show_native_after_inter`, `is_show_native_bottom`; `show_open_ads_first_open` theo plan được duyệt (đề xuất tắt). Có test kiểm các giá trị này.
-    - Quảng cáo mở app hiện khi loading xong, trước khi vào camera, không hiện trong lúc ở màn chào hay loading. Quảng cáo khi quay lại app không hiện khi người dùng đang ở màn camera. Có test cho cả hai.
+    - `StagingRemoteValuesModule` của app **không** lấy nguyên bản mẫu: bản mẫu bật sẵn quảng cáo mở app, quay lại app, combo native sau interstitial và native đáy ở staging. Theo câu 6 của spec, app bật `show_open_ads` và `show_resum_ads`, không bật `is_show_native_after_inter`, `is_show_native_bottom`; không bật `show_open_ads_first_open` (câu 6). Có test kiểm các giá trị này.
+    - Quảng cáo mở app do màn loading gọi `StartupAds` của khung, hiện khi loading xong, trước khi vào camera; không hiện ở lần mở đầu sau khi cài. Cần `feature_loading_enabled` bật. Quảng cáo khi quay lại app theo cổng của khung (luật A-11), không có cổng theo màn: không sửa `core/ads` cho việc này. Có test cho phần của app.
 - **Chuyển ba vị trí của app sang `AdPlacement` mới.**
   - `review_interstitial`: interstitial.
   - `poses_banner`, `poses_detail_banner`: banner.
@@ -55,7 +55,7 @@ Sau ticket này, app dùng khung mới. Ba vị trí hiện có (`review_interst
   - Bảng khóa sinh lại theo `docs/ops/remote-config.md`.
 - **Chép câu trả lời của `features/ads/spec.md` mục 9 vào spec màn:**
   - mục 5 của `features/camera/spec.md` và `features/poses/spec.md`: khóa, luật tần suất;
-  - mục 5 của `features/loading/spec.md`: quảng cáo mở app hiện sau loading; mục 5 của `features/camera/spec.md`: không có quảng cáo khi quay lại app ở camera;
+  - mục 5 của `features/loading/spec.md`: quảng cáo mở app hiện sau loading; mục 5 của `features/camera/spec.md`: đổi câu "Không vị trí quảng cáo nào ở camera" thành camera không có vị trí của màn, nhưng quảng cáo khi quay lại app có thể phủ lên camera;
   - mục 6 của spec màn có vị trí: sự kiện phân tích mà khung ghi (không có AppsFlyer).
 - **Ảnh chuẩn screenshot.** Ảnh của màn có quảng cáo ghi lại theo plan, lệnh có `--rerun` (L-114 của dự án mẫu). Ảnh mới của khung (catalog native, màn xem thử) theo plan.
 - **ADR và tài liệu.**
@@ -66,7 +66,7 @@ Sau ticket này, app dùng khung mới. Ba vị trí hiện có (`review_interst
 
 **Không bao gồm:**
 
-- `scripts/release.sh`, `docs/ops/release.md`, mã quảng cáo thật, khóa AppsFlyer production: ticket T-075.
+- `scripts/release.sh`, `docs/ops/release.md`, mã quảng cáo thật: ticket T-075.
 - Thêm vị trí quảng cáo mới khác `open_app` và `resume` (native, rewarded, trong danh sách). Mỗi vị trí mới cần spec được duyệt và ticket riêng.
 - AppsFlyer, màn xem thử quảng cáo (câu 3, 4 của spec).
 - Các phần khác của dự án mẫu đã đổi từ `0eaeadb` mà khung quảng cáo không cần, ví dụ `feature/loading`, `core/assets`. Plan liệt kê phần nào để lại, cho một đợt `--take` khác.
@@ -90,15 +90,16 @@ Mỗi lượt có PR riêng.
 
 ## Câu hỏi cho người
 
-Sáu câu ở mục 9 của `features/ads/spec.md` đã có câu trả lời (Nhật, 2026-10-28). `show_open_ads_first_open` chốt khi duyệt plan. Spec chờ người phụ trách sản phẩm chuyển `confirmed`; trước đó `scripts/plan-queue.py` không chọn ticket này (và T-075 phụ thuộc nó).
+Sáu câu ở mục 9 của `features/ads/spec.md` đã có câu trả lời (Nhật, 2026-10-28). Spec chờ người phụ trách sản phẩm chuyển `confirmed`; trước đó `scripts/plan-queue.py` không chọn ticket này (và T-075 phụ thuộc nó).
 
 ## Định nghĩa hoàn thành
 
 - [ ] Ba vị trí hiện có chạy qua khung mới, đúng spec đã cập nhật; khóa `is_show_<vị trí>` mặc định tắt.
-- [ ] Hộp thoại đồng ý và khởi tạo SDK đúng ADR-0004, ADR-0013 của dự án mẫu (đã đồng bộ); không có quảng cáo trong lúc ở camera, màn chào hay loading, kể cả ở bản staging; quảng cáo mở app sau loading và khi quay lại app (trừ camera) theo câu 6 của spec, có test.
+- [ ] Hộp thoại đồng ý và khởi tạo SDK đúng ADR-0004, ADR-0013 của dự án mẫu (đã đồng bộ); không có vị trí quảng cáo của màn camera, màn chào hay loading, kể cả ở bản staging; quảng cáo mở app sau loading (không ở lần mở đầu) và khi quay lại app (mọi màn) theo câu 6 của spec, có test.
 - [ ] Không có SDK, quyền hay dữ liệu gửi đi của AppsFlyer; không có `AdGalleryActivity`, `SAMPLE_BOTTOM_BANNER`.
 - [ ] Manifest gộp chỉ có quyền mà spec đã duyệt; bản release staging build qua với R8.
 - [ ] Test của khung (lấy từ dự án mẫu) và test của app qua; ảnh chuẩn đã ghi lại theo plan.
 - [ ] ADR-1004 `superseded`; `docs/template-sync.txt` không còn `hold=` cho các đường dẫn đã lấy.
+- [ ] Có `docs/remote-config-keys.md`; `scripts/ads-plan.py` chạy được trên app (`CLAUDE.md`, mục Lệnh), hai test đọc code thật của khối `ads-plan` trong `scripts/tests/run.sh` không còn bỏ qua.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.
-- [ ] Thử trên máy thật: banner ở thư viện và chi tiết tư thế, interstitial khi rời màn xem lại theo luật đã chốt, quảng cáo mở app sau loading, quảng cáo khi quay lại app ở thư viện nhưng không ở camera, không bấm quảng cáo; đã nghiệm thu chéo.
+- [ ] Thử trên máy thật: banner ở thư viện và chi tiết tư thế, interstitial khi rời màn xem lại theo luật đã chốt, quảng cáo mở app sau loading từ lần mở thứ hai, quảng cáo khi quay lại app ở thư viện và ở camera (camera mở lại được sau khi đóng quảng cáo), không bấm quảng cáo; đã nghiệm thu chéo.

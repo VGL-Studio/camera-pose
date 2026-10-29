@@ -11,13 +11,13 @@ confirmed:
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
 
-Spec này chốt các quyết định kinh doanh cần trước khi soạn plan T-074 (lấy khung quảng cáo AdsKit và AppsFlyer của dự án mẫu) và T-075 (`release.sh` theo khung mới). Vị trí quảng cáo của từng màn vẫn nằm ở mục 5 của spec màn đó (`features/camera/spec.md`, `features/poses/spec.md`). Khi spec này được xác nhận, các câu trả lời được chép vào hai spec đó trong PR của T-074, cùng lúc với code.
+Spec này chốt các quyết định kinh doanh cần trước khi soạn plan T-074 (lấy khung quảng cáo AdsKit của dự án mẫu, chưa bật AppsFlyer) và T-075 (`release.sh` theo khung mới). Vị trí quảng cáo của từng màn vẫn nằm ở mục 5 của spec màn đó (`features/camera/spec.md`, `features/poses/spec.md`). Khi spec này được xác nhận, các câu trả lời được chép vào hai spec đó trong PR của T-074, cùng lúc với code.
 
 Spec để `draft` cho tới khi mục 9 có đủ câu trả lời, nên `scripts/plan-queue.py` bỏ qua T-074 và T-075.
 
 ## 1. Mục tiêu
 
-- **Người dùng được gì:** quảng cáo hiện theo cùng một bộ luật đã kiểm trên máy thật ở dự án mẫu. Không có quảng cáo trong lúc ở camera, màn chào hay loading; quảng cáo mở app hiện ở điểm chuyển từ loading sang camera (câu 6).
+- **Người dùng được gì:** quảng cáo hiện theo cùng một bộ luật đã kiểm trên máy thật ở dự án mẫu. Không có vị trí quảng cáo nào của màn camera, màn chào hay loading; quảng cáo mở app hiện ở điểm chuyển từ loading sang camera, quảng cáo khi quay lại app hiện ở mọi màn, kể cả camera (câu 6).
 - **Vì sao làm bây giờ:** dự án mẫu đã xong khung quảng cáo theo AdsKit PARTNER (`0.1.0-staging.18`). App đang giữ bộ cũ theo ADR-1004, và mọi sửa của dự án mẫu cho quảng cáo không tới được app.
 - **Đo kết quả bằng gì:** doanh thu quảng cáo trên một người dùng mỗi ngày và tỷ lệ giữ chân ngày 1. So hai tuần trước và sau bản có khung mới.
 
@@ -30,7 +30,7 @@ Spec để `draft` cho tới khi mục 9 có đủ câu trả lời, nên `scrip
   - `poses_banner`: banner đáy màn thư viện;
   - `poses_detail_banner`: banner đáy màn chi tiết tư thế.
 - Luật tần suất, khóa Remote Config, theo câu trả lời ở mục 9. AppsFlyer chưa bật (câu 3).
-- Hai vị trí toàn app của khung (câu 6): quảng cáo mở app (`open_app`), sau loading và trước camera; quảng cáo khi quay lại app (`resume`), trừ khi đang ở camera.
+- Hai vị trí toàn app của khung (câu 6): quảng cáo mở app (`open_app`), sau loading và trước camera; quảng cáo khi quay lại app (`resume`), ở mọi màn, kể cả camera.
 
 **Ngoài phạm vi:**
 
@@ -47,7 +47,7 @@ Không có. Banner và interstitial dùng giao diện của khung.
 
 ## 5. Quảng cáo
 
-Ba vị trí của màn: theo `features/camera/spec.md` và `features/poses/spec.md`, mục 5, sau khi chép câu trả lời của mục 9 vào. Hai vị trí toàn app (`open_app`, `resume`) ghi ở đây theo câu 6, và chép vào mục 5 của `features/loading/spec.md` (quảng cáo mở app hiện sau loading) và `features/camera/spec.md` (không có quảng cáo khi quay lại app ở camera) trong PR của T-074. Không thêm vị trí khác.
+Ba vị trí của màn: theo `features/camera/spec.md` và `features/poses/spec.md`, mục 5, sau khi chép câu trả lời của mục 9 vào. Hai vị trí toàn app (`open_app`, `resume`) ghi ở đây theo câu 6, và chép vào mục 5 của `features/loading/spec.md` (quảng cáo mở app hiện sau loading) và `features/camera/spec.md` (quảng cáo khi quay lại app có thể hiện khi người dùng quay lại lúc đang ở camera) trong PR của T-074. Không thêm vị trí khác.
 
 ## 6. Dữ liệu và phân tích
 
@@ -85,7 +85,7 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
    - Bật AppsFlyer như dự án mẫu (ADR-0027)? Staging không có khóa nên không gửi gì; production cần khóa riêng (T-075).
    - Bật thì mục 6 của spec màn có vị trí ghi thêm dữ liệu gửi đi, và mục 6 của spec ghi hai quyền đọc nguồn cài đặt mà SDK kéo vào manifest.
    - Đề xuất của AI: bật.
-   - Trả lời: chưa bật. Nhật, 2026-10-28. T-074 lấy khung của `core/analytics` nhưng không đưa SDK AppsFlyer vào app: không thêm thư viện AppsFlyer, không có quyền đọc nguồn cài đặt, không gửi dữ liệu nào tới AppsFlyer. Plan kiểm làm được không; không được thì giữ `core/analytics` cũ (dòng `hold=`) và báo lại trong plan trước khi duyệt. Bật AppsFlyer sau cần spec và ticket riêng.
+   - Trả lời: chưa bật. Nhật, 2026-10-28. `release.sh` của mẫu luôn đòi khóa dev AppsFlyer: đã đề xuất về mẫu cho khóa này là tùy chọn (VGL-Studio/app-project-template#261); T-075 chờ thay đổi đó. T-074 lấy khung của `core/analytics` nhưng không đưa SDK AppsFlyer vào app: không thêm thư viện AppsFlyer, không có quyền đọc nguồn cài đặt, không gửi dữ liệu nào tới AppsFlyer. Plan kiểm làm được không; không được thì giữ `core/analytics` cũ (dòng `hold=`) và báo lại trong plan trước khi duyệt. Bật AppsFlyer sau cần spec và ticket riêng.
 4. **Màn xem thử quảng cáo (staging) và `feature/sample`.**
    - Giữ màn xem thử của khung (`AdGalleryActivity`, chỉ có ở staging) để thử quảng cáo trên máy thật? Bỏ `SAMPLE_BOTTOM_BANNER` của `feature/sample`?
    - Đề xuất của AI: giữ màn xem thử; bỏ `SAMPLE_BOTTOM_BANNER` nếu app không còn dùng `feature/sample`.
@@ -106,9 +106,11 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
    - Đề xuất của AI: giữ tắt mọi vị trí toàn app. `StagingRemoteValuesModule` của app không bật các khóa đó, chỉ giữ hai khóa ghi log (`is_log_ad_fullscreen_events`, `is_log_ad_slot_events`), có test kiểm. Muốn dùng vị trí nào thì thêm vào spec màn đó qua một ticket riêng.
    - Trả lời: bật quảng cáo mở app và quảng cáo khi quay lại app; native sau interstitial và native đáy giữ tắt. Nhật, 2026-10-28.
      - Quảng cáo mở app (`open_app`): hiện một lần khi loading xong, trước khi vào camera. Không hiện trong lúc ở màn chào hay loading.
-     - Quảng cáo khi quay lại app (`resume`): không hiện khi người dùng quay lại app lúc đang ở màn camera (mục 5 của spec camera giữ nguyên).
+     - Quảng cáo khi quay lại app (`resume`): hiện ở mọi màn, kể cả khi người dùng quay lại app lúc đang ở camera (Nhật điều chỉnh, 2026-10-28). Khung không có cổng theo màn (luật A-11 của `docs/ops/ads-business-rules.md`), nên không cần sửa `core/ads`. Mục 5 của spec camera đổi câu "Không vị trí quảng cáo nào ở camera": camera vẫn không có vị trí của màn, nhưng quảng cáo toàn app khi quay lại app có thể phủ lên camera.
      - Bản staging: `StagingRemoteValuesModule` của app bật `show_open_ads` và `show_resum_ads`; không bật `is_show_native_after_inter`, `is_show_native_bottom`. Production theo Remote Config, mặc định tắt.
-     - `show_open_ads_first_open` (lần mở đầu tiên, còn hộp thoại đồng ý và onboarding): AI đề xuất giữ tắt; chốt khi duyệt plan T-074.
+     - `show_open_ads_first_open` (lần mở đầu tiên, còn hộp thoại đồng ý và onboarding): tắt, cả ở staging (Nhật, 2026-10-28). Từ lần mở thứ hai mới có quảng cáo mở app (`show_open_ads`).
+     - Quảng cáo mở app chỉ có khi màn loading bật (`feature_loading_enabled`), vì màn loading gọi `StartupAds` của khung (`docs/ops/ads-guide.md`).
+     - `open_ad_type`, `resume_ad_type` theo mặc định của khung (app open); `open_app_inter`, `resume_inter` chỉ dùng khi Remote Config đổi loại.
 
 ## 10. Lịch sử
 
@@ -116,3 +118,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | --- | --- | --- |
 | 2026-10-28 | AI | Tạo bản đầu cho T-074, T-075 theo rà soát PR #209: chuyển câu hỏi từ ticket vào spec, thêm câu 6 (quảng cáo toàn app), sửa chỗ đặt luật tần suất và khóa ở câu 1, 2 |
 | 2026-10-28 | Nhật | Trả lời sáu câu của mục 9 (AI ghi). Sửa mục 1, 2, 5, 6 theo câu 3, 4, 6: AppsFlyer chưa bật, bỏ màn xem thử, bật quảng cáo mở app (sau loading) và khi quay lại app (trừ camera) |
+| 2026-10-28 | Nhật | Chốt thêm câu 6 (AI ghi): `show_open_ads_first_open` tắt; quảng cáo khi quay lại app hiện ở mọi màn, kể cả camera, thay cho "trừ camera" |

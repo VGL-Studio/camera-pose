@@ -1,6 +1,6 @@
 ---
 feature: camera
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -338,3 +338,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-28 | AI | Mục 5 theo `features/ads/spec.md` (câu 1, 2, 6): luật và khóa mới của `review_interstitial`; quảng cáo toàn app khi quay lại app có thể phủ lên camera và màn xem lại |
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5 (chọn "Giữ: mọi màn" cho quảng cáo khi quay lại app), cùng lúc xác nhận spec ads. Giữ `confirmed` |
 | 2026-10-28 | AI | KB-9, tiêu chí 4 theo mục 5 và câu 6 của spec ads (câu 3 của plan T-074): camera và màn xem lại không có vị trí quảng cáo của màn, quảng cáo toàn app khi quay lại app có thể phủ lên. Chuyển `changed`, chờ xác nhận lại |
+| 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |

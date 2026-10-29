@@ -1,6 +1,6 @@
 ---
 feature: loading
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -188,3 +188,4 @@ Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6):
 | 2026-10-28 | AI | Mục 5 theo `features/ads/spec.md` câu 6: quảng cáo mở app hiện khi loading xong, trước màn chính, từ lần mở thứ hai |
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5, cùng lúc xác nhận spec ads. Giữ `confirmed` |
 | 2026-10-28 | AI | Mục 5: thời gian chờ quảng cáo mở app tính từ lúc mở app, không cộng sau thời gian tải (theo khung, `StartupAdWait`; câu 6 của plan T-074). Chuyển `changed`, chờ xác nhận lại |
+| 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |

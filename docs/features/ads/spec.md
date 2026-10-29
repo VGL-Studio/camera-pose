@@ -1,6 +1,6 @@
 ---
 feature: ads
-status: changed          # draft | confirmed | changed
+status: confirmed        # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
@@ -125,3 +125,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-28 | AI | Chép câu trả lời vào mục 5 của spec camera, loading, poses ngay trong PR xác nhận này (không đợi T-074), theo lựa chọn của Nhật |
 | 2026-10-28 | AI | Mục 6: quyền `VIBRATE` do adapter AppLovin kéo vào (câu 4 của plan T-074). Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-28 | Nhật | Xác nhận spec (`confirmed`) sau khi xem kết quả kiểm: "Chuyển spec ads sang confirmed cho tôi", rồi "Đồng ý, mở PR" |
+| 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |

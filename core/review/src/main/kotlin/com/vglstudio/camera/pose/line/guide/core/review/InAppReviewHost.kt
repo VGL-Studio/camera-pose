@@ -12,7 +12,11 @@ val LocalInAppReview = staticCompositionLocalOf<InAppReview?> { null }
  * install. Does nothing without [LocalInAppReview] or an activity (tests, previews).
  */
 @Composable
-fun rememberRequestInAppReview(): (savedPhotos: Int) -> Unit {
+fun rememberRequestInAppReview(): (savedPhotos: Int) -> Unit = rememberRequestInAppReview(startHold = { {} })
+
+/** Skeleton for the tests written first (plan T-074, pass 2): [startHold] is not used yet. */
+@Composable
+internal fun rememberRequestInAppReview(@Suppress("UNUSED_PARAMETER") startHold: () -> (() -> Unit)): (Int) -> Unit {
     val review = LocalInAppReview.current
     val activity = LocalActivity.current
     return { savedPhotos ->

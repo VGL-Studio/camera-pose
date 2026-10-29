@@ -2,6 +2,8 @@ package com.vglstudio.camera.pose.line.guide.feature.loading
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vglstudio.camera.pose.line.guide.core.ads.StartupAdTurn
+import com.vglstudio.camera.pose.line.guide.core.ads.StartupAds
 import com.vglstudio.camera.pose.line.guide.core.analytics.Analytics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
@@ -44,9 +46,18 @@ class LoadingViewModel @Inject constructor(
     private val featureFlags: FeatureFlags,
     private val clock: LoadingClock,
     private val internet: InternetCheck,
+    @Suppress("unused") private val startupAds: StartupAds,
 ) : ViewModel() {
     private val state = MutableStateFlow<LoadingUiState>(LoadingUiState.InProgress(0f))
     val uiState: StateFlow<LoadingUiState> = state.asStateFlow()
+
+    // Skeleton for the tests written first (plan T-074, pass 2).
+    val pendingAd: StateFlow<StartupAdTurn?> = MutableStateFlow(null)
+
+    fun takePendingAd(): StartupAdTurn? = null
+
+    @Suppress("UNUSED_PARAMETER")
+    fun onAdFinished(interShown: Boolean) = Unit
 
     // Read by progress() from the threads that load files, so a concurrent set.
     private val doneTasks: MutableSet<PreparationTask> = ConcurrentHashMap.newKeySet()

@@ -35,7 +35,7 @@ object StagingRemoteValuesModule {
     @Provides
     @ElementsIntoSet
     @LocalRemoteValues
-    fun adLogsOn(): Set<LocalRemoteValue> = listOf(
+    fun globalAdSwitchesOn(): Set<LocalRemoteValue> = listOf(
         AdsSettings.IS_LOG_AD_FULLSCREEN_EVENTS,
         AdsSettings.IS_LOG_AD_SLOT_EVENTS,
     ).map { LocalRemoteValue.of(it, true) }.toSet()

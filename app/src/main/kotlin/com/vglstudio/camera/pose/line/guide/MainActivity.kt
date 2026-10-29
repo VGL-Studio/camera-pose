@@ -44,6 +44,7 @@ import com.vglstudio.camera.pose.line.guide.ui.applyScreenOrientation
 import com.vglstudio.camera.pose.line.guide.ui.exposeTestTagsForUiAutomator
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -107,7 +108,13 @@ class MainActivity : ComponentActivity() {
                 )
                 onDispose {}
             }
-            AppAdsRoot(ads = ads, inAppReview = inAppReview, breakGate = interstitialBreakGate) {
+            AppAdsRoot(
+                ads = ads,
+                inAppReview = inAppReview,
+                breakGate = interstitialBreakGate,
+                fullScreenAdShowing = ads.fullScreenAdShowing,
+                onFullScreenAdShowingChange = networkDialog::setFullScreenAdShowing,
+            ) {
                 AppTheme(darkTheme = darkTheme) {
                     // The surface fills the whole window, including the area behind the system bars,
                     // so those areas take the theme background in both light and dark mode.
@@ -157,6 +164,9 @@ internal fun AppAdsRoot(
     ads: AdsController?,
     inAppReview: InAppReview,
     breakGate: InterstitialBreakGate,
+    // Skeleton for the tests written first (plan T-074, pass 2): not followed yet.
+    @Suppress("UNUSED_PARAMETER") fullScreenAdShowing: StateFlow<Boolean>,
+    @Suppress("UNUSED_PARAMETER") onFullScreenAdShowingChange: (Boolean) -> Unit,
     content: @Composable () -> Unit,
 ) {
     AdsHost(ads) {

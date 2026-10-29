@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
  */
 interface InAppReview {
     /** Returns at once; the request goes on in the scope of the app, so it outlives the screen that asked. */
-    fun requestIfDue(activity: Activity, savedPhotos: Int)
+    fun requestIfDue(activity: Activity, savedPhotos: Int, onDone: () -> Unit = {})
 }
 
 @Singleton
@@ -32,7 +32,8 @@ internal class DefaultInAppReview @Inject constructor(
     private val logger: AppLogger,
     @param:ReviewScope private val scope: CoroutineScope,
 ) : InAppReview {
-    override fun requestIfDue(activity: Activity, savedPhotos: Int) {
+    // Skeleton for the tests written first (plan T-074, pass 2): onDone is not called yet.
+    override fun requestIfDue(activity: Activity, savedPhotos: Int, onDone: () -> Unit) {
         scope.launch { ask(activity, savedPhotos) }
     }
 

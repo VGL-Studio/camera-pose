@@ -1,5 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.feature.loading
 
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.StartupAdTurn
 import com.vglstudio.camera.pose.line.guide.core.analytics.Analytics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
@@ -24,6 +26,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -37,6 +40,7 @@ class LoadingViewModelTest {
     private val analytics = FakeAnalytics()
     private val logger = RecordingAppLogger()
     private val internet = FakeInternetCheck()
+    private val startupAds = FakeStartupAds()
 
     private fun TestScope.viewModel(flagOn: Boolean = true) = LoadingViewModel(
         repository = repository,
@@ -45,6 +49,7 @@ class LoadingViewModelTest {
         featureFlags = FakeFeatureFlags(flagOn),
         clock = { testScheduler.currentTime },
         internet = internet,
+        startupAds = startupAds,
     )
 
     private fun completedEvent(durationMs: Long, retryCount: Int) = AnalyticsEvent(
@@ -393,6 +398,133 @@ class LoadingViewModelTest {
         runCurrent()
         assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
         assertEquals(listOf(LogLevel.INFO), logger.entries.map { it.level })
+    }
+
+    // The startup ad (spec ads, question 6; spec loading, section 5; plan T-074, pass 2).
+
+    @Test
+    fun tasksDone_withStartupAd_staysAt100_untilAdFinished_thenFinishedOnce() = runTest {
+        startupAds.result = CompletableDeferred(StartupAdTurn(AdPlacement.OPEN_APP))
+        val viewModel = viewModel()
+        repository.completeInOrder()
+        advanceTimeBy(2_000)
+        runCurrent()
+
+        assertEquals(InProgress(1f), viewModel.uiState.value)
+        assertEquals(AdPlacement.OPEN_APP, viewModel.pendingAd.value?.placement)
+        assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
+        advanceTimeBy(6_000)
+        runCurrent()
+        assertEquals(InProgress(1f), viewModel.uiState.value)
+
+        viewModel.onAdFinished(false)
+        viewModel.onAdFinished(false)
+
+        assertEquals(Finished, viewModel.uiState.value)
+        assertEquals(listOf(completedEvent(durationMs = 8_000, retryCount = 0)), analytics.events)
+        assertEquals(1, logger.entries.count { it.message == "Startup ad finished, inter shown: false" })
+    }
+
+    @Test
+    fun takePendingAd_returnsTurnOnce() = runTest {
+        val turn = StartupAdTurn(AdPlacement.OPEN_APP)
+        startupAds.result = CompletableDeferred(turn)
+        val viewModel = viewModel()
+        repository.completeInOrder()
+        advanceTimeBy(2_000)
+        runCurrent()
+
+        assertEquals(turn, viewModel.pendingAd.value)
+        assertEquals(turn, viewModel.takePendingAd())
+        assertNull(viewModel.takePendingAd())
+        assertNull(viewModel.pendingAd.value)
+    }
+
+    @Test
+    fun tasksDone_noStartupAd_finishesAtOnce() = runTest {
+        val viewModel = viewModel()
+        advanceTimeBy(500)
+        runCurrent()
+        repository.completeInOrder()
+        advanceTimeBy(1_500)
+        runCurrent()
+
+        // Control: the screen did ask for a startup ad, and got none.
+        assertEquals(1, startupAds.calls)
+        assertEquals(Finished, viewModel.uiState.value)
+        assertNull(viewModel.pendingAd.value)
+        assertEquals(listOf(completedEvent(durationMs = 2_000, retryCount = 0)), analytics.events)
+    }
+
+    @Test
+    fun startupAdThrows_finishesWithoutAd_logsWarn() = runTest {
+        startupAds.error = IllegalStateException("broken")
+        val viewModel = viewModel()
+        repository.completeInOrder()
+        advanceTimeBy(2_000)
+        runCurrent()
+
+        // Control: the screen asked, and the error did not stop the app.
+        assertEquals(1, startupAds.calls)
+        assertEquals(Finished, viewModel.uiState.value)
+        assertNull(viewModel.pendingAd.value)
+        val warning = logger.entries.single { it.level == LogLevel.WARN }
+        assertEquals(LoadingViewModel.LOG_TAG, warning.tag)
+        assertTrue(warning.error is IllegalStateException)
+        assertEquals(1, analytics.events.size)
+    }
+
+    @Test
+    fun loadingOff_neverAsksStartupAds() = runTest {
+        val viewModel = viewModel(flagOn = false)
+        advanceTimeBy(5_000)
+        runCurrent()
+
+        assertEquals(Finished, viewModel.uiState.value)
+        assertEquals(0, startupAds.calls)
+        // Control: with the screen on, the same fake is asked.
+        val other = viewModel()
+        repository.completeInOrder()
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertEquals(Finished, other.uiState.value)
+        assertEquals(1, startupAds.calls)
+    }
+
+    @Test
+    fun startupAd_askedOnlyAfterTasksAndMinimum() = runTest {
+        val viewModel = viewModel()
+        configAndCatalogDone()
+        repository.complete(PreparationTask.STARTER_SET, false)
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertTrue(viewModel.uiState.value is Failed)
+        assertEquals(0, startupAds.calls)
+
+        viewModel.onRetry()
+        repository.complete(PreparationTask.STARTER_SET, true)
+        runCurrent()
+        assertEquals(1, startupAds.calls)
+        assertEquals(Finished, viewModel.uiState.value)
+    }
+
+    @Test
+    fun startupAd_notAskedBeforeTwoSeconds() = runTest {
+        startupAds.result = CompletableDeferred()
+        viewModel()
+        advanceTimeBy(500)
+        runCurrent()
+        repository.completeInOrder()
+        advanceTimeBy(1_499)
+        runCurrent()
+        assertEquals(0, startupAds.calls)
+
+        advanceTimeBy(1)
+        runCurrent()
+        assertEquals(1, startupAds.calls)
+        advanceTimeBy(30_000)
+        runCurrent()
+        assertEquals(1, startupAds.calls)
     }
 }
 

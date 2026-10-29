@@ -47,7 +47,7 @@ class ReviewRouteTest {
         val requests = mutableListOf<Int>()
         val leavesAtRequest = mutableListOf<Int>()
 
-        override fun requestIfDue(activity: Activity, savedPhotos: Int) {
+        override fun requestIfDue(activity: Activity, savedPhotos: Int, onDone: () -> Unit) {
             requests += savedPhotos
             leavesAtRequest += leaves
         }

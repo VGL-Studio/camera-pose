@@ -35,6 +35,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.StartupAdTurn
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberShowStartupAd
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.BrandLogo
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
@@ -44,7 +46,11 @@ import kotlin.math.roundToInt
 
 /** Stateful entry point used by navigation. Calls [onFinished] once when the state becomes Finished. */
 @Composable
-internal fun LoadingRoute(onFinished: () -> Unit, viewModel: LoadingViewModel = hiltViewModel()) {
+internal fun LoadingRoute(
+    onFinished: () -> Unit,
+    viewModel: LoadingViewModel = hiltViewModel(),
+    @Suppress("UNUSED_PARAMETER") showAd: (StartupAdTurn, (Boolean) -> Unit) -> Unit = rememberShowStartupAd(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnFinished by rememberUpdatedState(onFinished)
     if (uiState == LoadingUiState.Finished) {

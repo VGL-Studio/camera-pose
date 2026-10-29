@@ -86,6 +86,10 @@ class NetworkDialogController @Inject internal constructor(
         this.active.value = active
     }
 
+    /** Skeleton for the tests written first (plan T-074, pass 2). */
+    @Suppress("UNUSED_PARAMETER")
+    fun setFullScreenAdShowing(showing: Boolean) = Unit
+
     /**
      * Checks the network at once and every 250 ms for at most 2 seconds. Connected: the dialog closes and [recovered]
      * emits. Still offline: the dialog stays, with a line saying so. Ignored while a check runs.

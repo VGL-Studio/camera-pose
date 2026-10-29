@@ -341,7 +341,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 1. Mở thư viện, rồi chi tiết một tư thế.
    - [ ] Cả hai màn có banner thử của Google ở đáy; nút chính ("Chụp với tư thế này") không bị che.
-2. Mở lại app (để bắt đầu phiên mới). Chụp, lưu ảnh 1, rời màn xem lại.
+2. Đóng hẳn app (vuốt khỏi danh sách app gần đây) rồi mở lại, để bắt đầu phiên mới. Chụp, lưu ảnh 1, rời màn xem lại.
    - [ ] Không có quảng cáo toàn màn hình; về camera.
 3. Chụp, lưu ảnh 2, rời màn xem lại.
    - [ ] Có quảng cáo toàn màn hình (log `VGL.Ads`); đóng quảng cáo thì về camera.
@@ -352,7 +352,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 ### 11.2 Quảng cáo mở app từ lần mở thứ hai
 
-1. `scripts/device-session.sh reset`, mở app.
+1. `scripts/device-session.sh reset`, mở app; chọn **Đồng ý** ở hộp thoại đồng ý quảng cáo.
    - [ ] Loading rồi màn chào, không có quảng cáo mở app; log `startup ad: key off`.
 2. Đóng hẳn app (vuốt khỏi danh sách app gần đây), mở lại.
    - [ ] Loading tới 100%, quảng cáo mở app thử hiện; đóng quảng cáo thì vào camera.
@@ -366,9 +366,9 @@ Màn loading tắt thì không có quảng cáo mở app. Bản staging bật s�
 2. Ở camera: bấm Home, mở lại app.
    - [ ] Quảng cáo hiện; đóng quảng cáo thì khung camera chạy lại.
 3. Xóa quyền camera (Cài đặt máy > Ứng dụng > Camera Pose > Quyền), mở app, cho quyền khi được hỏi.
-   - [ ] Không có quảng cáo sau hộp hỏi quyền; log `Resume ad SUPPRESSED`.
+   - [ ] Không có quảng cáo quay lại app sau hộp hỏi quyền (hộp hỏi quyền chỉ tạm dừng màn hình, app không ra nền, nên không có dòng log `Resume ad` nào).
 4. Chụp, chia sẻ ảnh qua một app khác, quay lại.
-   - [ ] Không có quảng cáo khi quay lại từ hộp chia sẻ.
+   - [ ] Không có quảng cáo khi quay lại từ hộp chia sẻ; log `Resume ad SUPPRESSED: resume`.
    - [ ] Bấm Home, mở lại lần nữa: có quảng cáo.
 
 ### 11.4 Hộp thoại mạng khi có quảng cáo toàn màn hình

@@ -1,6 +1,6 @@
 ---
 feature: network
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -82,7 +82,7 @@ Tiêu chí chấp nhận:
 
 ## 5. Quảng cáo
 
-Không có. Khi hộp thoại đang hiện thì không hiện quảng cáo toàn màn hình.
+Không có vị trí quảng cáo. Khi mất mạng thì khung quảng cáo không nạp quảng cáo mới (`InternetConnectivity`), nhưng quảng cáo toàn màn hình đã nạp sẵn vẫn có thể hiện. Khi một quảng cáo toàn màn hình đang hiện thì hộp thoại chờ quảng cáo đóng rồi mới hiện, không phủ lên quảng cáo (câu 11 của plan T-074, Nhật chọn theo khung ngày 2026-10-28).
 
 ## 6. Dữ liệu và phân tích
 
@@ -125,3 +125,4 @@ Không có.
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu của người phụ trách sản phẩm |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: không đưa phần này về dự án mẫu (câu hỏi 1) |
 | 2026-10-21 | AI | Lập gói bàn giao thiết kế: ảnh `NetworkDialogScreen_*` thay cho các frame `offline` của camera và thư viện |
+| 2026-10-29 | AI | Mục 5 theo hành vi của khung quảng cáo (T-074 lượt 2, câu 11 của plan): bỏ luật "khi hộp thoại đang hiện thì không hiện quảng cáo toàn màn hình"; hộp thoại chờ quảng cáo toàn màn hình đóng. Chuyển `changed`, chờ Nhật xác nhận lại |

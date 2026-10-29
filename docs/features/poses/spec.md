@@ -1,6 +1,6 @@
 ---
 feature: poses
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -105,8 +105,8 @@ Tiêu chí chấp nhận:
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi cờ `ads_poses_banner_enabled` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì banner hiện neo ở đáy thư viện; lưới cuộn phía trên banner, không bị che (câu hỏi 1).
-- [ ] Khi cờ `ads_poses_detail_banner_enabled` bật thì banner hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình.
+- [ ] Khi khóa `is_show_poses_banner` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì banner hiện neo ở đáy thư viện; lưới cuộn phía trên banner, không bị che (câu hỏi 1).
+- [ ] Khi khóa `is_show_poses_detail_banner` bật thì banner hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình.
 - [ ] Khi cờ tắt hoặc banner không tải được thì không chừa khoảng trống.
 
 ### KB-7. Điện thoại màn hình gập
@@ -132,10 +132,10 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `sa
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
-| `poses_banner` | banner | Neo đáy màn thư viện, khi màn hình đang mở | Làm mới theo mặc định của AdMob | `is_show_poses_banner` (từ T-074; trước đó `ads_poses_banner_enabled`) |
-| `poses_detail_banner` | banner | Đáy màn chi tiết tư thế, dưới nút chính | Làm mới theo mặc định của AdMob | `is_show_poses_detail_banner` (từ T-074; trước đó `ads_poses_detail_banner_enabled`) |
+| `poses_banner` | banner | Neo đáy màn thư viện, khi màn hình đang mở | Làm mới theo mặc định của AdMob | `is_show_poses_banner` |
+| `poses_detail_banner` | banner | Đáy màn chi tiết tư thế, dưới nút chính | Làm mới theo mặc định của AdMob | `is_show_poses_detail_banner` |
 
-Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) có thể hiện khi người dùng quay lại app lúc đang ở thư viện hay chi tiết tư thế. Áp dụng từ T-074.
+Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) có thể hiện khi người dùng quay lại app lúc đang ở thư viện hay chi tiết tư thế.
 
 ## 6. Dữ liệu và phân tích
 
@@ -145,6 +145,8 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | --- | --- | --- |
 | Danh sách tư thế đã lưu, kèm thời điểm lưu | Chip "Đã lưu" | Đến khi người dùng xóa dữ liệu app |
 | Catalog, ảnh nhỏ, ảnh lớn, nét viền đã tải | Hiện ngay ở lần sau (ADR-0015) | Đến khi người dùng xóa dữ liệu app |
+| Đã mở app lần đầu (`ads_first_open_done`) | Không có quảng cáo mở app ở lần mở đầu sau khi cài | Đến khi người dùng xóa dữ liệu app |
+| Số quảng cáo toàn màn hình đã hiện từ khi cài (`ads_inter_display_count`) | Luật đếm của khung | Đến khi người dùng xóa dữ liệu app |
 
 **Sự kiện phân tích:**
 
@@ -154,6 +156,8 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | `pose_saved` | Khi lưu hoặc bỏ lưu | `pose_id`, `saved`: có hoặc không | Tư thế nào được yêu thích, nên làm thêm loại nào |
 | `pose_selected` | Khi bấm "Chụp với tư thế này" | `pose_id`, `category`, `source`: `detail` | Thư viện có dẫn người dùng tới chụp không |
 | `content_load_failed` | Khi tải catalog hay ảnh thất bại | `content`: `catalog`, `thumbnail`, `image`; `reason`: `network`, `not_found`, `timeout`, `other` | Lỗi tải nội dung có nhiều không (bài học 7) |
+
+**Sự kiện quảng cáo do khung ghi** (`:core:analytics`, `FirebaseAdMetrics`; chung cho mọi vị trí, không riêng màn này; mỗi sự kiện có `ad_format`, `ad_placement`): `ad_impression_placement` (luôn ghi; thêm `value`, `currency`, `ad_source`, `ad_unit_name`, `ad_platform`), `ad_opportunity` (luôn ghi; `opportunity_result`, `load_state`), `ad_load_success`, `ad_load_fail`, `ad_show_fail`, `ad_clicked` (chỉ ghi khi khóa `is_log_ad_fullscreen_events` hay `is_log_ad_slot_events` bật; mặc định tắt, bản staging bật). Dùng để đo doanh thu và tỷ lệ hiện của từng vị trí. Không gửi gì tới AppsFlyer (`features/ads/spec.md` câu 3).
 
 ## 7. File tĩnh trên R2
 
@@ -170,8 +174,8 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | Tên cờ | Mặc định | Ý nghĩa |
 | --- | --- | --- |
 | `feature_poses_enabled` | tắt | Bật để hiện nút thư viện ở camera và màn thư viện. Bản staging bật sẵn |
-| `ads_poses_banner_enabled` | tắt | Bật banner `poses_banner` (ADR-0014) |
-| `ads_poses_detail_banner_enabled` | tắt | Bật banner `poses_detail_banner` (ADR-0014) |
+| `is_show_poses_banner` | tắt | Bật banner `poses_banner` (`features/ads/spec.md` câu 2; khóa cũ `ads_poses_banner_enabled` bỏ từ T-074). Khóa chung `is_show_ads` (mặc định bật) tắt thì mọi quảng cáo tắt |
+| `is_show_poses_detail_banner` | tắt | Bật banner `poses_detail_banner` (như trên; khóa cũ `ads_poses_detail_banner_enabled`) |
 
 ## 9. Câu hỏi còn mở
 
@@ -198,3 +202,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-28 | Nhật | Xác nhận lại mục 7 (cỡ catalog thật). Chuyển lại `confirmed` |
 | 2026-10-28 | AI | Mục 5: tên khóa bật tắt đổi theo `features/ads/spec.md` câu 2 (từ T-074). Màn thư viện và chi tiết có thể bị phủ bởi quảng cáo toàn app khi quay lại app (câu 6) |
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5, cùng lúc xác nhận spec ads. Giữ `confirmed` |
+| 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "từ T-074; trước đó ..."; tên khóa mới ở KB-6 và mục 8; mục 6 thêm dữ liệu trên máy và sự kiện quảng cáo do khung ghi. Chuyển `changed`, chờ Nhật xác nhận lại |

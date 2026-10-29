@@ -38,6 +38,7 @@ Bản mẫu (`hasUsableInternet`, T-016 của mẫu) đòi cả hai. T-074 mang 
 ## Câu hỏi cho người
 
 1. Chọn (a) hay (b)? Đề xuất của AI: (a) nếu device-session trên emulator CI và máy thật không hiện popup oan; không thì (b).
+   - Trả lời (Nhật, 2026-10-28): (a), theo ADR-0024. Plan kiểm device-session trên emulator CI không hiện popup oan; không đạt thì quay về (b) và báo lại trong plan.
 
 ## Rủi ro sơ bộ
 

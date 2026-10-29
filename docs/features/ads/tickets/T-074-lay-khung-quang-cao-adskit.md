@@ -8,7 +8,7 @@ owner: Tuấn
 status: backlog
 risk: high
 size: L
-depends_on: []               # PR đồng bộ đợt 3 (VGL-Studio/camera-pose#208) đã merge, base của docs/template-sync.txt là 0444fbe
+depends_on: []               # PR đồng bộ đợt 3 (VGL-Studio/camera-pose#208) đã merge, base của docs/template-sync.txt là 47782ec
 sprint:
 plan: features/ads/plans/T-074-lay-khung-quang-cao-adskit.md   # draft, 2026-10-28
 created: 2026-10-28

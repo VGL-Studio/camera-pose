@@ -8,7 +8,7 @@ risk_level: high             # low | medium | high
 token_estimate: 6.4M         # cỡ S, trung vị của scripts/token-usage.py estimate
 blocking_points: [core]
 run_order:
-reviewer:
+reviewer: Nhật
 cross_reviewer:
 approved_at:
 lane:
@@ -251,8 +251,12 @@ Ngân sách `device-session` (`docs/ops/test-sessions.md` mục 5, Hạn chót):
    - Đề xuất của AI: chấp nhận, như Nhật đã chọn (a) theo ADR-0024. Cần gạt khi có phản hồi: tắt `feature_network_dialog_enabled` trên Remote Config (KB-4); khung quảng cáo vẫn coi là mất mạng. Nhiều phản hồi như vậy thì soạn plan theo hướng (b).
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt có điều kiện: chờ Tuấn duyệt chéo (rủi ro cao, điểm chặn 7). Plan giữ `draft` tới khi có duyệt chéo.
+- **Người duyệt:** Nhật, **duyệt chéo:** chưa có (Tuấn)
+- **Ghi chú:** Nhật trả lời ngày 2026-10-29, khi trả lời câu hỏi cuối phiên RUN-20261029-01 (lời của Nhật: chọn "Đồng ý cả ba đề xuất" cho câu 2 tới 4, "Nhật duyệt, chờ Tuấn duyệt chéo" cho cách duyệt).
+  - Câu 1: Nhật thêm đúng câu đề xuất vào KB-1 tiêu chí 1 và xác nhận lại spec network (PR tài liệu nhánh `claude/RUN-20261029-01-xac-nhan`; PR đó merge trước khi duyệt plan).
+  - Câu 2: chấp nhận kiểm trên emulator sau merge, ở `device-session` cuối phiên.
+  - Câu 3: dev thử bản staging trên một hai máy thật theo hai dòng máy thật của mục 4; hộp thoại hiện oan thì ghi phản hồi và soạn plan phiên bản 2 theo hướng (b).
+  - Câu 4: chấp nhận đánh đổi của hướng (a); cần gạt khi có phản hồi là tắt `feature_network_dialog_enabled` trên Remote Config.
 
 ## 10. Nhật ký thực hiện

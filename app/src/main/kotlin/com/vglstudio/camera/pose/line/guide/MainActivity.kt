@@ -36,6 +36,7 @@ import com.vglstudio.camera.pose.line.guide.core.review.LocalInAppReview
 import com.vglstudio.camera.pose.line.guide.navigation.AppNavHost
 import com.vglstudio.camera.pose.line.guide.navigation.MainScreenChooser
 import com.vglstudio.camera.pose.line.guide.network.NetworkDialogHost
+import com.vglstudio.camera.pose.line.guide.network.observeAppForeground
 import com.vglstudio.camera.pose.line.guide.onboarding.OnboardingStatus
 import com.vglstudio.camera.pose.line.guide.settings.isDark
 import com.vglstudio.camera.pose.line.guide.settings.languageToApply
@@ -94,6 +95,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // Shows the consent form when required; the ads SDK starts only after it (ADR-0004).
         ads.gatherConsent(this)
+        // Back from the background without network: the dialog shows within 2 seconds (spec network, KB-3; plan T-077).
+        observeAppForeground(onStarted = networkDialog::onAppStarted, onStopped = networkDialog::onAppStopped)
         // Read once, so the first frame already has the chosen look instead of flashing (plan T-025, question 6).
         val initialThemeMode = runBlocking {
             withTimeoutOrNull(THEME_READ_TIMEOUT_MILLIS) { userPreferences.themeMode.first() }

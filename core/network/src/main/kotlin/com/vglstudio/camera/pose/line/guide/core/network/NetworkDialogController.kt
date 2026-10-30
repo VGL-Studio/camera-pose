@@ -35,6 +35,10 @@ import kotlinx.coroutines.launch
  * The dialog shows when the device reports no network for longer than the delay of [RemoteSettings], or at once
  * when a download fails because of the network. It closes only through "Retry", when the flag is turned off, or when
  * the app goes back to the loading screen.
+ *
+ * It also shows when the app comes back from the background without network, after a check of at most
+ * [NetworkSettings.FOREGROUND_GRACE_MILLIS] ([onAppStarted]); the first start and a configuration change are not a
+ * return.
  */
 @Singleton
 class NetworkDialogController @Inject internal constructor(
@@ -70,6 +74,13 @@ class NetworkDialogController @Inject internal constructor(
 
     @Volatile
     private var retryJob: Job? = null
+
+    // True once the app stopped other than for a configuration change, since the last start (plan T-077).
+    @Volatile
+    private var leftApp = false
+
+    @Volatile
+    private var foregroundJob: Job? = null
 
     init {
         scope.launch {
@@ -145,9 +156,42 @@ class NetworkDialogController @Inject internal constructor(
         }
     }
 
+    /**
+     * Called by :app on each start of the activity. Main thread. Back from the background past the loading screen
+     * with the flag on: the network is checked at once and every 250 ms for at most
+     * [NetworkSettings.FOREGROUND_GRACE_MILLIS]; still offline, the dialog shows (spec network, KB-3).
+     */
+    fun onAppStarted() {
+        if (!leftApp) return
+        leftApp = false
+        if (!armed.value) return
+        foregroundJob?.cancel()
+        foregroundJob = scope.launch { checkOnForeground() }
+    }
+
+    /**
+     * Called by :app on each stop of the activity. Main thread. [changingConfigurations] is true when the activity
+     * stops only to be recreated (a rotation): the next start is then not a return.
+     */
+    fun onAppStopped(changingConfigurations: Boolean) {
+        if (!changingConfigurations) leftApp = true
+    }
+
     /** May be called from any thread. Shows the dialog at once, unless it is not armed or already shown. */
     override fun reportNetworkFailure(source: String) {
         if (armed.value) show("load_failed source=$source")
+    }
+
+    private suspend fun checkOnForeground() {
+        var waited = 0L
+        while (!connectivity.isConnected()) {
+            if (waited >= NetworkSettings.FOREGROUND_GRACE_MILLIS) {
+                if (armed.value) show(FOREGROUND_REASON)
+                return
+            }
+            delay(NetworkSettings.RETRY_POLL_MILLIS)
+            waited += NetworkSettings.RETRY_POLL_MILLIS
+        }
     }
 
     private suspend fun showAfterDelay() {
@@ -178,6 +222,7 @@ class NetworkDialogController @Inject internal constructor(
 
     private fun disarm(flagOff: Boolean) {
         retryJob?.cancel()
+        foregroundJob?.cancel()
         // A show waiting for the ad is dropped like any failure on the loading screen.
         pendingShow.set(null)
         if (_state.value != NetworkDialogState.Hidden) {
@@ -190,6 +235,7 @@ class NetworkDialogController @Inject internal constructor(
         const val TAG = "Network"
         const val MILLIS_PER_SECOND = 1_000L
         const val AFTER_AD = "after_full_screen_ad"
+        const val FOREGROUND_REASON = "offline_on_foreground"
         val CHECKING = NetworkDialogState.Shown(checking = true, stillOffline = false)
         val STILL_OFFLINE = NetworkDialogState.Shown(checking = false, stillOffline = true)
     }

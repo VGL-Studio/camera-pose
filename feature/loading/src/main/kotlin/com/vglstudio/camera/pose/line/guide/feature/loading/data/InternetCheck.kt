@@ -19,9 +19,8 @@ internal class AndroidInternetCheck(context: Context) : InternetCheck {
 /**
  * True when the network can reach the Internet and the system has checked that it does. VALIDATED is needed: a
  * Wi-Fi network behind a sign-in page, or one without a way out, has INTERNET but not VALIDATED, and there "check
- * your network" is the right guidance. Unlike AndroidConnectivitySource of :core:network (INTERNET only, plan T-011,
- * question 1) on purpose: the offline dialog must not show by mistake, while here the safe mistake is the old
- * network guidance.
+ * your network" is the right guidance. Same rule as AndroidConnectivitySource of :core:network (ADR-0024 point 1,
+ * plan T-076).
  */
 internal fun NetworkCapabilities?.isValidatedInternet(): Boolean = this != null &&
     hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&

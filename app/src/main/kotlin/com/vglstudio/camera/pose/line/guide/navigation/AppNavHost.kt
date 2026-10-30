@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -36,7 +37,8 @@ import kotlinx.coroutines.launch
  * [chooseMainScreen] picks the screen after loading (spec loading, KB-1); only :app knows every feature (ADR-0001).
  * [markOnboardingDone] stores that the user tapped "Turn on camera" on onboarding (spec onboarding, KB-3).
  * [onPastLoadingChanged] tells whether the current destination is past the loading screen (spec network, section 2),
- * also after the system recreates the activity and restores the back stack.
+ * also after the system recreates the activity and restores the back stack. Nothing is reported before the back stack
+ * has an entry ([ReportPastLoading]).
  * [posesEnabled] follows feature_poses_enabled: the library button of the camera shows only while it is on.
  * [settingsEnabled] follows feature_settings_enabled: the settings buttons of the camera and the library show only
  * while it is on.
@@ -58,12 +60,9 @@ internal fun AppNavHost(
         null
     }
     val scope = rememberCoroutineScope()
-    val entry by navController.currentBackStackEntryAsState()
-    val pastLoading = entry?.destination?.let { !it.hasRoute<LoadingDestination>() } ?: false
-    val currentOnPastLoadingChanged by rememberUpdatedState(onPastLoadingChanged)
     val currentChooseMainScreen by rememberUpdatedState(chooseMainScreen)
     val currentMarkOnboardingDone by rememberUpdatedState(markOnboardingDone)
-    LaunchedEffect(pastLoading) { currentOnPastLoadingChanged(pastLoading) }
+    ReportPastLoading(navController, onPastLoadingChanged)
     NavHost(
         navController = navController,
         startDestination = LoadingDestination,
@@ -151,6 +150,19 @@ internal fun AppNavHost(
             },
         )
     }
+}
+
+/**
+ * Reports whether the current destination of [navController] is past the loading screen, each time it changes. Nothing
+ * is reported before the back stack has an entry: a recreated activity has none on its first frame, and reporting
+ * "not past loading" then would hide the network dialog for one frame (plan T-078).
+ */
+@Composable
+internal fun ReportPastLoading(navController: NavHostController, onPastLoadingChanged: (Boolean) -> Unit) {
+    val entry by navController.currentBackStackEntryAsState()
+    val pastLoading = entry?.destination?.let { !it.hasRoute<LoadingDestination>() }
+    val currentOnPastLoadingChanged by rememberUpdatedState(onPastLoadingChanged)
+    LaunchedEffect(pastLoading) { pastLoading?.let(currentOnPastLoadingChanged) }
 }
 
 private fun MainScreen.destination(): Any = when (this) {

@@ -38,7 +38,8 @@ import kotlinx.coroutines.launch
  *
  * It also shows when the app comes back from the background without network, after a check of at most
  * [NetworkSettings.FOREGROUND_GRACE_MILLIS] ([onAppStarted]); the first start and a configuration change are not a
- * return.
+ * return. A return after the system closed the app in the background ([onAppRestored]) is checked the same way once the
+ * restored screen is past loading.
  */
 @Singleton
 class NetworkDialogController @Inject internal constructor(
@@ -82,15 +83,29 @@ class NetworkDialogController @Inject internal constructor(
     @Volatile
     private var foregroundJob: Job? = null
 
+    // True once onAppStarted() ran in this process (plan T-078).
+    @Volatile
+    private var startedOnce = false
+
+    // True while a return after the system closed the app waits for the restored screen past loading (plan T-078).
+    @Volatile
+    private var checkWhenActive = false
+
     init {
         scope.launch {
             combine(active, featureFlags.enabled(FeatureFlag.NETWORK_DIALOG)) { active, enabled -> active to enabled }
                 .distinctUntilChanged()
                 .collectLatest { (active, enabled) ->
+                    val restoredReturn = active && checkWhenActive
+                    if (active) checkWhenActive = false
                     armed.value = active && enabled
                     if (!armed.value) {
                         disarm(flagOff = active && !enabled)
                     } else {
+                        if (restoredReturn) {
+                            foregroundJob?.cancel()
+                            foregroundJob = scope.launch { checkOnForeground() }
+                        }
                         // Collected only while armed, so the system callback is registered only past loading.
                         connectivity.connectivity().collectLatest { connected -> if (!connected) showAfterDelay() }
                     }
@@ -100,6 +115,7 @@ class NetworkDialogController @Inject internal constructor(
 
     /** Called by :app: true on every screen after the loading screen, false on the loading screen. */
     fun setActive(active: Boolean) {
+        if (!active) checkWhenActive = false
         if (this.active.value != active) logger.info(TAG, "Active: $active")
         this.active.value = active
     }
@@ -162,6 +178,7 @@ class NetworkDialogController @Inject internal constructor(
      * [NetworkSettings.FOREGROUND_GRACE_MILLIS]; still offline, the dialog shows (spec network, KB-3).
      */
     fun onAppStarted() {
+        startedOnce = true
         if (!leftApp) return
         leftApp = false
         if (!armed.value) return
@@ -169,8 +186,15 @@ class NetworkDialogController @Inject internal constructor(
         foregroundJob = scope.launch { checkOnForeground() }
     }
 
-    /** Skeleton for the tests of plan T-078. */
-    fun onAppRestored() {}
+    /**
+     * Called by :app from onCreate when the activity is restored from saved state. Main thread. Before any start in
+     * this process, this is a return after the system closed the app in the background: the network is checked as in
+     * [onAppStarted] once the restored screen is past loading, and not when it is the loading screen (plan T-078). A
+     * recreation in the same process is ignored.
+     */
+    fun onAppRestored() {
+        if (!startedOnce) checkWhenActive = true
+    }
 
     /**
      * Called by :app on each stop of the activity. Main thread. [changingConfigurations] is true when the activity

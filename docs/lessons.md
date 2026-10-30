@@ -834,7 +834,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** `cloud-env-check.sh` ngày 2026-10-28: "môi trường dựng từ setup script phiên bản không có ... thiếu ~/.gradle/init.d/maven-central-mirror.gradle"; báo cáo RUN-20261028-01, mục Quyết định AI đã tự làm.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md`: phiên `local` chạy `scripts/local-setup.sh --check` (hay `scripts/java-check.sh`) thay cho `cloud-env-check.sh`.
 - **Áp dụng:** Nhật nhận ngày 2026-10-28. app: `docs/auto-run.md` mục 2 và `docs/ops/session-capabilities.md` (dòng `local`), cùng PR với việc nhận bài này; máy dev cài JDK và SDK cố định bằng `scripts/local-setup.sh` trước (bản cũ nằm trong thư mục tạm của phiên Claude nên `--check` báo thiếu). dự án mẫu: VGL-Studio/app-project-template#258. Dự án mẫu nhận: L-116 của mẫu (VGL-Studio/app-project-template#262), app nhận qua đợt đồng bộ 4 (PR #224).
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261030-01: phiên `local` chạy `scripts/local-setup.sh --check` ở đầu phiên (qua trong vài giây), không chạy `cloud-env-check.sh`, rồi `source` tệp `env.sh`. Có hiệu quả.
 
 ### L-090: `ui-test` đỏ vì runner tải gói Android Emulator lỗi, bảng tra lỗi chưa có dòng cho lỗi này
 
@@ -869,5 +869,14 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** plan T-074 mục 4 ghi bước thử "tắt `feature_loading_enabled` trên Firebase staging: không có quảng cáo mở app". `StagingFeatureFlagsModule` bật cờ này trong code, và `DefaultFeatureFlags` không đọc giá trị từ xa cho cờ đã bật như vậy, nên bước này không làm được trên staging. Rà soát lượt 3 cũng thấy bước 11.3.3 chờ một dòng log mà hộp hỏi quyền không bao giờ sinh ra (hộp hỏi quyền không đưa app ra nền).
 - **Bằng chứng:** `docs/ops/manual-test.md` mục 11.2 và mục 12 sau PR #230; rà soát độc lập của lượt 3.
 - **Đề xuất sửa:** `docs/CLAUDE.md` mục Khi viết plan: mỗi bước kiểm tra thủ công cần tắt hay bật một khóa trên Firebase staging phải đối chiếu `StagingFeatureFlagsModule` và `StagingRemoteValuesModule` (khóa đặt sẵn trong code thì không đổi được từ Firebase); câu kiểm log phải dẫn dòng code ghi log đó và điều kiện để dòng đó chạy.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-094: ở máy dev, tóm tắt "Test JVM" của `scripts/check.sh` đếm cả worktree cũ của agent con trong `.claude/worktrees/`
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261030-01 (T-076, T-077).
+- **Chuyện gì:** phiên `local` chạy `scripts/check.sh` trong thư mục repo. Dòng tóm tắt in "Test JVM: 4635 test" kèm số của từng `./.claude/worktrees/agent-*/...`, vì các worktree cũ của agent con nằm trong thư mục repo và có kết quả test cũ. Cổng chất lượng vẫn đúng, nhưng con số báo cáo gần gấp đôi số thật và dễ đọc nhầm.
+- **Bằng chứng:** `check.sh` của T-076 (02:44 UTC) và T-077 (03:36 UTC) trên máy dev: 4635 và 4652 test; cùng ngày `check.sh` trong worktree `../start-check` (ngoài repo) đếm 2373.
+- **Đề xuất sửa:** dự án mẫu: `scripts/check.sh` bỏ qua `.claude/` (và mọi worktree lồng trong repo) khi gom kết quả test; hoặc `docs/ops/` ghi dọn `.claude/worktrees/` cũ trước phiên `local`.
 - **Áp dụng:**
 - **Kiểm chứng:**

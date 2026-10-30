@@ -880,3 +880,21 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** dự án mẫu: `scripts/check.sh` bỏ qua `.claude/` (và mọi worktree lồng trong repo) khi gom kết quả test; hoặc `docs/ops/` ghi dọn `.claude/worktrees/` cũ trước phiên `local`.
 - **Áp dụng:** chưa làm ở app: `scripts/check.sh` chỉ sửa qua plan rủi ro cao, chưa có ticket. Nhật nhận ngày 2026-10-30. Dự án mẫu: VGL-Studio/app-project-template#331.
 - **Kiểm chứng:**
+
+### L-095: issue `env-broken` của môi trường cloud chặn cả phiên `local`
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261030-02 (T-078).
+- **Chuyện gì:** bảng đầu phiên của `docs/auto-run.md` mục 2 nói có issue `env-broken` đang mở thì không chạy task nào, không có ngoại lệ. Issue #242 nói proxy của môi trường cloud trả 403 cho kho Maven của Mintegral và Pangle; phiên mở `local` trên máy dev, không đi qua proxy đó. Phiên phải hỏi người mới chạy tiếp được. Dòng `local` của bảng đã bỏ `cloud-env-check.sh` vì lý do tương tự (L-116 của mẫu), nhưng dòng `env-broken` chưa theo.
+- **Bằng chứng:** RUN-20261030-02, mục Kiểm tra đầu phiên: #242 mở lúc 07:28 UTC; Nhật quyết chạy tiếp; `scripts/check.sh` trên máy dev qua (09:37 UTC, 2394 test) và CI của PR #246 xanh.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 2, dòng `env-broken`: phiên `local` không dừng vì `env-broken`, vì `env-canary` kiểm môi trường cloud; `scripts/local-setup.sh --check` và `scripts/check.sh` trên máy là cổng của phiên `local`. Ghi issue vào mục Kiểm tra đầu phiên. Phiên `cloud` và `routine` giữ như cũ.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-096: agent SSH mất khóa sau khi phiên Claude Code mở lại, lệnh đẩy báo `Permission denied (publickey)`
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** app. **Nguồn:** RUN-20261030-02 (T-078).
+- **Chuyện gì:** phiên `local` bị ngắt rồi mở lại sau khoảng 6 giờ. Lần đẩy đầu sau đó bị GitHub từ chối: `ssh-add -l` báo "The agent has no identities", khóa GitHub ở `~/.ssh/github` không có dòng trong `~/.ssh/config`, nên ssh không tự dùng nó. `scripts/save-branch.sh` giữ bundle và trả lỗi. `ssh -i ~/.ssh/github -o IdentitiesOnly=yes` xác thực được, khóa không có mật khẩu.
+- **Bằng chứng:** RUN-20261030-02, Dòng thời gian 15:41 UTC; bundle `~/rescue/claude__T-078-mo-lai-sau-khi-dong.bundle`; đẩy lại được bằng `GIT_SSH_COMMAND="ssh -i $HOME/.ssh/github -o IdentitiesOnly=yes"`.
+- **Đề xuất sửa:** máy dev: thêm vào `~/.ssh/config` một khối `Host github.com` với `IdentityFile ~/.ssh/github` và `IdentitiesOnly yes` (người làm, ngoài repo). Hoặc `docs/ops/session-capabilities.md`, dòng `local`: ghi lệnh `ssh -T -o BatchMode=yes git@github.com` vào kiểm tra đầu phiên, để lỗi lộ ra trước khi viết code.
+- **Áp dụng:**
+- **Kiểm chứng:**

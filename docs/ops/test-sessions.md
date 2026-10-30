@@ -174,7 +174,7 @@ expect text=1 in=sample_screen
 shot landscape
 ```
 
-**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 1500), tính cả thời gian trả máy về gốc. Mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp.
+**Hạn chót.** Cả lượt có `DEVICE_SCENARIOS_BUDGET` giây (mặc định 1800), tính cả thời gian trả máy về gốc. Mỗi lệnh `adb` có `DEVICE_SCENARIO_ADB_TIMEOUT` giây (mặc định 30). Một lệnh `adb` treo làm bước đó `FAIL adb_timeout` và bỏ phần còn lại của tệp.
 - Sau mỗi tệp, kể cả khi trình chạy lỗi hay bị dừng bằng SIGTERM, trình chạy trả máy về như trước lượt chạy: kích thước và mật độ, cài đặt giới thiệu đóng khung (`wm reset-letterbox-style`), xoay màn hình và chế độ tối (giá trị đọc trước tệp đầu), ngôn ngữ riêng của app, và mạng (chờ có lại mạng mặc định) khi tệp có lệnh `network`. Việc này có hạn tổng `DEVICE_SCENARIO_RESET_LIMIT` giây (mặc định 60): mỗi lệnh tối đa 10 giây, bật lại mạng tối đa 45 giây, tất cả trong hạn tổng đó.
 - Mỗi tệp có `min(timeout của tệp, thời gian còn lại - DEVICE_SCENARIO_RESET_LIMIT - DEVICE_SCENARIO_EVIDENCE_RESERVE)`. Phần chừa cuối (mặc định 20 giây) dành cho dấu log đầu tệp và `fail.png`. Còn lại không dương thì tệp `bỏ qua (hết thời gian)`.
 - Tệp mới làm tổng thời gian của các tệp (cộng 80 giây mỗi tệp cho trả máy và bằng chứng) vượt `DEVICE_SCENARIOS_BUDGET` thì plan của tệp đó tăng ngân sách (mặc định ở `scripts/device-scenario.py` và `scripts/device-session.sh`) cùng lúc. Plan không làm thì phiên tự nâng, có trần, theo ADR-0032/L1.

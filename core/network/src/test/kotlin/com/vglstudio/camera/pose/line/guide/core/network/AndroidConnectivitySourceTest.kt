@@ -3,6 +3,8 @@ package com.vglstudio.camera.pose.line.guide.core.network
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET
+import android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
@@ -15,7 +17,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowNetworkCapabilities
 
-/** "Internet" means the default network has INTERNET and VALIDATED (spec network KB-1, ADR-0024 point 1, plan T-076). */
+/** "Internet" means the default network has INTERNET and VALIDATED (spec network KB-1, ADR-0024; plan T-076). */
 @RunWith(AndroidJUnit4::class)
 class AndroidConnectivitySourceTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
@@ -34,23 +36,28 @@ class AndroidConnectivitySourceTest {
     }
 
     @Test
+    fun hasUsableInternet_noCapabilities_isFalse() {
+        assertFalse((null as NetworkCapabilities?).hasUsableInternet())
+    }
+
+    @Test
     fun isConnected_needsInternetAndValidated() {
         val source = AndroidConnectivitySource(context)
 
-        setActive(capabilities(NetworkCapabilities.NET_CAPABILITY_INTERNET))
+        setActive(capabilities(NET_CAPABILITY_INTERNET))
         assertFalse(source.isConnected())
 
-        setActive(capabilities(NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+        setActive(capabilities(NET_CAPABILITY_VALIDATED))
         assertFalse(source.isConnected())
 
-        setActive(capabilities(NetworkCapabilities.NET_CAPABILITY_INTERNET, NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+        setActive(capabilities(NET_CAPABILITY_INTERNET, NET_CAPABILITY_VALIDATED))
         assertTrue(source.isConnected())
     }
 
     @Test
     fun connectivity_waitsForValidation_thenReportsLoss_andUnregisters() = runTest {
-        val internet = capabilities(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        val validated = capabilities(NetworkCapabilities.NET_CAPABILITY_INTERNET, NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        val internet = capabilities(NET_CAPABILITY_INTERNET)
+        val validated = capabilities(NET_CAPABILITY_INTERNET, NET_CAPABILITY_VALIDATED)
         setActive(internet)
 
         AndroidConnectivitySource(context).connectivity().test {
@@ -78,10 +85,10 @@ class AndroidConnectivitySourceTest {
     fun internetConnectivity_followsValidation() = runTest {
         val connectivity = DefaultInternetConnectivity(AndroidConnectivitySource(context))
 
-        setActive(capabilities(NetworkCapabilities.NET_CAPABILITY_INTERNET))
+        setActive(capabilities(NET_CAPABILITY_INTERNET))
         assertFalse(connectivity.connected.first())
 
-        setActive(capabilities(NetworkCapabilities.NET_CAPABILITY_INTERNET, NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+        setActive(capabilities(NET_CAPABILITY_INTERNET, NET_CAPABILITY_VALIDATED))
         assertTrue(connectivity.connected.first())
     }
 }

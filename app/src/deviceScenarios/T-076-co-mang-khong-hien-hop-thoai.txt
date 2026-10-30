@@ -1,0 +1,36 @@
+ticket: T-076
+criterion: Mạng đã xác nhận thì hộp thoại mất mạng không hiện oan, kể cả ngay sau khi mạng có lại; mất mạng thật thì vẫn hiện và Thử lại đóng được (plan T-076, mục 4)
+timeout: 180
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_enable_camera
+need id=camera_poses 15
+# (1) online: past the loading screen for longer than the 3 s delay, the dialog never shows
+expect_no id=network_dialog
+tap id=camera_poses
+wait id=poses_grid 20
+expect_no id=network_dialog
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+expect_no id=network_dialog
+back
+wait id=poses_grid 10
+expect_no id=network_dialog
+shot online
+# (2) real loss still shows the dialog
+network off
+wait id=network_dialog 30
+shot offline
+# (3) network back: Retry closes the dialog once the network is validated, and it does not come back
+network on
+tap id=network_dialog_retry
+wait id=poses_grid 30
+expect_no id=network_dialog
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+expect_no id=network_dialog
+back
+wait id=poses_grid 10
+expect_no id=network_dialog
+shot back-online

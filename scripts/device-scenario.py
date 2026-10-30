@@ -64,7 +64,7 @@ given back and the file runs once more, its result is the one of the second run 
 and fail-1.xml; killed again, or without time for a second run, the step is SKIP and the file skipped
 (FB-20261025-03, plan T-054 of the app).
 
-Deadlines: the whole run has DEVICE_SCENARIOS_BUDGET seconds (default 1500); a file has min(its timeout, what is left
+Deadlines: the whole run has DEVICE_SCENARIOS_BUDGET seconds (default 1800); a file has min(its timeout, what is left
 - DEVICE_SCENARIO_RESET_LIMIT - DEVICE_SCENARIO_EVIDENCE_RESERVE (default 20, for the log marker and fail.png));
 every adb call has DEVICE_SCENARIO_ADB_TIMEOUT seconds (default 30, at most what is left of the file). Giving the
 device back takes at most DEVICE_SCENARIO_RESET_LIMIT seconds (default 60, turning the network on included); a file
@@ -509,7 +509,7 @@ class Runner:
         self.session = Path(session)
         self.package = package
         self.started = time.monotonic()
-        self.budget = env_seconds("DEVICE_SCENARIOS_BUDGET", 1500)
+        self.budget = env_seconds("DEVICE_SCENARIOS_BUDGET", 1800)
         self.adb_timeout = env_seconds("DEVICE_SCENARIO_ADB_TIMEOUT", 30)
         self.poll = env_seconds("DEVICE_SCENARIO_POLL", 1)
         self.settle = env_seconds("DEVICE_SCENARIO_SETTLE", 10)

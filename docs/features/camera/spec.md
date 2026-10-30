@@ -1,13 +1,13 @@
 ---
 feature: camera
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-28
+confirmed: 2026-10-29
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -344,3 +344,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-28 | AI | KB-9, tiêu chí 4 theo mục 5 và câu 6 của spec ads (câu 3 của plan T-074): camera và màn xem lại không có vị trí quảng cáo của màn, quảng cáo toàn app khi quay lại app có thể phủ lên. Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
 | 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "Áp dụng từ T-074", "trước đó ..."; tên khóa mới ở KB-9 và mục 8; mục 6 thêm dữ liệu trên máy và sự kiện quảng cáo do khung ghi. Chuyển `changed`, chờ Nhật xác nhận lại |
+| 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |

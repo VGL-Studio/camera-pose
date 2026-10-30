@@ -1,13 +1,13 @@
 ---
 feature: poses
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-thu-vien-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-28
+confirmed: 2026-10-29
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -203,3 +203,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-28 | AI | Mục 5: tên khóa bật tắt đổi theo `features/ads/spec.md` câu 2 (từ T-074). Màn thư viện và chi tiết có thể bị phủ bởi quảng cáo toàn app khi quay lại app (câu 6) |
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5, cùng lúc xác nhận spec ads. Giữ `confirmed` |
 | 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "từ T-074; trước đó ..."; tên khóa mới ở KB-6 và mục 8; mục 6 thêm dữ liệu trên máy và sự kiện quảng cáo do khung ghi. Chuyển `changed`, chờ Nhật xác nhận lại |
+| 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |

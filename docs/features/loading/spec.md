@@ -1,6 +1,6 @@
 ---
 feature: loading
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -8,7 +8,7 @@ requests:
   - requests/2026-10-21-loading-cua-camera-pose.md
 design: features/loading/design/README.md
 created: 2026-10-15
-confirmed: 2026-10-28
+confirmed: 2026-10-29
 ---
 
 # SPEC: MÀN HÌNH LOADING
@@ -194,3 +194,4 @@ Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6):
 | 2026-10-28 | AI | Mục 5: thời gian chờ quảng cáo mở app tính từ lúc mở app, không cộng sau thời gian tải (theo khung, `StartupAdWait`; câu 6 của plan T-074). Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
 | 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "Áp dụng từ T-074"; mục 6 thêm dữ liệu trên máy, sự kiện quảng cáo do khung ghi, và ghi rõ `loading_completed.duration_ms` gồm cả thời gian quảng cáo mở app (ghi chú rà soát lượt 2). Chuyển `changed`, chờ Nhật xác nhận lại |
+| 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |

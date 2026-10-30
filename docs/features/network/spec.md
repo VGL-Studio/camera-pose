@@ -1,13 +1,13 @@
 ---
 feature: network
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-hop-thoai-mat-mang.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-21
+confirmed: 2026-10-29
 ---
 
 # SPEC: BÁO MẤT MẠNG KHI ĐANG DÙNG
@@ -40,7 +40,7 @@ Người dùng đang ở một màn bất kỳ sau màn loading thì máy mất 
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi máy báo không còn kết nối mạng và tình trạng này kéo dài quá thời gian chờ (câu hỏi 2) thì hộp thoại "Mất kết nối mạng" hiện phủ lên màn hình, kèm lời hướng dẫn "App cần mạng để hoạt động. Kiểm tra kết nối Internet rồi thử lại." và nút "Thử lại", đúng thiết kế.
+- [ ] Khi máy báo không còn kết nối mạng và tình trạng này kéo dài quá thời gian chờ (câu hỏi 2) thì hộp thoại "Mất kết nối mạng" hiện phủ lên màn hình, kèm lời hướng dẫn "App cần mạng để hoạt động. Kiểm tra kết nối Internet rồi thử lại." và nút "Thử lại", đúng thiết kế. Máy báo không còn kết nối nghĩa là mạng mặc định của máy không có Internet đã được hệ thống xác nhận (`NET_CAPABILITY_INTERNET` và `NET_CAPABILITY_VALIDATED`, ADR-0024 điều 1); Wi-Fi có cổng đăng nhập hay không ra được Internet là không có mạng.
 - [ ] Khi một lần tải của app thất bại vì mạng (dù máy chưa báo mất kết nối) thì hộp thoại hiện như trên.
 - [ ] Khi hộp thoại đang hiện thì người dùng không bấm được gì phía sau; chạm ra ngoài hộp thoại không đóng nó.
 - [ ] Khi hộp thoại đang hiện thì chỉ có một hộp thoại, kể cả khi nhiều lần tải cùng thất bại.
@@ -64,6 +64,7 @@ Tiêu chí chấp nhận:
 Tiêu chí chấp nhận:
 
 - [ ] Khi bấm nút quay lại của máy lúc hộp thoại đang hiện thì app ra nền như khi bấm nút Home (câu hỏi 4); mở lại app thì nếu vẫn chưa có mạng, hộp thoại hiện lại.
+- [ ] Khi người dùng đưa app ra nền rồi quay lại một màn sau màn loading mà máy không có mạng thì hộp thoại hiện ngay khi app trở lại, không chờ thời gian chờ của KB-1: máy được kiểm lại tối đa 2 giây để kịp nối lại mạng, có mạng trong khoảng đó thì hộp thoại không hiện. Lần mở app đầu tiên và xoay màn hình không tính là quay lại. Khi một quảng cáo toàn màn hình hiện lúc quay lại thì hộp thoại hiện sau khi quảng cáo đóng (mục 5).
 
 ### KB-4. Tắt từ xa
 
@@ -126,3 +127,5 @@ Không có.
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: không đưa phần này về dự án mẫu (câu hỏi 1) |
 | 2026-10-21 | AI | Lập gói bàn giao thiết kế: ảnh `NetworkDialogScreen_*` thay cho các frame `offline` của camera và thư viện |
 | 2026-10-29 | AI | Mục 5 theo hành vi của khung quảng cáo (T-074 lượt 2, câu 11 của plan): bỏ luật "khi hộp thoại đang hiện thì không hiện quảng cáo toàn màn hình"; hộp thoại chờ quảng cáo toàn màn hình đóng. Chuyển `changed`, chờ Nhật xác nhận lại |
+| 2026-10-29 | AI | KB-1 tiêu chí 1: định nghĩa "không còn kết nối" theo ADR-0024 điều 1 (INTERNET và VALIDATED), câu 1 của plan T-076. KB-3: tiêu chí hộp thoại khi quay lại app, kiểm lại tối đa 2 giây, câu 1 của plan T-077. Câu chữ theo đề xuất của hai plan |
+| 2026-10-29 | Nhật | Xác nhận mục 5 sau T-074 và hai câu mới ở KB-1, KB-3 (lời của Nhật: chọn "Xác nhận" cho mục 5 và "Thêm cả hai đúng chữ" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |

@@ -1,16 +1,16 @@
 ---
 ticket: T-078
 title: Hộp thoại mất mạng hiện ngay khi mở lại app sau khi hệ thống đóng app ở nền
-status: draft
+status: approved
 version: 1
 risk_score:
 risk_level: high
 token_estimate: 7.0M         # cỡ S, trung vị của scripts/token-usage.py estimate
 blocking_points: [core]
 run_order:
-reviewer:
-cross_reviewer:
-approved_at:
+reviewer: Nhật
+cross_reviewer: Tuấn
+approved_at: 2026-10-30
 lane:
 ---
 
@@ -390,9 +390,13 @@ Không còn câu hỏi mở.
 
 <!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt, 2026-10-30, bản đã sửa theo các câu trả lời của bản nháp đầu.
+- **Người duyệt:** Nhật, 2026-10-30, **duyệt chéo:** Tuấn, 2026-10-30 (AI ghi theo lựa chọn của Nhật trong phiên: "Cả hai duyệt", với mô tả AI đưa ra là "Nhật duyệt, Tuấn duyệt chéo bản đã sửa"; trước đó Nhật chọn "Nhật + Tuấn duyệt luôn" cho bản nháp đầu).
+- **Ghi chú:** Nhật trả lời ngày 2026-10-30, trong phiên soạn plan.
+  - Bản nháp đầu, câu 1 (khôi phục vào màn loading): chấp nhận. Sau khi sửa câu 2, Nhật chọn "Giữ" dòng `if (!active) checkWhenActive = false`, để trường hợp này đi đúng đường 3 giây của KB-1.
+  - Bản nháp đầu, câu 2 (hộp thoại bị ẩn khi dựng lại activity): "Gộp vào T-078". Plan sửa ở `AppNavHost` (`ReportPastLoading`); ticket ghi thêm phạm vi.
+  - Bản nháp đầu, câu 3 (duyệt chéo): Nhật duyệt, Tuấn duyệt chéo.
+  - Bước tiếp: "Đẩy, mở PR, merge".
 
 ## 10. Nhật ký thực hiện
 

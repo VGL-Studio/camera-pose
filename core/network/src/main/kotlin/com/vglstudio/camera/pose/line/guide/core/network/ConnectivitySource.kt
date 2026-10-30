@@ -9,8 +9,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
-/** Whether the device has a network that can reach the Internet. */
+/** Whether the device has usable Internet, read from the system's network state only (spec network, KB-1). */
 internal interface ConnectivitySource {
+    /** Usable Internet right now: the default network has INTERNET and VALIDATED (ADR-0024). */
     fun isConnected(): Boolean
 
     /** Current value at once, then every change. The system callback is registered only while collected. */
@@ -18,22 +19,31 @@ internal interface ConnectivitySource {
 }
 
 /**
- * Connected means the default network has [NetworkCapabilities.NET_CAPABILITY_INTERNET]; validation is not required,
- * because some devices validate slowly or never (plan T-011, question 1). No decision is made here.
+ * A network that has not been validated, such as Wi-Fi behind a sign-in page or Wi-Fi without a way out, is no
+ * Internet (spec network KB-1, ADR-0024 point 1; plan T-076). The kind of connection does not matter.
+ */
+internal fun isUsableInternet(hasInternet: Boolean, isValidated: Boolean): Boolean = hasInternet && isValidated
+
+internal fun NetworkCapabilities?.hasUsableInternet(): Boolean = this != null &&
+    isUsableInternet(
+        hasInternet = hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
+        isValidated = hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED),
+    )
+
+/**
+ * Watches the default network through [ConnectivityManager]. Reads only its capabilities: no Wi-Fi name, IP address
+ * or network identifier. onAvailable is not used: the system has not validated the network yet at that point, and
+ * onCapabilitiesChanged reports it once it has.
  */
 internal class AndroidConnectivitySource(context: Context) : ConnectivitySource {
     private val manager = context.getSystemService(ConnectivityManager::class.java)
 
-    override fun isConnected(): Boolean = manager.getNetworkCapabilities(manager.activeNetwork).hasInternet()
+    override fun isConnected(): Boolean = manager.getNetworkCapabilities(manager.activeNetwork).hasUsableInternet()
 
     override fun connectivity(): Flow<Boolean> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                trySend(true)
-            }
-
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                trySend(capabilities.hasInternet())
+                trySend(capabilities.hasUsableInternet())
             }
 
             override fun onLost(network: Network) {
@@ -44,7 +54,4 @@ internal class AndroidConnectivitySource(context: Context) : ConnectivitySource 
         manager.registerDefaultNetworkCallback(callback)
         awaitClose { manager.unregisterNetworkCallback(callback) }
     }.distinctUntilChanged()
-
-    private fun NetworkCapabilities?.hasInternet(): Boolean =
-        this?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
 }

@@ -10,4 +10,8 @@ android {
 dependencies {
     implementation(project(":core:config"))
     implementation(project(":core:logging"))
+
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
 }

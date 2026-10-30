@@ -883,11 +883,11 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-095: issue `env-broken` của môi trường cloud chặn cả phiên `local`
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261030-02 (T-078).
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261030-02 (T-078).
 - **Chuyện gì:** bảng đầu phiên của `docs/auto-run.md` mục 2 nói có issue `env-broken` đang mở thì không chạy task nào, không có ngoại lệ. Issue #242 nói proxy của môi trường cloud trả 403 cho kho Maven của Mintegral và Pangle; phiên mở `local` trên máy dev, không đi qua proxy đó. Phiên phải hỏi người mới chạy tiếp được. Dòng `local` của bảng đã bỏ `cloud-env-check.sh` vì lý do tương tự (L-116 của mẫu), nhưng dòng `env-broken` chưa theo.
 - **Bằng chứng:** RUN-20261030-02, mục Kiểm tra đầu phiên: #242 mở lúc 07:28 UTC; Nhật quyết chạy tiếp; `scripts/check.sh` trên máy dev qua (09:37 UTC, 2394 test) và CI của PR #246 xanh.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 2, dòng `env-broken`: phiên `local` không dừng vì `env-broken`, vì `env-canary` kiểm môi trường cloud; `scripts/local-setup.sh --check` và `scripts/check.sh` trên máy là cổng của phiên `local`. Ghi issue vào mục Kiểm tra đầu phiên. Phiên `cloud` và `routine` giữ như cũ.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app: `docs/auto-run.md` là tài liệu quy trình lấy từ dự án mẫu, chờ dự án mẫu sửa rồi nhận qua đợt đồng bộ. Nhật nhận ngày 2026-10-30. Dự án mẫu: VGL-Studio/app-project-template#348.
 - **Kiểm chứng:**
 
 ### L-096: agent SSH mất khóa sau khi phiên Claude Code mở lại, lệnh đẩy báo `Permission denied (publickey)`

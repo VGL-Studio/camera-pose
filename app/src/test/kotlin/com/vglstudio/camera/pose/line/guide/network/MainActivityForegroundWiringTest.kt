@@ -19,12 +19,14 @@ class MainActivityForegroundWiringTest {
 
         val calls = WIRING.findAll(code).toList()
         assertEquals(1, calls.size)
-        val onCreate = bodyOf(code, Regex("""\boverride\s+fun\s+onCreate\s*\(""")) ?: error("no onCreate in MainActivity")
+        val onCreate = checkNotNull(bodyOf(code, ON_CREATE)) { "no onCreate in MainActivity" }
         assertTrue("the call is in onCreate", calls.single().range.first in onCreate)
     }
 
     private companion object {
         const val MAIN_ACTIVITY = "src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt"
+
+        val ON_CREATE = Regex("""\boverride\s+fun\s+onCreate\s*\(""")
 
         val WIRING = Regex(
             """\bobserveAppForeground\(\s*onStarted\s*=\s*networkDialog::onAppStarted\s*,\s*""" +

@@ -1,7 +1,7 @@
 ---
 ticket: T-078
 title: Hộp thoại mất mạng hiện ngay khi mở lại app sau khi hệ thống đóng app ở nền
-status: approved
+status: done
 version: 1
 risk_score:
 risk_level: high
@@ -402,3 +402,15 @@ Không còn câu hỏi mở.
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ.
 Đường làm nhanh (ADR-0034): tiêu đề "Làm nhanh YYYY-MM-DD, phiên bản plan N", ghi trong lần đẩy cuối của PR, sau rà soát độc lập và trước CI; Kết quả ghi "merge bằng PR này", Kết quả CI ghi "CI của PR này", bỏ dòng Cần người xem sáng nay, ghi việc cần người kiểm. -->
+
+### RUN-20261030-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #246, commit `990dd59`, 2026-10-30 16:05 UTC)
+- **Nhánh, PR:** `claude/T-078-mo-lai-sau-khi-dong`, https://github.com/VGL-Studio/camera-pose/pull/246
+- **Đã làm:** đúng mục 3.1. `ReportPastLoading` tách khỏi `AppNavHost`, không báo khi back stack chưa có màn; `NetworkDialogController` thêm `startedOnce`, `checkWhenActive`, `onAppRestored()`, dòng mới trong `onAppStarted()`, `setActive()` và collector của `init`; `MainActivity.onCreate` gọi `onAppRestored()` khi có `savedInstanceState`. 6 file, đúng mục 3.2.
+- **Test viết trước:** 16 test (13 test controller, 2 test `NavRestoreTest`, `mainActivity_reportsRestore`), commit `94b4555` cùng khung rỗng (`onAppRestored()` rỗng, `ReportPastLoading` với logic cũ). Trên khung: 7 test đỏ đúng lý do của mục 4 (`restoredOffline_showsAfterGrace_beforeLostDelay`, `restoredRecreatedDuringGrace_showsOnce`, `restoredBackgroundDuringGrace_dialogStays` còn `Hidden`; `restoredOffline_andLostDelay_singleDialog` ra `device_offline delay=3s`; `NavRestoreTest` thứ nhất ra `[pastLoading=false, pastLoading=true]`, thứ hai ra `[pastLoading=false, loading]`; `mainActivity_reportsRestore` 0 lời gọi). Test JVM của mọi module: không test nào ngoài mục 3.2 đỏ. Với code đủ, `:core:network` và `:app` 162 test, 0 lỗi. Đột biến của mục 4.1 chạy lại: mỗi đột biến làm đúng một test đỏ, như plan.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú: (1) `foregroundJob` có hai nơi ghi (luồng chính và scope của controller), cặp `cancel`, `launch` không nguyên tử; vô hại vì `show()` chống trùng, có từ T-077; (2) tiến trình bị đóng khi một activity khác ở trên (`AdActivity`, intent hệ thống) thì lần khôi phục `MainActivity` cũng tính là quay lại, chấp nhận được; (3) lần kiểm khi khôi phục dựa vào giá trị đầu của luồng cờ, plan đã nêu.
+- **Kết quả CI:** `pr-check` xanh (lần chạy 41084897305). `main-guard` của `990dd59`: xem báo cáo phiên.
+- **Lệch so với plan:** Không có. Test `recreatedInSameProcess_isNotARestore_evenWhenFlagTurnsOnLater` gọi `runCurrent()` sau khi tắt cờ, trước `recreate()`, theo ghi chú của rà soát trước khi duyệt (RUN-20261030-02); không đổi câu khẳng định. Chú thích ở `MainActivity` tách hai dòng cho vừa 120 ký tự.
+- **Việc còn lại:** Không có.
+- **Cần người xem:** kiểm tra thủ công (1) tới (4) của mục 4 trên bản staging, máy thật nối USB.

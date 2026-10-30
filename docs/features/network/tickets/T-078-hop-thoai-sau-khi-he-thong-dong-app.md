@@ -5,12 +5,12 @@ feature: network
 spec: features/network/spec.md
 scenarios: [KB-3]
 owner: Nhật
-status: backlog
+status: approved
 risk: medium
 size: S
 depends_on: [T-077]
 sprint:
-plan:
+plan: features/network/plans/T-078-hop-thoai-sau-khi-he-thong-dong-app.md
 auto_run:
 created: 2026-10-30
 ---
@@ -32,6 +32,7 @@ Phần "điều hướng được khôi phục, không qua loading" là nhận �
 - Xác định cách app khôi phục sau khi tiến trình bị đóng: màn nào hiện, loading có chạy lại không, controller có được bật (`arm`) không. Ghi kết quả chạy thử vào plan.
 - `core/network` và `:app`: coi lần mở lại có trạng thái được khôi phục (ví dụ `savedInstanceState != null` trong `MainActivity.onCreate`) là một lần quay lại, để lần kiểm 2 giây của T-077 chạy. Plan chọn cách cụ thể và ghi vì sao.
 - Test: test Robolectric tái hiện việc khôi phục sau khi tiến trình bị đóng (ví dụ dựng lại activity với `savedInstanceState`), kiểm hộp thoại hiện sau tối đa 2 giây khi không có mạng và không hiện khi có mạng; lần mở đầu thật (không có trạng thái khôi phục) vẫn bị bỏ qua.
+- Gộp thêm (Nhật quyết 2026-10-30, khi duyệt bản nháp đầu của plan, câu 2): hộp thoại đang hiện không bị ẩn khi activity dựng lại trong cùng tiến trình (xoay trên máy màn lớn, gập máy, đổi sáng tối, đổi ngôn ngữ). Lỗi có từ trước T-078: khung hình đầu của activity mới báo "chưa qua loading". Sửa ở phần báo của `AppNavHost`, không đổi điều hướng.
 - Kiểm thủ công trên máy thật hay emulator: đưa app ra nền, `adb shell am kill <gói>`, tắt mạng, mở lại từ màn đa nhiệm.
 
 **Không bao gồm:**

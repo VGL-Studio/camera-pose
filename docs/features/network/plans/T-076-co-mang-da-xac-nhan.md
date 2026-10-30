@@ -1,7 +1,7 @@
 ---
 ticket: T-076
 title: Chốt định nghĩa "có mạng" theo ADR-0024 điều 1 (INTERNET và VALIDATED)
-status: draft                # draft | approved | stopped | done
+status: approved                # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn 7 (module core), không tính tổng
 risk_level: high             # low | medium | high
@@ -9,8 +9,8 @@ token_estimate: 6.4M         # cỡ S, trung vị của scripts/token-usage.py e
 blocking_points: [core]
 run_order:
 reviewer: Nhật
-cross_reviewer:
-approved_at:
+cross_reviewer: Tuấn
+approved_at: 2026-10-29
 lane:
 ---
 
@@ -251,8 +251,8 @@ Ngân sách `device-session` (`docs/ops/test-sessions.md` mục 5, Hạn chót):
    - Đề xuất của AI: chấp nhận, như Nhật đã chọn (a) theo ADR-0024. Cần gạt khi có phản hồi: tắt `feature_network_dialog_enabled` trên Remote Config (KB-4); khung quảng cáo vẫn coi là mất mạng. Nhiều phản hồi như vậy thì soạn plan theo hướng (b).
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt có điều kiện: chờ Tuấn duyệt chéo (rủi ro cao, điểm chặn 7). Plan giữ `draft` tới khi có duyệt chéo.
-- **Người duyệt:** Nhật, **duyệt chéo:** chưa có (Tuấn)
+- **Quyết định:** Duyệt, 2026-10-29.
+- **Người duyệt:** Nhật, 2026-10-29, **duyệt chéo:** Tuấn, 2026-10-29 (AI ghi theo lời Nhật báo lại: "Tuấn đã duyệt, cập nhật plan.")
 - **Ghi chú:** Nhật trả lời ngày 2026-10-29, khi trả lời câu hỏi cuối phiên RUN-20261029-01 (lời của Nhật: chọn "Đồng ý cả ba đề xuất" cho câu 2 tới 4, "Nhật duyệt, chờ Tuấn duyệt chéo" cho cách duyệt).
   - Câu 1: Nhật thêm đúng câu đề xuất vào KB-1 tiêu chí 1 và xác nhận lại spec network (PR tài liệu nhánh `claude/RUN-20261029-01-xac-nhan`; PR đó merge trước khi duyệt plan).
   - Câu 2: chấp nhận kiểm trên emulator sau merge, ở `device-session` cuối phiên.

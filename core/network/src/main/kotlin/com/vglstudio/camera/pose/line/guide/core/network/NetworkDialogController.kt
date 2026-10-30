@@ -145,6 +145,12 @@ class NetworkDialogController @Inject internal constructor(
         }
     }
 
+    fun onAppStarted() {
+    }
+
+    fun onAppStopped(changingConfigurations: Boolean) {
+    }
+
     /** May be called from any thread. Shows the dialog at once, unless it is not armed or already shown. */
     override fun reportNetworkFailure(source: String) {
         if (armed.value) show("load_failed source=$source")

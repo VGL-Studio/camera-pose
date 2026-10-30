@@ -5,12 +5,12 @@ feature: network
 spec: features/network/spec.md
 scenarios: [KB-1]
 owner: Nhật
-status: backlog
+status: approved
 risk: medium
 size: S
 depends_on: []
 sprint:
-plan:
+plan: features/network/plans/T-076-co-mang-da-xac-nhan.md
 auto_run:
 created: 2026-10-28
 ---

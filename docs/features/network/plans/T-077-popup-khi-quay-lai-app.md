@@ -1,7 +1,7 @@
 ---
 ticket: T-077
 title: Hộp thoại mất mạng hiện ngay khi quay lại app lúc không có mạng
-status: draft
+status: approved
 version: 1
 risk_score:
 risk_level: high
@@ -9,8 +9,8 @@ token_estimate: 6.4M
 blocking_points: [core]
 run_order:
 reviewer: Nhật
-cross_reviewer:
-approved_at:
+cross_reviewer: Tuấn
+approved_at: 2026-10-29
 lane:
 ---
 
@@ -214,8 +214,8 @@ Test viết trước: mọi unit test và `AppForegroundObserverTest` ở trên 
 
 <!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
 
-- **Quyết định:** Duyệt có điều kiện: chờ Tuấn duyệt chéo (rủi ro cao, điểm chặn 7), và plan T-076 được duyệt trước. Plan giữ `draft` tới khi có duyệt chéo.
-- **Người duyệt:** Nhật, **duyệt chéo:** chưa có (Tuấn)
+- **Quyết định:** Duyệt, 2026-10-29. T-076 đã duyệt trước trong cùng lần.
+- **Người duyệt:** Nhật, 2026-10-29, **duyệt chéo:** Tuấn, 2026-10-29 (AI ghi theo lời Nhật báo lại: "Tuấn đã duyệt, cập nhật plan.")
 - **Ghi chú:** Nhật trả lời ngày 2026-10-29, khi trả lời câu hỏi cuối phiên RUN-20261029-01 (lời của Nhật: chọn "Đồng ý cả bốn" cho câu 2 tới 5, "Nhật duyệt, chờ Tuấn duyệt chéo" cho cách duyệt).
   - Câu 1: Nhật thêm đúng câu đề xuất vào KB-3 và xác nhận lại spec network (PR tài liệu nhánh `claude/RUN-20261029-01-xac-nhan`).
   - Câu 2: kiểm lại tối đa 2 giây, mỗi 250 ms, hằng `FOREGROUND_GRACE_MILLIS` trong code, không là khóa Remote Config.

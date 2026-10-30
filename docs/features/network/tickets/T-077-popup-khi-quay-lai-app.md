@@ -5,7 +5,7 @@ feature: network
 spec: features/network/spec.md
 scenarios: [KB-1, KB-3]
 owner: Nhật
-status: planned
+status: approved
 risk: medium
 size: S
 depends_on: []

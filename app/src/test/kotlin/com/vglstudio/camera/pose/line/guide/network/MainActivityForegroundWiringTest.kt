@@ -6,7 +6,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * MainActivity reports its starts and stops to the network dialog from onCreate (spec network KB-3; plan T-077).
+ * MainActivity reports its starts and stops (plan T-077) and a restore from saved state (plan T-078) to the network
+ * dialog from onCreate (spec network KB-3).
  * MainActivity needs Hilt, which :app has no test setup for, so the call is read from the source, by symbol and in
  * code only: comments and string literals are left out. The working directory of a unit test is the module directory.
  */
@@ -23,6 +24,19 @@ class MainActivityForegroundWiringTest {
         assertTrue("the call is in onCreate", calls.single().range.first in onCreate)
     }
 
+    @Test
+    fun mainActivity_reportsRestore() {
+        val code = codeOnly(File(MAIN_ACTIVITY).readText())
+        // Control: the file read is the real MainActivity.
+        assertTrue(Regex("""\bclass\s+MainActivity\b""").containsMatchIn(code))
+
+        // Reopened after the system closed the app in the background (plan T-078).
+        val calls = RESTORE.findAll(code).toList()
+        assertEquals(1, calls.size)
+        val onCreate = checkNotNull(bodyOf(code, ON_CREATE)) { "no onCreate in MainActivity" }
+        assertTrue("the call is in onCreate", calls.single().range.first in onCreate)
+    }
+
     private companion object {
         const val MAIN_ACTIVITY = "src/main/kotlin/com/vglstudio/camera/pose/line/guide/MainActivity.kt"
 
@@ -32,6 +46,8 @@ class MainActivityForegroundWiringTest {
             """\bobserveAppForeground\(\s*onStarted\s*=\s*networkDialog::onAppStarted\s*,\s*""" +
                 """onStopped\s*=\s*networkDialog::onAppStopped\s*,?\s*\)""",
         )
+
+        val RESTORE = Regex("""\bif\s*\(\s*savedInstanceState\s*!=\s*null\s*\)\s*networkDialog\.onAppRestored\(\s*\)""")
 
         /** The range of the braces of the first function matching [header] in [code], or null. */
         fun bodyOf(code: String, header: Regex): IntRange? {

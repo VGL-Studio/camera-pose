@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -58,12 +59,9 @@ internal fun AppNavHost(
         null
     }
     val scope = rememberCoroutineScope()
-    val entry by navController.currentBackStackEntryAsState()
-    val pastLoading = entry?.destination?.let { !it.hasRoute<LoadingDestination>() } ?: false
-    val currentOnPastLoadingChanged by rememberUpdatedState(onPastLoadingChanged)
     val currentChooseMainScreen by rememberUpdatedState(chooseMainScreen)
     val currentMarkOnboardingDone by rememberUpdatedState(markOnboardingDone)
-    LaunchedEffect(pastLoading) { currentOnPastLoadingChanged(pastLoading) }
+    ReportPastLoading(navController, onPastLoadingChanged)
     NavHost(
         navController = navController,
         startDestination = LoadingDestination,
@@ -151,6 +149,15 @@ internal fun AppNavHost(
             },
         )
     }
+}
+
+/** Skeleton for the tests of plan T-078, with the old logic. */
+@Composable
+internal fun ReportPastLoading(navController: NavHostController, onPastLoadingChanged: (Boolean) -> Unit) {
+    val entry by navController.currentBackStackEntryAsState()
+    val pastLoading = entry?.destination?.let { !it.hasRoute<LoadingDestination>() } ?: false
+    val currentOnPastLoadingChanged by rememberUpdatedState(onPastLoadingChanged)
+    LaunchedEffect(pastLoading) { currentOnPastLoadingChanged(pastLoading) }
 }
 
 private fun MainScreen.destination(): Any = when (this) {

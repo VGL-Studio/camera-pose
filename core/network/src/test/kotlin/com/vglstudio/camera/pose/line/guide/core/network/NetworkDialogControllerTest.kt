@@ -681,6 +681,209 @@ class NetworkDialogControllerTest {
         assertEquals(SHOWN, controller.state.value)
     }
 
+    // Reopened after the system closed the app in the background (spec network KB-3; plan T-078): the activity of a
+    // new process is restored from saved state past loading, and the network is checked as on a return.
+
+    /** A new process restored past loading: onCreate with saved state, onStart, then the restored screen. */
+    private fun TestScope.restoredProcess(): NetworkDialogController {
+        val controller = controller(active = false)
+        controller.onAppRestored()
+        backToApp(controller)
+        controller.setActive(true)
+        runCurrent()
+        return controller
+    }
+
+    /** The activity recreated in the same process for a configuration change; the screen stays past loading. */
+    private fun TestScope.recreate(controller: NetworkDialogController) {
+        controller.onAppStopped(changingConfigurations = true)
+        controller.onAppRestored()
+        backToApp(controller)
+        controller.setActive(true)
+        runCurrent()
+    }
+
+    @Test
+    fun restoredOffline_showsAfterGrace_beforeLostDelay() = runTest {
+        connectivity.connected.value = false
+        val controller = restoredProcess()
+
+        advanceTimeBy(1_999)
+        assertEquals(HIDDEN, controller.state.value)
+        advanceTimeBy(2)
+        assertEquals(SHOWN, controller.state.value)
+        assertEquals(listOf("Dialog shown: offline_on_foreground"), shownLines())
+    }
+
+    @Test
+    fun restoredOnline_showsNothing() = runTest {
+        val controller = restoredProcess()
+
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+        assertEquals(emptyList<String>(), shownLines())
+    }
+
+    @Test
+    fun restoredNetworkBackWithinGrace_showsNothing() = runTest {
+        connectivity.connected.value = false
+        val controller = restoredProcess()
+
+        advanceTimeBy(500)
+        connectivity.connected.value = true
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+        assertEquals(emptyList<String>(), shownLines())
+    }
+
+    @Test
+    fun freshStart_isNotARestore() = runTest {
+        connectivity.connected.value = false
+        val controller = controller(active = false)
+        backToApp(controller)
+        controller.setActive(true)
+        runCurrent()
+
+        advanceTimeBy(2_500)
+        assertEquals(HIDDEN, controller.state.value)
+        // Control: the 3-second path still runs.
+        advanceTimeBy(501)
+        assertEquals(listOf("Dialog shown: device_offline delay=3s"), shownLines())
+    }
+
+    @Test
+    fun restoredOnLoading_isNotAReturn() = runTest {
+        val controller = controller(active = false)
+        controller.onAppRestored()
+        backToApp(controller)
+        // The restored screen is loading.
+        controller.setActive(false)
+        runCurrent()
+        connectivity.connected.value = false
+        // Loading finishes.
+        controller.setActive(true)
+        runCurrent()
+
+        advanceTimeBy(2_500)
+        assertEquals(HIDDEN, controller.state.value)
+        // Control: the 3-second path still runs.
+        advanceTimeBy(501)
+        assertEquals(listOf("Dialog shown: device_offline delay=3s"), shownLines())
+    }
+
+    @Test
+    fun recreatedInSameProcess_isNotARestore_evenWhenFlagTurnsOnLater() = runTest {
+        val controller = controller()
+        backToApp(controller)
+        flags.enabled.value = emptySet()
+        // The flag off is seen before the recreation (pre-run review of RUN-20261030-02).
+        runCurrent()
+        recreate(controller)
+        connectivity.connected.value = false
+        flags.enabled.value = setOf(FeatureFlag.NETWORK_DIALOG)
+        runCurrent()
+
+        advanceTimeBy(2_500)
+        assertEquals(HIDDEN, controller.state.value)
+        // Control: the 3-second path still runs.
+        advanceTimeBy(501)
+        assertEquals(listOf("Dialog shown: device_offline delay=3s"), shownLines())
+    }
+
+    @Test
+    fun recreatedInSameProcess_dialogStays() = runTest {
+        val controller = controller()
+        backToApp(controller)
+        connectivity.connected.value = false
+        advanceTimeBy(3_001)
+        assertEquals(SHOWN, controller.state.value)
+
+        recreate(controller)
+        assertEquals(SHOWN, controller.state.value)
+        assertTrue(infoMessages().none { it.startsWith("Dialog hidden") })
+    }
+
+    @Test
+    fun activityDestroyedInBackground_isAReturn() = runTest {
+        val controller = controller()
+        backToApp(controller)
+        controller.toBackground()
+        controller.onAppRestored()
+        connectivity.connected.value = false
+        backToApp(controller)
+        controller.setActive(true)
+        runCurrent()
+
+        advanceTimeBy(1_999)
+        assertEquals(HIDDEN, controller.state.value)
+        advanceTimeBy(2)
+        assertEquals(listOf("Dialog shown: offline_on_foreground"), shownLines())
+    }
+
+    @Test
+    fun restoredRecreatedDuringGrace_showsOnce() = runTest {
+        connectivity.connected.value = false
+        val controller = restoredProcess()
+
+        advanceTimeBy(500)
+        recreate(controller)
+        advanceTimeBy(1_501)
+        assertEquals(SHOWN, controller.state.value)
+        advanceTimeBy(5_000)
+        assertEquals(listOf("Dialog shown: offline_on_foreground"), shownLines())
+    }
+
+    @Test
+    fun restoredWithFlagOff_ignored_evenWhenFlagTurnsOnLater() = runTest {
+        flags.enabled.value = emptySet()
+        connectivity.connected.value = false
+        val controller = restoredProcess()
+
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+        flags.enabled.value = setOf(FeatureFlag.NETWORK_DIALOG)
+        runCurrent()
+        advanceTimeBy(2_500)
+        assertEquals(HIDDEN, controller.state.value)
+        // Control: the 3-second path starts from the flag turned on.
+        advanceTimeBy(501)
+        assertEquals(listOf("Dialog shown: device_offline delay=3s"), shownLines())
+    }
+
+    @Test
+    fun restoredDeactivatedDuringGrace_dropsShow() = runTest {
+        connectivity.connected.value = false
+        val controller = restoredProcess()
+
+        advanceTimeBy(500)
+        controller.setActive(false)
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+        assertTrue(infoMessages().none { "offline_on_foreground" in it })
+    }
+
+    @Test
+    fun restoredOffline_andLostDelay_singleDialog() = runTest {
+        connectivity.connected.value = false
+        val controller = restoredProcess()
+
+        advanceTimeBy(5_001)
+        assertEquals(SHOWN, controller.state.value)
+        assertEquals(listOf("Dialog shown: offline_on_foreground"), shownLines())
+    }
+
+    @Test
+    fun restoredBackgroundDuringGrace_dialogStays() = runTest {
+        connectivity.connected.value = false
+        val controller = restoredProcess()
+
+        advanceTimeBy(500)
+        controller.toBackground()
+        advanceTimeBy(1_600)
+        // 2 100 ms: the check keeps running in the background.
+        assertEquals(SHOWN, controller.state.value)
+    }
+
     private companion object {
         val HIDDEN = NetworkDialogState.Hidden
         val SHOWN = NetworkDialogState.Shown(checking = false, stillOffline = false)

@@ -169,6 +169,9 @@ class NetworkDialogController @Inject internal constructor(
         foregroundJob = scope.launch { checkOnForeground() }
     }
 
+    /** Skeleton for the tests of plan T-078. */
+    fun onAppRestored() {}
+
     /**
      * Called by :app on each stop of the activity. Main thread. [changingConfigurations] is true when the activity
      * stops only to be recreated (a rotation): the next start is then not a return.

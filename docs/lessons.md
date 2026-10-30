@@ -847,36 +847,36 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-091: quy trình chưa có khái niệm plan nhiều lượt, phiên phải dựa vào quy tắc riêng của danh sách chạy
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261029-01 (T-074, ba lượt, PR #228, #229, #230).
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261029-01 (T-074, ba lượt, PR #228, #229, #230).
 - **Chuyện gì:** T-074 chia ba lượt cùng một plan và một ticket, mỗi lượt một PR. `docs/auto-run.md` bước 10 chuyển plan `done`, ticket `on-staging` ngay sau lượt 1, nên lượt 2 và 3 sẽ bị bỏ qua ở kiểm tra đầu task. Cột "Phụ thuộc: lượt N" không script nào đọc. `scripts/plan-check.py` báo lỗi trước lượt 2 chỉ vì lượt 1 đã xóa file đúng plan. `scripts/run-check.py` có 32 dòng chú ý (cùng sửa, cùng tạo file) vì cùng một plan nằm ở ba dòng. Phiên chạy được nhờ mục "Cách chạy ba lượt" (sáu quy tắc) do Nhật thêm vào danh sách chạy.
 - **Bằng chứng:** danh sách chạy RUN-20261029-01, mục "Cách chạy ba lượt" và bảng rà soát trước khi chạy (dòng "Chặn"); nhật ký lượt 2 của plan T-074 (hai lỗi `plan-check.py` về `InterstitialFlow.kt`, `InterstitialFlowTest.kt`).
 - **Đề xuất sửa:** dự án mẫu: plan có trường `passes:` và mục 3.1, 3.2 theo lượt; `docs/auto-run.md` bước 10 chỉ chuyển `done` ở lượt cuối; `plan-check.py` nhận tham số lượt và bỏ qua file mà lượt trước đã tạo hay xóa; `run-check.py` không báo cùng sửa file giữa các lượt của một plan và kiểm cột phụ thuộc theo lượt.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app: cần plan sửa `scripts/plan-check.py`, `scripts/run-check.py`, `docs/auto-run.md`, `docs/templates/plan.md`, chưa có ticket. Nhật nhận ngày 2026-10-30. Dự án mẫu: VGL-Studio/app-project-template#328.
 - **Kiểm chứng:**
 
 ### L-092: `build-and-test` của PR đổi thư viện chạy 35 tới 38 phút, sát giới hạn 45 phút của job
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261029-01 (T-074 lượt 1 và 2).
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261029-01 (T-074 lượt 1 và 2).
 - **Chuyện gì:** PR đổi thư viện và file build chạy thêm bản release (R8) trong `build-and-test`. Lượt 1 bị hủy lần đầu vì chạm `timeout-minutes: 45` khi đang build R8; lần chạy lại xanh trong 35 phút. Lượt 2 xanh trong 38 phút. `scripts/failure-kind.sh --playbook` khớp nhầm PB-08 (lỗi R8) dù log không có lỗi R8, chỉ có dòng hủy vì hết giờ.
 - **Bằng chứng:** lần chạy 40835766905 (PR #228, lần 1 `cancelled`, lần 2 `success`); PR #229 `build-and-test` 38 phút.
 - **Đề xuất sửa:** dự án mẫu: tách bản release thành job riêng chạy song song với `build-and-test`, hoặc nâng giới hạn lên 60 phút cho job có bản release; bảng tra lỗi thêm dòng "The job running on runner ... has exceeded the maximum execution time" loại chạy lại một lần, đứng trước PB-08.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app: cần plan rủi ro cao sửa `.github/workflows/pr-check.yml` và bảng tra lỗi, chưa có ticket. Nhật nhận ngày 2026-10-30. Dự án mẫu: VGL-Studio/app-project-template#329.
 - **Kiểm chứng:**
 
 ### L-093: bước thử tay của plan dựa vào Firebase staging để tắt một cờ mà bản staging bật sẵn trong code
 
-- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261029-01 (T-074 lượt 3, PR #230).
+- **Trạng thái:** accepted. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261029-01 (T-074 lượt 3, PR #230).
 - **Chuyện gì:** plan T-074 mục 4 ghi bước thử "tắt `feature_loading_enabled` trên Firebase staging: không có quảng cáo mở app". `StagingFeatureFlagsModule` bật cờ này trong code, và `DefaultFeatureFlags` không đọc giá trị từ xa cho cờ đã bật như vậy, nên bước này không làm được trên staging. Rà soát lượt 3 cũng thấy bước 11.3.3 chờ một dòng log mà hộp hỏi quyền không bao giờ sinh ra (hộp hỏi quyền không đưa app ra nền).
 - **Bằng chứng:** `docs/ops/manual-test.md` mục 11.2 và mục 12 sau PR #230; rà soát độc lập của lượt 3.
 - **Đề xuất sửa:** `docs/CLAUDE.md` mục Khi viết plan: mỗi bước kiểm tra thủ công cần tắt hay bật một khóa trên Firebase staging phải đối chiếu `StagingFeatureFlagsModule` và `StagingRemoteValuesModule` (khóa đặt sẵn trong code thì không đổi được từ Firebase); câu kiểm log phải dẫn dòng code ghi log đó và điều kiện để dòng đó chạy.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app: cần sửa `docs/CLAUDE.md`, chưa có ticket. Nhật nhận ngày 2026-10-30. Dự án mẫu: VGL-Studio/app-project-template#330.
 - **Kiểm chứng:**
 
 ### L-094: ở máy dev, tóm tắt "Test JVM" của `scripts/check.sh` đếm cả worktree cũ của agent con trong `.claude/worktrees/`
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261030-01 (T-076, T-077).
+- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261030-01 (T-076, T-077).
 - **Chuyện gì:** phiên `local` chạy `scripts/check.sh` trong thư mục repo. Dòng tóm tắt in "Test JVM: 4635 test" kèm số của từng `./.claude/worktrees/agent-*/...`, vì các worktree cũ của agent con nằm trong thư mục repo và có kết quả test cũ. Cổng chất lượng vẫn đúng, nhưng con số báo cáo gần gấp đôi số thật và dễ đọc nhầm.
 - **Bằng chứng:** `check.sh` của T-076 (02:44 UTC) và T-077 (03:36 UTC) trên máy dev: 4635 và 4652 test; cùng ngày `check.sh` trong worktree `../start-check` (ngoài repo) đếm 2373.
 - **Đề xuất sửa:** dự án mẫu: `scripts/check.sh` bỏ qua `.claude/` (và mọi worktree lồng trong repo) khi gom kết quả test; hoặc `docs/ops/` ghi dọn `.claude/worktrees/` cũ trước phiên `local`.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app: `scripts/check.sh` chỉ sửa qua plan rủi ro cao, chưa có ticket. Nhật nhận ngày 2026-10-30. Dự án mẫu: VGL-Studio/app-project-template#331.
 - **Kiểm chứng:**

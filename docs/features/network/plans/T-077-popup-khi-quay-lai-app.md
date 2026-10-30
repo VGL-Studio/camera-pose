@@ -1,7 +1,7 @@
 ---
 ticket: T-077
 title: Hộp thoại mất mạng hiện ngay khi quay lại app lúc không có mạng
-status: approved
+status: done
 version: 1
 risk_score:
 risk_level: high
@@ -227,3 +227,14 @@ Test viết trước: mọi unit test và `AppForegroundObserverTest` ở trên 
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261030-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #239, commit `5d85b6b` trên nhánh chính)
+- **Nhánh, PR:** `claude/T-077-popup-khi-quay-lai-app`, PR #239. Commit test `ca86df7`, commit code `7f8f723`.
+- **Đã làm:** đủ mục 3.2 (7 file, không file nào ngoài danh sách): `onAppStarted()`, `onAppStopped()`, `checkOnForeground()`, `foregroundJob` hủy trong `disarm()`, KDoc của lớp và hai hàm; hằng `FOREGROUND_GRACE_MILLIS` (không vào `all()`); `observeAppForeground`; lời gọi trong `MainActivity.onCreate` sau `ads.gatherConsent(this)`; 15 test mới ở cuối `NetworkDialogControllerTest` (kèm hàm phụ `toBackground`, `backToApp`, `infoMessages`, `shownLines`), `AppForegroundObserverTest`, `MainActivityForegroundWiringTest` (hàm `codeOnly` chép từ `LeaveAppCallSitesTest` vì hàm đó là `private` ở file ngoài mục 3.2).
+- **Test viết trước:** trên khung rỗng (commit test), 7 test đỏ đúng lý do: `returnOffline_showsAfterGrace_beforeLostDelay`, `returnOffline_andLostDelay_singleDialog`, `afterRecovery_nextReturnChecksAgain`, `backgroundDuringGrace_dialogStaysOnReturn` (`Hidden` thay vì `Shown`), `returnOffline_whileAdShowing_waitsForAd` (chưa có `Dialog waits` ở 2 100 ms), `AppForegroundObserverTest` (0 lần bắt đầu), `MainActivityForegroundWiringTest` (0 lời gọi). 10 test "không hiện" qua ngay trên khung rỗng như mục 4 đã nêu, đối chứng là test "hiện" cùng cách dựng. Test JVM mọi module trên khung rỗng: chỉ 7 test này đỏ. Viết chặt thêm theo L-055: 0.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 4 ghi chú: (1) chú thích trong `MainActivity` ghi "within 2 seconds" thay cho "within a second" của mục 3.1, vì lần kiểm kéo dài tới 2 giây; (2) khe tranh chấp nhỏ giữa `onAppStarted` và `disarm`, vô hại vì `checkOnForeground` kiểm lại `armed`; (3) chú thích "2 001 ms" trong `secondStartWithoutStop_isNotAReturn` lấy theo plan, thực tế lần kiểm hiện ở 2 000 ms; (4) test cũ ngầm dựa vào `leftApp` mặc định `false`.
+- **Kết quả CI:** xanh ở vòng đầu, lần chạy `pr-check` 40998609068.
+- **Lệch so với plan:** chữ của chú thích trong `MainActivity` ("within 2 seconds" thay cho "within a second"), cho đúng 2 giây của câu hỏi 2. Sau commit test, `MainActivityForegroundWiringTest` chỉ đổi định dạng để qua ktlint (regex `onCreate` thành hằng `ON_CREATE`, `?: error` thành `checkNotNull`), không đổi câu khẳng định.
+- **Cần người xem:** bốn bước kiểm thủ công trên máy thật của mục 4 (quay lại không mạng, Wi-Fi tự nối lại sau mở khóa, xoay màn hình trên máy gập, quảng cáo `resume`); ghi chú ở mục Kiểm tra trước khi duyệt: lý do `device_offline` hay `offline_on_foreground` đều chấp nhận nếu hộp thoại hiện trong 2 giây sau khi mở lại. Khoảng hở đã chấp nhận: hệ thống đóng tiến trình ở nền rồi mở lại thì hộp thoại hiện sau 3 giây; AI soạn ticket riêng.

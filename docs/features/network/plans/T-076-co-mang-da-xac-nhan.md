@@ -1,7 +1,7 @@
 ---
 ticket: T-076
 title: Chốt định nghĩa "có mạng" theo ADR-0024 điều 1 (INTERNET và VALIDATED)
-status: approved                # draft | approved | stopped | done
+status: done                    # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn 7 (module core), không tính tổng
 risk_level: high             # low | medium | high
@@ -260,3 +260,14 @@ Ngân sách `device-session` (`docs/ops/test-sessions.md` mục 5, Hạn chót):
   - Câu 4: chấp nhận đánh đổi của hướng (a); cần gạt khi có phản hồi là tắt `feature_network_dialog_enabled` trên Remote Config.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261030-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #238, commit `e9f5a5b` trên nhánh chính)
+- **Nhánh, PR:** `claude/T-076-co-mang-da-xac-nhan`, PR #238. Commit test `e878de8`, commit code `0efeccd`.
+- **Đã làm:** đủ mục 3.2 (9 file, không file nào ngoài danh sách): `ConnectivitySource.kt` theo đúng diff của mục 3.1; ba dòng `testImplementation` và `robolectric.properties` (`sdk=35`); `AndroidConnectivitySourceTest` (4 test); KDoc của `isValidatedInternet`; tệp kịch bản emulator; ngân sách kịch bản mặc định 1800 ở `scripts/device-scenario.py` (dòng 67, 512), `scripts/device-session.sh` (dòng 32, 276), `docs/ops/test-sessions.md` (dòng 177).
+- **Test viết trước:** 3 test (commit test) thất bại đúng lý do trên code cũ: `isConnected_needsInternetAndValidated` ở `assertFalse` với chỉ `INTERNET` (dòng 41), `connectivity_waitsForValidation_thenReportsLoss_andUnregisters` ở giá trị đầu (dòng 57), `internetConnectivity_followsValidation` ở `assertFalse` (dòng 82). Test JVM mọi module trên khung test: chỉ 3 test này đỏ. Test thứ tư `hasUsableInternet_noCapabilities_isFalse` thêm ở commit code như mục 4 (L-025). Viết chặt thêm theo L-055: 0 (cả ba test đã có bước đối chứng của plan).
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú: (1) phần (3) của kịch bản bấm "Thử lại" ngay sau `network on`, chập chờn thì xem chỗ này trước (mục 3.4); (2) `hasUsableInternet` không có KDoc riêng, đúng diff của plan; (3) mạng chặn bước xác nhận là đánh đổi đã duyệt, hai dòng máy thật chờ người.
+- **Kết quả CI:** xanh ở vòng đầu, lần chạy `pr-check` 40994251805.
+- **Lệch so với plan:** không có. Sau commit test, file test chỉ đổi định dạng để qua ktlint (import tĩnh `NET_CAPABILITY_INTERNET`, `NET_CAPABILITY_VALIDATED`; KDoc của lớp ngắn lại dưới 120 ký tự), không đổi câu khẳng định nào (bước 4, "sai ở chi tiết").
+- **Cần người xem:** kịch bản emulator ở `device-session` cuối phiên; hai dòng máy thật của mục 4 (Wi-Fi không ra Internet; máy thật Wi-Fi và 4G không hiện oan), cùng ghi chú VPN của mục Kiểm tra trước khi duyệt.

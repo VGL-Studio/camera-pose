@@ -97,6 +97,9 @@ class MainActivity : ComponentActivity() {
         ads.gatherConsent(this)
         // Back from the background without network: the dialog shows within 2 seconds (spec network, KB-3; plan T-077).
         observeAppForeground(onStarted = networkDialog::onAppStarted, onStopped = networkDialog::onAppStopped)
+        // Reopened after the system closed the app in the background: checked like a return (spec network, KB-3;
+        // plan T-078).
+        if (savedInstanceState != null) networkDialog.onAppRestored()
         // Read once, so the first frame already has the chosen look instead of flashing (plan T-025, question 6).
         val initialThemeMode = runBlocking {
             withTimeoutOrNull(THEME_READ_TIMEOUT_MILLIS) { userPreferences.themeMode.first() }

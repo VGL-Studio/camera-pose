@@ -892,9 +892,9 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-096: agent SSH mất khóa sau khi phiên Claude Code mở lại, lệnh đẩy báo `Permission denied (publickey)`
 
-- **Trạng thái:** accepted. **Loại:** môi trường. **Phạm vi:** app. **Nguồn:** RUN-20261030-02 (T-078).
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** app. **Nguồn:** RUN-20261030-02 (T-078).
 - **Chuyện gì:** phiên `local` bị ngắt rồi mở lại sau khoảng 6 giờ. Lần đẩy đầu sau đó bị GitHub từ chối: `ssh-add -l` báo "The agent has no identities", khóa GitHub ở `~/.ssh/github` không có dòng trong `~/.ssh/config`, nên ssh không tự dùng nó. `scripts/save-branch.sh` giữ bundle và trả lỗi. `ssh -i ~/.ssh/github -o IdentitiesOnly=yes` xác thực được, khóa không có mật khẩu.
 - **Bằng chứng:** RUN-20261030-02, Dòng thời gian 15:41 UTC; bundle `~/rescue/claude__T-078-mo-lai-sau-khi-dong.bundle`; đẩy lại được bằng `GIT_SSH_COMMAND="ssh -i $HOME/.ssh/github -o IdentitiesOnly=yes"`.
 - **Đề xuất sửa:** máy dev: thêm vào `~/.ssh/config` một khối `Host github.com` với `IdentityFile ~/.ssh/github` và `IdentitiesOnly yes` (người làm, ngoài repo). Hoặc `docs/ops/session-capabilities.md`, dòng `local`: ghi lệnh `ssh -T -o BatchMode=yes git@github.com` vào kiểm tra đầu phiên, để lỗi lộ ra trước khi viết code.
-- **Áp dụng:** chưa làm: thêm khối `Host github.com` vào `~/.ssh/config` của máy dev là việc của người, ngoài repo. Nhật nhận ngày 2026-10-30. Phạm vi app, không đề xuất về dự án mẫu.
+- **Áp dụng:** Nhật nhận ngày 2026-10-30 (PR #249). Cùng ngày, theo yêu cầu của Nhật, AI thêm vào `~/.ssh/config` của máy dev (ngoài repo, trước đó chưa có tệp này) khối `Host github.com` với `IdentityFile ~/.ssh/github` và `IdentitiesOnly yes`; `ssh -T -o BatchMode=yes git@github.com` xác thực được mà không cần agent hay `GIT_SSH_COMMAND`. Phạm vi app, không đề xuất về dự án mẫu.
 - **Kiểm chứng:**

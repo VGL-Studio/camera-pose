@@ -22,6 +22,12 @@ object NetworkSettings {
     internal const val RETRY_MAX_MILLIS = 2_000L
     internal const val RETRY_POLL_MILLIS = 250L
 
+    /**
+     * How long a return to the app without network is checked again before the dialog shows (plan T-077,
+     * question 2). Not a Remote Config key.
+     */
+    internal const val FOREGROUND_GRACE_MILLIS = 2_000L
+
     /** Every Remote Config key of the network module. */
     fun all(): List<RemoteKey<*>> = listOf(LOST_DELAY)
 }

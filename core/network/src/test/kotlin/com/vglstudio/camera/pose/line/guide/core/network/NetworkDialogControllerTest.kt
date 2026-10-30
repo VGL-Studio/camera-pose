@@ -439,6 +439,248 @@ class NetworkDialogControllerTest {
         assertEquals(SHOWN, controller.state.value)
     }
 
+    // Back from the background without network (spec network KB-3; plan T-077): the dialog shows after a check of at
+    // most 2 seconds. "Background" is onAppStopped(changingConfigurations = false), "back" is onAppStarted().
+
+    private fun NetworkDialogController.toBackground() = onAppStopped(changingConfigurations = false)
+
+    private fun TestScope.backToApp(controller: NetworkDialogController) {
+        controller.onAppStarted()
+        runCurrent()
+    }
+
+    private fun infoMessages(): List<String> =
+        logger.entries.filter { it.tag == "Network" && it.level == LogLevel.INFO }.map { it.message }
+
+    private fun shownLines(): List<String> = infoMessages().filter { it.startsWith("Dialog shown") }
+
+    @Test
+    fun returnOffline_showsAfterGrace_beforeLostDelay() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(1_999)
+        assertEquals(HIDDEN, controller.state.value)
+        advanceTimeBy(2)
+        assertEquals(SHOWN, controller.state.value)
+        assertEquals(listOf("Dialog shown: offline_on_foreground"), shownLines())
+    }
+
+    @Test
+    fun returnOffline_networkBackWithinGrace_showsNothing() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(500)
+        connectivity.connected.value = true
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+        assertEquals(emptyList<String>(), shownLines())
+    }
+
+    @Test
+    fun returnOnline_showsNothing() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        backToApp(controller)
+
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+    }
+
+    @Test
+    fun firstStart_isNotAReturn() = runTest {
+        val controller = controller()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(2_500)
+        assertEquals(HIDDEN, controller.state.value)
+        // Control: the 3-second path still runs.
+        advanceTimeBy(501)
+        assertEquals(SHOWN, controller.state.value)
+    }
+
+    @Test
+    fun configurationChange_isNotAReturn() = runTest {
+        val controller = controller()
+        controller.onAppStopped(changingConfigurations = true)
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(2_500)
+        assertEquals(HIDDEN, controller.state.value)
+    }
+
+    @Test
+    fun secondStartWithoutStop_isNotAReturn() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        backToApp(controller)
+        advanceTimeBy(2_500)
+
+        connectivity.connected.value = false
+        backToApp(controller)
+        // 2 500 ms after the loss: a check would have shown at 2 001 ms, the 3-second path is not due yet.
+        advanceTimeBy(2_500)
+        assertEquals(HIDDEN, controller.state.value)
+    }
+
+    @Test
+    fun returnOnLoadingScreen_ignored() = runTest {
+        val controller = controller(active = false)
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+    }
+
+    @Test
+    fun returnWithFlagOff_ignored() = runTest {
+        flags.enabled.value = emptySet()
+        val controller = controller()
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+    }
+
+    @Test
+    fun flagTurnedOffDuringGrace_dropsShow() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(500)
+        flags.enabled.value = emptySet()
+        advanceTimeBy(100)
+        flags.enabled.value = setOf(FeatureFlag.NETWORK_DIALOG)
+        advanceTimeBy(1_500)
+        // 2 100 ms: the check of the return was dropped, else the dialog would show at 2 000 ms.
+        assertEquals(HIDDEN, controller.state.value)
+        assertTrue(infoMessages().none { "offline_on_foreground" in it })
+
+        // Control: the 3-second path starts again from the flag turned on at 600 ms.
+        advanceTimeBy(1_501)
+        assertEquals(SHOWN, controller.state.value)
+        assertEquals(1, shownLines().count { "device_offline" in it })
+    }
+
+    @Test
+    fun deactivatedDuringGrace_dropsShow() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(500)
+        controller.setActive(false)
+        advanceTimeBy(5_000)
+        assertEquals(HIDDEN, controller.state.value)
+        assertTrue(infoMessages().none { "offline_on_foreground" in it })
+    }
+
+    @Test
+    fun returnOffline_andLostDelay_singleDialog() = runTest {
+        val controller = controller()
+        val seen = seenStates(controller)
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(2_001)
+        assertEquals(SHOWN, controller.state.value)
+        assertTrue(infoMessages().contains("Dialog shown: offline_on_foreground"))
+        advanceTimeBy(3_000)
+        assertEquals(1, seen.count { it == SHOWN })
+        assertEquals(1, shownLines().size)
+    }
+
+    @Test
+    fun shownBeforeBackground_staysOnReturn() = runTest {
+        val controller = controller()
+        connectivity.connected.value = false
+        advanceTimeBy(3_001)
+        assertEquals(SHOWN, controller.state.value)
+
+        controller.toBackground()
+        backToApp(controller)
+        advanceTimeBy(2_500)
+        assertEquals(SHOWN, controller.state.value)
+        assertEquals(1, shownLines().size)
+    }
+
+    @Test
+    fun backgroundDuringGrace_dialogStaysOnReturn() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(500)
+        controller.toBackground()
+        advanceTimeBy(1_600)
+        // 2 100 ms: the check keeps running in the background.
+        assertEquals(SHOWN, controller.state.value)
+
+        backToApp(controller)
+        advanceTimeBy(2_500)
+        assertEquals(SHOWN, controller.state.value)
+        assertEquals(1, shownLines().size)
+    }
+
+    @Test
+    fun returnOffline_whileAdShowing_waitsForAd() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+
+        advanceTimeBy(100)
+        controller.setFullScreenAdShowing(true)
+        advanceTimeBy(2_000)
+        // 2 100 ms, before the 3-second path: the show of the return waits for the ad.
+        assertEquals(HIDDEN, controller.state.value)
+        assertTrue(infoMessages().contains("Dialog waits: full_screen_ad"))
+
+        advanceTimeBy(3_000)
+        assertEquals(HIDDEN, controller.state.value)
+        controller.setFullScreenAdShowing(false)
+        runCurrent()
+        assertEquals(SHOWN, controller.state.value)
+        assertEquals(1, shownLines().size)
+    }
+
+    @Test
+    fun afterRecovery_nextReturnChecksAgain() = runTest {
+        val controller = controller()
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+        advanceTimeBy(2_001)
+        assertEquals(SHOWN, controller.state.value)
+
+        connectivity.connected.value = true
+        controller.retry()
+        runCurrent()
+        assertEquals(HIDDEN, controller.state.value)
+
+        controller.toBackground()
+        connectivity.connected.value = false
+        backToApp(controller)
+        advanceTimeBy(2_001)
+        assertEquals(SHOWN, controller.state.value)
+    }
+
     private companion object {
         val HIDDEN = NetworkDialogState.Hidden
         val SHOWN = NetworkDialogState.Shown(checking = false, stillOffline = false)

@@ -74,7 +74,7 @@ Lấy bản mẫu thì các giá trị này về giá trị của mẫu. Đặt 
 
 | Giá trị | File | Ở dự án mẫu |
 | --- | --- | --- |
-| Hạn chót cả lượt kịch bản emulator, `DEVICE_SCENARIOS_BUDGET` | `scripts/device-scenario.py`, `scripts/device-session.sh`, `docs/ops/test-sessions.md` | 600 giây; camera-pose dùng 1500 |
+| Hạn chót cả lượt kịch bản emulator, `DEVICE_SCENARIOS_BUDGET` | `scripts/device-scenario.py`, `scripts/device-session.sh`, `docs/ops/test-sessions.md` | 600 giây; camera-pose dùng 1800 (từ T-076, trước đó 1500) |
 | Camera sau của emulator trong `device-session`, `emulator-options` | `.github/workflows/device-session.yml` (bước Kịch bản chuẩn trên emulator), câu về camera ở `docs/ops/test-sessions.md` mục 4 | `-camera-back none`; camera-pose dùng `-camera-back emulated` (kịch bản camera chạy trên CI) |
 | Bí mật Remote Config staging cho kiểm tra thiết lập (`REMOTE_CONFIG_CREDENTIALS: ${{ secrets.STAGING_REMOTE_CONFIG_CREDENTIALS }}` ở bước kiểm tra thiết lập) | `.github/workflows/env-canary.yml`, `.github/workflows/start-run.yml`, `docs/ops/staging-and-runs.md` mục 1 | Không có; camera-pose dùng cho `scripts/setup-check-app.sh` |
 | Thời hạn của job có kiểm tra thiết lập, `timeout-minutes` | `.github/workflows/env-canary.yml` (job `setup-check`), `.github/workflows/start-run.yml` (job `check`) | 5 phút; camera-pose dùng 15 và 10 (kiểm catalog tư thế) |

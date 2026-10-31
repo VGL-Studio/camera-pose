@@ -5,12 +5,12 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-30, câu 9 và 11; vị trí của màn ở mục 5 của features/poses/spec.md
 scenarios: [KB-6]            # của features/poses/spec.md, tiêu chí 5 (ô quảng cáo trong lưới)
 owner: Tuấn
-status: backlog
+status: planned
 risk: high
 size: L
 depends_on: [T-079]          # T-079 sửa trước cùng các file AdPlacement.kt, PosesScreen.kt, StagingRemoteValuesModule.kt và bảng khóa
 sprint:
-plan:
+plan: features/ads/plans/T-080-o-quang-cao-trong-luoi-va-khung-bo-o.md
 created: 2026-10-31
 ---
 

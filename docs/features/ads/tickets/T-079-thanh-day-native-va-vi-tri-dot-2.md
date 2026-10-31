@@ -10,7 +10,7 @@ risk: high
 size: L
 depends_on: [T-074]          # khung AdsKit đã có trong app; T-074 đang on-staging, chờ nghiệm thu trên máy
 sprint:
-plan:
+plan: features/ads/plans/T-079-thanh-day-native-va-vi-tri-dot-2.md   # draft, 2026-10-31
 created: 2026-10-30
 ---
 

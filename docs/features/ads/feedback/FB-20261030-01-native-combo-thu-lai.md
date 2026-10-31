@@ -7,7 +7,7 @@ build: main 990dd59 (device-session.yml, lần chạy 41086766754)
 feature: ads
 ticket:
 severity: nhe
-status: new
+status: fixed
 created: 2026-10-30
 ---
 
@@ -42,3 +42,23 @@ Không có. Bằng chứng: `app-log.txt` của artifact `device-session` lần 
 ## Phân loại
 
 <!-- Chủ feature điền, có thể nhờ AI đề xuất. -->
+
+- **Loại:** lỗi cấu hình (Firebase staging trái spec), không phải lỗi code
+- **Xử lý:** đã sửa cấu hình
+- **Lý do:** Remote Config của project Firebase staging (bản 22) đặt `is_show_native_after_inter = true`, trái câu 6 của `features/ads/spec.md` (combo native tắt). Giá trị Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007), nên app nạp `native_combo`. Code chỉ gửi yêu cầu khi khóa bật (`AdsController.preloadNativeFullScreen` đọc `isEnabled(placement)` ngay trước khi gửi). Thử lại đều 5 giây khi chưa có quảng cáo là luật O-05 của khung (`AdRetryPolicy.NATIVE_NO_AD_MILLIS`), không phải lỗi; muốn giãn dần thì đề xuất về dự án mẫu.
+- **Liên kết:** `features/ads/spec.md` câu 6, câu 10
+
+**Cập nhật 2026-10-30, AI (Nhật đồng ý sửa theo spec):** Firebase staging, project "Camera Pose", Remote Config publish bản 23, đổi 8 khóa cho khớp spec ads câu 6, 8, 10, 11:
+
+| Khóa | Bản 22 | Bản 23 |
+| --- | --- | --- |
+| `is_show_native_after_inter` | `true` | `false` |
+| `is_show_native_collap` | `true` | `false` |
+| `open_ad_type` | `inter` | `aoa` |
+| `resume_ad_type` | `inter` | `aoa` |
+| `feature_loading_enabled` | `false` (không có màn loading nên không có quảng cáo mở app) | `true` |
+| `feature_settings_enabled` | `false` (ẩn nút tùy chọn quyền riêng tư) | `true` |
+| `is_show_poses_bottom` | `false` (sẽ đè giá trị bật của bản staging sau T-079) | `true` |
+| `is_show_pose_detail_bottom` | `false` | `true` |
+
+Khóa giữ nguyên, ghi để người kiểm biết: `is_enable_consent_shortcut = true` (spec chưa nói), `time_expand_collap_ad = 15` (không có tác dụng khi lớp thu gọn tắt), `is_show_inter_review` (không có trong code, theo file kế hoạch cũ), `ads_*_enabled` (khóa cũ, không ai đọc). Không có `is_show_review_interstitial` trên Firebase nên giá trị bật của bản staging có hiệu lực. Kiểm lại ở `device-session` của phiên sau: không còn dòng `native_combo` trong `app-log.txt`.

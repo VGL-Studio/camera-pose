@@ -381,3 +381,19 @@ Câu trả lời của phiên bản 1 (Nhật, 2026-10-31) giữ nguyên. Câu 1
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261031-01, phiên bản plan 2, lượt 1
+
+- **Kết quả:** đã merge (PR #256, commit `4eb323c` của nhánh, merge 13:59 UTC)
+- **Nhánh, PR:** `claude/T-079-1-thanh-day`, https://github.com/VGL-Studio/camera-pose/pull/256
+- **Đã làm:** `poses_bottom`, `pose_detail_bottom` (`NATIVE_SMALL`) thay hai banner; `PosesRoute`, `PoseDetailRoute` bọc `BottomAdBarScaffold`, hai màn nhận `contentPadding` (lưới, lưới đang tải, lỗi, lưu trống, cột chi tiết, snackbar); xóa `PosesBottomBanner`, `PosesAdSeparator`, `BANNER_SLOT`; staging bật hai vị trí và `is_show_native_bottom`, `globalAdSwitchesOff()` đặt `is_show_native_collap = false`; bảng khóa sinh lại; ghi lại 6 ảnh `ad`; `manual-test.md` mục 11.1; ảnh so sánh thiết kế. Phiên con làm bước 3 tới 5 trong worktree `../task-T-079-1`.
+- **Test viết trước:** 11 test mới hoặc thay test cũ cộng 6 screenshot test `ad`, commit `3e818b1`; mọi test đỏ đúng lý do trên khung rỗng (vị trí đo sai, đối chứng 16 thay vì 112 và 0 thay vì 96, `poses_banner` còn khai báo, `missing` còn hai banner, tập staging khác, `verifyRoborazziDebug` đỏ đúng 6 ảnh `ad`). 8 test vị trí có bước đối chứng (L-055). Test JVM mọi module: ngoài test mới chỉ đỏ `RemoteConfigKeysTest.keysFile_matchesCode`, `templateFile_matchesCode` (bảng khóa sinh trong commit code, ngoại lệ của plan).
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa, 6 ghi chú. Nên sửa: `manual-test.md` mục 11.2 bị đổi nhầm số bước 2 thành 3; đã sửa (`4eb323c`, tài liệu, không có test); rà soát lại vòng 1 không còn phát hiện. Ghi chú: phần nối Route đúng; câu "khe có mặt" của `smallScreen_bottomBar_onErrorAndSavedEmpty_actionAboveSlot` luôn đúng, ý định "quảng cáo ở mọi trạng thái" dựa vào Route (ngoại lệ); snackbar ở chi tiết không có test riêng; tên `ShowInterstitialTest.bannerPlacement_isRejected` còn chữ "banner"; thiết kế đạt theo mục 7.
+- **Kết quả CI:** `pr-check` xanh lần đầu (lần chạy 41207272569). `scripts/check.sh` cục bộ qua: 2413 test JVM, 138 ảnh.
+- **Lệch so với plan:**
+  - `PosesScreenTest.realBottomBar_withoutAds_takesNoSpace` đo đáy hàng cuối (lớn nhất của p11, p12) thay vì thẻ p12, vì hai cột chia số pixel lẻ (544/545 px), p12 cao hơn p11 0,67 dp; giữ 16 ± 0,5 và đối chứng 112 ± 0,5. Quyết định trước commit test; rà soát chấp nhận là chi tiết đo.
+  - ADR-0031: `StagingRemoteValuesModuleTest.firstOpenAndNativeCombos_areNotSet` viết lại thành `firstOpenAndCombo_areNotSet` và `nativeBottomOn_collapOff` (câu của plan: mục 3.5, dòng staging; ý định: staging không bật gì ngoài điều spec đã chốt; đối chứng: tạm thêm `IS_SHOW_NATIVE_AFTER_INTER` thì đỏ). Rà soát: đủ sáu điều.
+  - Phần ngoài mục 3.2: không có. Phương án dự phòng 3.4: không dùng.
+  - Ghi lại ảnh làm đổi thêm 11 ảnh không có quảng cáo vì nhiễu vẽ (tối đa 1 mỗi kênh); `verifyRoborazziDebug` qua với ảnh cũ; đã khôi phục, không commit.
+- **Việc còn lại:** lượt 2 (`inter_pose_detail`); thử trên máy thật sau lượt 2.
+- **Cần người xem:** 6 ảnh chuẩn `ad` mới; câu viết lại ADR-0031; phần nối Route (không có test).

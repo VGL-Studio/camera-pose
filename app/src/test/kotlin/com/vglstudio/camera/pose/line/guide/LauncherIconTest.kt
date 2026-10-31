@@ -53,6 +53,10 @@ class LauncherIconTest {
             assertTrue("$name is ${icon?.javaClass}", icon is AdaptiveIconDrawable)
             icon as AdaptiveIconDrawable
             assertTrue("$name background is ${icon.background?.javaClass}", icon.background is GradientDrawable)
+            // The layer the icon draws, not only the drawable resource: a wrong reference fails here.
+            val background = icon.background as GradientDrawable
+            assertArrayEquals("$name background colors", BACKGROUND_COLORS, background.colors)
+            assertEquals("$name background direction", GradientDrawable.Orientation.TL_BR, background.orientation)
             assertTrue("$name foreground is ${icon.foreground?.javaClass}", icon.foreground is BitmapDrawable)
         }
     }
@@ -60,7 +64,7 @@ class LauncherIconTest {
     @Test
     fun background_isOrangeGradientTopLeftToBottomRight() {
         val background = context.getDrawable(R.drawable.ic_launcher_background) as GradientDrawable
-        assertArrayEquals(intArrayOf(0xFFFDBE0C.toInt(), 0xFFFD5E02.toInt()), background.colors)
+        assertArrayEquals(BACKGROUND_COLORS, background.colors)
         assertEquals(GradientDrawable.Orientation.TL_BR, background.orientation)
     }
 
@@ -124,6 +128,7 @@ class LauncherIconTest {
             "build/intermediates/merged_manifest/stagingDebug/processStagingDebugMainManifest/AndroidManifest.xml"
         const val CANVAS_DP = 108.0
         const val SAFE_ZONE_DP = 66.0
+        val BACKGROUND_COLORS = intArrayOf(0xFFFDBE0C.toInt(), 0xFFFD5E02.toInt())
         val DENSITIES = listOf(
             "mdpi" to 1.0,
             "hdpi" to 1.5,

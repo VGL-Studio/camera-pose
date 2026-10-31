@@ -5,7 +5,7 @@ feature: loading
 spec: features/loading/spec.md
 scenarios: [KB-6]
 owner: Nhật
-status: approved              # backlog | ready | planned | approved | on-staging | accepted | released | stopped | cancelled
+status: on-staging              # backlog | ready | planned | approved | on-staging | accepted | released | stopped | cancelled
 risk: low
 size: S
 depends_on: []

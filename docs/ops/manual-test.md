@@ -329,25 +329,31 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 **Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
 
-- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_banner`, `is_show_poses_detail_banner`, `is_show_review_interstitial` đặt `false`.
-- [ ] Không có `show_open_ads_first_open`, `is_show_native_after_inter`, `is_show_native_bottom` đặt `true`.
+- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial` đặt `false` (T-079).
+- [ ] Không có `show_open_ads_first_open`, `is_show_native_after_inter`, `is_show_native_collap` đặt `true`.
+- [ ] Hai khóa cũ `is_show_poses_banner`, `is_show_poses_detail_banner` không còn ai đọc từ T-079; để nguyên trên Firebase.
 - [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
 - [ ] Không nhập `docs/remote-config-template.json` vào project staging (`remote-config.md`, mục 5, bước 7).
 - [ ] Ghi kết quả vào danh sách chạy của T-074.
 
-### 11.1 Banner ở thư viện và chi tiết, quảng cáo khi rời màn xem lại
+### 11.1 Thanh đáy native ở thư viện và chi tiết, quảng cáo khi rời màn xem lại
 
 Điều kiện: đã đồng ý quảng cáo ở hộp thoại đồng ý.
 
-1. Mở thư viện, rồi chi tiết một tư thế.
-   - [ ] Cả hai màn có banner thử của Google ở đáy; nút chính ("Chụp với tư thế này") không bị che.
-2. Đóng hẳn app (vuốt khỏi danh sách app gần đây) rồi mở lại, để bắt đầu phiên mới. Chụp, lưu ảnh 1, rời màn xem lại.
+1. Mở thư viện (T-079).
+   - [ ] Có khe quảng cáo native thử cao khoảng 80 dp ở đáy, cách mép trái, phải và đáy 16 dp; log `VGL.Ads` có `poses_bottom`.
+   - [ ] Cuộn hết lưới: thẻ cuối nằm trên khe, không bị che.
+   - [ ] Không có lớp quảng cáo nổi lớn (250 dp) đè lên lưới.
+2. Mở chi tiết một tư thế.
+   - [ ] Khe native thử nằm ngay dưới thanh nút chính; nút "Chụp với tư thế này" thấy trọn, không bị che hay đẩy ra ngoài màn; log `VGL.Ads` có `pose_detail_bottom`.
+   - [ ] Không có lớp quảng cáo nổi đè lên nút chính.
+3. Đóng hẳn app (vuốt khỏi danh sách app gần đây) rồi mở lại, để bắt đầu phiên mới. Chụp, lưu ảnh 1, rời màn xem lại.
    - [ ] Không có quảng cáo toàn màn hình; về camera.
-3. Chụp, lưu ảnh 2, rời màn xem lại.
+4. Chụp, lưu ảnh 2, rời màn xem lại.
    - [ ] Có quảng cáo toàn màn hình (log `VGL.Ads`); đóng quảng cáo thì về camera.
-4. Lưu ảnh 3 và ảnh 4, mỗi lần rời màn xem lại.
+5. Lưu ảnh 3 và ảnh 4, mỗi lần rời màn xem lại.
    - [ ] Không có quảng cáo.
-5. Lưu ảnh 5, rời màn xem lại.
+6. Lưu ảnh 5, rời màn xem lại.
    - [ ] Có quảng cáo nếu đã qua 45 giây từ lần trước (nhịp `ads_interval`); chưa qua thì không.
 
 ### 11.2 Quảng cáo mở app từ lần mở thứ hai

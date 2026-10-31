@@ -5,12 +5,12 @@ feature: poses
 spec: features/poses/spec.md   # confirmed 2026-10-31, câu 7, 8, 10, 11, 12; vị trí cũng ghi ở features/ads/spec.md câu 12; KB-1 của features/camera/spec.md
 scenarios: [KB-8]
 owner: Nhật
-status: backlog
+status: planned
 risk: high
 size: L
 depends_on: [T-085, T-080]     # T-085 cho dữ liệu premium; T-080 sửa trước PosesScreen.kt, AdPlacement.kt và bảng khóa
 sprint:
-plan:
+plan: features/poses/plans/T-086-khoa-tu-the-premium-va-rewarded.md
 created: 2026-10-31
 ---
 

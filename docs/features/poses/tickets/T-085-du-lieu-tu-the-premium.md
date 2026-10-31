@@ -5,12 +5,12 @@ feature: poses
 spec: features/poses/spec.md   # confirmed 2026-10-31, câu 6, 9, 10, 12
 scenarios: [KB-8]              # phần dữ liệu: đánh dấu premium, mở khóa vĩnh viễn, tư thế mặc định không premium
 owner: Nhật
-status: backlog
+status: planned
 risk: high
 size: M
 depends_on: []
 sprint:
-plan:
+plan: features/poses/plans/T-085-du-lieu-tu-the-premium.md
 created: 2026-10-31
 ---
 

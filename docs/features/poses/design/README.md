@@ -21,15 +21,18 @@ Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../desig
 | `PosesScreen` | Đang tải thêm, khung xương | `PosesScreen_loading_light`, `PosesScreen_loading_dark` | KB-5 |
 | `PosesScreen` | Đọc catalog lỗi | `PosesScreen_error_light`, `PosesScreen_error_dark` | KB-5 |
 | `PosesScreen` | Chip "Đã lưu" chưa có tư thế | `PosesScreen_saved-empty_light`, `PosesScreen_saved-empty_dark` | KB-3 |
-| `PosesScreen` | Có banner đáy | `PosesScreen_ad_light`, `PosesScreen_ad_dark` | KB-6 |
+| `PosesScreen` | Có thanh đáy native | `PosesScreen_ad_light`, `PosesScreen_ad_dark` | KB-6 |
+| `PosesScreen` | Có ô quảng cáo trong lưới, sau 8 tư thế | `PosesScreen_ad-collection_light` | KB-6 |
 | `PosesScreen` | Máy gập mở ra, 3 cột | `PosesScreen_default_light_unfolded`, `PosesScreen_default_dark_unfolded` | KB-7 |
 | `PoseDetailScreen` | Bình thường | `PoseDetailScreen_default_light`, `PoseDetailScreen_default_dark` | KB-4 |
 | `PoseDetailScreen` | Đang tải ảnh lớn | `PoseDetailScreen_loading_light`, `PoseDetailScreen_loading_dark` | KB-5 |
 | `PoseDetailScreen` | Tải ảnh lỗi | `PoseDetailScreen_error_light`, `PoseDetailScreen_error_dark` | KB-5 |
-| `PoseDetailScreen` | Có banner đáy | `PoseDetailScreen_ad_light`, `PoseDetailScreen_ad_dark` | KB-6 |
+| `PoseDetailScreen` | Có thanh đáy native, dưới nút chính | `PoseDetailScreen_ad_light`, `PoseDetailScreen_ad_dark` | KB-6 |
 | `PoseDetailScreen` | Máy gập mở ra, hai cột | `PoseDetailScreen_default_light_unfolded`, `PoseDetailScreen_default_dark_unfolded` | KB-7 |
 
 Hộp thoại mất mạng thuộc gói `network`.
+
+Từ T-079 (câu hỏi 5 của spec, 2026-10-30), trạng thái `ad` vẽ thanh đáy native nhỏ của khung thay banner 320 x 50. `PosesScreen_ad-collection_light` là lưới cuộn tới tư thế thứ 7: hàng thứ năm có ô quảng cáo (sau 8 tư thế) và tư thế thứ 9; frame này không vẽ thanh đáy, để thấy riêng thẻ quảng cáo cạnh thẻ tư thế. Tên tư thế trên frame này chỉ để minh họa.
 
 ## 2. Bảng chữ
 
@@ -41,7 +44,7 @@ Hộp thoại mất mạng thuộc gói `network`.
 | Thư viện | Thẻ: tên, dòng phụ | Tên tư thế từ catalog; "Một người · 4 bước" (loại · `%1$d bước`) | `titleMedium`, `bodySmall` |
 | Thư viện, lỗi | Tiêu đề, lời hướng dẫn, nút | Không tải được thư viện; Đã có lỗi khi tải thư viện. Thử lại sau ít phút.; Thử lại | `titleLarge`, `bodyMedium`, nút chính |
 | Thư viện, đã lưu rỗng | Tiêu đề, lời hướng dẫn, nút | Chưa lưu tư thế nào; Chạm biểu tượng lưu trên thẻ tư thế để giữ lại ở đây.; Xem tất cả tư thế | `titleLarge`, `bodyMedium`, nút chính |
-| Có banner | Nhãn | Quảng cáo (nhãn của AdMob, không phải chữ của app) | |
+| Có quảng cáo native | Nhãn, chữ trong thẻ | Nhãn "Ad" và chữ của thẻ thuộc `:core:ads` (`strings.xml` của khung) và của nhà quảng cáo, không phải chữ của app; chữ trên thiết kế (Headline of the ad, Advertiser or short body, Install) là chữ giả của ảnh chuẩn `NativeAdCard` | Theo khung |
 | Chi tiết | Tiêu đề | Tên tư thế từ catalog | `titleLarge` |
 | Chi tiết | Dòng phụ | Một người · Nữ · Toàn thân · 4 bước (loại · nhóm · khung hình · số bước) | `bodyMedium` |
 | Chi tiết | Tiêu đề khối | Các bước | `titleMedium` |
@@ -68,9 +71,11 @@ Loại tư thế: Một người, Cặp đôi, Nhóm. Khung hình: Toàn thân, 
 | Các bước | `Row`: số trong vòng 28 và chữ | Vòng `secondaryContainer`, viền `outline` | `labelLarge`, `bodyMedium` | Cách nhau `Spacing.sm` |
 | Lỗi hay gặp | `Row`: icon `warning` và chữ | `tertiaryContainer`, `onTertiaryContainer`, viền `outline` | `titleSmall`, `bodyMedium` | Lề trong `Spacing.md`, bo `card` |
 | Thanh nút đáy ở chi tiết | Đường kẻ 2 và `PrimaryButton` `photo_camera` | Đường kẻ `outlineVariant`; nền `background` | | Cao 96; nút rộng hết trừ lề `Spacing.md` |
-| Banner | `AdSlot` của `:core:ads` | Vùng chờ `surfaceContainerHigh` | | Neo đáy, rộng hết; nội dung phía trên không bị che |
+| Thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`) | Theo khung: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe 80, cách mép trái, phải, đáy `Spacing.md`; nội dung chừa 96 ở đáy |
+| Ô quảng cáo trong lưới | `itemsWithInListAds` của `:core:ads` (component Figma `NativeAdCard`, theo `NativeAdCard` cỡ `CARD`) | Như thanh đáy; ảnh `surfaceContainer` | Theo khung | Chiếm một ô, cùng cỡ thẻ tư thế; lề trong `Spacing.sm` |
 
 - **Thành phần mới cần thêm vào hệ thống thiết kế:** `PoseCard`, `PoseCardSkeleton`, `StickerChip`, `SelectedBadge`, `StateMessage` (xem `sticker.md`, mục 4).
+- **Component quảng cáo trên Figma:** `NativeAdSmall`, `NativeAdCard` (trang Design system, cạnh `AdSlot`) chỉ vẽ lại giao diện của khung `:core:ads` để đặt vào màn hình; không phải thành phần mới của app. Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 là số của khung (`NativeAdDimens`), `context/` ghi "ngoài hệ thống".
 
 **Máy gập mở ra (673 x 841).** Thư viện: 3 cột. Chi tiết: ảnh 315 x 440 bên trái; cột phải rộng 310 có dòng phụ, các bước, lỗi hay gặp; thanh nút đáy chỉ ở cột phải.
 
@@ -84,15 +89,18 @@ Loại tư thế: Một người, Cặp đôi, Nhóm. Khung hình: Toàn thân, 
 
 ## 5. Vị trí quảng cáo
 
-- `poses_banner`: banner neo đáy `PosesScreen`; lưới cuộn phía trên (ảnh `PosesScreen_ad_*`).
-- `poses_detail_banner`: banner ở đáy `PoseDetailScreen`, dưới thanh nút chính; nút không bị che (ảnh `PoseDetailScreen_ad_*`).
-- Cờ tắt hoặc chưa có quảng cáo thì không chừa khoảng trống (ảnh `default`). Vùng quảng cáo tách khỏi nút "Chụp với tư thế này" bằng đường kẻ và nền khác màu.
+- `poses_bottom`: thanh đáy native nhỏ ở đáy `PosesScreen`; lưới cuộn phía trên, thẻ cuối không bị che (ảnh `PosesScreen_ad_*`).
+- `pose_detail_bottom`: thanh đáy native ở đáy `PoseDetailScreen`, dưới thanh nút chính; nút không bị che (ảnh `PoseDetailScreen_ad_*`).
+- `poses_in_collection`: ô quảng cáo trong lưới sau mỗi 8 tư thế, không ở đầu, không ở cuối; thẻ quảng cáo có nhãn "Ad", viền mảnh và nút riêng, khác rõ thẻ tư thế viền đậm (ảnh `PosesScreen_ad-collection_light`).
+- `inter_pose_detail` là quảng cáo toàn màn hình của khung, không có thiết kế riêng.
+- Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống, lưới không có ô trống (ảnh `default`). Thanh đáy tách khỏi nút "Chụp với tư thế này" bằng đường kẻ của thanh nút, viền và nền khác màu của thẻ quảng cáo.
+- Trước T-079 hai vị trí là banner `poses_banner`, `poses_detail_banner` (câu hỏi 1 của spec).
 
 ## 6. Chuyển sang Compose
 
 - **Phải giống bản mẫu:** bố cục, thứ tự thành phần, chữ (mục 2), vai trò màu và kiểu chữ (mục 3).
 - **Được phép khác:** ảnh tư thế (ảnh tạm trên thiết kế), cách vẽ chữ và bóng của hệ thống, hiệu ứng chuyển động, chênh lệch nhỏ theo lưới 4 dp, chiều cao thẻ theo tỷ lệ ảnh thật.
-- **Màn hình thấp (360 x 640):** lưới cuộn được; ở chi tiết nội dung cuộn được, thanh nút đáy luôn thấy được, không che chữ cuối; banner không đẩy nút chính ra ngoài màn hình.
+- **Màn hình thấp (360 x 640):** lưới cuộn được; ở chi tiết nội dung cuộn được, thanh nút đáy luôn thấy được, không che chữ cuối; thanh đáy native không đẩy nút chính ra ngoài màn hình.
 
 ## 7. Tiêu chí khi duyệt
 

@@ -35,7 +35,7 @@ class ShowInterstitialTest {
     @Test
     fun bannerPlacement_isRejected() {
         val error = runCatching {
-            composeRule.setContent { rememberShowInterstitial(AdPlacement.POSES_BANNER) {} }
+            composeRule.setContent { rememberShowInterstitial(AdPlacement.POSES_BOTTOM) {} }
             composeRule.waitForIdle()
         }.exceptionOrNull()
         assertTrue(

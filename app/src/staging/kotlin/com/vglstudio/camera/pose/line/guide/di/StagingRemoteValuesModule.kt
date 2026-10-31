@@ -26,15 +26,15 @@ object StagingRemoteValuesModule {
     @ElementsIntoSet
     @LocalRemoteValues
     fun appPlacementsShown(): Set<LocalRemoteValue> = listOf(
-        AdPlacement.POSES_BANNER,
-        AdPlacement.POSES_DETAIL_BANNER,
+        AdPlacement.POSES_BOTTOM,
+        AdPlacement.POSE_DETAIL_BOTTOM,
         AdPlacement.REVIEW_INTERSTITIAL,
     ).map { LocalRemoteValue.of(AdsSettings.placementEnabled(it), true) }.toSet()
 
     /**
-     * The app open ad from the second open and the resume ad on every screen, and the ad lifecycle logs for testers
-     * (spec ads, question 6; plan T-074, pass 2). Not set, so off as their default: show_open_ads_first_open,
-     * is_show_native_after_inter, is_show_native_bottom.
+     * The app open ad from the second open and the resume ad on every screen, the ad lifecycle logs for testers (spec
+     * ads, question 6; plan T-074, pass 2), and the native slot of the bottom bars (spec ads, question 11; plan T-079).
+     * Not set, so off as their default: show_open_ads_first_open, is_show_native_after_inter.
      */
     @Provides
     @ElementsIntoSet
@@ -42,7 +42,18 @@ object StagingRemoteValuesModule {
     fun globalAdSwitchesOn(): Set<LocalRemoteValue> = listOf(
         AdsSettings.SHOW_OPEN_ADS,
         AdsSettings.SHOW_RESUM_ADS,
+        AdsSettings.IS_SHOW_NATIVE_BOTTOM,
         AdsSettings.IS_LOG_AD_FULLSCREEN_EVENTS,
         AdsSettings.IS_LOG_AD_SLOT_EVENTS,
     ).map { LocalRemoteValue.of(it, true) }.toSet()
+
+    /**
+     * The collapsible layer over the bottom bars stays off, as on release (spec ads, questions 10 and 11; plan T-079):
+     * its default in code is on.
+     */
+    @Provides
+    @ElementsIntoSet
+    @LocalRemoteValues
+    fun globalAdSwitchesOff(): Set<LocalRemoteValue> =
+        setOf(LocalRemoteValue.of(AdsSettings.IS_SHOW_NATIVE_COLLAP, false))
 }

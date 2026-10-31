@@ -6,15 +6,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The placements of this app in the AdsKit framework (spec ads, questions 2 and 4; spec camera and poses, section 5):
- * declared with their spec format, switched by `is_show_<code>`, and no sample banner.
+ * The placements of this app in the AdsKit framework (spec ads, questions 2, 4 and 8; spec camera and poses,
+ * section 5): declared with their spec format, switched by `is_show_<code>`, no sample banner, and the two bottom
+ * banners replaced by native bottom bars (plan T-079).
  */
 class AdPlacementAppTest {
     @Test
     fun appPlacements_declaredWithSpecFormats() {
         val expected = mapOf(
-            "poses_banner" to AdFormat.BANNER,
-            "poses_detail_banner" to AdFormat.BANNER,
+            "poses_bottom" to AdFormat.NATIVE_SMALL,
+            "pose_detail_bottom" to AdFormat.NATIVE_SMALL,
             "review_interstitial" to AdFormat.INTERSTITIAL,
         )
         val byKey = AdPlacement.entries.associateBy { it.key }
@@ -27,9 +28,18 @@ class AdPlacementAppTest {
             assertEquals("is_show_$key", AdsSettings.placementEnabled(placement).name)
             assertEquals(false, AdsSettings.placementEnabled(placement).default)
         }
-        assertEquals(AdPlacement.POSES_BANNER, byKey["poses_banner"])
-        assertEquals(AdPlacement.POSES_DETAIL_BANNER, byKey["poses_detail_banner"])
+        assertEquals(AdPlacement.POSES_BOTTOM, byKey["poses_bottom"])
+        assertEquals(AdPlacement.POSE_DETAIL_BOTTOM, byKey["pose_detail_bottom"])
         assertEquals(AdPlacement.REVIEW_INTERSTITIAL, byKey["review_interstitial"])
+    }
+
+    @Test
+    fun bannersRemoved() {
+        // Control: the interstitial of the app is still declared, so the list read is the real one.
+        assertTrue(AdPlacement.entries.any { it.key == "review_interstitial" })
+        listOf("poses_banner", "poses_detail_banner").forEach { key ->
+            assertTrue("$key must be removed (spec ads, question 8)", AdPlacement.entries.none { it.key == key })
+        }
     }
 
     @Test

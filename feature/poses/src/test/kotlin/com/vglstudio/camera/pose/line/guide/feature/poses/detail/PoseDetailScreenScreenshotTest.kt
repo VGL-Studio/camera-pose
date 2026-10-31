@@ -1,13 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -20,15 +14,18 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.runComposeUiTest
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarDefaults
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdAssets
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdCard
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdSize
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedText
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
-import com.vglstudio.camera.pose.line.guide.feature.poses.PosesAdSeparator
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -118,27 +115,27 @@ class PoseDetailScreenScreenshotTest {
         }
     }
 
-    // Design `ad`: the bottom banner under the main button (a test banner: the real ad is never drawn in tests).
+    // Design `ad`: the native bottom bar below the main button bar (fixed ad: the real one is never drawn in tests).
     @Test
     fun ad_light() {
         captureRoboImage("src/test/screenshots/PoseDetailScreen_ad_light.png") {
-            Screen(readyState(), dark = false, banner = true)
+            Screen(readyState(), dark = false, ad = true)
         }
     }
 
     @Test
     fun ad_dark() {
         captureRoboImage("src/test/screenshots/PoseDetailScreen_ad_dark.png") {
-            Screen(readyState(), dark = true, banner = true)
+            Screen(readyState(), dark = true, ad = true)
         }
     }
 
-    // The most steps, with the banner: the main button and the banner are both on screen.
+    // The most steps, with the bottom bar: the main button and the bar are both on screen.
     @Test
     @Config(qualifiers = SHORT_SCREEN)
     fun ad_small() {
         captureRoboImage("src/test/screenshots/PoseDetailScreen_ad_small.png") {
-            Screen(readyState(detail = longDetail()), dark = false, banner = true)
+            Screen(readyState(detail = longDetail()), dark = false, ad = true)
         }
     }
 
@@ -256,29 +253,39 @@ class PoseDetailScreenScreenshotTest {
 }
 
 @Composable
-private fun Screen(uiState: PoseDetailUiState, dark: Boolean, banner: Boolean = false) {
+private fun Screen(uiState: PoseDetailUiState, dark: Boolean, ad: Boolean = false) {
     AppTheme(darkTheme = dark) {
-        PoseDetailScreen(
-            uiState = uiState,
-            onBack = {},
-            onToggleSave = {},
-            onRetryImage = {},
-            onShoot = {},
-            onSaveFailedShown = {},
-            bottomBanner = if (banner) {
-                { TestBanner() }
-            } else {
-                {}
-            },
-        )
+        val screen = @Composable { contentPadding: PaddingValues ->
+            PoseDetailScreen(
+                uiState = uiState,
+                onBack = {},
+                onToggleSave = {},
+                onRetryImage = {},
+                onShoot = {},
+                onSaveFailedShown = {},
+                contentPadding = contentPadding,
+            )
+        }
+        if (ad) {
+            // The bottom bar of the framework with a fixed native small ad, as the design (plan T-079, section 3.1).
+            BottomAdBarLayout(
+                reservation = BottomAdBarDefaults.nativeReservation,
+                slot = { NativeAdCard(SCREENSHOT_AD, NativeAdSize.SMALL, it) },
+                layer = null,
+                content = screen,
+            )
+        } else {
+            screen(PaddingValues())
+        }
     }
 }
 
-/** The banner of the design: the separator, then 56 dp of ad (58 dp in all, as the design's ad slot). */
-@Composable
-private fun TestBanner() {
-    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        PosesAdSeparator()
-        Box(Modifier.fillMaxWidth().height(56.dp))
-    }
-}
+/** The ad of the design (design/context/PoseDetailScreen_ad_light.md): no icon, no media. */
+private val SCREENSHOT_AD = NativeAdAssets(
+    headline = "Headline of the ad",
+    advertiser = "Advertiser or short body",
+    body = null,
+    callToAction = "Install",
+    icon = null,
+    hasMedia = false,
+)

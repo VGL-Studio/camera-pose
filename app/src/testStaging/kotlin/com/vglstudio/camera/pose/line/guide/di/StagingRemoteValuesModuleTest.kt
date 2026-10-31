@@ -6,6 +6,7 @@ import com.vglstudio.camera.pose.line.guide.core.ads.startupAdPlacementFor
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteKey
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteSettings
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -14,13 +15,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Local values of staging builds for the ad keys (spec ads, question 6; plan T-074, section 8, question 2): the three
- * placements of the app are shown, the app open and resume ads are on, and the two ad logs are on; no other placement
- * of the framework is switched on, and the first open, the combo and the bottom native stay off.
+ * Local values of staging builds for the ad keys (spec ads, questions 6 and 11; plan T-074, section 8, question 2; plan
+ * T-079): the placements of the app are shown, the app open and resume ads are on, the two ad logs are on, the bottom
+ * bars draw the native slot without the collapsible layer; no other placement of the framework is switched on, and the
+ * first open and the combo stay off.
  */
 class StagingRemoteValuesModuleTest {
     private val values = StagingRemoteValuesModule.appPlacementsShown() +
-        StagingRemoteValuesModule.globalAdSwitchesOn()
+        StagingRemoteValuesModule.globalAdSwitchesOn() +
+        StagingRemoteValuesModule.globalAdSwitchesOff()
     private val byName = values.associate { it.key.name to it.value }
 
     /** The values a staging build reads when Firebase has none for any key: the local value, else the default. */
@@ -33,11 +36,13 @@ class StagingRemoteValuesModuleTest {
     @Test
     fun localValues_areExactlyTheAppSet() {
         val expected = mapOf<String, Any>(
-            "is_show_poses_banner" to true,
-            "is_show_poses_detail_banner" to true,
+            "is_show_poses_bottom" to true,
+            "is_show_pose_detail_bottom" to true,
             "is_show_review_interstitial" to true,
             "show_open_ads" to true,
             "show_resum_ads" to true,
+            "is_show_native_bottom" to true,
+            "is_show_native_collap" to false,
             "is_log_ad_fullscreen_events" to true,
             "is_log_ad_slot_events" to true,
         )
@@ -59,15 +64,14 @@ class StagingRemoteValuesModuleTest {
     }
 
     @Test
-    fun firstOpenAndNativeCombos_areNotSet() {
+    fun firstOpenAndCombo_areNotSet() {
         val off = listOf(
             AdsSettings.SHOW_OPEN_ADS_FIRST_OPEN,
             AdsSettings.IS_SHOW_NATIVE_AFTER_INTER,
-            AdsSettings.IS_SHOW_NATIVE_BOTTOM,
         )
         // Control: the names are the keys of the spec, and the global switches of this module are set.
         assertEquals(
-            listOf("show_open_ads_first_open", "is_show_native_after_inter", "is_show_native_bottom"),
+            listOf("show_open_ads_first_open", "is_show_native_after_inter"),
             off.map { it.name },
         )
         assertTrue(byName.toString(), "show_open_ads" in byName)
@@ -76,6 +80,16 @@ class StagingRemoteValuesModuleTest {
             // Off by default too, so staging leaves them off.
             assertEquals(false, key.default)
         }
+    }
+
+    @Test
+    fun nativeBottomOn_collapOff() = runBlocking {
+        // The bottom bars draw the 80 dp native slot, without the collapsible layer, as on release (spec ads, questions
+        // 10 and 11; plan T-079).
+        assertEquals(true, localOnly.value(AdsSettings.IS_SHOW_NATIVE_BOTTOM).first())
+        assertEquals(false, localOnly.value(AdsSettings.IS_SHOW_NATIVE_COLLAP).first())
+        // Control: the layer is on by default in code, so staging has to set it off.
+        assertEquals(true, AdsSettings.IS_SHOW_NATIVE_COLLAP.default)
     }
 
     @Test

@@ -1,9 +1,9 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.Composable
@@ -37,12 +37,14 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarDefaults
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedText
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
-import com.vglstudio.camera.pose.line.guide.feature.poses.PosesBottomBanner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -72,13 +74,13 @@ class PoseDetailScreenTest {
 
     private fun setScreen(
         initial: PoseDetailUiState,
-        bottomBanner: @Composable () -> Unit = {},
+        bar: (@Composable (screen: @Composable (PaddingValues) -> Unit) -> Unit)? = null,
         width: (() -> Dp)? = null,
     ) {
         state = initial
         composeRule.setContent {
             AppTheme(darkTheme = false) {
-                val screen = @Composable {
+                val content = @Composable { contentPadding: PaddingValues ->
                     PoseDetailScreen(
                         uiState = state,
                         onBack = { backs++ },
@@ -86,9 +88,11 @@ class PoseDetailScreenTest {
                         onRetryImage = { retries++ },
                         onShoot = { shoots++ },
                         onSaveFailedShown = { saveFailedShown++ },
-                        bottomBanner = bottomBanner,
+                        contentPadding = contentPadding,
                     )
                 }
+                // The screen alone, or inside the bottom bar that gives it its padding (plan T-079, section 4).
+                val screen = @Composable { if (bar == null) content(PaddingValues()) else bar(content) }
                 if (width == null) {
                     screen()
                 } else {
@@ -332,20 +336,21 @@ class PoseDetailScreenTest {
         composeRule.onNodeWithText("Chụp với tư thế này").assertExists()
     }
 
-    // KB-6: banner
+    // KB-6: native bottom bar (plan T-079, section 4). The bar of the framework with a fake 80 dp slot.
 
     @Test
-    fun banner_belowBottomBar_buttonNotCovered() {
-        setScreen(ready(), bottomBanner = { TestBanner() })
+    fun bottomBar_slotBelowButtonBar_buttonNotCovered() {
+        setScreen(ready(), bar = fakeBar())
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
-        val banner = composeRule.onNodeWithTag(BANNER).getUnclippedBoundsInRoot()
+        val slot = composeRule.onNodeWithTag(SLOT).getUnclippedBoundsInRoot()
         val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
         val button = composeRule.onNodeWithText("Chụp với tư thế này").getUnclippedBoundsInRoot()
-        assertEquals(58f, banner.height.value, 0.5f)
-        assertEquals("banner starts where the bar ends", bar.bottom.value, banner.top.value, 0.5f)
-        assertEquals("banner at the bottom of the screen", root.bottom.value, banner.bottom.value, 0.5f)
+        assertEquals("slot height", 80f, slot.height.value, 0.5f)
+        assertEquals("slot 16 above the bottom", 16f, (root.bottom - slot.bottom).value, 0.5f)
+        // Design: the button bar ends at y = 795, where the slot starts (699 + 96).
+        assertEquals("slot starts where the bar ends", 0f, (slot.top - bar.bottom).value, 0.5f)
         assertTrue("button $button inside the screen $root", button.top >= root.top && button.bottom <= root.bottom)
-        assertTrue("button ${button.bottom} above banner ${banner.top}", button.bottom.value <= banner.top.value + 0.5f)
+        assertTrue("button ${button.bottom} above slot ${slot.top}", button.bottom.value <= slot.top.value + 0.5f)
         composeRule.onNodeWithText("Chụp với tư thế này").performClick()
         assertEquals(1, shoots)
     }
@@ -375,14 +380,19 @@ class PoseDetailScreenTest {
 
     @Test
     @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
-    fun smallScreen_withBanner_buttonFullyVisible() {
+    fun smallScreen_withBottomBar_buttonFullyVisible() {
         val long = detail(steps = FIVE_STEPS, mistakes = listOf(MISTAKE, LONG_MISTAKE))
-        setScreen(ready(detail = long), bottomBanner = { TestBanner() })
+        var withSlot by mutableStateOf(false)
+        setScreen(ready(detail = long), bar = fakeBar(withSlot = { withSlot }))
+        val heightWithout = composeRule.onNodeWithText("Chụp với tư thế này").getUnclippedBoundsInRoot().height
+        withSlot = true
+        composeRule.waitForIdle()
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
-        val banner = composeRule.onNodeWithTag(BANNER).getUnclippedBoundsInRoot()
+        val slot = composeRule.onNodeWithTag(SLOT).getUnclippedBoundsInRoot()
         val button = composeRule.onNodeWithText("Chụp với tư thế này").getUnclippedBoundsInRoot()
         assertTrue("button $button inside the screen $root", button.top >= root.top && button.bottom <= root.bottom)
-        assertTrue("button ${button.bottom} above banner ${banner.top}", button.bottom.value <= banner.top.value + 0.5f)
+        assertTrue("button ${button.bottom} above slot ${slot.top}", button.bottom.value <= slot.top.value + 0.5f)
+        assertEquals("button height kept", heightWithout.value, button.height.value, 0.5f)
         val lastMistake = composeRule.onNodeWithText(LONG_MISTAKE)
         lastMistake.performScrollTo()
         composeRule.waitForIdle()
@@ -392,13 +402,24 @@ class PoseDetailScreenTest {
     }
 
     @Test
-    fun realBottomBanner_withoutAds_takesNoSpace() {
-        setScreen(ready(), bottomBanner = { PosesBottomBanner(AdPlacement.POSES_DETAIL_BANNER) })
+    fun realBottomBar_withoutAds_takesNoSpace() {
+        var real by mutableStateOf(true)
+        val fake = fakeBar()
+        setScreen(
+            ready(),
+            bar = { screen ->
+                if (real) BottomAdBarScaffold(AdPlacement.POSE_DETAIL_BOTTOM) { screen(it) } else fake(screen)
+            },
+        )
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        composeRule.onNodeWithTag(REAL_SLOT).assertDoesNotExist()
         val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
-        val slot = composeRule.onNodeWithTag("poses_banner_slot").getUnclippedBoundsInRoot()
-        assertEquals(0f, slot.height.value, 0.5f)
         assertEquals("bar reaches the bottom of the screen", root.bottom.value, bar.bottom.value, 0.5f)
+        // Control: the same screen in a bar with a slot keeps 96 under the button bar.
+        real = false
+        composeRule.waitForIdle()
+        val barWithSlot = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        assertEquals("control: with a slot", 96f, (root.bottom - barWithSlot.bottom).value, 0.5f)
     }
 
     // KB-7: unfolded foldable
@@ -473,16 +494,14 @@ class PoseDetailScreenTest {
 
     @Test
     @Config(qualifiers = UNFOLDED)
-    fun wide_banner_belowBottomBar_inRightColumn() {
-        setScreen(ready(), bottomBanner = { TestBanner() }, width = { 673.dp })
-        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
-        val banner = composeRule.onNodeWithTag(BANNER).getUnclippedBoundsInRoot()
+    fun wide_bottomBar_slotFullWidth_buttonAbove() {
+        setScreen(ready(), bar = fakeBar(), width = { 673.dp })
+        val slot = composeRule.onNodeWithTag(SLOT).getUnclippedBoundsInRoot()
         val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
+        assertEquals("slot across the screen", 673f - 32f, slot.width.value, 0.5f)
+        assertEquals("slot 16 from the left", 16f, slot.left.value, 0.5f)
         assertEquals("bar in the right column", 347f, bar.left.value, 1f)
-        assertEquals(58f, banner.height.value, 0.5f)
-        assertEquals("banner starts where the bar ends", bar.bottom.value, banner.top.value, 0.5f)
-        assertEquals("banner in the right column", bar.left.value, banner.left.value, 0.5f)
-        assertEquals("banner at the bottom of the screen", root.bottom.value, banner.bottom.value, 0.5f)
+        assertTrue("bar ${bar.bottom} above slot ${slot.top}", bar.bottom.value <= slot.top.value + 0.5f)
     }
 
     @Test
@@ -569,7 +588,10 @@ class PoseDetailScreenTest {
         const val UNFOLDED_LOW = "vi-w673dp-h641dp-xxhdpi"
         const val META = "Một người · Nữ · Toàn thân · 4 bước"
         const val LONG_META = "Một người · Nữ · Toàn thân · 12 bước"
-        const val BANNER = "test_banner"
+        const val SLOT = "fake_ad_slot"
+
+        // The tag of the real slot of the framework (BottomAdBarTestTags, internal to :core:ads).
+        const val REAL_SLOT = "bottom_ad_bar_slot"
 
         val IMAGE = ImageBitmap(379, 380)
         val STEPS = listOf(
@@ -585,8 +607,22 @@ class PoseDetailScreenTest {
     }
 }
 
-/** A banner of the design's size (58 dp with the separator), drawn where the real ad is not available in tests. */
-@Composable
-private fun TestBanner() {
-    Box(Modifier.fillMaxWidth().height(58.dp).testTag("test_banner"))
+/**
+ * The bottom bar of the framework with a fake 80 dp slot (plan T-079, section 4): the slot takes the modifier the bar
+ * gives, so it is as wide as the screen less 2 x 16. [withSlot] false is a bar without an ad: no slot, nothing kept.
+ */
+private fun fakeBar(
+    withSlot: () -> Boolean = { true },
+): @Composable (screen: @Composable (PaddingValues) -> Unit) -> Unit = { screen ->
+    val shown = withSlot()
+    BottomAdBarLayout(
+        reservation = if (shown) BottomAdBarDefaults.nativeReservation else 0.dp,
+        slot = if (shown) {
+            { Box(it.height(80.dp).testTag("fake_ad_slot")) }
+        } else {
+            null
+        },
+        layer = null,
+        content = screen,
+    )
 }

@@ -1,5 +1,5 @@
 ---
-id: T-081
+id: T-087
 title: Biểu tượng app
 feature: loading
 spec: features/loading/spec.md
@@ -10,12 +10,12 @@ risk: low
 size: S
 depends_on: []
 sprint:
-plan: features/loading/plans/T-081-bieu-tuong-app.md
+plan: features/loading/plans/T-087-bieu-tuong-app.md
 auto_run:
 created: 2026-10-31
 ---
 
-# T-081: BIỂU TƯỢNG APP
+# T-087: BIỂU TƯỢNG APP
 
 ## Mô tả
 

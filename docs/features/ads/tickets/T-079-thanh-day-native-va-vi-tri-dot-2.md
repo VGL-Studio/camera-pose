@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-30, câu 7 tới 11; vị trí của màn ở mục 5 của features/poses/spec.md (confirmed 2026-10-30, câu hỏi 5)
 scenarios: [KB-4, KB-6]      # của features/poses/spec.md
 owner: Tuấn
-status: approved
+status: on-staging
 risk: high
 size: M
 depends_on: [T-074]          # khung AdsKit đã có trong app; T-074 đang on-staging, chờ nghiệm thu trên máy

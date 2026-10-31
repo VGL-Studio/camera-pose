@@ -223,6 +223,7 @@ POSES_IN_COLLECTION("poses_in_collection", AdFormat.NATIVE_IN_COLLECTION, native
 Nơi khác đọc các file bị đổi (L-020 của mẫu):
 
 - `scripts/ads-plan.py` đọc `AdPlacement` và `docs/remote-config-keys.md`. Test của script đọc code thật (`scripts/tests/run.sh`, khối `ads-plan`), không đếm số vị trí cố định, nên không sửa.
+- `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/config/RemoteConfigKeysTest.kt` so `docs/remote-config-keys.md` và `docs/remote-config-template.json` với khóa của code. Tập khóa lấy từ `AdsSettings.all()` và `AdPlacement.entries`, không ghi tên vị trí, nên không sửa test. Hai tệp được sinh lại trong cùng commit code, nên test qua (như T-079).
 - `app/build.gradle.kts` chỉ nêu đường dẫn của hai file bảng khóa cho tham số `-PremoteConfigKeys.update`. Đường dẫn không đổi, nên không sửa.
 - `AdPlacementSourceTest` và `StagingOnlyEntriesTest` quét `AdPlacement`: dòng mới không phải dòng chỉ-staging, không có mã quảng cáo, nên không đổi.
 - `scripts/check.sh` và `design-compare.sh` đọc `src/test/screenshots/` và `design/screens/`. Sau task, mọi ảnh thiết kế của poses có screenshot test cùng tên.
@@ -254,7 +255,14 @@ Nơi khác đọc các file bị đổi (L-020 của mẫu):
 | Staging bật bốn vị trí của app | Bật thêm `poses_in_collection` | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` | Tập mong đợi thêm `is_show_poses_in_collection=true` (spec ads câu 11). `noGalleryNorSamplePlacement_isShown` giữ nguyên |
 | Thư viện vẽ thẻ tư thế bằng `items(cards)` | `posesGridItems` với `PosesGridAds`, mặc định `None` vẽ như cũ | Các test của `PosesScreenTest`, ảnh chuẩn của `PosesScreenScreenshotTest` | Giữ: `PosesScreen` mặc định `None`, ảnh chuẩn cũ không đổi |
 
-`scripts/existing-tests.py` chạy ngày 2026-10-31; kết quả ở cuối mục này.
+`scripts/existing-tests.py` chạy ngày 2026-10-31: 26 test "Cần xem trước", 338 test "Nên xem". Đã đọc nhóm "Cần xem trước" và các test của `InListAdsTest`, `AdPlacementTest`, `AdPlacementAppTest`, `RemoteConfigKeysTest`, `StagingRemoteValuesModuleTest` trong nhóm "Nên xem":
+
+- Phần lớn khớp vì chữ `slot` hay `AdPlacement` (thanh đáy, `NativeAdSlot`, `CollapsibleNativeAd`, màn chi tiết). Các hành vi đó plan không đổi: giữ.
+- `InListAdsTest.lazyColumn_sevenItemsEveryThree_adRowsAfterItems3And6`, `alternatingPlacements_takeTurns`: danh sách, không gọi `adShown`: giữ.
+- `PosesScreenTest.realBottomBar_withoutAds_takesNoSpace`, `bottomBar_lastCardScrollsAboveSlot`, `saveFailedSnackbar_aboveSlot`, các test `smallScreen_*`: `PosesRoute` thêm `rememberInListAds`, nhưng test không có `LocalAdsController` nên không có ô (`every` là `null`); `PosesScreen` mặc định `None`: giữ.
+- `AdPlacementAppTest.appPlacements_declaredWithSpecFormats`: thêm dòng `"poses_in_collection" to AdFormat.NATIVE_IN_COLLECTION` (dữ liệu, ADR-0029); các câu khẳng định của vòng lặp (không `appWide`, không `stagingOnly`, tên khóa `is_show_<key>`) giữ và áp cho dòng mới.
+- `AdPlacementTest.galleryPlacements_coverEveryFormatOnce`, `stagingOnly_isExactlyGalleryPrefix`, `otherPlacements_areNotStagingOnly`: lọc theo tiền tố `gallery_` hay kiểm mọi vị trí khác không chỉ-staging; dòng mới thỏa: giữ.
+- `RemoteConfigKeysTest.everyFeatureFlagAndPlacement_isListed`, `everyPlacementShowKey_isInTableOff`: đỏ cho tới khi sinh lại bảng khóa, rồi qua; `is_show_poses_in_collection` ghi mặc định tắt: giữ.
 
 ## 4. Kiểm thử
 
@@ -279,7 +287,7 @@ Test của khung dùng vị trí của khung `GALLERY_IN_COLLECTION` (N trong te
 | KB-6 tiêu chí 5, mọi bộ lọc | Compose UI test | `PosesScreenTest.fixedGridAds_savedAndGroupFilters_haveCell`: `Ready` với bộ lọc một nhóm và với "Đã lưu", mỗi lần 9 thẻ: có `AD_CELL` sau thẻ 8 |
 | KB-6 tiêu chí 6, thư viện | Compose UI test | `PosesScreenTest.noGridAds_noAdCell`: `gridAds` mặc định, 12 thẻ: không có `AD_CELL`, thẻ 9 cạnh thẻ 10. `PosesRoute` không có `LocalAdsController` thì không có ô: `PosesScreenTest.liveGridAds_withoutController_noAdCell` |
 | Spec ads câu 11: staging bật vị trí | Unit test (testStaging) | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet`: tập mong đợi thêm `is_show_poses_in_collection=true` |
-| Bảng khóa khớp code | Unit test có sẵn | Test bảng khóa của `:app` (`testStagingDebugUnitTest`) qua sau khi sinh lại |
+| Bảng khóa khớp code | Unit test có sẵn | `RemoteConfigKeysTest.keysFile_matchesCode`, `templateFile_matchesCode`, `everyPlacementShowKey_isInTableOff` qua sau khi sinh lại; ở commit test (bước 3) hai test đầu chưa đỏ, chỉ đỏ khi dòng `AdPlacement` vào ở commit code, rồi qua khi sinh lại trong cùng commit |
 | Đúng thiết kế | Screenshot test cùng tên, ảnh so sánh `scripts/design-compare.sh poses`, rà soát độc lập theo mục 7 của mẫu thiết kế | `PosesScreen_ad-collection_light.png` |
 | Màn hình thấp (L-028) | Screenshot test có sẵn | Trạng thái nhiều nội dung nhất của thư viện là `Ready`, đã có ảnh `_small` từ T-009; ô quảng cáo chỉ thay một thẻ, không đổi chiều cao vùng cuộn đáng kể, nên không thêm ảnh `_small` mới |
 | Ô sau tư thế 8 trên bản staging, "Tất cả" và một nhóm | Kiểm tra thủ công (máy thật: quảng cáo thật) | `docs/ops/manual-test.md` mục 11, bước mới. Quảng cáo thử của AdMob không chắc có trên emulator; dev xem trên máy thật, không bấm quảng cáo |

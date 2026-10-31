@@ -167,13 +167,16 @@ enum class AdPlacement(
     RESUME("resume", AdFormat.APP_OPEN, appWide = true),
     RESUME_INTER("resume_inter", AdFormat.INTERSTITIAL, ignoreInterval = true, appWide = true),
 
-    // The placements of this app (spec ads, questions 1, 2 and 8): one line each, as scripts/release.sh reads them.
+    // The placements of this app (spec ads, questions 1, 2, 8 and 9): one line each, as scripts/release.sh reads them.
 
     /** Bottom bar of the pose library (spec poses, section 5; spec ads, question 8). */
     POSES_BOTTOM("poses_bottom", AdFormat.NATIVE_SMALL),
 
     /** Bottom bar of the pose detail, below the main button (spec poses, section 5; spec ads, question 8). */
     POSE_DETAIL_BOTTOM("pose_detail_bottom", AdFormat.NATIVE_SMALL),
+
+    /** After "Shoot with this pose" in the detail, before the camera opens (spec poses, KB-4; spec ads, question 9). */
+    INTER_POSE_DETAIL("inter_pose_detail", AdFormat.INTERSTITIAL),
 
     /** Leaving the review screen after a saved photo (spec camera, section 5; breaks: InterstitialBreaks). */
     REVIEW_INTERSTITIAL("review_interstitial", AdFormat.INTERSTITIAL),

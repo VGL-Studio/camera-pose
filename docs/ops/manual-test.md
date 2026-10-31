@@ -329,14 +329,14 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 **Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
 
-- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial` đặt `false` (T-079).
+- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079).
 - [ ] Không có `show_open_ads_first_open`, `is_show_native_after_inter`, `is_show_native_collap` đặt `true`.
 - [ ] Hai khóa cũ `is_show_poses_banner`, `is_show_poses_detail_banner` không còn ai đọc từ T-079; để nguyên trên Firebase.
 - [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
 - [ ] Không nhập `docs/remote-config-template.json` vào project staging (`remote-config.md`, mục 5, bước 7).
 - [ ] Ghi kết quả vào danh sách chạy của T-074.
 
-### 11.1 Thanh đáy native ở thư viện và chi tiết, quảng cáo khi rời màn xem lại
+### 11.1 Thanh đáy native ở thư viện và chi tiết, quảng cáo khi rời màn xem lại và khi chụp với tư thế
 
 Điều kiện: đã đồng ý quảng cáo ở hộp thoại đồng ý.
 
@@ -355,6 +355,11 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
    - [ ] Không có quảng cáo.
 6. Lưu ảnh 5, rời màn xem lại.
    - [ ] Có quảng cáo nếu đã qua 45 giây từ lần trước (nhịp `ads_interval`); chưa qua thì không.
+7. Đợi ít nhất 45 giây từ quảng cáo toàn màn hình gần nhất. Mở chi tiết một tư thế, bấm "Chụp với tư thế này" (T-079).
+   - [ ] Quảng cáo toàn màn hình thử hiện; log `VGL.Ads` có `inter_pose_detail`.
+   - [ ] Đóng quảng cáo thì camera mở với đúng tư thế vừa chọn.
+8. Quay lại chi tiết, trong vòng 45 giây bấm "Chụp với tư thế này" lần nữa.
+   - [ ] Không có quảng cáo (chưa qua nhịp `ads_interval`); camera mở ngay với đúng tư thế.
 
 ### 11.2 Quảng cáo mở app từ lần mở thứ hai
 

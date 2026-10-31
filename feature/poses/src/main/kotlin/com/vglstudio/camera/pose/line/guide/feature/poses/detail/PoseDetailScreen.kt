@@ -43,6 +43,8 @@ fun PoseDetailRoute(
     viewModel: PoseDetailViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // The interstitial before the camera (KB-4): the camera opens once the ad has closed, or at once without one.
+    val shoot = rememberShootWithAd(AdPlacement.INTER_POSE_DETAIL, onShootWithPose)
     // The native bottom bar over the whole screen, below the main button bar (KB-6; spec ads, question 8). It can show
     // while the pose still loads (plan T-079, section 8, question 6).
     BottomAdBarScaffold(AdPlacement.POSE_DETAIL_BOTTOM) { padding ->
@@ -51,7 +53,7 @@ fun PoseDetailRoute(
             onBack = onBack,
             onToggleSave = viewModel::onToggleSave,
             onRetryImage = viewModel::onRetryImage,
-            onShoot = { viewModel.onShoot()?.let(onShootWithPose) },
+            onShoot = { shoot(viewModel::onShoot) },
             onSaveFailedShown = viewModel::onSaveFailedShown,
             contentPadding = padding,
         )

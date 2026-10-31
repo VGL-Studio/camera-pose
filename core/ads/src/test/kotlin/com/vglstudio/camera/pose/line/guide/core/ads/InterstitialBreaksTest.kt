@@ -140,6 +140,19 @@ class InterstitialBreaksTest {
         }
     }
 
+    @Test
+    fun interPoseDetail_hasNoBreakCap() = runTest {
+        // Spec poses, KB-4: inter_pose_detail has no break limits; only the full-screen gate of :core:ads applies.
+        assertNull(InterstitialBreakSettings.capOf(AdPlacement.INTER_POSE_DETAIL))
+        repeat(3) { index ->
+            val ticket = ticketOf(gate.onBreak(AdPlacement.INTER_POSE_DETAIL))
+            assertEquals(index + 1, ticket.breakNumber)
+            gate.onShown(ticket)
+        }
+        // Control: the same gate keeps the limits of review_interstitial, whose first break shows no ad.
+        assertNull(gate.onBreak(AdPlacement.REVIEW_INTERSTITIAL))
+    }
+
     /** The ticket, failing the test when the break got none. */
     private fun ticketOf(ticket: BreakTicket?): BreakTicket {
         assertNotNull("expected a ticket", ticket)

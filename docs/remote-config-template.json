@@ -161,6 +161,11 @@
       "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_rw_action (rewarded).",
       "valueType": "BOOLEAN"
     },
+    "is_show_inter_pose_detail": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement inter_pose_detail (interstitial).",
+      "valueType": "BOOLEAN"
+    },
     "is_show_native_after_inter": {
       "defaultValue": { "value": "false" },
       "description": "Shows a full-screen native ad right after an interstitial (combo).",

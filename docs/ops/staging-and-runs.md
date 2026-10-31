@@ -70,7 +70,7 @@ Sau đó chuyển `google-services.json`, file khóa và `staging.keystore` ra k
 
    | Trường | Giá trị |
    | --- | --- |
-   | Network access | **Custom**; Allowed domains: `dl.google.com`, `maven.google.com` và `*.blob.core.windows.net`, mỗi dòng một tên miền; bật **Also include default list of common package managers**. Tên miền cuối là nơi GitHub lưu artifact và log đầy đủ của Actions; thiếu nó thì phiên không đọc được kết quả `device-session.yml` (L-030) |
+   | Network access | **Custom**; Allowed domains: `dl.google.com`, `maven.google.com`, `*.blob.core.windows.net`, `dl-maven-android.mintegral.com` và `artifact.bytedance.com`, mỗi dòng một tên miền; bật **Also include default list of common package managers**. `*.blob.core.windows.net` là nơi GitHub lưu artifact và log đầy đủ của Actions; thiếu nó thì phiên không đọc được kết quả `device-session.yml` (L-030). Hai tên miền cuối là kho Maven của SDK Mintegral và Pangle mà mediation của `:core:ads` cần (`settings.gradle.kts`, `docs/ops/ads-guide.md` mục 7); thiếu chúng thì proxy trả 403 và `scripts/check.sh` đỏ ngay ở bước tải thư viện của `:app` (issue #242). Thêm kho Maven ngoài mới vào `settings.gradle.kts` thì thêm tên miền của nó vào đây và vào môi trường |
    | Environment variables | `BASH_DEFAULT_TIMEOUT_MS=600000` và `BASH_MAX_TIMEOUT_MS=1800000`, mỗi dòng một biến |
    | Setup script | Toàn bộ nội dung `scripts/cloud-setup.sh` |
 
@@ -144,7 +144,7 @@ Cùng workflow có job thứ hai, `setup-check`, chạy `scripts/setup-check.sh 
 - **Đổi khóa `poses_catalog_path` hay tải catalog mới:** tải catalog và mọi file của nó lên R2 trước, rồi mới thêm hay đổi giá trị của khóa, kể cả giá trị theo điều kiện chưa bật (một giá trị trỏ tới file chưa có cũng làm kiểm tra đỏ và chặn mọi phiên). Xong thì chạy lại **env-canary** với **setup_only**, vì lần chạy buổi sáng không thấy thay đổi sau đó.
 - Không đọc được Remote Config (mạng, `firebase-tools` lỗi, quá 120 giây) chỉ là chú ý: catalog mặc định vẫn được kiểm. Thiếu bí mật hay tài khoản thiếu vai trò thì là lỗi. R2 không trả lời 3 file liền thì dừng phần catalog với một dòng lỗi.
 
-Khi có issue `env-broken`: đọc log trong issue. Thường là môi trường chưa dán setup script mới (dán lại theo mục 2.1); lỗi khác thì sửa nguyên nhân. Sau đó chạy lại **env-canary** bằng tay; lần chạy xanh tự đóng issue.
+Khi có issue `env-broken`: đọc log trong issue. Thường là môi trường chưa dán setup script mới (dán lại theo mục 2.1). Log có `Could not GET '<địa chỉ>' ... Received status code 403` khi Gradle tải thư viện thì proxy của môi trường chặn tên miền của kho đó: thêm tên miền vào Allowed domains của môi trường (mục 2.1), không sửa code hay file build. Lỗi khác thì sửa nguyên nhân. Sau đó chạy lại **env-canary** bằng tay; lần chạy xanh tự đóng issue.
 
 ### 2.5. Kịch bản trên emulator trước khi phát (`device-session.yml`)
 

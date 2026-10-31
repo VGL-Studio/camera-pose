@@ -6,14 +6,14 @@ product_owner: Nhật
 requests:
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed: 2026-10-29
+confirmed: 2026-10-30
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
 
 Spec này chốt các quyết định kinh doanh cần trước khi soạn plan T-074 (lấy khung quảng cáo AdsKit của dự án mẫu, chưa bật AppsFlyer) và T-075 (`release.sh` theo khung mới). Vị trí quảng cáo của từng màn vẫn nằm ở mục 5 của spec màn đó (`features/camera/spec.md`, `features/poses/spec.md`). Khi spec này được xác nhận, các câu trả lời được chép vào hai spec đó trong PR của T-074, cùng lúc với code.
 
-Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-28.
+Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-28. Câu 7 tới 11 (Nhật, 2026-10-30) đổi bộ vị trí sau T-074 theo file kế hoạch quảng cáo của nhóm (`scripts/ads-plan.py`, `docs/ops/ads-plan.md`): hai banner thành thanh đáy native, thêm hai vị trí tắt lúc phát hành. Ticket T-079.
 
 ## 1. Mục tiêu
 
@@ -25,29 +25,32 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
 
 **Trong phạm vi:**
 
-- Ba vị trí hiện có, giữ chỗ hiện:
-  - `review_interstitial`: toàn màn hình, khi rời màn xem lại sau khi lưu ảnh;
-  - `poses_banner`: banner đáy màn thư viện;
-  - `poses_detail_banner`: banner đáy màn chi tiết tư thế.
+- Vị trí của màn (câu 7 tới 10):
+  - `review_interstitial`: toàn màn hình, khi rời màn xem lại sau khi lưu ảnh; giữ mã và luật đếm ảnh (câu 1, câu 7);
+  - `poses_bottom`: thanh đáy native nhỏ của màn thư viện, thay banner `poses_banner` (câu 8);
+  - `pose_detail_bottom`: thanh đáy native nhỏ của màn chi tiết tư thế, thay banner `poses_detail_banner` (câu 8);
+  - `inter_pose_detail`: toàn màn hình, khi bấm "Chụp với tư thế này" ở chi tiết, trước khi về camera; tắt lúc phát hành (câu 9);
+  - `poses_in_collection`: ô quảng cáo xen trong lưới thư viện, sau mỗi 8 tư thế; tắt lúc phát hành (câu 9).
 - Luật tần suất, khóa Remote Config, theo câu trả lời ở mục 9. AppsFlyer chưa bật (câu 3).
 - Hai vị trí toàn app của khung (câu 6): quảng cáo mở app (`open_app`), sau loading và trước camera; quảng cáo khi quay lại app (`resume`), ở mọi màn, kể cả camera.
 
 **Ngoài phạm vi:**
 
-- Vị trí quảng cáo mới khác hai vị trí toàn app ở trên, kể cả combo native sau interstitial và native đáy có sẵn trong khung. Mỗi vị trí cần spec được duyệt và ticket riêng.
+- Vị trí quảng cáo khác các vị trí ở trên. Combo native sau interstitial (`native_combo`) giữ tắt (câu 6, câu 9). Mỗi vị trí mới cần spec được duyệt và ticket riêng.
+- Lớp native thu gọn 250 dp nổi trên thanh đáy: có trong khung nhưng tắt lúc phát hành (câu 10).
 - AppsFlyer (câu 3), màn xem thử quảng cáo `AdGalleryActivity` và `SAMPLE_BOTTOM_BANNER` (câu 4).
 
 ## 3. Kịch bản sử dụng
 
-Không có kịch bản mới. Ba vị trí giữ kịch bản của spec camera và poses. Tiêu chí kiểm ở mục 9 và ở Định nghĩa hoàn thành của T-074.
+Không có kịch bản mới ở spec này. `review_interstitial` giữ kịch bản của spec camera; bốn vị trí của thư viện và chi tiết theo KB-4, KB-6 của spec poses (câu 8, 9). Tiêu chí kiểm ở mục 9, ở Định nghĩa hoàn thành của T-074 và T-079.
 
 ## 4. Giao diện
 
-Không có. Banner và interstitial dùng giao diện của khung.
+Không có thiết kế riêng: thanh đáy native, ô quảng cáo trong lưới và interstitial dùng giao diện của khung. Trạng thái `ad` của thiết kế thư viện và chi tiết theo câu 5 của spec poses.
 
 ## 5. Quảng cáo
 
-Ba vị trí của màn: theo `features/camera/spec.md` và `features/poses/spec.md`, mục 5, sau khi chép câu trả lời của mục 9 vào. Hai vị trí toàn app (`open_app`, `resume`) ghi ở đây theo câu 6, và chép vào mục 5 của `features/loading/spec.md` (quảng cáo mở app hiện sau loading) và `features/camera/spec.md` (quảng cáo khi quay lại app có thể hiện khi người dùng quay lại lúc đang ở camera) trong PR của T-074. Không thêm vị trí khác.
+Vị trí của màn: theo `features/camera/spec.md` và `features/poses/spec.md`, mục 5 (câu 7 tới 10 đã chép vào spec poses). Hai vị trí toàn app (`open_app`, `resume`) ghi ở đây theo câu 6, và chép vào mục 5 của `features/loading/spec.md` (quảng cáo mở app hiện sau loading) và `features/camera/spec.md` (quảng cáo khi quay lại app có thể hiện khi người dùng quay lại lúc đang ở camera) trong PR của T-074. Không thêm vị trí khác.
 
 ## 6. Dữ liệu và phân tích
 
@@ -71,7 +74,7 @@ Không có.
 
 ## 8. Cờ tính năng
 
-Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu 2).
+Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu 2): `is_show_review_interstitial`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_inter_pose_detail`, `is_show_poses_in_collection`; thêm `native_every_poses_in_collection` (mặc định 8). Khóa chung của thanh đáy theo câu 8, 10.
 
 ## 9. Câu hỏi còn mở
 
@@ -124,6 +127,27 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
      - Quảng cáo mở app chỉ có khi màn loading bật (`feature_loading_enabled`), vì màn loading gọi `StartupAds` của khung (`docs/ops/ads-guide.md`).
      - `open_ad_type`, `resume_ad_type` theo mặc định của khung (app open); `open_app_inter`, `resume_inter` chỉ dùng khi Remote Config đổi loại.
 
+7. **Kế hoạch quảng cáo 2026-10-30: lập lại bộ vị trí từ đầu, đổi `review_interstitial` thành `inter_review`, bỏ luật đếm ảnh?**
+   - File kế hoạch đề xuất lập lại theo khung AdsKit, đổi mã `review_interstitial` thành `inter_review` và chỉ giữ nhịp chung `ads_interval`, vì "khung không có luật đếm theo tính năng" (MC-10). Câu này không đúng với app: luật đếm ảnh đã có trong code từ T-074 (câu 1), có test.
+   - Đề xuất của AI: không lập lại từ đầu; giữ mã `review_interstitial` (cùng định dạng, giữ khóa trên Firebase và chuỗi số liệu `ad_placement`) và giữ luật đếm ảnh của câu 1.
+   - Trả lời: đồng ý với đề xuất. Nhật, 2026-10-30.
+8. **Thư viện và chi tiết dùng thanh đáy native nhỏ thay banner?**
+   - Thanh đáy của khung: khe đáy native nhỏ 80 dp khi `is_show_native_bottom` bật, banner khi tắt. Production hôm nay chỉ có mã đơn vị cho khe native, chưa có mã theo khe cho lớp banner (`docs/ops/ads-guide.md`, mục 5, bước 6): tắt `is_show_native_bottom` thì đáy trống, không có banner dự phòng.
+   - Đổi định dạng nên dùng mã mới: `poses_bottom`, `pose_detail_bottom` (khóa `is_show_poses_bottom`, `is_show_pose_detail_bottom`); bỏ `poses_banner`, `poses_detail_banner` khỏi code. Khóa cũ giữ trên Firebase tới khi bản cũ không còn người dùng (như câu 2).
+   - Đề xuất của AI: đổi; lúc phát hành `is_show_native_bottom = true`.
+   - Trả lời: đồng ý với đề xuất. Nhật, 2026-10-30.
+9. **Hai vị trí đợt 2: `inter_pose_detail` và `poses_in_collection`?**
+   - `inter_pose_detail`: interstitial khi bấm "Chụp với tư thế này" ở chi tiết, trước khi về camera. Cùng nhóm giãn cách mặc định với `review_interstitial` (`ads_interval`), không theo luật đếm ảnh.
+   - `poses_in_collection`: ô native trong lưới thư viện (`native_in_collection`), sau mỗi 8 tư thế, không ở đầu, không ở cuối; pool cạn thì ẩn ô; thẻ quảng cáo khác rõ thẻ tư thế.
+   - Đề xuất của AI: khai báo trong spec, code ở một ticket riêng sau khi đợt 1 lên staging.
+   - Trả lời: khai báo trong spec và code cùng đợt 1 (T-079); cả hai tắt lúc phát hành, bật dần trên Firebase khi giữ chân ngày 1 không giảm quá 2 điểm. Nhật, 2026-10-30. Combo native sau interstitial giữ tắt (câu 6).
+10. **Lớp native thu gọn 250 dp trên thanh đáy (`is_show_native_collap`, mặc định trong code là bật)?**
+    - Đề xuất của AI: tắt lúc phát hành: lớp nổi che khoảng một phần ba lưới tư thế và chưa có mã đơn vị riêng. Thử sau khi có số liệu.
+    - Trả lời: tắt lúc phát hành, theo đề xuất (Nhật chọn cùng câu 8, phương án nêu rõ lớp thu gọn tắt). Nhật, 2026-10-30.
+11. **Bản staging của T-079.**
+    - Theo câu 6, `StagingRemoteValuesModule` chỉ bật khóa đã chốt. Đề xuất của AI: bật `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, và cả `is_show_inter_pose_detail`, `is_show_poses_in_collection` để người thử thấy hai vị trí đợt 2 (production vẫn tắt); không bật `is_show_native_after_inter`; đặt `is_show_native_collap` là `false` (mặc định trong code là bật), để bản staging giống bản phát hành (câu 10). Có test kiểm.
+    - Trả lời: đồng ý với đề xuất. Nhật, 2026-10-30.
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -137,3 +161,5 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
 | 2026-10-28 | AI | Mục 6: khai báo `queries` mà SDK mediation kéo vào (chạy thử mục 4.1 và câu 14 của plan T-074; Nhật chọn nhận, ghi vào spec). Chuyển `changed`, chờ xác nhận lại |
 | 2026-10-29 | Nhật | Xác nhận mục 6 (khai báo `queries`), lời của Nhật: "Xác nhận và merge" (PR #225). Chuyển lại `confirmed` |
+| 2026-10-30 | AI | Rà file kế hoạch quảng cáo của nhóm sau T-074; Nhật trả lời câu 7 tới 10 (AI ghi): giữ `review_interstitial` và luật đếm ảnh; thanh đáy native `poses_bottom`, `pose_detail_bottom` thay hai banner; thêm `inter_pose_detail`, `poses_in_collection`, tắt lúc phát hành; lớp thu gọn tắt. Sửa mục 2, 3, 4, 5, 8. Chuyển `changed` |
+| 2026-10-30 | Nhật | Trả lời câu 11 (bản staging bật thanh đáy và hai vị trí đợt 2; AI ghi). Xác nhận spec. Lời xác nhận của Nhật: chọn "Chuyển confirmed" khi được hỏi, sau khi trả lời câu cuối. Chuyển lại `confirmed` |

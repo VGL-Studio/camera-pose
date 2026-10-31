@@ -32,7 +32,7 @@ Ticket xử lý câu 13 tới 15 của `features/ads/spec.md` (confirmed 2026-10
 | Câu 14 | Khi có mã lớp thì lớp gửi yêu cầu bằng mã đó | `ConfiguredAdUnitIds.of(placement, AdFormat.BANNER)` và `of(placement, AdFormat.NATIVE_COLLAPSIBLE)` trả mã của mục lớp. Khung đã gọi `unitIds.of(placement, format)` cho hai lớp (`AdSlot.kt:91`, `CollapsibleNativeAd.kt:336`, `AdsController.kt:1465`, `1512`), nên không sửa chỗ gọi |
 | Câu 14, B-04 | Lớp không có mã thì không gửi, không chiếm chỗ | Giữ như hôm nay: `of` trả `null`. `BottomAdBarTest.layerUnitIdNull_noLoad_slotStays`, `bannerUnitIdNull_noLoad_noReservation` đã kiểm phần vẽ |
 | Câu 14 | Hai thanh đáy dùng chung một mã banner và một mã native thu gọn | Không cần code: cấu hình phát hành ghi cùng một mã cho `poses_bottom/banner` và `pose_detail_bottom/banner` (và tương tự cho `native_collap`). Khóa vẫn theo vị trí, để tên khóa trùng khóa log và bộ đếm |
-| Câu 14 | Bản phát hành báo lỗi khi thanh đáy thiếu mã lớp | Phần chặn nằm ở `scripts/release.sh`, T-075 (người làm). Ở code: `ConfiguredAdUnitIds.missingLayers` liệt kê lớp thiếu, cùng khuôn chuỗi, để T-075 và test đối chiếu (mục 3.1) |
+| Câu 14 | Bản phát hành báo lỗi khi thanh đáy thiếu mã lớp | Phần chặn nằm ở `scripts/release.sh` của dự án mẫu: tiêu chí này hoàn thành khi dự án mẫu nhận đề xuất và T-075 lấy bản đó (người làm). Ở code: `ConfiguredAdUnitIds.missingLayers` liệt kê lớp thiếu, cùng khuôn chuỗi, để T-075 và test đối chiếu (mục 3.1) |
 | Câu 13 | Bốn tổ hợp `is_show_native_bottom`, `is_show_native_collap` | Không sửa cách chọn lớp. Khung hôm nay (luật D-01 của `docs/ops/ads-business-rules.md`, `bottomAdBarLayers`) chỉ vẽ lớp thu gọn khi khe là native: tổ hợp 4 "native thu gọn trên banner" ra banner, không có lớp. Mâu thuẫn này ở câu 1 mục 8 |
 | Câu 15 | Lúc phát hành: native nhỏ, lớp thu gọn tắt | Không đổi giá trị mặc định nào. Bản staging giữ như câu 11 |
 
@@ -113,7 +113,8 @@ class ConfiguredAdUnitIds(config: String) : AdUnitIds {
 
     /**
      * Layers of bottom bars that have no ad unit in this build, as the key to add (`poses_bottom/banner`). Such a layer
-     * sends nothing (B-04); a release must have none (spec ads, question 14). Staging-only placements are never missing.
+     * sends nothing (B-04); a release must have none (spec ads, question 14). Staging-only placements are never
+     * missing.
      */
     val missingLayers: List<String> = AdPlacement.entries
         .filter { !it.stagingOnly && it.hasBottomBarLayers }
@@ -137,7 +138,7 @@ Tài liệu:
 
 - `docs/ops/ads-guide.md`, mục 5:
   - Bước 2: bỏ câu "Mã đơn vị theo vị trí hay theo khe như AdsKit là câu hỏi 14 của spec ads; đổi cách này cần sửa `release.sh` (việc của người)". Thay bằng: mã theo vị trí; thanh đáy có thêm mã theo lớp (bước 6).
-  - Bước 6: thay đoạn "Thanh đáy: production hôm nay chỉ có mã..." bằng cách khai báo mã lớp: mỗi thanh đáy cần ba mục (`<vị trí>`, `<vị trí>/banner`, `<vị trí>/native_collap`). Hai thanh đáy dùng chung một đơn vị banner và một đơn vị native thu gọn (câu 14), nên cùng một mã ghi hai lần. Đơn vị banner của lớp bật tự làm mới trên AdMob như vị trí `banner`. `ConfiguredAdUnitIds.missingLayers` liệt kê lớp còn thiếu. Thiếu mã lớp thì lớp không gửi, không chiếm chỗ; tắt `is_show_native_bottom` khi đó thì đáy trống. Phần `release.sh` chặn khi thiếu là T-075. Staging dùng mã thử theo định dạng của lớp.
+  - Bước 6: thay đoạn "Thanh đáy: production hôm nay chỉ có mã..." bằng cách khai báo mã lớp: mỗi thanh đáy cần ba mục (`<vị trí>`, `<vị trí>/banner`, `<vị trí>/native_collap`). Hai thanh đáy dùng chung một đơn vị banner và một đơn vị native thu gọn (câu 14), nên cùng một mã ghi hai lần. Đơn vị banner của lớp bật tự làm mới trên AdMob như vị trí `banner`. `ConfiguredAdUnitIds.missingLayers` liệt kê lớp còn thiếu. Thiếu mã lớp thì lớp không gửi, không chiếm chỗ; tắt `is_show_native_bottom` khi đó thì đáy trống. Chỉ thêm mục lớp vào `release.properties` khi `release.sh` đã nhận khuôn `<vị trí>/<định dạng>`: bản `release.sh` app đang giữ kiểm từng mục theo khuôn `<khóa vị trí>=ca-app-pub-...` và có thể dừng ở mục có `/`. Trước đó bản phát hành giữ khe native nhỏ như câu 15. Phần chặn khi thiếu mã lớp chỉ có khi dự án mẫu nhận đề xuất (T-075 lấy nguyên `release.sh` của mẫu, không sửa ở app). Staging dùng mã thử theo định dạng của lớp.
 - `docs/ops/manual-test.md`: mục mới 11.5 "Bốn tổ hợp của thanh đáy trên Firebase staging (T-084)". Bốn bước, mỗi bước đổi hai khóa trên Remote Config của project staging, đóng hẳn app rồi mở lại, mở thư viện và chi tiết. Kết quả mong đợi theo khung hôm nay:
   - bật, tắt: khe native 80 dp;
   - tắt, tắt: banner neo đáy, không lề;
@@ -148,8 +149,8 @@ Tài liệu:
 - `docs/ops/release.md` **không sửa ở ticket này.** App giữ file ở commit cũ của dự án mẫu (`hold=docs/ops/release.md` trong `docs/template-sync.txt`), và T-075 lấy nguyên bản mới của dự án mẫu (`--take`). Sửa ở đây thì T-075 ghi đè. Cách khai báo mã lớp nằm ở `ads-guide.md`; T-075 có ghi chú khuôn (dưới).
 - `docs/features/ads/tickets/T-075-phat-hanh-voi-quang-cao-moi.md`: thêm một ý ở mục Phạm vi:
   - danh sách mã cần chuẩn bị có thêm `<vị trí>/banner`, `<vị trí>/native_collap` cho mỗi thanh đáy (khuôn câu 14, T-084);
-  - `release.sh` chặn khi thiếu, như `ConfiguredAdUnitIds.missingLayers`;
-  - nếu `release.sh` của dự án mẫu chưa nhận mục có `/` thì đề xuất về dự án mẫu.
+  - khi lấy `release.sh` của dự án mẫu, kiểm nó có nhận mục có `/` và có chặn khi thiếu mã lớp (như `ConfiguredAdUnitIds.missingLayers`) không;
+  - chưa có thì đó là đề xuất về dự án mẫu, không phải việc sửa trong T-075 (T-075 không sửa `release.sh` ở app).
 
   Ticket đang `backlog`, chưa có plan, nên sửa được. Không sửa gì khác của T-075.
 
@@ -222,7 +223,8 @@ Test của khung dùng vị trí của app `POSES_BOTTOM`, `POSE_DETAIL_BOTTOM` 
 | B-04: lớp không có mã thì không có mã | Unit test | `AdUnitIdsTest.layerWithoutEntry_hasNoUnit`: `poses_bottom=unit/1;poses_bottom/banner=unit/2`: `of(POSES_BOTTOM, NATIVE_COLLAPSIBLE) == null`. Đối chứng cùng test (để test đỏ trên code cũ, L-035): `of(POSES_BOTTOM, BANNER) == "unit/2"`. Thêm: chỉ có `poses_bottom/banner=unit/2` thì `of(POSES_BOTTOM) == null` và `POSES_BOTTOM in missing` (mục lớp không thay mã chính) |
 | B-04 trên thanh đáy, qua chuỗi cấu hình | Compose UI test (Robolectric) | `BottomAdBarTest.configuredLayerUnits_buildBannerAndLayer`: `layerUnitIds = ConfiguredAdUnitIds("${placement.key}=unit/1;${placement.key}/banner=unit/2")`, `flags = barFlags(nativeBottom = false, collap = false)`: `banners.createdCount == 1`. Rồi `flags = barFlags(nativeBottom = true, collap = true)`, slot có quảng cáo: không có `CollapsibleNativeAdTestTags.AD`, `layerFeed.collections == 0` (không có mục `native_collap`). Đối chứng: `layerUnitIds` thêm `;${placement.key}/native_collap=unit/3` thì `layerFeed.collections == 1`. Đỏ trên code cũ ở `createdCount == 1` |
 | Câu 14: báo thiếu mã lớp | Unit test | `AdUnitIdsTest.missingLayers_listEveryBottomBarLayerWithoutUnit`: `ConfiguredAdUnitIds("").missingLayers` bằng đúng `["sample_native_small/banner", "sample_native_small/native_collap", "poses_bottom/banner", "poses_bottom/native_collap", "pose_detail_bottom/banner", "pose_detail_bottom/native_collap"]` (T-081 bỏ hai mục đầu, mục 6). Cấu hình có đủ sáu mục: rỗng. Đối chứng: đủ trừ `pose_detail_bottom/native_collap` thì đúng `["pose_detail_bottom/native_collap"]`. Đỏ trên code cũ vì `missingLayers` chưa có (biên dịch) |
-| Mục gõ sai không được tính | Unit test | `AdUnitIdsTest.misspelledLayerEntry_isIgnoredAndStillMissing`: đủ các mục, nhưng `poses_bottom/baner=unit/2` thay `poses_bottom/banner`: không ném lỗi, `of(POSES_BOTTOM, BANNER) == null`, `"poses_bottom/banner" in missingLayers` |
+| Mục gõ sai không được tính | Unit test | `AdUnitIdsTest.misspelledLayerEntry_isIgnoredAndStillMissing`: mọi mục chính của vị trí không phải staging, `pose_detail_bottom/banner`, `pose_detail_bottom/native_collap`, `poses_bottom/native_collap`, nhưng `poses_bottom/baner=unit/2` thay `poses_bottom/banner`: không ném lỗi, `of(POSES_BOTTOM, BANNER) == null`, `"poses_bottom/banner" in missingLayers`; đối chứng trong cùng cấu hình: `of(POSE_DETAIL_BOTTOM, BANNER) != null` |
+| Chỉ native nhỏ không có `nativeEvery` là thanh đáy | Unit test | `AdUnitIdsTest.bottomBarLayers_onlyNativeSmallWithoutEvery`: `assertFalse(AdPlacement.GALLERY_INLIST_SMALL.hasBottomBarLayers)` (native nhỏ có `nativeEvery`), đối chứng `assertTrue(AdPlacement.POSES_BOTTOM.hasBottomBarLayers)`. Bỏ điều kiện `nativeEvery == null` thì đỏ (rà soát độc lập) |
 | `gallery_*` không bao giờ thiếu, không có mã lớp | Unit test | `AdUnitIdsTest.galleryLayers_neverMissing_andGetNoUnit`: `ConfiguredAdUnitIds("gallery_native_small/banner=x;poses_bottom/banner=y")`: `of(GALLERY_NATIVE_SMALL, BANNER) == null`; không phần tử nào của `missingLayers` bắt đầu bằng `gallery_`. Đối chứng cùng cấu hình: `of(POSES_BOTTOM, BANNER) == "y"`, để test đỏ trên code cũ |
 | Vị trí không phải thanh đáy không có lớp | Unit test | `AdUnitIdsTest.nonBarPlacement_layerEntryIgnored`: `review_interstitial=unit/1;review_interstitial/banner=unit/2`: `of(REVIEW_INTERSTITIAL, BANNER) == null`, `of(REVIEW_INTERSTITIAL) == "unit/1"`; `missingLayers` của cấu hình rỗng không có khóa nào bắt đầu bằng `review_interstitial`. Qua trên code cũ (hành vi giữ nguyên), là test chặn hồi quy của nhánh `else` |
 | Mục lớp thiếu mã bị từ chối | Unit test | `AdUnitIdsTest.layerEntryWithoutUnit_isRejected`: `ConfiguredAdUnitIds("poses_bottom/banner=")` ném `IllegalArgumentException` (`@Test(expected = ...)`). Qua trên code cũ (giữ `require`) |
@@ -302,6 +304,24 @@ Rủi ro Cao, cần duyệt chéo (Tuấn và Nhật). Nhật là người phụ
 4. **`docs/ops/release.md` để T-075.** Ticket ghi "`release.md` thuộc T-075 nếu T-075 thay cả file". T-075 lấy nguyên file của dự án mẫu, nên plan không sửa `release.md`. Cách khai báo nằm ở `ads-guide.md`, cộng ghi chú vào ticket T-075.
    - Đề xuất của AI: đồng ý. Sau T-075, nếu `release.md` của mẫu chưa có mã lớp thì đưa vào đề xuất về dự án mẫu cùng `AdUnitIds.kt`.
 5. **Ghi chú khi soạn plan.** Lúc tìm chỗ nhắc `ConfiguredAdUnitIds.missing`, AI đã đọc `scripts/release.sh` dòng 130 tới 175 (phần đối chiếu vị trí). Lời giao chỉ cho đọc phần ticket trích. Không đọc phần nào khác, không sửa. Đoạn đó không cho biết `release.sh` cũ có nhận mục có `/` hay không; T-075 xác nhận việc này.
+
+**Rà soát độc lập (2026-10-31, agent ngữ cảnh mới, chỉ đọc, trên `437e232`): 1 chặn, 4 nên sửa, 6 ghi chú.** Code ở mục 3.1 khớp code hiện tại (đối chiếu từng tên; chưa biên dịch thử).
+
+- **Chặn, chờ Nhật quyết:** tổ hợp 4 của câu 13 (câu 1 ở trên). Spec `confirmed` chốt tổ hợp mà khung không làm được, và ticket ghi "bốn tổ hợp" ở Định nghĩa hoàn thành. Theo `docs/ops/pre-run-review.md` mục 3, spec sai thì chuyển `changed`, không giải quyết bằng câu trả lời trong plan. Hai cách:
+  - (a) sửa câu 13 của spec (tổ hợp 4 ra banner, không có lớp), chuyển `changed` rồi xác nhận lại; sửa dòng 2 của Định nghĩa hoàn thành của ticket; plan giữ như hiện nay;
+  - (b) mở ticket riêng đổi luật D-01, đề xuất về dự án mẫu.
+- **Nên sửa, đã sửa trong bản này:**
+  - ý cho T-075: T-075 không sửa `release.sh` ở app, nên phần chặn khi thiếu mã lớp là đề xuất về dự án mẫu (mục 2 dòng câu 14, mục 3.1);
+  - `ads-guide.md` bước 6: chỉ thêm mục lớp khi `release.sh` nhận khuôn có `/`, vì bản đang giữ kiểm khuôn `<khóa vị trí>=ca-app-pub-...` và có thể dừng;
+  - KDoc của `missingLayers` dài 121 ký tự: đã ngắt dòng;
+  - nhánh `nativeEvery == null` không test nào làm đỏ: thêm `bottomBarLayers_onlyNativeSmallWithoutEvery`.
+- **Ghi chú:**
+  - Câu 5 ở trên (AI đã đọc `release.sh` dòng 130 tới 175 khi soạn plan): người duyệt ghi kết luận.
+  - Mục 11.5 của `manual-test.md` kiểm luật chọn lớp, không kiểm mã lớp: staging dùng mã thử của Google.
+  - `BottomAdBarTest.configuredLayerUnits_buildBannerAndLayer` không đi qua `AdsController.unitId`; giữ, vì đỏ đúng chỗ trên code cũ.
+  - Chú thích ở `app/build.gradle.kts:46` còn khuôn cũ; phiên có thể sửa theo ADR-0029 (chỉ chú thích).
+  - `misspelledLayerEntry_isIgnoredAndStillMissing` có thêm đối chứng (mục 4).
+  - Số dòng `BottomAdBar.kt` lệch một hai dòng; không ảnh hưởng.
 
 ## 9. Quyết định duyệt
 

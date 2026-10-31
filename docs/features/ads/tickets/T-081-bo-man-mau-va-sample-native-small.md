@@ -5,12 +5,12 @@ feature: ads
 spec: features/ads/spec.md   # confirmed; câu 4 (bỏ quảng cáo của feature/sample); màn chính sau loading theo mục 2 của features/loading/spec.md
 scenarios: []                # không đổi kịch bản nào: màn mẫu không có trong spec của app
 owner: Tuấn
-status: backlog
+status: planned
 risk: high
 size: M
 depends_on: [T-079]          # T-079 sửa trước AdPlacement.kt, StagingRemoteValuesModuleTest.kt và bảng khóa
 sprint:
-plan:
+plan: features/ads/plans/T-081-bo-man-mau-va-sample-native-small.md
 created: 2026-10-31
 ---
 

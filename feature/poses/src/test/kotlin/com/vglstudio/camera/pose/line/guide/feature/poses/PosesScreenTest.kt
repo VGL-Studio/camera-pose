@@ -1,9 +1,9 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -40,6 +40,9 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarDefaults
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_IMAGE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
@@ -84,13 +87,13 @@ class PosesScreenTest {
         gridState: LazyGridState? = null,
         onOpenSettings: (() -> Unit)? = { settingsOpened++ },
         onOpenPose: ((String) -> Unit)? = { opened += it },
-        bottomBanner: @Composable () -> Unit = {},
+        bar: (@Composable (screen: @Composable (PaddingValues) -> Unit) -> Unit)? = null,
         width: (() -> Dp)? = null,
     ) {
         state = initial
         composeRule.setContent {
             AppTheme(darkTheme = false) {
-                val screen = @Composable {
+                val content = @Composable { contentPadding: PaddingValues ->
                     PosesScreen(
                         uiState = state,
                         gridState = gridState ?: rememberLazyGridState(),
@@ -105,9 +108,11 @@ class PosesScreenTest {
                         onThumbnailReleased = { released += it },
                         onRetryThumbnail = { thumbnailRetries += it },
                         onSaveFailedShown = { saveFailedShown++ },
-                        bottomBanner = bottomBanner,
+                        contentPadding = contentPadding,
                     )
                 }
+                // The screen alone, or inside the bottom bar that gives it its padding (plan T-079, section 4).
+                val screen = @Composable { if (bar == null) content(PaddingValues()) else bar(content) }
                 if (width == null) {
                     screen()
                 } else {
@@ -535,52 +540,113 @@ class PosesScreenTest {
         assertTrue("button $button in $root", button.left >= root.left && button.right <= root.right)
     }
 
-    // KB-6
+    // KB-6: native bottom bar (plan T-079, section 4). The bar of the framework with a fake 80 dp slot.
 
     @Test
-    fun banner_sitsBelowGrid_lastCardScrollsAboveIt() {
-        setScreen(ready(cards = manyCards()), bottomBanner = { TestBanner() })
+    fun bottomBar_lastCardScrollsAboveSlot() {
+        var passPadding by mutableStateOf(false)
+        setScreen(ready(cards = manyCards()), bar = fakeBar(passPadding = { passPadding }))
+        // Control: the same bar, its padding not given to the screen: the last card ends behind the slot.
+        scrollToLastCard()
+        val slotBefore = composeRule.onNodeWithTag(SLOT).getUnclippedBoundsInRoot()
+        val lastBefore = card("p12").getUnclippedBoundsInRoot()
+        assertTrue(
+            "control: last card ${lastBefore.bottom} behind slot ${slotBefore.top}",
+            lastBefore.bottom > slotBefore.top,
+        )
+        passPadding = true
+        composeRule.waitForIdle()
+        scrollToLastCard()
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
-        val grid = composeRule.onNodeWithTag(PosesTestTags.GRID).getUnclippedBoundsInRoot()
-        val banner = composeRule.onNodeWithTag(BANNER).getUnclippedBoundsInRoot()
-        assertEquals(BANNER_HEIGHT, banner.height.value, 0.5f)
-        assertEquals("grid ends where the banner starts", banner.top.value, grid.bottom.value, 0.5f)
-        assertEquals("banner at the bottom of the screen", root.bottom.value, banner.bottom.value, 0.5f)
+        val slot = composeRule.onNodeWithTag(SLOT).getUnclippedBoundsInRoot()
+        val last = card("p12").getUnclippedBoundsInRoot()
+        assertEquals("slot height", SLOT_HEIGHT, slot.height.value, 0.5f)
+        assertEquals("slot 16 above the bottom", 16f, (root.bottom - slot.bottom).value, 0.5f)
+        assertTrue("last card ${last.bottom} above slot ${slot.top}", last.bottom.value <= slot.top.value + 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
+    fun smallScreen_bottomBar_onErrorAndSavedEmpty_actionAboveSlot() {
+        var passPadding by mutableStateOf(false)
+        setScreen(PosesUiState.Error(LoadFailureReason.OTHER), bar = fakeBar(passPadding = { passPadding }))
+        listOf(
+            PosesUiState.Error(LoadFailureReason.OTHER) to "Thử lại",
+            ready(selected = PoseFilter.Saved, cards = emptyList()) to "Xem tất cả tư thế",
+        ).forEach { (screenState, action) ->
+            state = screenState
+            passPadding = false
+            composeRule.waitForIdle()
+            val centerWithout = centerY(action)
+            passPadding = true
+            composeRule.waitForIdle()
+            val slot = composeRule.onNodeWithTag(SLOT).assertExists().getUnclippedBoundsInRoot()
+            val button = composeRule.onNodeWithText(action).getUnclippedBoundsInRoot()
+            assertTrue("$action ${button.bottom} above slot ${slot.top}", button.bottom.value <= slot.top.value + 0.5f)
+            assertEquals("$action moves up half of 96", 48f, centerWithout - centerY(action), 1f)
+            // Control: without the padding the button is back where it was.
+            passPadding = false
+            composeRule.waitForIdle()
+            assertEquals("control: $action without padding", 0f, centerWithout - centerY(action), 1f)
+        }
+    }
+
+    @Test
+    fun saveFailedSnackbar_aboveSlot() {
+        composeRule.mainClock.autoAdvance = false
+        setScreen(ready(saveFailed = true), bar = fakeBar())
+        composeRule.mainClock.advanceTimeBy(500)
+        val slot = composeRule.onNodeWithTag(SLOT).getUnclippedBoundsInRoot()
+        val snackbar = composeRule.onNodeWithText("Chưa lưu được tư thế. Thử lại sau.").getUnclippedBoundsInRoot()
+        assertTrue("snackbar ${snackbar.bottom} above slot ${slot.top}", snackbar.bottom.value <= slot.top.value + 0.5f)
+    }
+
+    @Test
+    fun realBottomBar_withoutAds_takesNoSpace() {
+        var real by mutableStateOf(true)
+        val fake = fakeBar()
+        setScreen(
+            ready(cards = manyCards()),
+            bar = { screen ->
+                if (real) BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) { screen(it) } else fake(screen)
+            },
+        )
+        scrollToLastCard()
+        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
+        composeRule.onNodeWithTag(REAL_SLOT).assertDoesNotExist()
+        assertEquals("last cards 16 above the bottom", 16f, root.bottom.value - lastRowBottom(), 0.5f)
+        // Control: the same screen in a bar with a slot keeps 16 + 96 under the last card.
+        real = false
+        composeRule.waitForIdle()
+        scrollToLastCard()
+        assertEquals("control: with a slot", 112f, root.bottom.value - lastRowBottom(), 0.5f)
+    }
+
+    private fun scrollToLastCard() {
         composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(11)
         composeRule.waitForIdle()
-        val last = card("p12").getUnclippedBoundsInRoot()
-        assertTrue("last card ${last.bottom} above banner ${banner.top}", last.bottom.value <= banner.top.value + 0.5f)
     }
 
-    @Test
-    fun banner_shownAlsoOnErrorAndSavedEmpty() {
-        setScreen(PosesUiState.Error(LoadFailureReason.OTHER), bottomBanner = { TestBanner() })
-        composeRule.onNodeWithTag(BANNER).assertExists()
-        state = ready(selected = PoseFilter.Saved, cards = emptyList())
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("Xem tất cả tư thế").assertExists()
-        composeRule.onNodeWithTag(BANNER).assertExists()
-        state = ready()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag(BANNER).assertExists()
-    }
+    /**
+     * The bottom of the last row, p11 and p12: the right card can be a pixel shorter, as the two columns share an odd
+     * number of pixels.
+     */
+    private fun lastRowBottom(): Float = listOf("p11", "p12").maxOf { card(it).getUnclippedBoundsInRoot().bottom.value }
 
-    @Test
-    fun realBottomBanner_withoutAds_takesNoSpace() {
-        setScreen(ready(cards = manyCards()), bottomBanner = { PosesBottomBanner(AdPlacement.POSES_BANNER) })
-        val root = composeRule.onRoot().getUnclippedBoundsInRoot()
-        val grid = composeRule.onNodeWithTag(PosesTestTags.GRID).getUnclippedBoundsInRoot()
-        val slot = composeRule.onNodeWithTag("poses_banner_slot").getUnclippedBoundsInRoot()
-        assertEquals(0f, slot.height.value, 0.5f)
-        assertEquals("grid reaches the bottom of the screen", root.bottom.value, grid.bottom.value, 0.5f)
+    private fun centerY(text: String): Float {
+        val bounds = composeRule.onNodeWithText(text).getUnclippedBoundsInRoot()
+        return (bounds.top.value + bounds.bottom.value) / 2
     }
 
     // Small screens
 
     private companion object {
         const val UNFOLDED = "vi-w673dp-h841dp-xxhdpi"
-        const val BANNER = "test_banner"
-        const val BANNER_HEIGHT = 58f
+        const val SLOT = "fake_ad_slot"
+        const val SLOT_HEIGHT = 80f
+
+        // The tag of the real slot of the framework (BottomAdBarTestTags, internal to :core:ads).
+        const val REAL_SLOT = "bottom_ad_bar_slot"
 
         val IMAGE = ImageBitmap(162, 210)
 
@@ -629,8 +695,16 @@ class PosesScreenTest {
     }
 }
 
-/** A banner of the design's size (58 dp with the separator), drawn where the real ad is not available in tests. */
-@Composable
-private fun TestBanner() {
-    Box(Modifier.fillMaxWidth().height(58.dp).testTag("test_banner"))
+/**
+ * The bottom bar of the framework with a fake 80 dp slot (plan T-079, section 4): the slot takes the modifier the bar
+ * gives, so it is as wide as the screen less 2 x 16. [passPadding] false keeps the bar but gives the screen no padding.
+ */
+private fun fakeBar(
+    passPadding: () -> Boolean = { true },
+): @Composable (screen: @Composable (PaddingValues) -> Unit) -> Unit = { screen ->
+    BottomAdBarLayout(
+        reservation = BottomAdBarDefaults.nativeReservation,
+        slot = { Box(it.height(80.dp).testTag("fake_ad_slot")) },
+        layer = null,
+    ) { padding -> screen(if (passPadding()) padding else PaddingValues()) }
 }

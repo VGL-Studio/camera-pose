@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
@@ -66,6 +67,8 @@ fun PoseDetailScreen(
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
     bottomBanner: @Composable () -> Unit = {},
+    // Skeleton of plan T-079 for the tests written first: not used yet.
+    @Suppress("UNUSED_PARAMETER") contentPadding: PaddingValues = PaddingValues(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val ready = uiState as? PoseDetailUiState.Ready

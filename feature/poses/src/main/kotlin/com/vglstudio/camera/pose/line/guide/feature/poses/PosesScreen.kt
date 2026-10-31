@@ -108,6 +108,8 @@ fun PosesScreen(
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
     bottomBanner: @Composable () -> Unit = {},
+    // Skeleton of plan T-079 for the tests written first: not used yet.
+    @Suppress("UNUSED_PARAMETER") contentPadding: PaddingValues = PaddingValues(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     Box(

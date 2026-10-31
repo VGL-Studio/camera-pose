@@ -42,7 +42,7 @@ class InterstitialBreaksTest {
     @Test
     fun placements_countSeparately() {
         assertEquals(1, breaks.onBreak(AdPlacement.REVIEW_INTERSTITIAL))
-        assertEquals(1, breaks.onBreak(AdPlacement.POSES_BANNER))
+        assertEquals(1, breaks.onBreak(AdPlacement.POSES_BOTTOM))
         assertEquals(2, breaks.onBreak(AdPlacement.REVIEW_INTERSTITIAL))
     }
 
@@ -98,7 +98,7 @@ class InterstitialBreaksTest {
             InterstitialBreakSettings.all(),
         )
         // Control: a placement without limits has no keys.
-        assertNull(InterstitialBreakSettings.capOf(AdPlacement.POSES_BANNER))
+        assertNull(InterstitialBreakSettings.capOf(AdPlacement.POSES_BOTTOM))
     }
 
     @Test

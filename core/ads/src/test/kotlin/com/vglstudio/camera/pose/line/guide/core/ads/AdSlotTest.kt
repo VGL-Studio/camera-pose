@@ -50,7 +50,7 @@ class AdSlotTest {
                     mayRequestNow = { true },
                     retryResets = MutableStateFlow(0),
                     logger = RecordingAppLogger(),
-                    placementKey = AdPlacement.POSES_BANNER.key,
+                    placementKey = AdPlacement.GALLERY_BANNER.key,
                     newView = views::newView,
                     modifier = Modifier.testTag(SLOT),
                     separator = if (separator) {
@@ -121,7 +121,7 @@ class AdSlotTest {
         composeRule.setContent {
             Column {
                 AdSlot(
-                    placement = AdPlacement.POSES_BANNER,
+                    placement = AdPlacement.GALLERY_BANNER,
                     modifier = Modifier.testTag(SLOT),
                     separator = { Box(Modifier.fillMaxWidth().height(SEPARATOR_HEIGHT.dp).testTag(SEPARATOR)) },
                 )

@@ -178,6 +178,10 @@ enum class AdPlacement(
     /** Leaving the review screen after a saved photo (spec camera, section 5; breaks: InterstitialBreaks). */
     REVIEW_INTERSTITIAL("review_interstitial", AdFormat.INTERSTITIAL),
 
+    // Skeleton of plan T-079 for the tests written first: the code commit replaces the two banners with these.
+    POSES_BOTTOM("poses_bottom", AdFormat.NATIVE_SMALL),
+    POSE_DETAIL_BOTTOM("pose_detail_bottom", AdFormat.NATIVE_SMALL),
+
     // Staging ad gallery only (plans T-014, T-036): placements of every format, see [stagingOnly]. The collapsible
     // layer has none of its own: it loads through the placement of its bottom bar (GALLERY_NATIVE_SMALL, T-030).
     GALLERY_NATIVE_SMALL("gallery_native_small", AdFormat.NATIVE_SMALL),

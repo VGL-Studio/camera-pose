@@ -45,4 +45,10 @@ object StagingRemoteValuesModule {
         AdsSettings.IS_LOG_AD_FULLSCREEN_EVENTS,
         AdsSettings.IS_LOG_AD_SLOT_EVENTS,
     ).map { LocalRemoteValue.of(it, true) }.toSet()
+
+    // Skeleton of plan T-079 for the tests written first.
+    @Provides
+    @ElementsIntoSet
+    @LocalRemoteValues
+    fun globalAdSwitchesOff(): Set<LocalRemoteValue> = emptySet()
 }

@@ -1,10 +1,11 @@
 ---
 feature: poses
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-thu-vien-tu-the.md
+  - requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md
 design: design/README.md
 created: 2026-10-21
 confirmed: 2026-10-30
@@ -31,10 +32,16 @@ confirmed: 2026-10-30
 - Quảng cáo ở thư viện và chi tiết: thanh đáy native ở cả hai màn, ô quảng cáo xen trong lưới, quảng cáo toàn màn hình khi bấm "Chụp với tư thế này"; hai vị trí sau tắt lúc phát hành (`features/ads/spec.md` câu 8, 9).
 - Điện thoại màn hình gập, khi mở ra: thư viện 3 cột; chi tiết chia hai cột (ảnh, hướng dẫn).
 - Tên tư thế, các bước, lỗi hay gặp hiện theo ngôn ngữ của máy, đủ 7 ngôn ngữ phát hành.
+- Tư thế premium (KB-8; yêu cầu 2026-10-31, chờ câu 6 tới 12):
+  - Một số tư thế mang dấu premium.
+  - Người dùng xem một quảng cáo có thưởng để mở khóa một tư thế.
+  - Tư thế đã mở khóa dùng được mãi trên máy đó, không phải xem lại.
+  - Dấu và cách mở khóa có ở thư viện, chi tiết và dải tư thế của camera (câu 12).
 
 **Ngoài phạm vi lần này:**
 
 - Tìm kiếm theo chữ và thẻ, nhiều bộ sưu tập, chọn nhiều tư thế để chụp lần lượt, bài mẹo chụp ảnh.
+- Mua trong app, gói trả tiền mở mọi tư thế premium, tài khoản hay sao lưu danh sách đã mở khóa giữa các máy.
 - Làm nội dung tư thế (việc của người làm nội dung, bản đề xuất mục 11).
 - Hộp thoại mất mạng (spec `network`).
 
@@ -122,6 +129,21 @@ Tiêu chí chấp nhận:
 - [ ] Khi máy gập mở ra thì thư viện hiện 3 cột; chi tiết chia hai cột: ảnh bên trái, hướng dẫn bên phải, nút "Chụp với tư thế này" ở đáy cột phải; đúng thiết kế `_unfolded`.
 - [ ] Khi gập lại thì dùng bố cục điện thoại, giữ chip, vị trí cuộn và tư thế đang xem.
 
+### KB-8. Mở khóa tư thế premium (yêu cầu 2026-10-31)
+
+Tư thế nào là premium và người dùng thấy gì trước khi mở khóa theo câu 6 và 7.
+
+Tiêu chí chấp nhận:
+
+- [ ] Khi tư thế là premium và chưa mở khóa thì thẻ ở thư viện, ô ở dải tư thế của camera và màn chi tiết có dấu premium, đúng thiết kế.
+- [ ] Khi bấm "Chụp với tư thế này" ở chi tiết của tư thế premium chưa mở khóa, hay chọn nó ở dải tư thế của camera, thì hộp thoại mở khóa hiện. Hộp thoại có tên tư thế, lời giải thích, nút "Xem quảng cáo", "Để sau".
+- [ ] Khi người dùng xem hết quảng cáo và nhận thưởng thì tư thế mở khóa ngay: dấu premium mất ở mọi màn, và app làm tiếp việc người dùng vừa định làm (về camera với tư thế đó, hay dùng nó ở camera).
+- [ ] Khi người dùng đóng quảng cáo trước khi nhận thưởng, hay bấm "Để sau", thì tư thế vẫn khóa, app ở lại màn đang mở.
+- [ ] Khi không có quảng cáo hay mất mạng thì app làm theo câu 8.
+- [ ] Khi tư thế đã mở khóa thì lần mở app sau, kể cả sau khi cập nhật app hay catalog mới, nó vẫn mở; chỉ mất khi người dùng xóa dữ liệu app hay cài lại (câu 9).
+- [ ] Khi vị trí rewarded tắt (`is_show_rw_premium_pose` tắt) hay cờ `feature_premium_poses_enabled` tắt thì app làm theo câu 10.
+- [ ] Khi đang mở camera lần đầu thì tư thế mặc định và các tư thế của bộ khởi đầu không bao giờ là premium (câu 6).
+
 ## 4. Giao diện
 
 - **Thiết kế:** [design/README.md](design/README.md) (gói bàn giao lập sau khi spec được xác nhận), dựng trên Figma theo hướng Sticker, section Poses và PoseDetail của trang Screens.
@@ -134,6 +156,12 @@ Tiêu chí chấp nhận:
 
 Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `saved-empty`, `ad` (có quảng cáo ở đáy, câu hỏi 1 và 5), `default` khi mở gập; chi tiết `default`, `loading`, `error`, `ad`, `default` khi mở gập. Mỗi trạng thái có bản sáng và tối. Trạng thái `ad` vẽ banner 320 x 50 theo câu hỏi 1; từ T-079 đáy là thanh native (câu hỏi 5).
 
+Tư thế premium (KB-8) cần thiết kế mới trên Figma:
+
+- dấu premium trên thẻ thư viện, ô của dải tư thế camera và chi tiết;
+- nút chính của chi tiết khi tư thế còn khóa;
+- nội dung hộp thoại mở khóa đặt trong `RewardedAdDialog` của khung, bản sáng và tối.
+
 ## 5. Quảng cáo
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
@@ -142,6 +170,7 @@ Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `sa
 | `pose_detail_bottom` | native_small (thanh đáy) | Đáy màn chi tiết tư thế, dưới nút chính | Như trên | `is_show_pose_detail_bottom`, cùng `is_show_native_bottom` |
 | `poses_in_collection` | native_in_collection | Ô xen trong lưới thư viện, sau mỗi 8 tư thế; không ở đầu, không ở cuối | Pool 5 quảng cáo, hết hạn 55 phút; tắt lúc phát hành | `is_show_poses_in_collection`, `native_every_poses_in_collection` |
 | `inter_pose_detail` | interstitial | Sau khi bấm "Chụp với tư thế này", trước khi camera mở | Nhịp chung `ads_interval` (mặc định 45 giây), cùng nhóm với `review_interstitial`; tắt lúc phát hành | `is_show_inter_pose_detail` |
+| `rw_premium_pose` (yêu cầu 2026-10-31) | rewarded | Khi người dùng bấm "Xem quảng cáo" ở hộp thoại mở khóa tư thế premium (KB-8) | Không qua `ads_interval`, không đẩy mốc (khung); chỉ khi người dùng chọn. Không có quảng cáo thì theo câu 8 | `is_show_rw_premium_pose` |
 
 `poses_banner`, `poses_detail_banner` (banner, T-074) bỏ khỏi app ở T-079 (`features/ads/spec.md` câu 8); khóa cũ giữ trên Firebase tới khi bản cũ không còn người dùng.
 
@@ -154,6 +183,7 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | Dữ liệu | Mục đích | Giữ trong bao lâu |
 | --- | --- | --- |
 | Danh sách tư thế đã lưu, kèm thời điểm lưu | Chip "Đã lưu" | Đến khi người dùng xóa dữ liệu app |
+| Danh sách tư thế premium đã mở khóa, kèm thời điểm mở (yêu cầu 2026-10-31) | Tư thế đã mở dùng được mãi (KB-8) | Đến khi người dùng xóa dữ liệu app hay cài lại (câu 9) |
 | Catalog, ảnh nhỏ, ảnh lớn, nét viền đã tải | Hiện ngay ở lần sau (ADR-0015) | Đến khi người dùng xóa dữ liệu app |
 | Đã mở app lần đầu (`ads_first_open_done`) | Không có quảng cáo mở app ở lần mở đầu sau khi cài | Đến khi người dùng xóa dữ liệu app |
 | Số quảng cáo toàn màn hình đã hiện từ khi cài (`ads_inter_display_count`) | Luật đếm của khung | Đến khi người dùng xóa dữ liệu app |
@@ -165,6 +195,7 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | `pose_detail_opened` | Khi mở chi tiết tư thế | `pose_id`, `category` | Tư thế nào được quan tâm |
 | `pose_saved` | Khi lưu hoặc bỏ lưu | `pose_id`, `saved`: có hoặc không | Tư thế nào được yêu thích, nên làm thêm loại nào |
 | `pose_selected` | Khi bấm "Chụp với tư thế này" | `pose_id`, `category`, `source`: `detail` | Thư viện có dẫn người dùng tới chụp không |
+| `premium_pose_unlocked` (đề xuất, chờ câu 11) | Khi một tư thế premium mở khóa sau khi nhận thưởng | `pose_id`, `category`, `source`: `detail` hoặc `camera` | Tư thế premium nào được mở, mở từ đâu |
 | `content_load_failed` | Khi tải catalog hay ảnh thất bại | `content`: `catalog`, `thumbnail`, `image`; `reason`: `network`, `not_found`, `timeout`, `other` | Lỗi tải nội dung có nhiều không (bài học 7) |
 
 **Sự kiện quảng cáo do khung ghi** (`:core:analytics`, `FirebaseAdMetrics`; chung cho mọi vị trí, không riêng màn này; mỗi sự kiện có `ad_format`, `ad_placement`): `ad_impression_placement` (luôn ghi; thêm `value`, `currency`, `ad_source`, `ad_unit_name`, `ad_platform`), `ad_opportunity` (luôn ghi; `opportunity_result`, `load_state`), `ad_load_success`, `ad_load_fail`, `ad_show_fail`, `ad_clicked` (chỉ ghi khi khóa `is_log_ad_fullscreen_events` hay `is_log_ad_slot_events` bật; mặc định tắt, bản staging bật). Dùng để đo doanh thu và tỷ lệ hiện của từng vị trí. Không gửi gì tới AppsFlyer (`features/ads/spec.md` câu 3).
@@ -179,6 +210,8 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 
 Đường dẫn, khuôn dữ liệu và cách lưu theo bản đề xuất, mục 11 (ADR-0015). Mỗi lần nội dung đổi là một đường dẫn mới.
 
+Tư thế premium (yêu cầu 2026-10-31): nếu câu 6 chọn đánh dấu trong catalog, catalog có thêm trường `premium` cho mỗi tư thế, ở một phiên bản catalog mới. Người làm nội dung đặt trường này.
+
 ## 8. Cờ tính năng
 
 | Tên cờ | Mặc định | Ý nghĩa |
@@ -188,6 +221,8 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | `is_show_pose_detail_bottom` | tắt | Bật thanh đáy `pose_detail_bottom` (như trên; thay `is_show_poses_detail_banner`) |
 | `is_show_poses_in_collection` | tắt | Bật ô quảng cáo trong lưới (câu 9). `native_every_poses_in_collection`: số tư thế giữa hai ô, mặc định 8 |
 | `is_show_inter_pose_detail` | tắt | Bật quảng cáo toàn màn hình khi chụp với tư thế từ chi tiết (câu 9) |
+| `feature_premium_poses_enabled` (đề xuất, chờ câu 10) | tắt | Bật dấu premium và khóa tư thế premium (KB-8). Tắt thì mọi tư thế dùng được. Bản staging bật sẵn |
+| `is_show_rw_premium_pose` | tắt | Bật quảng cáo có thưởng để mở khóa tư thế premium (KB-8, câu 10) |
 
 ## 9. Câu hỏi còn mở
 
@@ -206,6 +241,43 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
    - Đề xuất của AI: AI vẽ lại bốn frame trên Figma với thanh đáy native 80 dp của khung (khe 80 dp, lề đáy 16 dp), xuất lại ảnh vào `design/screens/` trước khi soạn plan T-079; thêm một frame `PosesScreen_ad-collection_light` có ô quảng cáo trong lưới để kiểm thẻ quảng cáo khác rõ thẻ tư thế. Không có thiết kế riêng cho thẻ quảng cáo: dùng giao diện của khung.
    - Trả lời: đồng ý với đề xuất của AI. Nhật, 2026-10-30.
 
+6. **Tư thế nào là premium, đánh dấu ở đâu?**
+   - Đề xuất của AI:
+     - Đánh dấu trong catalog trên R2 bằng trường `premium` (catalog phiên bản mới). Người làm nội dung chọn tư thế, không cần phát bản app.
+     - Tư thế mặc định và bộ khởi đầu không bao giờ là premium; script kiểm catalog báo lỗi nếu có.
+     - Khoảng 20% tư thế là premium, rải đều các nhóm. Người làm nội dung chốt con số.
+     - Phương án khác: một danh sách mã tư thế trên Remote Config. Đổi nhanh hơn, nhưng danh sách dài và dễ lệch với catalog.
+   - Trả lời:
+7. **Trước khi mở khóa, người dùng xem được gì?**
+   - Đề xuất của AI:
+     - Thẻ và ô vẫn hiện ảnh tư thế, thêm dấu premium.
+     - Chi tiết mở được: ảnh, các bước, lỗi hay gặp. Nút chính đổi thành "Xem quảng cáo để dùng" (chữ chốt theo thiết kế).
+     - Ở dải tư thế camera, chạm ô premium chưa mở khóa thì hiện hộp thoại mở khóa, không đổi tư thế đang dùng.
+     - Lưu tư thế premium khi chưa mở khóa vẫn được.
+   - Trả lời:
+8. **Không có quảng cáo (chưa tải được, hết quảng cáo, mất mạng) thì sao?** Khung có ba chính sách: chặn; cho dùng; cho dùng sau N lần không có quảng cáo liên tiếp.
+   - Đề xuất của AI: cho dùng sau 2 lần liên tiếp không có quảng cáo (`AllowAfter(2)`). Người dùng không bị kẹt mãi, và tư thế mở theo cách này cũng mở vĩnh viễn. Lỗi mạng thì khung hiện thông báo kiểm tra kết nối.
+   - Trả lời:
+9. **"Vĩnh viễn" nghĩa là gì khi không có tài khoản?**
+   - Đề xuất của AI: danh sách đã mở khóa lưu trên máy (DataStore), như danh sách đã lưu.
+     - Mất khi xóa dữ liệu app hay cài lại.
+     - Sao lưu tự động của Android có thể khôi phục danh sách khi cài lại, nếu app bật sao lưu. Plan kiểm cấu hình sao lưu hiện có và nêu kết quả.
+     - Tư thế bỏ khỏi catalog rồi quay lại vẫn giữ trạng thái đã mở, vì danh sách lưu theo mã tư thế.
+   - Trả lời:
+10. **Khi tắt quảng cáo có thưởng hay tắt tính năng thì sao?** Hành vi của khung: khóa `is_show_rw_premium_pose` tắt, hay người dùng chưa đồng ý quảng cáo, thì hành động chạy ngay, tức tư thế mở khóa không cần xem quảng cáo.
+    - Đề xuất của AI:
+      - Thêm cờ `feature_premium_poses_enabled`, mặc định tắt. Tắt thì không có dấu premium, mọi tư thế dùng được, và không ghi gì vào danh sách đã mở khóa.
+      - Bật cờ mà khóa rewarded tắt hay chưa đồng ý quảng cáo: theo khung, bấm "Xem quảng cáo" thì tư thế mở luôn và mở vĩnh viễn.
+      - Lúc phát hành: cả hai bật khi catalog có tư thế premium. Bản staging bật cả hai.
+    - Trả lời:
+11. **Có ghi sự kiện mở khóa không?** Khung đã ghi sự kiện quảng cáo có thưởng (`ad_opportunity`, `ad_impression_placement`...) với mã vị trí, nhưng không có mã tư thế.
+    - Đề xuất của AI: thêm `premium_pose_unlocked` (`pose_id`, `category`, `source`), ghi khi tư thế mở khóa, kể cả khi mở theo câu 8.
+    - Trả lời:
+12. **Phần ở camera.** Dải tư thế thuộc spec camera (KB-1).
+    - Đề xuất của AI: phần này ghi ở spec poses (KB-8). Khi spec poses được xác nhận, AI chép một tiêu chí vào KB-1 của spec camera, cùng PR, như cách đã làm với mục 5.
+    - Hai ticket: dữ liệu và catalog (`:core:poses`); khóa ở thư viện, chi tiết, camera và quảng cáo có thưởng.
+    - Trả lời:
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -221,3 +293,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |
 | 2026-10-30 | AI | Theo `features/ads/spec.md` câu 8 tới 10 (Nhật, 2026-10-30): thanh đáy native `poses_bottom`, `pose_detail_bottom` thay hai banner; thêm `poses_in_collection`, `inter_pose_detail`, tắt lúc phát hành. Sửa mục 2, 4, 5, 8, KB-4, KB-6; thêm câu hỏi 5 (thiết kế trạng thái `ad`). Chuyển `changed` |
 | 2026-10-30 | Nhật | Trả lời câu hỏi 5 (AI vẽ lại trạng thái `ad` trên Figma; AI ghi). Xác nhận spec. Lời xác nhận của Nhật: chọn "Chuyển confirmed" khi được hỏi, sau khi trả lời câu cuối. Chuyển lại `confirmed` |
+| 2026-10-31 | AI | Yêu cầu của Nhật (`requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md`): tư thế premium mở khóa bằng quảng cáo có thưởng `rw_premium_pose` (mục 2, KB-8, mục 4 tới 8; câu 6 tới 12). Chuyển `changed`, chờ trả lời và xác nhận |

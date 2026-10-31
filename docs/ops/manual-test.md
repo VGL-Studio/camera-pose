@@ -360,7 +360,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 1. `scripts/device-session.sh reset`, mở app; chọn **Đồng ý** ở hộp thoại đồng ý quảng cáo.
    - [ ] Loading rồi màn chào, không có quảng cáo mở app; log `startup ad: key off`.
-3. Đóng hẳn app (vuốt khỏi danh sách app gần đây), mở lại.
+2. Đóng hẳn app (vuốt khỏi danh sách app gần đây), mở lại.
    - [ ] Loading tới 100%, quảng cáo mở app thử hiện; đóng quảng cáo thì vào camera.
 
 Màn loading tắt thì không có quảng cáo mở app. Bản staging bật sẵn `feature_loading_enabled` trong code (`StagingFeatureFlagsModule`), Firebase không tắt được cờ này, nên phần đó không kiểm trên staging (mục 12).

@@ -898,3 +898,30 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** máy dev: thêm vào `~/.ssh/config` một khối `Host github.com` với `IdentityFile ~/.ssh/github` và `IdentitiesOnly yes` (người làm, ngoài repo). Hoặc `docs/ops/session-capabilities.md`, dòng `local`: ghi lệnh `ssh -T -o BatchMode=yes git@github.com` vào kiểm tra đầu phiên, để lỗi lộ ra trước khi viết code.
 - **Áp dụng:** Nhật nhận ngày 2026-10-30 (PR #249). Cùng ngày, theo yêu cầu của Nhật, AI thêm vào `~/.ssh/config` của máy dev (ngoài repo, trước đó chưa có tệp này) khối `Host github.com` với `IdentityFile ~/.ssh/github` và `IdentitiesOnly yes`; `ssh -T -o BatchMode=yes git@github.com` xác thực được mà không cần agent hay `GIT_SSH_COMMAND`. Phạm vi app, không đề xuất về dự án mẫu.
 - **Kiểm chứng:**
+
+### L-097: lệnh kiểm ảnh chuẩn `git status --short -- '*/src/test/screenshots/'` không khớp file nào
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
+- **Chuyện gì:** `CLAUDE.md` mục Lệnh và mục 3.1 của plan T-079 dùng `git status --short -- '*/src/test/screenshots/'` để thấy ảnh chuẩn nào đã đổi sau khi ghi lại. Pathspec này không khớp file nào trong thư mục ảnh, nên lệnh luôn in trống, kể cả khi có ảnh đổi. Phép kiểm "chỉ ảnh của mục 3.2 đổi" vì thế qua cả khi ảnh khác đổi.
+- **Bằng chứng:** RUN-20261031-01: phiên con lượt 1 báo lệnh không in gì, phải dùng đường dẫn thư mục. Phiên chính thử lại: thêm một byte vào `feature/poses/src/test/screenshots/PosesScreen_ad_light.png` thì lệnh trên không in gì, còn `git status --short -- ':(glob)**/src/test/screenshots/**'` in ` M feature/poses/src/test/screenshots/PosesScreen_ad_light.png`.
+- **Đề xuất sửa:** `CLAUDE.md` mục Lệnh, mẫu plan và mọi chỗ dẫn lệnh này: đổi thành `git status --short -- ':(glob)**/src/test/screenshots/**'`. Thêm một test của script kiểm lệnh in đúng file ảnh đổi.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-098: ghi lại ảnh chuẩn đổi cả ảnh ngoài plan vì nhiễu vẽ
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
+- **Chuyện gì:** `./gradlew :feature:poses:recordRoborazziDebug :feature:poses:testDebugUnitTest --rerun` ghi lại mọi ảnh của module. Ngoài 6 ảnh `ad` mà plan cho phép, 11 ảnh không có quảng cáo đổi vì nhiễu vẽ (tối đa 1 mỗi kênh màu, vài chục tới khoảng 110 điểm ảnh), dù `verifyRoborazziDebug` vẫn qua với ảnh cũ. Không quy tắc nào nói phải làm gì; phiên con tự khôi phục 11 ảnh và không coi là điều kiện dừng.
+- **Bằng chứng:** RUN-20261031-01, báo cáo phiên con T-079 lượt 1; PR #256 chỉ có 6 ảnh `ad`; `scripts/check.sh` và CI xanh.
+- **Đề xuất sửa:** `CLAUDE.md` mục Lệnh, dòng ghi lại ảnh chuẩn: sau khi ghi, khôi phục mọi ảnh ngoài mục 3.2 (`git checkout -- <ảnh>`) khi `verifyRoborazziDebug` qua với ảnh cũ; ảnh ngoài mục 3.2 mà `verify` đỏ với ảnh cũ thì vẫn là điều kiện dừng.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-099: phiên `local` và một phiên Claude Code khác dùng chung thư mục chính
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
+- **Chuyện gì:** phiên `local` làm việc của nhánh báo cáo trong thư mục chính của repo. Trong lúc phiên chờ `device-session`, một phiên Claude Code khác cũng làm việc trong thư mục đó: chuyển sang `main`, `pull`, tạo nhánh `claude/docs-T-081-ticket` và commit, rồi về `main`. Lần sửa báo cáo tiếp theo của phiên chạy trên tệp của `main` (thất bại vì không thấy đoạn cần thay), và commit kèm theo rơi vào `main` cục bộ thay vì nhánh báo cáo.
+- **Bằng chứng:** RUN-20261031-01, `git reflog` lúc khoảng 14:58 UTC: `checkout: moving from claude/RUN-20261031-01-report to main`, `pull -q --ff-only`, commit `78bdb32` (T-081, không phải của phiên), rồi commit `d8ac7b4` của phiên trên `main`. Không có gì bị đẩy lên `main`. Phiên chuyển commit sang nhánh báo cáo trong worktree `../run-report` (`46cdde8`) và trả `main` cục bộ về `origin/main` bằng `git reset --keep`.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 2, phiên `local`: làm mọi việc của nhánh báo cáo trong một worktree riêng (`git worktree add ../run-report claude/RUN-YYYYMMDD-NN-report`), để thư mục chính không mang trạng thái của phiên. `docs/ops/session-capabilities.md`, dòng `local`: người không mở phiên khác trong thư mục repo khi danh sách chạy đang `running`, hay mở phiên đó trong worktree riêng.
+- **Áp dụng:**
+- **Kiểm chứng:**

@@ -2,7 +2,7 @@
 id: T-084
 title: Mã quảng cáo theo lớp cho thanh đáy (banner, native thu gọn), chọn lớp bằng Remote Config
 feature: ads
-spec: features/ads/spec.md   # changed 2026-10-31, chờ câu 13 tới 15
+spec: features/ads/spec.md   # confirmed 2026-10-31, câu 13 tới 15
 scenarios: []                # spec ads không có kịch bản riêng; thanh đáy theo KB-6 của features/poses/spec.md
 owner: Tuấn
 status: backlog
@@ -40,13 +40,13 @@ Sau ticket này, bản production có mã cho cả ba lớp. Đổi hai khóa tr
   - `docs/ops/ads-guide.md`, mục 5, bước 6, và `docs/ops/release.md`: cách khai báo mã lớp. `release.md` thuộc T-075 nếu T-075 thay cả file; plan nêu file nào sửa ở ticket nào.
   - `docs/ops/manual-test.md`: bước thử bốn tổ hợp của câu 13 trên Firebase staging.
 - **Đề xuất về dự án mẫu** (`docs/ops/from-app.md`): mã theo lớp của thanh đáy. Câu 14 của spec AdsKit của mẫu (mã theo khe) cùng ý.
-- **Nếu câu 13 chọn khóa mới `bottom_ad_type`:** sửa `BottomAdBarScaffold` và bảng khóa. Cỡ ticket lên L; plan tính lại.
+- Không thêm khóa, không sửa cách chọn lớp của `BottomAdBarScaffold` (câu 13).
 
 **Không bao gồm:**
 
 - Kiểm mã lớp trong `scripts/release.sh`: T-075, do người làm. T-075 cần biết khuôn của câu 14.
 - Đổi giá trị trên Firebase production: người làm lúc phát hành (câu 15).
-- Chọn lớp riêng cho từng màn: chỉ khi câu 13 chọn khóa theo vị trí.
+- Chọn lớp riêng cho từng màn: hai khóa áp chung cho mọi thanh đáy (câu 13).
 
 ## Rủi ro sơ bộ
 

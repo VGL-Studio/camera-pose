@@ -2,7 +2,7 @@
 id: T-086
 title: Khóa tư thế premium ở thư viện, chi tiết, camera; mở bằng quảng cáo có thưởng `rw_premium_pose`
 feature: poses
-spec: features/poses/spec.md   # changed 2026-10-31, chờ câu 7, 8, 10, 11, 12; vị trí cũng ghi ở features/ads/spec.md câu 12
+spec: features/poses/spec.md   # confirmed 2026-10-31, câu 7, 8, 10, 11, 12; vị trí cũng ghi ở features/ads/spec.md câu 12; KB-1 của features/camera/spec.md
 scenarios: [KB-8]
 owner: Nhật
 status: backlog
@@ -29,7 +29,7 @@ Phần người dùng thấy của tư thế premium, theo yêu cầu của Nh�
   - bản sáng và tối.
 
   Lập gói bàn giao cho poses và camera.
-- **`AdPlacement`:** thêm `RW_PREMIUM_POSE("rw_premium_pose", AdFormat.REWARDED, noAdPolicy = ...)`, một dòng, chính sách theo câu 8.
+- **`AdPlacement`:** thêm `RW_PREMIUM_POSE("rw_premium_pose", AdFormat.REWARDED)`, một dòng. Không khai báo `noAdPolicy`: chặn khi không có quảng cáo (câu 8).
 - **Thư viện, chi tiết (`:feature:poses`):**
   - Dấu premium.
   - Nút chính khi còn khóa.
@@ -39,9 +39,8 @@ Phần người dùng thấy của tư thế premium, theo yêu cầu của Nh�
   - Chạm ô còn khóa thì hiện hộp thoại, không đổi tư thế đang dùng.
   - Mở khóa xong thì dùng tư thế đó.
   - Tư thế dùng lần trước mà bị khóa (catalog mới đánh dấu premium) thì camera dùng tư thế mặc định. Plan nêu trường hợp này.
-- **Sự kiện:** `premium_pose_unlocked` (`pose_id`, `category`, `source`) nếu câu 11 chọn; khai báo hằng `EVENT_`.
+- **Sự kiện:** `premium_pose_unlocked` (`pose_id`, `category`, `source`), khai báo hằng `EVENT_` (câu 11).
 - **Bản staging:** bật `is_show_rw_premium_pose`, cập nhật `StagingRemoteValuesModuleTest`. Sinh lại bảng khóa.
-- **Spec camera:** chép tiêu chí vào KB-1 của `features/camera/spec.md` theo câu 12, nếu chưa chép khi xác nhận spec.
 - **Test:**
   - ViewModel: chọn tư thế khóa, được thưởng, đóng sớm, không có quảng cáo.
   - Giao diện, và screenshot cho mỗi ảnh thiết kế mới.
@@ -63,8 +62,8 @@ Cỡ L. Nếu plan thấy không xong trong một lượt, chia hai lượt: th�
 
 ## Định nghĩa hoàn thành
 
-- [ ] Đạt KB-8 của spec poses và tiêu chí đã chép vào KB-1 của spec camera.
+- [ ] Đạt KB-8 của spec poses và hai tiêu chí tư thế premium ở KB-1 của spec camera.
 - [ ] Khóa `is_show_rw_premium_pose` mặc định tắt; bản staging bật; bảng khóa sinh lại khớp code.
 - [ ] Mỗi ảnh thiết kế mới có screenshot test cùng tên; chạy `scripts/design-compare.sh` cho poses và camera.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.
-- [ ] Thử trên máy thật bản staging: mở khóa từ chi tiết và từ camera, đóng quảng cáo sớm, chế độ máy bay; mở lại app thì tư thế vẫn mở. Xem quảng cáo thử có thưởng đến hết; không bấm vào quảng cáo.
+- [ ] Thử trên máy thật bản staging: mở khóa từ chi tiết và từ camera, đóng quảng cáo sớm, chế độ máy bay (tư thế vẫn khóa); mở lại app thì tư thế vẫn mở. Xem quảng cáo thử có thưởng đến hết; không bấm vào quảng cáo.

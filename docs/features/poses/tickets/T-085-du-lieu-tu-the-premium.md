@@ -2,7 +2,7 @@
 id: T-085
 title: Dữ liệu tư thế premium và danh sách đã mở khóa (`:core:poses`, catalog)
 feature: poses
-spec: features/poses/spec.md   # changed 2026-10-31, chờ câu 6, 9, 10, 12
+spec: features/poses/spec.md   # confirmed 2026-10-31, câu 6, 9, 10, 12
 scenarios: [KB-8]              # phần dữ liệu: đánh dấu premium, mở khóa vĩnh viễn, tư thế mặc định không premium
 owner: Nhật
 status: backlog
@@ -29,7 +29,7 @@ Ticket này chưa có giao diện hay quảng cáo; phần đó ở T-086. Sau t
 ## Phạm vi
 
 - **Catalog:**
-  - Trường `premium` cho mỗi tư thế, theo câu 6, trong một phiên bản catalog mới. Catalog cũ không có trường thì mọi tư thế miễn phí.
+  - Trường `premium` cho mỗi tư thế (câu 6), trong một phiên bản catalog mới. Catalog cũ không có trường thì mọi tư thế miễn phí.
   - Cập nhật khuôn catalog trong tài liệu nội dung.
   - Script kiểm catalog (`scripts/setup-check-app.sh` hay script nội dung) báo lỗi khi tư thế mặc định hay bộ khởi đầu là premium.
 - **`:core:poses`:**

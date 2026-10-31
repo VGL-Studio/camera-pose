@@ -925,3 +925,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `docs/auto-run.md` mục 2, phiên `local`: làm mọi việc của nhánh báo cáo trong một worktree riêng (`git worktree add ../run-report claude/RUN-YYYYMMDD-NN-report`), để thư mục chính không mang trạng thái của phiên. `docs/ops/session-capabilities.md`, dòng `local`: người không mở phiên khác trong thư mục repo khi danh sách chạy đang `running`, hay mở phiên đó trong worktree riêng.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-100: bảng thiết lập môi trường cloud thiếu tên miền kho Maven của mediation, env-canary đỏ hai ngày
+
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** issue #242 (`env-broken`), sau T-074.
+- **Chuyện gì:** T-074 (#228) lấy khung quảng cáo AdsKit, thêm vào `settings.gradle.kts` hai kho Maven ngoài của Mintegral (`dl-maven-android.mintegral.com`) và Pangle (`artifact.bytedance.com`). Proxy của môi trường cloud trả 403 cho hai tên miền này, nên `scripts/check.sh` trong env-canary đỏ ngay ở bước tải `:app:stagingDebugRuntimeClasspath`, và issue `env-broken` chặn `start-run.yml`. `docs/ops/ads-guide.md` mục 7 đã ghi môi trường phải cho phép hai tên miền, nhưng bảng thiết lập môi trường ở `docs/ops/staging-and-runs.md` mục 2.1, nơi người làm theo khi tạo môi trường, không có chúng. Dự án mẫu cũng thiếu như vậy.
+- **Bằng chứng:** issue #242, env-canary đỏ ngày 2026-10-30 (07:28 UTC) và 2026-10-31 (06:58 UTC), commit `9d0e335`: `Could not GET 'https://dl-maven-android.mintegral.com/...' Received status code 403` và `Could not GET 'https://artifact.bytedance.com/...' Received status code 403`. CI trên máy của GitHub và `check.sh` trên máy dev vẫn xanh (L-095).
+- **Đề xuất sửa:** `docs/ops/staging-and-runs.md` mục 2.1: thêm hai tên miền vào Allowed domains, nhắc thêm tên miền khi thêm kho Maven ngoài mới; mục 2.4: log Gradle có `Received status code 403` thì thêm tên miền vào môi trường, không sửa code hay file build. Người thêm hai tên miền vào môi trường trên claude.ai/code rồi chạy lại env-canary. Dự án mẫu có thể cho `scripts/cloud-env-check.sh` hay `scripts/env-canary.sh` thử tải từ từng kho `maven(...)` để báo rõ tên miền bị chặn, và thêm vào `docs/ops/failure-playbook.md` một dòng cho 403 của Gradle trong môi trường cloud.
+- **Áp dụng:** tài liệu sửa ở PR #264 (merge ngày 2026-10-31). Nhật đóng #242 cùng ngày. Thêm hai tên miền vào môi trường cloud là việc của người, chưa kiểm. Dự án mẫu: VGL-Studio/app-project-template#363.
+- **Kiểm chứng:**

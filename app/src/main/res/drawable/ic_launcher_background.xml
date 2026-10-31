@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Background layer of the launcher icon (spec loading, KB-6; plan T-087): golden orange at the top left to deep
+    orange at the bottom right, the corner colors of the approved background image. The launcher draws the icon,
+    not Compose, so the colors live here and not in AppTheme.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="315"
+        android:endColor="#FD5E02"
+        android:startColor="#FDBE0C"
+        android:type="linear" />
+</shape>

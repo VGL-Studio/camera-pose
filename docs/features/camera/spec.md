@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-29
+confirmed: 2026-10-31
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -58,6 +58,8 @@ Tiêu chí chấp nhận:
 - [ ] Khi chạm một ô ở dải thì nét viền và thẻ bước đổi sang tư thế đó; ô đang chọn có viền màu nhấn và dấu ✓; app ghi `pose_selected`.
 - [ ] Khi mở camera từ nút "Chụp với tư thế này" ở chi tiết tư thế thì camera dùng đúng tư thế đó, dải tư thế cuộn tới ô của nó.
 - [ ] Khi ảnh nhỏ của một ô chưa tải xong thì ô hiện khung trống, không chặn việc chọn; tải lỗi thì ô hiện dấu lỗi, chạm lại để thử tải.
+- [ ] Khi cờ `feature_premium_poses_enabled` bật thì ô của tư thế premium chưa mở khóa có dấu premium; chạm ô thì hộp thoại mở khóa hiện, tư thế đang dùng không đổi; mở khóa xong thì camera dùng tư thế đó (spec poses, KB-8, câu 7 và 12).
+- [ ] Khi tư thế dùng lần trước trở thành premium chưa mở khóa (catalog mới) thì camera dùng tư thế mặc định (spec poses, KB-8).
 
 Trường hợp đặc biệt:
 
@@ -345,3 +347,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
 | 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "Áp dụng từ T-074", "trước đó ..."; tên khóa mới ở KB-9 và mục 8; mục 6 thêm dữ liệu trên máy và sự kiện quảng cáo do khung ghi. Chuyển `changed`, chờ Nhật xác nhận lại |
 | 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |
+| 2026-10-31 | AI | Chép phần dải tư thế của tư thế premium vào KB-1 (spec poses, KB-8, câu 12; Nhật chọn chép trong PR xác nhận spec poses). Nhật xác nhận cùng spec poses: chọn "Ghi và chuyển confirmed" |

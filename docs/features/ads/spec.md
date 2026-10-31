@@ -4,9 +4,10 @@ status: confirmed        # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
+  - requests/2026-10-31-thanh-day-native-thu-gon.md
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed: 2026-10-30
+confirmed: 2026-10-31
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
@@ -17,7 +18,7 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
 
 ## 1. Mục tiêu
 
-- **Người dùng được gì:** quảng cáo hiện theo cùng một bộ luật đã kiểm trên máy thật ở dự án mẫu. Không có vị trí quảng cáo nào của màn camera, màn chào hay loading; quảng cáo mở app hiện ở điểm chuyển từ loading sang camera, quảng cáo khi quay lại app hiện ở mọi màn, kể cả camera (câu 6).
+- **Người dùng được gì:** quảng cáo hiện theo cùng một bộ luật đã kiểm trên máy thật ở dự án mẫu. Không có vị trí quảng cáo nào của màn camera hay loading; luồng giới thiệu chỉ có thẻ native `native_onboarding` từ yêu cầu 2026-10-31 (câu 12), không có quảng cáo toàn màn hình; quảng cáo mở app hiện ở điểm chuyển từ loading sang camera, quảng cáo khi quay lại app hiện ở mọi màn, kể cả camera (câu 6).
 - **Vì sao làm bây giờ:** dự án mẫu đã xong khung quảng cáo theo AdsKit PARTNER (`0.1.0-staging.18`). App đang giữ bộ cũ theo ADR-1004, và mọi sửa của dự án mẫu cho quảng cáo không tới được app.
 - **Đo kết quả bằng gì:** doanh thu quảng cáo trên một người dùng mỗi ngày và tỷ lệ giữ chân ngày 1. So hai tuần trước và sau bản có khung mới.
 
@@ -33,11 +34,15 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
   - `poses_in_collection`: ô quảng cáo xen trong lưới thư viện, sau mỗi 8 tư thế; tắt lúc phát hành (câu 9).
 - Luật tần suất, khóa Remote Config, theo câu trả lời ở mục 9. AppsFlyer chưa bật (câu 3).
 - Hai vị trí toàn app của khung (câu 6): quảng cáo mở app (`open_app`), sau loading và trước camera; quảng cáo khi quay lại app (`resume`), ở mọi màn, kể cả camera.
+- Theo ba yêu cầu ngày 2026-10-31 (câu 12 tới 15):
+  - `native_onboarding`: thẻ native ở mọi trang của luồng giới thiệu, bật lúc phát hành (spec onboarding, KB-6, câu 6, 8).
+  - `rw_premium_pose`: quảng cáo có thưởng mở khóa tư thế premium; không có quảng cáo thì chặn (spec poses, KB-8, câu 8, 10).
+  - Lớp banner và lớp native thu gọn của thanh đáy có mã quảng cáo ở production (`<khóa vị trí>/<định dạng lớp>`), chọn lớp bằng hai khóa có sẵn `is_show_native_bottom`, `is_show_native_collap` (câu 13 tới 15).
 
 **Ngoài phạm vi:**
 
 - Vị trí quảng cáo khác các vị trí ở trên. Combo native sau interstitial (`native_combo`) giữ tắt (câu 6, câu 9). Mỗi vị trí mới cần spec được duyệt và ticket riêng.
-- Lớp native thu gọn 250 dp nổi trên thanh đáy: có trong khung nhưng tắt lúc phát hành (câu 10).
+- Lớp native thu gọn 250 dp nổi trên thanh đáy: có trong khung nhưng tắt lúc phát hành (câu 10). Từ yêu cầu 2026-10-31, lớp có mã ở production và bật được từ xa (câu 13 tới 15).
 - AppsFlyer (câu 3), màn xem thử quảng cáo `AdGalleryActivity` và `SAMPLE_BOTTOM_BANNER` (câu 4).
 
 ## 3. Kịch bản sử dụng
@@ -50,7 +55,7 @@ Không có thiết kế riêng: thanh đáy native, ô quảng cáo trong lướ
 
 ## 5. Quảng cáo
 
-Vị trí của màn: theo `features/camera/spec.md` và `features/poses/spec.md`, mục 5 (câu 7 tới 10 đã chép vào spec poses). Hai vị trí toàn app (`open_app`, `resume`) ghi ở đây theo câu 6, và chép vào mục 5 của `features/loading/spec.md` (quảng cáo mở app hiện sau loading) và `features/camera/spec.md` (quảng cáo khi quay lại app có thể hiện khi người dùng quay lại lúc đang ở camera) trong PR của T-074. Không thêm vị trí khác.
+Vị trí của màn: theo `features/camera/spec.md`, `features/poses/spec.md` và `features/onboarding/spec.md`, mục 5 (câu 7 tới 10 đã chép vào spec poses; câu 12 ở spec onboarding và poses). Hai vị trí toàn app (`open_app`, `resume`) ghi ở đây theo câu 6, và chép vào mục 5 của `features/loading/spec.md` (quảng cáo mở app hiện sau loading) và `features/camera/spec.md` (quảng cáo khi quay lại app có thể hiện khi người dùng quay lại lúc đang ở camera) trong PR của T-074. Không thêm vị trí khác.
 
 ## 6. Dữ liệu và phân tích
 
@@ -148,6 +153,40 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
     - Theo câu 6, `StagingRemoteValuesModule` chỉ bật khóa đã chốt. Đề xuất của AI: bật `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, và cả `is_show_inter_pose_detail`, `is_show_poses_in_collection` để người thử thấy hai vị trí đợt 2 (production vẫn tắt); không bật `is_show_native_after_inter`; đặt `is_show_native_collap` là `false` (mặc định trong code là bật), để bản staging giống bản phát hành (câu 10). Có test kiểm.
     - Trả lời: đồng ý với đề xuất. Nhật, 2026-10-30.
 
+12. **Ba yêu cầu ngày 2026-10-31.**
+    - Ba yêu cầu:
+      - Luồng giới thiệu có native step (spec onboarding).
+      - Tư thế premium mở khóa bằng quảng cáo có thưởng (spec poses).
+      - Native thu gọn ở thanh đáy (yêu cầu `requests/2026-10-31-thanh-day-native-thu-gon.md`).
+    - Mỗi vị trí mới ghi ở mục 5 của spec của màn, cùng cách đã làm với câu 7 tới 10.
+    - Đề xuất của AI: xác nhận spec này cùng lúc với spec onboarding và spec poses, sau khi các câu hỏi của cả ba spec có trả lời.
+    - Trả lời: xác nhận cùng lúc ba spec, theo đề xuất. Nhật, 2026-10-31.
+13. **Chọn lớp của thanh đáy bằng Remote Config thế nào?** Khung đã có hai khóa chung cho mọi thanh đáy. `is_show_native_bottom` chọn khe đáy: bật là native nhỏ 80 dp, tắt là banner. `is_show_native_collap` bật thì lớp native thu gọn 250 dp nổi trên khe đó. Thu gọn lớp thì lộ khe bên dưới, và lớp tự mở lại sau `time_expand_collap_ad` giây.
+    - Đề xuất của AI: dùng hai khóa có sẵn, không thêm khóa, không sửa khung. Bốn cách hiện:
+
+      | Cách hiện | `is_show_native_bottom` | `is_show_native_collap` |
+      | --- | --- | --- |
+      | Native nhỏ | bật | tắt |
+      | Banner | tắt | tắt |
+      | Native thu gọn trên native nhỏ | bật | bật |
+      | Native thu gọn trên banner | tắt | bật |
+
+    - Phương án khác: một khóa `bottom_ad_type` (`banner`, `native`, `native_collap`). Cách này cần sửa khung và đề xuất về dự án mẫu. Nó cũng có thêm cách "chỉ lớp thu gọn, không có khe", mà khung chưa có.
+    - Hai khóa có sẵn áp chung cho mọi thanh đáy. Muốn chọn riêng cho thư viện và chi tiết thì cần khóa theo vị trí, cũng là sửa khung.
+    - Trả lời: hai khóa có sẵn, theo đề xuất. Nhật, 2026-10-31.
+14. **Mã quảng cáo theo lớp ở production.** Hôm nay production chỉ có mã của định dạng chính của vị trí (khe native nhỏ). Lớp banner và lớp thu gọn không gửi yêu cầu, vì `AdUnitIds.of(placement, format)` trả `null` (`docs/ops/ads-guide.md`, mục 5, bước 6). Vì vậy tắt `is_show_native_bottom` thì đáy trống.
+    - Đề xuất của AI:
+      - Cấu hình phát hành nhận thêm mục `<khóa vị trí>/<định dạng lớp>=<mã>`, ví dụ `poses_bottom/banner` và `poses_bottom/native_collap`, cùng kiểu với khóa log và bộ đếm của khung. Hai thanh đáy dùng chung một mã banner và một mã native thu gọn.
+      - Bản phát hành báo lỗi khi thanh đáy thiếu mã lớp. Phần này nằm trong `scripts/release.sh`, nên T-075 do người làm (`auto_run: false`).
+      - Đề xuất về dự án mẫu (`docs/ops/from-app.md`).
+    - Trả lời: `<khóa vị trí>/<định dạng lớp>=<mã>`, theo đề xuất. Nhật, 2026-10-31.
+15. **Lúc phát hành dùng cách hiện nào?** Câu 8 và 10 đã chốt: khe native nhỏ, lớp thu gọn tắt.
+    - Đề xuất của AI:
+      - Giữ như câu 8 và 10 cho bản phát hành đầu: `is_show_native_bottom = true`, `is_show_native_collap = false`.
+      - Có mã lớp rồi thì thử native thu gọn trên Firebase, khi tỷ lệ giữ chân ngày 1 không giảm quá 2 điểm, như câu 9.
+      - Bản staging giữ như câu 11. Người thử bật lớp thu gọn trên Firebase staging.
+    - Trả lời: native nhỏ, lớp thu gọn tắt, theo đề xuất. Nhật, 2026-10-31.
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -164,3 +203,5 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-30 | AI | Rà file kế hoạch quảng cáo của nhóm sau T-074; Nhật trả lời câu 7 tới 10 (AI ghi): giữ `review_interstitial` và luật đếm ảnh; thanh đáy native `poses_bottom`, `pose_detail_bottom` thay hai banner; thêm `inter_pose_detail`, `poses_in_collection`, tắt lúc phát hành; lớp thu gọn tắt. Sửa mục 2, 3, 4, 5, 8. Chuyển `changed` |
 | 2026-10-30 | Nhật | Trả lời câu 11 (bản staging bật thanh đáy và hai vị trí đợt 2; AI ghi). Xác nhận spec. Lời xác nhận của Nhật: chọn "Chuyển confirmed" khi được hỏi, sau khi trả lời câu cuối. Chuyển lại `confirmed` |
 | 2026-10-31 | Nhật | Chia ticket, không đổi yêu cầu (AI ghi): `poses_in_collection` của câu 9 code ở T-080 thay vì T-079. Lý do: hàm lưới của khung để lại ô trống khi pool cạn, trái KB-6 của spec poses; Nhật chọn sửa khung, và phần sửa này phải chạy thử trước. `inter_pose_detail` vẫn ở T-079. Spec giữ `confirmed` |
+| 2026-10-31 | AI | Ba yêu cầu của Nhật: luồng giới thiệu có `native_onboarding` (spec onboarding), tư thế premium có `rw_premium_pose` (spec poses), native thu gọn ở thanh đáy chọn bằng Remote Config (`requests/2026-10-31-thanh-day-native-thu-gon.md`). Mục 2, câu 12 tới 15. Chuyển `changed`, chờ trả lời và xác nhận |
+| 2026-10-31 | Nhật | Trả lời câu 12 tới 15 (AI ghi, cùng phiên). Mục 1, 5 sửa theo câu 12. Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |

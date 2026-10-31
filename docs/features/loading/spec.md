@@ -6,9 +6,10 @@ product_owner: Nhật
 requests:
   - requests/2026-10-15-man-hinh-loading.md
   - requests/2026-10-21-loading-cua-camera-pose.md
+  - requests/2026-10-31-bieu-tuong-app.md
 design: features/loading/design/README.md
 created: 2026-10-15
-confirmed: 2026-10-29
+confirmed: 2026-10-31
 ---
 
 # SPEC: MÀN HÌNH LOADING
@@ -33,10 +34,12 @@ confirmed: 2026-10-29
 - Màn hình hiện ít nhất 2 giây.
 - Chuẩn bị xong thì tự chuyển sang màn chào (lần mở đầu tiên, spec `onboarding`) hoặc camera (spec `camera`). Trong spec này, "màn hình chính" là một trong hai màn đó.
 - Không chuẩn bị được thì báo lỗi, có nút "Thử lại", không vào màn hình chính.
+- Biểu tượng riêng của app trên màn hình chính của máy và trong danh sách app, cũng là biểu tượng trên màn hình chào của hệ thống (KB-6).
 
 **Ngoài phạm vi lần này:**
 
-- Màn hình chào của hệ thống Android (biểu tượng app hiện trong lúc app khởi động) giữ nguyên.
+- Màn hình chào của hệ thống Android giữ nguyên cách hiện; chỉ biểu tượng trên đó đổi theo biểu tượng app (KB-6).
+- Biểu tượng một màu cho chế độ biểu tượng theo chủ đề màu (Android 13 trở lên), logo trên màn hình loading (vẫn là logo tạm) và biểu tượng trên trang Google Play (người tải lên khi phát hành) (KB-6).
 - Tải ảnh lớn của tư thế: tải khi mở chi tiết tư thế (spec `poses`).
 - Tải ảnh của tư thế ngoài bộ khởi đầu: tải khi cần ở camera và thư viện.
 - Loading trong từng màn hình khác, hoạt ảnh riêng cho màn hình loading.
@@ -99,7 +102,16 @@ Tiêu chí chấp nhận:
 - [ ] Khi bấm "Thử lại" mà phần việc lại không xong thì lời hướng dẫn chọn lại theo trạng thái mạng lúc đó: lời của KB-2 khi máy không còn vào được Internet, lời ở trên khi máy vẫn vào được.
 - [ ] Khi máy chủ trả lời lại và bấm "Thử lại" thì app làm tiếp các phần việc chưa xong, chuẩn bị xong và vào màn hình chính.
 
-## 4. Giao diện
+### KB-6. Biểu tượng app
+
+Người dùng cài app và tìm app trên màn hình chính hay trong danh sách app của máy.
+
+Tiêu chí chấp nhận:
+
+- [ ] Khi cài app thì biểu tượng của app là máy ảnh vàng cam phía trước một ảnh tư thế, trên nền cam chuyển màu từ góc trên trái (vàng cam) tới góc dưới phải (cam đậm), theo ảnh trong `docs/brand/app-icon/`; không còn biểu tượng Android mặc định.
+- [ ] Khi máy cắt biểu tượng theo hình tròn, vuông bo góc hay hình khác thì máy ảnh và ảnh tư thế vẫn hiện trọn, không bị cắt: mọi phần của hình nằm trong vùng an toàn của biểu tượng (vòng tròn 66 dp ở giữa khung 108 dp).
+- [ ] Khi biểu tượng nhỏ (cỡ thường trên màn hình chính) thì vẫn nhận ra máy ảnh và gương mặt cô gái.
+
 
 - **Thiết kế:** [design/README.md](design/README.md), dựng trên Figma, ba trạng thái: đang tải (sáng, tối) và lỗi (sáng). Thiết kế đi kèm màu thương hiệu mới (xanh lục), phông Inter, logo, nên hệ thống thiết kế của dự án mẫu đổi theo trước (T-002), rồi màn hình loading làm theo thiết kế (T-003).
 - **Thiết kế của Camera Pose (2026-10-21):** dựng lại theo hướng Sticker trên Figma của app, section Loading của trang Screens: `LoadingScreen_progress_light`, `LoadingScreen_progress_dark`, `LoadingScreen_failed_light`, `LoadingScreen_failed_dark`. Gói bàn giao trong `design/` sẽ thay bằng thiết kế này sau khi spec được xác nhận. Hệ thống thiết kế đổi theo hướng Sticker trước (phông Bricolage Grotesque, màu mới), là thay đổi `:core:designsystem` (ADR-0008).
@@ -195,3 +207,5 @@ Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6):
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
 | 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "Áp dụng từ T-074"; mục 6 thêm dữ liệu trên máy, sự kiện quảng cáo do khung ghi, và ghi rõ `loading_completed.duration_ms` gồm cả thời gian quảng cáo mở app (ghi chú rà soát lượt 2). Chuyển `changed`, chờ Nhật xác nhận lại |
 | 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |
+| 2026-10-31 | AI | Theo yêu cầu `requests/2026-10-31-bieu-tuong-app.md` (đường làm nhanh, T-081): thêm biểu tượng app vào phạm vi, kịch bản KB-6; sửa dòng màn hình chào của hệ thống ở mục ngoài phạm vi. Chuyển `changed`, chờ Nhật xác nhận |
+| 2026-10-31 | Nhật | Xác nhận KB-6 và phần ngoài phạm vi (lời của Nhật trong phiên làm nhanh T-081: chọn "Xác nhận và duyệt"). Chuyển lại `confirmed` |

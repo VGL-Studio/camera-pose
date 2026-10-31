@@ -104,7 +104,12 @@ Thêm vào `InListAds`:
 
 `release()` (khóa tắt giữa chừng, rời màn hình) thêm: hủy `poolWatch`, `poolEmpty.value = false`, `holding.clear()`. Bật lại khóa thì ô quay lại như lần đầu.
 
-`rememberInListAds` truyền `poolExhausted = controller?.takeIf { placement.format.usesPool }?.let { ads -> { ads.poolExhausted(placement) } }`. `AdsController` thêm:
+`rememberInListAds` truyền `poolExhausted`, xuống dòng trước `?.let` để qua ktlint (dòng quá 120 ký tự, lần chạy `check.sh` đầu của mục 4.1):
+
+```kotlin
+            poolExhausted = controller?.takeIf { placement.format.usesPool }
+                ?.let { ads -> { ads.poolExhausted(placement) } },
+``` `AdsController` thêm:
 
 ```kotlin
     /** P-05 for the cells of [placement]: true when it has no pool (no ad unit), like [pooledCell]. */
@@ -309,7 +314,9 @@ Ghi ảnh chuẩn mới: `./gradlew :feature:poses:recordRoborazziDebug :feature
   - Lệnh Gradle: `GridPoolEmptyTryTest` 2/2 qua; `InListAdsTest` 18/18 qua (không test cũ nào đổi).
   - Đối chứng: đổi `adShown` của hàm lưới công khai thành `{ _ -> true }` (như code hiện nay) thì cả 2 test tạm thất bại đúng lý do: `assertDoesNotExist` thấy node `inlist_ad_0` (test 1) và `inlist_ad_1` (test 2).
   - Vòng chờ của `poolWatch` không làm `waitForIdle` hết giờ: test 1 chạy xong cùng lớp trong vài giây.
-  - `scripts/check.sh`: KẾT_QUẢ_CHECK
+  - `scripts/check.sh` lần 1 (15:20 tới 15:32 UTC): thất bại ở `:core:ads:ktlintMainSourceSetCheck` (dòng `poolExhausted = ...` của `rememberInListAds` dài 121 ký tự, quy tắc `function-literal`, `argument-list-wrapping`, `max-line-length`) và `ktlintTestSourceSetCheck` (thứ tự import của test tạm). Không test nào đỏ trước đó. Sửa: xuống dòng trước `?.let` (đoạn code ở mục 3.1 đã theo cách này) và `./gradlew :core:ads:ktlintFormat` cho test tạm.
+  - `scripts/check.sh` lần 2 (15:33 tới 15:43 UTC): `Cổng chất lượng: QUA`, exit 0. Test JVM 2420, 0 lỗi (`./core/ads` 1102, `./feature/poses` 170, `./app` 101); 138 ảnh screenshot; lint và build staging qua.
+  - Nhánh tạm `tmp/T-080-try` và worktree `../plan-T-080-try` đã xóa sau khi chạy.
 
 ## 5. Chấm rủi ro
 

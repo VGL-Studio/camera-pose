@@ -175,6 +175,9 @@ enum class AdPlacement(
     /** Bottom bar of the pose detail, below the main button (spec poses, section 5; spec ads, question 8). */
     POSE_DETAIL_BOTTOM("pose_detail_bottom", AdFormat.NATIVE_SMALL),
 
+    // Skeleton for the tests written first (plan T-079, pass 2): the format is set in the code commit.
+    INTER_POSE_DETAIL("inter_pose_detail", AdFormat.NATIVE_SMALL),
+
     /** Leaving the review screen after a saved photo (spec camera, section 5; breaks: InterstitialBreaks). */
     REVIEW_INTERSTITIAL("review_interstitial", AdFormat.INTERSTITIAL),
 

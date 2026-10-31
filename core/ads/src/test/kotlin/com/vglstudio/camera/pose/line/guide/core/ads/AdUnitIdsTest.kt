@@ -12,14 +12,14 @@ class AdUnitIdsTest {
             " sample_native_small = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
                 "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;" +
                 // The placements of this app (plan T-074, ADR-0029).
-                "poses_bottom=unit/8;pose_detail_bottom=unit/9;review_interstitial=unit/10",
+                "poses_bottom=unit/8;pose_detail_bottom=unit/9;review_interstitial=unit/10;inter_pose_detail=unit/11",
         )
         assertEquals("unit/1", ids.of(AdPlacement.SAMPLE_NATIVE_SMALL))
         assertTrue(ids.missing.isEmpty())
         // Control: app-wide placements still need a unit on production (plan T-024, section 3.3).
         val withoutAppWide = ConfiguredAdUnitIds(
             " sample_native_small = unit/1 ; other_key=unit/2;" +
-                "poses_bottom=unit/8;pose_detail_bottom=unit/9;review_interstitial=unit/10",
+                "poses_bottom=unit/8;pose_detail_bottom=unit/9;review_interstitial=unit/10;inter_pose_detail=unit/11",
         )
         assertEquals(
             listOf(

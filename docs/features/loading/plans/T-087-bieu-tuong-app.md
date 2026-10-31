@@ -1,5 +1,5 @@
 ---
-ticket: T-081
+ticket: T-087
 title: Biểu tượng app
 status: done
 version: 1
@@ -14,7 +14,7 @@ approved_at: 2026-10-31
 lane: quick
 ---
 
-# PLAN T-081: BIỂU TƯỢNG APP
+# PLAN T-087: BIỂU TƯỢNG APP
 
 ## 1. Tóm tắt
 
@@ -52,8 +52,8 @@ Dự án chưa có biểu tượng nào; đây là mẫu chuẩn của Android S
 | --- | --- | --- |
 | Tạo | `docs/features/loading/requests/2026-10-31-bieu-tuong-app.md` | Lời yêu cầu của Nhật trong phiên |
 | Sửa | `docs/features/loading/spec.md` | Phạm vi, KB-6, lịch sử |
-| Tạo | `docs/features/loading/tickets/T-081-bieu-tuong-app.md` | Ticket |
-| Tạo | `docs/features/loading/plans/T-081-bieu-tuong-app.md` | Plan này |
+| Tạo | `docs/features/loading/tickets/T-087-bieu-tuong-app.md` | Ticket |
+| Tạo | `docs/features/loading/plans/T-087-bieu-tuong-app.md` | Plan này |
 | Tạo | `docs/brand/app-icon/play-store-512.png` | Biểu tượng Google Play, 512 x 512 |
 | Tạo | `docs/brand/app-icon/foreground-1024.png` | Lớp hình đã xử lý, 1024 x 1024 |
 | Tạo | `app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png` | Lớp hình 108 px |
@@ -139,7 +139,7 @@ Không có.
 
 - **Quyết định:** Duyệt. Duyệt trong phiên làm nhanh (ADR-0034).
 - **Người duyệt:** Nhật (chủ ticket)
-- **Ghi chú:** Lời đồng ý của Nhật, 2026-10-31: chọn "Xác nhận và duyệt" cho câu hỏi "xác nhận phần sửa spec loading (thêm KB-6) và đồng ý plan T-081 (biểu tượng một màu và logo loading để ticket sau)". Câu 1 và 2 của mục 8 theo đề xuất của AI.
+- **Ghi chú:** Lời đồng ý của Nhật, 2026-10-31: chọn "Xác nhận và duyệt" cho câu hỏi "xác nhận phần sửa spec loading (thêm KB-6) và đồng ý plan T-087 (biểu tượng một màu và logo loading để ticket sau)". Câu 1 và 2 của mục 8 theo đề xuất của AI.
 
 ## 10. Nhật ký thực hiện
 
@@ -155,3 +155,4 @@ Không có.
 - **Việc còn lại:** biểu tượng một màu (lint báo `MonochromeLauncherIcon`, mục 8 câu 1); logo tạm trên màn hình loading (mục 8 câu 2); tải `docs/brand/app-icon/play-store-512.png` lên Google Play khi phát hành.
 - **Cần người kiểm:**
   - [ ] Nhật cài bản staging trên máy thật: biểu tượng trên màn hình chính, danh sách app, màn hình chào (Android 12 trở lên); nhận ra máy ảnh và gương mặt ở cỡ thường (KB-6, tiêu chí 1 và 3).
+- **Đổi mã (2026-10-31):** mã ticket đổi từ T-081 sang T-087 sau khi PR #263 merge, vì T-081 đã dùng cho ticket bỏ `:feature:sample` (PR #258, merge trước). Tên nhánh `claude/quick-T-081-bieu-tuong-app` giữ như lúc làm.

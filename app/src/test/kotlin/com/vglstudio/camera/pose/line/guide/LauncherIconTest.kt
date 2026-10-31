@@ -22,7 +22,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.w3c.dom.Element
 
 /**
- * The launcher icon (spec loading, KB-6; plan T-081): an adaptive icon whose foreground artwork stays inside the
+ * The launcher icon (spec loading, KB-6; plan T-087): an adaptive icon whose foreground artwork stays inside the
  * 66 dp safe zone of the 108 dp canvas, so no launcher mask cuts the camera or the photo card.
  * The working directory of a unit test is the module directory. NATIVE graphics, so BitmapFactory decodes real pixels.
  */

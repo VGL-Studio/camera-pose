@@ -208,6 +208,7 @@ Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6):
 | 2026-10-28 | Nhật | Xác nhận phần đổi theo câu 3, 4, 6 của plan T-074 (lời của Nhật: "Xác nhận và merge" (PR #222)). Chuyển lại `confirmed` |
 | 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "Áp dụng từ T-074"; mục 6 thêm dữ liệu trên máy, sự kiện quảng cáo do khung ghi, và ghi rõ `loading_completed.duration_ms` gồm cả thời gian quảng cáo mở app (ghi chú rà soát lượt 2). Chuyển `changed`, chờ Nhật xác nhận lại |
 | 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |
-| 2026-10-31 | AI | Theo yêu cầu `requests/2026-10-31-bieu-tuong-app.md` (đường làm nhanh, T-081): thêm biểu tượng app vào phạm vi, kịch bản KB-6; sửa dòng màn hình chào của hệ thống ở mục ngoài phạm vi. Chuyển `changed`, chờ Nhật xác nhận |
-| 2026-10-31 | Nhật | Xác nhận KB-6 và phần ngoài phạm vi (lời của Nhật trong phiên làm nhanh T-081: chọn "Xác nhận và duyệt"). Chuyển lại `confirmed` |
-| 2026-10-31 | AI | Sửa lỗi chép khi thêm KB-6 (rà soát độc lập T-081): trả lại tiêu đề `## 4. Giao diện` bị mất; không đổi nội dung đã xác nhận |
+| 2026-10-31 | AI | Theo yêu cầu `requests/2026-10-31-bieu-tuong-app.md` (đường làm nhanh, T-087): thêm biểu tượng app vào phạm vi, kịch bản KB-6; sửa dòng màn hình chào của hệ thống ở mục ngoài phạm vi. Chuyển `changed`, chờ Nhật xác nhận |
+| 2026-10-31 | Nhật | Xác nhận KB-6 và phần ngoài phạm vi (lời của Nhật trong phiên làm nhanh T-087: chọn "Xác nhận và duyệt"). Chuyển lại `confirmed` |
+| 2026-10-31 | AI | Sửa lỗi chép khi thêm KB-6 (rà soát độc lập T-087): trả lại tiêu đề `## 4. Giao diện` bị mất; không đổi nội dung đã xác nhận |
+| 2026-10-31 | AI | Đổi mã ticket biểu tượng app từ T-081 sang T-087: T-081 đã dùng cho ticket bỏ `:feature:sample` (PR #258, merge trước PR #263), theo `docs/CLAUDE.md`, mục Khi làm nhanh có người theo dõi. Không đổi nội dung |

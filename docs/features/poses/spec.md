@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-thu-vien-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-29
+confirmed: 2026-10-30
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -28,7 +28,7 @@ confirmed: 2026-10-29
 - Lưu và bỏ lưu tư thế ở thẻ và ở chi tiết; chip "Đã lưu" lọc các tư thế đã lưu.
 - Màn chi tiết: ảnh lớn, loại, nhóm, khung hình, số bước; các bước tạo dáng (3 đến 5 bước); lỗi hay gặp; nút lưu ở thanh trên; nút "Chụp với tư thế này" ghim ở đáy.
 - Đang tải, tải lỗi có nút thử lại, chờ có giới hạn.
-- Banner quảng cáo ở thư viện và chi tiết (mức B).
+- Quảng cáo ở thư viện và chi tiết: thanh đáy native ở cả hai màn, ô quảng cáo xen trong lưới, quảng cáo toàn màn hình khi bấm "Chụp với tư thế này"; hai vị trí sau tắt lúc phát hành (`features/ads/spec.md` câu 8, 9).
 - Điện thoại màn hình gập, khi mở ra: thư viện 3 cột; chi tiết chia hai cột (ảnh, hướng dẫn).
 - Tên tư thế, các bước, lỗi hay gặp hiện theo ngôn ngữ của máy, đủ 7 ngôn ngữ phát hành.
 
@@ -86,6 +86,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi chạm một thẻ thì màn chi tiết mở, có tên tư thế ở thanh trên, ảnh lớn, dòng loại, nhóm, khung hình, số bước, các bước đánh số, khối "Lỗi hay gặp", nút "Chụp với tư thế này" ghim ở đáy; app ghi `pose_detail_opened`.
 - [ ] Khi nội dung dài hơn màn hình thì nội dung cuộn được, nút "Chụp với tư thế này" luôn thấy được, không che chữ cuối.
 - [ ] Khi bấm "Chụp với tư thế này" thì camera mở với đúng tư thế đó (spec `camera`, KB-1); app ghi `pose_selected` với `source` là `detail`.
+- [ ] Khi khóa `is_show_inter_pose_detail` bật và có quảng cáo toàn màn hình sẵn sàng, qua nhịp chung `ads_interval`, thì quảng cáo hiện sau khi bấm "Chụp với tư thế này"; đóng quảng cáo thì camera mở với đúng tư thế đó. Không có quảng cáo, chưa đủ nhịp hay khóa tắt thì camera mở ngay, không chờ (`features/ads/spec.md` câu 9).
 - [ ] Khi bấm quay lại ở chi tiết thì về thư viện.
 
 ### KB-5. Tải nội dung và khi tải lỗi
@@ -101,13 +102,18 @@ Tiêu chí chấp nhận:
 - [ ] Khi một lần tải không có phản hồi sau 15 giây thì app coi là lỗi và hiện như trên, không quay vòng mãi (bài học 7).
 - [ ] Khi lỗi do mất mạng thì hiện hộp thoại của spec `network` thay cho thông báo lỗi riêng.
 
-### KB-6. Banner quảng cáo
+### KB-6. Quảng cáo ở thư viện và chi tiết
+
+Theo `features/ads/spec.md` câu 8, 9, 10: thanh đáy native thay banner từ T-079.
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi khóa `is_show_poses_banner` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì banner hiện neo ở đáy thư viện; lưới cuộn phía trên banner, không bị che (câu hỏi 1).
-- [ ] Khi khóa `is_show_poses_detail_banner` bật thì banner hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình.
-- [ ] Khi cờ tắt hoặc banner không tải được thì không chừa khoảng trống.
+- [ ] Khi khóa `is_show_poses_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (80 dp) hiện ở đáy thư viện; lưới cuộn phía trên thanh, thẻ cuối không bị che (câu hỏi 1).
+- [ ] Khi khóa `is_show_pose_detail_bottom` bật thì thanh đáy native hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình.
+- [ ] Khi khóa tắt, quảng cáo đang tải hay không tải được thì không chừa khoảng trống; nội dung chỉ được chừa chỗ khi khe đã có quảng cáo.
+- [ ] Khi `is_show_native_collap` tắt (giá trị lúc phát hành) thì không có lớp quảng cáo nổi trên lưới hay trên nút chính.
+- [ ] Khi khóa `is_show_poses_in_collection` bật thì lưới có một ô quảng cáo sau mỗi `native_every_poses_in_collection` tư thế (mặc định 8), không ở đầu, không ở cuối lưới; thẻ quảng cáo có nhãn quảng cáo và khác rõ thẻ tư thế; hết quảng cáo thì ô ẩn, lưới không có ô trống. Áp dụng cho "Tất cả" và từng nhóm, cả khi mở gập (3 cột).
+- [ ] Khi khóa tắt thì lưới không có ô quảng cáo, thứ tự tư thế giữ như KB-1.
 
 ### KB-7. Điện thoại màn hình gập
 
@@ -126,14 +132,18 @@ Tiêu chí chấp nhận:
 | Thư viện tư thế | Duyệt, lọc theo nhóm, lưu tư thế | KB-1, KB-2, KB-3, KB-5, KB-6, KB-7 |
 | Chi tiết tư thế | Đọc cách tạo dáng, lưu, chụp với tư thế | KB-3, KB-4, KB-5, KB-6, KB-7 |
 
-Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `saved-empty`, `ad` (có banner, câu hỏi 1), `default` khi mở gập; chi tiết `default`, `loading`, `error`, `ad`, `default` khi mở gập. Mỗi trạng thái có bản sáng và tối.
+Trạng thái trên thiết kế: thư viện `default`, `loading`, `error`, `saved-empty`, `ad` (có quảng cáo ở đáy, câu hỏi 1 và 5), `default` khi mở gập; chi tiết `default`, `loading`, `error`, `ad`, `default` khi mở gập. Mỗi trạng thái có bản sáng và tối. Trạng thái `ad` vẽ banner 320 x 50 theo câu hỏi 1; từ T-079 đáy là thanh native (câu hỏi 5).
 
 ## 5. Quảng cáo
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
-| `poses_banner` | banner | Neo đáy màn thư viện, khi màn hình đang mở | Làm mới theo mặc định của AdMob | `is_show_poses_banner` |
-| `poses_detail_banner` | banner | Đáy màn chi tiết tư thế, dưới nút chính | Làm mới theo mặc định của AdMob | `is_show_poses_detail_banner` |
+| `poses_bottom` | native_small (thanh đáy) | Đáy màn thư viện, khi màn hình đang mở | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground; lớp thu gọn tắt lúc phát hành | `is_show_poses_bottom`, cùng `is_show_native_bottom` |
+| `pose_detail_bottom` | native_small (thanh đáy) | Đáy màn chi tiết tư thế, dưới nút chính | Như trên | `is_show_pose_detail_bottom`, cùng `is_show_native_bottom` |
+| `poses_in_collection` | native_in_collection | Ô xen trong lưới thư viện, sau mỗi 8 tư thế; không ở đầu, không ở cuối | Pool 5 quảng cáo, hết hạn 55 phút; tắt lúc phát hành | `is_show_poses_in_collection`, `native_every_poses_in_collection` |
+| `inter_pose_detail` | interstitial | Sau khi bấm "Chụp với tư thế này", trước khi camera mở | Nhịp chung `ads_interval` (mặc định 45 giây), cùng nhóm với `review_interstitial`; tắt lúc phát hành | `is_show_inter_pose_detail` |
+
+`poses_banner`, `poses_detail_banner` (banner, T-074) bỏ khỏi app ở T-079 (`features/ads/spec.md` câu 8); khóa cũ giữ trên Firebase tới khi bản cũ không còn người dùng.
 
 Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) có thể hiện khi người dùng quay lại app lúc đang ở thư viện hay chi tiết tư thế.
 
@@ -174,8 +184,10 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | Tên cờ | Mặc định | Ý nghĩa |
 | --- | --- | --- |
 | `feature_poses_enabled` | tắt | Bật để hiện nút thư viện ở camera và màn thư viện. Bản staging bật sẵn |
-| `is_show_poses_banner` | tắt | Bật banner `poses_banner` (`features/ads/spec.md` câu 2; khóa cũ `ads_poses_banner_enabled` bỏ từ T-074). Khóa chung `is_show_ads` (mặc định bật) tắt thì mọi quảng cáo tắt |
-| `is_show_poses_detail_banner` | tắt | Bật banner `poses_detail_banner` (như trên; khóa cũ `ads_poses_detail_banner_enabled`) |
+| `is_show_poses_bottom` | tắt | Bật thanh đáy `poses_bottom` (`features/ads/spec.md` câu 8; thay `is_show_poses_banner`). Cần cả `is_show_native_bottom` bật. Khóa chung `is_show_ads` (mặc định bật) tắt thì mọi quảng cáo tắt |
+| `is_show_pose_detail_bottom` | tắt | Bật thanh đáy `pose_detail_bottom` (như trên; thay `is_show_poses_detail_banner`) |
+| `is_show_poses_in_collection` | tắt | Bật ô quảng cáo trong lưới (câu 9). `native_every_poses_in_collection`: số tư thế giữa hai ô, mặc định 8 |
+| `is_show_inter_pose_detail` | tắt | Bật quảng cáo toàn màn hình khi chụp với tư thế từ chi tiết (câu 9) |
 
 ## 9. Câu hỏi còn mở
 
@@ -190,6 +202,9 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
    - Trả lời: Đồng ý với đề xuất của AI.
 4. **Dữ liệu tư thế dùng chung:** như câu hỏi 8 của spec `camera` (module `:core:poses`).
    - Trả lời: Đồng ý với đề xuất của AI.
+5. **Trạng thái `ad` của thiết kế khi đáy là thanh native (T-079).** Bốn frame `PosesScreen_ad_light`, `PosesScreen_ad_dark`, `PoseDetailScreen_ad_light`, `PoseDetailScreen_ad_dark` vẽ banner 320 x 50 (câu hỏi 1), và mỗi ảnh thiết kế có một screenshot test cùng tên (ADR-0020).
+   - Đề xuất của AI: AI vẽ lại bốn frame trên Figma với thanh đáy native 80 dp của khung (khe 80 dp, lề đáy 16 dp), xuất lại ảnh vào `design/screens/` trước khi soạn plan T-079; thêm một frame `PosesScreen_ad-collection_light` có ô quảng cáo trong lưới để kiểm thẻ quảng cáo khác rõ thẻ tư thế. Không có thiết kế riêng cho thẻ quảng cáo: dùng giao diện của khung.
+   - Trả lời: đồng ý với đề xuất của AI. Nhật, 2026-10-30.
 
 ## 10. Lịch sử
 
@@ -204,3 +219,5 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-28 | Nhật | Xác nhận phần đổi của mục 5, cùng lúc xác nhận spec ads. Giữ `confirmed` |
 | 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "từ T-074; trước đó ..."; tên khóa mới ở KB-6 và mục 8; mục 6 thêm dữ liệu trên máy và sự kiện quảng cáo do khung ghi. Chuyển `changed`, chờ Nhật xác nhận lại |
 | 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |
+| 2026-10-30 | AI | Theo `features/ads/spec.md` câu 8 tới 10 (Nhật, 2026-10-30): thanh đáy native `poses_bottom`, `pose_detail_bottom` thay hai banner; thêm `poses_in_collection`, `inter_pose_detail`, tắt lúc phát hành. Sửa mục 2, 4, 5, 8, KB-4, KB-6; thêm câu hỏi 5 (thiết kế trạng thái `ad`). Chuyển `changed` |
+| 2026-10-30 | Nhật | Trả lời câu hỏi 5 (AI vẽ lại trạng thái `ad` trên Figma; AI ghi). Xác nhận spec. Lời xác nhận của Nhật: chọn "Chuyển confirmed" khi được hỏi, sau khi trả lời câu cuối. Chuyển lại `confirmed` |

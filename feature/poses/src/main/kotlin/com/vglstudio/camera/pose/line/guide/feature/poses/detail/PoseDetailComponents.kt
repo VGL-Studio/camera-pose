@@ -291,8 +291,8 @@ internal fun PoseDetailBottomBar(onShoot: () -> Unit) {
 }
 
 /**
- * The phone layout: one scrolling column (image, then the text) with the button bar and the banner under it
- * (design README, section 3).
+ * The phone layout: one scrolling column (image, then the text) with the button bar under it (design README,
+ * section 3).
  */
 @Composable
 internal fun PhoneDetailLayout(
@@ -301,7 +301,6 @@ internal fun PhoneDetailLayout(
     scrollState: ScrollState,
     onRetryImage: () -> Unit,
     onShoot: () -> Unit,
-    bottomBanner: @Composable () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -316,7 +315,6 @@ internal fun PhoneDetailLayout(
             Spacer(modifier = Modifier.height(Spacing.md))
         }
         PoseDetailBottomBar(onShoot = onShoot)
-        bottomBanner()
     }
 }
 
@@ -328,7 +326,6 @@ internal fun WideDetailLayout(
     scrollState: ScrollState,
     onRetryImage: () -> Unit,
     onShoot: () -> Unit,
-    bottomBanner: @Composable () -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxSize().padding(start = Spacing.md, top = Spacing.md)) {
         // The columns are 315 and 326 wide in the design (the right one with the right margin), as 315 : 326.
@@ -348,7 +345,6 @@ internal fun WideDetailLayout(
                 Spacer(modifier = Modifier.height(Spacing.md))
             }
             PoseDetailBottomBar(onShoot = onShoot)
-            bottomBanner()
         }
     }
 }

@@ -34,9 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
@@ -47,7 +49,6 @@ import kotlinx.coroutines.launch
 object PosesTestTags {
     const val SCREEN = "poses_screen"
     const val GRID = "poses_grid"
-    const val BANNER_SLOT = "poses_banner_slot"
 
     fun card(id: String) = "poses_card_$id"
 }
@@ -67,29 +68,34 @@ fun PosesRoute(
     viewModel: PosesViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    PosesScreen(
-        uiState = uiState,
-        // Saved with the back stack entry: the scroll position is kept when coming back from the detail (KB-2).
-        gridState = rememberLazyGridState(),
-        onBack = onBack,
-        onOpenSettings = onOpenSettings,
-        onOpenPose = onOpenPose,
-        onSelectFilter = viewModel::onSelectFilter,
-        onShowAll = viewModel::onShowAll,
-        onToggleSave = viewModel::onToggleSave,
-        onRetry = viewModel::onRetry,
-        onThumbnailNeeded = viewModel::onThumbnailNeeded,
-        onThumbnailReleased = viewModel::onThumbnailReleased,
-        onRetryThumbnail = viewModel::onRetryThumbnail,
-        onSaveFailedShown = viewModel::onSaveFailedShown,
-        bottomBanner = { PosesBottomBanner(AdPlacement.POSES_BANNER) },
-    )
+    // Saved with the back stack entry: the scroll position is kept when coming back from the detail (KB-2).
+    val gridState = rememberLazyGridState()
+    // The native bottom bar over the whole screen (KB-6; spec ads, question 8): the screen keeps room at the bottom.
+    BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) { padding ->
+        PosesScreen(
+            uiState = uiState,
+            gridState = gridState,
+            onBack = onBack,
+            onOpenSettings = onOpenSettings,
+            onOpenPose = onOpenPose,
+            onSelectFilter = viewModel::onSelectFilter,
+            onShowAll = viewModel::onShowAll,
+            onToggleSave = viewModel::onToggleSave,
+            onRetry = viewModel::onRetry,
+            onThumbnailNeeded = viewModel::onThumbnailNeeded,
+            onThumbnailReleased = viewModel::onThumbnailReleased,
+            onRetryThumbnail = viewModel::onRetryThumbnail,
+            onSaveFailedShown = viewModel::onSaveFailedShown,
+            contentPadding = padding,
+        )
+    }
 }
 
 /**
  * The pose library (spec poses; design README). [onOpenSettings] null hides the settings button; [onOpenPose] null
- * leaves the cards without a tap action. [bottomBanner] sits under the grid, at the bottom of the screen, in every
- * state that shows the screen (KB-6).
+ * leaves the cards without a tap action. Only the bottom of [contentPadding] is used: the room the bottom ad bar keeps
+ * (KB-6). The grid still reaches the bottom of the screen, its cards scroll behind the bar and the last one ends above
+ * it; the messages of the other states and the snackbar stay above it.
  */
 @Composable
 fun PosesScreen(
@@ -107,10 +113,9 @@ fun PosesScreen(
     onRetryThumbnail: (String) -> Unit,
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
-    bottomBanner: @Composable () -> Unit = {},
-    // Skeleton of plan T-079 for the tests written first: not used yet.
-    @Suppress("UNUSED_PARAMETER") contentPadding: PaddingValues = PaddingValues(),
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
+    val bottomReserve = contentPadding.calculateBottomPadding()
     val snackbarHostState = remember { SnackbarHostState() }
     Box(
         modifier = modifier
@@ -121,13 +126,15 @@ fun PosesScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             PosesTopBar(onBack = onBack, onOpenSettings = onOpenSettings)
             when (uiState) {
-                PosesUiState.Loading -> LoadingGrid(modifier = Modifier.weight(1f))
+                PosesUiState.Loading -> LoadingGrid(bottomReserve = bottomReserve, modifier = Modifier.weight(1f))
                 PosesUiState.Disabled -> {
                     // The flag was turned off: back to the camera, once.
                     val currentOnBack by rememberUpdatedState(onBack)
                     LaunchedEffect(Unit) { currentOnBack() }
                 }
-                is PosesUiState.Error -> CenteredScrollable(modifier = Modifier.weight(1f)) {
+                is PosesUiState.Error -> CenteredScrollable(
+                    modifier = Modifier.weight(1f).padding(bottom = bottomReserve),
+                ) {
                     StateMessage(
                         icon = painterResource(R.drawable.ic_poses_error),
                         title = stringResource(R.string.poses_error_title),
@@ -147,11 +154,14 @@ fun PosesScreen(
                     onThumbnailNeeded = onThumbnailNeeded,
                     onThumbnailReleased = onThumbnailReleased,
                     onRetryThumbnail = onRetryThumbnail,
+                    bottomReserve = bottomReserve,
                 )
             }
-            bottomBanner()
         }
-        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomReserve),
+        )
     }
     if ((uiState as? PosesUiState.Ready)?.saveFailed == true) {
         val message = stringResource(R.string.poses_save_failed)
@@ -174,6 +184,7 @@ private fun ColumnScope.ReadyContent(
     onThumbnailNeeded: (String) -> Unit,
     onThumbnailReleased: (String) -> Unit,
     onRetryThumbnail: (String) -> Unit,
+    bottomReserve: Dp,
 ) {
     val scope = rememberCoroutineScope()
     // A chip tapped by the user brings the grid back to its start, also once the new cards are there. Coming back from
@@ -202,7 +213,7 @@ private fun ColumnScope.ReadyContent(
         },
     )
     if (state.cards.isEmpty() && state.selected == PoseFilter.Saved) {
-        CenteredScrollable(modifier = Modifier.weight(1f)) {
+        CenteredScrollable(modifier = Modifier.weight(1f).padding(bottom = bottomReserve)) {
             StateMessage(
                 icon = painterResource(DesignR.drawable.ic_bookmark),
                 title = stringResource(R.string.poses_saved_empty_title),
@@ -218,7 +229,7 @@ private fun ColumnScope.ReadyContent(
                 columns = GridCells.Fixed(gridColumns()),
                 state = gridState,
                 modifier = Modifier.fillMaxSize().testTag(PosesTestTags.GRID),
-                contentPadding = gridPadding(),
+                contentPadding = gridPadding(bottomReserve),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
@@ -239,12 +250,12 @@ private fun ColumnScope.ReadyContent(
 
 /** Catalog still loading: skeleton cards under the top bar, no summary or chips yet. */
 @Composable
-private fun LoadingGrid(modifier: Modifier = Modifier) {
+private fun LoadingGrid(bottomReserve: Dp, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier = modifier) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(gridColumns()),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = gridPadding(),
+            contentPadding = gridPadding(bottomReserve),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             userScrollEnabled = false,
@@ -256,10 +267,11 @@ private fun LoadingGrid(modifier: Modifier = Modifier) {
 
 private fun BoxWithConstraintsScope.gridColumns() = if (isWide()) WIDE_COLUMNS else PHONE_COLUMNS
 
-// Design: the grid starts 8 below the chips plus its own 4; the last card stays off the bottom edge.
-private fun gridPadding() = PaddingValues(
+// Design: the grid starts 8 below the chips plus its own 4; the last card stays off the bottom edge, and above the
+// bottom ad bar by [bottomReserve] (KB-6).
+private fun gridPadding(bottomReserve: Dp) = PaddingValues(
     start = Spacing.md,
     end = Spacing.md,
     top = Spacing.sm + Spacing.xs,
-    bottom = Spacing.md,
+    bottom = Spacing.md + bottomReserve,
 )

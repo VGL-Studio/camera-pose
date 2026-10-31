@@ -5,12 +5,12 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-30, câu 7 tới 11; vị trí của màn ở mục 5 của features/poses/spec.md (confirmed 2026-10-30, câu hỏi 5)
 scenarios: [KB-4, KB-6]      # của features/poses/spec.md
 owner: Tuấn
-status: backlog
+status: approved
 risk: high
 size: L
 depends_on: [T-074]          # khung AdsKit đã có trong app; T-074 đang on-staging, chờ nghiệm thu trên máy
 sprint:
-plan:
+plan: features/ads/plans/T-079-thanh-day-native-va-vi-tri-dot-2.md   # draft, 2026-10-31
 created: 2026-10-30
 ---
 

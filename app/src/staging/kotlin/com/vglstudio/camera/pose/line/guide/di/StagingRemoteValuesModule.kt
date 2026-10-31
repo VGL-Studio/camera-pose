@@ -28,6 +28,7 @@ object StagingRemoteValuesModule {
     fun appPlacementsShown(): Set<LocalRemoteValue> = listOf(
         AdPlacement.POSES_BOTTOM,
         AdPlacement.POSE_DETAIL_BOTTOM,
+        AdPlacement.INTER_POSE_DETAIL,
         AdPlacement.REVIEW_INTERSTITIAL,
     ).map { LocalRemoteValue.of(AdsSettings.placementEnabled(it), true) }.toSet()
 

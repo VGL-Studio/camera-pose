@@ -39,6 +39,7 @@ class StagingRemoteValuesModuleTest {
             "is_show_poses_bottom" to true,
             "is_show_pose_detail_bottom" to true,
             "is_show_review_interstitial" to true,
+            "is_show_inter_pose_detail" to true,
             "show_open_ads" to true,
             "show_resum_ads" to true,
             "is_show_native_bottom" to true,

@@ -1,24 +1,26 @@
 ---
 id: T-079
-title: Thanh đáy native thay hai banner ở thư viện và chi tiết tư thế; thêm ô quảng cáo trong lưới và interstitial khi chụp với tư thế (tắt lúc phát hành)
+title: Thanh đáy native thay hai banner ở thư viện và chi tiết tư thế; interstitial khi chụp với tư thế (tắt lúc phát hành)
 feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-30, câu 7 tới 11; vị trí của màn ở mục 5 của features/poses/spec.md (confirmed 2026-10-30, câu hỏi 5)
 scenarios: [KB-4, KB-6]      # của features/poses/spec.md
 owner: Tuấn
 status: approved
 risk: high
-size: L
+size: M
 depends_on: [T-074]          # khung AdsKit đã có trong app; T-074 đang on-staging, chờ nghiệm thu trên máy
 sprint:
-plan: features/ads/plans/T-079-thanh-day-native-va-vi-tri-dot-2.md   # draft, 2026-10-31
+plan: features/ads/plans/T-079-thanh-day-native-va-vi-tri-dot-2.md   # phiên bản 2 approved, 2026-10-31
 created: 2026-10-30
 ---
 
-# T-079: THANH ĐÁY NATIVE THAY HAI BANNER Ở THƯ VIỆN VÀ CHI TIẾT TƯ THẾ; THÊM Ô QUẢNG CÁO TRONG LƯỚI VÀ INTERSTITIAL KHI CHỤP VỚI TƯ THẾ
+# T-079: THANH ĐÁY NATIVE THAY HAI BANNER Ở THƯ VIỆN VÀ CHI TIẾT TƯ THẾ; INTERSTITIAL KHI CHỤP VỚI TƯ THẾ
 
 ## Mô tả
 
 Rà file kế hoạch quảng cáo, Remote Config và sự kiện của nhóm (2026-10-30) sau T-074 cho ra câu 7 tới 11 của `features/ads/spec.md`. Sau ticket này, đáy thư viện và chi tiết tư thế là thanh đáy native nhỏ của khung (`poses_bottom`, `pose_detail_bottom`) thay hai banner `poses_banner`, `poses_detail_banner`. App có thêm hai vị trí tắt lúc phát hành: ô quảng cáo xen trong lưới thư viện (`poses_in_collection`, mỗi 8 tư thế) và interstitial khi bấm "Chụp với tư thế này" (`inter_pose_detail`). `review_interstitial` giữ nguyên mã và luật đếm ảnh.
+
+**Cập nhật 2026-10-31 (Nhật):** ô quảng cáo trong lưới (`poses_in_collection`) tách sang T-080. Rà soát độc lập trước RUN-20261031-01 thấy hàm lưới của khung để lại ô trống khi pool cạn, trái KB-6. Nhật chọn sửa khung để bỏ ô khi pool cạn, và phần sửa này phải chạy thử trước khi duyệt. Các dòng về `poses_in_collection` dưới đây thuộc T-080.
 
 ## Phạm vi
 

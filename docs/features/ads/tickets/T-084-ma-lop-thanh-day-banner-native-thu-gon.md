@@ -5,12 +5,12 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-31, câu 13 tới 15
 scenarios: []                # spec ads không có kịch bản riêng; thanh đáy theo KB-6 của features/poses/spec.md
 owner: Tuấn
-status: backlog
+status: planned
 risk: high
 size: M
 depends_on: [T-079]          # T-079 đưa thanh đáy vào thư viện và chi tiết
 sprint:
-plan:
+plan: features/ads/plans/T-084-ma-lop-thanh-day-banner-native-thu-gon.md
 created: 2026-10-31
 ---
 

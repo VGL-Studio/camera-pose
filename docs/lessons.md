@@ -916,3 +916,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `CLAUDE.md` mục Lệnh, dòng ghi lại ảnh chuẩn: sau khi ghi, khôi phục mọi ảnh ngoài mục 3.2 (`git checkout -- <ảnh>`) khi `verifyRoborazziDebug` qua với ảnh cũ; ảnh ngoài mục 3.2 mà `verify` đỏ với ảnh cũ thì vẫn là điều kiện dừng.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-099: phiên `local` và một phiên Claude Code khác dùng chung thư mục chính
+
+- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
+- **Chuyện gì:** phiên `local` làm việc của nhánh báo cáo trong thư mục chính của repo. Trong lúc phiên chờ `device-session`, một phiên Claude Code khác cũng làm việc trong thư mục đó: chuyển sang `main`, `pull`, tạo nhánh `claude/docs-T-081-ticket` và commit, rồi về `main`. Lần sửa báo cáo tiếp theo của phiên chạy trên tệp của `main` (thất bại vì không thấy đoạn cần thay), và commit kèm theo rơi vào `main` cục bộ thay vì nhánh báo cáo.
+- **Bằng chứng:** RUN-20261031-01, `git reflog` lúc khoảng 14:58 UTC: `checkout: moving from claude/RUN-20261031-01-report to main`, `pull -q --ff-only`, commit `78bdb32` (T-081, không phải của phiên), rồi commit `d8ac7b4` của phiên trên `main`. Không có gì bị đẩy lên `main`. Phiên chuyển commit sang nhánh báo cáo trong worktree `../run-report` (`46cdde8`) và trả `main` cục bộ về `origin/main` bằng `git reset --keep`.
+- **Đề xuất sửa:** `docs/auto-run.md` mục 2, phiên `local`: làm mọi việc của nhánh báo cáo trong một worktree riêng (`git worktree add ../run-report claude/RUN-YYYYMMDD-NN-report`), để thư mục chính không mang trạng thái của phiên. `docs/ops/session-capabilities.md`, dòng `local`: người không mở phiên khác trong thư mục repo khi danh sách chạy đang `running`, hay mở phiên đó trong worktree riêng.
+- **Áp dụng:**
+- **Kiểm chứng:**

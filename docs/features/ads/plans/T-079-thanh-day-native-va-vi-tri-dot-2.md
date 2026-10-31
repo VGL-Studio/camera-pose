@@ -1,16 +1,16 @@
 ---
 ticket: T-079
 title: Thanh đáy native thay hai banner ở thư viện và chi tiết tư thế; thêm ô quảng cáo trong lưới và interstitial khi chụp với tư thế (tắt lúc phát hành)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # cỡ L (số gợi ý của scripts/token-usage.py estimate), chia hai lượt cỡ M; không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-10-31
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -390,11 +390,14 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
 
 ## 9. Quyết định duyệt
 
-<!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
-
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật (người phụ trách sản phẩm, đã chốt vị trí ở spec ads câu 7 tới 11)
+- **Ghi chú:** Trả lời mục 8, ngày 2026-10-31 (Nhật trả lời trong phiên, AI ghi), đều theo đề xuất của AI, không đổi mục 3 và 4:
+  1. Ô quảng cáo hiện cả ở "Đã lưu": cùng một lưới, không thêm code.
+  2. `is_show_native_collap` giữ mặc định của khung; đặt `false` trên Firebase production là việc của người ở T-075 (`docs/ops/remote-config.md`, mục 5).
+  3. Chấp nhận chỗ cuộn có thể lệch một ô khi ô quảng cáo vừa xuất hiện hay N đổi.
+  4. Bấm lần hai trong lúc chờ interstitial thì bỏ qua (`ShootGate`).
+  5. Thêm `itemsWithFixedAds` vào `:core:ads`; PR lượt 2 ghi đề xuất về dự án mẫu.
 
 ## 10. Nhật ký thực hiện
 

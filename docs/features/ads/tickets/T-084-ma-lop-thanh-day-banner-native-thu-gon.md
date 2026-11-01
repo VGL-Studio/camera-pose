@@ -5,12 +5,12 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-31, câu 13 tới 15
 scenarios: []                # spec ads không có kịch bản riêng; thanh đáy theo KB-6 của features/poses/spec.md
 owner: Tuấn
-status: backlog
+status: approved
 risk: high
 size: M
 depends_on: [T-079]          # T-079 đưa thanh đáy vào thư viện và chi tiết
 sprint:
-plan:
+plan: features/ads/plans/T-084-ma-lop-thanh-day-banner-native-thu-gon.md
 created: 2026-10-31
 ---
 
@@ -38,7 +38,7 @@ Sau ticket này, bản production có mã cho cả ba lớp. Đổi hai khóa tr
   - Vị trí `gallery_*` không bao giờ thiếu.
 - **Tài liệu:**
   - `docs/ops/ads-guide.md`, mục 5, bước 6, và `docs/ops/release.md`: cách khai báo mã lớp. `release.md` thuộc T-075 nếu T-075 thay cả file; plan nêu file nào sửa ở ticket nào.
-  - `docs/ops/manual-test.md`: bước thử bốn tổ hợp của câu 13 trên Firebase staging.
+  - `docs/ops/manual-test.md`: bước thử bốn tổ hợp khóa của câu 13 trên Firebase staging (3 cách hiện; tổ hợp tắt, bật ra banner).
 - **Đề xuất về dự án mẫu** (`docs/ops/from-app.md`): mã theo lớp của thanh đáy. Câu 14 của spec AdsKit của mẫu (mã theo khe) cùng ý.
 - Không thêm khóa, không sửa cách chọn lớp của `BottomAdBarScaffold` (câu 13).
 
@@ -55,6 +55,6 @@ Ticket chạm điểm chặn của `risk-scoring.md`: sửa module core `:core:a
 ## Định nghĩa hoàn thành
 
 - [ ] Bản production nhận mã lớp theo khuôn của câu 14; test của khung kiểm đủ các trường hợp ở mục Phạm vi.
-- [ ] Bản staging thấy đủ bốn tổ hợp của câu 13 khi đổi khóa trên Firebase staging.
+- [ ] Bản staging thấy đủ 3 cách hiện của câu 13 khi đổi hai khóa trên Firebase staging (spec ads, câu 13 sửa 2026-10-31: tổ hợp tắt, bật ra banner).
 - [ ] Tài liệu cách khai báo mã lớp đã cập nhật; T-075 có ghi chú khuôn mã lớp.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.

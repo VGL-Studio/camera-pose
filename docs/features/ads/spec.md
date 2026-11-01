@@ -169,11 +169,12 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
       | Native nhỏ | bật | tắt |
       | Banner | tắt | tắt |
       | Native thu gọn trên native nhỏ | bật | bật |
-      | Native thu gọn trên banner | tắt | bật |
+      | Banner (lớp thu gọn không hiện trên banner, luật D-01 của khung) | tắt | bật |
 
     - Phương án khác: một khóa `bottom_ad_type` (`banner`, `native`, `native_collap`). Cách này cần sửa khung và đề xuất về dự án mẫu. Nó cũng có thêm cách "chỉ lớp thu gọn, không có khe", mà khung chưa có.
     - Hai khóa có sẵn áp chung cho mọi thanh đáy. Muốn chọn riêng cho thư viện và chi tiết thì cần khóa theo vị trí, cũng là sửa khung.
     - Trả lời: hai khóa có sẵn, theo đề xuất. Nhật, 2026-10-31.
+    - Sửa 2026-10-31 (rà soát plan T-084): bảng trên ghi "native thu gọn trên banner" cho tổ hợp tắt, bật. Khung không có cách hiện này: lớp thu gọn chỉ hiện khi khe là native (luật D-01, `AdsFlags.kt`, `bottomAdBarLayers`). Nhật chọn ghi lại theo khung: có 3 cách hiện thật (native nhỏ; banner; native thu gọn trên native nhỏ), tổ hợp tắt, bật ra banner, không có lớp. Lớp thu gọn trên banner cần đổi luật D-01, ngoài phạm vi.
 14. **Mã quảng cáo theo lớp ở production.** Hôm nay production chỉ có mã của định dạng chính của vị trí (khe native nhỏ). Lớp banner và lớp thu gọn không gửi yêu cầu, vì `AdUnitIds.of(placement, format)` trả `null` (`docs/ops/ads-guide.md`, mục 5, bước 6). Vì vậy tắt `is_show_native_bottom` thì đáy trống.
     - Đề xuất của AI:
       - Cấu hình phát hành nhận thêm mục `<khóa vị trí>/<định dạng lớp>=<mã>`, ví dụ `poses_bottom/banner` và `poses_bottom/native_collap`, cùng kiểu với khóa log và bộ đếm của khung. Hai thanh đáy dùng chung một mã banner và một mã native thu gọn.
@@ -205,3 +206,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-31 | Nhật | Chia ticket, không đổi yêu cầu (AI ghi): `poses_in_collection` của câu 9 code ở T-080 thay vì T-079. Lý do: hàm lưới của khung để lại ô trống khi pool cạn, trái KB-6 của spec poses; Nhật chọn sửa khung, và phần sửa này phải chạy thử trước. `inter_pose_detail` vẫn ở T-079. Spec giữ `confirmed` |
 | 2026-10-31 | AI | Ba yêu cầu của Nhật: luồng giới thiệu có `native_onboarding` (spec onboarding), tư thế premium có `rw_premium_pose` (spec poses), native thu gọn ở thanh đáy chọn bằng Remote Config (`requests/2026-10-31-thanh-day-native-thu-gon.md`). Mục 2, câu 12 tới 15. Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-10-31 | Nhật | Trả lời câu 12 tới 15 (AI ghi, cùng phiên). Mục 1, 5 sửa theo câu 12. Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-10-31 | Nhật | Sửa câu 13 theo rà soát plan T-084 (AI ghi): tổ hợp `is_show_native_bottom` tắt, `is_show_native_collap` bật ra banner, không có lớp thu gọn (luật D-01 của khung); còn 3 cách hiện. Lời của Nhật: chọn "Sửa spec: 3 cách hiện", phương án ghi rõ Nhật xác nhận spec lại ngay. Chuyển `changed` rồi lại `confirmed` |

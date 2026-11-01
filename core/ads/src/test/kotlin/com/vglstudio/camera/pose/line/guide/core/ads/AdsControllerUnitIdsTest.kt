@@ -64,7 +64,7 @@ class AdsControllerUnitIdsTest {
         const val MISSING = "Production ad units missing"
 
         /** Every production placement key, no slot key. */
-        const val PLACEMENT_UNITS = "sample_native_small=unit/1;open_app=unit/3;open_app_inter=unit/4;" +
+        const val PLACEMENT_UNITS = "open_app=unit/3;open_app_inter=unit/4;" +
             // The placements of this app (ADR-0029).
             "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13;" +
             "poses_in_collection=unit/14;" +

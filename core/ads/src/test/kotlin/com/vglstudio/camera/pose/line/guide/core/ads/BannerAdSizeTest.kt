@@ -124,7 +124,7 @@ class BannerAdSizeTest {
             CompositionLocalProvider(LocalAdsController provides testAdsController()) {
                 Box(Modifier.width(411.dp)) {
                     BottomBannerSlot(
-                        AdPlacement.SAMPLE_NATIVE_SMALL,
+                        AdPlacement.POSES_BOTTOM,
                         onAdAvailabilityChange = {},
                         onHeight = { reported += it },
                     )
@@ -199,7 +199,7 @@ class BannerAdSizeTest {
         CompositionLocalProvider(LocalAdsController provides controller) {
             Box(Modifier.width(360.dp)) {
                 BottomBannerSlot(
-                    AdPlacement.SAMPLE_NATIVE_SMALL,
+                    AdPlacement.POSES_BOTTOM,
                     onAdAvailabilityChange = {},
                     onHeight = { reported += it },
                 )

@@ -61,16 +61,16 @@ class FirebaseAdMetricsTest {
 
     @Test
     fun emptyOrMissingParams_areDropped() {
-        val withPlacement = revenue(adPlacement = "sample_native_small")
+        val withPlacement = revenue(adPlacement = "poses_bottom")
         // Control (L-055): with a placement the key is there.
-        assertEquals("sample_native_small", withPlacement.firebaseParams()["ad_placement"])
+        assertEquals("poses_bottom", withPlacement.firebaseParams()["ad_placement"])
         assertFalse(revenue(adPlacement = null).firebaseParams().containsKey("ad_placement"))
         assertFalse(revenue(adPlacement = "").firebaseParams().containsKey("ad_placement"))
 
-        val full = AdMetricEvent.LoadSuccess("NATIVE_SMALL", "sample_native_small", loadAttempt = 2, latencyMs = 250)
+        val full = AdMetricEvent.LoadSuccess("NATIVE_SMALL", "poses_bottom", loadAttempt = 2, latencyMs = 250)
         assertEquals(2L, full.firebaseParams()["load_attempt"])
         assertEquals(250L, full.firebaseParams()["latency_ms"])
-        val bare = AdMetricEvent.LoadSuccess("NATIVE_SMALL", "sample_native_small", loadAttempt = null, null)
+        val bare = AdMetricEvent.LoadSuccess("NATIVE_SMALL", "poses_bottom", loadAttempt = null, null)
         assertFalse(bare.firebaseParams().containsKey("load_attempt"))
         assertFalse(bare.firebaseParams().containsKey("latency_ms"))
         assertEquals("NATIVE_SMALL", bare.firebaseParams()["ad_format"])
@@ -132,14 +132,14 @@ class FirebaseAdMetricsTest {
 
     @Test
     fun loadFail_params() {
-        val event = AdMetricEvent.LoadFail("NATIVE_SMALL", "sample_native_small", 2, 340, "3", "no_fill")
+        val event = AdMetricEvent.LoadFail("NATIVE_SMALL", "poses_bottom", 2, 340, "3", "no_fill")
 
         assertEquals("ad_load_fail", event.firebaseName())
         val params = event.firebaseParams()
         assertEquals(
             mapOf(
                 "ad_format" to "NATIVE_SMALL",
-                "ad_placement" to "sample_native_small",
+                "ad_placement" to "poses_bottom",
                 "load_attempt" to 2L,
                 "latency_ms" to 340L,
                 "load_error_code" to "3",

@@ -7,4 +7,10 @@
     <string name="onboarding_point_saved">Salve suas poses favoritas para fotografar depois</string>
     <string name="onboarding_enable_camera">Ativar câmera</string>
     <string name="onboarding_note">O app precisa acessar a câmera para mostrar a visualização. As fotos ficam só no seu aparelho.</string>
+    <string name="onboarding_next">Próximo</string>
+    <string name="onboarding_poses_title">Uma pose para cada foto</string>
+    <string name="onboarding_premium_title">Poses premium</string>
+    <string name="onboarding_premium_body">Assista a um anúncio para desbloquear uma pose premium e fique com ela para sempre.</string>
+    <string name="onboarding_camera_title">Pronto para fotografar</string>
+    <string name="onboarding_page_indicator">Página %1$d de %2$d</string>
 </resources>

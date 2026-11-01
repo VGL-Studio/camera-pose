@@ -9,26 +9,26 @@ class AdUnitIdsTest {
     @Test
     fun configuredUnits_areParsedPerPlacementKey() {
         val ids = ConfiguredAdUnitIds(
-            " sample_native_small = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
+            " poses_bottom = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
                 "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;banner=unit/8;native_collap=unit/9;" +
-                // The placements of this app (plan T-074, ADR-0029).
-                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
+                // The other placements of this app (plan T-074, ADR-0029; plan T-081).
+                "pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
                 "inter_pose_detail=unit/13;poses_in_collection=unit/14",
         )
-        assertEquals("unit/1", ids.of(AdPlacement.SAMPLE_NATIVE_SMALL))
+        assertEquals("unit/1", ids.of(AdPlacement.POSES_BOTTOM))
         assertTrue(ids.missing.isEmpty())
         // Control: without the two slot keys, the layers of the bottom bar are missing (plan T-056, section 3.5).
         val withoutSlots = ConfiguredAdUnitIds(
-            " sample_native_small = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
+            " poses_bottom = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
                 "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;" +
-                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
+                "pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
                 "inter_pose_detail=unit/13;poses_in_collection=unit/14",
         )
         assertEquals(listOf("banner", "native_collap"), withoutSlots.missing)
         // Control: app-wide placements still need a unit on production (plan T-024, section 3.3).
         val withoutAppWide = ConfiguredAdUnitIds(
-            " sample_native_small = unit/1 ; other_key=unit/2;" +
-                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
+            " poses_bottom = unit/1 ; other_key=unit/2;" +
+                "pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
                 "inter_pose_detail=unit/13;poses_in_collection=unit/14",
         )
         assertEquals(
@@ -45,14 +45,14 @@ class AdUnitIdsTest {
             AdPlacement.entries.filterNot { it.stagingOnly }.map { it.key } + listOf("banner", "native_collap"),
             ids.missing,
         )
-        assertNull(ids.of(AdPlacement.SAMPLE_NATIVE_SMALL))
+        assertNull(ids.of(AdPlacement.POSES_BOTTOM))
     }
 
     @Test
     fun stagingOnlyPlacement_hasNoUnit_evenWhenConfigured() {
-        val ids = ConfiguredAdUnitIds("gallery_native_small=x;sample_native_small=y")
+        val ids = ConfiguredAdUnitIds("gallery_native_small=x;poses_bottom=y")
         // Control: the other placement of the same configuration gets its unit.
-        assertEquals("y", ids.of(AdPlacement.SAMPLE_NATIVE_SMALL))
+        assertEquals("y", ids.of(AdPlacement.POSES_BOTTOM))
         assertNull(ids.of(AdPlacement.GALLERY_NATIVE_SMALL))
     }
 
@@ -81,7 +81,7 @@ class AdUnitIdsTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun malformedEntry_isRejected() {
-        ConfiguredAdUnitIds("sample_native_small")
+        ConfiguredAdUnitIds("poses_bottom")
     }
 
     @Test
@@ -93,7 +93,7 @@ class AdUnitIdsTest {
 
     @Test
     fun googleTestUnits_nativeFormats() {
-        assertEquals("ca-app-pub-3940256099942544/2247696110", GoogleTestAdUnitIds.of(AdPlacement.SAMPLE_NATIVE_SMALL))
+        assertEquals("ca-app-pub-3940256099942544/2247696110", GoogleTestAdUnitIds.of(AdPlacement.POSES_BOTTOM))
         // NATIVE_MEDIUM is also checked through the format table, independent of the placements.
         assertEquals("ca-app-pub-3940256099942544/1044960115", GoogleTestAdUnitIds.unitFor(AdFormat.NATIVE_MEDIUM))
         assertEquals("ca-app-pub-3940256099942544/2247696110", GoogleTestAdUnitIds.unitFor(AdFormat.NATIVE_SMALL))
@@ -132,7 +132,7 @@ class AdUnitIdsTest {
     @Test
     fun staging_unitOfEachLayerFormat() {
         // Staging shows every layer of a bottom bar with the test unit of the layer's format (question 2, plan T-030).
-        val bar = AdPlacement.SAMPLE_NATIVE_SMALL
+        val bar = AdPlacement.POSES_BOTTOM
         assertEquals(GoogleTestAdUnitIds.unitFor(AdFormat.BANNER), GoogleTestAdUnitIds.of(bar, AdFormat.BANNER))
         assertEquals(
             GoogleTestAdUnitIds.unitFor(AdFormat.NATIVE_COLLAPSIBLE),
@@ -143,8 +143,8 @@ class AdUnitIdsTest {
 
     @Test
     fun production_otherFormat_null_ownFormat_configured() {
-        val ids = ConfiguredAdUnitIds("sample_native_small=unit/1")
-        val bar = AdPlacement.SAMPLE_NATIVE_SMALL
+        val ids = ConfiguredAdUnitIds("poses_bottom=unit/1")
+        val bar = AdPlacement.POSES_BOTTOM
         // Control: the placement's own format gets its configured unit.
         assertEquals("unit/1", ids.of(bar, AdFormat.NATIVE_SMALL))
         // The banner and collapsible layers have no unit on production without a slot key (plan T-056).
@@ -156,8 +156,8 @@ class AdUnitIdsTest {
 
     @Test
     fun production_layerUnits_readFromSlotKeys() {
-        val ids = ConfiguredAdUnitIds("sample_native_small=unit/1;banner=unit/b;native_collap=unit/c")
-        val bar = AdPlacement.SAMPLE_NATIVE_SMALL
+        val ids = ConfiguredAdUnitIds("poses_bottom=unit/1;banner=unit/b;native_collap=unit/c")
+        val bar = AdPlacement.POSES_BOTTOM
         assertEquals("unit/b", ids.of(bar, AdFormat.BANNER))
         assertEquals("unit/c", ids.of(bar, AdFormat.NATIVE_COLLAPSIBLE))
         assertEquals("unit/1", ids.of(bar, AdFormat.NATIVE_SMALL))
@@ -167,15 +167,15 @@ class AdUnitIdsTest {
     fun production_ownFormat_ignoresSlotKey() {
         // A slot key never stands in for the placement's own format (plan T-056, section 3.1, point 2).
         val slotsOnly = ConfiguredAdUnitIds("native_small=unit/s;interstitial=unit/i")
-        assertNull(slotsOnly.of(AdPlacement.SAMPLE_NATIVE_SMALL))
-        assertNull(slotsOnly.of(AdPlacement.SAMPLE_NATIVE_SMALL, AdFormat.NATIVE_SMALL))
+        assertNull(slotsOnly.of(AdPlacement.POSES_BOTTOM))
+        assertNull(slotsOnly.of(AdPlacement.POSES_BOTTOM, AdFormat.NATIVE_SMALL))
         assertNull(slotsOnly.of(AdPlacement.OPEN_APP_INTER))
         // Control: with the placement keys, the same configuration gives their units.
         val withPlacements = ConfiguredAdUnitIds(
-            "native_small=unit/s;interstitial=unit/i;sample_native_small=unit/1;open_app_inter=unit/4",
+            "native_small=unit/s;interstitial=unit/i;poses_bottom=unit/1;open_app_inter=unit/4",
         )
-        assertEquals("unit/1", withPlacements.of(AdPlacement.SAMPLE_NATIVE_SMALL))
-        assertEquals("unit/1", withPlacements.of(AdPlacement.SAMPLE_NATIVE_SMALL, AdFormat.NATIVE_SMALL))
+        assertEquals("unit/1", withPlacements.of(AdPlacement.POSES_BOTTOM))
+        assertEquals("unit/1", withPlacements.of(AdPlacement.POSES_BOTTOM, AdFormat.NATIVE_SMALL))
         assertEquals("unit/4", withPlacements.of(AdPlacement.OPEN_APP_INTER))
     }
 
@@ -185,7 +185,7 @@ class AdUnitIdsTest {
         assertNull(ids.of(AdPlacement.GALLERY_NATIVE_SMALL, AdFormat.BANNER))
         assertNull(ids.of(AdPlacement.GALLERY_NATIVE_SMALL, AdFormat.NATIVE_COLLAPSIBLE))
         // Control: a production placement gets the unit of the same slot.
-        assertEquals("unit/b", ids.of(AdPlacement.SAMPLE_NATIVE_SMALL, AdFormat.BANNER))
+        assertEquals("unit/b", ids.of(AdPlacement.POSES_BOTTOM, AdFormat.BANNER))
     }
 
     @Test
@@ -224,7 +224,7 @@ class AdUnitIdsTest {
 
     @Test
     fun missingUnitsWarning_listsMissingKeys() {
-        val placementUnits = "sample_native_small=unit/1;open_app=unit/3;open_app_inter=unit/4;" +
+        val placementUnits = "open_app=unit/3;open_app_inter=unit/4;" +
             // The placements of this app (ADR-0029).
             "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13;" +
             "poses_in_collection=unit/14;" +

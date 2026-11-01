@@ -1,11 +1,6 @@
 {
   "conditions": [],
   "parameters": {
-    "feature_camera_enabled": {
-      "defaultValue": { "value": "false" },
-      "description": "Shows the camera screen with pose outlines as the start screen.",
-      "valueType": "BOOLEAN"
-    },
     "feature_in_app_review_enabled": {
       "defaultValue": { "value": "false" },
       "description": "Asks for a Play review after enough saved photos (core/review rules).",
@@ -36,9 +31,9 @@
       "description": "Shows the pose library button on the camera and the library screens.",
       "valueType": "BOOLEAN"
     },
-    "feature_sample_enabled": {
+    "feature_premium_poses_enabled": {
       "defaultValue": { "value": "false" },
-      "description": "Shows the sample feature screen, the reference pattern for new features.",
+      "description": "Locks the premium poses of the catalog until they are unlocked; off means every pose can be used.",
       "valueType": "BOOLEAN"
     },
     "feature_settings_enabled": {
@@ -209,11 +204,6 @@
     "is_show_review_interstitial": {
       "defaultValue": { "value": "false" },
       "description": "Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial).",
-      "valueType": "BOOLEAN"
-    },
-    "is_show_sample_native_small": {
-      "defaultValue": { "value": "false" },
-      "description": "Shows ads in this placement. Off by default. Derived key of placement sample_native_small (native_small).",
       "valueType": "BOOLEAN"
     },
     "native_every_gallery_in_collection": {

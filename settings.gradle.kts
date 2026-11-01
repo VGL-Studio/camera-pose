@@ -44,7 +44,6 @@ include(":core:network")
 include(":core:poses")
 include(":core:review")
 
-include(":feature:sample")
 include(":feature:loading")
 include(":feature:camera")
 include(":feature:onboarding")

@@ -44,6 +44,6 @@ class LoadAttemptCounterTest {
 
     private companion object {
         const val SLOT = "preload:INTER"
-        const val OTHER = "sample_native_small"
+        const val OTHER = "poses_bottom"
     }
 }

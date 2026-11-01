@@ -7,4 +7,10 @@
     <string name="onboarding_point_saved">Lưu tư thế yêu thích để chụp lại sau</string>
     <string name="onboarding_enable_camera">Bật camera</string>
     <string name="onboarding_note">App cần quyền camera để hiện khung xem trước. Ảnh chỉ lưu trên máy của bạn.</string>
+    <string name="onboarding_next">Tiếp</string>
+    <string name="onboarding_poses_title">Tư thế cho mọi kiểu ảnh</string>
+    <string name="onboarding_premium_title">Tư thế premium</string>
+    <string name="onboarding_premium_body">Xem một quảng cáo để mở một tư thế premium, rồi dùng mãi về sau.</string>
+    <string name="onboarding_camera_title">Sẵn sàng chụp</string>
+    <string name="onboarding_page_indicator">Trang %1$d trên %2$d</string>
 </resources>

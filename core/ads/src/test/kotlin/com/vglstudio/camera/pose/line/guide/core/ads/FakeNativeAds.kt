@@ -107,7 +107,7 @@ internal class FakeNativeLoads(
 
     companion object {
         const val FAKE_UNIT_ID = "test-native-unit"
-        const val FAKE_KEY = "sample_native_small"
+        const val FAKE_KEY = "poses_bottom"
     }
 }
 

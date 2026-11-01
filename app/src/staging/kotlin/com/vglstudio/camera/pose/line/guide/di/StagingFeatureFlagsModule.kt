@@ -18,22 +18,12 @@ object StagingFeatureFlagsModule {
     @Provides
     @IntoSet
     @LocallyEnabledFlags
-    fun sample(): FeatureFlag = FeatureFlag.SAMPLE
-
-    @Provides
-    @IntoSet
-    @LocallyEnabledFlags
     fun loading(): FeatureFlag = FeatureFlag.LOADING
 
     @Provides
     @IntoSet
     @LocallyEnabledFlags
     fun networkDialog(): FeatureFlag = FeatureFlag.NETWORK_DIALOG
-
-    @Provides
-    @IntoSet
-    @LocallyEnabledFlags
-    fun camera(): FeatureFlag = FeatureFlag.CAMERA
 
     @Provides
     @IntoSet
@@ -59,4 +49,9 @@ object StagingFeatureFlagsModule {
     @IntoSet
     @LocallyEnabledFlags
     fun poseMatching(): FeatureFlag = FeatureFlag.POSE_MATCHING
+
+    @Provides
+    @IntoSet
+    @LocallyEnabledFlags
+    fun premiumPoses(): FeatureFlag = FeatureFlag.PREMIUM_POSES
 }

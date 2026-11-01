@@ -29,26 +29,26 @@ class DefaultFeatureFlagsTest {
 
     @Test
     fun locallyEnabledFlag_isOn() = runTest {
-        assertTrue(flags(locallyEnabled = setOf(FeatureFlag.SAMPLE)).enabled(FeatureFlag.SAMPLE).first())
+        assertTrue(flags(locallyEnabled = setOf(FeatureFlag.LOADING)).enabled(FeatureFlag.LOADING).first())
     }
 
     @Test
     fun locallyEnabledFlag_staysOnWhenRemoteSaysOff() = runTest {
-        remote.booleans.value = mapOf(FeatureFlag.SAMPLE.key to false)
-        assertTrue(flags(locallyEnabled = setOf(FeatureFlag.SAMPLE)).enabled(FeatureFlag.SAMPLE).first())
+        remote.booleans.value = mapOf(FeatureFlag.LOADING.key to false)
+        assertTrue(flags(locallyEnabled = setOf(FeatureFlag.LOADING)).enabled(FeatureFlag.LOADING).first())
     }
 
     @Test
     fun remoteValueTrue_turnsFlagOn() = runTest {
-        remote.booleans.value = mapOf(FeatureFlag.SAMPLE.key to true)
-        assertTrue(flags().enabled(FeatureFlag.SAMPLE).first())
+        remote.booleans.value = mapOf(FeatureFlag.LOADING.key to true)
+        assertTrue(flags().enabled(FeatureFlag.LOADING).first())
     }
 
     @Test
     fun remoteValueActivatedLater_reachesCollectors() = runTest {
-        flags().enabled(FeatureFlag.SAMPLE).test {
+        flags().enabled(FeatureFlag.LOADING).test {
             assertFalse(awaitItem())
-            remote.booleans.value = mapOf(FeatureFlag.SAMPLE.key to true)
+            remote.booleans.value = mapOf(FeatureFlag.LOADING.key to true)
             assertTrue(awaitItem())
             remote.booleans.value = emptyMap()
             assertFalse(awaitItem())

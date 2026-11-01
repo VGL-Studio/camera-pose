@@ -24,6 +24,9 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # which the app does not have yet (ADR-1007). Take them in T-075, through an approved plan.
 hold=scripts/release.sh 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
+# feature/sample, FeatureFlag.SAMPLE and AdPlacement.SAMPLE_NATIVE_SMALL are gone (T-081, ADR-1008): a sync drops them,
+# template tests of core/ads and core/analytics that use SAMPLE_NATIVE_SMALL take POSES_BOTTOM (a duplicate entry is
+# dropped), and the sample_native_small example in the KDoc of AdUnitIds.kt reads poses_bottom.
 # App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6
 # (scenario budget 1800, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
 # and start-run.yml, the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of

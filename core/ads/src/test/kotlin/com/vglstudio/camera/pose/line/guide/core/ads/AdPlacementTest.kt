@@ -57,7 +57,7 @@ class AdPlacementTest {
 
     @Test
     fun otherPlacements_areNotStagingOnly() {
-        assertFalse(AdPlacement.SAMPLE_NATIVE_SMALL.stagingOnly)
+        assertFalse(AdPlacement.POSES_BOTTOM.stagingOnly)
         AdPlacement.entries.filterNot { it.key.startsWith("gallery_") }.forEach { placement ->
             assertFalse(placement.key, placement.stagingOnly)
         }
@@ -225,7 +225,7 @@ class AdPlacementTest {
 
     @Test
     fun startupTurn_acceptsAppWideOnly() {
-        assertThrows(IllegalArgumentException::class.java) { StartupAdTurn(AdPlacement.SAMPLE_NATIVE_SMALL) }
+        assertThrows(IllegalArgumentException::class.java) { StartupAdTurn(AdPlacement.POSES_BOTTOM) }
         // Control: an app-wide placement is accepted.
         assertEquals(AdPlacement.OPEN_APP, StartupAdTurn(AdPlacement.OPEN_APP).placement)
     }

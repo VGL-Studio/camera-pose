@@ -43,7 +43,7 @@ class FullScreenAdsTest {
     @Test
     fun bannerPlacement_isRejected() {
         val error = runCatching {
-            composeRule.setContent { rememberShowFullScreenAd(AdPlacement.SAMPLE_NATIVE_SMALL) }
+            composeRule.setContent { rememberShowFullScreenAd(AdPlacement.POSES_BOTTOM) }
             composeRule.waitForIdle()
         }.exceptionOrNull()
         assertTrue("expected IllegalArgumentException, got $error", error is IllegalArgumentException)
@@ -59,7 +59,7 @@ class FullScreenAdsTest {
         var action: () -> Unit = {}
         composeRule.setContent {
             CompositionLocalProvider(LocalAdsController provides if (withController) controller else null) {
-                action = rememberFullScreenAdAction(AdPlacement.SAMPLE_NATIVE_SMALL, show)
+                action = rememberFullScreenAdAction(AdPlacement.POSES_BOTTOM, show)
                 if (withController) Box(modifier = Modifier.size(1.dp).testTag(CONTROL))
                 FullScreenAdHost()
             }
@@ -77,7 +77,7 @@ class FullScreenAdsTest {
         composeRule.onAllNodesWithTag(CONTROL).assertCountEquals(1)
         action()
         composeRule.waitForIdle()
-        assertEquals(listOf(AdPlacement.SAMPLE_NATIVE_SMALL), shown)
+        assertEquals(listOf(AdPlacement.POSES_BOTTOM), shown)
     }
 
     @Test

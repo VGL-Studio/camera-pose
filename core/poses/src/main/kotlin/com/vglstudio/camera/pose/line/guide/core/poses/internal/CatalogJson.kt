@@ -29,6 +29,8 @@ internal data class PoseJson(
     val tags: List<String> = emptyList(),
     val difficulty: Int = 1,
     val starter: Boolean = false,
+    // Catalogs made before premium poses (spec poses, question 6) have no such field: every pose is free.
+    val premium: Boolean = false,
     val name: Map<String, String> = emptyMap(),
     val steps: Map<String, List<String>> = emptyMap(),
     val mistakes: Map<String, List<String>> = emptyMap(),

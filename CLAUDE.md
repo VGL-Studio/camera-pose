@@ -59,7 +59,7 @@ Quy tắc phụ thuộc (ADR-0001, kiểm tra tự động bằng `checkModuleDe
 
 ## Viết một feature mới
 
-Làm theo đúng mẫu `:feature:sample`:
+Làm theo mẫu `:feature:settings` (bố cục module, `UiState`, `Route` và `Screen`, `navigation/`, test); phần repository có lớp cài đặt `internal`, `Analytics` và `AppLogger` xem `:feature:loading`; theo dõi cờ dạng `Flow` xem `PoseMatchViewModel` của `:feature:camera`; tải file trên R2 qua `RemoteAssets` xem `:core:poses`:
 
 1. `build.gradle.kts` chỉ áp dụng plugin `template.android.feature`, khai báo `namespace`.
 2. `data/`: interface repository và lớp cài đặt `internal`, gắn bằng một Hilt module trong `di/`.

@@ -1,6 +1,8 @@
 package com.vglstudio.camera.pose.line.guide
 
 import android.Manifest
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -44,7 +46,7 @@ class SettingsNavigationTest {
             exists(ONBOARDING_SCREEN) || exists(CAMERA_SCREEN)
         }
         if (exists(ONBOARDING_SCREEN)) {
-            composeRule.onNodeWithTag(ENABLE_CAMERA).performClick()
+            passOnboarding()
         }
         composeRule.waitUntil(timeoutMillis = SCREEN_TIMEOUT_MILLIS) { exists(CAMERA_SETTINGS) }
 
@@ -60,12 +62,36 @@ class SettingsNavigationTest {
 
     private fun exists(tag: String): Boolean = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
 
+    /**
+     * Taps "Next" up to the last page of the onboarding flow, then "Turn on camera" (plan T-082). At most
+     * [ONBOARDING_ROUNDS] rounds, enough for four pages and one spare wait; each round waits a bounded time for an
+     * enabled "Next" (T-083 dims it while the ad of page 1 loads) or for "Turn on camera".
+     */
+    private fun passOnboarding() {
+        repeat(ONBOARDING_ROUNDS) {
+            composeRule.waitUntil(timeoutMillis = ONBOARDING_STEP_TIMEOUT_MILLIS) {
+                existsEnabled(NEXT) || exists(ENABLE_CAMERA)
+            }
+            if (exists(ENABLE_CAMERA)) {
+                composeRule.onNodeWithTag(ENABLE_CAMERA).performClick()
+                return
+            }
+            composeRule.onNodeWithTag(NEXT).performClick()
+        }
+    }
+
+    private fun existsEnabled(tag: String): Boolean =
+        composeRule.onAllNodes(hasTestTag(tag) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+
     private companion object {
         // As AppLaunchTest: loading downloads the starter set of poses from R2 staging.
         const val START_SCREEN_TIMEOUT_MILLIS = 60_000L
         const val SCREEN_TIMEOUT_MILLIS = 10_000L
         const val ONBOARDING_SCREEN = "onboarding_screen"
+        const val NEXT = "onboarding_next"
         const val ENABLE_CAMERA = "onboarding_enable_camera"
+        const val ONBOARDING_ROUNDS = 6
+        const val ONBOARDING_STEP_TIMEOUT_MILLIS = 10_000L
         const val CAMERA_SCREEN = "camera_screen"
         const val CAMERA_SETTINGS = "camera_settings"
         const val SETTINGS_SCREEN = "settings_screen"

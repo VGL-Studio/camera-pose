@@ -165,8 +165,6 @@ enum class AdPlacement(
      */
     val noAdPolicy: RewardedNoAdPolicy? = null,
 ) {
-    /** The bottom bar of the sample screen ([BottomAdBarScaffold], plan T-030, question 1). */
-    SAMPLE_NATIVE_SMALL("sample_native_small", AdFormat.NATIVE_SMALL),
     OPEN_APP("open_app", AdFormat.APP_OPEN, appWide = true),
     OPEN_APP_INTER("open_app_inter", AdFormat.INTERSTITIAL, ignoreInterval = true, appWide = true),
     NATIVE_AFTER_INTER("native_combo", AdFormat.NATIVE_FULL_SCREEN, appWide = true),

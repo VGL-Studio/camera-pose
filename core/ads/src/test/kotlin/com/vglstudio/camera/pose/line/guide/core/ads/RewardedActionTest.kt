@@ -359,7 +359,7 @@ class RewardedActionTest {
     @Test
     fun nonRewardedPlacement_isRejected() {
         val error = runCatching {
-            composeRule.setContent { rememberRewardedAction(AdPlacement.SAMPLE_NATIVE_SMALL, onGranted = {}) }
+            composeRule.setContent { rememberRewardedAction(AdPlacement.POSES_BOTTOM, onGranted = {}) }
             composeRule.waitForIdle()
         }.exceptionOrNull()
 

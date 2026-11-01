@@ -70,6 +70,12 @@ class OnboardingStringsTest {
             R.string.onboarding_enable_camera to "Turn on camera",
             R.string.onboarding_note to
                 "The app needs camera access to show the preview. Photos are stored only on your device.",
+            R.string.onboarding_next to "Next",
+            R.string.onboarding_poses_title to "A pose for every shot",
+            R.string.onboarding_premium_title to "Premium poses",
+            R.string.onboarding_premium_body to "Watch one ad to unlock a premium pose, then keep it for good.",
+            R.string.onboarding_camera_title to "Ready to shoot",
+            R.string.onboarding_page_indicator to "Page %1\$d of %2\$d",
         )
 
         val VIETNAMESE = mapOf(
@@ -82,6 +88,12 @@ class OnboardingStringsTest {
             R.string.onboarding_enable_camera to "Bật camera",
             R.string.onboarding_note to
                 "App cần quyền camera để hiện khung xem trước. Ảnh chỉ lưu trên máy của bạn.",
+            R.string.onboarding_next to "Tiếp",
+            R.string.onboarding_poses_title to "Tư thế cho mọi kiểu ảnh",
+            R.string.onboarding_premium_title to "Tư thế premium",
+            R.string.onboarding_premium_body to "Xem một quảng cáo để mở một tư thế premium, rồi dùng mãi về sau.",
+            R.string.onboarding_camera_title to "Sẵn sàng chụp",
+            R.string.onboarding_page_indicator to "Trang %1\$d trên %2\$d",
         )
     }
 }

@@ -211,7 +211,7 @@ class NativeAdLoadingTest {
 
     private companion object {
         const val TIMEOUT = 10_000L
-        const val KEY = "sample_native_small"
+        const val KEY = "poses_bottom"
         const val UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
     }
 }

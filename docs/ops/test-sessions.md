@@ -163,15 +163,20 @@ Ví dụ ngắn:
 
 ```text
 ticket: T-NNN
-criterion: Bấm nút của màn mẫu thì số đếm tăng, xoay màn hình vẫn giữ số
+criterion: Chọn "Đã lưu" ở thư viện tư thế thì nút lọc được chọn, xoay màn hình vẫn giữ lựa chọn
 timeout: 120
 fresh
 consent decline 30
-wait id=sample_screen 60
-tap str=sample_increment
-expect text=1 in=sample_screen
+wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_next
+tap_if id=onboarding_next
+tap_if id=onboarding_next
+tap_if id=onboarding_enable_camera
+tap id=camera_poses
+wait id=poses_grid 20
+tap str=poses_chip_saved in=poses_screen
 device rotate landscape
-expect text=1 in=sample_screen
+expect str=poses_chip_saved selected=true
 shot landscape
 ```
 

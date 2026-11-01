@@ -5,12 +5,12 @@ feature: onboarding
 spec: features/onboarding/spec.md   # confirmed 2026-10-31, câu 4, 5, 7
 scenarios: [KB-1, KB-5]      # KB-1 đổi số chạm theo câu 5
 owner: Nhật
-status: backlog
+status: approved
 risk: medium
 size: L
 depends_on: [T-085]          # trang premium hiện theo cờ feature_premium_poses_enabled của T-085
 sprint:
-plan:
+plan: features/onboarding/plans/T-082-luong-gioi-thieu-nhieu-trang.md
 created: 2026-10-31
 ---
 

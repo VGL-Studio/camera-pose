@@ -2,7 +2,7 @@
 ticket: T-085
 title: Dữ liệu tư thế premium và danh sách đã mở khóa (`:core:poses`, catalog)
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9.0M         # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-10-31, 19 task); không nâng tay
@@ -10,7 +10,7 @@ blocking_points: [core, r2]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Tuấn               # người duyệt
 cross_reviewer: Nhật         # bắt buộc khi risk_level là high
-approved_at: 2026-10-31
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -19,6 +19,14 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 ## 1. Tóm tắt
 
 `:core:poses` đọc trường `premium` của mỗi tư thế trong catalog (thiếu trường thì miễn phí), giữ danh sách tư thế đã mở khóa trong DataStore (khóa `poses_unlocked`, cùng khuôn với danh sách đã lưu), và có repository công khai `PremiumPoseRepository` với `access: Flow<PremiumAccess>`, `isUsable(pose): Flow<Boolean>` và `unlock(poseId)`. Cờ `FeatureFlag.PREMIUM_POSES` (`feature_premium_poses_enabled`, mặc định tắt, bật ở staging) quyết có khóa hay không; cờ tắt thì mọi tư thế dùng được và `unlock` không ghi gì. `scripts/setup-check-app.sh` báo lỗi khi tư thế mặc định hay tư thế khởi đầu là premium; app cũng tự giữ luật này (bỏ `premium` của tư thế khởi đầu, tư thế mặc định là tư thế miễn phí đầu tiên). Kiểm chứng bằng unit test JVM của `:core:poses` và test của script; phần chạy thử ngày 2026-10-31 đã chạy đúng code của mục 3.1 (mục 4.1).
+
+**Phiên bản 2 (2026-11-01): soạn lại sau đồng bộ dự án mẫu #279.** Phiên bản 1 (duyệt 2026-10-31) viết và chạy thử trên nhánh chính trước đợt đồng bộ đợt 5 (`9af5928`: AGP 9.1, Gradle 9.3.1, compileSdk 37, KSP 2.3.12, Hilt 2.59.2, Robolectric 4.17). Đã rà từng mục: đợt này không sửa file nào của `:core:poses`, `:core:config`, `StagingFeatureFlagsModule.kt`, `scripts/setup-check-app.sh`, `scripts/tests/app.sh`, `AndroidManifest.xml`; số khóa DataStore vẫn 22, không có `poses_unlocked`. Code, test, tiêu chí chấp nhận và API công khai không đổi; đã dựng lại đúng code của mục 3.1 trên nhánh chính mới và chạy lại mọi phần của mục 4.1 (mục 4.1, "Lần chạy thử sau đồng bộ"). Thay đổi so với phiên bản 1:
+
+- Mục 4.1: thêm kết quả lần chạy thử sau đồng bộ, kể cả `scripts/check.sh` qua khóa chung.
+- Mục 7: điều kiện dừng về ảnh chuẩn dùng mẫu `'*/src/test/screenshots/*'` (mẫu của `docs/templates/plan.md` sau đồng bộ, L-136 của mẫu). Mẫu cũ `'*/src/test/screenshots/'` không khớp file nào trong thư mục ảnh: đã thử trên nhánh chính (một ảnh sửa và một ảnh mới: mẫu cũ in rỗng, mẫu mới in cả hai dòng), nên điều kiện dừng cũ không bao giờ kích hoạt.
+- Mục 3.1: đoạn "Catalog tư thế (camera-pose, plan T-065)" của `docs/ops/staging-and-runs.md` nay ở dòng 143 (đợt đồng bộ thêm một dòng ở mục 2.3 và mục 2.8 mới); tiêu đề và số mục plan dẫn không đổi.
+- Mục 3.2: `scripts/tests/run.sh` đổi nhiều trong đợt, vẫn đọc `scripts/tests/app.sh` cùng cách (khối cuối, `. scripts/tests/app.sh`) và giữ `expect`; `docs/remote-config-keys.md` có thêm khóa của khung quảng cáo, đã có trên nhánh gốc; thêm dòng cho `scripts/main-guard-verified.sh` mới, đọc tên hai tệp bảng khóa (`plan-check.py` báo, L-020).
+- Mục 3.5: số liệu của `scripts/existing-tests.py` chạy lại.
 
 Chưa có giao diện: người dùng chưa thấy gì khác. Dấu premium, hộp thoại, quảng cáo có thưởng, sự kiện `premium_pose_unlocked` thuộc T-086; trang giới thiệu theo cờ thuộc T-082. Hai plan đó dẫn theo các chữ ký ở mục 3.1, phần "API công khai".
 
@@ -335,7 +343,7 @@ Sinh lại bảng khóa: `./gradlew :app:testStagingDebugUnitTest -PremoteConfig
 5. Tư thế đã mở khóa giữ theo `id` trên máy: đổi `id` của một tư thế premium thì người đã mở phải mở lại. Bỏ `premium` của một tư thế thì nó miễn phí cho mọi người; đặt `premium` cho tư thế đang miễn phí thì người chưa mở thấy nó bị khóa.
 6. Bật trên production: `feature_premium_poses_enabled` và `is_show_rw_premium_pose` bật cùng lúc, sau khi catalog có `premium` đã lên R2 production và đã được kiểm như mục 4 (spec poses câu 10).
 
-`docs/ops/staging-and-runs.md`, đoạn "Catalog tư thế (camera-pose, plan T-065)" (dòng 142): thêm một câu "Từ T-085, tư thế đầu tiên và tư thế `starter` của mỗi catalog không được có `premium: true`; có thì là lỗi (`docs/ops/pose-catalog.md`)."
+`docs/ops/staging-and-runs.md`, đoạn "Catalog tư thế (camera-pose, plan T-065)" (dòng 143 sau đồng bộ #279; tìm theo tiêu đề đoạn): thêm một câu "Từ T-085, tư thế đầu tiên và tư thế `starter` của mỗi catalog không được có `premium: true`; có thì là lỗi (`docs/ops/pose-catalog.md`)."
 
 ### 3.2. Danh sách file
 
@@ -373,8 +381,9 @@ Nơi khác đọc các file bị đổi (L-020 của mẫu):
 - `scripts/setup-check-app.sh` được `scripts/setup-check.sh` đọc vào (`source`) và được `scripts/tests/app.sh` kiểm; `.github/workflows/env-canary.yml` và `.github/workflows/start-run.yml` nhắc tên file trong chú thích và chạy `setup-check.sh`. Không đổi tham số, biến môi trường hay cách gọi; chỉ thêm một lỗi mới, nên hai workflow không sửa (và `.github/` không được sửa ngoài plan cho phép). Lỗi mới chặn phiên như mọi lỗi catalog khác chỉ khi catalog thật có tư thế premium ở chỗ không được. `docs/template-sync.txt` liệt kê file này là của app, không đồng bộ từ mẫu: không sửa.
 - `docs/ops/staging-and-runs.md` được nhắc trong chú thích hay thông báo của `.github/workflows/device-session.yml`, `.github/workflows/env-canary.yml`, `.github/workflows/resume-run.yml`, `.github/workflows/staging.yml`, `.github/workflows/start-run.yml`, `scripts/cloud-env-check.sh`, `scripts/env-canary.sh`, `scripts/run-watchdog.py`, theo tên file và số mục. Plan chỉ thêm một câu vào đoạn có sẵn, không đổi tiêu đề hay số mục, nên không file nào trong đó bị ảnh hưởng.
 - `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/config/RemoteConfigKeysTest.kt` so `docs/remote-config-keys.md` và `docs/remote-config-template.json` với khóa của code; hai file sinh lại trong cùng commit có dòng enum, nên test qua mà không sửa (chạy thử, mục 4.1).
-- `scripts/tests/app.sh` được `scripts/tests/run.sh` đọc vào, chạy trong `scripts/check.sh`. Test mới dùng `expect`, `sca_reset`, `sca_check` có sẵn; không đổi chúng.
+- `scripts/tests/app.sh` được `scripts/tests/run.sh` đọc vào, chạy trong `scripts/check.sh`. Test mới dùng `expect`, `sca_reset`, `sca_check` có sẵn; không đổi chúng. Sau đồng bộ #279 `run.sh` vẫn đọc `app.sh` ở khối cuối (`if [[ -f scripts/tests/app.sh ]]; then ... . scripts/tests/app.sh`), cùng hàm `expect`.
 - `docs/remote-config-keys.md`, `docs/remote-config-template.json` được `scripts/ads-plan.py` đọc; `ads-plan.py` đọc mọi dòng của bảng, không đếm số khóa cố định, nên không sửa. `app/build.gradle.kts` chỉ nêu đường dẫn của hai file: không đổi.
+- `scripts/main-guard-verified.sh` (mới từ đồng bộ #279, ADR-0039) liệt kê `docs/remote-config-keys.md`, `docs/remote-config-template.json` trong `GRADLE_READ_DOCS`: commit merge đổi hai file này không bao giờ được bỏ qua hay chỉ chạy test script, mà chạy đủ `check.sh`. PR của task cũng đổi code nên `main-guard` chạy đủ như mọi task code; script chỉ đọc tên file, không đọc nội dung, nên không sửa.
 - `FeatureFlag.kt`: `DefaultFeatureFlagsTest` lặp qua `FeatureFlag.entries` (mặc định tắt, khóa khớp tên), `AppRemoteKeys` lấy `FeatureFlag.entries`: dòng mới thỏa, không sửa.
 - `Pose.kt`: mọi chỗ dựng `Pose(...)` dùng tham số có tên (`Fixtures.kt`, `feature/poses/.../PosesFakes.kt`, `feature/camera/.../PoseFakes.kt`, `CatalogParser.kt`); trường mới có mặc định, nên không sửa feature test. `equals` của `Pose` thêm một trường, mọi tư thế hiện tại có `premium = false`, nên so sánh cũ không đổi.
 - `DataStorePoseHistoryRepository.kt`: chỉ `PosesModule` và `DataStorePoseHistoryRepositoryTest` dựng nó; hàm dựng giữ nguyên.
@@ -410,7 +419,7 @@ Không có. Mọi phần là biến thể của mẫu có sẵn và đã chạy 
 | `FeatureFlag.entries` có 9 cờ | 10 cờ | `DefaultFeatureFlagsTest.everyFlag_isOffByDefault`, `withoutLocalOrRemoteValues_everyFlagIsOff`, `everyFlag_remoteKeyMatchesKeyAndDefault`; `RemoteConfigKeysTest.keysFile_matchesCode`, `templateFile_matchesCode`, `everyFeatureFlagAndPlacement_isListed` | Giữ: test lặp qua mọi cờ, cờ mới thỏa. Hai test bảng khóa đỏ khi dòng enum vào rồi qua khi sinh lại trong cùng commit (như T-079, T-080) |
 | `setup-check-app.sh` in dòng `ok` cho catalog có file khởi đầu đủ | Không in `ok` khi catalog có tư thế premium ở chỗ không được | Khối `setup-check app` của `scripts/tests/app.sh` (các file mẫu không có `premium`) | Giữ: chạy thử với code mới, toàn bộ khối qua (mục 4.1) |
 
-`scripts/existing-tests.py` chạy ngày 2026-10-31 (không có kết quả nào từ `.claude/worktrees/`): 588 test dùng tên của các file, 10 "Cần xem trước", 80 "Nên xem". Đã đọc nhóm "Cần xem trước" và các test của `:core:poses`, `:core:config`, `RemoteConfigKeysTest`, `PoseViewModelTest` trong nhóm "Nên xem":
+`scripts/existing-tests.py` chạy ngày 2026-10-31 (không có kết quả nào từ `.claude/worktrees/`): 588 test dùng tên của các file, 10 "Cần xem trước", 80 "Nên xem". Chạy lại ngày 2026-11-01 trên nhánh chính sau đồng bộ #279: 641 test, 6 "Cần xem trước" (đúng 6 test đo bố cục của camera mà rà soát độc lập đã nêu), 61 "Nên xem". Phần tăng là test mới của `:core:ads` trong đợt, khớp chỉ vì chữ chung; không test nào dùng `Pose.premium`, `PoseListStore` hay `FeatureFlag.entries` theo số lượng. Đã đọc nhóm "Cần xem trước" và các test của `:core:poses`, `:core:config`, `RemoteConfigKeysTest`, `PoseViewModelTest` trong nhóm "Nên xem":
 
 - 10 test "Cần xem trước" (`PoseComponentsTest.poseThumb_is64dp`, các test bố cục của `CameraScreen*Test`, `LoadingScreenTest.landscape_retryReachable_w960h520`, `PosesScreenTest.realBottomBar_withoutAds_takesNoSpace`, `wide_hasThreeColumns`) khớp chỉ vì chữ `Pose` hay `poses` trong tên lớp, đo bố cục của màn hình. Plan không đổi giao diện: giữ.
 - `PoseViewModelTest.firstOpen_selectsDefaultPose_withoutEventOrUse` và các test của camera dựa vào `defaultPose`: tư thế giả của camera (`PoseFakes.kt`) không có `premium`, nên `defaultPose` vẫn là tư thế đầu: giữ.
@@ -485,6 +494,25 @@ Tiêu chí E là 1, nên không bắt buộc chạy `scripts/check.sh`. Vẫn ch
   - Test của script, trên script mới: 5/5 mới qua, toàn khối `app.sh` 0 lỗi. Trên script hiện tại (đã hoàn tác phần sửa): 3 đỏ đúng lý do (`a premium default pose stops, naming it: expected '1 1 0', got '0 0 1'`; `a premium starter pose stops, ...: expected '1 1 1', got '0 0 1'`; `a premium starter pose in the Remote Config catalog stops: expected '1 1', got '0 0'`), 2 test giữ hành vi qua (đối chứng).
   - Không chạy `scripts/check.sh` (E là 1, mục 5) và không chạy test của `:feature:*`: `Pose.premium` có mặc định và mọi chỗ dựng dùng tham số có tên.
 
+**Lần chạy thử sau đồng bộ #279 (phiên bản 2).**
+
+- **Đã chạy thử:** 2026-11-01, 04:55 tới 06:36 (khóa chung chờ từ 05:25 tới khoảng 06:24, vì agent khác đang giữ) UTC, trên `origin/main` `9af5928` (sau đồng bộ), trong một nhánh tạm `tmp/T-085-try` của worktree soạn plan (worktree tạm riêng bị chặn bởi giới hạn của agent); commit tạm chỉ ở máy, không đẩy, đã xóa sau đó; nhánh plan không có code thử.
+  - Code: đúng phần Kotlin và script của mục 3.1, dán lại từ các khối code của plan (cùng danh sách như lần đầu). File của mục 3.1 không đổi trong đợt đồng bộ, nên mọi đoạn áp được nguyên văn.
+  - Test tạm `PremiumTryTest` (8 test, cùng nội dung như lần đầu) và năm test mới của `scripts/tests/app.sh` (mục 4), chạy bằng một khung tạm đọc phần `setup-check app` của `app.sh` với hàm `expect` như `run.sh`.
+- **Lệnh:** như lần đầu, với `JAVA_HOME` và `ANDROID_HOME` của `~/.local/share/camera-pose/env.sh`:
+  - `./gradlew -q :core:poses:testDebugUnitTest :core:config:testDebugUnitTest`
+  - `./gradlew -q :core:poses:testDebugUnitTest --tests '*PremiumTryTest*'` (đối chứng, ba đột biến cùng lúc)
+  - `./gradlew -q :app:testStagingDebugUnitTest --tests '*RemoteConfigKeysTest*' -PremoteConfigKeys.update=true :app:processStagingDebugMainManifest :core:poses:ktlintMainSourceSetCheck :core:config:ktlintCheck :app:ktlintCheck`
+  - `bash <khung tạm> <worktree>` trên script mới, script hiện tại (`git checkout origin/main -- scripts/setup-check-app.sh`) và script đột biến.
+  - `scripts/check.sh` qua khóa chung (`check-locked.sh`) trên nhánh tạm có toàn bộ code thử và `PremiumTryTest` (đã `ktlintFormat`).
+- **Kết quả:**
+  - `:core:poses`: 81 test, 0 lỗi (`PremiumTryTest` 8/8; 9 test của `DataStorePoseHistoryRepositoryTest` qua sau khi tách `PoseListStore`, không sửa test). `:core:config`: 50 test, 0 lỗi. Như lần đầu.
+  - Đối chứng (bỏ phần đọc cờ của `unlock`, `defaultPose = catalog.poses.firstOrNull()`, bỏ luật tư thế khởi đầu của parser): 3/8 đỏ: `flagOff_everyPoseUsable_andUnlockWritesNothing` (`AssertionError` ở câu `unlock("p1") == false` của test tạm, câu này đứng trước câu `poses_unlocked == null`), `defaultPose_skipsPremium` (`expected:<[f]1> but was:<[p]1>`), `parser_readsPremium_missingIsFree_starterNeverPremium` (`expected:<[true, false, false]> but was:<[true, false, true]>`). 5 test còn lại xanh.
+  - `:app`: biên dịch qua với Hilt 2.59.2 và KSP 2.3.12 (đồ thị có `PremiumPoseRepository`), `RemoteConfigKeysTest` 15/15 qua sau khi sinh lại; `git diff --stat`: `docs/remote-config-keys.md` một dòng thêm, `docs/remote-config-template.json` 5 dòng thêm, chỉ khóa `feature_premium_poses_enabled`. ktlint của mã chính ba module qua (lần chạy đầu đỏ ở `ktlintTestSourceSetCheck` chỉ vì dòng chuỗi dài của test tạm; `ktlintFormat` sửa).
+  - Manifest gộp `stagingDebug` sau đồng bộ (có adapter Google của MAX): vẫn chỉ `android:allowBackup="false"` (dòng 153), không có `fullBackupContent` hay `dataExtractionRules` (mục 3.3).
+  - Test của script: trên script mới 5/5 mới qua, 85/85 test của phần `setup-check app`. Trên script hiện tại: 3 đỏ đúng lý do (`expected '1 1 0', got '0 0 1'`; `expected '1 1 1', got '0 0 1'`; `expected '1 1', got '0 0'`), 2 test giữ hành vi qua. Đột biến bỏ `.starter == true and` trong `jq`: "a premium pose that is neither the default nor a starter passes" đỏ (`expected '0 0 1', got '1 1 0'`), cùng "a premium default pose stops, naming it" (`got '1 0 0'`, dòng lỗi có thêm `khởi đầu a`).
+  - `scripts/check.sh`: cổng chất lượng **QUA** (`check.sh exit=0`, 06:36 UTC): "All script tests passed" (năm test mới của `app.sh` có trong đó, đều `ok`), 2710 test JVM, 0 lỗi (`:core:poses` 81, `:core:config` 50, `:app` 111), 140 ảnh screenshot không đổi, lint và build staging qua. Log: tệp tạm của phiên soạn plan, không commit.
+
 ## 5. Chấm rủi ro
 
 **Điểm chặn bị chạm:** module core dùng chung (`:core:poses`, `:core:config`; điểm 7); khuôn catalog trên R2 đổi (trường mới; ticket xếp vào điểm 8, AI giữ cách xếp này dù đường dẫn và cách đặt tên không đổi). Không chạm điểm 9: khóa DataStore mới, không chuyển đổi dữ liệu cũ. Rủi ro Cao, cần duyệt chéo (Tuấn và Nhật). Điểm dưới đây chỉ để tham khảo.
@@ -513,7 +541,7 @@ Tiêu chí E là 1, nên không bắt buộc chạy `scripts/check.sh`. Vẫn ch
 
 - Bảng khóa sinh lại có thay đổi ngoài khóa `feature_premium_poses_enabled`: dừng, vì nghĩa là cờ hay khóa khác đã đổi ngoài plan.
 - Một test của `DataStorePoseHistoryRepositoryTest` đỏ sau khi tách `PoseListStore`: sửa code của phần tách, không sửa test; vẫn đỏ sau 3 lần sửa thì dừng (hành vi của danh sách đã lưu phải giữ nguyên).
-- Có ảnh chuẩn screenshot nào đổi (`git status --short -- '*/src/test/screenshots/'`): dừng; plan không đổi giao diện.
+- Có ảnh chuẩn screenshot nào đổi (`git status --short -- '*/src/test/screenshots/*'` có dòng nào): dừng; plan không đổi giao diện.
 
 ## 8. Câu hỏi cho người duyệt
 
@@ -539,6 +567,8 @@ Tiêu chí E là 1, nên không bắt buộc chạy `scripts/check.sh`. Vẫn ch
 
 ## 9. Quyết định duyệt
 
+Phiên bản 1:
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
 - **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt" khi AI hỏi, ngày 2026-10-31. Trả lời mục 8:
@@ -546,5 +576,11 @@ Tiêu chí E là 1, nên không bắt buộc chạy `scripts/check.sh`. Vẫn ch
   - câu 3, 4: chấp nhận (giữ cấu hình sao lưu; giữ `StagingFeatureFlagsModule`, bản 3 trang kiểm bằng test JVM);
   - câu 7: giữ `access: Flow<PremiumAccess>`, plan T-086 soạn lại theo;
   - câu 8: `unlock` trả `Boolean` (đã sửa ở mục 3.1 và mục 4).
+
+Phiên bản 2:
+
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Phiên bản 2 soạn lại sau đồng bộ #279, không đổi code, test hay tiêu chí.
 
 ## 10. Nhật ký thực hiện

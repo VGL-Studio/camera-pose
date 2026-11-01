@@ -28,11 +28,6 @@ object StagingFeatureFlagsModule {
     @Provides
     @IntoSet
     @LocallyEnabledFlags
-    fun camera(): FeatureFlag = FeatureFlag.CAMERA
-
-    @Provides
-    @IntoSet
-    @LocallyEnabledFlags
     fun onboarding(): FeatureFlag = FeatureFlag.ONBOARDING
 
     @Provides

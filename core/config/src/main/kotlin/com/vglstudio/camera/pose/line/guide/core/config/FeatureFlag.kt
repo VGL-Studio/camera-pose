@@ -14,10 +14,6 @@ enum class FeatureFlag(val key: String, val description: String, val defaultValu
         "feature_network_dialog_enabled",
         "Shows the dialog that blocks the app while the device has no usable Internet.",
     ),
-    CAMERA(
-        "feature_camera_enabled",
-        "No longer read: the camera is always the start screen (T-081); removed in T-088.",
-    ),
     ONBOARDING(
         "feature_onboarding_enabled",
         "Shows the welcome screens and the camera permission request on first open.",

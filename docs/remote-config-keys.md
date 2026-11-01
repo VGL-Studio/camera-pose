@@ -6,7 +6,6 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 
 | Khóa | Kiểu | Mặc định | Module | Mô tả |
 | --- | --- | --- | --- | --- |
-| `feature_camera_enabled` | boolean | `false` | `:core:config` | No longer read: the camera is always the start screen (T-081); removed in T-088. |
 | `feature_in_app_review_enabled` | boolean | `false` | `:core:config` | Asks for a Play review after enough saved photos (core/review rules). |
 | `feature_loading_enabled` | boolean | `false` | `:core:config` | Shows the loading screen that prepares the app before the start screen. |
 | `feature_network_dialog_enabled` | boolean | `false` | `:core:config` | Shows the dialog that blocks the app while the device has no usable Internet. |

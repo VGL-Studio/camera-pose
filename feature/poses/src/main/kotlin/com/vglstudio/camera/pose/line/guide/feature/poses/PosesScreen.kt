@@ -38,11 +38,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.AdFormat
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
 import com.vglstudio.camera.pose.line.guide.core.ads.InListAds
+import com.vglstudio.camera.pose.line.guide.core.ads.itemsWithFixedAds
+import com.vglstudio.camera.pose.line.guide.core.ads.itemsWithInListAds
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberInListAds
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardDefaults
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
@@ -88,6 +92,8 @@ fun PosesRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Saved with the back stack entry: the scroll position is kept when coming back from the detail (KB-2).
     val gridState = rememberLazyGridState()
+    // The ad cards of the grid (KB-6, criterion 5; spec ads, question 9), made outside the grid (plan T-080).
+    val gridAds = rememberInListAds(AdPlacement.POSES_IN_COLLECTION)
     // The native bottom bar over the whole screen (KB-6; spec ads, question 8): the screen keeps room at the bottom.
     BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) { padding ->
         PosesScreen(
@@ -105,13 +111,14 @@ fun PosesRoute(
             onRetryThumbnail = viewModel::onRetryThumbnail,
             onSaveFailedShown = viewModel::onSaveFailedShown,
             contentPadding = padding,
+            gridAds = PosesGridAds.Live(gridAds),
         )
     }
 }
 
 /**
  * The pose library (spec poses; design README). [onOpenSettings] null hides the settings button; [onOpenPose] null
- * leaves the cards without a tap action. Only the bottom of [contentPadding] is used: the room the bottom ad bar keeps
+ * leaves the cards without a tap action. [gridAds] puts ad cards among the pose cards (KB-6). Only the bottom of [contentPadding] is used: the room the bottom ad bar keeps
  * (KB-6). The grid still reaches the bottom of the screen, its cards scroll behind the bar and the last one ends above
  * it; the messages of the other states and the snackbar stay above it.
  */
@@ -269,14 +276,38 @@ private fun ColumnScope.ReadyContent(
     }
 }
 
-/** The cards of the grid, with the ad cells of [gridAds] among them. */
+/**
+ * The cards of the grid, with the ad cells of [gridAds] among them: one cell after every N cards, as high as a card
+ * whose name takes one line (plan T-080, question 1); none while the placement is off or the pool has no ad.
+ */
 private fun LazyGridScope.posesGridItems(
     cards: List<PoseCardItem>,
     gridAds: PosesGridAds,
     columns: Int,
     cardContent: @Composable (PoseCardItem) -> Unit,
 ) {
-    items(cards, key = { it.id }) { cardContent(it) }
+    when (gridAds) {
+        PosesGridAds.None -> items(cards, key = { it.id }) { cardContent(it) }
+        is PosesGridAds.Live -> itemsWithInListAds(
+            items = cards,
+            ads = gridAds.ads,
+            columns = columns,
+            key = { it.id },
+            adCellHeight = { PoseCardDefaults.oneLineHeight(it) },
+        ) { cardContent(it) }
+        is PosesGridAds.Fixed -> itemsWithFixedAds(
+            items = cards,
+            format = AdFormat.NATIVE_IN_COLLECTION,
+            every = gridAds.every,
+            columns = columns,
+            key = { it.id },
+            adContent = {
+                BoxWithConstraints {
+                    gridAds.cell(Modifier.testTag(PosesTestTags.AD_CELL), PoseCardDefaults.oneLineHeight(maxWidth))
+                }
+            },
+        ) { cardContent(it) }
+    }
 }
 
 /** Catalog still loading: skeleton cards under the top bar, no summary or chips yet. */

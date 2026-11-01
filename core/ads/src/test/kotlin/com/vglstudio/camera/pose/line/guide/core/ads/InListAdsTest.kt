@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -786,11 +787,14 @@ class InListAdsTest {
         // The pool is exhausted: the cells are out.
         composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
 
+        // The clock is stopped, so the writes of the test are sent to the screen's observers by hand.
         every = null
+        Snapshot.sendApplyNotifications()
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.advanceTimeByFrame()
         every = 3
         exhausted = false
+        Snapshot.sendApplyNotifications()
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.advanceTimeByFrame()
 

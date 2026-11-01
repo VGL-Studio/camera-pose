@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAdView
@@ -72,7 +73,7 @@ internal fun BoundNativeAd(
 /**
  * Draws a loaded ad of [size] (small, medium, or the card of a collection or of a flow step, which bind their media
  * like medium); used by [NativeAdSlot], [NativeAdCell], [NativeStepAd] and by ads inside lists. [ctaLarge] is the
- * large call to action of medium.
+ * large call to action of medium; [cardHeight] the height of a card ([NativeAdCard]).
  */
 @Composable
 internal fun BoundNativeAd(
@@ -80,9 +81,17 @@ internal fun BoundNativeAd(
     size: NativeAdSize,
     modifier: Modifier = Modifier,
     ctaLarge: Boolean = false,
+    cardHeight: Dp? = null,
 ) {
     BoundNativeAd(ad, modifier) { binder ->
-        NativeAdLayout(ad.assets, size, binder, showAdChoicesMarker = false, ctaLarge = ctaLarge)
+        NativeAdLayout(
+            ad.assets,
+            size,
+            binder,
+            showAdChoicesMarker = false,
+            ctaLarge = ctaLarge,
+            cardHeight = cardHeight,
+        )
     }
 }
 

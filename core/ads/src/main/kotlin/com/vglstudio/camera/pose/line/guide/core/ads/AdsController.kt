@@ -1647,7 +1647,7 @@ class AdsController @Inject internal constructor(
             ?: flowOf(NativeAdState.Unavailable)
 
     /** P-05 for the cells of [placement]: true when it has no pool (no ad unit), like [pooledCell]. */
-    internal fun poolExhausted(placement: AdPlacement): Boolean = false
+    internal fun poolExhausted(placement: AdPlacement): Boolean = nativePools.pool(placement)?.exhausted ?: true
 
     /**
      * The states of the card of a flow step of [placement] on its pool ([stepAdStates], plan T-032); Unavailable when

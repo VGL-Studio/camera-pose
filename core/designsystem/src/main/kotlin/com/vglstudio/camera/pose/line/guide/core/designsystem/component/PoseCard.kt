@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -34,6 +35,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.R
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Stroke
+import kotlin.math.roundToInt
 
 /** Test tag of the save button of a [PoseCard] (its 48 dp touch area). */
 const val POSE_CARD_SAVE_TAG = "pose_card_save"
@@ -246,5 +249,19 @@ object PoseCardDefaults {
      * [PoseCardSkeleton]. A grid cell next to the cards (an ad card, plan T-080) takes it so its row stays even.
      */
     @Composable
-    fun oneLineHeight(width: Dp): Dp = 0.dp
+    fun oneLineHeight(width: Dp): Dp {
+        val density = LocalDensity.current
+        val measurer = rememberTextMeasurer()
+        val typography = MaterialTheme.typography
+        fun lineHeight(style: TextStyle): Int = measurer.measure(" ", style, maxLines = 1).size.height
+        // In pixels, as the layout of the card rounds them: frame 2 + 8 on each side, image 162 : 210, gap 8, name
+        // and second line 2 apart, 4 below.
+        return with(density) {
+            val frame = (Stroke.sticker + Spacing.sm).roundToPx()
+            val image = ((width.roundToPx() - 2 * frame) / IMAGE_ASPECT_RATIO).roundToInt()
+            val text = lineHeight(typography.titleMedium) + (Spacing.xs / 2).roundToPx() +
+                lineHeight(typography.bodySmall) + Spacing.xs.roundToPx()
+            (2 * frame + image + Spacing.sm.roundToPx() + text).toDp()
+        }
+    }
 }

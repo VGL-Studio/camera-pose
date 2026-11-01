@@ -3,6 +3,8 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import android.os.Parcel
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -16,6 +18,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -28,6 +31,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -73,17 +77,42 @@ class InListAds internal constructor(
     private val shown = mutableMapOf<Int, MutableStateFlow<Boolean>>()
     private var destroyed = false
 
+    // Grid cells of a card (KB-6, criterion 5; plan T-080): no empty cell while the pool is exhausted. Declared before
+    // `init`, which may call release() at once.
+    private val poolEmpty = mutableStateOf(false)
+    private val holding = mutableStateMapOf<Int, Boolean>()
+    private var poolWatch: Job? = null
+
     /** Current N, or null while no ad row may be added. */
     val every: Int? get() = everyState.value
 
     /** A one-cell grid ad of [slot] is laid out: the pool may still give an ad, or the cell holds one. */
-    internal fun cellShown(slot: Int): Boolean = true
+    internal fun cellShown(slot: Int): Boolean = !poolEmpty.value || holding[slot] == true
 
-    /** A pooled cell of [slot] has a new state. */
-    internal fun onCellState(slot: Int, state: NativeAdState) = Unit
+    /**
+     * A pooled cell of [slot] has a new state. A cell with no ad while the pool is exhausted marks the pool empty: the
+     * cells that hold no ad leave the grid, and the pool is asked again every [PoolCellPolicy.EXHAUSTED_RETRY_MILLIS]
+     * until it may give an ad again (P-05).
+     */
+    internal fun onCellState(slot: Int, state: NativeAdState) {
+        if (state is NativeAdState.Loaded) holding[slot] = true else holding.remove(slot)
+        if (state == NativeAdState.Unavailable && poolExhausted?.invoke() == true) {
+            poolEmpty.value = true
+            if (poolWatch?.isActive != true) {
+                poolWatch = scope.launch {
+                    while (poolEmpty.value) {
+                        delay(PoolCellPolicy.EXHAUSTED_RETRY_MILLIS)
+                        if (poolExhausted.invoke() != true) poolEmpty.value = false
+                    }
+                }
+            }
+        }
+    }
 
     /** The pooled cell of [slot] left the composition: its ad went back to the pool. */
-    internal fun onCellLeft(slot: Int) = Unit
+    internal fun onCellLeft(slot: Int) {
+        holding.remove(slot)
+    }
 
     init {
         // Consent withdrawn or placement switched off while the screen is open: the rows go away, so do their ads.
@@ -143,6 +172,10 @@ class InListAds internal constructor(
         slots.values.forEach { it.value = NativeAdState.Unavailable }
         slots.clear()
         shown.clear()
+        poolWatch?.cancel()
+        poolWatch = null
+        poolEmpty.value = false
+        holding.clear()
     }
 }
 
@@ -223,6 +256,8 @@ fun rememberInListAds(placement: AdPlacement): InListAds {
             logger = controller?.logger,
             pooledCell = controller?.takeIf { placement.format.usesPool }?.let { ads -> { ads.pooledCell(placement) } },
             onPoolOpportunity = { result -> controller?.recordPoolCellOpportunity(placement, result) },
+            poolExhausted = controller?.takeIf { placement.format.usesPool }
+                ?.let { ads -> { ads.poolExhausted(placement) } },
         )
     }
     DisposableEffect(ads) {
@@ -341,7 +376,10 @@ internal fun <T> LazyListScope.itemsWithInListAds(
  * Adds [items] to a LazyVerticalGrid (vertical grids only) of [columns] columns, with an ad after every N items of
  * [ads]: a card ([AdFormat.NATIVE_IN_COLLECTION]) takes one cell, N counted in items; any other format is a
  * full-width row, N rounded up to whole rows ([gridAdEvery]). The grid does not tell its column count while the list
- * is built, so the caller passes it.
+ * is built, so the caller passes it. A card has no space of its own above or below (the grid spaces its rows) and is
+ * [adCellHeight] high for the width of its cell, so it matches the cards of the app (300 dp without it). While the
+ * pool is exhausted, a card cell that holds no ad leaves the grid and the items after it move up: the grid has no
+ * empty cell (plan T-080); it comes back once the pool may give an ad again. A full-width row stays, 0 dp high.
  */
 fun <T> LazyGridScope.itemsWithInListAds(
     items: List<T>,
@@ -354,14 +392,29 @@ fun <T> LazyGridScope.itemsWithInListAds(
 ) {
     val every = ads.every
     val format = ads.placement.format
+    val oneCell = gridAdSpansOneCell(format)
     itemsWithInListAds(
         items = items,
         positions = if (every == null) emptyList() else gridInListPositions(format, items.size, every, columns),
         placementKey = ads.placement.key,
         key = key,
         contentType = contentType,
-        adSpansOneCell = gridAdSpansOneCell(format),
-        adContent = { slot -> InListAdRow(ads, slot) },
+        adSpansOneCell = oneCell,
+        adShown = if (oneCell) ads::cellShown else { _ -> true },
+        adContent = { slot ->
+            if (oneCell) {
+                BoxWithConstraints {
+                    InListAdRow(
+                        ads,
+                        slot,
+                        contentPadding = PaddingValues(),
+                        cardHeight = adCellHeight?.invoke(maxWidth),
+                    )
+                }
+            } else {
+                InListAdRow(ads, slot)
+            }
+        },
         itemContent = itemContent,
     )
 }
@@ -405,7 +458,10 @@ internal fun gridInListPositions(format: AdFormat, itemCount: Int, every: Int, c
         inListAdPositions(itemCount, gridAdEvery(every, columns))
     }
 
-/** Grid version of the list function above: each ad spans the whole grid width, or one cell with [adSpansOneCell]. */
+/**
+ * Grid version of the list function above: each ad spans the whole grid width, or one cell with [adSpansOneCell]. An
+ * ad whose [adShown] is false is not laid out; the items after it keep their order.
+ */
 internal fun <T> LazyGridScope.itemsWithInListAds(
     items: List<T>,
     positions: List<Int>,
@@ -424,11 +480,13 @@ internal fun <T> LazyGridScope.itemsWithInListAds(
                 key = key?.let { itemKey -> { index -> itemKey(items[run.start + index]) } },
                 contentType = { index -> contentType(items[run.start + index]) },
             ) { index -> itemContent(items[run.start + index]) }
-            is InListRun.Ad -> item(
-                key = InListAdKey(placementKey, run.slot),
-                span = { GridItemSpan(if (adSpansOneCell) 1 else maxLineSpan) },
-                contentType = InListAdContentType,
-            ) { adContent(run.slot) }
+            is InListRun.Ad -> if (adShown(run.slot)) {
+                item(
+                    key = InListAdKey(placementKey, run.slot),
+                    span = { GridItemSpan(if (adSpansOneCell) 1 else maxLineSpan) },
+                    contentType = InListAdContentType,
+                ) { adContent(run.slot) }
+            }
         }
     }
 }
@@ -483,12 +541,19 @@ private object InListAdContentType
 internal fun inListAdTag(slot: Int): String = "inlist_ad_$slot"
 
 /**
- * One ad row, the "In-list ad slot" of the design: 16 dp above and below while loading or loaded, nothing (0 dp) when
- * no ad came. A pooled row is a cell of the pool ([NativeAdCellHost]): it takes an ad while in composition, gives it
- * back when it leaves, and records its opportunity (P-07).
+ * One ad row, the "In-list ad slot" of the design: [contentPadding] (16 dp above and below) while loading or loaded,
+ * nothing (0 dp) when no ad came. A pooled row is a cell of the pool ([NativeAdCellHost]): it takes an ad while in
+ * composition, gives it back when it leaves, and records its opportunity (P-07); its states go to
+ * [InListAds.onCellState]. [cardHeight] sizes a card ([NativeAdSize.CARD]); other sizes ignore it.
  */
 @Composable
-internal fun InListAdRow(ads: InListAds, slot: Int, modifier: Modifier = Modifier) {
+internal fun InListAdRow(
+    ads: InListAds,
+    slot: Int,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(vertical = Spacing.md),
+    cardHeight: Dp? = null,
+) {
     // `af_native_ad_eligible` once each time the row comes into the list (plan T-033): rows exist only when allowed.
     ReportNativeEligible(true)
     val size = inListAdSize(ads.placement.format)
@@ -503,9 +568,14 @@ internal fun InListAdRow(ads: InListAds, slot: Int, modifier: Modifier = Modifie
             onOpportunity = ads.onPoolOpportunity,
             modifier = modifier.fillMaxWidth().testTag(inListAdTag(slot)),
             ctaLarge = ctaLarge,
-            contentModifier = Modifier.padding(vertical = Spacing.md),
-            adContent = { BoundNativeAd(it, size, ctaLarge = ctaLarge) },
+            contentModifier = Modifier.padding(contentPadding),
+            onStateChange = { ads.onCellState(slot, it) },
+            cardHeight = cardHeight,
+            adContent = { BoundNativeAd(it, size, ctaLarge = ctaLarge, cardHeight = cardHeight) },
         )
+        DisposableEffect(ads, slot) {
+            onDispose { ads.onCellLeft(slot) }
+        }
         return
     }
     val state by remember(ads, slot) { ads.slot(slot) }
@@ -515,9 +585,11 @@ internal fun InListAdRow(ads: InListAds, slot: Int, modifier: Modifier = Modifie
     }
     Box(modifier = modifier.fillMaxWidth().testTag(inListAdTag(slot))) {
         when (val current = state) {
-            NativeAdState.Loading -> Box(Modifier.padding(vertical = Spacing.md)) { NativeAdPlaceholder(size) }
-            is NativeAdState.Loaded ->
-                Box(Modifier.padding(vertical = Spacing.md)) { BoundNativeAd(current.ad, size, ctaLarge = ctaLarge) }
+            NativeAdState.Loading ->
+                Box(Modifier.padding(contentPadding)) { NativeAdPlaceholder(size, cardHeight = cardHeight) }
+            is NativeAdState.Loaded -> Box(Modifier.padding(contentPadding)) {
+                BoundNativeAd(current.ad, size, ctaLarge = ctaLarge, cardHeight = cardHeight)
+            }
             NativeAdState.Unavailable -> Unit
         }
     }

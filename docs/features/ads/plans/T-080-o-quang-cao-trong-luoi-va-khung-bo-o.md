@@ -2,7 +2,7 @@
 ticket: T-080
 title: Ô quảng cáo trong lưới thư viện (`poses_in_collection`, tắt lúc phát hành); khung bỏ ô khi pool cạn
 status: approved             # draft | approved | stopped | done
-version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay
@@ -26,6 +26,19 @@ Kiểm chứng gồm:
 - test giao diện của thư viện ở 2 và 3 cột, mọi bộ lọc;
 - ảnh chuẩn `PosesScreen_ad-collection_light` so với ảnh thiết kế;
 - test giá trị staging và bảng khóa sinh lại.
+
+**Phiên bản 3 (2026-10-31).** Rà soát độc lập trước RUN-20261031-02 ra 1 điểm chặn, 4 điểm nên sửa (mục 8, sau phần của phiên bản 2), nên phiên bản 2 chưa đủ tốt.
+
+**Điểm chặn:** test chiều cao ở 3 cột so ô quảng cáo với thẻ cùng hàng. Ở `w673dp` xxhdpi, lưới chia cột [533, 533, 532] px vì `GridCells.Fixed` dồn phần dư vào các cột đầu. Ô ở cột 3 vì vậy thấp hơn thẻ cùng hàng 2 px (0,76 dp), vượt sai số 0,5 dp, nên test đỏ dù code đúng. Phương án dự phòng (đo khung xương vô hình) cũng lệch đúng như thế.
+
+Thay đổi so với phiên bản 2:
+
+- **Mục 4, sửa điểm chặn:** test chiều cao so ô với `oneLineHeight` và khung xương đo ở chính bề ngang của ô, và với thẻ tên một dòng cùng cột. Hai khung là hai hàm, mỗi hàm một `@Config`. Lệch tới 1 cột (1 px) giữa ô và thẻ cạnh nó là cách lưới tự chia, không phải lỗi, nên không khẳng định ô bằng thẻ khác cột.
+- **Khung rỗng của bước 3:** thêm hai test giữ hành vi kèm phép đột biến. Ghi khung rỗng của `poolExhausted` trả `false`.
+- **Test sự kiện:** nêu rõ cách dựng và số lần mong đợi.
+- **Đồng hồ:** dừng đồng hồ (`mainClock.autoAdvance = false`) ở các test dựa vào thời gian.
+- **Mục 3.1:** chỗ khai báo các thuộc tính mới của `InListAds`, trước `init`.
+- **Ghi chú của rà soát:** truyền `cardHeight` vào khung chờ tĩnh ở `NativeAdCell.kt`; sửa câu chữ "cách 1 dp" thành 2 dp; dùng một tên test ở bảng.
 
 **Phiên bản 2 (2026-10-31, duyệt cùng Nhật).** Phiên bản 1 chưa đủ tốt vì hai lý do:
 
@@ -86,7 +99,7 @@ Cách biết "ô không có quảng cáo để hiện": trạng thái chung củ
 - Hàm lưới chỉ đặt ô của `slot` khi `cellShown(slot)`: `!poolEmpty || holding[slot] == true`. Ô đang giữ quảng cáo vì vậy không bị gỡ.
 - `poolEmpty` và `holding` là state của snapshot (`mutableStateOf`, `mutableStateMapOf`). Nội dung của `LazyVerticalGrid` đọc chúng khi dựng danh sách mục, nên lưới dựng lại khi chúng đổi, như `ads.every` hiện nay.
 
-Thêm vào `InListAds`:
+Thêm vào `InListAds`. Các thuộc tính mới (`poolEmpty`, `holding`, `poolWatch`) khai báo **trước khối `init`**, cạnh `slots` và `loads`: `init` gọi `release()` qua `snapshotFlow`, và với scope chạy ngay (`Dispatchers.Unconfined`) cùng `every = null` từ đầu, `release()` sẽ gặp thuộc tính chưa khởi tạo nếu chúng khai báo sau.
 
 ```kotlin
     /** Whether the pool of [placement] is exhausted now (P-05); null without a pool. */
@@ -157,6 +170,7 @@ Hàm lưới công khai truyền `adShown = if (gridAdSpansOneCell(format)) ads:
   - nhánh pool: `NativeAdCellHost(cardHeight)`, `BoundNativeAd(cardHeight)`;
   - nhánh `InListAdLoader`: `NativeAdPlaceholder(cardHeight)`, `BoundNativeAd(cardHeight)`.
 - Hàm lưới công khai nhận `adCellHeight: (@Composable (cellWidth: Dp) -> Dp)? = null`. Với định dạng một-cột, ô được bọc bằng `BoxWithConstraints`, rồi gọi `InListAdRow(ads, slot, contentPadding = PaddingValues(), cardHeight = adCellHeight?.invoke(maxWidth))`. Hàng toàn chiều rộng giữ `InListAdRow(ads, slot)` như cũ.
+- `cardHeight` cũng vào khung chờ tĩnh của `NativeAdCellOnScreen` (nhánh `Unavailable` với `keepSpaceWhenEmpty`, `NativeAdCell.kt`). Lưới không đi qua nhánh này (`InListAdRow` truyền `keepSpaceWhenEmpty = false`); truyền để mọi chỗ vẽ cỡ `CARD` nhận cùng chiều cao (ghi chú của rà soát, phiên bản 3).
 - `cardHeight` đi qua `NativeAdCellHost`, `NativeAdCellOnScreen`, `NativeAdSlotContent`, tới `NativeAdPlaceholder` (công khai, tham số mới cuối, mặc định `null`). Nó cũng đi qua `BoundNativeAd`, `NativeAdLayout`, tới `NativeAdCard` (công khai, tham số mới cuối). Chỉ cỡ `CARD` đọc nó: `Modifier.height(cardHeight ?: CardHeight)`. Bố cục `CardLayout` đã cho media `weight(1f)`, nên media co giãn theo chiều cao.
 - Truyền bằng tham số, không bằng `CompositionLocal`: quảng cáo thật vẽ trong một `ComposeView` riêng (`NativeAdViewHost`), test trên JVM không đi qua đường đó.
 - Không truyền chiều cao thì vẫn 300 dp (`NativeAdDimens.CardHeight`), như trang của pager (`GALLERY_IN_COLLECTION`) và mọi app khác.
@@ -187,7 +201,7 @@ object PoseCardDefaults {
 }
 ```
 
-Tính theo điểm ảnh như bố cục thật: khung 2 + 8 mỗi phía, ảnh 162 : 210, khoảng cách 8, hai dòng chữ cách 1 dp, lề dưới 4. Hàm nằm cạnh `PoseCard`, nên đổi bố cục thẻ thì đổi cùng file; test của mục 4 so hàm với thẻ thật.
+Tính theo điểm ảnh như bố cục thật: khung 2 + 8 mỗi phía, ảnh 162 : 210, khoảng cách 8, hai dòng chữ cách 2 dp (`Spacing.xs / 2`), lề dưới 4. Hàm nằm cạnh `PoseCard`, nên đổi bố cục thẻ thì đổi cùng file; test của mục 4 so hàm với thẻ thật.
 
 Ô ở ba bề ngang (chạy thử, cỡ chữ 1.0):
 
@@ -339,7 +353,7 @@ Nơi khác đọc các file bị đổi (L-020 của mẫu):
 - **Điểm chưa chắc:** lưới có thể dựng lại liên tục khi pool dao động giữa "đang tải" và "cạn" (ô hiện khung chờ rồi biến mất mỗi 2 giây), hoặc test Robolectric chờ mãi vì vòng chờ của `poolWatch`.
 - **Điều kiện chuyển:** test `grid_inCollection_poolHasAdsAgain_cellReturns` hay `grid_inCollection_poolExhausted_noEmptyCell` vẫn thất bại vì cùng một lỗi (hết giờ chờ của `waitForIdle`, hay ô xuất hiện rồi biến mất trong cùng lần kiểm) sau 2 lần sửa.
 - **Điểm chưa chắc thứ hai (phiên bản 2):** trên máy thật, `oneLineHeight` có thể lệch thẻ thật, ví dụ vì phông của hệ thống khác Robolectric.
-  - **Điều kiện chuyển:** test `oneLineHeight_matchesSkeletonAndOneLineCard` hay `fixedGridAds_cellHeight_matchesCard_smallAndUnfolded` vẫn lệch quá 0,5 dp sau 2 lần sửa.
+  - **Điều kiện chuyển:** test `oneLineHeight_matchesSkeletonAndOneLineCard` hay hai test `fixedGridAds_*_cellHeightIsOneLineCardOfItsWidth` vẫn lệch quá 0,5 dp sau 2 lần sửa, khi so ở cùng bề ngang (không so khác cột).
   - **Cách làm thay:** ô đo thẻ thật. Ô bọc một `PoseCardSkeleton` vô hình (alpha 0, không ngữ nghĩa) trong `Box`, quảng cáo nằm trên với `matchParentSize`. `oneLineHeight` không còn dùng. Tham số `cardHeight` của khung giữ, ô truyền chiều cao đo được. Vẫn trong `PoseCard.kt`, `PosesScreen.kt`.
 - **Cách làm thay:** bỏ vòng chờ riêng. `cellShown` đọc thêm một `State<Long>` nhịp 2 giây do `rememberInListAds` tạo bằng `produceState` (chạy theo vòng đời composition của màn hình). Mỗi nhịp đọc lại `poolExhausted()`. Ô bị bỏ chỉ quay lại khi `poolExhausted()` trả `false` hai nhịp liền. Test ở mục 4 giữ nguyên; file vẫn là `InListAds.kt` (dự phòng nằm trong cùng file của mục 3.2).
 
@@ -373,8 +387,8 @@ Test của khung dùng vị trí của khung `GALLERY_IN_COLLECTION` (N trong te
 | --- | --- | --- |
 | KB-6 tiêu chí 5: hết quảng cáo thì không còn ô trống | Compose UI test (Robolectric) | `InListAdsTest.grid_inCollection_poolExhausted_noEmptyCell`: lưới 2 cột, 7 mục, `every = 3`, hai ô đầu của pool trả `Unavailable`, `exhausted = true`. Không có node `inlist_ad_0`; `top(item_4) == top(item_3)` (tư thế 4 dồn lên cạnh tư thế 3). Đối chứng đã chạy (mục 4.1): bỏ quy tắc thì có node `inlist_ad_0` |
 | Ô đang giữ quảng cáo vẫn giữ | Compose UI test | `InListAdsTest.grid_inCollection_cellHoldingAd_staysWhenPoolExhausted`: ô 0 nhận `Loaded`, ô 1 nhận `Unavailable`, `exhausted = true`. Node `inlist_ad_0` có, `inlist_ad_1` không; quảng cáo của ô 0 chưa bị trả (`released` rỗng) |
-| Pool có lại thì ô quay lại | Compose UI test | `InListAdsTest.grid_inCollection_poolHasAdsAgain_cellReturns`: như test đầu, rồi `exhausted = false`, `mainClock.advanceTimeBy(EXHAUSTED_RETRY_MILLIS + 100)`. Node `inlist_ad_0` có lại, hiện quảng cáo của lần gọi `cell()` thứ ba. Đối chứng: tiến 1000 ms (chưa tới nhịp) thì chưa có |
-| Khóa tắt giữa chừng rồi bật lại: ô quay lại | Compose UI test | `InListAdsTest.grid_inCollection_everyBackAfterNull_cellsReturn`: pool cạn, ô bị bỏ; `every = null` rồi `every = 3`, `exhausted = false`: có `inlist_ad_0` ngay (không chờ nhịp), vì `release()` đã đặt `poolEmpty = false` |
+| Pool có lại thì ô quay lại | Compose UI test | `InListAdsTest.grid_inCollection_poolHasAdsAgain_cellReturns`: như test đầu, rồi `exhausted = false`, `mainClock.autoAdvance = false` ngay sau `setContent`, cuộn tức thì (L-048); `mainClock.advanceTimeBy(EXHAUSTED_RETRY_MILLIS + 100)`. Node `inlist_ad_0` có lại, và khẳng định quảng cáo của ô là của lần gọi `cell()` thứ ba, không phải lần 1 hay 2. Đối chứng: tiến 1000 ms (chưa tới nhịp) thì chưa có |
+| Khóa tắt giữa chừng rồi bật lại: ô quay lại | Compose UI test | `InListAdsTest.grid_inCollection_everyBackAfterNull_cellsReturn`: pool cạn, ô bị bỏ; `mainClock.autoAdvance = false`; `every = null` rồi `every = 3`, `exhausted = false`, chỉ `mainClock.advanceTimeByFrame()`: có `inlist_ad_0` ngay (không chờ nhịp 2 giây), vì `release()` đã đặt `poolEmpty = false` |
 | KB-6 tiêu chí 6: khóa tắt thì không có ô | Compose UI test | `InListAdsTest.grid_inCollection_everyNull_noCell`: `every = null`, 20 mục, 2 cột; không node nào có tag bắt đầu bằng `inlist_ad_`; thứ tự `item_1` tới `item_20` liên tiếp (`item_3` cạnh `item_4`). Đối chứng cùng test: `every = 8` thì có `inlist_ad_0` |
 | Danh sách không đổi | Compose UI test | `InListAdsTest.lazyColumn_pooledRow_poolExhausted_keepsZeroHeightRow`: `LazyColumn`, `GALLERY_INLIST_MEDIUM`, `exhausted = true`, ô `Unavailable`: node `inlist_ad_0` vẫn có, cao 0 (sai số 0,5 dp) |
 | Hàng toàn chiều rộng của lưới không đổi | Compose UI test | `InListAdsTest.grid_fullWidthRow_poolExhausted_keepsZeroHeightRow`: lưới 2 cột, `GALLERY_INLIST_MEDIUM`, `exhausted = true`: node `inlist_ad_0` vẫn có, cao 0 |
@@ -384,13 +398,14 @@ Test của khung dùng vị trí của khung `GALLERY_IN_COLLECTION` (N trong te
 | Ô một-cột cao theo app | Compose UI test | `InListAdsTest.grid_inCollection_cellTakesAppHeight`: lưới 2 cột, `adCellHeight = { it * 1.5f }`; thẻ `Loaded` và khung chờ `Loading` cao bằng 1,5 lần bề ngang ô (sai số 0,5 dp), ô không có lề dọc. Đối chứng đã chạy (mục 4.1, lần 2): bỏ `adCellHeight` thì đỏ |
 | Không truyền chiều cao thì giữ 300 | Compose UI test | `InListAdsTest.grid_inCollection_noHeight_keeps300`: `adCellHeight` mặc định, thẻ cao 300 |
 | `oneLineHeight` bằng thẻ thật | Compose UI test (`NATIVE`) | `PoseCardTest.oneLineHeight_matchesSkeletonAndOneLineCard`: bề ngang 156, 182, 203 dp, cỡ chữ 1.0 và 2.0; chiều cao của `PoseCardSkeleton` và của `PoseCard` tên một dòng bằng `oneLineHeight` (sai số 0,5 dp). 182 dp ở cỡ 1.0 cho 284 |
-| Sự kiện khi pool dao động | Compose UI test | `InListAdsTest.grid_inCollection_poolCycle_reportsOncePerEntry`: pool cạn, ô bị bỏ, rồi pool có lại; đếm `onPoolOpportunity` và lần ghi `af_native_ad_eligible`: mỗi lần ô vào lưới một lần (câu 2) |
+| Sự kiện khi pool dao động | Compose UI test | `InListAdsTest.grid_inCollection_poolCycle_reportsOncePerEntry`: bọc lưới bằng `CompositionLocalProvider(LocalAdsController provides testAdsController(funnel = RecordingAdFunnel()))` như `NativeEligibleReportTest`, vì `af_native_ad_eligible` chỉ ghi qua controller. Đồng hồ dừng. Ô 0 thấy, `Loading`, rồi `Unavailable` với `exhausted = true`: ô bị bỏ; rồi `exhausted = false`, tiến 2100 ms: ô quay lại. Mong đợi đúng 2 `AdFunnelEvent.Eligible` của vị trí (một lần mỗi lần ô vào lưới) và 1 `onPoolOpportunity("not_ready")` (ô đã thấy, rời lưới khi chưa có quảng cáo). Đối chứng: không cho ô quay lại (giữ `exhausted = true`) thì chỉ 1 `Eligible` (câu 2) |
 | Spec ads câu 9: vị trí mới | Unit test | `AdPlacementAppTest` thêm vào bảng: `poses_in_collection` là `NATIVE_IN_COLLECTION`, `nativeEvery == 8`, `keepSpaceWhenPoolEmpty == false`; `AdsSettings.placementEnabled(POSES_IN_COLLECTION).default == false` |
 | KB-6 tiêu chí 5, thư viện 2 cột | Compose UI test | `PosesScreenTest.fixedGridAds_adCellAfterEighthPose`: 12 thẻ, `PosesGridAds.Fixed(every = 8)`, khung chuẩn; cuộn tới `AD_CELL`; `AD_CELL` ở cột trái, `top` bằng thẻ 9; chỉ một `AD_CELL`; ô cao bằng thẻ tên một dòng cùng hàng (câu 1) |
-| Ô cao bằng thẻ ở khung thấp và mở gập | Compose UI test | `PosesScreenTest.fixedGridAds_cellHeight_matchesCard_smallAndUnfolded`: `w360dp-h640dp` và `w673dp-h841dp`; `AD_CELL` cao bằng thẻ tên một dòng cùng hàng (sai số 0,5 dp) |
+| Ô cao bằng thẻ ở khung thấp | Compose UI test | `PosesScreenTest.fixedGridAds_small_cellHeightIsOneLineCardOfItsWidth`, `@Config(qualifiers = "w360dp-h640dp-xxhdpi")`: chiều cao `AD_CELL` bằng `oneLineHeight(bề ngang AD_CELL)` (đọc trong cùng composition qua state, sai số 0,5 dp), và bằng thẻ tên một dòng ở cùng cột (cột trái, thẻ 7) |
+| Ô cao bằng thẻ khi mở gập | Compose UI test | `PosesScreenTest.fixedGridAds_unfolded_cellHeightIsOneLineCardOfItsWidth`, `@Config(qualifiers = "w673dp-h841dp-xxhdpi")`: ô ở cột 3; chiều cao bằng `oneLineHeight(bề ngang AD_CELL)` và bằng thẻ tên một dòng cùng cột 3 (thẻ 6, hàng trên), sai số 0,5 dp. Không so với thẻ 7, 8 cùng hàng: cột của lưới lệch nhau tới 1 px ([533, 533, 532] px), nên ô có thể thấp hơn thẻ khác cột 2 px; đó là cách lưới chia, không phải lỗi |
 | KB-6 tiêu chí 5, mở gập 3 cột | Compose UI test | `PosesScreenTest.fixedGridAds_unfolded_threeColumns`: `@Config(qualifiers = "w673dp-h841dp-xxhdpi")`, 12 thẻ; `AD_CELL` ở cột thứ ba, cùng hàng thẻ 7 |
 | KB-6 tiêu chí 5, mọi bộ lọc | Compose UI test | `PosesScreenTest.fixedGridAds_savedAndGroupFilters_haveCell`: `Ready` với bộ lọc một nhóm và với "Đã lưu", mỗi lần 9 thẻ: có `AD_CELL` sau thẻ 8 |
-| KB-6 tiêu chí 6, thư viện | Compose UI test | `PosesScreenTest.noGridAds_noAdCell`: `gridAds` mặc định, 12 thẻ: không có `AD_CELL`, thẻ 9 cạnh thẻ 10. `PosesRoute` không có `LocalAdsController` thì không có ô: `PosesScreenTest.liveGridAds_withoutController_noAdCell` |
+| KB-6 tiêu chí 6, thư viện | Compose UI test | `PosesScreenTest.noGridAds_noAdCell`: `gridAds` mặc định, 12 thẻ: không có `AD_CELL`, thẻ 9 cạnh thẻ 10. `PosesScreen` với `PosesGridAds.Live(rememberInListAds(...))` mà không có `LocalAdsController` thì không có ô: `PosesScreenTest.posesScreen_liveGridAdsWithoutController_noAdCell` |
 | Spec ads câu 11: staging bật vị trí | Unit test (testStaging) | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet`: tập mong đợi thêm `is_show_poses_in_collection=true` |
 | Bảng khóa khớp code | Unit test có sẵn | `RemoteConfigKeysTest.keysFile_matchesCode`, `templateFile_matchesCode`, `everyPlacementShowKey_isInTableOff` qua sau khi sinh lại; ở commit test (bước 3) hai test đầu chưa đỏ, chỉ đỏ khi dòng `AdPlacement` vào ở commit code, rồi qua khi sinh lại trong cùng commit |
 | Đúng thiết kế | Screenshot test cùng tên, ảnh so sánh `scripts/design-compare.sh poses`, rà soát độc lập theo mục 7 của mẫu thiết kế | `PosesScreen_ad-collection_light.png` |
@@ -400,20 +415,31 @@ Test của khung dùng vị trí của khung `GALLERY_IN_COLLECTION` (N trong te
 
 Commit test (bước 3) có khung rỗng để test biên dịch được, theo `docs/auto-run.md` bước 3:
 
-- `poolExhausted`, `adShown`, `adCellHeight`, `cardHeight`, `oneLineHeight` có mặt nhưng không làm gì (`oneLineHeight` trả `0.dp`, `cardHeight` bị bỏ qua);
+- `poolExhausted`, `adShown`, `adCellHeight`, `cardHeight`, `oneLineHeight` có mặt nhưng không làm gì (`oneLineHeight` trả `0.dp`, `cardHeight` bị bỏ qua, `AdsController.poolExhausted` trả `false`);
 - `itemsWithFixedAds` gọi hàm `internal` với `adShown = { true }`;
 - `PosesGridAds` có ba nhánh, `posesGridItems` vẽ như `None`.
 
 Test mới đỏ ở câu khẳng định trước khi viết code. Dòng `POSES_IN_COLLECTION` và dữ liệu của `AdPlacementTest`, `AdPlacementAppTest`, `AdUnitIdsTest` nhắc hằng enum, nên đi cùng commit có dòng enum.
 
-Bảy test giữ hành vi sẽ xanh ngay với khung rỗng:
+Chín test giữ hành vi sẽ xanh ngay với khung rỗng:
 
 - `grid_inCollection_everyNull_noCell`, `seventeenItems_twoCellsAt8And17`;
 - `lazyColumn_pooledRow_poolExhausted_keepsZeroHeightRow`, `grid_fullWidthRow_poolExhausted_keepsZeroHeightRow`;
 - `grid_inCollection_everyBackAfterNull_cellsReturn`, `grid_inCollection_noHeight_keeps300`;
-- `noGridAds_noAdCell`.
+- `noGridAds_noAdCell`;
+- `fixedAds_sameCellsAsLive`: khung rỗng của `itemsWithFixedAds` đã là bản cài đặt đầy đủ;
+- `posesScreen_liveGridAdsWithoutController_noAdCell`: không có controller thì `every` là `null`.
 
-Mỗi test này ghi phép đột biến làm nó đỏ (L-108), chạy một lần khi viết, ghi kết quả vào nhật ký. Ví dụ: `adShown` luôn `false` thì `everyNull_noCell` đỏ ở đối chứng `every = 8`; `cardHeight` mặc định 0 thì `noHeight_keeps300` đỏ.
+`poolExhausted_noPool_isTrue` đỏ với khung rỗng (`false`).
+
+Mỗi test giữ hành vi ghi phép đột biến làm nó đỏ (L-108), chạy một lần khi viết, ghi kết quả vào nhật ký:
+
+| Test | Phép đột biến |
+| --- | --- |
+| `everyNull_noCell` | `adShown` luôn `false`: đỏ ở đối chứng `every = 8` |
+| `noHeight_keeps300` | `cardHeight` mặc định 0 |
+| `fixedAds_sameCellsAsLive` | `itemsWithFixedAds` truyền `adSpansOneCell = false`, hay `positions` rỗng |
+| `posesScreen_liveGridAdsWithoutController_noAdCell` | `posesGridItems` nhánh `Live` vẽ một ô cố định |
 
 Test đặt `exhausted` rồi tiến đồng hồ (L-091 của mẫu): vòng chờ chạy trong scope của màn hình, nên ra nền không dừng nó, nhưng nó chỉ đọc `exhausted` và đổi state; không hiện gì, không có bước chờ có giới hạn trước khi hiện. Không cần test ra nền rồi trở lại.
 
@@ -501,6 +527,13 @@ Phiên bản 2 đã sửa điểm 4 tới 11.
 
 Ghi chú của rà soát: kịch bản emulator không lệch chỉ số (`idp=` chỉ đếm `poses_card_*`; T-022, T-024 chạm thẻ 1, 3, trước ô đầu); hai dòng kiểm thủ công "máy thật" chấp nhận được, riêng "cuộn tới khi hết quảng cáo" dựa vào test Robolectric; ảnh `ad-collection` nên chỉ rõ 12 thẻ theo context thiết kế (thẻ 7 cặp đôi #3DDC97, thẻ 8 gia đình #5ED3F3, thẻ 9 nữ #FF5C8A, icon quảng cáo 32 dp) vì `defaultState()` chỉ có 6 thẻ; `grid_inCollection_poolHasAdsAgain_cellReturns` nên khẳng định "không phải quảng cáo của lần gọi 1 hay 2"; vòng chờ `poolWatch` chạy cả ở `LazyColumn` (vô hại); `keepSpaceWhenPoolEmpty` bị bỏ qua với ô một cột; mức Cao hợp lý.
 
+**Rà soát độc lập trước RUN-20261031-02 (2026-10-31, agent ngữ cảnh mới, chỉ đọc, trên phiên bản 2): 1 chặn, 4 nên sửa, 6 ghi chú.** Phiên bản 3 sửa điểm chặn và 4 điểm nên sửa (mục 1). Ghi chú đã xử lý: khung chờ tĩnh nhận `cardHeight`; câu chữ 2 dp; tên test thống nhất. Ghi chú còn lại, không cần sửa:
+
+- Kẽ hở: ô nhận `Unavailable` đúng lúc pool vừa gửi yêu cầu mới (`exhausted` là `false`) thì `poolEmpty` không bật. Ô cao 0 đứng giữa lưới tới lần đổi trạng thái sau. Cùng loại với câu 2 đã chấp nhận.
+- `PoseCardTest.oneLineHeight_matchesSkeletonAndOneLineCard` đổi bề ngang và cỡ chữ bằng state (một `setContent`), tên tư thế ngắn để còn một dòng ở 156 dp, cỡ chữ 2.0.
+- Tag `AD_CELL` truyền vào `NativeAdCard` thắng tag `native_ad_card` bên trong, nên `onNodeWithTag(AD_CELL)` đo được thẻ.
+- Số dòng của `ads-guide.md` ở mục 3.1 đã lệch vài dòng; nội dung cần sửa vẫn còn.
+
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
@@ -520,6 +553,12 @@ Phiên bản 2:
     - câu 2: chấp nhận, ghi rõ sự kiện lặp;
     - câu 3: ghi đề xuất trong mô tả PR;
     - điểm chặn 4: bỏ đối chứng `false`.
+
+Phiên bản 3:
+
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt" khi AI hỏi, ngày 2026-10-31. Phiên bản 3 chỉ sửa cách test theo rà soát trước RUN-20261031-02; cách làm, phạm vi và câu trả lời ở mục 8 giữ như phiên bản 2.
 
 ## 10. Nhật ký thực hiện
 

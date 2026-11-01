@@ -53,5 +53,6 @@ private val AdFormat.isNative: Boolean
         AdFormat.APP_OPEN,
         AdFormat.REWARDED,
         AdFormat.BANNER_COLLAPSIBLE,
+        AdFormat.BANNER_MREC,
         -> false
     }

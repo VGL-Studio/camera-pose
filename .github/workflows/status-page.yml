@@ -2,6 +2,8 @@
 # to the `status` branch: main plus one commit holding docs/STATUS.md, pushed over each time (L-066).
 # The page is not in git on main, so PRs never conflict on it. Never pushes to main (ADR-0010).
 # Pushing `status` starts no workflow: pr-check runs on pull requests into main, main-guard and this one on pushes to main.
+# The schedules job enables resume-run.yml and run-watchdog.yml when an approved run list waits on main or a session
+# runs, so a session opened by Run now, a timer or `claude --cloud` has them on (scripts/schedule-idle.py, T-051).
 # Changing this file is a high-risk plan; cross-review required.
 name: status-page
 
@@ -35,3 +37,20 @@ jobs:
           git add -f docs/STATUS.md
           git commit -q -m "Trang tiến độ tại ${GITHUB_SHA::7}"
           git push -f origin status
+
+  # A job of its own, so only it may write Actions and the page job keeps its permissions. Never turns red.
+  schedules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Bật lịch khi có danh sách chạy chờ
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I scripts/schedule-idle.py --enable-if-pending | tee -a "${GITHUB_STEP_SUMMARY}"

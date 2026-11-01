@@ -66,6 +66,11 @@
       "description": "Minimum time between two full-screen ads of the default interval group, in seconds.",
       "valueType": "NUMBER"
     },
+    "ads_mediation_order": {
+      "defaultValue": { "value": "max_admob" },
+      "description": "Order of the two ad platforms for banner, MREC, interstitial, rewarded and resume app open ads: admob, max, admob_max or max_admob; any other value uses max_admob. Without a MAX SDK key in the build, admob. Name set by the template, not an AdsKit key.",
+      "valueType": "STRING"
+    },
     "ads_review_interstitial_breaks_between": {
       "defaultValue": { "value": "3" },
       "description": "Saved photos (items) between two review_interstitial ads. Name set by the app, not an AdsKit key.",
@@ -78,7 +83,7 @@
     },
     "is_enable_consent_shortcut": {
       "defaultValue": { "value": "false" },
-      "description": "Remote switch of the consent shortcut (CACHED_EARLY, ERROR_ALLOWED); also needs the build setting of the app. False takes ERROR_ALLOWED back at once. Name set by the template, not an AdsKit key.",
+      "description": "Remote switch of ERROR_ALLOWED, the temporary right when UMP fails on the network (S-12); also needs the build setting of the app. CACHED_EARLY is always on (ADR-0038). False takes ERROR_ALLOWED back at once. Name set by the template, not an AdsKit key.",
       "valueType": "BOOLEAN"
     },
     "is_log_ad_fullscreen_events": {
@@ -109,6 +114,11 @@
     "is_show_gallery_banner_collapsible": {
       "defaultValue": { "value": "false" },
       "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_banner_collapsible (banner_collapsible).",
+      "valueType": "BOOLEAN"
+    },
+    "is_show_gallery_banner_mrec": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_banner_mrec (banner_mrec).",
       "valueType": "BOOLEAN"
     },
     "is_show_gallery_in_collection": {
@@ -241,8 +251,13 @@
       "description": "Shows an ad when the user comes back to the app. Name kept with the AdsKit typo.",
       "valueType": "BOOLEAN"
     },
+    "time_close_native": {
+      "defaultValue": { "value": "5" },
+      "description": "Countdown before the full-screen native ad can be closed, in seconds; 1 to 30, any other value uses 5. Name from JBase, not an AdsKit key.",
+      "valueType": "NUMBER"
+    },
     "time_expand_collap_ad": {
-      "defaultValue": { "value": "30" },
+      "defaultValue": { "value": "10" },
       "description": "Time after the user collapses the collapsible native ad before it expands again, in seconds; 0 means never. Name set by the template, not an AdsKit key.",
       "valueType": "NUMBER"
     },

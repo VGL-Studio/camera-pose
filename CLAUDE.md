@@ -6,7 +6,7 @@
 
 - Kotlin, Jetpack Compose, một Activity, Navigation Compose với đích điều hướng kiểu `@Serializable`.
 - ViewModel với `StateFlow`, luồng dữ liệu một chiều. Hilt cho tiêm phụ thuộc. DataStore cho lưu trữ cục bộ.
-- minSdk 26, compileSdk và targetSdk 36. Phiên bản thư viện nằm ở `gradle/libs.versions.toml`.
+- minSdk 26, compileSdk 37, targetSdk 36. Phiên bản thư viện nằm ở `gradle/libs.versions.toml`; bộ công cụ build ở ADR-0040.
 
 ## Cấu trúc module
 
@@ -30,8 +30,9 @@ Quy tắc phụ thuộc (ADR-0001, kiểm tra tự động bằng `checkModuleDe
 
 ## Lệnh
 
+- Các việc chính của quy trình có command (skill của Claude Code trong `.claude/skills/`): gõ `/whatnow` để xem tình hình và việc nên làm tiếp, kèm bảng mọi command. Command chỉ dẫn tới tài liệu và script; quy tắc vẫn nằm ở `docs/CLAUDE.md` và `docs/ops/`, sửa quy tắc thì sửa ở đó. Command là của dự án mẫu: app không sửa, cần command riêng thì đặt tên khác (`docs/ops/to-app.md`, mục 2).
 - Kiểm tra toàn bộ, giống hệt CI: `scripts/check.sh`.
-- Ghi lại ảnh chuẩn screenshot khi plan cho phép: `./gradlew :<module>:recordRoborazziDebug :<module>:testDebugUnitTest --rerun` (`:app`: `:app:recordRoborazziStagingDebug :app:testStagingDebugUnitTest --rerun`), rồi `git status --short -- '*/src/test/screenshots/'` để thấy ảnh nào đã đổi. Thiếu `--rerun` thì Gradle có thể coi task test là đã cập nhật, không chạy lại test, và ảnh chuẩn giữ bản cũ (L-114).
+- Ghi lại ảnh chuẩn screenshot khi plan cho phép: `./gradlew :<module>:recordRoborazziDebug :<module>:testDebugUnitTest --rerun` (`:app`: `:app:recordRoborazziStagingDebug :app:testStagingDebugUnitTest --rerun`), rồi `git status --short -- '*/src/test/screenshots/*'` để thấy ảnh nào đã đổi. Thiếu `--rerun` thì Gradle có thể coi task test là đã cập nhật, không chạy lại test, và ảnh chuẩn giữ bản cũ (L-114). Mẫu đường dẫn phải có `*` ở cuối: mẫu kết thúc bằng `/` không khớp tệp nào, nên lệnh luôn in rỗng (L-136). Ảnh có bóng mờ (đã gặp với `Paint.setShadowLayer`; bóng của `shadow`, `elevation` có thể cũng vậy) vẽ trên macOS lệch ảnh do CI Linux vẽ tới 2/255 quanh vùng bóng, vượt ngưỡng so ảnh: ghi ảnh đó ở phiên cloud (Linux), hoặc lấy ảnh CI vẽ trong artifact `build-and-test-reports` của `pr-check` (`<module>/build/outputs/roborazzi/<Tên>_actual.png`, chép về `src/test/screenshots/<Tên>.png`, bỏ hậu tố `_actual`), sau khi xem ảnh `_compare.png` thấy chỉ lệch quanh vùng bóng (L-145).
 - Xem log của app trên máy thật hoặc emulator: `adb logcat -v threadtime | grep ' VGL\.'` (ADR-0019).
 - Khảo sát app mẫu cho app clone (điều khiển máy có chặn quảng cáo và nút mua): `scripts/app-explore/ax.sh check`, rồi làm theo `docs/ops/clone-study.md` (ADR-0021).
 - Tìm mã quảng cáo thật, khóa hay token lọt vào repo (test của script cũng chạy nó): `scripts/secret-scan.py`.
@@ -47,13 +48,14 @@ Quy tắc phụ thuộc (ADR-0001, kiểm tra tự động bằng `checkModuleDe
 - Tra một lỗi của CI hay script trong bảng tra lỗi đã biết: `scripts/failure-kind.sh --playbook <log>` (`docs/ops/failure-playbook.md`, `docs/auto-run.md` bước 8).
 - Đẩy nhánh task, thử lại khi lỗi mạng, giữ thành bundle khi không đẩy được: `scripts/save-branch.sh <nhánh>` (`docs/auto-run.md`, bước 3 và 7); GitHub từ chối vì quyền `workflow` thì còn ghi patch lên nhánh báo cáo cho người xem (PB-14, ADR-0032). Đẩy mỗi commit mới của phiên con trong thời gian có giới hạn: `scripts/push-on-commit.sh <nhánh> --minutes N`, chạy nền.
 - Thử ở đầu phiên có plan sửa `.github/workflows/` xem phiên đẩy được thay đổi workflow không: `scripts/push-probe.sh RUN-YYYYMMDD-NN` (`docs/ops/session-capabilities.md`, `docs/auto-run.md` mục 2).
-- Xem phiên tự chạy nào đứng im (danh sách `running`, không có commit 60 phút): `scripts/run-watchdog.py`; `run-watchdog.yml` chạy nó mỗi 30 phút và mở issue `session-stalled` (`docs/auto-run.md`, mục 4).
+- Xem phiên tự chạy nào đứng im (danh sách `running`, không có commit 60 phút): `scripts/run-watchdog.py`; `run-watchdog.yml` chạy nó mỗi 30 phút khi có phiên hay danh sách chờ (tự tắt khi rảnh, T-051) và mở issue `session-stalled` (`docs/auto-run.md`, mục 4).
+- Bật lịch của `resume-run.yml` và `run-watchdog.yml` (chúng tự tắt khi không có phiên): `scripts/schedule-idle.py --enable`. Phiên chạy ở đầu phiên; dev chạy sau khi merge danh sách chạy mà `gh workflow list --all` chưa thấy cả hai `active` (`docs/ops/staging-and-runs.md`, mục 2.3 và 2.8).
 - Chọn ticket cho hàng chờ plan cuối phiên: `scripts/plan-queue.py [--max N]` (`docs/auto-run.md`, mục 4).
 - Đếm token AI theo task của một phiên: `scripts/token-usage.py report --since <giờ bắt đầu>`; số gợi ý cho `token_estimate` của plan: `scripts/token-usage.py estimate` (`docs/ops/token-usage.md`).
 - Môi trường cloud chưa có `ANDROID_HOME` thì đặt `export ANDROID_HOME=$HOME/android-sdk` (SDK do `scripts/cloud-setup.sh` cài).
 - Máy dev chưa có JDK hay Android SDK: `scripts/local-setup.sh` cài vào thư mục người dùng, không cần sudo. Script cài JDK Temurin và các gói SDK đọc từ `scripts/cloud-setup.sh`, kiểm mã băm. Sau đó `source` tệp `env.sh` mà script in ra rồi chạy `scripts/check.sh`. Thư mục cài mặc định mang tên repo (`~/.local/share/<tên repo>`). `scripts/local-setup.sh --check` xem còn thiếu gì, không tải. Chỉ dùng trên máy dev; môi trường cloud dùng `scripts/cloud-setup.sh` và dòng `export ANDROID_HOME` ở trên.
 - `app/src/staging/google-services.json` là file cấu hình Firebase giả, chỉ để build qua được; bản build từ file này không gửi số liệu nào (ADR-0012). Không sửa, không thay bằng file thật.
-- Môi trường cloud không có emulator. Test trên emulator (`app/src/androidTest`) chỉ chạy trong CI.
+- Môi trường cloud không có emulator. Test trên emulator (`app/src/androidTest`) chỉ chạy trong CI, sau merge, ở job `ui-test` của `main-guard.yml` (ADR-0043); PR không chạy chúng.
 
 ## Viết một feature mới
 
@@ -87,7 +89,7 @@ Làm theo đúng mẫu `:feature:sample`:
 - Chữ hiển thị cho người dùng đặt trong `res/values/strings.xml`, không viết cứng trong code.
 - Màu, chữ, khoảng cách lấy từ `:core:designsystem` (`AppTheme`, `MaterialTheme`, `Spacing`). Không viết cứng mã màu hay cỡ chữ.
 - Feature không gọi trực tiếp SDK quảng cáo, phân tích, Remote Config, tải file từ R2 hay `android.util.Log`; luôn đi qua `:core:ads`, `:core:analytics`, `:core:config`, `:core:assets`, `:core:logging`.
-- Định dạng code theo ktlint (kiểu Android Studio, xem `.editorconfig`).
+- Định dạng code theo ktlint (kiểu Android Studio, xem `.editorconfig`). Giới hạn 120 ký tự chỉ áp cho dòng có code; dòng chỉ có chú thích thì ktlint không kiểm và không bị giới hạn (T-050).
 - Commit: chỉ `git add` theo đường dẫn các file đã sửa, không dùng `git add -A` hay `git add .`; xem `git status --short` hoặc danh sách file của PR trước khi đẩy.
 
 ## Không được làm

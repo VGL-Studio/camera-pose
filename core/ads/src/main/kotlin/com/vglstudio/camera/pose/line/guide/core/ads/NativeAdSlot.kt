@@ -19,8 +19,8 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Shows the native ad of [placement] (small or medium) in a screen. Features call this, never an ads SDK directly.
  * It takes no space until ads are allowed (consent given, SDK started, placement switched on remotely). While the ad
- * loads, a placeholder keeps its height; with no ad after `ads_native_load_timeout_seconds`, the space is given back,
- * or kept empty when [keepSpaceWhenEmpty] (a placement next to an app button, so the button does not move). The ad is
+ * loads, a placeholder keeps its height; when no ad could be loaded, the space shrinks to 0 dp (D-02), or
+ * is kept empty when [keepSpaceWhenEmpty] (a placement next to an app button, so the button does not move). The ad is
  * destroyed when the slot leaves the screen. A medium ad comes from the pool of its placement (plan T-028): the slot
  * takes it when it comes on screen and gives it back when it leaves, and records its opportunity (P-07).
  * [onAdAvailabilityChange] tells the app whether the slot has an ad (D-02): true when an ad arrives, false when none

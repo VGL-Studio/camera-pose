@@ -5,6 +5,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -30,11 +31,14 @@ class NativeAdSourceTest {
     private var allowed = true
     private lateinit var loads: FakeNativeLoads
 
-    private fun TestScope.newSource(): NativeAdSource {
+    /** The window of the in-screen ads as AdsController builds it, in foreground (KB-27, plan T-054). */
+    private val window = InScreenAdWindow(logger).apply { onForeground(true) }
+
+    private fun TestScope.newSource(gate: StateFlow<Boolean> = foreground): NativeAdSource {
         loads = FakeNativeLoads(loader, { testScheduler.currentTime }, logger)
         return NativeAdSource(
             load = { use -> loads.load(use) },
-            sendGate = { awaitSendAllowed(foreground) { mayRequest } },
+            sendGate = { awaitSendAllowed(gate) { mayRequest } },
             clock = { testScheduler.currentTime },
             // A supervisor like the scope of AdsController; an uncaught error fails the test.
             scope = backgroundScope,
@@ -220,6 +224,69 @@ class NativeAdSourceTest {
         assertEquals(listOf(0L, 30_000L), loads.times)
         val ad2 = deliver()
         assertSame(ad2, b.ad())
+    }
+
+    @Test
+    fun loserRetry_whileCovered_waitsUntilUncovered() = runTest {
+        val source = newSource(gate = window.open)
+        repeat(2) { source.attach() }
+        val a = claim(source)
+        val b = claim(source)
+        window.onCovered(true)
+        deliver()
+        assertTrue(a.result() is NativeClaim.Ad)
+
+        at(30_000)
+        assertEquals(1, loads.sent.size)
+        assertFalse(b.isCompleted)
+
+        // Control (L-055): the cover goes, the one retry of the loser is sent.
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(0L, 30_000L), loads.times)
+        val ad2 = deliver()
+        assertSame(ad2, b.ad())
+    }
+
+    @Test
+    fun nextLoadAfterClaim_whileCovered_waitsUntilUncovered() = runTest {
+        val source = newSource(gate = window.open)
+        source.attach()
+        val a = claim(source)
+        window.onCovered(true)
+        deliver()
+        assertTrue(a.result() is NativeClaim.Ad)
+
+        at(30_000)
+        assertEquals(1, loads.sent.size)
+
+        // Control (L-055): the cover goes, the next load is sent once.
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(0L, 30_000L), loads.times)
+        assertEquals(NativeLoadUse.REFRESH, loads.uses.last())
+    }
+
+    @Test
+    fun twoSlotsCovered_neitherSends_bothResumeOnce() = runTest {
+        // L-068: two slots of one placement under one cover; the window is one for the process.
+        val source = newSource(gate = window.open)
+        window.onCovered(true)
+        repeat(2) { source.attach() }
+        val a = claim(source)
+        val b = claim(source)
+        at(60_000)
+        assertTrue(loads.sent.isEmpty())
+
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(60_000L), loads.times)
+        deliver()
+        assertTrue(a.result() is NativeClaim.Ad)
+        // The loser gets its one retry, at once: two sends for the two claims that waited.
+        assertEquals(listOf(60_000L, 60_000L), loads.times)
+        deliver()
+        assertTrue(b.result() is NativeClaim.Ad)
     }
 
     @Test

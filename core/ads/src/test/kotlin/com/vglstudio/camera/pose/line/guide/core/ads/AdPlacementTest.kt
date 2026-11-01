@@ -13,7 +13,7 @@ class AdPlacementTest {
 
     @Test
     fun galleryPlacements_coverEveryFormatOnce() {
-        assertEquals(13, galleryPlacements.size)
+        assertEquals(14, galleryPlacements.size)
         // Every format but the collapsible layer, which loads through the placement of its bottom bar (plan T-036).
         assertEquals(
             AdFormat.entries.toSet() - AdFormat.NATIVE_COLLAPSIBLE,
@@ -21,6 +21,16 @@ class AdPlacementTest {
         )
         val keys = AdPlacement.entries.map { it.key }
         assertEquals(keys.size, keys.toSet().size)
+    }
+
+    @Test
+    fun galleryBannerMrec_isStagingOnlyMrec() {
+        val mrec = AdPlacement.GALLERY_BANNER_MREC
+        assertEquals("gallery_banner_mrec", mrec.key)
+        assertEquals(AdFormat.BANNER_MREC, mrec.format)
+        assertTrue(mrec.stagingOnly)
+        assertFalse(mrec.appWide)
+        assertEquals("is_show_gallery_banner_mrec", AdsSettings.placementEnabled(mrec).name)
     }
 
     @Test

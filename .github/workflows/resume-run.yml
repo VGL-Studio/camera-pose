@@ -4,8 +4,10 @@
 # the same routine as start-run.yml with the same run file. While the quota is still used up, the new session cannot
 # work and pushes nothing, so the next hour tries again; once the quota is renewed, the session continues.
 # Secrets: ROUTINE_FIRE_URL, ROUTINE_FIRE_TOKEN (the same as start-run.yml, docs/ops/staging-and-runs.md).
-# To stop a session for good, set its run file on the report branch to "finished" with the reason, or disable
-# this workflow. Changing this file is a high-risk plan; cross-review required.
+# The idle job disables this workflow while no session needs it; status-page.yml (an approved run list on main),
+# start-run.yml and the session enable it again (scripts/schedule-idle.py, T-051).
+# To stop a session for good, set its run file on the report branch to "finished" with the reason.
+# Changing this file is a high-risk plan; cross-review required.
 name: resume-run
 
 on:
@@ -83,3 +85,24 @@ jobs:
             echo "- Phiên: ${session_url:-API không trả về đường dẫn}"
           } >> "${GITHUB_STEP_SUMMARY}"
           echo "Phiên: ${session_url}"
+
+  # Turns this workflow off once no session needs it (T-051): scripts/schedule-idle.py keeps it on while a session is
+  # running, an approved run list waits, or it was enabled or start-run ran in the last 3 hours. A job of its own, so
+  # only it may write Actions. Never turns the workflow red.
+  idle:
+    needs: resume
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Tắt lịch khi không có phiên
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I scripts/schedule-idle.py --disable-if-idle resume-run.yml | tee -a "${GITHUB_STEP_SUMMARY}"

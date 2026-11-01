@@ -7,10 +7,20 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Worktrees nested in the repository (agent worktrees under .claude/worktrees/, L-137) keep their own
+# build results and screenshots; counting them would report another checkout's tests as this one's.
+skip=(-not -path './.claude/*')
+root="$(pwd -P)" # git prints worktree paths with symlinks resolved (/tmp is /private/tmp on macOS)
+while IFS= read -r worktree; do
+  case "${worktree}" in
+    "${root}"/*) skip+=(-not -path "./${worktree#"${root}"/}/*") ;;
+  esac
+done < <(git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
+
 mode="${1:-jvm}"
 case "${mode}" in
-  jvm) title="Test JVM"; dirs="$(find . -type d -path '*/build/test-results/test*UnitTest' -not -path './build-logic/*' | sort)" ;;
-  android) title="Test emulator"; dirs="$(find . -type d -path '*/build/outputs/androidTest-results' | sort)" ;;
+  jvm) title="Test JVM"; dirs="$(find . -type d -path '*/build/test-results/test*UnitTest' -not -path './build-logic/*' "${skip[@]}" | sort)" ;;
+  android) title="Test emulator"; dirs="$(find . -type d -path '*/build/outputs/androidTest-results' "${skip[@]}" | sort)" ;;
   *) echo "cách dùng: scripts/test-summary.sh jvm|android" >&2; exit 1 ;;
 esac
 
@@ -41,7 +51,7 @@ done <<< "${dirs}"
 
 summary="${title}: ${total} test, ${failed} lỗi."
 if [ "${mode}" = "jvm" ]; then
-  shots="$(find . -path '*/src/test/screenshots/*.png' -not -path '*/build/*' | wc -l | tr -d ' ')"
+  shots="$(find . -path '*/src/test/screenshots/*.png' -not -path '*/build/*' "${skip[@]}" | wc -l | tr -d ' ')"
   summary="${summary} Ảnh screenshot: ${shots}."
 fi
 summary="${summary} $(IFS=';'; echo "${lines[*]:-không có kết quả}")"

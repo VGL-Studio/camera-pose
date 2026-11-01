@@ -24,7 +24,8 @@ private const val TAG = "Ads"
  * - O-09: [load] throwing (not a cancellation) is a failure with code 0.
  * - With [refresh] (native small, plan T-040), a Loaded ad is handed to the flow [refresh] makes, which owns and
  *   destroys it from then on; when that flow ends (source shut down), this one ends too and loads nothing more.
- *   Without it (medium, collapsible), the ad stays until the collection ends.
+ *   Without it (medium, collapsible, an in-list small row ([inListRowStates])), the ad stays until the collection
+ *   ends.
  */
 internal fun retryingNativeAdStates(
     load: suspend () -> NativeAdState?,

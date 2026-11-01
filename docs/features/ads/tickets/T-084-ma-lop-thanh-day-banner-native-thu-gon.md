@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-31, câu 13 tới 15
 scenarios: []                # spec ads không có kịch bản riêng; thanh đáy theo KB-6 của features/poses/spec.md
 owner: Tuấn
-status: approved
+status: stopped
 risk: high
 size: M
 depends_on: [T-079]          # T-079 đưa thanh đáy vào thư viện và chi tiết

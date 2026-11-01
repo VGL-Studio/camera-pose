@@ -1,5 +1,8 @@
 # Quality gate for every PR into main (ADR-0002, ADR-0010).
-# Job names (changes, build-and-test, ui-test) are checked by scripts/merge-if-green.sh: rename in both places.
+# Job names (changes, build-and-test) are checked by scripts/merge-if-green.sh: rename in both places.
+# The emulator tests run after the merge, in the job ui-test of main-guard.yml (ADR-0043), not on PRs.
+# scripts/main-guard-verified.sh reads the job build-and-test and its step "Cổng chất lượng (scripts/check.sh)" (ADR-0039):
+# renaming either means changing GATE_JOB or GATE_STEP there in the same PR.
 # build-and-test has two paths: a PR with code runs scripts/check.sh; a PR without code (docs only, or files outside
 # the code filter) runs only scripts/tests/run.sh, without Gradle or the Android SDK (L-040). The job is never skipped.
 # Changing this file is a high-risk plan and needs cross-review.
@@ -27,7 +30,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.filter.outputs.code }}
-      ui: ${{ steps.filter.outputs.ui }}
       release: ${{ steps.filter.outputs.release }}
     # No checkout needed: on pull_request events paths-filter reads the changed files from the API.
     steps:
@@ -35,8 +37,6 @@ jobs:
         id: filter
         with:
           # code: anything that affects the build or the quality gate itself.
-          # ui: anything that runs in the app or changes how it is built (core modules without UI too,
-          #     since a bug there can still crash the app at startup).
           # release: what can break the release build (R8) while the debug build passes: libraries, build files and
           #     R8 rules (L-083).
           filters: |
@@ -52,17 +52,6 @@ jobs:
               - '.editorconfig'
               # Every script: scripts/check.sh runs scripts/tests/run.sh, which tests them (L-073).
               - 'scripts/**'
-              - '.github/workflows/pr-check.yml'
-            ui:
-              - 'app/**'
-              - 'core/**'
-              - 'feature/**'
-              - 'build-logic/**'
-              - 'gradle/**'
-              - '*.gradle.kts'
-              - 'gradle.properties'
-              - 'gradlew'
-              - 'scripts/test-summary.sh'
               - '.github/workflows/pr-check.yml'
             release:
               - 'gradle/libs.versions.toml'
@@ -158,89 +147,5 @@ jobs:
               tail -n 60 build.log 2>/dev/null || echo "Không có log."
               echo '```'
             fi
-          } > comment.md
-          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment.md
-
-  ui-test:
-    needs: changes
-    if: needs.changes.outputs.ui == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - uses: gradle/actions/setup-gradle@v4
-
-      # The emulator needs ~7.4 GB free for its data partition (a smaller disk-size is ignored). Once the
-      # Gradle caches of main are restored, the runner has only ~5.5-6.4 GB left. Remove preinstalled
-      # toolchains this job never uses.
-      - name: Giải phóng đĩa cho emulator
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /opt/hostedtoolcache/CodeQL
-          df -h /
-
-      - name: Bật KVM cho emulator
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Test trên emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          arch: x86_64
-          target: google_apis
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          # The device log is recorded for the whole run, so a failure can be explained without re-running (ADR-0019).
-          script: bash -c 'set -o pipefail; adb logcat -c; adb logcat -v threadtime > logcat.txt 2>&1 & logcat_pid=$!; ./gradlew --no-daemon --console=plain :app:connectedStagingDebugAndroidTest 2>&1 | tee ui-test.log; status=$?; kill $logcat_pid; exit $status'
-
-      - name: Tóm tắt test trên emulator
-        if: always()
-        run: scripts/test-summary.sh android 2>&1 | tee ui-summary.log
-
-      # Gradle cuts the assertion message of a failed device test. Print it in full, with the app's log, so people
-      # and the auto-run session can read why a test failed from the job log alone (docs/auto-run.md, step 8).
-      - name: Chi tiết test trên emulator
-        if: failure()
-        run: |
-          echo "== Lỗi của từng test"
-          find app/build/outputs/androidTest-results -name '*.xml' -print0 2>/dev/null |
-            xargs -0 -r sed -n '/<failure/,/<\/failure>/p' | head -n 400
-          echo "== Log của app trên emulator (thẻ VGL, lỗi dừng app)"
-          grep -E ' (VGL[A-Za-z0-9_.]*|AndroidRuntime) *:' logcat.txt 2>/dev/null | tail -n 300 || echo "Không có log."
-
-      - name: Lưu báo cáo test trên emulator
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ui-test-report
-          path: |
-            app/build/reports/androidTests/
-            app/build/outputs/androidTest-results/
-            logcat.txt
-            ui-test.log
-          retention-days: 7
-          if-no-files-found: ignore
-
-      - name: Bình luận lỗi vào PR
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          {
-            echo "### ui-test thất bại"
-            echo '```'
-            cat ui-summary.log 2>/dev/null || echo "Không có tóm tắt test."
-            echo "---"
-            tail -n 80 ui-test.log 2>/dev/null || echo "Không có log."
-            echo '```'
           } > comment.md
           gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment.md

@@ -1,7 +1,7 @@
 ---
 ticket: T-084
 title: Mã quảng cáo theo lớp cho thanh đáy (banner, native thu gọn), chọn lớp bằng Remote Config
-status: approved             # draft | approved | stopped | done
+status: stopped              # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -334,3 +334,9 @@ Rủi ro Cao, cần duyệt chéo (Tuấn và Nhật). Nhật là người phụ
   - câu 5: chấp nhận việc đã đọc `scripts/release.sh` lúc soạn plan (không sửa). Nhắc lại quy tắc: phiên chạy T-084 không đọc hay sửa `scripts/release.sh`.
 
 ## 10. Nhật ký thực hiện
+
+### Dừng 2026-11-01, phiên bản plan 1 (chưa chạy)
+
+- **Lý do:** đợt đồng bộ dự án mẫu 47782ec..151b4c2 (PR #279) đã mang vào `:core:ads` T-056 của mẫu: cấu hình phát hành nhận khóa chung theo khe `banner=<mã>` và `native_collap=<mã>`, một mã cho lớp đó của mọi thanh đáy, và `ConfiguredAdUnitIds.missing` liệt kê khe còn thiếu. Plan này viết cho code trước đợt đó (khóa `<khóa vị trí>/<định dạng lớp>`).
+- **Quyết định:** Nhật chọn "Dừng T-084, dùng khe chung của mẫu" (2026-11-01). Spec ads câu 14 trả lời lại theo khóa khe chung. Phần bản phát hành báo thiếu mã lớp đi cùng `release.sh` mới của mẫu ở T-075.
+- **Code:** không có nhánh, không có commit.

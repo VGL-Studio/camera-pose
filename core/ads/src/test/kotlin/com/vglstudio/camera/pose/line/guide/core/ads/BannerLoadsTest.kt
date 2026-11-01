@@ -62,7 +62,8 @@ class BannerLoadsTest {
     fun refreshOf_bannerByAdUnit_collapsibleManual_othersThrow() {
         assertEquals(BannerRefresh.BY_AD_UNIT, bannerRefreshOf(AdFormat.BANNER))
         assertEquals(BannerRefresh.MANUAL, bannerRefreshOf(AdFormat.BANNER_COLLAPSIBLE))
-        val others = AdFormat.entries - AdFormat.BANNER - AdFormat.BANNER_COLLAPSIBLE
+        assertEquals(BannerRefresh.BY_AD_UNIT, bannerRefreshOf(AdFormat.BANNER_MREC))
+        val others = AdFormat.entries - AdFormat.BANNER - AdFormat.BANNER_COLLAPSIBLE - AdFormat.BANNER_MREC
         assertTrue(others.isNotEmpty())
         others.forEach { format ->
             assertThrows(format.name, IllegalArgumentException::class.java) { bannerRefreshOf(format) }
@@ -243,6 +244,46 @@ class BannerLoadsTest {
     }
 
     @Test
+    fun failed_callsOnFailed_onceEach_beforeRetry() = runTest {
+        // Plan T-062: the slot hears every failure (an MREC with no ad yet collapses), at the failure, before the retry.
+        val failedAt = mutableListOf<Long>()
+        val sendsAtFailure = mutableListOf<Int>()
+        val view = fakeView()
+        view.onSend = { if (view.sendCount <= 2) view.emitFailed(3) else view.emitLoaded() }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            runBannerLoads(
+                refresh = BannerRefresh.BY_AD_UNIT,
+                view = view,
+                visible = visible,
+                mayRequestNow = { mayRequest },
+                retryResets = retryResets,
+                onLoaded = { loadedCalls++ },
+                logger = logger,
+                placementKey = KEY,
+                onFailed = {
+                    failedAt += testScheduler.currentTime
+                    sendsAtFailure += view.sendCount
+                },
+            )
+        }
+        at(10_000)
+
+        assertEquals(listOf(0L, 2_000L), failedAt)
+        assertEquals(listOf(1, 2), sendsAtFailure)
+        assertEquals(1, loadedCalls)
+        val withOnFailed = view.sendTimes.toList()
+        assertEquals(listOf(0L, 2_000L, 6_000L), withOnFailed)
+
+        // Control: the same story without onFailed sends at the same times.
+        val start = testScheduler.currentTime
+        val plain = fakeView()
+        plain.onSend = { if (plain.sendCount <= 2) plain.emitFailed(3) else plain.emitLoaded() }
+        run(BannerRefresh.BY_AD_UNIT, plain)
+        at(start + 10_000)
+        assertEquals(withOnFailed, plain.sendTimes.map { it - start })
+    }
+
+    @Test
     fun loaded_resetsFailureCount() = runTest {
         val view = fakeView()
         run(BannerRefresh.BY_AD_UNIT, view)
@@ -342,6 +383,73 @@ class BannerLoadsTest {
         at(60_000)
 
         assertEquals(listOf(0L), view.sendTimes)
+    }
+
+    /** [run] with a count of [runBannerLoads]' onFailed calls (plan T-071). */
+    private var failedCalls = 0
+
+    private fun TestScope.runCountingFailures(view: FakeBannerAdView): Job =
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            runBannerLoads(
+                refresh = BannerRefresh.BY_AD_UNIT,
+                view = view,
+                visible = visible,
+                mayRequestNow = { mayRequest },
+                retryResets = retryResets,
+                onLoaded = { loadedCalls++ },
+                logger = logger,
+                placementKey = KEY,
+                onFailed = { failedCalls++ },
+            )
+        }
+
+    @Test
+    fun tryNext_sendsAtOnce_noFailureCounted_noOnFailed() = runTest {
+        // Plan T-071, KB-31: the first platform of a frame had no ad; the second one is asked at once.
+        val view = fakeView()
+        runCountingFailures(view)
+        at(500)
+        view.emitTryNext()
+        runCurrent()
+        assertEquals(listOf(0L, 500L), view.sendTimes)
+        assertEquals(0, failedCalls)
+        assertFalse(logger.entries.any { it.message.startsWith("Banner $KEY retry") })
+
+        // The second platform fails too: the first failure in a row, retried 2 s later (not 4 s).
+        view.emitFailed(3)
+        runCurrent()
+        assertEquals(1, failedCalls)
+        at(2_499)
+        assertEquals(listOf(0L, 500L), view.sendTimes)
+        at(2_500)
+        assertEquals(listOf(0L, 500L, 2_500L), view.sendTimes)
+        assertTrue(logger.entries.any { it.message == "Banner $KEY retry in 2000 ms (failures 1, code 3)" })
+    }
+
+    @Test
+    fun tryNext_waitsVisible_andAsksGate() = runTest {
+        // S-15, KB-27, L-072: the send to the second platform waits for the screen and asks the consent gate.
+        val view = fakeView()
+        val job = runCountingFailures(view)
+        at(1_000)
+        visible.value = false
+        view.emitTryNext()
+        runCurrent()
+        at(5_000)
+        assertEquals(listOf(0L), view.sendTimes)
+        visible.value = true
+        runCurrent()
+        assertEquals(listOf(0L, 5_000L), view.sendTimes)
+
+        // The gate closed: nothing sent, the loop ends.
+        mayRequest = false
+        view.emitTryNext()
+        runCurrent()
+        at(60_000)
+        assertEquals(listOf(0L, 5_000L), view.sendTimes)
+        assertTrue(logger.entries.any { it.message == "Banner $KEY request blocked" })
+        assertTrue(job.isCompleted)
+        assertEquals(0, failedCalls)
     }
 
     private companion object {

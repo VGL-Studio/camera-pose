@@ -4,7 +4,8 @@
 A session opened with `claude --cloud` is not continued by resume-run.yml (L-044): when it stops in the middle
 (an API error, the quota, the process restarting), the run file stays "running" and nobody knows until they look.
 A session once waited 2 hours 30 minutes that way. .github/workflows/run-watchdog.yml runs this script every
-30 minutes; it only opens, updates and closes issues labelled session-stalled, and never starts a session.
+30 minutes while its schedule is on (the workflow turns itself off when idle, scripts/schedule-idle.py); it only
+opens, updates and closes issues labelled session-stalled, and never starts a session.
 
 Usage: scripts/run-watchdog.py
 A run is quiet when its run file on its report branch is "running" and none of its branches (the report branch,

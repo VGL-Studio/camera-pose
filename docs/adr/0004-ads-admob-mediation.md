@@ -11,6 +11,8 @@ deciders: [Nhóm phát triển, Người phụ trách sản phẩm]
 
 > **Ghi chú 2026-10-23:** ADR-0026 (duyệt 2026-10-24) thay một phần ADR này: khởi tạo SDK theo bộ PARTNER của AdsKit (init sớm khi còn đồng ý của phiên trước, quyền tạm khi UMP lỗi mạng), danh sách mạng con thành chín mạng, bỏ rào chắn "không hiện khi người dùng đang thao tác". Phần còn lại giữ nguyên. Bảng đối chiếu ở ADR-0026, mục "Thay gì".
 
+> **Ghi chú 2026-10-29:** ADR-0037 (duyệt 2026-10-29) thay vế "AdMob là nền tảng điều phối mediation": AppLovin MAX là nền tảng thứ hai cho banner, MREC, interstitial, rewarded, app open; native vẫn chỉ qua AdMob. `:core:ads` vẫn là lớp trung gian duy nhất.
+
 ## Bối cảnh
 
 App kiếm tiền chủ yếu bằng quảng cáo, dùng nhiều mạng như AdMob, AppLovin, Unity. Quảng cáo là nguồn doanh thu duy nhất, nên lỗi ở đây ảnh hưởng trực tiếp tới doanh thu và có thể khiến tài khoản quảng cáo bị hạn chế.

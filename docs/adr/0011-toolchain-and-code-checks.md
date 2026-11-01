@@ -9,6 +9,8 @@ deciders: [Nhóm phát triển]
 
 # ADR-0011: BỘ CÔNG CỤ BUILD VÀ KIỂM TRA CODE CỦA DỰ ÁN MẪU
 
+> Ghi chú 2026-10-30: [ADR-0040](0040-bo-build-agp-9.md) thay phần Phiên bản (Gradle 9.3.1, AGP 9.1.0 với Kotlin dựng sẵn, compileSdk 37, targetSdk 36). Các quyết định còn lại của ADR-0011 giữ nguyên.
+
 ## Bối cảnh
 
 Khi dựng khung dự án mẫu, cần chốt phiên bản công cụ build, cách kiểm tra định dạng code và cách chạy screenshot test, sao cho AI và CI chạy giống hệt nhau. Trong lúc dựng cũng phát hiện một lỗi có thể làm cổng chất lượng mất tác dụng.

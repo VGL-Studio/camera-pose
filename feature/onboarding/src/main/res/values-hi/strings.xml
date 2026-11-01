@@ -7,4 +7,10 @@
     <string name="onboarding_point_saved">पसंदीदा पोज़ सेव करें और बाद में फिर से फ़ोटो लें</string>
     <string name="onboarding_enable_camera">कैमरा चालू करें</string>
     <string name="onboarding_note">प्रीव्यू दिखाने के लिए ऐप को कैमरे की अनुमति चाहिए। फ़ोटो सिर्फ़ आपके डिवाइस पर सेव होती हैं।</string>
+    <string name="onboarding_next">अगला</string>
+    <string name="onboarding_poses_title">हर फ़ोटो के लिए एक पोज़</string>
+    <string name="onboarding_premium_title">प्रीमियम पोज़</string>
+    <string name="onboarding_premium_body">एक विज्ञापन देखकर प्रीमियम पोज़ अनलॉक करें, फिर उसे हमेशा इस्तेमाल करें।</string>
+    <string name="onboarding_camera_title">फ़ोटो लेने के लिए तैयार</string>
+    <string name="onboarding_page_indicator">पेज %1$d / %2$d</string>
 </resources>

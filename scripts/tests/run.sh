@@ -4297,7 +4297,7 @@ expect "device-scenario: the scenarios of the repository pass check" 0 \
   "$(code=0; [[ -z "$ds_repo_files" ]] || python3 -I scripts/device-scenario.py check $ds_repo_files > "$work/ds-check.out" 2>&1 || code=$?; echo "$code")"
 # The example of docs/ops/test-sessions.md, section 5, runs on the pose library: it must keep passing check.
 sed -n '/^ticket: T-NNN$/,/^shot landscape$/p' docs/ops/test-sessions.md | sed 's/^ticket: T-NNN$/ticket: T-001/' > "$ds_files/doc-example.txt"
-expect "device-scenario: the example of test-sessions.md passes check" "0 13" \
+expect "device-scenario: the example of test-sessions.md passes check" "0 16" \
   "$(code=0; python3 -I scripts/device-scenario.py check "$ds_files/doc-example.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c . "$ds_files/doc-example.txt")"
 # A testTag that only a test still names is gone from the app: check does not count test sources.
 mkdir -p "$work/ds-root/feature/x/src/test/kotlin" "$work/ds-root/feature/x/src/main/kotlin"

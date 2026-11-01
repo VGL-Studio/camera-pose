@@ -7,4 +7,10 @@
     <string name="onboarding_point_saved">บันทึกท่าโพสที่ชอบไว้ถ่ายอีกครั้งภายหลัง</string>
     <string name="onboarding_enable_camera">เปิดกล้อง</string>
     <string name="onboarding_note">แอปต้องใช้สิทธิ์กล้องเพื่อแสดงภาพตัวอย่าง รูปภาพจะเก็บไว้ในเครื่องของคุณเท่านั้น</string>
+    <string name="onboarding_next">ถัดไป</string>
+    <string name="onboarding_poses_title">ท่าโพสสำหรับทุกภาพ</string>
+    <string name="onboarding_premium_title">ท่าโพสพรีเมียม</string>
+    <string name="onboarding_premium_body">ดูโฆษณาหนึ่งครั้งเพื่อปลดล็อกท่าโพสพรีเมียม แล้วใช้ได้ตลอดไป</string>
+    <string name="onboarding_camera_title">พร้อมถ่ายแล้ว</string>
+    <string name="onboarding_page_indicator">หน้า %1$d จาก %2$d</string>
 </resources>

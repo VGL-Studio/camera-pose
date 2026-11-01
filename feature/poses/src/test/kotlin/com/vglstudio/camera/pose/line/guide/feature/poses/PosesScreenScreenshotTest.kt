@@ -131,7 +131,7 @@ class PosesScreenScreenshotTest {
     fun adCollection_light() {
         captureRoboImage("src/test/screenshots/PosesScreen_ad-collection_light.png") {
             Screen(
-                defaultState(cards = AD_COLLECTION_CARDS),
+                defaultState(ready = AD_COLLECTION_CARDS.size, cards = AD_COLLECTION_CARDS),
                 dark = false,
                 gridAds = PosesGridAds.Fixed(every = 8) { modifier, cardHeight ->
                     NativeAdCard(SCREENSHOT_CARD_AD, NativeAdSize.CARD, modifier, cardHeight = cardHeight)

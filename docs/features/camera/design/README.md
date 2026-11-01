@@ -6,12 +6,12 @@ tool: figma
 link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=16-24
 designer: AI (Claude), Nhật
 approved_by: Nhật
-approved_at: 2026-10-21
+approved_at: 2026-10-31
 ---
 
 # THIẾT KẾ: CAMERA VÀ MÀN XEM LẠI
 
-Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Màn xem lại ở section Review trên Figma (node `18-23`). Camera và màn xem lại luôn dùng chế độ tối, nên chỉ có ảnh `_dark`.
+Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Màn xem lại ở section Review trên Figma (node `18-23`). Camera và màn xem lại luôn dùng chế độ tối, nên chỉ có ảnh `_dark`. Tư thế premium (spec poses KB-8, plan T-086) ở section "Premium camera": https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=78-2729 (Nhật duyệt ngày 2026-10-31); dấu, hộp thoại mở khóa và chữ của chúng ở gói `poses`.
 
 ## 1. Các màn hình và trạng thái
 
@@ -30,6 +30,7 @@ Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../desig
 | `CameraScreen` | Chưa có quyền camera | `CameraScreen_permission-denied_dark` | KB-7 |
 | `CameraScreen` | Không mở được camera | `CameraScreen_error_dark` | KB-8 |
 | `CameraScreen` | Máy gập mở ra | `CameraScreen_default_dark_unfolded` | KB-11 |
+| `CameraScreen` | Dải tư thế có ô tư thế premium chưa mở khóa (ô 4 và 6) và một ô đang chọn không khóa (ô 2) | `CameraScreen_premium_dark` | KB-1 |
 | `ReviewScreen` | Bình thường | `ReviewScreen_default_dark` | KB-6 |
 | `ReviewScreen` | Đang lưu | `ReviewScreen_saving_dark` | KB-6 |
 | `ReviewScreen` | Lưu lỗi | `ReviewScreen_save-error_dark` | KB-6 |
@@ -48,6 +49,7 @@ Hộp thoại mất mạng thuộc gói `network`.
 | Camera | Nút hẹn giờ đang bật | 3s, 10s | `titleMedium` |
 | Camera | Nút zoom | 0.5, 1x, 2 | `labelLarge` |
 | Camera | Chip nhóm | Tất cả; Nữ; Nam; Cặp đôi; Bạn bè; Gia đình; Trẻ em; Du lịch; Cà phê (theo catalog) | `labelLarge` |
+| Camera, tư thế premium | Nhãn trợ năng của ô khóa (`camera_cd_thumb_premium`, không hiện trên ảnh) | %1$s, premium, chạm để mở khóa (`%1$s` là tên tư thế) | |
 | Camera, chưa chọn tư thế | Lời nhắc | Chọn một tư thế ở dải bên dưới | `labelLarge` |
 | Camera, đã khóa | Lời nhắc | Đã khóa lớp phủ | `labelLarge` |
 | Camera, bảng chỉnh | Tiêu đề | Chỉnh lớp phủ | `titleMedium` |
@@ -89,6 +91,7 @@ Dấu ba chấm là một ký tự (`…`).
 | Trạng thái chờ, lỗi, chưa có quyền | `CircularProgressIndicator` hoặc `StateMessage` | `onSurface` trên nền tối | | Giữa khung |
 | Hàng chip | `StickerChip` cuộn ngang | Đang chọn `secondaryContainer` và `SelectedBadge` | `labelLarge` | Đỉnh ở 656, cách nhau `Spacing.sm` |
 | Dải tư thế | `PoseThumb` cuộn ngang | Đang chọn viền `secondaryContainer` 3 và `SelectedBadge` | | Ô 64, đỉnh ở 708, cách nhau `Spacing.sm` |
+| Ô tư thế premium chưa mở khóa | `PoseThumb(premium = true)` (Figma `PoseThumb`, `State=Default, Premium=Yes`) với `PremiumBadge` cỡ `Thumb` | Dấu: nền `tertiaryContainer`, viền `outline`, icon `workspace_premium` `onTertiaryContainer` (chế độ tối) | | Dấu 22, icon 14, lấn góc trên trái ô ở (-7, -7), đối xứng `SelectedBadge` ở góc trên phải; ảnh của ô không mờ. Chạm ô mở hộp thoại mở khóa (gói `poses`), tư thế đang dùng không đổi |
 | Nút chụp | Vòng 76 viền 4 và tròn 62 | `camera/onCamera`; đạt điểm viền `successContainer`; đếm ngược hiện icon `close` | | Tâm ở (205.5, 822) |
 | Ô ảnh vừa chụp | Ảnh thu nhỏ | Viền `camera/onCamera` 2 | | 48, bo `thumb`, trái |
 | Nút đổi camera | `CameraIconButton` `flip_camera_android` | Mờ (độ mờ 38%, không bấm được) khi camera chưa sẵn sàng: `starting`, `permission-denied`, `error` (quyết định 2026-10-22); và khi máy chỉ có một camera (spec KB-4, câu hỏi 17, 2026-10-27) | | 48, phải |
@@ -107,6 +110,7 @@ Dấu ba chấm là một ký tự (`…`).
 
 - `CameraScreen`, bấm nút chụp (hoặc hết đếm ngược), sang `ReviewScreen`.
 - `ReviewScreen`: "Lưu vào thư viện" lưu tại chỗ; "Chụp lại", "Tư thế tiếp", nút quay lại về `CameraScreen` (chưa lưu thì hỏi "Bỏ ảnh này?").
+- `CameraScreen`, chạm ô tư thế premium chưa mở khóa: hộp thoại mở khóa (gói `poses`, `PoseUnlockDialogScreen_*`); tư thế đang dùng không đổi. Xem hết quảng cáo thì camera dùng tư thế đó; "Để sau" thì không đổi gì.
 - `CameraScreen`: nút thư viện sang `PosesScreen`; nút cài đặt sang `SettingsScreen`; ô ảnh vừa chụp sang `ReviewScreen` với ảnh đã lưu gần nhất.
 - Chưa có quyền: "Mở cài đặt" mở trang cài đặt app của máy.
 

@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-31-thanh-day-native-thu-gon.md
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed: 2026-10-31
+confirmed: 2026-11-01
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
@@ -37,7 +37,7 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
 - Theo ba yêu cầu ngày 2026-10-31 (câu 12 tới 15):
   - `native_onboarding`: thẻ native ở mọi trang của luồng giới thiệu, bật lúc phát hành (spec onboarding, KB-6, câu 6, 8).
   - `rw_premium_pose`: quảng cáo có thưởng mở khóa tư thế premium; không có quảng cáo thì chặn (spec poses, KB-8, câu 8, 10).
-  - Lớp banner và lớp native thu gọn của thanh đáy có mã quảng cáo ở production (`<khóa vị trí>/<định dạng lớp>`), chọn lớp bằng hai khóa có sẵn `is_show_native_bottom`, `is_show_native_collap` (câu 13 tới 15).
+  - Lớp banner và lớp native thu gọn của thanh đáy có mã quảng cáo ở production (khóa chung theo khe `banner`, `native_collap`; câu 14), chọn lớp bằng hai khóa có sẵn `is_show_native_bottom`, `is_show_native_collap` (câu 13 tới 15).
 
 **Ngoài phạm vi:**
 
@@ -71,6 +71,8 @@ Khai báo `queries` (thấy gói khác trên máy) mà SDK mediation kéo vào m
 - intent `androidx.browser.customtabs.CustomTabsService`, `VIEW` với `http` và `market` (Unity, InMobi).
 
 Nguồn: AppLovin, Meta, DT Exchange, InMobi, Unity. App nhận các mục này như dự án mẫu, không gỡ (Nhật, 2026-10-28). Lượt 1 của T-074 có thêm mục nào khác thì quay lại spec này trước khi merge.
+
+AppLovin MAX (câu 16): đợt đồng bộ dự án mẫu 47782ec..151b4c2 (PR #279) đưa vào `:core:ads` lời gọi thẳng SDK AppLovin (`com.applovin:applovin-sdk` 13.6.4, đã có trong app từ T-074 qua adapter AppLovin của AdMob) và thêm thư viện `com.applovin.mediation:google-adapter` (adapter Google của MAX). MAX chưa bật: chỉ khởi động khi bản build có khóa MAX, mà bản staging của CI và bản phát hành hiện không có. Manifest gộp không có quyền mới (`MergedManifestTest`); SDK AppLovin vốn đã nằm trong danh sách nguồn ở trên.
  Sự kiện phân tích mà khung ghi qua Firebase Analytics (nếu có) được plan liệt kê và chép vào mục 6 của spec màn có vị trí trong PR của T-074.
 
 ## 7. File tĩnh trên R2
@@ -181,12 +183,16 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
       - Bản phát hành báo lỗi khi thanh đáy thiếu mã lớp. Phần này nằm trong `scripts/release.sh`, nên T-075 do người làm (`auto_run: false`).
       - Đề xuất về dự án mẫu (`docs/ops/from-app.md`).
     - Trả lời: `<khóa vị trí>/<định dạng lớp>=<mã>`, theo đề xuất. Nhật, 2026-10-31.
+    - Trả lời lại (2026-11-01, thay câu trả lời trên): dùng khóa chung theo khe của dự án mẫu (T-056 của mẫu, có trong app từ PR #279): cấu hình phát hành ghi `banner=<mã>` và `native_collap=<mã>`, một mã cho lớp đó của mọi thanh đáy. Không thêm khóa `<khóa vị trí>/<định dạng lớp>`. Plan T-084 dừng. Phần bản phát hành báo thiếu mã lớp đến cùng `release.sh` mới của mẫu ở T-075. Nhật, 2026-11-01.
 15. **Lúc phát hành dùng cách hiện nào?** Câu 8 và 10 đã chốt: khe native nhỏ, lớp thu gọn tắt.
     - Đề xuất của AI:
       - Giữ như câu 8 và 10 cho bản phát hành đầu: `is_show_native_bottom = true`, `is_show_native_collap = false`.
       - Có mã lớp rồi thì thử native thu gọn trên Firebase, khi tỷ lệ giữ chân ngày 1 không giảm quá 2 điểm, như câu 9.
       - Bản staging giữ như câu 11. Người thử bật lớp thu gọn trên Firebase staging.
     - Trả lời: native nhỏ, lớp thu gọn tắt, theo đề xuất. Nhật, 2026-10-31.
+16. **SDK AppLovin MAX từ dự án mẫu.** Đợt đồng bộ PR #279 mang về MAX (ADR-0037 của mẫu): banner và MREC tải từ MAX và AdMob theo `ads_mediation_order`, thêm thư viện `com.applovin.mediation:google-adapter`. Spec này chưa có MAX.
+    - Đề xuất của AI: nhận MAX vào app nhưng chưa bật. Không có khóa MAX thì MAX không khởi động và mọi vị trí tải từ AdMob như hôm nay. Bật MAX ở production là quyết định sau, qua ticket riêng (cần khóa MAX, mã MAX theo khe, `release.sh` mới ở T-075, khai báo An toàn dữ liệu trên Play).
+    - Trả lời: nhận, chưa bật, theo đề xuất. Nhật, 2026-11-01.
 
 ## 10. Lịch sử
 
@@ -207,3 +213,5 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-31 | AI | Ba yêu cầu của Nhật: luồng giới thiệu có `native_onboarding` (spec onboarding), tư thế premium có `rw_premium_pose` (spec poses), native thu gọn ở thanh đáy chọn bằng Remote Config (`requests/2026-10-31-thanh-day-native-thu-gon.md`). Mục 2, câu 12 tới 15. Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-10-31 | Nhật | Trả lời câu 12 tới 15 (AI ghi, cùng phiên). Mục 1, 5 sửa theo câu 12. Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-10-31 | Nhật | Sửa câu 13 theo rà soát plan T-084 (AI ghi): tổ hợp `is_show_native_bottom` tắt, `is_show_native_collap` bật ra banner, không có lớp thu gọn (luật D-01 của khung); còn 3 cách hiện. Lời của Nhật: chọn "Sửa spec: 3 cách hiện", phương án ghi rõ Nhật xác nhận spec lại ngay. Chuyển `changed` rồi lại `confirmed` |
+| 2026-11-01 | AI | Đồng bộ dự án mẫu PR #279: mục 6 ghi SDK AppLovin MAX (chưa bật); Nhật trả lời lại câu 14 (khóa khe chung `banner`, `native_collap` của mẫu, dừng T-084) và câu 16 mới (nhận MAX, chưa bật). Chuyển `changed`, chờ xác nhận |
+| 2026-11-01 | Nhật | Xác nhận phần đổi của PR #279 (mục 2, mục 6, câu 14, câu 16). Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |

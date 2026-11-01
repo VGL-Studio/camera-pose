@@ -30,6 +30,8 @@ object StagingRemoteValuesModule {
         AdPlacement.POSE_DETAIL_BOTTOM,
         AdPlacement.INTER_POSE_DETAIL,
         AdPlacement.REVIEW_INTERSTITIAL,
+        // The card of the pose library grid (spec ads, question 11; plan T-080).
+        AdPlacement.POSES_IN_COLLECTION,
     ).map { LocalRemoteValue.of(AdsSettings.placementEnabled(it), true) }.toSet()
 
     /**

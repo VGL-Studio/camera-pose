@@ -13,6 +13,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.Flow
 
@@ -176,7 +177,8 @@ internal fun NativeAdSlotHost(
 
 /**
  * What the slot draws for [state]; [ctaLarge] sizes the placeholder and the kept space of a medium ad with the large
- * call to action. [contentModifier] wraps the placeholder and the ad, never the empty state.
+ * call to action, [cardHeight] those of a card. [contentModifier] wraps the placeholder and the ad, never the empty
+ * state.
  */
 @Composable
 internal fun NativeAdSlotContent(
@@ -186,11 +188,13 @@ internal fun NativeAdSlotContent(
     modifier: Modifier,
     ctaLarge: Boolean = false,
     contentModifier: Modifier = Modifier,
+    cardHeight: Dp? = null,
     adContent: @Composable (LoadedNativeAd) -> Unit,
 ) {
     Box(modifier = modifier) {
         when (state) {
-            NativeAdState.Loading -> Box(contentModifier) { NativeAdPlaceholder(size, ctaLarge = ctaLarge) }
+            NativeAdState.Loading ->
+                Box(contentModifier) { NativeAdPlaceholder(size, ctaLarge = ctaLarge, cardHeight = cardHeight) }
             // A new NativeAdView for each ad: the binder registers a view once, so a swapped ad is bound only
             // in a fresh frame (refresh in place, plan T-040).
             is NativeAdState.Loaded -> Box(contentModifier) { key(state.ad) { adContent(state.ad) } }
@@ -199,6 +203,7 @@ internal fun NativeAdSlotContent(
                     // The step card's height follows the font scale, like the card and its placeholder (plan T-045).
                     val height = when (size) {
                         NativeAdSize.STEP -> NativeStepAdDefaults.height()
+                        NativeAdSize.CARD -> cardHeight ?: NativeAdDimens.heightOf(size, ctaLarge)
                         else -> NativeAdDimens.heightOf(size, ctaLarge)
                     }
                     Spacer(Modifier.fillMaxWidth().height(height))

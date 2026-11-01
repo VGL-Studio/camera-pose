@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.Flow
 
@@ -74,7 +75,8 @@ internal fun requireCellFormat(format: AdFormat): NativeAdSize = when (format) {
  * `pagerState.isPageVisible(page)`; a lazy list or grid disposes its rows, and other cells keep the default.
  * With [keepSpaceWhenEmpty], no ad keeps the cell's height: a static placeholder when [placeholderWhenEmpty] (a cell
  * of a collection), an empty space otherwise (a slot next to an app button). [contentModifier] wraps the placeholder
- * and the ad only, so a cell with no ad takes no space at all.
+ * and the ad only, so a cell with no ad takes no space at all. [cardHeight] is the height of a card's placeholder
+ * ([NativeAdPlaceholder]); [adContent] sizes the ad itself.
  */
 @Composable
 internal fun NativeAdCellHost(
@@ -89,6 +91,7 @@ internal fun NativeAdCellHost(
     contentModifier: Modifier = Modifier,
     onStateChange: (NativeAdState) -> Unit = {},
     onScreen: Boolean = true,
+    cardHeight: Dp? = null,
     adContent: @Composable (LoadedNativeAd) -> Unit,
 ) {
     if (!onScreen) {
@@ -107,6 +110,7 @@ internal fun NativeAdCellHost(
         placeholderWhenEmpty = placeholderWhenEmpty,
         contentModifier = contentModifier,
         onStateChange = onStateChange,
+        cardHeight = cardHeight,
         adContent = adContent,
     )
 }
@@ -124,6 +128,7 @@ private fun NativeAdCellOnScreen(
     placeholderWhenEmpty: Boolean,
     contentModifier: Modifier,
     onStateChange: (NativeAdState) -> Unit,
+    cardHeight: Dp?,
     adContent: @Composable (LoadedNativeAd) -> Unit,
 ) {
     val state by states.collectAsState(initial = NativeAdState.Loading)
@@ -139,7 +144,9 @@ private fun NativeAdCellOnScreen(
     }
     if (shown == NativeAdState.Unavailable && keepSpaceWhenEmpty && placeholderWhenEmpty) {
         Box(modifier = modifier) {
-            Box(modifier = contentModifier) { NativeAdPlaceholder(size, animated = false, ctaLarge = ctaLarge) }
+            Box(modifier = contentModifier) {
+                NativeAdPlaceholder(size, animated = false, ctaLarge = ctaLarge, cardHeight = cardHeight)
+            }
         }
         return
     }
@@ -150,6 +157,7 @@ private fun NativeAdCellOnScreen(
         modifier = modifier,
         ctaLarge = ctaLarge,
         contentModifier = contentModifier,
+        cardHeight = cardHeight,
         adContent = adContent,
     )
 }

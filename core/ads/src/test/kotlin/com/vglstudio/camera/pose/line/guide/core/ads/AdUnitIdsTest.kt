@@ -12,7 +12,8 @@ class AdUnitIdsTest {
             " sample_native_small = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
                 "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;banner=unit/8;native_collap=unit/9;" +
                 // The placements of this app (plan T-074, ADR-0029).
-                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13",
+                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
+                "inter_pose_detail=unit/13;poses_in_collection=unit/14",
         )
         assertEquals("unit/1", ids.of(AdPlacement.SAMPLE_NATIVE_SMALL))
         assertTrue(ids.missing.isEmpty())
@@ -20,13 +21,15 @@ class AdUnitIdsTest {
         val withoutSlots = ConfiguredAdUnitIds(
             " sample_native_small = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
                 "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;" +
-                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13",
+                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
+                "inter_pose_detail=unit/13;poses_in_collection=unit/14",
         )
         assertEquals(listOf("banner", "native_collap"), withoutSlots.missing)
         // Control: app-wide placements still need a unit on production (plan T-024, section 3.3).
         val withoutAppWide = ConfiguredAdUnitIds(
             " sample_native_small = unit/1 ; other_key=unit/2;" +
-                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13",
+                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
+                "inter_pose_detail=unit/13;poses_in_collection=unit/14",
         )
         assertEquals(
             listOf("open_app", "open_app_inter", "native_combo", "resume", "resume_inter", "banner", "native_collap"),
@@ -224,6 +227,7 @@ class AdUnitIdsTest {
         val placementUnits = "sample_native_small=unit/1;open_app=unit/3;open_app_inter=unit/4;" +
             // The placements of this app (ADR-0029).
             "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13;" +
+            "poses_in_collection=unit/14;" +
             "native_combo=unit/5;resume=unit/6;resume_inter=unit/7"
         val warning = missingUnitsWarning(ConfiguredAdUnitIds(placementUnits))
         assertTrue("warning: $warning", warning != null && "banner, native_collap" in warning)

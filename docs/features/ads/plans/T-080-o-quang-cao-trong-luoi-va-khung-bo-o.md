@@ -1,16 +1,16 @@
 ---
 ticket: T-080
 title: Ô quảng cáo trong lưới thư viện (`poses_in_collection`, tắt lúc phát hành); khung bỏ ô khi pool cạn
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 4                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -586,6 +586,7 @@ Ghi chú của rà soát: kịch bản emulator không lệch chỉ số (`idp=`
 **Câu hỏi mới của phiên bản 4 (sau đồng bộ #279).** Câu 1 tới 3 và các điểm rà soát ở trên đã trả lời, giữ nguyên.
 
 12. **Ô bị bỏ khi quảng cáo toàn màn hình che lưới.** Từ #279, pool coi là cạn cả khi quảng cáo toàn màn hình đang che app (cửa sổ trong màn hình đóng, KB-27 của mẫu), không chỉ khi app ra nền (mục 3.1, mục 3.5). Lúc quảng cáo khi quay lại app hay quảng cáo mở app che thư viện, ô đang ở khung chờ mà pool không còn quảng cáo rảnh sẽ bị bỏ khỏi lưới, rồi quay lại tối đa 2 giây sau khi quảng cáo đóng; các thẻ sau ô dịch một ô hai lần, người dùng chỉ thấy lần thứ hai. Ô đang hiện quảng cáo không bị bỏ. Đề xuất của AI: chấp nhận, cùng loại với câu 2 và với lúc app ra nền; không thêm test riêng. Cách khác: `poolExhausted` chỉ tính khi cửa sổ trong màn hình mở (thêm một điều kiện ở `AdsController.poolExhausted`, cộng một test), để ô giữ khung chờ trong lúc bị che.
+   - Trả lời: chấp nhận, theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01.
 
 **Rà soát độc lập của phiên bản 4 (2026-11-01, agent ngữ cảnh mới, chỉ đọc): 1 chặn, 2 nên sửa, 6 ghi chú.** Đã sửa cả ba điểm và các ghi chú cần áp, plan vẫn phiên bản 4, `draft`:
 
@@ -628,9 +629,9 @@ Phiên bản 3:
 
 Phiên bản 4:
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu 12 ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Phiên bản 4 soạn lại sau đồng bộ #279, không đổi code, test hay tiêu chí. Câu 12 ở mục 8 theo đề xuất; rà soát độc lập phiên bản 4: 1 chặn, 2 nên sửa, đã sửa (đo thật ở w411: cột [545, 544] px).
 
 ## 10. Nhật ký thực hiện
 

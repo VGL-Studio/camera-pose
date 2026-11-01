@@ -21,11 +21,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -44,6 +47,11 @@ class PoseDetailViewModel @Inject constructor(
 ) : ViewModel() {
     private val state = MutableStateFlow<PoseDetailUiState>(PoseDetailUiState.Loading)
     val uiState: StateFlow<PoseDetailUiState> = state.asStateFlow()
+
+    private val openCameraChannel = Channel<String>(Channel.BUFFERED)
+
+    /** Each element opens the camera with that pose, once an unlock is done (spec poses, KB-8). */
+    val openCamera: Flow<String> = openCameraChannel.receiveAsFlow()
 
     private val poseId: String = savedStateHandle.get<String>(KEY_POSE_ID).orEmpty()
 
@@ -113,6 +121,15 @@ class PoseDetailViewModel @Inject constructor(
         if (!saveFailed) return
         saveFailed = false
         publish()
+    }
+
+    /** The rewarded action of the unlock button ran (KB-8): unlocks, logs, then opens the camera with the pose. */
+    fun onUnlockGranted() {
+        // Empty frame of step 3 (plan T-086, section 4).
+    }
+
+    fun onUnlockFailedShown() {
+        // Empty frame of step 3 (plan T-086, section 4).
     }
 
     fun onRetryImage() {

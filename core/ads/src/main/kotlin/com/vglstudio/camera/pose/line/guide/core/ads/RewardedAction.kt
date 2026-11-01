@@ -290,9 +290,9 @@ private val DialogMaxWidth = 312.dp
 private val WatchButtonHeight = 56.dp
 private val WatchButtonShape = RoundedCornerShape(28.dp)
 
-/** The card of [RewardedAdDialog], without state. */
+/** The card of [RewardedAdDialog], without state. Public for previews and screenshot tests; screens use [RewardedAdDialog]. */
 @Composable
-internal fun RewardedAdDialogCard(
+fun RewardedAdDialogCard(
     title: String,
     onWatch: () -> Unit,
     onNoThanks: () -> Unit,

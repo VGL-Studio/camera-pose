@@ -11,6 +11,7 @@ import com.vglstudio.camera.pose.line.guide.core.poses.PoseFileResult
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLoadFailure
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LibraryState
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFile
+import com.vglstudio.camera.pose.line.guide.core.poses.model.PremiumAccess
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SavedPose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.UsedPose
 import com.vglstudio.camera.pose.line.guide.feature.camera.FakeAnalytics
@@ -20,6 +21,7 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.pose.FakePoseCatalogR
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -50,11 +52,13 @@ class PoseViewModelTest {
     private val network = FakeNetworkStatus()
     private val analytics = FakeAnalytics()
     private val logger = RecordingAppLogger()
+    private val premium = FakePremiumPoseRepository()
 
     private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) = PoseViewModel(
         libraryRepository = library,
         catalogRepository = catalog,
         historyRepository = history,
+        premiumRepository = premium,
         overlaySettingsRepository = overlay,
         decoder = decoder,
         activePose = activePose,
@@ -437,6 +441,172 @@ class PoseViewModelTest {
 
         viewModel.onNextPose()
         assertEquals("w01", viewModel.selected().id)
+    }
+
+    // Spec poses, KB-8; camera KB-1, criteria 8 and 9: premium poses (plan T-086). m02 is premium unless said.
+
+    private fun premiumViewModel(
+        access: PremiumAccess = PremiumAccess(enabled = true, unlockedIds = emptySet()),
+        premiumIds: Set<String> = setOf("m02"),
+        recent: List<UsedPose> = emptyList(),
+        savedState: SavedStateHandle = SavedStateHandle(),
+    ): PoseViewModel {
+        premium.access.value = access
+        val catalog = PoseFixtures.premiumCatalog(*premiumIds.toTypedArray())
+        library.ready(PoseFixtures.library(recent = recent, catalog = catalog))
+        return viewModel(savedState)
+    }
+
+    private fun unlockedEvent(id: String = "m02", category: String = "men") = AnalyticsEvent(
+        "premium_pose_unlocked",
+        mapOf("pose_id" to id, "category" to category, "source" to "camera"),
+    )
+
+    private fun PoseViewModel.locked() = ready().strip.filter { it.locked }.map { it.id }
+
+    @Test
+    fun lockedPose_cellIsLocked_andUpdatesWhenUnlockedElsewhere() {
+        val viewModel = premiumViewModel()
+        val order = viewModel.strip()
+        assertEquals(listOf("m02"), viewModel.locked())
+        // Unlocked in the detail: the cell follows the access of :core:poses, the strip keeps its order.
+        premium.access.value = PremiumAccess(enabled = true, unlockedIds = setOf("m02"))
+        assertTrue(viewModel.locked().isEmpty())
+        assertEquals(order, viewModel.strip())
+    }
+
+    @Test
+    fun lockedPoseTap_keepsSelection_noEvent_setsPrompt() {
+        val viewModel = premiumViewModel()
+        assertEquals("w01", viewModel.selected().id)
+        viewModel.onLockedPoseSelect("m02")
+        assertEquals("w01", viewModel.selected().id)
+        assertTrue(analytics.events.isEmpty())
+        assertTrue(history.used.isEmpty())
+        assertEquals(UnlockPrompt("m02", "Pose m02"), viewModel.ready().unlockPrompt)
+        // A plain tap on the locked cell does not select it either.
+        viewModel.onPoseSelect("m02")
+        assertEquals("w01", viewModel.selected().id)
+        assertTrue(analytics.events.isEmpty())
+        // Control: a pose that is not locked is selected by the same tap.
+        viewModel.onPoseSelect("m01")
+        assertEquals("m01", viewModel.selected().id)
+    }
+
+    @Test
+    fun unlockGranted_unlocks_logsCameraEvent_thenSelects() {
+        val viewModel = premiumViewModel()
+        viewModel.onLockedPoseSelect("m02")
+        viewModel.onUnlockGranted()
+        assertEquals(listOf("m02"), premium.unlocks)
+        assertEquals(listOf(unlockedEvent(), selectedEvent("m02", "men", "strip")), analytics.events)
+        assertEquals("m02", viewModel.selected().id)
+        assertEquals(listOf("m02"), history.used)
+        assertNull(viewModel.ready().unlockPrompt)
+        assertTrue(viewModel.locked().isEmpty())
+    }
+
+    @Test
+    fun unlockReturnsFalse_noEvent_stillSelects() {
+        premium.unlockResult = false
+        val viewModel = premiumViewModel()
+        viewModel.onLockedPoseSelect("m02")
+        viewModel.onUnlockGranted()
+        assertEquals(listOf("m02"), premium.unlocks)
+        assertEquals(listOf(selectedEvent("m02", "men", "strip")), analytics.events)
+        assertEquals("m02", viewModel.selected().id)
+        assertNull(viewModel.ready().unlockPrompt)
+        assertTrue(logger.entries.any { it.level == LogLevel.INFO && it.message == "Unlock skipped: premium off" })
+    }
+
+    @Test
+    fun unlockWriteFails_keepsPose_noEvent() {
+        premium.failUnlock = true
+        val viewModel = premiumViewModel()
+        viewModel.onLockedPoseSelect("m02")
+        viewModel.onUnlockGranted()
+        assertEquals(listOf("m02"), premium.unlocks)
+        assertEquals("w01", viewModel.selected().id)
+        assertTrue(analytics.events.isEmpty())
+        assertEquals(1, logger.entries.count { it.level == LogLevel.WARN })
+        assertEquals(listOf("m02"), viewModel.locked())
+        assertNull(viewModel.ready().unlockPrompt)
+    }
+
+    @Test
+    fun notLocked_grant_selectsWithoutWriteOrEvent() {
+        val viewModel = premiumViewModel(access = PremiumAccess(enabled = false, unlockedIds = emptySet()))
+        assertTrue(viewModel.locked().isEmpty())
+        viewModel.onLockedPoseSelect("m02")
+        viewModel.onUnlockGranted()
+        assertEquals("m02", viewModel.selected().id)
+        assertTrue(premium.unlocks.isEmpty())
+        assertTrue(analytics.events.none { it.name == "premium_pose_unlocked" })
+    }
+
+    @Test
+    fun pendingUnlock_survivesRecreation() {
+        val savedState = SavedStateHandle()
+        premiumViewModel(savedState = savedState).onLockedPoseSelect("m02")
+        // The same screen after a rotation: a new view model over the same saved state.
+        val restored = viewModel(savedState)
+        restored.onUnlockGranted()
+        assertEquals(listOf("m02"), premium.unlocks)
+        assertEquals("m02", restored.selected().id)
+    }
+
+    @Test
+    fun lastUsedLocked_fallsBackToDefault() {
+        val viewModel = premiumViewModel(recent = listOf(UsedPose("m02", 5)))
+        assertEquals("w01", viewModel.selected().id)
+        assertTrue(analytics.events.isEmpty())
+        // Control: unlocked, the last used pose opens again.
+        val unlocked = premiumViewModel(
+            access = PremiumAccess(enabled = true, unlockedIds = setOf("m02")),
+            recent = listOf(UsedPose("m02", 5)),
+        )
+        assertEquals("m02", unlocked.selected().id)
+    }
+
+    @Test
+    fun requestedLocked_isIgnored_andLogsWarning() {
+        val viewModel = premiumViewModel(savedState = SavedStateHandle(mapOf("poseId" to "m02")))
+        assertEquals("w01", viewModel.selected().id)
+        val warnings = logger.entries.filter { it.level == LogLevel.WARN }
+        assertEquals(listOf("Requested pose is locked"), warnings.map { it.message })
+    }
+
+    @Test
+    fun nextPose_skipsLockedPoses() {
+        val viewModel = premiumViewModel(premiumIds = setOf("m01"))
+        assertEquals(listOf("w01", "m01", "w02", "m02", "w03"), viewModel.strip())
+        viewModel.onNextPose()
+        assertEquals("w02", viewModel.selected().id)
+        // Every other pose locked: "Tư thế tiếp" keeps the pose.
+        val alone = premiumViewModel(premiumIds = setOf("m01", "w02", "m02", "w03"))
+        analytics.events.clear()
+        alone.onNextPose()
+        assertEquals("w01", alone.selected().id)
+        assertTrue(analytics.events.isEmpty())
+    }
+
+    @Test
+    fun unlockGranted_twiceWhileWriting_writesOnce() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        premium.unlockGate = gate
+        val viewModel = premiumViewModel()
+        viewModel.onLockedPoseSelect("m02")
+        viewModel.onUnlockGranted()
+        viewModel.onUnlockGranted()
+        assertTrue(analytics.events.isEmpty())
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf("m02"), premium.unlocks)
+        assertEquals(listOf(unlockedEvent()), analytics.events.filter { it.name == "premium_pose_unlocked" })
+        assertEquals(
+            listOf(selectedEvent("m02", "men", "strip")),
+            analytics.events.filter { it.name == "pose_selected" },
+        )
     }
 
     // KB-3: outline adjustment (plan T-015)

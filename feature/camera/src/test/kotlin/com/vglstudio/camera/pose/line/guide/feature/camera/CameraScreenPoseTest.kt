@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -15,7 +16,9 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -28,6 +31,7 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PREMIUM_BADGE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.CameraUiState.Ready
 import com.vglstudio.camera.pose.line.guide.feature.camera.model.FlashMode
@@ -65,6 +69,7 @@ class CameraScreenPoseTest {
     private val actions = PoseActions(
         onCategorySelect = { calls += "category $it" },
         onPoseSelect = { calls += "pose $it" },
+        onLockedPoseSelect = { calls += "locked $it" },
         onThumbShown = { calls += "shown $it" },
         onPreviousStep = { calls += "previous" },
         onNextStep = { calls += "next" },
@@ -142,6 +147,35 @@ class CameraScreenPoseTest {
             .assert(hasContentDescription("Pose w01, chưa tải được ảnh, chạm để thử lại"))
             .performClick()
         assertTrue(calls.contains("pose w01"))
+    }
+
+    // Spec poses, KB-8; camera KB-1, criterion 8 (plan T-086)
+
+    @Test
+    fun lockedCell_showsBadge_tapCallsLockedSelect() {
+        setScreen(
+            pose = poseReady(
+                strip = STRIP_IDS.map {
+                    if (it ==
+                        "m02"
+                    ) {
+                        item(it).copy(locked = true)
+                    } else {
+                        item(it)
+                    }
+                },
+            ),
+        )
+        composeRule.onAllNodesWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true).assertCountEquals(1)
+        composeRule.onNode(
+            hasTestTag(PREMIUM_BADGE_TAG) and hasAnyAncestor(hasTestTag(CameraTestTags.pose("m02"))),
+            useUnmergedTree = true,
+        ).assertExists()
+        composeRule.onNodeWithTag(CameraTestTags.pose("m02"))
+            .assert(hasContentDescription("Pose m02, premium, chạm để mở khóa"))
+            .performClick()
+        assertTrue(calls.contains("locked m02"))
+        assertTrue(calls.none { it == "pose m02" })
     }
 
     @Test

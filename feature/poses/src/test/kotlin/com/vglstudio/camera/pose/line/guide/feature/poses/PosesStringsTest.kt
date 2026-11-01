@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.text.Normalizer
 import java.util.Locale
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -50,6 +51,12 @@ class PosesStringsTest {
         }
     }
 
+    @Test
+    fun vietnamese_unlockButton_matchesDesignTable() {
+        // Text table of the poses design, section 2 (plan T-086).
+        assertEquals("Xem quảng cáo để dùng", context("vi").getString(R.string.poses_detail_unlock))
+    }
+
     /** Vietnamese letters, double marks included (ậ, ở, ừ…): any combining mark of Vietnamese after NFD, or đ. */
     private fun isVietnamese(text: String) =
         VIETNAMESE_MARK.containsMatchIn(Normalizer.normalize(text, Normalizer.Form.NFD))
@@ -87,6 +94,9 @@ class PosesStringsTest {
             R.string.poses_detail_shoot,
             R.string.poses_image_error_title,
             R.string.poses_image_error_message,
+            // Premium poses (plan T-086).
+            R.string.poses_detail_unlock,
+            R.string.poses_unlock_failed,
         )
 
         val VIETNAMESE_MARK = Regex("[\\u0300-\\u0323đĐ]")

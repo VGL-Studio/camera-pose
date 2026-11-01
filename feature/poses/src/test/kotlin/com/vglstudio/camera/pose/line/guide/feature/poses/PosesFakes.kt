@@ -10,6 +10,7 @@ import com.vglstudio.camera.pose.line.guide.core.network.NetworkStatus
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseContent
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLoadFailure
+import com.vglstudio.camera.pose.line.guide.core.poses.PremiumPoseRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedText
@@ -17,6 +18,7 @@ import com.vglstudio.camera.pose.line.guide.core.poses.model.Pose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseCategory
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseGender
+import com.vglstudio.camera.pose.line.guide.core.poses.model.PremiumAccess
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.LibraryContent
 import com.vglstudio.camera.pose.line.guide.feature.poses.data.LibraryResult
@@ -31,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 
 /** A pose built with the public constructor of :core:poses; names in Vietnamese and English. */
@@ -81,13 +84,14 @@ internal object PosesFixtures {
 /**
  * [LibraryContent] over [poses] (default the fixture catalog) in 3 categories, with [savedIds] saved: saved poses
  * first (in the order of [savedIds]), then the others in catalog order, for All and for each category, as :core:poses
- * orders them. Saved holds the saved poses in the order of [savedIds].
+ * orders them. Saved holds the saved poses in the order of [savedIds]. [lockedIds] are premium poses not unlocked yet.
  */
 internal fun testContent(
     savedIds: List<String> = listOf("w02"),
     poses: List<Pose> = PosesFixtures.POSES,
     categories: List<PoseCategory> = listOf(PosesFixtures.WOMEN, PosesFixtures.MEN, PosesFixtures.COUPLES),
     totalPoses: Int = poses.size,
+    lockedIds: Set<String> = emptySet(),
 ): LibraryContent {
     val byId = poses.associateBy { it.id }
     val saved = savedIds.mapNotNull { byId[it] }
@@ -104,6 +108,7 @@ internal fun testContent(
         categories = categories,
         totalPoses = totalPoses,
         savedIds = saved.map { it.id }.toSet(),
+        lockedIds = lockedIds,
         lists = lists,
     )
 }
@@ -156,6 +161,52 @@ internal class FakePosesLibrarySource : PosesLibrarySource {
     fun publishPending() {
         ready(checkNotNull(pending))
         pending = null
+    }
+
+    /** Every unlock asked, in order (spec poses, KB-8; plan T-086). */
+    val unlocks = mutableListOf<String>()
+    var unlockResult = true
+    var failUnlock = false
+    var unlockGate: CompletableDeferred<Unit>? = null
+
+    /**
+     * Records the call, waits for [unlockGate] when set, fails when [failUnlock], then returns [unlockResult]; when
+     * true, publishes the content without the pose in its locked ids, as :core:poses would.
+     */
+    override suspend fun unlock(poseId: String): Boolean {
+        unlocks += poseId
+        unlockGate?.await()
+        if (failUnlock) throw IOException("disk full")
+        if (!unlockResult) return false
+        val content = (state.value as? LibraryResult.Ready)?.content ?: return true
+        ready(content.copy(lockedIds = content.lockedIds - poseId))
+        return true
+    }
+}
+
+/**
+ * The premium poses of :core:poses (T-085): [access] off by default, as the real flag. An unlock records the call,
+ * waits for [unlockGate] when set, fails when [failUnlock], then, when [unlockResult], adds the pose to the unlocked
+ * list and returns true.
+ */
+internal class FakePremiumPoseRepository(
+    initial: PremiumAccess = PremiumAccess(enabled = false, unlockedIds = emptySet()),
+) : PremiumPoseRepository {
+    override val access = MutableStateFlow(initial)
+    val unlocks = mutableListOf<String>()
+    var unlockResult = true
+    var failUnlock = false
+    var unlockGate: CompletableDeferred<Unit>? = null
+
+    override fun isUsable(pose: Pose): Flow<Boolean> = access.map { it.isUsable(pose) }
+
+    override suspend fun unlock(poseId: String): Boolean {
+        unlocks += poseId
+        unlockGate?.await()
+        if (failUnlock) throw IOException("disk full")
+        if (!unlockResult) return false
+        access.value = access.value.copy(unlockedIds = access.value.unlockedIds + poseId)
+        return true
     }
 }
 

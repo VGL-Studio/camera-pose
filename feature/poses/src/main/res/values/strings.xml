@@ -36,4 +36,8 @@
     <string name="poses_detail_shoot">Shoot with this pose</string>
     <string name="poses_image_error_title">Couldn\'t load the image</string>
     <string name="poses_image_error_message">Something went wrong while loading the image. Try again in a few minutes.</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="poses_detail_unlock">Watch an ad to use</string>
+    <string name="poses_unlock_failed">Couldn\'t unlock the pose. Try again.</string>
 </resources>

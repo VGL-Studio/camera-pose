@@ -34,6 +34,7 @@ object PoseDetailTestTags {
     const val SCREEN = "pose_detail_screen"
     const val IMAGE = "pose_detail_image"
     const val BOTTOM_BAR = "pose_detail_bottom_bar"
+    const val UNLOCK = "pose_detail_unlock"
 }
 
 @Composable
@@ -74,6 +75,8 @@ fun PoseDetailScreen(
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    onUnlock: () -> Unit = {},
+    onUnlockFailedShown: () -> Unit = {},
 ) {
     val bottomReserve = contentPadding.calculateBottomPadding()
     val snackbarHostState = remember { SnackbarHostState() }

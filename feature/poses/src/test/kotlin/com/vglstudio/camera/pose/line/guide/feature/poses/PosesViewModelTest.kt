@@ -96,6 +96,18 @@ class PosesViewModelTest {
         assertEquals(PosesUiState.Loading, viewModel().uiState.value)
     }
 
+    // KB-8: premium poses (plan T-086)
+
+    @Test
+    fun lockedPose_cardIsLocked_othersNot() {
+        val viewModel = readyViewModel(testContent(lockedIds = setOf("w03")))
+        assertTrue(viewModel.card("w03").locked)
+        assertEquals(listOf("w03"), viewModel.ready().cards.filter { it.locked }.map { it.id })
+        // Control: once unlocked, the library has no locked id and the card follows.
+        library.ready(testContent(lockedIds = emptySet()))
+        assertFalse(viewModel.card("w03").locked)
+    }
+
     // KB-1
 
     @Test

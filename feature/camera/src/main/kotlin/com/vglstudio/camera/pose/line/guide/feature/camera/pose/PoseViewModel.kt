@@ -12,6 +12,7 @@ import com.vglstudio.camera.pose.line.guide.core.poses.PoseCatalogRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseFileResult
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseHistoryRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLibraryRepository
+import com.vglstudio.camera.pose.line.guide.core.poses.PremiumPoseRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LibraryState
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Pose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFile
@@ -42,6 +43,7 @@ class PoseViewModel @Inject constructor(
     private val libraryRepository: PoseLibraryRepository,
     private val catalogRepository: PoseCatalogRepository,
     private val historyRepository: PoseHistoryRepository,
+    private val premiumRepository: PremiumPoseRepository,
     private val overlaySettingsRepository: PoseOverlaySettingsRepository,
     private val decoder: PoseImageDecoder,
     private val activePose: ActivePoseHolder,
@@ -106,6 +108,16 @@ class PoseViewModel @Inject constructor(
         if (thumbnails[id] == PoseImage.Failed) loadThumbnail(pose)
         if (selected?.id == id) return
         select(pose, Source.STRIP)
+    }
+
+    /** A tap on the cell of a locked pose (spec poses, KB-8): holds it for the unlock, keeps the selected pose. */
+    fun onLockedPoseSelect(id: String) {
+        // Empty frame of step 3 (plan T-086, section 4).
+    }
+
+    /** The rewarded action of a locked cell ran (KB-8): unlocks, logs, then selects the pose as a tap on a cell. */
+    fun onUnlockGranted() {
+        // Empty frame of step 3 (plan T-086, section 4).
     }
 
     /** A cell was put on screen: loads its thumbnail once. A failed one loads again only on a tap or network back. */

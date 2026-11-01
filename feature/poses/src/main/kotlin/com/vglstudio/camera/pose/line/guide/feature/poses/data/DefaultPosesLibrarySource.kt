@@ -2,6 +2,7 @@ package com.vglstudio.camera.pose.line.guide.feature.poses.data
 
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseHistoryRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLibraryRepository
+import com.vglstudio.camera.pose.line.guide.core.poses.PremiumPoseRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LibraryState
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseLibrary
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.map
 internal class DefaultPosesLibrarySource @Inject constructor(
     private val libraryRepository: PoseLibraryRepository,
     private val historyRepository: PoseHistoryRepository,
+    private val premiumRepository: PremiumPoseRepository,
 ) : PosesLibrarySource {
     override val library: Flow<LibraryResult> = libraryRepository.library.map { state ->
         when (state) {
@@ -28,6 +30,9 @@ internal class DefaultPosesLibrarySource @Inject constructor(
     override suspend fun retry() = libraryRepository.retry()
 
     override suspend fun setSaved(poseId: String, saved: Boolean) = historyRepository.setSaved(poseId, saved)
+
+    // Empty frame of step 3 (plan T-086, section 4).
+    override suspend fun unlock(poseId: String): Boolean = false
 
     private fun PoseLibrary.toContent(): LibraryContent {
         val filters = listOf(PoseFilter.All, PoseFilter.Saved) + categories.map { PoseFilter.Category(it.id) }

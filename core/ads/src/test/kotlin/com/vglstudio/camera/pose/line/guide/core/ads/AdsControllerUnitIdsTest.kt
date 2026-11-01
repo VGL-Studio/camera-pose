@@ -68,6 +68,6 @@ class AdsControllerUnitIdsTest {
             // The placements of this app (ADR-0029).
             "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13;" +
             "poses_in_collection=unit/14;" +
-            "native_combo=unit/5;resume=unit/6;resume_inter=unit/7"
+            "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;rw_premium_pose=unit/14"
     }
 }

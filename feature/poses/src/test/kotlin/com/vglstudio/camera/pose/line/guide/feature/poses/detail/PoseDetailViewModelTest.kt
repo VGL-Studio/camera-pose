@@ -22,6 +22,10 @@ import java.io.IOException
 import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -402,6 +406,144 @@ class PoseDetailViewModelTest {
         assertEquals(1, images.loads["w01"])
     }
 
+    // KB-8: premium poses (plan T-086)
+
+    private fun unlockedEvent(id: String = "w01", category: String = "women") = AnalyticsEvent(
+        "premium_pose_unlocked",
+        mapOf("pose_id" to id, "category" to category, "source" to "detail"),
+    )
+
+    private fun selectedEvent(id: String = "w01", category: String = "women") =
+        AnalyticsEvent("pose_selected", mapOf("pose_id" to id, "category" to category, "source" to "detail"))
+
+    /** Every pose id that [viewModel] sends to open the camera, collected for the whole test. */
+    private fun TestScope.openedCamera(viewModel: PoseDetailViewModel): List<String> {
+        val opened = mutableListOf<String>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.openCamera.toList(opened) }
+        return opened
+    }
+
+    @Test
+    fun lockedPose_isLocked_andSaveStillWorks() = runTest {
+        val viewModel = readyViewModel(content = detailContent(lockedIds = setOf("w01")))
+        assertTrue(viewModel.ready().locked)
+        viewModel.onToggleSave()
+        advanceUntilIdle()
+        assertEquals(listOf("w01" to true), library.writes)
+        assertEquals(listOf(savedEvent("w01", true)), eventsNamed("pose_saved"))
+        // Control: a pose that is not locked is not shown as locked.
+        assertFalse(readyViewModel(poseId = "w02", content = detailContent(lockedIds = setOf("w01"))).ready().locked)
+    }
+
+    @Test
+    fun unlockGranted_unlocks_logsEvent_thenOpensCamera() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        library.unlockGate = gate
+        val viewModel = readyViewModel(content = detailContent(lockedIds = setOf("w01")))
+        val opened = openedCamera(viewModel)
+        viewModel.onUnlockGranted()
+        assertEquals(listOf("w01"), library.unlocks)
+        // The unlock is logged once the write is done, and the camera opens after it.
+        assertTrue(eventsNamed("premium_pose_unlocked").isEmpty())
+        assertTrue(opened.isEmpty())
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf(openedEvent(), unlockedEvent(), selectedEvent()), analytics.events)
+        assertEquals(listOf("w01"), opened)
+    }
+
+    @Test
+    fun unlockReturnsFalse_noEvent_stillOpensCamera() = runTest {
+        library.unlockResult = false
+        val viewModel = readyViewModel(content = detailContent(lockedIds = setOf("w01")))
+        val opened = openedCamera(viewModel)
+        viewModel.onUnlockGranted()
+        advanceUntilIdle()
+        assertEquals(listOf("w01"), library.unlocks)
+        assertTrue(eventsNamed("premium_pose_unlocked").isEmpty())
+        assertEquals(listOf(selectedEvent()), eventsNamed("pose_selected"))
+        assertEquals(listOf("w01"), opened)
+        assertTrue(logger.entries.any { it.level == LogLevel.INFO && it.message == "Unlock skipped: premium off" })
+        assertTrue(logger.entries.none { it.level == LogLevel.WARN })
+    }
+
+    @Test
+    fun unlockGranted_twiceWhileWriting_writesOnce() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        library.unlockGate = gate
+        val viewModel = readyViewModel(content = detailContent(lockedIds = setOf("w01")))
+        val opened = openedCamera(viewModel)
+        viewModel.onUnlockGranted()
+        viewModel.onUnlockGranted()
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf("w01"), library.unlocks)
+        assertEquals(listOf(unlockedEvent()), eventsNamed("premium_pose_unlocked"))
+        assertEquals(listOf("w01"), opened)
+    }
+
+    @Test
+    fun afterUnlock_libraryUpdate_clearsLocked() = runTest {
+        val viewModel = readyViewModel(content = detailContent(lockedIds = setOf("w01")))
+        assertTrue(viewModel.ready().locked)
+        viewModel.onUnlockGranted()
+        advanceUntilIdle()
+        // The fake publishes the library without w01 in its locked ids, as :core:poses does.
+        assertFalse(viewModel.ready().locked)
+    }
+
+    @Test
+    fun noGrant_nothingWritten_noNavigation() = runTest {
+        val viewModel = readyViewModel(content = detailContent(lockedIds = setOf("w01")))
+        val opened = openedCamera(viewModel)
+        advanceUntilIdle()
+        assertTrue(library.unlocks.isEmpty())
+        assertTrue(eventsNamed("premium_pose_unlocked").isEmpty())
+        assertTrue(opened.isEmpty())
+        assertTrue(viewModel.ready().locked)
+        // Control (L-055): the grant itself writes and opens the camera, so the checks above can fail.
+        viewModel.onUnlockGranted()
+        advanceUntilIdle()
+        assertEquals(listOf("w01"), library.unlocks)
+        assertEquals(listOf("w01"), opened)
+    }
+
+    @Test
+    fun notLocked_grant_opensCamera_withoutWriteOrEvent() = runTest {
+        val viewModel = readyViewModel(content = detailContent(lockedIds = emptySet()))
+        val opened = openedCamera(viewModel)
+        viewModel.onUnlockGranted()
+        advanceUntilIdle()
+        assertEquals(listOf("w01"), opened)
+        assertTrue(library.unlocks.isEmpty())
+        assertTrue(eventsNamed("premium_pose_unlocked").isEmpty())
+        assertEquals(listOf(selectedEvent()), eventsNamed("pose_selected"))
+    }
+
+    @Test
+    fun unlockWriteFails_staysLocked_showsMessage_noEvent() = runTest {
+        library.failUnlock = true
+        val viewModel = readyViewModel(content = detailContent(lockedIds = setOf("w01")))
+        val opened = openedCamera(viewModel)
+        viewModel.onUnlockGranted()
+        advanceUntilIdle()
+        assertTrue(viewModel.ready().unlockFailed)
+        assertTrue(viewModel.ready().locked)
+        assertTrue(eventsNamed("premium_pose_unlocked").isEmpty())
+        assertTrue(eventsNamed("pose_selected").isEmpty())
+        assertTrue(opened.isEmpty())
+        assertEquals(1, logger.entries.count { it.level == LogLevel.WARN })
+        viewModel.onUnlockFailedShown()
+        assertFalse(viewModel.ready().unlockFailed)
+        // The user tries again once the write works.
+        library.failUnlock = false
+        viewModel.onUnlockGranted()
+        advanceUntilIdle()
+        assertEquals(listOf("w01", "w01"), library.unlocks)
+        assertEquals(listOf(unlockedEvent()), eventsNamed("premium_pose_unlocked"))
+        assertEquals(listOf("w01"), opened)
+    }
+
     // ADR-0019
 
     @Test
@@ -462,8 +604,8 @@ class PoseDetailViewModelTest {
             testPose("w06", "women", SubjectType.SINGLE, 4, name = "Tay chống hông", englishName = "Hand on hip"),
         )
 
-        /** [savedIds] w02 by default; the first of the list is the one :core:poses puts first. */
-        fun detailContent(savedIds: List<String> = listOf("w02")): LibraryContent =
-            testContent(savedIds = savedIds, poses = DETAIL_POSES)
+        /** [savedIds] w02 by default; the first of the list is the one :core:poses puts first. [lockedIds] none. */
+        fun detailContent(savedIds: List<String> = listOf("w02"), lockedIds: Set<String> = emptySet()): LibraryContent =
+            testContent(savedIds = savedIds, poses = DETAIL_POSES, lockedIds = lockedIds)
     }
 }

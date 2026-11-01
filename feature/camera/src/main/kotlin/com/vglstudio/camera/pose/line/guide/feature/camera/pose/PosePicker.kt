@@ -39,6 +39,8 @@ private val STRIP_HEIGHT = 80.dp
 class PoseActions(
     val onCategorySelect: (String?) -> Unit = {},
     val onPoseSelect: (String) -> Unit = {},
+    /** A tap on the cell of a locked premium pose: the unlock dialog (spec poses, KB-8). */
+    val onLockedPoseSelect: (String) -> Unit = {},
     val onThumbShown: (String) -> Unit = {},
     val onPreviousStep: () -> Unit = {},
     val onNextStep: () -> Unit = {},

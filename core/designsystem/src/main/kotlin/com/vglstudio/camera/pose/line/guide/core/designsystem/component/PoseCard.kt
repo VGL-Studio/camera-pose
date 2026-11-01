@@ -86,6 +86,7 @@ fun PoseCard(
     onSaveClick: () -> Unit,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    premium: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     CardFrame(borderColor = colors.outline, modifier = modifier, onClick = onClick) {

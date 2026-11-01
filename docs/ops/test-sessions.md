@@ -120,7 +120,7 @@ Dòng `note` có `hộp thoại đồng ý hiện muộn`, `mở lại` hay `b�
 | `text=<chuỗi>` | chữ hiển thị |
 | `str=<tên chuỗi>` | giá trị trong `res/values/strings.xml` của mọi module, khớp cả `text` lẫn `content-desc` |
 
-Bộ lọc thêm: `in=<testTag>` (trong cây con của phần tử có tag đó), `index=<n>` (phần tử thứ n, đếm từ 1), `selected=true`, `clickable=true`. Nhiều bộ chọn ngăn bằng ` | ` nghĩa là khớp một trong số đó.
+Bộ lọc thêm: `in=<testTag>` (trong cây con của phần tử có tag đó), `index=<n>` (phần tử thứ n, đếm từ 1), `selected=true`, `clickable=true`, `enabled=true` (chính phần tử đang bật: nút Compose mờ, `enabled = false`, vẫn là `clickable="true"` trong dump, nên chờ nút bật bằng `wait id=<tag> enabled=true`, T-083). Nhiều bộ chọn ngăn bằng ` | ` nghĩa là khớp một trong số đó.
 
 `selected=true` khớp khi thuộc tính `selected` hay `checked` là `true` ở:
 - chính nút đó, nếu nút chạm được (`clickable="true"`);
@@ -168,9 +168,14 @@ timeout: 120
 fresh
 consent decline 30
 wait id=onboarding_screen | id=camera_screen 60
-tap_if id=onboarding_next
-tap_if id=onboarding_next
-tap_if id=onboarding_next
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
 tap_if id=onboarding_enable_camera
 tap id=camera_poses
 wait id=poses_grid 20

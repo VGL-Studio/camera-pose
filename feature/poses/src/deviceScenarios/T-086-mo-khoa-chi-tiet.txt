@@ -5,11 +5,14 @@ fresh
 consent decline 30
 # Onboarding of T-082 (3 or 4 pages): Next on each page, then Enable camera; a camera already granted skips it.
 wait id=onboarding_page_intro | id=camera_screen 60
-tap_if id=onboarding_next
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
 wait id=onboarding_page_poses | id=camera_screen 10
-tap_if id=onboarding_next
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
 wait id=onboarding_page_premium | id=onboarding_page_camera | id=camera_screen 10
-tap_if id=onboarding_next
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
 wait id=onboarding_page_camera | id=camera_screen 10
 tap_if id=onboarding_enable_camera
 wait id=camera_screen 15

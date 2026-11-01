@@ -70,6 +70,13 @@ class OnboardingViewModel @Inject constructor(
         return OnboardingUiState.Browsing(pages, index)
     }
 
+    /** Page 1 holds "Next" while its ad card waits (spec onboarding, KB-6; plan T-083). */
+    internal fun onIntroAdWaitStarted() = logger.info(LOG_TAG, "Intro ad wait started")
+
+    /** The hold of page 1 ended, and why (plan T-083). */
+    internal fun onIntroAdWaitEnded(reason: IntroAdWaitEnd) =
+        logger.info(LOG_TAG, "Intro ad wait ended: ${reason.logName}")
+
     fun onNextClick() {
         val current = state.value as? OnboardingUiState.Browsing ?: return
         if (current.isLastPage) return

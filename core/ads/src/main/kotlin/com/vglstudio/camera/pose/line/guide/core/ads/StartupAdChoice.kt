@@ -29,11 +29,16 @@ suspend fun startupAdPlacementFor(settings: RemoteSettings, firstOpen: Boolean):
 /**
  * The switch of [placement]: for `native_combo`, `is_show_native_after_inter` (plan T-026); for `resume` and
  * `resume_inter`, whether [resumeAdPlacement] chooses it (plan T-025); for another app-wide placement, whether
- * [startupAdPlacement] chooses it (waits for [firstOpen]); for any other placement,
+ * [startupAdPlacement] chooses it (waits for [firstOpen]); for a [AdPlacement.firstOpenOnly] placement,
+ * `is_show_ads && is_show_<code>` in the first open only (waits for [firstOpen], plan T-083); for any other placement,
  * `is_show_ads && is_show_<code>` as before. Every load and show path reads it through AdsController.isEnabled (L-072).
  */
 internal fun placementSwitch(placement: AdPlacement, flags: AdsFlags, firstOpen: Flow<Boolean>): Flow<Boolean> {
-    if (!placement.appWide) return flags.placementEnabled(placement)
+    if (!placement.appWide) {
+        if (!placement.firstOpenOnly) return flags.placementEnabled(placement)
+        // Shown only in the first open (plan T-083): `is_show_<code>` and the first-open mark.
+        return combine(flags.placementEnabled(placement), firstOpen) { on, first -> on && first }.distinctUntilChanged()
+    }
     // The combo (plan T-026): `is_show_native_after_inter`, with `is_show_ads` applied; no first-open mark.
     if (placement == AdPlacement.NATIVE_AFTER_INTER) {
         return flags.global.map { it.showNativeAfterInter }.distinctUntilChanged()

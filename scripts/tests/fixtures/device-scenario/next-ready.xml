@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<hierarchy rotation="0">
+<node index="0" text="" resource-id="onboarding_screen" class="android.view.View" package="com.example.app.staging" content-desc="" checkable="false" checked="false" clickable="false" enabled="true" focusable="false" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[0,0][1080,2400]"><node index="0" text="Tiếp" resource-id="onboarding_next" class="android.view.View" package="com.example.app.staging" content-desc="" checkable="false" checked="false" clickable="true" enabled="true" focusable="true" focused="false" scrollable="false" long-clickable="false" password="false" selected="false" bounds="[96,1740][984,1872]"></node></node>
+</hierarchy>

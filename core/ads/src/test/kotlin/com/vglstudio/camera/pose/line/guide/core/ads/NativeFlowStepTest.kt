@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -731,6 +732,66 @@ class NativeFlowStepTest {
         }
         composeRule.waitForIdle()
         assertEquals(false, allowed)
+    }
+
+    // Whether the card may take an ad, for an app that holds its Next button (plan T-083).
+
+    @Test
+    fun nativeStepAdAllowed_noController_false() {
+        var allowed: Boolean? = null
+        composeRule.setContent { allowed = rememberNativeStepAdAllowed(AdPlacement.GALLERY_NATIVE_STEP) }
+        composeRule.waitForIdle()
+        assertEquals(false, allowed)
+    }
+
+    @Test
+    fun nativeStepAdAllowed_withController_followsConsentSwitchAndAdFree() {
+        val placement = AdPlacement.GALLERY_NATIVE_STEP
+        val settings = FakeRemoteSettings()
+        val adFree = MutableStateFlow(false)
+        val adFreeStatus = object : AdFreeStatus {
+            override val adFree = adFree
+        }
+        val controller = testAdsController(flags = DefaultAdsFlags(settings, adFreeStatus))
+        var allowed: Boolean? = null
+        settings.set(AdsSettings.placementEnabled(placement), true)
+        composeRule.setContent {
+            CompositionLocalProvider(LocalAdsController provides controller) {
+                allowed = rememberNativeStepAdAllowed(placement)
+            }
+        }
+        composeRule.waitForIdle()
+        assertEquals("consent gate closed", false, allowed)
+
+        settings.set(AdsSettings.placementEnabled(placement), false)
+        composeRule.runOnUiThread { controller.openConsentGateForTest() }
+        composeRule.waitForIdle()
+        assertEquals("consent given, is_show_${placement.key} off", false, allowed)
+
+        // Control: consent given and the switch on.
+        settings.set(AdsSettings.placementEnabled(placement), true)
+        composeRule.waitForIdle()
+        assertEquals("consent given, switch on", true, allowed)
+
+        settings.set(AdsSettings.placementEnabled(placement), false)
+        composeRule.waitForIdle()
+        assertEquals("switch turned off midway (L-061)", false, allowed)
+
+        settings.set(AdsSettings.placementEnabled(placement), true)
+        composeRule.waitForIdle()
+        assertEquals("switch back on", true, allowed)
+
+        adFree.value = true
+        composeRule.waitForIdle()
+        assertEquals("ad removal bought (KB-30)", false, allowed)
+    }
+
+    @Test
+    fun nativeStepAdAllowed_otherFormat_throws() {
+        assertThrows(IllegalArgumentException::class.java) {
+            composeRule.setContent { rememberNativeStepAdAllowed(AdPlacement.GALLERY_NATIVE_MEDIUM) }
+            composeRule.waitForIdle()
+        }
     }
 
     // Knowing beforehand whether the full page has an ad.

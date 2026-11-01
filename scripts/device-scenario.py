@@ -23,7 +23,8 @@ Selectors (one keyword, optional filters; several selectors separated by " | " m
   id=<testTag>  idp=<testTag prefix>  desc=<content-desc>  text=<text>  str=<name in res/values/strings.xml>
   A value may be quoted ("Hands in Pockets"): the quotes keep its spaces, a number after them is the seconds or count.
   An unquoted text= or desc= on a line that ends in a number is ambiguous, even one word: quote it (desc="Back" 10).
-  filters: in=<testTag> (inside that element), index=<n> (nth match, from 1), selected=true, clickable=true
+  filters: in=<testTag> (inside that element), index=<n> (nth match, from 1), selected=true, clickable=true,
+  enabled=true (the node itself is enabled: a Compose button with enabled = false stays clickable="true" in the dump)
   selected=true (or checked) looks at the node itself; for a node that is not clickable also at up to two parents,
   stopping after the first clickable one (the text of a Compose chip is a child of the selected node).
 
@@ -120,14 +121,14 @@ RESULT_PASSED, RESULT_FAILED, RESULT_ENV = "đạt", "lỗi", "bỏ qua (môi tr
 RESULT_TIME, RESULT_SYNTAX = "bỏ qua (hết thời gian)", "lỗi tệp"
 RETRY = "chạy lại"  # not a result in the log: the first run of a file whose app the system killed
 EVIDENCE_SHOT = 10  # seconds keep_evidence may take for fail.png
-SELECTOR = re.compile(r'^(id|idp|desc|text|str)=("[^"]*"|.+?)((?:\s+(?:in|index|selected|clickable)=\S+)*)\s*$')
+SELECTOR = re.compile(r'^(id|idp|desc|text|str)=("[^"]*"|.+?)((?:\s+(?:in|index|selected|clickable|enabled)=\S+)*)\s*$')
 QUOTED = re.compile(r'"[^"]*"')
 SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.txt")
 TICKET_NAME = re.compile(r"(T-\d+)-")
 SCREEN_STEPS = {"wait", "need", "tap", "tap_if", "scroll", "expect", "expect_no", "count"}
 CONSENT_AGAIN = "hộp thoại đồng ý hiện lại sau khi đã từ chối"
 CONSENT_OPEN = "hộp thoại đồng ý không đóng sau khi chạm từ chối"
-FILTER = re.compile(r"(in|index|selected|clickable)=(\S+)")
+FILTER = re.compile(r"(in|index|selected|clickable|enabled)=(\S+)")
 TRAILING_NUMBER = re.compile(r"^(.*\S)\s+(\d+)$")
 PLACEHOLDER = re.compile(r"%(?:\d+\$)?[sdf]")
 LOCALE_TAG = re.compile(r"[A-Za-z]{2,3}(-[A-Za-z0-9]+)*")
@@ -181,11 +182,11 @@ def parse_selector(text):
         match = SELECTOR.match(part)
         if not match:
             raise ValueError(f"bộ chọn '{part}' sai cú pháp (id=, idp=, desc=, text= hay str=, rồi in=, index=, "
-                             "selected=true, clickable=true)")
+                             "selected=true, clickable=true, enabled=true)")
         filters = dict(FILTER.findall(match.group(3)))
         if "index" in filters and not (filters["index"].isdigit() and int(filters["index"]) >= 1):
             raise ValueError(f"index={filters['index']} phải là số từ 1")
-        for key in ("selected", "clickable"):
+        for key in ("selected", "clickable", "enabled"):
             if key in filters and filters[key] != "true":
                 raise ValueError(f"{key}= chỉ nhận true")
         value = match.group(2)
@@ -428,6 +429,8 @@ class Screen:
             ok = self.selected(node)
         if ok and filters.get("clickable") == "true":
             ok = node.get("clickable") == "true"
+        if ok and filters.get("enabled") == "true":
+            ok = node.get("enabled") == "true"
         return ok
 
     def selected(self, node):

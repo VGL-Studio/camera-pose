@@ -20,7 +20,9 @@ import dagger.multibindings.ElementsIntoSet
 object StagingRemoteValuesModule {
     /**
      * The placements of this app show Google test ads on staging (plan T-074, section 8, question 2). Named one by
-     * one, not every placement: the gallery placements of the framework stay off (question 1).
+     * one, not every placement: the gallery placements of the framework stay off (question 1). The onboarding card
+     * is on as at release (spec onboarding, section 8; plan T-083); `show_open_ads_first_open` stays unset, so the
+     * first open still has no full-screen ad (KB-1).
      */
     @Provides
     @ElementsIntoSet
@@ -34,6 +36,8 @@ object StagingRemoteValuesModule {
         AdPlacement.POSES_IN_COLLECTION,
         // The unlock of a premium pose (spec poses, section 8; plan T-086).
         AdPlacement.RW_PREMIUM_POSE,
+        // The step card of the onboarding flow, first open only (spec onboarding, section 8; plan T-083).
+        AdPlacement.NATIVE_ONBOARDING,
     ).map { LocalRemoteValue.of(AdsSettings.placementEnabled(it), true) }.toSet()
 
     /**

@@ -47,6 +47,8 @@ Tổng thời gian ước tính: khoảng 2 giờ cho phần bắt buộc (mục
 
 Bản staging bật cờ tư thế premium (T-085), nên luồng có 4 trang. Bản 3 trang (cờ tắt) chỉ kiểm bằng test JVM (plan T-082, mục 4).
 
+Từ T-083, bản staging bật `is_show_native_onboarding`: ở lần mở đầu, khi đã có câu trả lời ở hộp thoại đồng ý (kể cả "Không đồng ý"), mỗi trang có thẻ quảng cáo native thử cao khoảng 250 dp giữa nội dung trang và nút ở đáy, và trang 1 có thể giữ nút "Tiếp" mờ tối đa 5 giây trong lúc thẻ chờ quảng cáo. Phần kiểm riêng thẻ và nút mờ ở mục 11.7.
+
 ### 2.1 Cho phép camera
 
 Điều kiện: tiếp mục 1 (đang ở trang 1 của luồng giới thiệu lần đầu).
@@ -341,7 +343,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 **Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
 
-- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080), `is_show_rw_premium_pose` đặt `false` (T-086).
+- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080), `is_show_rw_premium_pose` đặt `false` (T-086), `is_show_native_onboarding` đặt `false` (T-083).
 - [ ] Không có `show_open_ads_first_open`, `is_show_native_after_inter`, `is_show_native_collap` đặt `true`.
 - [ ] Hai khóa cũ `is_show_poses_banner`, `is_show_poses_detail_banner` không còn ai đọc từ T-079; để nguyên trên Firebase.
 - [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
@@ -442,6 +444,33 @@ Màn loading tắt thì không có quảng cáo mở app. Bản staging bật s�
 10. Vuốt app khỏi danh sách gần đây, mở lại.
    - [ ] Các tư thế đã mở khóa ở trên vẫn không có dấu ở thư viện, chi tiết, camera.
 - [ ] Ghi kết quả vào nhật ký của plan T-086. Sự kiện `premium_pose_unlocked` không gửi đi từ bản staging (ADR-1007): kiểm bằng log `VGL.Analytics` hay DebugView khi có bản dùng Firebase thật.
+
+### 11.7 Thẻ quảng cáo ở luồng giới thiệu (T-083)
+
+Điều kiện: bản staging có T-083. Thử trên máy thật: emulator không có quảng cáo native thử, thẻ báo không có quảng cáo ngay và trang 1 giữ nút "Tiếp" mờ đủ 5 giây. Log: `adb logcat -v threadtime | grep -E ' VGL\.(Ads|Onboarding)'`. **Không bấm vào quảng cáo.**
+
+1. `scripts/device-session.sh reset` (hay xóa dữ liệu app), mở app; chọn **Đồng ý** ở hộp thoại đồng ý quảng cáo. Đếm thời gian từ lúc hộp thoại đóng.
+   - [ ] Trang 1: nút "Tiếp" mờ, bấm không được, không quá 5 giây; nút dùng được ngay khi thẻ có quảng cáo, hay sau 5 giây nếu chưa có.
+   - [ ] Thẻ quảng cáo thử cao khoảng 250 dp nằm giữa nội dung trang và nút "Tiếp", rộng hết cột, có nhãn "Ad" thấy rõ; không chồng lên nút.
+   - [ ] Log `VGL.Onboarding` có `Intro ad wait started` rồi `Intro ad wait ended: ad` hay `Intro ad wait ended: timeout`.
+   - [ ] Log `VGL.Ads` có hộp thoại đồng ý trước, rồi `Preload group 1/2 started: APP_OPEN, NATIVE_STEP` và `Pool native_step created for native_onboarding`.
+2. Bấm "Tiếp" qua từng trang tới trang cuối.
+   - [ ] Mỗi trang có thẻ; hai trang kề nhau có quảng cáo khác nhau (nếu pool còn quảng cáo). Nút "Tiếp" không mờ ở trang 2, 3.
+   - [ ] Nút "Tiếp" và "Bật camera" cùng chỗ ở mọi trang, có thẻ hay chưa có.
+   - [ ] Trang cuối: thẻ nằm trên ghi chú về quyền camera, không che ghi chú và nút "Bật camera".
+3. Bấm Back về trang 1.
+   - [ ] Nút "Tiếp" không mờ lại.
+4. Đi tiếp tới camera, đóng hẳn app (vuốt khỏi đa nhiệm), mở lại.
+   - [ ] Không có luồng giới thiệu; log `VGL.Ads` không có `Pool native_step created for native_onboarding`.
+5. `reset`, mở app, chọn **Không đồng ý** ở hộp thoại đồng ý.
+   - [ ] Vẫn có thẻ (quảng cáo không cá nhân hóa) và trang 1 vẫn có thể giữ nút "Tiếp" mờ, không quá 5 giây (spec onboarding, câu 9).
+6. `reset`, mở app, đồng ý. Ở trang 1 lúc nút còn mờ, bấm Home rồi mở lại app.
+   - [ ] Nút "Tiếp" bấm được ngay; log `Intro ad wait ended: background`.
+7. Màn nhỏ hay chữ lớn (mục 10.1), lần mở đầu có thẻ.
+   - [ ] Nội dung trang cuộn được; thẻ, ghi chú và nút luôn thấy, nút không bị che hay cắt.
+8. Trên Firebase staging đặt `is_show_native_onboarding` thành `false`, `reset`, mở app, đồng ý.
+   - [ ] Không có thẻ, không có khoảng trống của thẻ; nút "Tiếp" ở trang 1 bấm được ngay, không có dòng `Intro ad wait`. Đặt lại khóa như cũ.
+- [ ] Ghi kết quả vào nhật ký của plan T-083.
 
 ## 12. Không kiểm được trên staging
 

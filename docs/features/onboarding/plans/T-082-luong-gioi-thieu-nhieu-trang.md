@@ -1,7 +1,7 @@
 ---
 ticket: T-082
 title: Luồng giới thiệu 4 trang thay màn chào (chưa có quảng cáo)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -586,3 +586,19 @@ Phiên bản 3:
 - **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Phiên bản 3 soạn lại sau đồng bộ #279, không đổi code, test hay tiêu chí. Câu 10 ở mục 8 theo đề xuất.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261031-02, phiên bản plan 3
+
+- **Kết quả:** đã merge (2026-11-01 13:26 UTC, commit e5a6469 của nhánh).
+- **Nhánh, PR:** `claude/T-082-luong-gioi-thieu`, #291.
+- **Đã làm:** luồng giới thiệu 3 hoặc 4 trang (giới thiệu, tư thế, premium khi cờ bật, camera) thay màn chào; hàng chấm, nút "Tiếp", quay lại hệ thống từ trang 2, phần quyền ở trang cuối; sự kiện `onboarding_step_viewed`; 6 chuỗi ở 7 ngôn ngữ; icon premium; 12 ảnh chuẩn mới, xóa 3 ảnh `OnboardingScreen_default_*`; gói thiết kế và ảnh so sánh; `passOnboarding()` ở hai test emulator; kịch bản mới và 7 kịch bản có sẵn thêm bước "Tiếp"; `manual-test.md`. Bước 3 đến 5 do phiên con làm trong worktree `../task-T-082`.
+- **Test viết trước:** commit `5d07762`; 79 test của `:feature:onboarding`, 58 đỏ đúng lý do trên khung rỗng (ví dụ "expected PAGES_4 but was PAGES_3", "hi onboarding_next is not translated"); test qua ngay đúng như plan; 5 test viết chặt bằng đối chứng (L-055). Sau code cả 79 qua lần đầu. `scripts/check.sh` qua: 2764 test JVM, 147 ảnh.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 9 ghi chú (mô tả PR #291), gồm: frame `intro_light_unfolded` đặt hình sát trái (khác 18,3%); bản dịch hi (`onboarding_page_indicator`) và th (`onboarding_premium_body`) nên người đọc lại; kịch bản bấm "Tiếp" không chờ nút bật (T-083 đã xử lý bằng `consent decline` ở mọi tệp, plan T-083 mục 6).
+- **Kết quả CI:** `pr-check` xanh lần đầu (lần chạy 41310123420).
+- **Lệch so với plan:**
+  - Ngoài mục 3.2 (ADR-0029, theo dặn của danh sách chạy): `docs/ops/test-sessions.md` (ví dụ mục 5 thêm ba dòng `tap_if id=onboarding_next`, tài liệu); `scripts/tests/run.sh` (số mong đợi `"0 13"` thành `"0 16"`, dữ liệu test cũ).
+  - ADR-0032/L5: icon `ic_onboarding_workspace_premium.xml` bản Outlined thay Rounded (mục 3.2 tự mâu thuẫn: cũng ghi "như các icon `ic_onboarding_*` đã có", vốn là Outlined); hằng `PageBadgeSize`, `PageBadgeIconSize` thay tên `BadgeSize` vì trùng tên.
+  - `T-022-chi-tiet-sang-camera.txt` chèn bước "Tiếp" ở cả hai chỗ bấm `onboarding_enable_camera`.
+  - Thay đổi file test sau commit test: `app/src/androidTest/.../AppLaunchTest.kt`, `SettingsNavigationTest.kt` đổi ở commit code theo ngoại lệ viết test trước của mục 4 (`passOnboarding()`); câu khẳng định giữ. File test JVM không đổi.
+- **Việc còn lại:** căn lại frame `OnboardingScreen_intro_light_unfolded` trên Figma; người biết tiếng đọc lại bản dịch.
+- **Cần người xem:** 12 ảnh chuẩn mới trong `feature/onboarding/src/test/screenshots/`; bản dịch 6 chuỗi mới ở hi, pt-BR, es-419, in, th; trang premium hiện trên staging trước T-086 (không ghi là lỗi).

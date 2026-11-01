@@ -4,6 +4,9 @@ timeout: 120
 fresh
 consent decline 30
 wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_next
+tap_if id=onboarding_next
+tap_if id=onboarding_next
 tap_if id=onboarding_enable_camera
 wait id=camera_screen 15
 wait id=camera_grid_button 15

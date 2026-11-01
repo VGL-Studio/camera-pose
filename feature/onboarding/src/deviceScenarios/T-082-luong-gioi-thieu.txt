@@ -1,0 +1,38 @@
+ticket: T-082
+criterion: Luồng giới thiệu: Tiếp sang trang sau, Back về trang trước, mở gập và xoay máy giữ trang, trang cuối có Bật camera, Back ở trang 1 đóng app (plan T-082, mục 4)
+timeout: 240
+fresh
+consent decline 30
+wait id=onboarding_page_intro 60
+expect id=onboarding_next
+expect_no id=onboarding_enable_camera
+tap id=onboarding_next
+wait id=onboarding_page_poses 10
+device unfold
+wait id=onboarding_page_poses 15
+shot poses-unfolded
+device fold
+wait id=onboarding_page_poses 15
+device rotate landscape
+wait id=onboarding_page_poses 15
+device rotate portrait
+wait id=onboarding_page_poses 15
+back
+wait id=onboarding_page_intro 10
+tap id=onboarding_next
+wait id=onboarding_page_poses 10
+tap id=onboarding_next
+wait id=onboarding_page_premium 10
+shot premium
+tap id=onboarding_next
+wait id=onboarding_page_camera 10
+expect id=onboarding_enable_camera
+expect_no id=onboarding_next
+shot camera-page
+back
+wait id=onboarding_page_premium 10
+back
+back
+wait id=onboarding_page_intro 10
+back
+expect_no id=onboarding_screen

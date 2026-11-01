@@ -4,6 +4,9 @@ timeout: 240
 fresh
 consent decline 30
 wait id=onboarding_screen | id=camera_screen 60
+tap_if id=onboarding_next
+tap_if id=onboarding_next
+tap_if id=onboarding_next
 tap_if id=onboarding_enable_camera
 wait id=camera_screen 15
 need id=camera_poses 15
@@ -34,6 +37,9 @@ expect_no id=camera_screen
 fresh
 consent decline 30
 wait id=camera_screen | id=onboarding_screen 60
+tap_if id=onboarding_next
+tap_if id=onboarding_next
+tap_if id=onboarding_next
 tap_if id=onboarding_enable_camera
 need id=camera_poses 15
 tap id=camera_poses

@@ -43,39 +43,49 @@ Tổng thời gian ước tính: khoảng 2 giờ cho phần bắt buộc (mục
    - [ ] Thanh tiếp tục từ chỗ đã đạt, tăng theo từng file tới 100%, không lùi.
    - [ ] Tự chuyển sang màn chào, không cần bấm gì.
 
-## 2. Màn chào và quyền camera (onboarding KB-1, KB-2, KB-3)
+## 2. Luồng giới thiệu và quyền camera (onboarding KB-1, KB-2, KB-3, KB-5)
+
+Bản staging bật cờ tư thế premium (T-085), nên luồng có 4 trang. Bản 3 trang (cờ tắt) chỉ kiểm bằng test JVM (plan T-082, mục 4).
 
 ### 2.1 Cho phép camera
 
-Điều kiện: tiếp mục 1 (đang ở màn chào lần đầu).
+Điều kiện: tiếp mục 1 (đang ở trang 1 của luồng giới thiệu lần đầu).
 
-1. Xem màn chào.
-   - [ ] Có tiêu đề "Chụp dáng đẹp, không cần đoán", 3 điểm giới thiệu, nút "Bật camera", ghi chú về quyền camera. Không có quảng cáo.
+1. Xem trang 1.
+   - [ ] Hàng 4 chấm ở trên, chấm đầu dài hơn. Hình minh họa, tiêu đề "Chụp dáng đẹp, không cần đoán", lời giới thiệu, nút "Tiếp" ở đáy. Không có quảng cáo toàn màn hình.
    - [ ] Hộp thoại đồng ý quảng cáo có thể phủ lên (staging coi mọi máy ở EEA): chọn **Đồng ý** lần này, ghi lại lựa chọn.
-2. Bấm "Bật camera".
+2. Bấm "Tiếp".
+   - [ ] Trang 2: huy hiệu tư thế, tiêu đề "Tư thế cho mọi kiểu ảnh", hai điểm "Hơn 200 tư thế..." và "Lưu tư thế yêu thích...". Nút "Tiếp" cùng chỗ với trang 1.
+3. Bấm "Tiếp".
+   - [ ] Trang 3: huy hiệu premium, tiêu đề "Tư thế premium", lời "Xem một quảng cáo để mở một tư thế premium, rồi dùng mãi về sau." (trước T-086 chưa có cách mở tư thế premium: không ghi là lỗi).
+4. Bấm "Tiếp".
+   - [ ] Trang cuối: huy hiệu camera, tiêu đề "Sẵn sàng chụp", điểm "Chỉnh độ mờ, cỡ và vị trí nét viền", ghi chú về quyền camera trên nút, nút "Bật camera" cùng chỗ với nút "Tiếp" của các trang trước.
+5. Bấm "Bật camera".
    - [ ] Hộp hỏi quyền camera của hệ thống hiện.
-3. Chọn "Cho phép".
-   - [ ] Camera chạy ngay, nét viền của tư thế mặc định đã có. Từ lúc loading xong tới đây đúng 2 chạm.
-   - [ ] Log có `VGL.Onboarding` "Enable camera tapped", "Camera permission granted".
-4. Đóng hẳn app (vuốt khỏi đa nhiệm), mở lại.
-   - [ ] Loading xong vào thẳng camera, không có màn chào.
+6. Chọn "Cho phép".
+   - [ ] Camera chạy ngay, nét viền của tư thế mặc định đã có. Từ lúc loading xong tới đây đúng 5 chạm ("Tiếp" ba lần, "Bật camera", "Cho phép").
+   - [ ] Log có `VGL.Onboarding` "Page shown: 1 intro" tới "Page shown: 4 camera", "Enable camera tapped", "Camera permission granted".
+7. Đóng hẳn app (vuốt khỏi đa nhiệm), mở lại.
+   - [ ] Loading xong vào thẳng camera, không có luồng giới thiệu.
 
-### 2.2 Quay lại ở màn chào
+### 2.2 Quay lại trong luồng giới thiệu
 
-1. `reset`, mở app, chờ màn chào. Bấm Back.
+1. `reset`, mở app, chờ trang 1. Bấm "Tiếp" để sang trang 2, rồi bấm Back.
+   - [ ] Về trang 1, chấm đầu dài hơn. Log `VGL.Onboarding` "Back to page 1".
+2. Bấm Back lần nữa.
    - [ ] App đóng.
-2. Mở lại.
-   - [ ] Màn chào hiện lại.
+3. Mở lại.
+   - [ ] Luồng giới thiệu hiện lại từ trang 1.
 
 ### 2.3 Từ chối camera
 
-1. Ở màn chào (tiếp 2.2), bấm "Bật camera", chọn "Không cho phép".
+1. Ở luồng giới thiệu (tiếp 2.2), bấm "Tiếp" tới trang cuối, bấm "Bật camera", chọn "Không cho phép".
    - [ ] Sang camera ở trạng thái chưa có quyền: tiêu đề "Chưa có quyền dùng camera", lời giải thích, nút "Mở cài đặt"; nút chụp và đổi camera mờ; hàng chip và dải tư thế vẫn chạm được.
-   - [ ] Không quay lại màn chào. Log `VGL.Onboarding` "Camera permission denied".
+   - [ ] Không quay lại luồng giới thiệu. Log `VGL.Onboarding` "Camera permission denied".
 2. Bấm Back ở camera.
    - [ ] App đóng.
 3. Mở lại.
-   - [ ] Vào thẳng camera (không có màn chào), hộp hỏi quyền hiện lần nữa. Từ chối.
+   - [ ] Vào thẳng camera (không có luồng giới thiệu), hộp hỏi quyền hiện lần nữa. Từ chối.
 4. Đóng hẳn, mở lại lần ba.
    - [ ] Không còn hộp hỏi quyền (đã từ chối hai lần). Log `Camera permission denied without dialog`.
 5. Bấm "Mở cài đặt", cho phép Camera, bấm Back về app.
@@ -285,7 +295,7 @@ Làm phần nào máy có điều kiện; không làm được thì ghi "không 
 
 1. Đặt cỡ chữ và cỡ hiển thị của máy lớn nhất, `reset`, mở app.
    - [ ] Màn loading (cả trạng thái lỗi ở mục 1): nút "Thử lại" không bị cắt, chân trang không đè chữ.
-   - [ ] Màn chào: phần trên cuộn được, nút "Bật camera" và ghi chú luôn thấy.
+   - [ ] Luồng giới thiệu: ở mọi trang, nút "Tiếp" (trang cuối là "Bật camera" và ghi chú về quyền) luôn thấy, phần trang cuộn được tới hết.
    - [ ] Chi tiết tư thế: cuộn được, nút "Chụp với tư thế này" luôn thấy.
 
 ### 10.2 Xoay máy lúc loading
@@ -310,6 +320,8 @@ Làm phần nào máy có điều kiện; không làm được thì ghi "không 
    - [ ] Ảnh còn; rời màn xem lại vẫn hỏi "Bỏ ảnh này?".
 3. Thư viện: chọn chip, cuộn xuống, gập, mở.
    - [ ] Chip và vị trí cuộn giữ.
+4. `reset`, mở app, ở trang 2 của luồng giới thiệu: mở máy, rồi gập lại.
+   - [ ] Vẫn trang 2 (chấm thứ hai dài hơn), chữ và nút "Tiếp" không bị cắt.
 
 ### 10.5 Android 8 hoặc 9 (lưu ảnh cần quyền)
 

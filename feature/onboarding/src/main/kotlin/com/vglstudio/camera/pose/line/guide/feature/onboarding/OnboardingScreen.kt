@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.feature.onboarding
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,6 +43,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -59,7 +63,8 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Stroke
  * Stateful entry point used by navigation. Asks for the camera permission when the view model says so and tells
  * whether the system dialog was really shown (T-026 rule, plan T-012 version 2). "Should show rationale" read before
  * the request is kept with rememberSaveable, so it survives an activity recreated while the dialog is open (plan
- * T-012, question 12; the camera uses remember). No BackHandler: Back closes the app. The theme follows the device.
+ * T-012, question 12; the camera uses remember). Back goes to the page before, from the second page (BackHandler in
+ * [OnboardingScreen]); on the first page it closes the app. The theme follows the device.
  */
 @Composable
 internal fun OnboardingRoute(
@@ -105,9 +110,13 @@ internal fun OnboardingRoute(
 }
 
 /**
- * Stateless screen. Layout from design/context/ (411 x 891): the illustration, text and three points scroll; the
- * button and the note are pinned at the bottom. On a short screen the illustration shrinks first (down to
- * [MinIllustrationHeight]), then the rest scrolls (design README, section 6).
+ * Stateless screen: one page at a time, no pager (plan T-082, section 3.1). Layout from design/context/ (411 x 891):
+ * the dots are pinned at the top; the page scrolls, with its [Spacing.lg] inner padding inside the scroll; the ad slot
+ * of T-083, the permission note (last page) and the main button are pinned at the bottom, so the button keeps one
+ * place on every page, with or without a card in the slot. On page 1 the illustration shrinks first (down to
+ * [MinIllustrationHeight]), then the page scrolls (design README, section 6). Back goes to the page before, from the
+ * second page; on the first page it closes the app.
+ * [adSlot] draws the card of T-083 between the page and the bottom; nothing by default, with no padding of its own.
  */
 @Composable
 internal fun OnboardingScreen(
@@ -118,6 +127,7 @@ internal fun OnboardingScreen(
     modifier: Modifier = Modifier,
     adSlot: @Composable (page: OnboardingPage) -> Unit = {},
 ) {
+    BackHandler(enabled = uiState is OnboardingUiState.Browsing && uiState.index > 0) { onBack() }
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = modifier
@@ -126,83 +136,195 @@ internal fun OnboardingScreen(
             .testTag(OnboardingTestTags.SCREEN)
             .padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.xl + Spacing.lg, bottom = Spacing.lg),
     ) {
-        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            val viewportHeight = maxHeight
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .testTag(OnboardingTestTags.CONTENT),
-            ) {
-                ShrinkFirstLayout(
-                    viewportHeight = viewportHeight,
-                    illustration = {
-                        OnboardingIllustration(
-                            modifier = Modifier.fillMaxSize().testTag(OnboardingTestTags.ILLUSTRATION),
-                        )
-                    },
-                    text = { OnboardingText() },
-                )
+        PageIndicator(count = uiState.pages.size, current = uiState.index)
+        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth().testTag(OnboardingTestTags.PAGE_AREA)) {
+            // The inner padding scrolls with the page, so the illustration gets the area minus both paddings.
+            val viewportHeight = maxHeight - Spacing.lg * 2
+            key(uiState.page) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(OnboardingTestTags.CONTENT)
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = Spacing.lg),
+                ) {
+                    OnboardingPageContent(page = uiState.page, viewportHeight = viewportHeight)
+                }
             }
         }
+        Box(modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.AD_SLOT)) {
+            adSlot(uiState.page)
+        }
+        if (uiState.isLastPage) {
+            Spacer(modifier = Modifier.height(Spacing.lg))
+            Text(
+                text = stringResource(R.string.onboarding_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.NOTE),
+            )
+        }
         Spacer(modifier = Modifier.height(Spacing.lg))
-        PrimaryButton(
-            text = stringResource(R.string.onboarding_enable_camera),
-            onClick = onEnableCamera,
-            icon = painterResource(R.drawable.ic_onboarding_photo_camera),
-            loading = uiState !is OnboardingUiState.Browsing,
-            modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.ENABLE_CAMERA),
-        )
-        Spacer(modifier = Modifier.height(Spacing.lg))
-        Text(
-            text = stringResource(R.string.onboarding_note),
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.NOTE),
+        if (uiState.isLastPage) {
+            PrimaryButton(
+                text = stringResource(R.string.onboarding_enable_camera),
+                onClick = onEnableCamera,
+                icon = painterResource(R.drawable.ic_onboarding_photo_camera),
+                loading = uiState !is OnboardingUiState.Browsing,
+                modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.ENABLE_CAMERA),
+            )
+        } else {
+            PrimaryButton(
+                text = stringResource(R.string.onboarding_next),
+                onClick = onNext,
+                modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.NEXT),
+            )
+        }
+    }
+}
+
+/** One dot per page, the current one wider; screen readers read "Page 2 of 4" for the whole row. */
+@Composable
+private fun PageIndicator(count: Int, current: Int) {
+    val description = stringResource(R.string.onboarding_page_indicator, current + 1, count)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        modifier = Modifier
+            .testTag(OnboardingTestTags.PAGE_INDICATOR)
+            .semantics { contentDescription = description },
+    ) {
+        repeat(count) { index ->
+            PageDot(selected = index == current, modifier = Modifier.testTag(OnboardingTestTags.pageDot(index + 1)))
+        }
+    }
+}
+
+@Composable
+private fun PageDot(selected: Boolean, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = modifier
+            .size(width = if (selected) Spacing.lg else Spacing.sm, height = Spacing.sm)
+            .background(
+                color = if (selected) colors.secondary else colors.outlineVariant,
+                shape = RoundedCornerShape(Radius.full),
+            ),
+    )
+}
+
+/** The blocks of one page, [Spacing.lg] apart (design README, sections 2 and 3). */
+@Composable
+private fun OnboardingPageContent(page: OnboardingPage, viewportHeight: Dp) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        modifier = Modifier.fillMaxWidth().testTag(page.testTag()),
+    ) {
+        when (page) {
+            OnboardingPage.INTRO -> ShrinkFirstLayout(
+                viewportHeight = viewportHeight,
+                illustration = {
+                    OnboardingIllustration(modifier = Modifier.fillMaxSize().testTag(OnboardingTestTags.ILLUSTRATION))
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                        PageTitle(R.string.onboarding_title)
+                        PageBody(R.string.onboarding_body)
+                    }
+                },
+            )
+            OnboardingPage.POSES -> {
+                IconBadge(R.drawable.ic_onboarding_accessibility_new)
+                PageTitle(R.string.onboarding_poses_title)
+                FeatureRows {
+                    FeatureRow(
+                        icon = R.drawable.ic_onboarding_accessibility_new,
+                        text = R.string.onboarding_point_poses,
+                        tag = OnboardingTestTags.FEATURE_POSES,
+                    )
+                    FeatureRow(
+                        icon = R.drawable.ic_onboarding_bookmark,
+                        text = R.string.onboarding_point_saved,
+                        tag = OnboardingTestTags.FEATURE_SAVED,
+                    )
+                }
+            }
+            OnboardingPage.PREMIUM -> {
+                IconBadge(R.drawable.ic_onboarding_workspace_premium)
+                PageTitle(R.string.onboarding_premium_title)
+                PageBody(R.string.onboarding_premium_body)
+            }
+            OnboardingPage.CAMERA -> {
+                IconBadge(R.drawable.ic_onboarding_photo_camera)
+                PageTitle(R.string.onboarding_camera_title)
+                FeatureRows {
+                    FeatureRow(
+                        icon = R.drawable.ic_onboarding_tune,
+                        text = R.string.onboarding_point_adjust,
+                        tag = OnboardingTestTags.FEATURE_ADJUST,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun OnboardingPage.testTag(): String = when (this) {
+    OnboardingPage.INTRO -> OnboardingTestTags.PAGE_INTRO
+    OnboardingPage.POSES -> OnboardingTestTags.PAGE_POSES
+    OnboardingPage.PREMIUM -> OnboardingTestTags.PAGE_PREMIUM
+    OnboardingPage.CAMERA -> OnboardingTestTags.PAGE_CAMERA
+}
+
+@Composable
+private fun PageTitle(@StringRes text: Int) {
+    Text(
+        text = stringResource(text),
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.TITLE),
+    )
+}
+
+@Composable
+private fun PageBody(@StringRes text: Int) {
+    Text(
+        text = stringResource(text),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.BODY),
+    )
+}
+
+/** Round badge of pages 2, 3 and the last one (component IconBadge of the design). */
+@Composable
+private fun IconBadge(@DrawableRes icon: Int) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(Radius.full)
+    Box(
+        modifier = Modifier
+            .size(PageBadgeSize)
+            .background(colors.secondaryContainer, shape)
+            .border(Stroke.sticker, colors.outline, shape)
+            .testTag(OnboardingTestTags.BADGE),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = colors.onSecondaryContainer,
+            modifier = Modifier.size(PageBadgeIconSize),
         )
     }
 }
 
-/** Title, introduction and the three points. */
 @Composable
-private fun OnboardingText() {
-    val colors = MaterialTheme.colorScheme
-    Column {
-        Text(
-            text = stringResource(R.string.onboarding_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = colors.onBackground,
-            modifier = Modifier.testTag(OnboardingTestTags.TITLE),
-        )
-        Spacer(modifier = Modifier.height(Spacing.lg))
-        Text(
-            text = stringResource(R.string.onboarding_body),
-            style = MaterialTheme.typography.bodyLarge,
-            color = colors.onSurfaceVariant,
-            modifier = Modifier.testTag(OnboardingTestTags.BODY),
-        )
-        Spacer(modifier = Modifier.height(Spacing.lg))
-        Column(
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            modifier = Modifier.testTag(OnboardingTestTags.FEATURES),
-        ) {
-            FeatureRow(
-                icon = R.drawable.ic_onboarding_accessibility_new,
-                text = R.string.onboarding_point_poses,
-                tag = OnboardingTestTags.FEATURE_POSES,
-            )
-            FeatureRow(
-                icon = R.drawable.ic_onboarding_tune,
-                text = R.string.onboarding_point_adjust,
-                tag = OnboardingTestTags.FEATURE_ADJUST,
-            )
-            FeatureRow(
-                icon = R.drawable.ic_onboarding_bookmark,
-                text = R.string.onboarding_point_saved,
-                tag = OnboardingTestTags.FEATURE_SAVED,
-            )
-        }
+private fun FeatureRows(content: @Composable () -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.FEATURES),
+    ) {
+        content()
     }
 }
 
@@ -291,6 +413,8 @@ internal object OnboardingTestTags {
 internal val MinIllustrationHeight = 160.dp
 private val MaxIllustrationHeight = 280.dp
 private val FeatureCircleSize = 40.dp
+private val PageBadgeSize = 96.dp
+private val PageBadgeIconSize = 48.dp
 private val FeatureIconSize = 22.dp
 
 private fun Activity.shouldShowRationale(): Boolean =

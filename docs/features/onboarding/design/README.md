@@ -18,8 +18,6 @@ Link Figma:
 - Luồng giới thiệu 4 trang (yêu cầu 2026-10-31, cho T-082, T-083): section "Onboarding flow", https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=66-2284. Xuất ngày 2026-10-31.
 - Màn chào một trang (bản cũ, T-012): section "Onboarding", https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=18-128.
 
-**Hai frame `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` là của màn chào một trang.** Ảnh và `context/` của chúng giữ lại tới khi T-082 thay màn chào, vì ảnh chuẩn screenshot hiện có đang so với chúng. T-082 bỏ hai frame này: xóa ảnh `screens/` và `context/` của chúng cùng ảnh chuẩn `OnboardingScreen_default_*` (plan T-082 ghi vào mục 3.2).
-
 ## 1. Các màn hình và trạng thái
 
 Luồng có 4 trang khi cờ `feature_premium_poses_enabled` bật; cờ tắt thì bỏ trang `premium`, còn 3 trang (hàng chấm còn 3 chấm). Mọi frame vẽ luồng 4 trang.
@@ -35,7 +33,6 @@ Luồng có 4 trang khi cờ `feature_premium_poses_enabled` bật; cờ tắt t
 | `OnboardingScreen` | Trang 3 có thẻ native | `OnboardingScreen_premium-ad_light`, `OnboardingScreen_premium-ad_dark` | T-083 | KB-6 |
 | `OnboardingScreen` | Trang cuối có thẻ native | `OnboardingScreen_camera-ad_light`, `OnboardingScreen_camera-ad_dark` | T-083 | KB-6 |
 | `OnboardingScreen` | Trang 1 chờ quảng cáo: thẻ là khung chờ, nút "Tiếp" mờ | `OnboardingScreen_intro-ad-wait_light`, `OnboardingScreen_intro-ad-wait_dark` | T-083 | KB-6 (câu 8) |
-| `OnboardingScreen` | Màn chào một trang (bỏ ở T-082) | `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` | T-012 | KB-1, KB-2 |
 
 Tên trạng thái `intro`, `poses`, `premium`, `camera` theo đề xuất của plan T-082, không đổi.
 
@@ -128,23 +125,24 @@ Màn loading xong ở lần mở đầu: trang 1 `intro`; bấm "Tiếp" sang tr
 
 ## 8. Kết quả đối chiếu
 
-Đối chiếu bằng `scripts/design-compare.sh onboarding` ngày 2026-10-22 (T-012, RUN-20261023-01), ảnh chuẩn chụp bằng tiếng Việt ở khung 411 x 891, trạng thái `Ready`. Chỉ hai frame `default` (màn chào một trang) có ảnh chuẩn; ảnh của luồng giới thiệu là "thiếu ảnh chuẩn screenshot" tới khi T-082, T-083 vẽ chúng (`review/summary.md`, chạy lại ngày 2026-10-31).
+Đối chiếu bằng `scripts/design-compare.sh onboarding` ngày 2026-11-01 (T-082, RUN-20261031-02), ảnh chuẩn chụp bằng tiếng Việt, trạng thái `Browsing` của luồng 4 trang, khe quảng cáo rỗng. Hai frame `default` của màn chào một trang đã bỏ cùng ảnh chuẩn cùng tên (plan T-082, mục 3.2). 10 frame `-ad`, `-ad-wait` còn "thiếu ảnh chuẩn screenshot" tới T-083 (`review/summary.md`).
 
 | Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |
 | --- | --- | --- |
-| OnboardingScreen_default_dark | 4.3% | `OnboardingScreen_default_dark_compare.png` |
-| OnboardingScreen_default_light | 4.3% | `OnboardingScreen_default_light_compare.png` |
+| OnboardingScreen_intro_light | 3.3% | `OnboardingScreen_intro_light_compare.png` |
+| OnboardingScreen_intro_dark | 3.3% | `OnboardingScreen_intro_dark_compare.png` |
+| OnboardingScreen_intro_light_unfolded | 18.3% | `OnboardingScreen_intro_light_unfolded_compare.png` |
+| OnboardingScreen_poses_light | 1.8% | `OnboardingScreen_poses_light_compare.png` |
+| OnboardingScreen_poses_dark | 1.8% | `OnboardingScreen_poses_dark_compare.png` |
+| OnboardingScreen_premium_light | 1.3% | `OnboardingScreen_premium_light_compare.png` |
+| OnboardingScreen_premium_dark | 1.3% | `OnboardingScreen_premium_dark_compare.png` |
+| OnboardingScreen_camera_light | 1.7% | `OnboardingScreen_camera_light_compare.png` |
+| OnboardingScreen_camera_dark | 1.7% | `OnboardingScreen_camera_dark_compare.png` |
+| OnboardingScreen_camera_light_unfolded | 1.3% | `OnboardingScreen_camera_light_unfolded_compare.png` |
 
-Nhận xét của phiên viết code (rà soát độc lập bổ sung ở bước 6):
+Nhận xét của phiên viết code (T-082; rà soát độc lập bổ sung ở bước 6):
 
-- `default_light`, `default_dark`: đủ các phần, đúng thứ tự, chữ đúng bảng chữ. Hình minh họa trùng vị trí với thiết kế: ba thẻ, góc nghiêng, nét viền tư thế (lấy từ `handoff/pose_outline.svg`) và huy hiệu camera. Viền thẻ, vòng icon và huy hiệu đổi màu theo chế độ (`outline`: đen ở chế độ sáng, trắng ở chế độ tối); nét viền tư thế luôn #111111 (`onCategory`).
-- Tiêu đề vẫn hai dòng nhưng ngắt khác: "không" ở dòng một, "cần đoán" ở dòng hai (thiết kế: "không cần" ở dòng một). Ghi chú ngắt dòng sau "lưu trên" thay vì sau "lưu". Do cách đo chữ của hệ thống, chiều cao khối chữ không đổi.
-- Nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56), nên đỉnh nút thấp hơn khoảng 2 dp và ghi chú cao hơn khoảng 2 dp, trong một bước lưới 4 dp. Không có lệch chặn.
-- Ảnh khung 360 x 640 (`_small`): hình minh họa co còn 160, nút "Bật camera" và ghi chú ghim ở đáy, phần chữ cuộn được.
-
-Nhận xét của rà soát độc lập (bước 6, RUN-20261023-01):
-
-- Đủ các phần, đúng thứ tự, chữ đúng bảng chữ, không bị cắt hay tràn. Vai trò màu đúng ở cả hai chế độ: thẻ hồng, xanh lá, xanh dương; huy hiệu và vòng icon vàng (`secondaryContainer`); viền `outline` đen ở chế độ sáng, trắng ở chế độ tối; nét viền tư thế luôn #111111; nút `secondary`.
-- Ba thẻ trùng vị trí, góc nghiêng và chiều nghiêng với thiết kế.
-- Lệch nhỏ, không chặn: chỗ ngắt dòng của tiêu đề và ghi chú (README mục 6 cho phép); nút cao 56 thay vì 60. Tỷ lệ khác 4,3% chủ yếu do viền chữ khi vẽ và chỗ ngắt dòng.
-- Màu viền theo chế độ mới kiểm bằng mắt trên ảnh chuẩn, chưa có test tự động; nên thêm ở plan sau.
+- Mọi trang: đủ các phần, đúng thứ tự, chữ đúng bảng chữ (mục 2). Hàng chấm, huy hiệu 96, tiêu đề, điểm và lời ở đúng vị trí của `context/` trong sai số 4 dp (test `*_layoutMatchesDesign`). Nút "Tiếp" và "Bật camera" cùng một chỗ trên mọi trang.
+- Nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56), nên đỉnh nút thấp hơn 4 dp (811 thay 807; 761 thay 757 ở khung mở gập) và ghi chú ở trang cuối thấp hơn 4 dp. Phần lớn tỷ lệ khác ở các frame là viền chữ khi vẽ và dải 4 dp này.
+- `intro_light_unfolded` (18.3%): `context/OnboardingScreen_intro_light_unfolded.md` đặt hình minh họa sát trái trong khung 625, lệch với mục 3 và mục 6 của README ("căn giữa"). Theo câu trả lời câu 9 của plan T-082 (Nhật, 2026-11-01), code theo README: hình 363 x 280 căn giữa trong khung 625. Phần khác gần như toàn bộ là vị trí ngang của hình; chữ và nút khớp. Frame Figma chưa căn lại.
+- Icon huy hiệu trang premium là `workspace_premium` của Material Symbols Outlined, cùng bộ với các icon `ic_onboarding_*` có sẵn.

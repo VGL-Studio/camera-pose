@@ -44,3 +44,7 @@ build-logic/convention/bin/
 
 # Progress page: built by scripts/status.py; the readable copy is on the status branch (status-page.yml, L-066)
 docs/STATUS.md
+
+# Claude Code: worktrees of local sessions and each developer's own settings; the shared skills in .claude/skills/ are committed
+.claude/worktrees/
+.claude/settings.local.json

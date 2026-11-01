@@ -12,6 +12,8 @@ for STALE_MINUTES. A session that is alive pushes at every step (docs/auto-run.m
 wait (CI, emulator) is shorter than that. It is not continued when it started more than MAX_HOURS ago: people
 decide then. Nor while main is red (main-broken) or the cloud environment is broken (env-broken).
 
+The workflow runs it every hour while its schedule is on; it turns itself off when idle (scripts/schedule-idle.py).
+
 Uses only `gh api` (REST); GITHUB_REPOSITORY or the origin remote gives the repository.
 RESUME_STALE_MINUTES, RESUME_MAX_HOURS and RESUME_NOW (ISO time, tests) override the defaults.
 Messages are in Vietnamese for the team.

@@ -5,9 +5,10 @@ Tài liệu này dành cho dev và người kiểm thử. Một phiên thử là
 | Nguồn | Ai chạy | Khi nào | Bắt được gì |
 | --- | --- | --- | --- |
 | Máy thật | Dev hoặc người kiểm thử | Sau khi nhận bản staging, khi muốn thử một feature | Mọi thứ người dùng thật gặp: tốc độ, giật, mạng thật, lỗi riêng của hãng máy, chỗ khó dùng |
+| Test emulator viết sẵn (job `ui-test` của `main-guard.yml`) | GitHub Actions, sau merge | Mỗi commit đổi code app trên nhánh chính | Test trong `app/src/androidTest` đỏ, app dừng khi mở (L-051); đỏ thật mở `main-broken` (ADR-0043) |
 | Emulator trong CI (`device-session.yml`) | Phiên tự chạy | Cuối phiên, trước khi phát bản staging | Crash, ANR, lỗi rõ ràng trong kịch bản chuẩn và khi bấm ngẫu nhiên |
 
-Hai nguồn bổ sung cho nhau: emulator lọc lỗi rõ ràng trước khi người thử mất thời gian, máy thật tìm phần còn lại.
+Hai nguồn bổ sung cho nhau: emulator lọc lỗi rõ ràng trước khi người thử mất thời gian, máy thật tìm phần còn lại. Job `ui-test` của `main-guard` và `device-session.yml` là hai lớp emulator khác nhau: `ui-test` chạy test viết sẵn trên bản staging debug với cấu hình Firebase giả cho từng commit code app; `device-session.yml` cài bản staging release với cấu hình thật, chạy kịch bản chuẩn và bấm ngẫu nhiên cuối phiên (ADR-0043 mục 6).
 
 ## 1. Chuẩn bị (một lần)
 

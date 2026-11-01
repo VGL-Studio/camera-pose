@@ -165,6 +165,12 @@ internal object NativeAdDimens {
 
     /** Short labels ("Install") still get the design's 80 dp, the width of the loading block. */
     val CallToActionMinWidth = 80.dp
+
+    /**
+     * Small: the widest its call to action gets, so a long label (cut with "…") leaves room for the headline and the
+     * "Ad" label (KB-1, O-08; plan T-060). "Install" stays under it up to font scale 2.0.
+     */
+    val SmallCallToActionMaxWidth = 120.dp
     val MediaHeight = 196.dp
     val FullMediaHeight = 200.dp
 
@@ -329,6 +335,7 @@ private fun SmallLayout(assets: NativeAdAssets, binder: NativeAdBinder) {
             NativeAdCallToAction(
                 text = it,
                 binder = binder,
+                modifier = Modifier.widthIn(max = NativeAdDimens.SmallCallToActionMaxWidth),
                 height = NativeAdDimens.SmallCallToActionHeight,
                 fontSize = SmallCallToActionFontSize,
             )
@@ -475,7 +482,7 @@ private fun FullLayout(assets: NativeAdAssets, binder: NativeAdBinder) {
         val ctaModifier = Modifier.fillMaxWidth().heightIn(min = NativeAdDimens.CallToActionHeight)
         val callToAction = assets.callToAction
         if (callToAction != null) NativeAdCallToAction(callToAction, binder, ctaModifier) else Spacer(ctaModifier)
-        NativeAdStarRow(assets.starRating, Modifier.fillMaxWidth().height(NativeAdDimens.StarRowHeight))
+        NativeAdStarRow(assets.starRating, binder, Modifier.fillMaxWidth().height(NativeAdDimens.StarRowHeight))
     }
 }
 
@@ -525,21 +532,27 @@ internal fun MediaShrinksFirstLayout(
  */
 internal fun fullMediaHeight(inner: Int, others: Int, floor: Int): Int = max(inner - others, floor)
 
-/** Filled stars of the ad's rating (O-08); nothing when the ad has no rating above 0. */
+/**
+ * Filled stars of the ad's rating (O-08); nothing when the ad has no rating above 0. The outer box keeps its height
+ * either way. The stars are the ad's star rating view for the SDK (through [binder]), so a touch on them counts as a
+ * touch on the ad (KB-2, plan T-060); with no stars nothing is registered.
+ */
 @Composable
-private fun NativeAdStarRow(rating: Double?, modifier: Modifier = Modifier) {
+private fun NativeAdStarRow(rating: Double?, binder: NativeAdBinder, modifier: Modifier = Modifier) {
     val count = nativeStarCount(rating)
     Box(modifier = modifier) {
         if (count > 0) {
-            val description = stringResource(R.string.ads_native_star_rating, count)
-            Row(
-                modifier = Modifier
-                    .testTag(NativeAdTestTags.STAR_ROW)
-                    .semantics { contentDescription = description },
-                horizontalArrangement = Arrangement.spacedBy(NativeAdDimens.StarGap),
-            ) {
-                val color = MaterialTheme.colorScheme.tertiary
-                repeat(count) { NativeAdStar(color, Modifier.size(NativeAdDimens.StarSize)) }
+            binder.Asset(NativeAdAsset.STAR_RATING, Modifier.height(NativeAdDimens.StarRowHeight)) {
+                val description = stringResource(R.string.ads_native_star_rating, count)
+                Row(
+                    modifier = Modifier
+                        .testTag(NativeAdTestTags.STAR_ROW)
+                        .semantics { contentDescription = description },
+                    horizontalArrangement = Arrangement.spacedBy(NativeAdDimens.StarGap),
+                ) {
+                    val color = MaterialTheme.colorScheme.tertiary
+                    repeat(count) { NativeAdStar(color, Modifier.size(NativeAdDimens.StarSize)) }
+                }
             }
         }
     }
@@ -591,7 +604,7 @@ internal fun NativeAdHeader(
         ) {
             NativeAdHeadline(assets.headline, binder)
             NativeAdBadgeLine(assets, binder, bodyWhenNoAdvertiser = false)
-            if (starRow) NativeAdStarRow(assets.starRating, Modifier.height(NativeAdDimens.StarRowHeight))
+            if (starRow) NativeAdStarRow(assets.starRating, binder, Modifier.height(NativeAdDimens.StarRowHeight))
         }
     }
 }

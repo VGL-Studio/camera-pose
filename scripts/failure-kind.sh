@@ -27,7 +27,7 @@ if [ "${1:-}" = "--playbook" ]; then
   # A gh call that failed writes its error or its help instead of the job log (L-104): looking that up would say
   # khong-co and read as a real failure missing from the table.
   if head -n 5 "${playbook_log}" | grep -qE '^Usage:  gh |^unknown flag: |terminal escape sequences'; then
-    echo "log-hong: ${playbook_log} là thông báo lỗi hay phần trợ giúp của gh, không phải log của job. Tải lại: gh run view <id> --log-failed > ci.log (auto-run.md bước 8, L-104)."
+    echo "log-hong: ${playbook_log} là thông báo lỗi hay phần trợ giúp của gh, không phải log của job. Tải lại: gh run view <id> --log-failed > ci.log, rỗng thì gh run view <id> > ci.log (auto-run.md bước 8, L-104)."
     exit 0
   fi
   # Markdown cells are split at every "|" not preceded by a backslash; "\|" inside a pattern becomes "|".

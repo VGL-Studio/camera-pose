@@ -46,7 +46,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The native full-screen ad screen (KB-5): a 36 dp close button visible from the first frame, in the top left corner,
+ * The native full-screen ad screen (KB-5): a 48 dp close button visible from the first frame, in the top left corner,
  * away from AdChoices and the call to action; sizes from design/context/NativeFullScreenAdScreen_default_light.md.
  */
 @RunWith(AndroidJUnit4::class)
@@ -85,24 +85,24 @@ class NativeFullScreenAdScreenTest {
     }
 
     @Test
-    fun closeButton_drawn36dp_touchAtLeast48dp() {
+    fun closeButton_drawnAndTouch48dp() {
         setScreen()
         composeRule.onNodeWithTag(CLOSE)
-            .assertWidthIsEqualTo(36.dp)
-            .assertHeightIsEqualTo(36.dp)
+            .assertWidthIsEqualTo(48.dp)
+            .assertHeightIsEqualTo(48.dp)
         val close = composeRule.onNodeWithTag(CLOSE).getUnclippedBoundsInRoot()
         val centerX = (close.left + close.right) / 2
         val centerY = (close.top + close.bottom) / 2
 
-        // Compose widens the touch area of a small button to 48 dp (6 dp on each side) without changing the layout.
-        tapAt(close.right + 5.dp, centerY)
-        assertEquals("tap 5 dp right of the button", 1, closes)
-        tapAt(centerX, close.bottom + 5.dp)
-        assertEquals("tap 5 dp below the button", 2, closes)
+        // The button is drawn at 48 dp, so its touch area is the drawn frame (ADR-0038, KB-32).
+        tapAt(close.right - 2.dp, centerY)
+        assertEquals("tap 2 dp inside the right edge", 1, closes)
+        tapAt(centerX, close.bottom - 2.dp)
+        assertEquals("tap 2 dp inside the bottom edge", 2, closes)
 
-        // Control: 8 dp away is outside the 48 dp area, so the taps above hit the widened area, not anything.
-        tapAt(close.right + 8.dp, centerY)
-        assertEquals("tap 8 dp right of the button", 2, closes)
+        // Control: 2 dp outside the right edge is outside the button, so the taps above hit the button itself.
+        tapAt(close.right + 2.dp, centerY)
+        assertEquals("tap 2 dp right of the button", 2, closes)
     }
 
     private fun tapAt(x: Dp, y: Dp) {
@@ -112,11 +112,11 @@ class NativeFullScreenAdScreenTest {
     }
 
     @Test
-    fun media_startsAt76dp() {
+    fun media_startsAt88dp() {
         setScreen()
-        // Design: top margin 24, close button bar 36, gap 16.
+        // Top margin 24, close button bar 48, gap 16 (ADR-0038).
         val media = composeRule.onNodeWithTag(MEDIA).getUnclippedBoundsInRoot()
-        assertEquals(76f, media.top.value, TOLERANCE)
+        assertEquals(88f, media.top.value, TOLERANCE)
     }
 
     @Test
@@ -244,7 +244,8 @@ class NativeFullScreenAdScreenTest {
         flowStep = false
         composeRule.waitForIdle()
         val afterInterMedia = composeRule.onNodeWithTag(MEDIA).getUnclippedBoundsInRoot()
-        assertEquals(afterInterMedia.top.value, stepMedia.top.value, TOLERANCE)
+        // Same layout, only the top bar differs: 48 dp after an interstitial, 36 dp on a flow step (question 2).
+        assertEquals(stepMedia.top.value + 12f, afterInterMedia.top.value, TOLERANCE)
         assertEquals(afterInterMedia.left.value, stepMedia.left.value, TOLERANCE)
     }
 
@@ -292,7 +293,7 @@ class NativeFullScreenAdScreenTest {
         // Compose reads the insets of the window only once a composable asks for them: sent again for this page.
         dispatchStatusBar()
         val afterInter = composeRule.onNodeWithTag(MEDIA).getUnclippedBoundsInRoot()
-        assertEquals(76f + STATUS_BAR.value, (afterInter.top - area.top).value, TOLERANCE)
+        assertEquals(88f + STATUS_BAR.value, (afterInter.top - area.top).value, TOLERANCE)
     }
 
     private fun assertNoNode(tag: String) {

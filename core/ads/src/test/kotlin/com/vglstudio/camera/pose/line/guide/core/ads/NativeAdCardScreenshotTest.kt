@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -159,6 +160,42 @@ class NativeAdCardScreenshotTest {
                         NativeAdCard(sampleNativeAdAssets, NativeAdSize.MEDIUM)
                         NativeAdCard(sampleNativeAdAssets, NativeAdSize.STEP)
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Small and the card at font scale 2.0 on the low screen (L-028, plan T-060): short and long texts; the long call
+     * to action of small stops at 120 dp, so the headline and the "Ad" label stay.
+     */
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    fun fontScale2_small() {
+        captureRoboImage("src/test/screenshots/NativeAdCard_font-scale-2_small.png") {
+            WithFontScale(2f) {
+                OnScreen(darkTheme = false) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        NativeAdCard(sampleNativeAdAssets, NativeAdSize.SMALL)
+                        NativeAdCard(longFullNativeAdAssets, NativeAdSize.SMALL)
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                            NativeAdCard(sampleNativeAdAssets, NativeAdSize.CARD, Modifier.size(156.dp, CARD_HEIGHT))
+                            NativeAdCard(longFullNativeAdAssets, NativeAdSize.CARD, Modifier.size(156.dp, CARD_HEIGHT))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Small and the card with texts longer than they hold (plan T-060): cut with "…", the "Ad" label stays. */
+    @Test
+    fun longTexts_light() {
+        captureRoboImage("src/test/screenshots/NativeAdCard_long-texts_light.png") {
+            OnScreen(darkTheme = false) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    NativeAdCard(longFullNativeAdAssets, NativeAdSize.SMALL)
+                    NativeAdCard(longFullNativeAdAssets, NativeAdSize.CARD, Modifier.size(CARD_WIDTH, CARD_HEIGHT))
                 }
             }
         }

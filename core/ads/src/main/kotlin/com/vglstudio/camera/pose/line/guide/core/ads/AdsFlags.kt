@@ -14,10 +14,13 @@ import kotlinx.coroutines.flow.map
  * update of the app (ADR-0003, KB-7). Public for the app shell (app open at the loading screen, T-024).
  */
 interface AdsFlags {
-    /** Global ad switches, master switch already applied. Emits the current value at once, then on every change. */
+    /**
+     * Global ad switches, master switch (is_show_ads && !adFree, KB-30) already applied. Emits the current value at
+     * once, then on every change.
+     */
     val global: Flow<AdsGlobalFlags>
 
-    /** is_show_ads && is_show_<code>. */
+    /** is_show_ads && !adFree && is_show_<code> (adFree: [AdFreeStatus], KB-30). */
     fun placementEnabled(placement: AdPlacement): Flow<Boolean>
 
     /** ads_interval for DEFAULT, ads_interval_<name> otherwise, in seconds, never negative. */
@@ -29,21 +32,21 @@ interface AdsFlags {
 
 /** The global ad keys of docs/ops/ads-business-rules.md, section 10.1, read together. */
 data class AdsGlobalFlags(
-    /** is_show_ads. */
+    /** is_show_ads && !adFree: the master switch, off too while the user is ad-free ([AdFreeStatus], KB-30). */
     val adsEnabled: Boolean,
-    /** is_show_ads && show_open_ads. */
+    /** adsEnabled && show_open_ads. */
     val showOpenAds: Boolean,
-    /** is_show_ads && show_open_ads_first_open. */
+    /** adsEnabled && show_open_ads_first_open. */
     val showOpenAdsFirstOpen: Boolean,
     /** open_ad_type. */
     val openAdType: OpenAdType,
-    /** is_show_ads && show_resum_ads. */
+    /** adsEnabled && show_resum_ads. */
     val showResumeAds: Boolean,
     /** resume_ad_type. */
     val resumeAdType: OpenAdType,
     /** ads_interval, negative read as 0. */
     val adsIntervalSeconds: Long,
-    /** is_show_ads && is_show_native_after_inter. */
+    /** adsEnabled && is_show_native_after_inter. */
     val showNativeAfterInter: Boolean,
     /** is_show_native_bottom. */
     val showNativeBottom: Boolean,
@@ -57,6 +60,10 @@ data class AdsGlobalFlags(
     val logFullScreenEvents: Boolean,
     /** is_log_ad_slot_events. */
     val logSlotEvents: Boolean,
+    /** time_close_native, 1 to 30, any other value read as 5. */
+    val closeNativeCountdownSeconds: Long,
+    /** ads_mediation_order, read as written; [AdsController.mediationOrder] applies the SDK key. */
+    val mediationOrder: MediationOrder = MediationOrder.DEFAULT,
 )
 
 /** The ad shown when the app opens or comes back (open_ad_type, resume_ad_type). */
@@ -71,10 +78,22 @@ enum class OpenAdType {
     }
 }
 
-internal class DefaultAdsFlags @Inject constructor(private val settings: RemoteSettings) : AdsFlags {
+/**
+ * The flags read from [settings], with the ad-free signal of the app ([adFreeStatus], KB-30) in the master switch. The
+ * default of [adFreeStatus] is for JVM tests that build this class directly; Hilt always injects the binding of :app.
+ */
+internal class DefaultAdsFlags @Inject constructor(
+    private val settings: RemoteSettings,
+    private val adFreeStatus: AdFreeStatus = AdFreeStatus.NONE,
+) : AdsFlags {
+    /** is_show_ads, off too while the user is ad-free (KB-30): the one master switch of every flag below. */
+    private val masterSwitch: Flow<Boolean> =
+        combine(settings.value(AdsSettings.IS_SHOW_ADS), adFreeStatus.adFree) { on, adFree -> on && !adFree }
+            .distinctUntilChanged()
+
     override val global: Flow<AdsGlobalFlags> = combine(
         listOf(
-            settings.value(AdsSettings.IS_SHOW_ADS),
+            masterSwitch,
             settings.value(AdsSettings.SHOW_OPEN_ADS),
             settings.value(AdsSettings.SHOW_OPEN_ADS_FIRST_OPEN),
             settings.value(AdsSettings.OPEN_AD_TYPE),
@@ -88,6 +107,8 @@ internal class DefaultAdsFlags @Inject constructor(private val settings: RemoteS
             settings.value(AdsSettings.IS_ENABLE_CONSENT_SHORTCUT),
             settings.value(AdsSettings.IS_LOG_AD_FULLSCREEN_EVENTS),
             settings.value(AdsSettings.IS_LOG_AD_SLOT_EVENTS),
+            settings.value(AdsSettings.TIME_CLOSE_NATIVE),
+            settings.value(AdsSettings.ADS_MEDIATION_ORDER),
         ),
     ) { values ->
         val adsEnabled = values[0] as Boolean
@@ -107,13 +128,15 @@ internal class DefaultAdsFlags @Inject constructor(private val settings: RemoteS
             consentShortcutEnabled = values[11] as Boolean,
             logFullScreenEvents = values[12] as Boolean,
             logSlotEvents = values[13] as Boolean,
+            closeNativeCountdownSeconds = nativeCloseCountdownSeconds(values[14] as Long),
+            mediationOrder = MediationOrder.of(values.last() as String),
         )
     }.distinctUntilChanged()
 
     override fun placementEnabled(placement: AdPlacement): Flow<Boolean> = placementEnabled(placement.declaration)
 
     internal fun placementEnabled(declaration: AdPlacementDeclaration): Flow<Boolean> = combine(
-        settings.value(AdsSettings.IS_SHOW_ADS),
+        masterSwitch,
         settings.value(AdsSettings.placementEnabled(declaration)),
     ) { adsEnabled, placementEnabled -> adsEnabled && placementEnabled }
         .distinctUntilChanged()

@@ -42,7 +42,8 @@ from pathlib import Path
 ROOT = Path(os.environ.get("RUN_CHECK_ROOT", Path(__file__).resolve().parent.parent))
 DOCS = ROOT / "docs"
 MERGED = {"on-staging", "accepted", "released"}
-# App shell code that test-first exceptions often leave without a JVM test; bugs there show only on ui-test (L-045).
+# App shell code that test-first exceptions often leave without a JVM test; bugs there show only after the merge, in
+# the ui-test job of main-guard.yml (L-045, ADR-0043).
 SHELL_CODE = re.compile(r"AppNavHost|MainActivity|navigation/")
 
 
@@ -347,7 +348,8 @@ def check(run_path):
         shell = sorted(set(SHELL_CODE.findall(exception.group(1)))) if exception else []
         if shell:
             warnings.append(f"{ticket}: ngoại lệ viết test trước gồm vỏ app ({', '.join(shell)}): lỗi ở đó chỉ lộ ra "
-                            "ở ui-test, vòng CI dài nhất (L-045). Cân nhắc một test Robolectric thay cho ngoại lệ.")
+                            "sau merge, ở job ui-test của main-guard (L-045, ADR-0043). Cân nhắc một test Robolectric "
+                            "thay cho ngoại lệ.")
 
     listed = [t for t in in_list if t in files_of]
     for i, first in enumerate(listed):

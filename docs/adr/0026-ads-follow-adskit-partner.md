@@ -11,6 +11,8 @@ superseded_by:
 
 # ADR-0026: HÀNH VI KINH DOANH CỦA QUẢNG CÁO THEO BỘ PARTNER CỦA ADSKIT, CÁCH LÀM KỸ THUẬT THEO CẤU TRÚC CỦA DỰ ÁN MẪU
 
+
+> **Ghi chú 2026-10-29:** ADR-0038 (duyệt 2026-10-29) đổi chuẩn đối chiếu: nghiệp vụ quảng cáo theo quyết định của người phụ trách sản phẩm, rồi gói JBase, rồi bộ PARTNER khi JBase không có; năm luật đổi theo JBase. ADR-0036 thêm bốn điểm lệch PARTNER, ADR-0037 thêm AppLovin MAX. Phần còn lại giữ nguyên.
 ## Bối cảnh
 
 Từ ADR-0004 tới ADR-0022, dự án mẫu chọn hướng "chính sách trước doanh thu": không quảng cáo lúc mở app, không ép chờ, native thu gọn không tự bung lại, khoảng cách lưu qua phiên, ân hạn phiên đầu, chỉ AdMob và AppLovin, không tự ghi sự kiện hiển thị. Đợt 2 (T-007 tới T-018, phiên RUN-20261023-01) đang code theo hướng đó.

@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -31,7 +32,10 @@ class NativeAdPoolTest {
     private var gateCalls = 0
     private lateinit var loads: FakePoolLoads
 
-    private fun TestScope.newPool(capacity: Int = 3): NativeAdPool {
+    /** The window of the in-screen ads as AdsController builds it, in foreground (KB-27, plan T-054). */
+    private val window = InScreenAdWindow(logger).apply { onForeground(true) }
+
+    private fun TestScope.newPool(capacity: Int = 3, gate: StateFlow<Boolean> = foreground): NativeAdPool {
         loads = FakePoolLoads(loader, { testScheduler.currentTime }, logger)
         return NativeAdPool(
             key = NativePoolKey(AdFormat.NATIVE_MEDIUM, FakePoolLoads.FAKE_POOL_UNIT_ID),
@@ -39,9 +43,9 @@ class NativeAdPoolTest {
             load = { loads.load() },
             sendGate = {
                 gateCalls++
-                awaitSendAllowed(foreground) { mayRequest }
+                awaitSendAllowed(gate) { mayRequest }
             },
-            canLoadNow = { sdkReady && foreground.value && mayRequest },
+            canLoadNow = { sdkReady && gate.value && mayRequest },
             canShowNow = { canShow },
             retryResets = retryResets,
             clock = { testScheduler.currentTime },
@@ -439,6 +443,75 @@ class NativeAdPoolTest {
         foreground.value = true
         runCurrent()
         assertEquals(listOf(0L, 5_000L), loads.times)
+    }
+
+    @Test
+    fun refillAfterClaim_whileCovered_waitsUntilUncovered() = runTest {
+        val pool = newPool(gate = window.open)
+        fill(pool, 3)
+        assertEquals(3, loads.times.size)
+        window.onCovered(true)
+        at(1_000)
+        val ad = pool.claim(AdPlacement.GALLERY_NATIVE_MEDIUM) as FakeLoadedNativeAd
+        ad.impressionRecorded = true
+        pool.release(ad)
+        at(60_000)
+        assertEquals(3, loads.times.size)
+
+        // Control (L-055): the cover goes, the refill is sent once.
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(0L, 0L, 0L, 60_000L), loads.times)
+    }
+
+    @Test
+    fun retry_whileCovered_waitsUntilUncovered() = runTest {
+        val pool = newPool(gate = window.open)
+        pool.refill()
+        runCurrent()
+        // An empty pool retries 5 s after a failure (O-05).
+        fail()
+        at(1_000)
+        window.onCovered(true)
+        at(60_000)
+        assertEquals(listOf(0L), loads.times)
+
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(0L, 60_000L), loads.times)
+    }
+
+    @Test
+    fun covered_settled_andExhaustedLikeBackground() = runTest {
+        val pool = newPool(gate = window.open)
+        window.onCovered(true)
+        assertTrue(pool.settled())
+        assertTrue(pool.exhausted)
+
+        // Control (L-055): the cover goes, the empty pool may load again.
+        window.onCovered(false)
+        assertFalse(pool.settled())
+        assertFalse(pool.exhausted)
+    }
+
+    @Test
+    fun covered_keepsAdsInUseAndFree() = runTest {
+        val pool = newPool(gate = window.open)
+        val (first, second, third) = fill(pool, 3)
+        assertSame(first, pool.claim(AdPlacement.GALLERY_NATIVE_MEDIUM))
+        runCurrent()
+        // Two free ads and one in use, then a cover of 10 minutes.
+        window.onCovered(true)
+        at(10 * 60_000L)
+        assertEquals(listOf(0, 0, 0), listOf(first, second, third).map { it.destroyCount })
+        assertSame(second, pool.claim(AdPlacement.GALLERY_NATIVE_MEDIUM))
+
+        // Control (L-055) that the cover holds: a refill due under it sends nothing.
+        first.impressionRecorded = true
+        pool.release(first)
+        runCurrent()
+        assertEquals(3, loads.times.size)
+        assertEquals(0, third.destroyCount)
     }
 
     @Test

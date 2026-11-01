@@ -22,4 +22,6 @@ dependencies {
     implementation(libs.guava)
     // Pose detection on the device, for the pose matching (plan T-017; the library is chosen in spec question 9).
     implementation(libs.mlkit.pose.detection)
+    // LocalActivity: no longer on the compile classpath through other libraries since AGP 9 (template sync, ADR-0040).
+    implementation(libs.androidx.activity.compose)
 }

@@ -18,8 +18,9 @@ import kotlinx.coroutines.flow.flowOf
 
 /**
  * The real [AdsController] for tests, with no SDK ad (plan T-033): every test builds it here, so a new parameter of
- * the controller is added in one place. Defaults: Google's test ad units, no consent debug, the defaults of every
- * Remote Config key, Internet on, no consent shortcut, recording metrics, funnel and logger, empty preferences.
+ * the controller is added in one place. Defaults: Google's test ad units, no consent debug, no ads debug (no test device, no per-network log), the defaults of every
+ * Remote Config key, Internet on, no consent shortcut, recording metrics, funnel and logger, empty preferences, no
+ * AppLovin MAX SDK key (MAX never starts, plan T-068).
  */
 internal fun testAdsController(
     context: Context = ApplicationProvider.getApplicationContext(),
@@ -31,13 +32,17 @@ internal fun testAdsController(
     logger: AppLogger = RecordingAppLogger(),
     connectivity: InternetConnectivity = AlwaysConnected,
     consentDebug: ConsentDebugOptions = ConsentDebugOptions.NONE,
+    debugOptions: AdsDebugOptions = AdsDebugOptions.NONE,
     shortcutConfig: ConsentShortcutConfig = ConsentShortcutConfig.OFF,
     firstOpenMark: FirstOpenMark = FirstOpenMark(EmptyPreferencesForTests(), RecordingAppLogger()),
     interDisplayCounter: InterDisplayCounter = InterDisplayCounter(EmptyPreferencesForTests(), RecordingAppLogger()),
+    maxConfig: MaxConfig = MaxConfig.NONE,
+    maxPlatform: MaxPlatform = FakeMaxPlatform(),
 ): AdsController = AdsController(
     context = context,
     unitIds = unitIds,
     consentDebug = consentDebug,
+    debugOptions = debugOptions,
     flags = flags,
     connectivity = connectivity,
     shortcutConfig = shortcutConfig,
@@ -47,6 +52,8 @@ internal fun testAdsController(
     interDisplayCounter = interDisplayCounter,
     attribution = attribution,
     funnel = funnel,
+    maxConfig = maxConfig,
+    maxPlatform = maxPlatform,
 )
 
 /** Counts the calls of :core:ads to AppsFlyer's start-up. */

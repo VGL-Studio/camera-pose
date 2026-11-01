@@ -83,7 +83,7 @@ jobs:
       - name: Xóa cấu hình staging khỏi máy chạy
         run: rm -f app/src/staging/release/google-services.json "${RUNNER_TEMP}/staging.keystore"
 
-      # Same emulator setup as the ui-test job of pr-check.yml, except the emulated back camera (T-062).
+      # Same emulator setup as the ui-test job of main-guard.yml (ADR-0043), except the emulated back camera (T-062).
       - name: Giải phóng đĩa cho emulator
         run: |
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /opt/hostedtoolcache/CodeQL

@@ -70,6 +70,12 @@ enum class AdFormat(val code: String) {
      * (T-028).
      */
     NATIVE_IN_COLLECTION("native_in_collection"),
+
+    /**
+     * Banner of 300 x 250 dp placed in the content of a screen with [AdSlot], refreshed by its ad unit in AdMob like
+     * [BANNER] (B-08); never in the bottom bar, never a list row.
+     */
+    BANNER_MREC("banner_mrec"),
 }
 
 /**
@@ -195,6 +201,7 @@ enum class AdPlacement(
     GALLERY_APP_OPEN("gallery_app_open", AdFormat.APP_OPEN),
     GALLERY_BANNER("gallery_banner", AdFormat.BANNER),
     GALLERY_BANNER_COLLAPSIBLE("gallery_banner_collapsible", AdFormat.BANNER_COLLAPSIBLE),
+    GALLERY_BANNER_MREC("gallery_banner_mrec", AdFormat.BANNER_MREC),
     GALLERY_IN_COLLECTION("gallery_in_collection", AdFormat.NATIVE_IN_COLLECTION, nativeEvery = 4),
     GALLERY_NATIVE_STEP("gallery_native_step", AdFormat.NATIVE_STEP),
     GALLERY_NATIVE_STEP_FULL("gallery_native_step_full", AdFormat.NATIVE_FULL_SCREEN),

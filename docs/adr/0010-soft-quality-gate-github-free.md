@@ -12,6 +12,10 @@ amends: ADR-0002
 
 > Ghi chú 2026-10-23: [ADR-0025](0025-main-self-healing.md) thay một phần mục 2 (chạy lại test hỏng một lần, đóng issue khi chạy lại xanh trên chính commit bị đổ lỗi, merge bản revert được kiểm bằng nội dung, phiên tự revert commit merge của chính phiên). Các quy tắc còn lại của ADR-0010 giữ nguyên.
 
+> Ghi chú 2026-10-29: [ADR-0039](0039-main-guard-tin-lan-kiem-cua-pr.md) thay một phần mục 2: `main-guard` không chạy lại cổng chất lượng cho commit có cây file mà `pr-check` đã chạy `check.sh` xanh, chỉ chạy `scripts/tests/run.sh` khi phần khác chỉ là tài liệu, và luôn chạy đầy đủ khi chạy tay, chạy lại hay khi commit đổi chính cổng kiểm.
+
+> Ghi chú 2026-10-30: [ADR-0043](0043-test-emulator-sau-merge.md) thay ý emulator của mục 1 và mục 4: test trên emulator không chạy ở `pr-check` mà chạy sau merge, ở job `ui-test` của `main-guard.yml`, một lần cho mỗi commit đổi code app; `merge-if-green.sh` không đòi hay chờ `ui-test`.
+
 ## Bối cảnh
 
 ADR-0002 quyết định chỉ merge vào nhánh chính khi qua cổng chất lượng, và nhánh chính được bảo vệ. Tổ chức đang dùng gói GitHub Free, với repo private thì GitHub không cho bật bảo vệ nhánh, ruleset hay kiểm tra bắt buộc. Nhóm quyết định giữ gói Free. Vì vậy phải bảo đảm nguyên tắc của ADR-0002 bằng cách khác. Gói Free cũng giới hạn số phút GitHub Actions cho repo private, nên CI phải tiết kiệm.

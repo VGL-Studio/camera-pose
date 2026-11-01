@@ -32,5 +32,28 @@ class BannerFrameTest {
         assertEquals(false, bannerShouldRun(visible = true, frame = BannerFrame.NONE))
     }
 
+    @Test
+    fun slotHeight_table() {
+        val rows = listOf(
+            HeightRow(BannerFrame.NONE, BannerSizeKind.MEDIUM_RECTANGLE, failedBeforeAd = false) to 0,
+            HeightRow(BannerFrame.NONE, BannerSizeKind.MEDIUM_RECTANGLE, failedBeforeAd = true) to 0,
+            HeightRow(BannerFrame.NONE, BannerSizeKind.ANCHORED, failedBeforeAd = false) to 0,
+            HeightRow(BannerFrame.NONE, BannerSizeKind.ANCHORED, failedBeforeAd = true) to 0,
+            HeightRow(BannerFrame.ACTIVE, BannerSizeKind.MEDIUM_RECTANGLE, failedBeforeAd = false) to 250,
+            HeightRow(BannerFrame.ACTIVE, BannerSizeKind.MEDIUM_RECTANGLE, failedBeforeAd = true) to 0,
+            // B-06: a kept frame keeps its height.
+            HeightRow(BannerFrame.KEPT_EMPTY, BannerSizeKind.MEDIUM_RECTANGLE, failedBeforeAd = true) to 250,
+            // Control (L-055): fixed and collapsible banners never shrink on a failure.
+            HeightRow(BannerFrame.ACTIVE, BannerSizeKind.ANCHORED, failedBeforeAd = true) to 250,
+            HeightRow(BannerFrame.ACTIVE, BannerSizeKind.LARGE_ANCHORED, failedBeforeAd = true) to 250,
+        )
+
+        rows.forEach { (row, expected) ->
+            assertEquals("$row", expected, bannerSlotHeightDp(row.frame, row.kind, 250, row.failedBeforeAd))
+        }
+    }
+
+    private data class HeightRow(val frame: BannerFrame, val kind: BannerSizeKind, val failedBeforeAd: Boolean)
+
     private data class Row(val gateOpen: Boolean, val enabled: Boolean, val unitId: String?, val hadAd: Boolean)
 }

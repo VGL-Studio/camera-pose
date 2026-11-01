@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.template.android.application)
     alias(libs.plugins.template.android.compose)
@@ -6,6 +8,14 @@ plugins {
     // a real file in src/staging/debug, src/staging/release or src/production takes precedence (ADR-0012).
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
+}
+
+// The developer's local.properties (never in git), read once; empty when the file is absent. Read only by the
+// staging flavor (T-058; T-068 reuses it): production never reads it, though scripts/release.sh copies the file.
+val localProperties: Properties = Properties().apply {
+    providers.fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+        .asText.orNull
+        ?.let { load(it.reader()) }
 }
 
 android {
@@ -45,10 +55,37 @@ android {
     // on R2; production values are given by the person building the release, never stored in the repo (ADR-0009):
     //   -PadmobAppId=<AdMob app id> -PadUnits="<placement key>=<ad unit>;<placement key>=<ad unit>"
     //   -PassetsBaseUrl=<https address of the production files on R2>
+    //   -PmaxSdkKey=<AppLovin MAX SDK key> (optional until T-073 of the template)
+    //   -PmaxAdUnits="banner=<MAX ad unit>;banner_mrec=<MAX ad unit>" (optional until T-073 of the template)
     productFlavors {
         named("staging") {
             manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
             buildConfigField("String", "ASSETS_BASE_URL", "\"https://camera-pose.vgl.io.vn/\"")
+            // A developer's own phones as AdMob test devices (T-058, KB-28, question 40 of the ads spec): the key
+            // ads.testDeviceIds of local.properties. Only this flavor reads it; CI has no such key.
+            val adsTestDeviceIds = localProperties.getProperty("ads.testDeviceIds")
+                .orEmpty()
+                .split(',')
+                .map { it.trim() }
+                .filter { it.matches(Regex("[0-9A-Za-z]+")) }
+                .joinToString(",")
+            buildConfigField("String", "ADS_TEST_DEVICE_IDS", "\"$adsTestDeviceIds\"")
+            // An AppLovin MAX SDK key to try MAX on a developer's phone (T-068, ADR-0037): the key ads.maxSdkKey of
+            // local.properties, never a parameter, so CI always builds staging without MAX. Filtered, as a quote or a
+            // backslash would break the Java string of BuildConfig; the value is never printed.
+            val maxSdkKeyRead = localProperties.getProperty("ads.maxSdkKey").orEmpty().trim()
+            val maxSdkKey = maxSdkKeyRead.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) }.orEmpty()
+            if (maxSdkKeyRead.isNotEmpty() && maxSdkKey.isEmpty()) {
+                logger.warn("ads.maxSdkKey in local.properties ignored: only letters, digits, _ and - are allowed")
+            }
+            buildConfigField("String", "MAX_SDK_KEY", "\"$maxSdkKey\"")
+            // The MAX ad unit of each slot (T-071, ADR-0037): the key ads.maxAdUnits of local.properties, as
+            // "banner=<unit>;banner_mrec=<unit>". A value with other characters is dropped, not printed; the app then
+            // logs the slots without a MAX unit.
+            val maxAdUnits = localProperties.getProperty("ads.maxAdUnits").orEmpty().trim()
+                .takeIf { it.matches(Regex("[A-Za-z0-9_=;-]*")) }
+                .orEmpty()
+            buildConfigField("String", "MAX_AD_UNITS", "\"$maxAdUnits\"")
             // Builds sent to the team by staging.yml carry the run number, so testers can tell them apart.
             providers.gradleProperty("stagingBuildNumber").orNull?.toInt()?.let { buildNumber ->
                 versionCode = buildNumber
@@ -63,6 +100,18 @@ android {
                 "String",
                 "ASSETS_BASE_URL",
                 "\"${providers.gradleProperty("assetsBaseUrl").getOrElse("")}\"",
+            )
+            // Optional until T-073 requires it with scripts/release.sh: without it MAX never starts (ADR-0037).
+            buildConfigField(
+                "String",
+                "MAX_SDK_KEY",
+                "\"${providers.gradleProperty("maxSdkKey").getOrElse("")}\"",
+            )
+            // Optional until T-073 passes it from scripts/release.sh: a slot without a MAX unit loads from AdMob only.
+            buildConfigField(
+                "String",
+                "MAX_AD_UNITS",
+                "\"${providers.gradleProperty("maxAdUnits").getOrElse("")}\"",
             )
             signingConfigs.findByName("upload")?.let { signingConfig = it }
         }

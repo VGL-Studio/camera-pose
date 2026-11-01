@@ -10,25 +10,26 @@ class AdUnitIdsTest {
     fun configuredUnits_areParsedPerPlacementKey() {
         val ids = ConfiguredAdUnitIds(
             " sample_native_small = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
-                "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;" +
+                "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;banner=unit/8;native_collap=unit/9;" +
                 // The placements of this app (plan T-074, ADR-0029).
-                "poses_bottom=unit/8;pose_detail_bottom=unit/9;review_interstitial=unit/10;inter_pose_detail=unit/11",
+                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13",
         )
         assertEquals("unit/1", ids.of(AdPlacement.SAMPLE_NATIVE_SMALL))
         assertTrue(ids.missing.isEmpty())
+        // Control: without the two slot keys, the layers of the bottom bar are missing (plan T-056, section 3.5).
+        val withoutSlots = ConfiguredAdUnitIds(
+            " sample_native_small = unit/1 ; other_key=unit/2;open_app=unit/3;open_app_inter=unit/4;" +
+                "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;" +
+                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13",
+        )
+        assertEquals(listOf("banner", "native_collap"), withoutSlots.missing)
         // Control: app-wide placements still need a unit on production (plan T-024, section 3.3).
         val withoutAppWide = ConfiguredAdUnitIds(
             " sample_native_small = unit/1 ; other_key=unit/2;" +
-                "poses_bottom=unit/8;pose_detail_bottom=unit/9;review_interstitial=unit/10;inter_pose_detail=unit/11",
+                "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13",
         )
         assertEquals(
-            listOf(
-                AdPlacement.OPEN_APP,
-                AdPlacement.OPEN_APP_INTER,
-                AdPlacement.NATIVE_AFTER_INTER,
-                AdPlacement.RESUME,
-                AdPlacement.RESUME_INTER,
-            ),
+            listOf("open_app", "open_app_inter", "native_combo", "resume", "resume_inter", "banner", "native_collap"),
             withoutAppWide.missing,
         )
     }
@@ -37,7 +38,10 @@ class AdUnitIdsTest {
     fun placementWithoutUnit_isReportedMissingAndShowsNoAd() {
         val ids = ConfiguredAdUnitIds("")
         // Staging-only placements (gallery_*) never ship, so a release needs no unit for them.
-        assertEquals(AdPlacement.entries.filterNot { it.stagingOnly }, ids.missing)
+        assertEquals(
+            AdPlacement.entries.filterNot { it.stagingOnly }.map { it.key } + listOf("banner", "native_collap"),
+            ids.missing,
+        )
         assertNull(ids.of(AdPlacement.SAMPLE_NATIVE_SMALL))
     }
 
@@ -52,10 +56,24 @@ class AdUnitIdsTest {
     @Test
     fun googleTestIds_coverGalleryPlacements() {
         val gallery = AdPlacement.entries.filter { it.stagingOnly }
-        assertEquals(13, gallery.size)
+        assertEquals(14, gallery.size)
         gallery.forEach { placement ->
             assertTrue(placement.key, GoogleTestAdUnitIds.of(placement).startsWith("ca-app-pub-3940256099942544/"))
         }
+    }
+
+    @Test
+    fun googleTestUnit_bannerMrec_isFixedSizeBannerUnit() {
+        // Google's fixed-size banner unit, used for every fixed size, 300 x 250 too (plan T-062, question 1).
+        val fixedSize = "ca-app-pub-3940256099942544/6300978111"
+        // Control: the adaptive banner has its own unit.
+        assertEquals("ca-app-pub-3940256099942544/9214589741", GoogleTestAdUnitIds.unitFor(AdFormat.BANNER))
+        assertEquals(fixedSize, GoogleTestAdUnitIds.unitFor(AdFormat.BANNER_MREC))
+        assertEquals(fixedSize, GoogleTestAdUnitIds.of(AdPlacement.GALLERY_BANNER_MREC))
+        // Staging only: production never gets a unit for it, nor reports it missing.
+        val configured = ConfiguredAdUnitIds("gallery_banner_mrec=x")
+        assertNull(configured.of(AdPlacement.GALLERY_BANNER_MREC))
+        assertTrue("gallery_banner_mrec" !in configured.missing)
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -126,8 +144,101 @@ class AdUnitIdsTest {
         val bar = AdPlacement.SAMPLE_NATIVE_SMALL
         // Control: the placement's own format gets its configured unit.
         assertEquals("unit/1", ids.of(bar, AdFormat.NATIVE_SMALL))
-        // The banner and collapsible layers have no unit on production until units per slot exist (spec, Q14).
+        // The banner and collapsible layers have no unit on production without a slot key (plan T-056).
         assertNull(ids.of(bar, AdFormat.BANNER))
         assertNull(ids.of(bar, AdFormat.NATIVE_COLLAPSIBLE))
+    }
+
+    // Units per slot for the layers of a bottom bar (plan T-056, KB-17).
+
+    @Test
+    fun production_layerUnits_readFromSlotKeys() {
+        val ids = ConfiguredAdUnitIds("sample_native_small=unit/1;banner=unit/b;native_collap=unit/c")
+        val bar = AdPlacement.SAMPLE_NATIVE_SMALL
+        assertEquals("unit/b", ids.of(bar, AdFormat.BANNER))
+        assertEquals("unit/c", ids.of(bar, AdFormat.NATIVE_COLLAPSIBLE))
+        assertEquals("unit/1", ids.of(bar, AdFormat.NATIVE_SMALL))
+    }
+
+    @Test
+    fun production_ownFormat_ignoresSlotKey() {
+        // A slot key never stands in for the placement's own format (plan T-056, section 3.1, point 2).
+        val slotsOnly = ConfiguredAdUnitIds("native_small=unit/s;interstitial=unit/i")
+        assertNull(slotsOnly.of(AdPlacement.SAMPLE_NATIVE_SMALL))
+        assertNull(slotsOnly.of(AdPlacement.SAMPLE_NATIVE_SMALL, AdFormat.NATIVE_SMALL))
+        assertNull(slotsOnly.of(AdPlacement.OPEN_APP_INTER))
+        // Control: with the placement keys, the same configuration gives their units.
+        val withPlacements = ConfiguredAdUnitIds(
+            "native_small=unit/s;interstitial=unit/i;sample_native_small=unit/1;open_app_inter=unit/4",
+        )
+        assertEquals("unit/1", withPlacements.of(AdPlacement.SAMPLE_NATIVE_SMALL))
+        assertEquals("unit/1", withPlacements.of(AdPlacement.SAMPLE_NATIVE_SMALL, AdFormat.NATIVE_SMALL))
+        assertEquals("unit/4", withPlacements.of(AdPlacement.OPEN_APP_INTER))
+    }
+
+    @Test
+    fun production_stagingOnlyLayer_null() {
+        val ids = ConfiguredAdUnitIds("banner=unit/b;native_collap=unit/c")
+        assertNull(ids.of(AdPlacement.GALLERY_NATIVE_SMALL, AdFormat.BANNER))
+        assertNull(ids.of(AdPlacement.GALLERY_NATIVE_SMALL, AdFormat.NATIVE_COLLAPSIBLE))
+        // Control: a production placement gets the unit of the same slot.
+        assertEquals("unit/b", ids.of(AdPlacement.SAMPLE_NATIVE_SMALL, AdFormat.BANNER))
+    }
+
+    @Test
+    fun missingUnitKeys_listsLayerSlotsOnce() {
+        val placements = listOf(
+            AdPlacementDeclaration("bar_a", AdFormat.NATIVE_SMALL),
+            AdPlacementDeclaration("bar_b", AdFormat.NATIVE_SMALL),
+            AdPlacementDeclaration("inter_a", AdFormat.INTERSTITIAL),
+        )
+        // Each slot key once, though two bars need it.
+        assertEquals(
+            listOf("banner", "native_collap"),
+            missingUnitKeys(placements, setOf("bar_a", "bar_b", "inter_a")),
+        )
+        assertEquals(
+            listOf("native_collap"),
+            missingUnitKeys(placements, setOf("bar_a", "bar_b", "inter_a", "banner")),
+        )
+        assertEquals(
+            listOf("bar_a", "bar_b", "inter_a", "banner", "native_collap"),
+            missingUnitKeys(placements, emptySet()),
+        )
+    }
+
+    @Test
+    fun missingUnitKeys_noBar_noSlotKeys() {
+        val inter = AdPlacementDeclaration("inter_a", AdFormat.INTERSTITIAL)
+        val gallery = AdPlacementDeclaration("gallery_x", AdFormat.NATIVE_SMALL, stagingOnly = true)
+        assertEquals(listOf("inter_a"), missingUnitKeys(listOf(inter, gallery), emptySet()))
+        // Control: the same native small placement shipped on production needs its unit and the two slot keys.
+        assertEquals(
+            listOf("inter_a", "gallery_x", "banner", "native_collap"),
+            missingUnitKeys(listOf(inter, gallery.copy(stagingOnly = false)), emptySet()),
+        )
+    }
+
+    @Test
+    fun missingUnitsWarning_listsMissingKeys() {
+        val placementUnits = "sample_native_small=unit/1;open_app=unit/3;open_app_inter=unit/4;" +
+            // The placements of this app (ADR-0029).
+            "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13;" +
+            "native_combo=unit/5;resume=unit/6;resume_inter=unit/7"
+        val warning = missingUnitsWarning(ConfiguredAdUnitIds(placementUnits))
+        assertTrue("warning: $warning", warning != null && "banner, native_collap" in warning)
+        // Control: with the two slot keys nothing is missing, so no warning.
+        assertNull(missingUnitsWarning(ConfiguredAdUnitIds("$placementUnits;banner=unit/8;native_collap=unit/9")))
+        // Staging and other unit sources never warn.
+        assertNull(missingUnitsWarning(GoogleTestAdUnitIds))
+        assertNull(missingUnitsWarning(AdUnitIds { null }))
+    }
+
+    @Test
+    fun placementKeys_neverSlotNames() {
+        val formatCodes = AdFormat.entries.map { it.code }.toSet()
+        // Control: the slot names are among the format codes, so the check below is not empty.
+        assertTrue(formatCodes.containsAll(listOf("banner", "native_collap")))
+        assertEquals(emptySet<String>(), AdPlacement.entries.map { it.key }.toSet() intersect formatCodes)
     }
 }

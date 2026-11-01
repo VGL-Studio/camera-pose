@@ -15,7 +15,7 @@ Người làm: AI trong phiên có người theo dõi, trên máy có cả repo 
 | Loại | File | Khi xung đột |
 | --- | --- | --- |
 | Không bao giờ đồng bộ | `scripts/new-app.sh`, `scripts/template-sync.sh`, `docs/ops/new-app.md`, `.github/ISSUE_TEMPLATE/`, `docs/lessons.md`, `docs/runs/`, `docs/features/`, `docs/metrics/`, `docs/inbox/`, `docs/test-sessions/`, `docs/design-system/tokens.json`, `docs/ops/required-assets.txt`, trang sinh ra (`docs/foundation.md`, `docs/STATUS.md`, `docs/remote-config-keys.md`, `docs/remote-config-template.json`) | Không xảy ra: script bỏ các file này ở cả hai phía. Trang sinh ra được sinh lại trong app |
-| Của dự án mẫu, app không sửa | `scripts/`, `.github/`, `build-logic/`, `docs/auto-run.md`, `docs/risk-scoring.md`, `docs/templates/`, `docs/ops/`, ADR `origin: template`, `:core:logging`, `:core:network`, `:core:assets`, `:core:ads` trừ `AdPlacement.kt` | Lấy bản mẫu (`git checkout --theirs -- <file>`), sau khi chắc phần app sửa đã về dự án mẫu (mục 4, bước 1); rồi đặt lại giá trị riêng của app (mục 6) |
+| Của dự án mẫu, app không sửa | `scripts/`, `.github/`, `.claude/skills/` (command của quy trình; app cần command riêng thì đặt tên khác), `build-logic/`, `docs/auto-run.md`, `docs/risk-scoring.md`, `docs/templates/`, `docs/ops/`, ADR `origin: template`, `:core:logging`, `:core:network`, `:core:assets`, `:core:ads` trừ `AdPlacement.kt` | Lấy bản mẫu (`git checkout --theirs -- <file>`), sau khi chắc phần app sửa đã về dự án mẫu (mục 4, bước 1); rồi đặt lại giá trị riêng của app (mục 6) |
 | Cả hai cùng sửa | `CLAUDE.md`, `docs/CLAUDE.md`, `README.md`, `.gitignore`, `:app`, `:core:designsystem`, `:core:config`, `:core:analytics`, `AdPlacement.kt`, `feature/sample`, `feature/loading`, cấu hình build ở gốc | Gộp tay: lấy phần mới của mẫu, giữ phần riêng của app (module, vị trí quảng cáo, cờ, màu) |
 | Chỉ của app | Feature của app, module core riêng của app, ADR từ 1001, `scripts/setup-check-app.sh`, `scripts/tests/app.sh` (mục 6), kịch bản thử tay trên máy thật `docs/ops/manual-test.md` (theo nghiệp vụ của app, mẫu không có file này) | Không xảy ra: dự án mẫu không có các file này |
 
@@ -46,7 +46,7 @@ Chỉ PR đồng bộ được sửa `base=` và `hold=`. Script tự sửa, tro
    ```
 
    Script tạo nhánh `template-sync/<commit>` trong app. Không xung đột thì nó commit luôn. Có xung đột thì nó in danh sách theo mục 2 và dừng giữa chừng.
-4. **Gộp xung đột** theo cột cuối của bảng ở mục 2. Phần của app ghi lại ở bước 1 thì áp lại sau khi lấy bản mẫu (`git show <commit của app> -- <file> | git apply -3`). Xong thì:
+4. **Gộp xung đột** theo cột cuối của bảng ở mục 2. Đợt có đổi `scripts/cloud-setup.sh` thì xem ghi chú về `SETUP_VERSION` ở mục 7. Phần của app ghi lại ở bước 1 thì áp lại sau khi lấy bản mẫu (`git show <commit của app> -- <file> | git apply -3`). Xong thì:
    - chạy `python3 scripts/foundation.py`;
    - `git add` từng file;
    - chạy `git commit` (lời commit đã soạn sẵn).
@@ -91,3 +91,4 @@ Kiểm tra và test riêng của app không đặt trong file của mẫu. Mẫu
 
 - Tài liệu lấy từ dự án mẫu dẫn số bài học của dự án mẫu (`L-0NN`), khác số trong sổ bài học của app. Tra ở `docs/lessons.md` của repo dự án mẫu.
 - Bảng ở mục 2 khớp với `NEVER_SYNCED` và `TEMPLATE_OWNED` trong `scripts/template-sync.sh`. Đổi một chỗ thì đổi cả hai.
+- `SETUP_VERSION` của `scripts/cloud-setup.sh`: đợt đồng bộ có đổi file này, kể cả khi không xung đột, mà app đã từng tăng số riêng, thì đặt số bằng số lớn nhất app từng dùng cộng một, rồi dán lại script (`docs/ops/staging-and-runs.md`, mục 2.1). Hai bên cùng tăng lên một số với nội dung khác thì git gộp êm, số không đổi, và `cloud-env-check.sh` không báo phải dán lại (L-121).

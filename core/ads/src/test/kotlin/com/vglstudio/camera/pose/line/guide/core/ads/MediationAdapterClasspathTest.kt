@@ -46,6 +46,19 @@ class MediationAdapterClasspathTest {
     }
 
     @Test
+    fun maxSdkAndGoogleAdapter_areOnClasspath() {
+        // AppLovin MAX and its Google adapter, declared by core/ads on their own lines (plan T-068, ADR-0037).
+        Class.forName("com.applovin.sdk.AppLovinSdk", false, javaClass.classLoader)
+        val adapter = Class.forName(
+            "com.applovin.mediation.adapters.GoogleMediationAdapter",
+            false,
+            javaClass.classLoader,
+        )
+        val maxAdapter = Class.forName("com.applovin.mediation.adapter.MaxAdapter", false, javaClass.classLoader)
+        assertTrue("${adapter.name} is not a MAX adapter", maxAdapter.isAssignableFrom(adapter))
+    }
+
+    @Test
     fun unityAdsSdk_isOnClasspath() {
         // The Unity adapter's POM does not bring the Unity Ads SDK; core/ads declares it on its own line.
         Class.forName("com.unity3d.ads.UnityAds", false, javaClass.classLoader)

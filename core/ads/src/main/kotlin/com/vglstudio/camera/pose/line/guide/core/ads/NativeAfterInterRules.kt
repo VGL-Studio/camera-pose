@@ -5,22 +5,31 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 
-/** K-02: the native full-screen ad can be closed 3 s after it opened. */
-internal const val NATIVE_AFTER_INTER_COUNTDOWN_MILLIS = 3_000L
-
 /** K-02: how long the combo waits for the interstitial to leave the screen, and how often it looks. */
 internal const val INTER_GONE_WAIT_MILLIS = 2_000L
 internal const val INTER_GONE_POLL_MILLIS = 200L
 
 private const val MILLIS_PER_SECOND = 1_000L
-private const val MAX_SECONDS_LEFT = (NATIVE_AFTER_INTER_COUNTDOWN_MILLIS / MILLIS_PER_SECOND).toInt()
 
-/** K-02: the seconds shown by the countdown, rounded up (3, 2, 1), 0 once [deadline] has passed. */
-internal fun countdownSecondsLeft(deadline: Long, now: Long): Int {
+/** K-02: the countdown of the native full-screen ad when `time_close_native` is not set or out of range (JBase). */
+internal const val NATIVE_CLOSE_COUNTDOWN_DEFAULT_SECONDS = 5L
+
+/** K-02: the values of `time_close_native` taken as they are, in seconds (JBase). */
+internal val NATIVE_CLOSE_COUNTDOWN_SECONDS = 1L..30L
+
+/** K-02: `time_close_native` as seconds: 1 to 30 as they are, any other value [NATIVE_CLOSE_COUNTDOWN_DEFAULT_SECONDS]. */
+internal fun nativeCloseCountdownSeconds(remote: Long): Long =
+    if (remote in NATIVE_CLOSE_COUNTDOWN_SECONDS) remote else NATIVE_CLOSE_COUNTDOWN_DEFAULT_SECONDS
+
+/**
+ * K-02: the seconds shown by the countdown, rounded up (5, 4, 3, 2, 1 for a countdown of 5 s), never more than
+ * [countdownSeconds], 0 once [deadline] has passed.
+ */
+internal fun countdownSecondsLeft(deadline: Long, now: Long, countdownSeconds: Long): Int {
     val left = deadline - now
     if (left <= 0) return 0
     val seconds = (left + MILLIS_PER_SECOND - 1) / MILLIS_PER_SECOND
-    return seconds.coerceAtMost(MAX_SECONDS_LEFT.toLong()).toInt()
+    return seconds.coerceAtMost(countdownSeconds).toInt()
 }
 
 /**

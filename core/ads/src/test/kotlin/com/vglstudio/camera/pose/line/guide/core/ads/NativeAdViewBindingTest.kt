@@ -14,15 +14,19 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -52,11 +56,11 @@ class NativeAdViewBindingTest {
         adView = view
     }
 
-    private fun setHostedLayout(size: NativeAdSize) {
+    private fun setHostedLayout(size: NativeAdSize, assets: NativeAdAssets = sampleNativeAdAssets) {
         composeRule.setContent {
             AppTheme {
                 NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
-                    NativeAdLayout(sampleNativeAdAssets, size, binder, showAdChoicesMarker = false)
+                    NativeAdLayout(assets, size, binder, showAdChoicesMarker = false)
                 }
             }
         }
@@ -88,7 +92,90 @@ class NativeAdViewBindingTest {
         assertNotNull(view.callToActionView)
         assertNotNull(view.iconView)
         assertNull(view.mediaView)
+        // Small draws no star row, so nothing is registered for it (plan T-060).
+        assertNull(view.starRatingView)
         assertTrue(binds >= 1)
+    }
+
+    /** KB-2 (plan T-060): the star row of medium is registered with the SDK while the ad has stars, and only then. */
+    @Test
+    fun registersStarRatingView_medium_whenRated() {
+        var assets by mutableStateOf(sampleNativeAdAssets.copy(starRating = 4.0))
+        composeRule.setContent {
+            AppTheme {
+                NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
+                    NativeAdLayout(assets, NativeAdSize.MEDIUM, binder, showAdChoicesMarker = false)
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        val view = checkNotNull(adView)
+        val stars = view.starRatingView
+        assertNotNull("star row registered at rating 4.0", stars)
+        assertNotSame(view.headlineView, stars)
+        assertNotSame(view.iconView, stars)
+        assertNotSame(view.callToActionView, stars)
+        val expectedPx = with(composeRule.density) { NativeAdDimens.StarRowHeight.toPx() }
+        assertEquals("star row view height in px", expectedPx, checkNotNull(stars).height.toFloat(), 1f)
+
+        val bindsBefore = binds
+        assets = sampleNativeAdAssets.copy(starRating = 0.0)
+        composeRule.waitForIdle()
+        assertNull("no star row registered at rating 0", view.starRatingView)
+        assertTrue("bind ran $binds times, $bindsBefore before the rating went to 0", binds > bindsBefore)
+
+        assets = sampleNativeAdAssets.copy(starRating = 4.0)
+        composeRule.waitForIdle()
+        assertNotNull("star row registered again at rating 4.0", view.starRatingView)
+    }
+
+    /** KB-2 (plan T-060): the star row of the full native ad is registered while the ad has stars. */
+    @Test
+    fun registersStarRatingView_full() {
+        var assets by mutableStateOf(sampleNativeAdAssets.copy(starRating = 4.0))
+        composeRule.setContent {
+            AppTheme {
+                NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
+                    NativeAdLayout(assets, NativeAdSize.FULL, binder, showAdChoicesMarker = false)
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        val view = checkNotNull(adView)
+        assertNotNull("star row registered at rating 4.0", view.starRatingView)
+
+        assets = sampleNativeAdAssets.copy(starRating = null)
+        composeRule.waitForIdle()
+        assertNull("no star row registered without a rating", view.starRatingView)
+    }
+
+    /**
+     * KB-1 (plan T-060), drawn the way a real ad is (each part a nested view of the SDK binding): a long call to
+     * action of small stops at 120 dp, so the headline and the "Ad" label keep room; a short one keeps 80 dp.
+     */
+    @Test
+    fun sdkLayout_small_longCta_ctaAtMost120dp_headlineVisible() {
+        var assets by mutableStateOf(longFullNativeAdAssets)
+        composeRule.setContent {
+            AppTheme {
+                NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
+                    NativeAdLayout(assets, NativeAdSize.SMALL, binder, showAdChoicesMarker = false)
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        val cta = bounds(NativeAdTestTags.CTA)
+        val headline = bounds(NativeAdTestTags.HEADLINE)
+        val badge = bounds(NativeAdTestTags.BADGE)
+        val measured = "CTA ${cta.w()} dp, headline ${headline.w()} dp, Ad label ${badge.w()} dp"
+        assertEquals("long call to action width; $measured", 120f, cta.w(), 0.5f)
+        assertTrue("headline has no width; $measured", headline.w() > 0f)
+        assertTrue("Ad label has no width; $measured", badge.w() > 0f)
+        assertEquals("card height; $measured", 80f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
+
+        assets = sampleNativeAdAssets
+        composeRule.waitForIdle()
+        assertEquals("short call to action width", 80f, bounds(NativeAdTestTags.CTA).w(), 0.5f)
     }
 
     @Test
@@ -122,7 +209,16 @@ class NativeAdViewBindingTest {
         composeRule.onNodeWithTag(NativeAdTestTags.CARD, useUnmergedTree = true).assertHeightIsEqualTo(410.dp)
         composeRule.onNodeWithTag(NativeAdTestTags.CTA, useUnmergedTree = true).assertHeightIsEqualTo(44.dp)
         composeRule.onNodeWithTag(NativeAdTestTags.MEDIA, useUnmergedTree = true).assertHeightIsEqualTo(196.dp)
+        // The star row registered with the SDK keeps its 16 dp (plan T-060).
+        composeRule.onNodeWithTag(NativeAdTestTags.STAR_ROW, useUnmergedTree = true).assertHeightIsEqualTo(16.dp)
     }
+
+    private fun bounds(tag: String): DpRect =
+        composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+
+    private fun DpRect.w(): Float = (right - left).value
+
+    private fun DpRect.h(): Float = (bottom - top).value
 
     @Test
     fun removingMedia_unregistersAndBindsAgain() {

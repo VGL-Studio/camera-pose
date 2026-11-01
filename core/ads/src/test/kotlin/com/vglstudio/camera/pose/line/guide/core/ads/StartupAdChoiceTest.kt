@@ -5,6 +5,8 @@ import com.vglstudio.camera.pose.line.guide.core.config.RemoteKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -29,6 +31,10 @@ class StartupAdChoiceTest {
         set(RemoteKey.string(name, "", "Test key."), value)
 
     private suspend fun globalFlags(): AdsGlobalFlags = flags.global.first()
+
+    private fun adFreeStatus(flow: StateFlow<Boolean>): AdFreeStatus = object : AdFreeStatus {
+        override val adFree = flow
+    }
 
     /** A first-open mark that is never read. */
     private val neverRead: Flow<Boolean> = flow { awaitCancellation() }
@@ -248,5 +254,39 @@ class StartupAdChoiceTest {
         }
         assertTrue(chosen.none { it == gallery })
         assertTrue(AdPlacement.OPEN_APP in chosen)
+    }
+
+    @Test
+    fun adFree_isNull() = runTest {
+        // KB-30 and KB-13, criterion 5: no app open ad for a user who bought ad removal.
+        settings.set("show_open_ads", true)
+        settings.set("show_open_ads_first_open", true)
+        val adFree = DefaultAdsFlags(settings, adFreeStatus(MutableStateFlow(true))).global.first()
+        assertNull(startupAdPlacement(adFree, firstOpen = true))
+        assertNull(startupAdPlacement(adFree, firstOpen = false))
+        // Control (L-055): the same keys without the signal show the app open ad.
+        val notAdFree = DefaultAdsFlags(settings, adFreeStatus(MutableStateFlow(false))).global.first()
+        assertEquals(AdPlacement.OPEN_APP, startupAdPlacement(notAdFree, firstOpen = true))
+        assertEquals(AdPlacement.OPEN_APP, startupAdPlacement(notAdFree, firstOpen = false))
+    }
+
+    @Test
+    fun placementSwitch_adFreeMidSession_emitsFalse() = runTest {
+        // KB-30, criterion 3, for the app-wide placements (L-061): off at once, back on when the signal goes back.
+        settings.set("show_open_ads", true)
+        settings.set("show_resum_ads", true)
+        settings.set("is_show_native_after_inter", true)
+        val adFree = MutableStateFlow(false)
+        val adFreeFlags = DefaultAdsFlags(settings, adFreeStatus(adFree))
+        listOf(AdPlacement.OPEN_APP, AdPlacement.RESUME, AdPlacement.NATIVE_AFTER_INTER).forEach { placement ->
+            placementSwitch(placement, adFreeFlags, flowOf(false)).test {
+                assertEquals(placement.key, true, awaitItem())
+                adFree.value = true
+                assertEquals(placement.key, false, awaitItem())
+                adFree.value = false
+                assertEquals(placement.key, true, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
     }
 }

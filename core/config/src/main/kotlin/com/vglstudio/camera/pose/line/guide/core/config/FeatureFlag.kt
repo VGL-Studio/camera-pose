@@ -29,6 +29,10 @@ enum class FeatureFlag(val key: String, val description: String, val defaultValu
         "Asks for a Play review after enough saved photos (core/review rules).",
     ),
     POSE_MATCHING("feature_pose_matching_enabled", "Shows the live pose match score on the camera."),
+    PREMIUM_POSES(
+        "feature_premium_poses_enabled",
+        "Locks the premium poses of the catalog until they are unlocked; off means every pose can be used.",
+    ),
     ;
 
     /** The Remote Config key of this flag, listed with every other key of the app (ADR-0023). */

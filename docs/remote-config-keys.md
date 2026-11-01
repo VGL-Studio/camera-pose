@@ -13,6 +13,7 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 | `feature_onboarding_enabled` | boolean | `false` | `:core:config` | Shows the welcome screens and the camera permission request on first open. |
 | `feature_pose_matching_enabled` | boolean | `false` | `:core:config` | Shows the live pose match score on the camera. |
 | `feature_poses_enabled` | boolean | `false` | `:core:config` | Shows the pose library button on the camera and the library screens. |
+| `feature_premium_poses_enabled` | boolean | `false` | `:core:config` | Locks the premium poses of the catalog until they are unlocked; off means every pose can be used. |
 | `feature_settings_enabled` | boolean | `false` | `:core:config` | Shows the settings button and the settings screen. |
 | `pose_match_min_in_frame_percent` | long | `50` | `:core:config` | Confidence in percent, 1 to 99, from which a body point counts as in the frame; out of range uses 50. |
 | `pose_match_threshold` | long | `80` | `:core:config` | Score, 1 to 100, from which the pose on the camera counts as matched; out of range uses 80. |

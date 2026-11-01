@@ -258,6 +258,25 @@ expect "setup-check app: the catalog part stops with a note when its time is up"
 sca_reset; printf '200\n200\n404\n' > "$sca/codes/$v1key"; echo '{"poses": ' > "$sca/body/$v1key"
 expect "setup-check app: a catalog that answers 404 when downloaded again reports the 404" "1 1" \
   "$(sca_check) $(sca_lines "^LỖI - catalog mặc định của app $v1 trả '404' ở lần tải lại")"
+# Premium poses (T-085, spec poses question 6): the default pose and the starter poses are never premium.
+sca_premium() { # <catalog file>: a free or premium first pose a, a starter pose b, then a free pose c
+  printf '{"schema": 1, "minAppSchema": 1, "poses": [{"id": "a"%s}, {"id": "b", "starter": true%s, "outline": "poses/img/v1/b/outline.webp"}, {"id": "c"%s}]}' \
+    "$2" "$3" "$4" > "$1"
+}
+sca_reset; sca_premium "$sca/body/$v1key" ', "premium": true' '' ''
+expect "setup-check app: a premium default pose stops, naming it" "1 1 0" \
+  "$(sca_check) $(sca_lines "^LỖI - catalog mặc định của app $v1 có tư thế premium ở chỗ không được (mặc định a)") $(sca_lines '^ok   - catalog ')"
+sca_reset; sca_premium "$sca/body/$v1key" '' ', "premium": true' ''
+expect "setup-check app: a premium starter pose stops, naming it, and its files are still checked" "1 1 1" \
+  "$(sca_check) $(sca_lines "^LỖI - catalog mặc định của app $v1 có tư thế premium ở chỗ không được (khởi đầu b)") $(sca_calls '^HEAD .*/b/outline.webp$')"
+sca_reset; sca_rc "{\"defaultValue\": {\"value\": \"$v3\"}}"; sca_premium "$sca/body/$v3key" '' ', "premium": true' ''
+expect "setup-check app: a premium starter pose in the Remote Config catalog stops" "1 1" \
+  "$(sca_check --staging) $(sca_lines "^LỖI - khóa poses_catalog_path trỏ tới catalog $v3 có tư thế premium ở chỗ không được (khởi đầu b)")"
+sca_reset; sca_premium "$sca/body/$v1key" '' '' ''
+expect "setup-check app: a catalog without the premium field has no premium line" "0 0" "$(sca_check) $(sca_lines 'premium')"
+sca_reset; sca_premium "$sca/body/$v1key" '' '' ', "premium": true'
+expect "setup-check app: a premium pose that is neither the default nor a starter passes" "0 0 1" \
+  "$(sca_check) $(sca_lines 'premium') $(sca_lines "^ok   - catalog mặc định của app $v1 và 1 file khởi đầu")"
 expect "setup-check app: never prints secret values" 0 "$(grep -c 'RC-MARKER-1\|demo-staging\|fake-token' "$work/sca-all.out" || true)"
 printf 'problem "app check ran"\n' > "$work/sca-hook.sh"
 expect "setup-check: sources the app checks file and counts its problems" "1 1" \

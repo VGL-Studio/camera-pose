@@ -110,18 +110,54 @@ class CatalogParserTest {
         assertTrue(warnings.none { warning -> listOf("a01", "b01", "b05").any { it in warning.message } })
     }
 
-    private fun poseJson(keypoints: String? = null, extra: String = ""): String {
+    @Test
+    fun premium_readsTrue_missingAndFalseAreFree() {
+        val result = valid(
+            catalogWithPoses(
+                poseJson(id = "p1", extra = ", \"premium\": true"),
+                poseJson(id = "p2", extra = ", \"premium\": false"),
+                poseJson(id = "p3"),
+            ),
+        )
+
+        assertEquals(0, result.droppedPoses)
+        assertEquals(listOf("p1", "p2", "p3"), result.catalog.poses.map { it.id })
+        assertEquals(listOf(true, false, false), result.catalog.poses.map { it.premium })
+    }
+
+    @Test
+    fun premiumOnStarter_isIgnored_andLogsCountWithoutIds() {
+        val result = valid(
+            catalogWithPoses(
+                poseJson(id = "s1", extra = ", \"starter\": true, \"premium\": true"),
+                poseJson(id = "s2", extra = ", \"starter\": true"),
+                poseJson(id = "p3", extra = ", \"premium\": true"),
+            ),
+        )
+
+        assertEquals(listOf("s1", "s2", "p3"), result.catalog.poses.map { it.id })
+        assertEquals(listOf(true, true, false), result.catalog.poses.map { it.starter })
+        // Control in the same catalog: a premium pose that is not a starter stays premium.
+        assertEquals(listOf(false, false, true), result.catalog.poses.map { it.premium })
+        val warnings = logger.entries.filter { it.level == LogLevel.WARN && it.tag == "Poses" }
+        assertEquals(1, warnings.count { "premium on 1 starter" in it.message })
+        assertTrue(warnings.none { warning -> listOf("s1", "s2", "p3").any { it in warning.message } })
+    }
+
+    private fun poseJson(keypoints: String? = null, extra: String = "", id: String = "p1"): String {
         val keypointsPart = keypoints?.let { ", \"keypoints\": $it" }.orEmpty()
-        return """{"id": "p1", "category": "c", "subjectType": "single", "gender": "any", "framing": "full",
+        return """{"id": "$id", "category": "c", "subjectType": "single", "gender": "any", "framing": "full",
             "name": {"en": "P"}, "steps": {"en": ["s"]},
-            "preview": {"small": "poses/img/p1/preview_540-1a2b3c4d.webp",
-                        "large": "poses/img/p1/preview_1200-1a2b3c4d.webp"},
-            "outline": "poses/img/p1/outline-1a2b3c4d.webp"$keypointsPart$extra}"""
+            "preview": {"small": "poses/img/$id/preview_540-1a2b3c4d.webp",
+                        "large": "poses/img/$id/preview_1200-1a2b3c4d.webp"},
+            "outline": "poses/img/$id/outline-1a2b3c4d.webp"$keypointsPart$extra}"""
     }
 
     private fun catalogWith(pose: String, rootExtra: String = ""): String =
         """{"schema": 1, "minAppSchema": 1, "datasetVersion": "t",
             "categories": [{"id": "c", "name": {"en": "C"}}], "poses": [$pose]$rootExtra}"""
+
+    private fun catalogWithPoses(vararg poses: String): String = catalogWith(poses.joinToString(", "))
 
     @Test
     fun malformedJson_logsNoThrowable() {

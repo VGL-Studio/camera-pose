@@ -50,6 +50,15 @@ class RealCatalogV3Test {
     }
 
     @Test
+    fun realCatalog_hasNoPremiumField_everyPoseFree() {
+        val poses = catalog().poses
+        assertEquals(350, poses.size)
+
+        // Catalogs made before premium poses have no such field (spec poses, question 6).
+        assertEquals(emptyList<String>(), poses.filter { it.premium }.map { it.id })
+    }
+
+    @Test
     fun realCatalog_hasNoBorrowedAsset() {
         val poses = catalog().poses
         assertEquals(350, poses.size)

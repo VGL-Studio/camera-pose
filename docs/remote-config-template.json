@@ -36,6 +36,11 @@
       "description": "Shows the pose library button on the camera and the library screens.",
       "valueType": "BOOLEAN"
     },
+    "feature_premium_poses_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "Locks the premium poses of the catalog until they are unlocked; off means every pose can be used.",
+      "valueType": "BOOLEAN"
+    },
     "feature_settings_enabled": {
       "defaultValue": { "value": "false" },
       "description": "Shows the settings button and the settings screen.",

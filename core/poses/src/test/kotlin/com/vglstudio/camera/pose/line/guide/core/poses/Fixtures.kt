@@ -17,7 +17,7 @@ internal object Fixtures {
         return stream.bufferedReader().use { it.readText() }
     }
 
-    fun pose(id: String, categoryId: String = "x", starter: Boolean = false): Pose = Pose(
+    fun pose(id: String, categoryId: String = "x", starter: Boolean = false, premium: Boolean = false): Pose = Pose(
         id = id,
         categoryId = categoryId,
         subjectType = SubjectType.SINGLE,
@@ -26,6 +26,7 @@ internal object Fixtures {
         tags = emptyList(),
         difficulty = 1,
         starter = starter,
+        premium = premium,
         name = LocalizedText(mapOf("en" to "Pose $id")),
         steps = LocalizedList(mapOf("en" to listOf("Step"))),
         mistakes = LocalizedList(emptyMap()),

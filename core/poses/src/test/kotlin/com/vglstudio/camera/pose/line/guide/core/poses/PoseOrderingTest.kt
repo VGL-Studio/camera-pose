@@ -84,6 +84,23 @@ class PoseOrderingTest {
     }
 
     @Test
+    fun defaultPose_isFirstFreePose_whenFirstIsPremium() {
+        val premiumFirst = catalog.copy(
+            poses = catalog.poses.map { if (it.id == "p1") it.copy(premium = true) else it },
+        )
+        // Control: the same catalog without premium keeps p1 as the default pose.
+        assertEquals("p1", library(saved, recent).defaultPose?.id)
+
+        assertEquals("p2", library(saved, recent, of = premiumFirst).defaultPose?.id)
+    }
+
+    @Test
+    fun defaultPose_everyPosePremium_isFirstPose() {
+        val allPremium = catalog.copy(poses = catalog.poses.map { it.copy(premium = true) })
+        assertEquals("p1", library(saved, recent, of = allPremium).defaultPose?.id)
+    }
+
+    @Test
     fun lastUsedPose_isNewestRecentStillInCatalog() {
         val library = library(recent = listOf(UsedPose("ghost", 999), UsedPose("p2", 50), UsedPose("p6", 70)))
         assertEquals("p6", library.lastUsedPose?.id)

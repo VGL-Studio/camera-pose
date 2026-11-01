@@ -16,7 +16,11 @@ enum class PoseFile { THUMBNAIL, IMAGE, OUTLINE }
 
 data class PoseCategory(val id: String, val name: LocalizedText)
 
-/** One pose of the catalog. The image paths are used by [PoseCatalogRepository.loadFile], not by features. */
+/**
+ * One pose of the catalog. The image paths are used by [PoseCatalogRepository.loadFile], not by features.
+ * A [premium] pose is locked until it is unlocked on the device, while FeatureFlag.PREMIUM_POSES is on
+ * ([com.vglstudio.camera.pose.line.guide.core.poses.PremiumPoseRepository]). A starter pose is never premium.
+ */
 data class Pose(
     val id: String,
     val categoryId: String,
@@ -26,6 +30,7 @@ data class Pose(
     val tags: List<String>,
     val difficulty: Int,
     val starter: Boolean,
+    val premium: Boolean = false,
     val name: LocalizedText,
     val steps: LocalizedList,
     val mistakes: LocalizedList,

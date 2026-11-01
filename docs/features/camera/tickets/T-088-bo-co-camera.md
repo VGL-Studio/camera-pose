@@ -5,7 +5,7 @@ feature: camera
 spec: features/camera/spec.md   # confirmed 2026-10-31, mục 8 (cờ không còn tác dụng, bỏ ở ticket này)
 scenarios: []
 owner: Nhật
-status: approved
+status: planned
 risk: high
 size: S
 depends_on: [T-081]          # T-081 bỏ chỗ đọc cờ trong chooseMainScreen

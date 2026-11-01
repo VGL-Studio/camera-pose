@@ -200,7 +200,7 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
     - khóa mới `time_close_native`: đếm ngược 5 giây trước khi đóng được native toàn màn hình;
     - khóa mới `ads_mediation_order` (thứ tự MAX và AdMob, mặc định `max_admob`; không có khóa MAX thì chỉ AdMob, câu 16);
     - banner cố định dùng cỡ thích ứng neo đáy thường thay cho cỡ lớn (B-01);
-    - vị trí mới `gallery_banner_mrec`, chỉ có ở bản staging (màn xem thử quảng cáo, app không có màn này).
+    - vị trí mới `gallery_banner_mrec` của màn xem thử quảng cáo ở bản staging (app không có màn này); vị trí và khóa `is_show_gallery_banner_mrec` có ở mọi bản, mặc định tắt.
     - Đề xuất của AI: nhận như dự án mẫu. Đây là chuẩn nghiệp vụ chung của khung (ADR-0038); muốn khác thì đặt giá trị trên Remote Config, trừ `CACHED_EARLY` không còn công tắc. Không cần sửa spec màn nào.
     - Trả lời: nhận như dự án mẫu, theo đề xuất. Nhật, 2026-11-01.
 
@@ -227,3 +227,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-01 | Nhật | Xác nhận phần đổi của PR #279 (mục 2, mục 6, câu 14, câu 16). Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-01 | AI | Theo rà soát độc lập PR #279: câu 17 mới, liệt kê các đổi hành vi khác của khung trong đợt đồng bộ. Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-11-01 | Nhật | Trả lời câu 17 (AI ghi) và xác nhận spec. Lời của Nhật: chọn "Nhận như mẫu, xác nhận spec" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-11-01 | AI | Câu 17, theo rà soát lại PR #279: sửa chữ cho đúng code (`gallery_banner_mrec` có trong danh sách vị trí ở mọi bản, mặc định tắt). Không đổi câu trả lời, spec giữ `confirmed` |

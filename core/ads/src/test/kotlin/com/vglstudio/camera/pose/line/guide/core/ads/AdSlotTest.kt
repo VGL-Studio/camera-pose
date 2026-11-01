@@ -179,6 +179,33 @@ class AdSlotTest {
         assertEquals(listOf(true), reported)
     }
 
+    @Test
+    fun twoPlatforms_bothHaveNoAd_collapsesAndHidesSeparator() {
+        val max = FakeBannerAdView()
+        val admob = FakeBannerAdView()
+        setBanner(
+            newView = {
+                OrderedBannerAdView(
+                    listOf(AdPlatform.MAX to max, AdPlatform.ADMOB to admob),
+                    { true },
+                    RecordingAppLogger(),
+                    AdPlacement.GALLERY_BANNER.key,
+                )
+            },
+        )
+        composeRule.runOnUiThread { max.emitFailed(NO_FILL) }
+        composeRule.waitForIdle()
+        // Control: after MAX alone the room and the separator stay, so the checks below can fail.
+        assertTrue(hasSeparator())
+
+        composeRule.runOnUiThread { admob.emitFailed(NO_FILL) }
+        composeRule.waitForIdle()
+        // The last platform failing is a failed load: the slot collapses, the separator goes, one false is reported.
+        assertFalse(hasSeparator())
+        assertEquals(0f, slotHeight(), 0.5f)
+        assertEquals(listOf(false), reported)
+    }
+
     private companion object {
         const val SLOT = "slot"
         const val SEPARATOR = "separator"

@@ -17,8 +17,9 @@ private const val TAG = "Ads"
 /**
  * The in-place refresh of a single-ad native slot that shows [first] (CL-02, O-05; plan T-040):
  *
- * - A tick [firstTickDelayMillis] after the first ad, then 60 s after each swap. A tick that comes in background is
- *   skipped, not saved: the next one is 60 s later, nothing runs when the app comes back (L-A19).
+ * - A tick [firstTickDelayMillis] after the first ad, then 60 s after each swap. A tick that comes while [foreground]
+ *   is false (in background, or covered by a full-screen ad when it is the in-screen window, KB-27) is skipped, not
+ *   saved: the next one is 60 s later, nothing runs when the app comes back or the cover goes (L-A19).
  * - A tick in foreground asks the gate ([awaitSendAllowed]), then claims from [source] for at most 10 s. An ad is
  *   emitted, then the old one destroyed; the failure count goes back to 0.
  * - No ad, 10 s gone or an error keep the old ad and retry after `nativeDelayMillis(n, holdsAd = true)` (2, 4, 8, 16,

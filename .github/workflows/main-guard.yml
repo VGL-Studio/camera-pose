@@ -8,6 +8,13 @@
 # - Green run: close open main-broken issues when this commit contains the blamed commit, or is that very
 #   commit run again (an older commit finishing late must not close a newer breakage; ADR-0025, point 2).
 # - Run by hand (workflow_dispatch) for a commit that got no push event (L-076): same steps on the head of main.
+# - scripts/main-guard-verified.sh first chooses how to check (ADR-0039): skip when pr-check already ran check.sh green
+#   on the very same tree, tests (scripts/tests/run.sh only) when only docs differ, full otherwise and whenever unsure.
+#   skip is a step inside this job, never a job-level if, so the check run guard still ends success.
+# - Job ui-test (ADR-0043): the emulator tests, which left pr-check.yml. guard decides with scripts/ui-test-needed.sh
+#   (output ui) whether the commit changes app code; ui-test then runs after guard. It runs the tests at most twice
+#   (scripts/ui-test-on-emulator.sh) and scripts/ui-test-verdict.sh concludes green, flaky, infra or red. Only red opens
+#   main-broken, with the marker <!-- check:ui-test -->; each job comments on and closes only its own issue.
 # Changing this file is a high-risk plan; cross-review required.
 name: main-guard
 
@@ -28,6 +35,9 @@ permissions:
   contents: write
   issues: write
   checks: read
+  # main-guard-verified.sh reads the PR of the commit and its pr-check run (ADR-0039).
+  actions: read
+  pull-requests: read
 
 jobs:
   guard:
@@ -35,22 +45,39 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    outputs:
+      ui: ${{ steps.ui.outputs.ui }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 50
 
-      - uses: actions/setup-java@v5
+      - name: Chọn cách kiểm (scripts/main-guard-verified.sh)
+        id: mode
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "mode=$(scripts/main-guard-verified.sh "${GITHUB_SHA}" "${GITHUB_EVENT_NAME}" "${GITHUB_RUN_ATTEMPT}")" >> "$GITHUB_OUTPUT"
+
+      # No if: it runs in every mode, skip included; the job ui-test reads its output (ADR-0043).
+      - name: Có cần test trên emulator (scripts/ui-test-needed.sh)
+        id: ui
+        run: echo "ui=$(scripts/ui-test-needed.sh "${GITHUB_SHA}" "${GITHUB_EVENT_NAME}")" >> "$GITHUB_OUTPUT"
+
+      # Any mode other than skip and tests (even an empty one) is full.
+      - if: steps.mode.outputs.mode != 'skip'
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
+      - if: steps.mode.outputs.mode != 'skip' && steps.mode.outputs.mode != 'tests'
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Cổng chất lượng (scripts/check.sh)
         id: first
+        if: steps.mode.outputs.mode != 'skip'
         continue-on-error: true
-        run: scripts/check.sh 2>&1 | tee build.log
+        run: if [ "${{ steps.mode.outputs.mode }}" = "tests" ]; then scripts/tests/run.sh 2>&1 | tee build.log; else scripts/check.sh 2>&1 | tee build.log; fi
 
       - name: Phân loại lỗi
         id: kind
@@ -68,6 +95,10 @@ jobs:
       - name: Kết quả cổng chất lượng
         id: check
         run: |
+          if [ "${{ steps.mode.outputs.mode }}" = "skip" ]; then
+            echo "Đã kiểm ở PR, xem bước Chọn cách kiểm."
+            exit 0
+          fi
           if [ "${{ steps.first.outcome }}" = "success" ]; then
             exit 0
           fi
@@ -121,8 +152,9 @@ jobs:
           culprit="$(scripts/find-breaking-commit.sh "${GITHUB_SHA}")"
           short="${culprit::7}"
 
-          # Re-read after waiting: the run of an older red commit may have opened the issue meanwhile.
-          open_issue="$(gh issue list --label main-broken --state open --json number --jq '.[0].number // empty')"
+          # Re-read after waiting: the run of an older red commit may have opened the issue meanwhile. The issue of the
+          # job ui-test (marker check:ui-test) is not this job's (ADR-0043).
+          open_issue="$(gh issue list --label main-broken --state open --json number,body --jq '[.[] | select(.body | contains("<!-- check:ui-test -->") | not)][0].number // empty')"
           if [ -n "${open_issue}" ]; then
             {
               echo "Commit ${GITHUB_SHA} cũng không qua cổng chất lượng (commit gây lỗi xác định được: ${culprit})."
@@ -166,7 +198,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh issue list --label main-broken --state open --json number,body \
-            --jq '.[] | "\(.number) \((.body | capture("<!-- culprit:(?<s>[0-9a-f]+) -->").s) // "")"' |
+            --jq '.[] | select(.body | contains("<!-- check:ui-test -->") | not) | "\(.number) \((.body | capture("<!-- culprit:(?<s>[0-9a-f]+) -->").s) // "")"' |
           while read -r number culprit; do
             if [ -z "${culprit}" ]; then
               continue
@@ -176,5 +208,227 @@ jobs:
             status="$(gh api "repos/${{ github.repository }}/compare/${culprit}...${GITHUB_SHA}" --jq .status)"
             if [ "${status}" = "ahead" ] || [ "${status}" = "identical" ]; then
               gh issue close "${number}" --comment "Nhánh chính xanh trở lại tại commit ${GITHUB_SHA}."
+            fi
+          done
+
+  # The emulator tests (app/src/androidTest), once for each commit of main that changes app code (ADR-0043). They left
+  # pr-check.yml; a red result opens main-broken like guard, with its own issue (marker check:ui-test).
+  ui-test:
+    needs: guard
+    # An empty output (the step ui could not write it) still runs the emulator.
+    if: needs.guard.outputs.ui != 'no'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # ui-test-verdict.sh compares the commit with its parent; find-breaking-commit.sh walks back from it.
+          fetch-depth: 50
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The emulator needs ~7.4 GB free for its data partition (a smaller disk-size is ignored). Once the
+      # Gradle caches of main are restored, the runner has only ~5.5-6.4 GB left. Remove preinstalled
+      # toolchains this job never uses.
+      - name: Giải phóng đĩa cho emulator
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Bật KVM cho emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Runs the tests, and once more on the same emulator when the first run is red (ADR-0043). The step never fails
+      # the job by itself: the verdict step decides.
+      - name: Test trên emulator
+        id: emulator
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: scripts/ui-test-on-emulator.sh
+
+      - name: Tóm tắt test trên emulator
+        if: always()
+        run: scripts/test-summary.sh android 2>&1 | tee ui-summary.log || true
+
+      # Gradle cuts the assertion message of a failed device test. Print it in full, with the app's log, so people
+      # and the auto-run session can read why a test failed from the job log alone (docs/auto-run.md, step 9).
+      - name: Chi tiết test trên emulator
+        if: steps.emulator.outcome == 'failure' || hashFiles('ui-test-first.log') != ''
+        run: |
+          echo "== Lỗi của từng test"
+          find app/build/outputs/androidTest-results -name '*.xml' -print0 2>/dev/null |
+            xargs -0 -r sed -n '/<failure/,/<\/failure>/p' | head -n 400
+          echo "== Log của app trên emulator (thẻ VGL, lỗi dừng app)"
+          grep -E ' (VGL[A-Za-z0-9_.]*|AndroidRuntime) *:' logcat.txt 2>/dev/null | tail -n 300 || echo "Không có log."
+
+      - name: Lưu báo cáo test trên emulator
+        if: steps.emulator.outcome == 'failure' || hashFiles('ui-test-first.log') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-report
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+            logcat.txt
+            ui-test.log
+            ui-test-first.log
+            logcat-first.txt
+            ui-test-first-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Phân loại kết quả emulator (scripts/ui-test-verdict.sh)
+        id: verdict
+        if: always()
+        run: echo "verdict=$(scripts/ui-test-verdict.sh "${{ steps.emulator.outcome }}")" >> "$GITHUB_OUTPUT"
+
+      # infra prints ui-verdict.txt: its first line is the annotation (EMULATOR HẠ TẦNG (...), which
+      # find-breaking-commit.sh --check ui-test does not blame), the other lines are the log lines of that playbook row,
+      # so that gh run view --log-failed of this step looks up the right row (docs/ops/failure-playbook.md).
+      - name: Kết quả test trên emulator
+        id: check
+        if: always()
+        env:
+          VERDICT: ${{ steps.verdict.outputs.verdict }}
+        run: |
+          case "${VERDICT}" in
+            green | flaky)
+              exit 0
+              ;;
+            infra)
+              echo "::error::$(head -n 1 ui-verdict.txt 2> /dev/null || echo 'EMULATOR HẠ TẦNG (không có log): không có ui-verdict.txt.')"
+              tail -n +2 ui-verdict.txt 2> /dev/null || true
+              exit 1
+              ;;
+            *)
+              echo "::error::Test trên emulator không qua (kết luận: ${VERDICT:-không có}). Xem bước Chi tiết test trên emulator."
+              exit 1
+              ;;
+          esac
+
+      - name: Ghi test chập chờn
+        if: steps.verdict.outputs.verdict == 'flaky'
+        # Recording is a note for people: a GitHub hiccup here must not make a green commit look red.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create flaky --color FBCA04 --description "Test thất bại rồi qua khi chạy lại trên cùng commit" --force
+          tests="$(sed $'s/\033\\[[0-9;]*m//g' ui-test-first.log | grep -E ' > .+ FAILED[[:space:]]*$' | grep -vF '> Task ' | sed -E 's/[[:space:]]*FAILED[[:space:]]*$//' | sort -u || true)"
+          first_test="$(head -n 1 <<< "${tests}")"
+          {
+            echo "Test trên emulator thất bại ở lần chạy đầu của main-guard trên commit ${GITHUB_SHA}, rồi qua khi chạy lại trên cùng emulator (ADR-0043)."
+            echo "Lần chạy: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo "Test thất bại:"
+            echo '```'
+            echo "${tests:-Không đọc được tên test từ log.}"
+            echo '```'
+            echo "40 dòng cuối của lần chạy đầu:"
+            echo '```'
+            tail -n 40 ui-test-first.log
+            echo '```'
+          } > flaky.md
+          open_issue="$(gh issue list --label flaky --state open --json number --jq '.[0].number // empty')"
+          if [ -n "${open_issue}" ]; then
+            gh issue comment "${open_issue}" --body-file flaky.md
+          else
+            gh issue create --title "flaky: ${first_test:-test chập chờn} (emulator)" --label flaky --body-file flaky.md
+          fi
+
+      - name: Đánh dấu nhánh chính đang đỏ (emulator)
+        # Only a real failure (verdict red): infrastructure does not open main-broken (ADR-0043).
+        if: failure() && steps.verdict.outputs.verdict == 'red'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          gh label create main-broken --color B60205 --description "Nhánh chính không qua cổng chất lượng" --force
+          {
+            tail -n 60 ui-test.log 2>/dev/null || echo 'Không có ui-test.log.'
+            echo "== Lỗi từ kết quả test"
+            find app/build/outputs/androidTest-results -name '*.xml' -print0 2>/dev/null |
+              xargs -0 -r sed -n '/<failure/,/<\/failure>/p' | head -n 60
+          } > log_tail.txt
+          log_tail="$(cat log_tail.txt)"
+
+          # At most 15 minutes of waiting, so the issue is opened before the job times out.
+          culprit="$(MAX_WAIT_SECONDS=900 POLL_SECONDS=30 scripts/find-breaking-commit.sh --check ui-test "${GITHUB_SHA}")"
+          short="${culprit::7}"
+
+          # Only the main-broken issue of this job: guard has its own (ADR-0043).
+          open_issue="$(gh issue list --label main-broken --state open --json number,body --jq '[.[] | select(.body | contains("<!-- check:ui-test -->"))][0].number // empty')"
+          if [ -n "${open_issue}" ]; then
+            {
+              echo "Commit ${GITHUB_SHA} cũng không qua test trên emulator (commit gây lỗi xác định được: ${culprit})."
+              echo '```'
+              echo "${log_tail}"
+              echo '```'
+            } > comment.md
+            gh issue comment "${open_issue}" --body-file comment.md
+            exit 0
+          fi
+
+          {
+            echo "<!-- culprit:${culprit} -->"
+            echo "<!-- check:ui-test -->"
+            echo "Test trên emulator không qua (job ui-test của main-guard, ADR-0043). Commit gây lỗi: ${culprit}."
+            echo "Lần kiểm tra phát hiện: ${GITHUB_SHA}."
+            echo
+            echo "Khi issue này còn mở, \`scripts/merge-if-green.sh\` chỉ cho qua PR đúng là bản revert của commit gây lỗi (ADR-0025)."
+            echo "Phiên tự chạy chỉ revert commit merge của chính phiên; commit khác thì người phụ trách quyết định revert hay sửa tiếp (bản sửa: đóng issue này rồi mới merge)."
+            echo "Issue tự đóng khi job ui-test của main-guard xanh trên commit chứa bản sửa, hoặc chạy lại xanh trên chính commit này."
+            echo
+            echo '```'
+            echo "${log_tail}"
+            echo '```'
+          } > body.md
+          issue_url="$(gh issue create --title "main-broken: ${short} (emulator)" --label main-broken --body-file body.md)"
+
+          branch="revert/${short}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${branch}"
+          if git revert --no-edit "${culprit}" && git push origin "${branch}"; then
+            note="Nhánh \`${branch}\` đã có sẵn commit revert của ${short}. Mở PR từ nhánh này nếu quyết định revert."
+          else
+            note="Không tự revert được ${short}, cần sửa tay."
+          fi
+          gh issue comment "${issue_url}" --body "${note}"
+
+      - name: Đóng issue main-broken của emulator khi xanh trở lại
+        if: success()
+        # A GitHub error here must not turn a green ui-test red without annotation, which
+        # find-breaking-commit.sh --check ui-test would blame.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue list --label main-broken --state open --json number,body \
+            --jq '.[] | select(.body | contains("<!-- check:ui-test -->")) | "\(.number) \((.body | capture("<!-- culprit:(?<s>[0-9a-f]+) -->").s) // "")"' |
+          while read -r number culprit; do
+            if [ -z "${culprit}" ]; then
+              continue
+            fi
+            # Close only if this green commit contains the blamed commit (the fix landed after it), or is that
+            # very commit run again (ADR-0025, point 2). behind or diverged: an older or unrelated commit.
+            status="$(gh api "repos/${{ github.repository }}/compare/${culprit}...${GITHUB_SHA}" --jq .status)"
+            if [ "${status}" = "ahead" ] || [ "${status}" = "identical" ]; then
+              gh issue close "${number}" --comment "Test trên emulator xanh trở lại tại commit ${GITHUB_SHA}."
             fi
           done

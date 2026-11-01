@@ -19,15 +19,17 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 | `pose_match_threshold` | long | `80` | `:core:config` | Score, 1 to 100, from which the pose on the camera counts as matched; out of range uses 80. |
 | `privacy_policy_url` | string | `"https://studio.vgl.io.vn/privacy-policy"` | `:core:config` | Address of the privacy policy page opened from settings. |
 | `ads_interval` | long | `45` | `:core:ads` | Minimum time between two full-screen ads of the default interval group, in seconds. |
+| `ads_mediation_order` | string | `"max_admob"` | `:core:ads` | Order of the two ad platforms for banner, MREC, interstitial, rewarded and resume app open ads: admob, max, admob_max or max_admob; any other value uses max_admob. Without a MAX SDK key in the build, admob. Name set by the template, not an AdsKit key. |
 | `ads_review_interstitial_breaks_between` | long | `3` | `:core:ads` | Saved photos (items) between two review_interstitial ads. Name set by the app, not an AdsKit key. |
 | `ads_review_interstitial_first_break` | long | `2` | `:core:ads` | First saved photo of the session (counted in items) that may show review_interstitial. Name set by the app, not an AdsKit key. |
-| `is_enable_consent_shortcut` | boolean | `false` | `:core:ads` | Remote switch of the consent shortcut (CACHED_EARLY, ERROR_ALLOWED); also needs the build setting of the app. False takes ERROR_ALLOWED back at once. Name set by the template, not an AdsKit key. |
+| `is_enable_consent_shortcut` | boolean | `false` | `:core:ads` | Remote switch of ERROR_ALLOWED, the temporary right when UMP fails on the network (S-12); also needs the build setting of the app. CACHED_EARLY is always on (ADR-0038). False takes ERROR_ALLOWED back at once. Name set by the template, not an AdsKit key. |
 | `is_log_ad_fullscreen_events` | boolean | `false` | `:core:ads` | Logs the Firebase lifecycle events of full-screen ads. Name set by the template, not an AdsKit key. |
 | `is_log_ad_slot_events` | boolean | `false` | `:core:ads` | Logs the Firebase lifecycle events of ad slots (banner, native). Name set by the template, not an AdsKit key. |
 | `is_show_ads` | boolean | `true` | `:core:ads` | Master switch for every ad. When false, the app loads and shows no ad at all. Name set by the template, not an AdsKit key. |
 | `is_show_gallery_app_open` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_app_open (app_open). |
 | `is_show_gallery_banner` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_banner (banner). |
 | `is_show_gallery_banner_collapsible` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_banner_collapsible (banner_collapsible). |
+| `is_show_gallery_banner_mrec` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_banner_mrec (banner_mrec). |
 | `is_show_gallery_in_collection` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_in_collection (native_in_collection). |
 | `is_show_gallery_inlist_medium` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_inlist_medium (native_medium). |
 | `is_show_gallery_inlist_small` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Staging ad gallery only. Derived key of placement gallery_inlist_small (native_small). |
@@ -54,7 +56,8 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 | `show_open_ads` | boolean | `false` | `:core:ads` | Shows the ad when the app opens, from the second open on. |
 | `show_open_ads_first_open` | boolean | `false` | `:core:ads` | Shows the ad when the app opens for the first time after install. |
 | `show_resum_ads` | boolean | `false` | `:core:ads` | Shows an ad when the user comes back to the app. Name kept with the AdsKit typo. |
-| `time_expand_collap_ad` | long | `30` | `:core:ads` | Time after the user collapses the collapsible native ad before it expands again, in seconds; 0 means never. Name set by the template, not an AdsKit key. |
+| `time_close_native` | long | `5` | `:core:ads` | Countdown before the full-screen native ad can be closed, in seconds; 1 to 30, any other value uses 5. Name from JBase, not an AdsKit key. |
+| `time_expand_collap_ad` | long | `10` | `:core:ads` | Time after the user collapses the collapsible native ad before it expands again, in seconds; 0 means never. Name set by the template, not an AdsKit key. |
 | `is_log_af_ad_revenue` | boolean | `true` | `:core:analytics` | Sends af_ad_revenue for every paid ad impression. AppsFlyer event switch. Name set by the template, not an AdsKit key. |
 | `is_log_af_inters_ad_eligible` | boolean | `true` | `:core:analytics` | Sends af_inters_ad_eligible. AppsFlyer event switch. Name set by the template, not an AdsKit key. |
 | `is_log_af_inters_api_called` | boolean | `true` | `:core:analytics` | Sends af_inters_api_called. AppsFlyer event switch. Name set by the template, not an AdsKit key. |

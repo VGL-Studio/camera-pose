@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
@@ -44,7 +45,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 
 /**
- * The overlay of the native full-screen turn (plan T-026, K-02 to K-08): the 36 dp countdown in the top left corner,
+ * The overlay of the native full-screen turn (plan T-026, K-02 to K-08): the 48 dp countdown in the top left corner,
  * which becomes the close button, the placeholder while the ad loads, the back button, and a recreated activity that
  * keeps the deadline. The drawing is checked without the dialog ([NativeFullScreenOverlayContent]); the back button
  * and the recreated activity go through [NativeFullScreenOverlayHost] with its dialog and a real
@@ -84,9 +85,9 @@ class NativeFullScreenOverlayTest {
     }
 
     @Test
-    fun countdown_isCircle36dp_atTopLeft() {
+    fun countdown_isCircle48dp_atTopLeft() {
         setOverlay(adView(secondsLeft = 3))
-        assertRect(DpRect(16.dp, 24.dp, 52.dp, 60.dp), boundsOf(COUNTDOWN))
+        assertRect(DpRect(16.dp, 24.dp, 64.dp, 72.dp), boundsOf(COUNTDOWN))
         val layouts = mutableListOf<TextLayoutResult>()
         composeRule.onNodeWithText("3").fetchSemanticsNode()
             .config[SemanticsActions.GetTextLayoutResult].action!!(layouts)
@@ -108,7 +109,7 @@ class NativeFullScreenOverlayTest {
     @Test
     fun closeEnabled_showsCloseButton_sameBounds_tapClosesOnce() {
         setOverlay(adView(secondsLeft = 0))
-        assertRect(DpRect(16.dp, 24.dp, 52.dp, 60.dp), boundsOf(CLOSE))
+        assertRect(DpRect(16.dp, 24.dp, 64.dp, 72.dp), boundsOf(CLOSE))
         composeRule.onAllNodesWithTag(COUNTDOWN).assertCountEquals(0)
         composeRule.onNodeWithTag(CLOSE).performClick()
         composeRule.waitForIdle()
@@ -132,7 +133,7 @@ class NativeFullScreenOverlayTest {
         composeRule.onAllNodesWithTag(PLACEHOLDER).assertCountEquals(1)
         composeRule.onNodeWithTag(COUNTDOWN).assert(hasAnyChild(hasText("2")))
         composeRule.onAllNodesWithTag(CLOSE).assertCountEquals(0)
-        assertRect(DpRect(16.dp, 24.dp, 52.dp, 60.dp), boundsOf(COUNTDOWN))
+        assertRect(DpRect(16.dp, 24.dp, 64.dp, 72.dp), boundsOf(COUNTDOWN))
     }
 
     @Test
@@ -250,6 +251,31 @@ class NativeFullScreenOverlayTest {
         composeRule.onNodeWithTag(COUNTDOWN).assert(hasAnyChild(hasText("1")))
         composeRule.onAllNodesWithText(FakeNativeAdAssets.Design.headline).assertCountEquals(1)
         assertEquals(0, finishes)
+    }
+
+    @Test
+    fun background_duringCountdown_resumedPastDeadline_showsClose() {
+        port.slot = FakeLoadedNativeAd(FakeNativeAdAssets.Design)
+        composeRule.setContent { Host() }
+        openCombo()
+        advanceTo(1_000)
+        // Control: still counting before the app goes to the background.
+        composeRule.onNodeWithTag(COUNTDOWN).assert(hasAnyChild(hasText("2")))
+        composeRule.onAllNodesWithTag(CLOSE).assertCountEquals(0)
+
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        // The deadline is on the monotonic clock, so it passes while the app is in the background (L-091).
+        advanceTo(4_000)
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(CLOSE).assertCountEquals(1)
+        composeRule.onAllNodesWithTag(COUNTDOWN).assertCountEquals(0)
+        // With an ad the screen never closes by itself.
+        assertEquals(0, finishes)
+        composeRule.onNodeWithTag(CLOSE).performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, finishes)
+        assertNull(turns.view.value)
     }
 
     private companion object {

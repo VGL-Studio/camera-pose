@@ -70,6 +70,15 @@ internal interface RewardedPort {
     fun recordOpportunity(declaration: AdPlacementDeclaration, result: String, loadState: String)
 
     fun recordReward(declaration: AdPlacementDeclaration)
+
+    /**
+     * Whether the ad may be shown on [activity] now (F-08, KB-26, criterion 3): [AdsController.isHostUsable]. Asked
+     * before the ad is taken out of its slot and before every show again (R-06).
+     */
+    fun hostUsable(activity: Activity?): Boolean
+
+    /** Sends one `ad_show_fail` with [code] only (section 8.2); no other effect. */
+    fun recordShowFailed(declaration: AdPlacementDeclaration, code: Int)
 }
 
 /**
@@ -213,7 +222,7 @@ internal class RewardedTurns(private val port: RewardedPort, private val logger:
     }
 
     /** What a decision does once its waits are over. */
-    private enum class DecisionStep { SWITCHED_OFF, CONSENT_CLOSED, NO_AD, SHOW }
+    private enum class DecisionStep { SWITCHED_OFF, CONSENT_CLOSED, NO_AD, HOST_GONE, SHOW }
 
     /**
      * The decision of [decision]'s first tap. While it waits (the switch, the load if needed) every other tap of
@@ -240,6 +249,8 @@ internal class RewardedTurns(private val port: RewardedPort, private val logger:
             networkRead = reason == RewardedNoAdReason.NETWORK
             when {
                 reason == RewardedNoAdReason.CONSENT_CLOSED -> DecisionStep.CONSENT_CLOSED
+                // F-08 (plan T-055): an ad is there but the activity is not usable; the ad stays in its slot.
+                reason == null && !port.hostUsable(decision.first.activity) -> DecisionStep.HOST_GONE
                 reason != null || !port.take(declaration) -> {
                     // No ad (R-03, R-04): `not_ready` with the state before the load, then a load (F-07).
                     port.recordOpportunity(declaration, NOT_READY, port.loadState(declaration))
@@ -261,18 +272,35 @@ internal class RewardedTurns(private val port: RewardedPort, private val logger:
                 endDecision(declaration, decision, RewardedOutcome.Granted)
             }
             DecisionStep.CONSENT_CLOSED -> {
-                // Question 8 of the plan, option (a): a closed consent gate counts as switched off; no opportunity.
+                // A closed consent gate counts as switched off; no opportunity. Reached when the gate was read closed,
+                // and when the wait timed out at the switch while the gate was closed (MC-05, T-048).
                 logger.info(TAG, "Rewarded $code granted: consent gate closed")
                 endDecision(declaration, decision, RewardedOutcome.Granted)
             }
             DecisionStep.NO_AD, null -> {
-                // Timed out while the switch was awaited: both reads wait for nothing (KB-19, criterion 4).
+                // Timed out while the switch was awaited and the consent gate was open (a closed gate ends above,
+                // MC-05): both reads wait for nothing (KB-19, criterion 4).
                 val network = networkRead ?: (port.offline() || lastLoadNetworkError[declaration] == true)
                 if (!notReadyRecorded) port.recordOpportunity(declaration, NOT_READY, port.loadState(declaration))
                 endWithNoAd(declaration, decision, policy, network)
             }
+            DecisionStep.HOST_GONE -> endWithHostGone(declaration, decision, policy)
             DecisionStep.SHOW -> showDecided(declaration, decision, policy)
         }
+    }
+
+    /**
+     * A decision with an ad whose activity is not usable (F-08, KB-26, criterion 3): `shown` then `ad_show_fail`
+     * `app_not_foreground`, as when the SDK fails to show with that code; every tap that joined is `busy`; the outcome
+     * is the policy, counted once, as for a show that fails (R-04, question 3 of plan T-055). The ad is not taken.
+     */
+    private fun endWithHostGone(declaration: AdPlacementDeclaration, decision: Deciding, policy: RewardedNoAdPolicy) {
+        port.recordOpportunity(declaration, SHOWN, READY)
+        port.recordShowFailed(declaration, SHOW_FAILED_APP_NOT_FOREGROUND)
+        val granted = countNoAd(declaration, policy)
+        logger.info(TAG, "Rewarded ${declaration.code} skipped: host not usable (granted $granted)")
+        decision.followers.forEach { port.recordOpportunity(declaration, BUSY, port.loadState(declaration)) }
+        endDecision(declaration, decision, RewardedOutcome.NoAd(network = false, granted = granted))
     }
 
     /**
@@ -353,6 +381,12 @@ internal class RewardedTurns(private val port: RewardedPort, private val logger:
     /**
      * R-06: a second tap while the turn waits for its ad: the same ad is shown again, recorded as `busy`.
      * [giveOnScreen] is false for a handler that already got [RewardedOutcome.OnScreen] in the same decision.
+     *
+     * The activity is checked first (F-08, plan T-055), before the callers change: the reward goes to the last
+     * caller, so a caller whose activity is not usable must never become it. Such a tap is `busy` with an
+     * `ad_show_fail` `app_not_foreground`, adds no show (so a failure of the first show still ends the turn), and its
+     * caller, when not already waiting for the turn, gets a blocked [RewardedOutcome.NoAd] at once so its dialog
+     * closes; the turn goes on.
      */
     private fun showAgain(
         declaration: AdPlacementDeclaration,
@@ -361,6 +395,13 @@ internal class RewardedTurns(private val port: RewardedPort, private val logger:
         onOutcome: (RewardedOutcome) -> Unit,
         giveOnScreen: Boolean = true,
     ) {
+        if (!port.hostUsable(activity)) {
+            port.recordOpportunity(declaration, BUSY, port.loadState(declaration))
+            port.recordShowFailed(declaration, SHOW_FAILED_APP_NOT_FOREGROUND)
+            logger.info(TAG, "Rewarded ${declaration.code} busy: host not usable, not shown again")
+            if (onOutcome !in turn.callers) onOutcome(RewardedOutcome.NoAd(network = false, granted = false))
+            return
+        }
         if (onOutcome in turn.callers) turn.callers -= onOutcome
         turn.callers += onOutcome
         turn.shows++

@@ -183,6 +183,113 @@ class RewardedTurnsTest {
     }
 
     @Test
+    fun hostGone_notTaken_showFailRecorded_outcomeByPolicy() = runTest {
+        // KB-26, criterion 3 (plan T-055): the activity is no longer usable when the ad would be shown.
+        port.ready["rw_export"] = true
+        port.hostUsable = false
+        request(rwExport)
+
+        assertTrue(port.takes.isEmpty())
+        assertTrue(port.shows.isEmpty())
+        // The ad stays in its slot for the next tap.
+        assertTrue(port.ready["rw_export"] == true)
+        assertEquals(listOf(Triple("rw_export", "shown", "ready")), port.opportunities)
+        assertEquals(listOf(3), port.showFailsRecorded)
+        // R-04, counted once: allow_after_2 blocks the first try.
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = false)), outcomes)
+        assertEquals(0, port.presenceRaised)
+
+        // The second try in a row is granted by the policy.
+        request(rwExport)
+        assertEquals(
+            listOf(
+                RewardedOutcome.NoAd(network = false, granted = false),
+                RewardedOutcome.NoAd(network = false, granted = true),
+            ),
+            outcomes,
+        )
+        assertEquals(listOf(3, 3), port.showFailsRecorded)
+
+        // Control (L-055): with a usable activity the same ad is taken and shown.
+        port.hostUsable = true
+        request(rwExport)
+        assertEquals(listOf("rw_export"), port.takes)
+        assertEquals(listOf("rw_export"), port.shows)
+        assertEquals(listOf(3, 3), port.showFailsRecorded)
+    }
+
+    @Test
+    fun hostGone_joinedTaps_busy() = runTest {
+        port.ready["rw_get_item"] = true
+        port.hostUsable = false
+        val gate = CompletableDeferred<Boolean>()
+        port.switchGates += gate
+        val first = mutableListOf<RewardedOutcome>()
+        val second = mutableListOf<RewardedOutcome>()
+        launch { request { first += it } }
+        launch { request { second += it } }
+        runCurrent()
+        gate.complete(true)
+        runCurrent()
+
+        assertTrue(port.takes.isEmpty())
+        assertTrue(port.shows.isEmpty())
+        assertEquals(
+            listOf(Triple("rw_get_item", "shown", "ready"), Triple("rw_get_item", "busy", "ready")),
+            port.opportunities,
+        )
+        assertEquals(listOf(3), port.showFailsRecorded)
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = false)), first)
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = false)), second)
+    }
+
+    @Test
+    fun showAgain_hostGone_noSecondShow_turnGoesOn() = runTest {
+        port.ready["rw_get_item"] = true
+        val first = mutableListOf<RewardedOutcome>()
+        val second = mutableListOf<RewardedOutcome>()
+        request { first += it }
+        assertEquals(listOf("rw_get_item"), port.shows)
+        // R-06: a second tap from another caller whose activity is no longer usable.
+        port.hostUsable = false
+        request { second += it }
+
+        assertTrue(port.showAgains.isEmpty())
+        assertEquals(
+            listOf(Triple("rw_get_item", "shown", "ready"), Triple("rw_get_item", "busy", "idle")),
+            port.opportunities,
+        )
+        assertEquals(listOf(3), port.showFailsRecorded)
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = false)), second)
+        assertTrue(first.isEmpty())
+
+        // The turn still waits for the first show: its reward goes to the first caller only.
+        port.fireShowed()
+        port.fireReward()
+        port.fireDismissed()
+        assertEquals(listOf(RewardedOutcome.OnScreen, RewardedOutcome.Granted), first)
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = false)), second)
+        assertEquals(1, port.presenceLowered)
+    }
+
+    @Test
+    fun showAgain_hostGone_firstShowFails_endsTurnByPolicy() = runTest {
+        port.ready["rw_allow"] = true
+        val first = mutableListOf<RewardedOutcome>()
+        val second = mutableListOf<RewardedOutcome>()
+        request(rwAllow) { first += it }
+        port.hostUsable = false
+        request(rwAllow) { second += it }
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = false)), second)
+
+        // The skipped second tap added no show, so the failure of the first show ends the turn at once.
+        port.fireShowFailed(0)
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = true)), first)
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = false)), second)
+        assertEquals(1, port.presenceLowered)
+    }
+
+    @Test
     fun policyOverride_appliesWhenShowFails() = runTest {
         val gallery = AdPlacement.GALLERY_RW_ACTION.declaration
         port.ready["gallery_rw_action"] = true
@@ -1208,6 +1315,13 @@ class RewardedTurnsTest {
 
         /** With [syncShowedReward], the SDK also reports the close inside the show call. */
         var syncDismiss = false
+
+        /** What [hostUsable] answers for every activity (plan T-055). */
+        var hostUsable = true
+
+        /** Codes of the `ad_show_fail` sent through [recordShowFailed]. */
+        val showFailsRecorded = mutableListOf<Int>()
+        val takes = mutableListOf<String>()
         var presenceRaised = 0
         var presenceLowered = 0
         private var lastShown: AdPlacementDeclaration? = null
@@ -1262,6 +1376,7 @@ class RewardedTurnsTest {
 
         override fun take(declaration: AdPlacementDeclaration): Boolean {
             if (!ready(declaration)) return false
+            takes += declaration.code
             ready[declaration.code] = false
             return true
         }
@@ -1299,6 +1414,12 @@ class RewardedTurnsTest {
 
         override fun recordReward(declaration: AdPlacementDeclaration) {
             rewards += declaration.code
+        }
+
+        override fun hostUsable(activity: Activity?): Boolean = hostUsable
+
+        override fun recordShowFailed(declaration: AdPlacementDeclaration, code: Int) {
+            showFailsRecorded += code
         }
 
         companion object {

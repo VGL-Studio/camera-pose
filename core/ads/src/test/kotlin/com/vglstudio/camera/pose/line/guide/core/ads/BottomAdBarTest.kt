@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +37,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -102,16 +104,27 @@ class BottomAdBarTest {
 
     private val placement = AdPlacement.SAMPLE_NATIVE_SMALL
 
+    /**
+     * The bar of the tests. With [enabledFlow] (a real switch of the controller, plan T-063), the switch of the layer
+     * choice, the banner and the native slot all come from that flow, through the gate functions of the real slots;
+     * without it, from [enabled] and [slotAllowed] as before.
+     */
     @Composable
-    private fun Bar(content: @Composable (PaddingValues) -> Unit = { DefaultContent(it) }) {
+    private fun Bar(
+        enabledFlow: Flow<Boolean>? = null,
+        content: @Composable (PaddingValues) -> Unit = { DefaultContent(it) },
+    ) {
         AppTheme(darkTheme = false) {
-            val choice = rememberBottomAdBarLayers(canRequest, enabled, flags)
+            val enabledFromFlow = enabledFlow?.let { remember(it) { it }.collectAsState(initial = false).value }
+            val barEnabled = enabledFromFlow ?: enabled
+            val nativeAllowed = enabledFromFlow?.let { nativeSlotAllowed(canRequest, it, "unit") } ?: slotAllowed
+            val choice = rememberBottomAdBarLayers(canRequest, barEnabled, flags)
             BottomAdBarHost(
                 layers = choice.layers,
                 nativeSlot = { delay, onAvailability, modifier ->
                     SideEffect { recordedDelays += delay }
                     NativeAdSlotGate(
-                        allowed = slotAllowed,
+                        allowed = nativeAllowed,
                         states = remember { slotFeed.states() },
                         size = NativeAdSize.SMALL,
                         keepSpaceWhenEmpty = false,
@@ -124,11 +137,12 @@ class BottomAdBarTest {
                     SideEffect { onHeight(BANNER_HEIGHT_DP.dp) }
                     BannerSlotHost(
                         gateOpen = canRequest,
-                        enabled = enabled,
+                        enabled = barEnabled,
                         unitId = layerUnitIds.of(placement, AdFormat.BANNER),
                         heightDp = BANNER_HEIGHT_DP,
                         refresh = BannerRefresh.BY_AD_UNIT,
                         visible = MutableStateFlow(true),
+                        covered = MutableStateFlow(false),
                         mayRequestNow = { canRequest },
                         retryResets = MutableStateFlow(0),
                         logger = RecordingAppLogger(),
@@ -455,6 +469,44 @@ class BottomAdBarTest {
     }
 
     @Test
+    fun adFreeMidSession_barGone_reservationZero_adsDestroyed() {
+        // KB-30, criterion 3 (L-061): the signal of the app reaches the bar through the real switch of the controller.
+        val settings = FakeRemoteSettings().apply { set(AdsSettings.placementEnabled(placement), true) }
+        val adFree = MutableStateFlow(false)
+        val controller = testAdsController(
+            unitIds = AdUnitIds { null },
+            flags = DefaultAdsFlags(settings, adFreeStatus(adFree)),
+        )
+        controller.openConsentGateForTest()
+        composeRule.setContent { Bar(enabledFlow = controller.isEnabled(placement)) }
+        composeRule.waitForIdle()
+        val (slotAd, layerAd) = loadBoth()
+        assertContentBottom("control: bar with an ad", 795f)
+
+        update { adFree.value = true }
+
+        assertAbsent(SLOT_AD)
+        assertAbsent(CollapsibleNativeAdTestTags.AD)
+        assertEquals(1, slotAd.destroyCount)
+        assertEquals(1, layerAd.destroyCount)
+        assertContentBottom("bar gone", SCREEN_HEIGHT)
+
+        // Control (L-055): the signal back off, the bar comes back; then the old path, is_show_<code> switched off
+        // with the same build, also takes it away.
+        update { adFree.value = false }
+        val (againSlotAd, _) = loadBoth()
+        assertContentBottom("control: bar back", 795f)
+        update { settings.set(AdsSettings.placementEnabled(placement), false) }
+        assertAbsent(SLOT_AD)
+        assertEquals(1, againSlotAd.destroyCount)
+        assertContentBottom("control: placement off", SCREEN_HEIGHT)
+    }
+
+    private fun adFreeStatus(flow: StateFlow<Boolean>): AdFreeStatus = object : AdFreeStatus {
+        override val adFree = flow
+    }
+
+    @Test
     fun consentWithdrawn_barGone_adsDestroyed() {
         setBar()
         val (slotAd, layerAd) = loadBoth()
@@ -595,6 +647,40 @@ class BottomAdBarTest {
         assertEquals(1, banners.createdCount)
         update { banners.last.emitLoaded() }
         assertContentBottom("banner with an ad", SCREEN_HEIGHT - BANNER_HEIGHT_DP)
+    }
+
+    // The real production unit source with fake unit strings (plan T-056, KB-17).
+
+    @Test
+    fun configuredSlotUnits_bannerBuiltAndKeepsHeight() {
+        // Control: without the banner slot key, no banner is built and the content keeps the whole screen.
+        layerUnitIds = ConfiguredAdUnitIds("sample_native_small=unit/1")
+        flags = barFlags(nativeBottom = false, collap = false)
+        setBar()
+        assertEquals(0, banners.createdCount)
+        assertContentBottom("no banner slot key", SCREEN_HEIGHT)
+
+        update { layerUnitIds = ConfiguredAdUnitIds("sample_native_small=unit/1;banner=unit/b") }
+        assertEquals(1, banners.createdCount)
+        update { banners.last.emitLoaded() }
+        assertContentBottom("banner with an ad", SCREEN_HEIGHT - BANNER_HEIGHT_DP)
+    }
+
+    @Test
+    fun configuredSlotUnits_layerLoads() {
+        // Control: without the collapsible slot key, the layer never loads and the slot keeps its ad.
+        layerUnitIds = ConfiguredAdUnitIds("sample_native_small=unit/1")
+        setBar()
+        update { slotFeed.load(FakeLoadedNativeAd()) }
+        assertEquals(0, layerFeed.collections)
+        assertAbsent(CollapsibleNativeAdTestTags.AD)
+        assertPresent(SLOT_AD)
+
+        update { layerUnitIds = ConfiguredAdUnitIds("sample_native_small=unit/1;native_collap=unit/c") }
+        assertEquals(1, layerFeed.collections)
+        loadBoth()
+        assertPresent(CollapsibleNativeAdTestTags.AD)
+        assertPresent(SLOT_AD)
     }
 
     @Test

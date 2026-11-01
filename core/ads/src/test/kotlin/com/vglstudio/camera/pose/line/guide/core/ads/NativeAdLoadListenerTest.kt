@@ -1,9 +1,11 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.nativead.NativeAd
 import io.mockk.mockk
 import io.mockk.verify
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -30,6 +32,22 @@ class NativeAdLoadListenerTest {
         assertTrue(ad.impressionRecorded)
         verify(exactly = 1) { events.onImpression() }
         verify(exactly = 1) { events.onClicked() }
+    }
+
+    @Test
+    fun onAdFailedToLoad_handsErrorToResponseLog_beforeOnFailed() {
+        // Plan T-058, KB-28: the error of the load reaches the per-network log before the failure is handled.
+        val order = mutableListOf<String>()
+        val listener = NativeAdLoadListener(
+            events,
+            onFailed = { order += "failed:$it" },
+            onLoadFailedResponse = { order += "response:${it.code}" },
+        )
+
+        listener.onAdFailedToLoad(LoadAdError(3, "No fill.", "com.google.android.gms.ads", null, null))
+
+        assertEquals(listOf("response:3", "failed:3"), order)
+        verify(exactly = 1) { events.onFailed(3, any()) }
     }
 
     @Test

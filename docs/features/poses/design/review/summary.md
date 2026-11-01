@@ -10,6 +10,10 @@
 | PoseDetailScreen_error_light | 13.0% | `PoseDetailScreen_error_light_compare.png` |
 | PoseDetailScreen_loading_dark | 12.3% | `PoseDetailScreen_loading_dark_compare.png` |
 | PoseDetailScreen_loading_light | 8.7% | `PoseDetailScreen_loading_light_compare.png` |
+| PoseDetailScreen_premium_dark | thiếu ảnh chuẩn screenshot | |
+| PoseDetailScreen_premium_light | thiếu ảnh chuẩn screenshot | |
+| PoseUnlockDialogScreen_default_dark | thiếu ảnh chuẩn screenshot | |
+| PoseUnlockDialogScreen_default_light | thiếu ảnh chuẩn screenshot | |
 | PosesScreen_ad-collection_light | thiếu ảnh chuẩn screenshot | |
 | PosesScreen_ad_dark | 22.4% | `PosesScreen_ad_dark_compare.png` |
 | PosesScreen_ad_light | 22.5% | `PosesScreen_ad_light_compare.png` |
@@ -21,5 +25,7 @@
 | PosesScreen_error_light | 9.6% | `PosesScreen_error_light_compare.png` |
 | PosesScreen_loading_dark | 11.4% | `PosesScreen_loading_dark_compare.png` |
 | PosesScreen_loading_light | 11.5% | `PosesScreen_loading_light_compare.png` |
+| PosesScreen_premium_dark | thiếu ảnh chuẩn screenshot | |
+| PosesScreen_premium_light | thiếu ảnh chuẩn screenshot | |
 | PosesScreen_saved-empty_dark | 7.5% | `PosesScreen_saved-empty_dark_compare.png` |
 | PosesScreen_saved-empty_light | 7.6% | `PosesScreen_saved-empty_light_compare.png` |

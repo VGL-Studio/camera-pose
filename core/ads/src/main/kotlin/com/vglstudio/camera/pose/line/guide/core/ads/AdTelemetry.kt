@@ -17,6 +17,7 @@ import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
  * - The AppsFlyer funnel ([eligible], [apiCalled], [displayed], [interDisplayed], plan T-033) goes to [funnel] whatever
  *   the lifecycle switches or the consent gate say: its own switches are read by :core:analytics. App open and banners
  *   have no funnel ([funnelKind]).
+ * - The loads of AppLovin MAX fail through [maxLoadFailed], with the error labels of MAX (plan T-071).
  * - A failing [metrics] or [funnel] is swallowed and logged by class name only: the ads keep running. No message of the SDK is
  *   ever put in a param.
  */
@@ -123,9 +124,21 @@ internal class AdTelemetry(
         code: Int,
         sdkMessage: String?,
         now: Long,
+    ): String = recordLoadFailure(format, slot, placement, code, now) { offline ->
+        loadStateAfterError(code, offline, isSdkThrottledMessage(sdkMessage))
+    }
+
+    /** The failure counted on [slot], then the `LoadFail` event with the label [labelOf] gives, when logged. */
+    private fun recordLoadFailure(
+        format: AdFormat,
+        slot: String,
+        placement: String?,
+        code: Int,
+        now: Long,
+        labelOf: (offline: Boolean) -> String,
     ): String {
         val outcome = counter.onFailed(slot, now)
-        val label = loadStateAfterError(code, offline(), isSdkThrottledMessage(sdkMessage))
+        val label = labelOf(offline())
         if (lifecycleOn(format)) {
             log(
                 AdMetricEvent.LoadFail(
@@ -140,6 +153,13 @@ internal class AdTelemetry(
         }
         return label
     }
+
+    /**
+     * A load of AppLovin MAX for [slot] failed with [code] (plan T-071): as [loadFailed], with the label of
+     * [maxLoadStateAfterError]. Returns that label.
+     */
+    fun maxLoadFailed(format: AdFormat, slot: String, placement: String?, code: Int, now: Long): String =
+        recordLoadFailure(format, slot, placement, code, now) { offline -> maxLoadStateAfterError(code, offline) }
 
     /** One call to show [placement]; no placement or no [result] is no opportunity (A 06:197). */
     fun opportunity(format: AdFormat, placement: AdPlacement?, result: String?, loadState: String) {

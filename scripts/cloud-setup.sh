@@ -10,7 +10,7 @@ set -euo pipefail
 
 # Bump on every change. The auto-run session compares it with ~/.cloud-setup-version
 # (scripts/cloud-env-check.sh) and stops at once when the environment still runs an older copy.
-SETUP_VERSION=3
+SETUP_VERSION=5
 
 SDK_ROOT="${HOME}/android-sdk"
 CMDLINE_TOOLS_ZIP="commandlinetools-linux-13114758_latest.zip"
@@ -34,6 +34,7 @@ yes | "${SDKMANAGER}" --licenses > /dev/null || true
 "${SDKMANAGER}" --install \
   "platform-tools" \
   "platforms;android-36" \
+  "platforms;android-37.0" \
   "build-tools;36.0.0" > /dev/null
 
 # Tell Gradle and later shells where the SDK is. Each line is added only once.
@@ -48,6 +49,9 @@ done
 # - every mavenCentral() repository (settings, plugin management, buildscript, projects);
 # - plugin resolution: gradlePluginPortal() redirects library downloads (kotlin-stdlib for kotlin-dsl in
 #   build-logic) to Maven Central, so the mirror is put first in every pluginManagement (RUN-20261016-01, L-018);
+#   Google's repository comes right after the mirror, before the portal: the portal also redirects the plugins
+#   it does not host (Android, Google services, Crashlytics) to Maven Central, whose 429 stops Gradle before it
+#   tries Google (L-121);
 # - Robolectric, which downloads its Android jars itself: a system property on every Test task. Set here and not
 #   through JAVA_TOOL_OPTIONS, which the environment already uses for its proxy (L-019).
 # GRADLE_REFRESH_DEPENDENCIES=true makes Gradle ask the network again after a failed download instead of
@@ -78,10 +82,13 @@ beforeSettings { settings ->
     if (!knowsSdk && sdk.isDirectory()) {
         localProperties << "sdk.dir=${sdk.absolutePath}\n"
     }
-    // Declared before the settings file runs, so the mirror comes first. The plugin portal is added again
-    // because Gradle only falls back to it when pluginManagement declares no repository at all.
+    // Declared before the settings file runs, so the mirror comes first. Google comes next, before the plugin
+    // portal: the portal redirects the plugins it does not host to Maven Central, and a 429 there stops Gradle
+    // before it tries Google. The plugin portal is added again because Gradle only falls back to it when
+    // pluginManagement declares no repository at all.
     settings.pluginManagement.repositories {
         maven { url = mirror; name = 'MavenCentralMirror' }
+        google()
         gradlePluginPortal()
     }
     useMirror(settings.buildscript.repositories)

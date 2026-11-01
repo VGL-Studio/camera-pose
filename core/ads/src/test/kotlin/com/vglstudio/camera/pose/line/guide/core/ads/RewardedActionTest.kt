@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetricEvent
+import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdMetrics
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
@@ -43,6 +45,8 @@ import kotlin.math.abs
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import org.junit.Assert.assertEquals
@@ -784,15 +788,75 @@ class RewardedActionTest {
 
     private val logger = RecordingAppLogger()
 
-    private fun realController(): AdsController {
+    private val metrics = RecordingAdMetrics()
+
+    private fun realController(
+        adFree: AdFreeStatus = AdFreeStatus.NONE,
+        logFullScreenEvents: Boolean = false,
+    ): AdsController {
         val settings = FakeRemoteSettings().apply {
             set(AdsSettings.placementEnabled(AdPlacement.GALLERY_RW_ACTION), true)
+            // On, a dialog or an opportunity is recorded if there is one (the tests of T-063 start the controller).
+            set(AdsSettings.IS_LOG_AD_FULLSCREEN_EVENTS, logFullScreenEvents)
         }
         return testAdsController(
             unitIds = AdUnitIds { null },
-            flags = DefaultAdsFlags(settings),
+            flags = DefaultAdsFlags(settings, adFree),
+            metrics = metrics,
             logger = logger,
         )
+    }
+
+    private fun adFreeStatus(flow: StateFlow<Boolean>): AdFreeStatus = object : AdFreeStatus {
+        override val adFree = flow
+    }
+
+    /** Starts [controller] so its metrics read the remote switches, as in the app (T-063). */
+    private fun startController(controller: AdsController) {
+        composeRule.runOnUiThread {
+            controller.start(composeRule.activity.application, AppActivityFilter { true })
+        }
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun realController_adFree_keyOn_runsActionAtOnce_noDialog() {
+        // KB-30, criterion 2: a user who bought ad removal gets the action at once, with no dialog.
+        val controller = realController(adFree = adFreeStatus(MutableStateFlow(true)), logFullScreenEvents = true)
+        startController(controller)
+        composeRule.runOnUiThread { controller.openConsentGateForTest() }
+        setRealContent(controller)
+
+        start()
+
+        assertEquals(1, granted)
+        assertEquals(0, cards())
+        assertTrue(metrics.events.toString(), metrics.events.none { it is AdMetricEvent.RewardDialog })
+    }
+
+    @Test
+    fun realController_adFreeWhileDialogOpen_watchRunsAction() {
+        // KB-30, criteria 2 and 3 (L-061): the signal turns on while the dialog shows; "Watch ad" runs the action.
+        val adFree = MutableStateFlow(false)
+        val controller = realController(adFree = adFreeStatus(adFree), logFullScreenEvents = true)
+        startController(controller)
+        composeRule.runOnUiThread { controller.openConsentGateForTest() }
+        setRealContent(controller)
+
+        start()
+        assertEquals(1, cards())
+        assertEquals(0, granted)
+        // Control (L-055): the metrics are recorded, so the checks of no opportunity below look at real events.
+        assertTrue(metrics.events.toString(), metrics.events.any { it is AdMetricEvent.RewardDialog })
+
+        composeRule.runOnIdle { adFree.value = true }
+        composeRule.waitForIdle()
+        tapWatch()
+
+        assertEquals(1, granted)
+        assertEquals(0, cards())
+        assertTrue(metrics.events.toString(), metrics.events.none { it is AdMetricEvent.Opportunity })
+        assertEquals(1, adsLines { it == "Rewarded gallery_rw_action granted: switched off" })
     }
 
     /**

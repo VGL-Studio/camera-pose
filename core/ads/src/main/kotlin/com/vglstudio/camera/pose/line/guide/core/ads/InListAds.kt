@@ -28,6 +28,9 @@ import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 private const val TAG = "Ads"
@@ -35,7 +38,9 @@ private const val TAG = "Ads"
 /**
  * Ads of one in-list placement on one screen. Create it with [rememberInListAds], outside the lazy list. A native
  * small row keeps its ad for the life of the screen: scrolling a row away and back shows the same ad, never a new
- * request (ads-guide.md, section 6); every such ad is destroyed when the screen leaves the composition. A row of a
+ * request (ads-guide.md, section 6); every such ad is destroyed when the screen leaves the composition. A native small
+ * row that failed tries again 5 s later while it is drawn, only while the in-screen window is open (foreground, no
+ * full-screen ad over the app, KB-27) and the consent gate is open right at the send (O-05, plan T-059). A row of a
  * pooled format (medium, card: plan T-028) is a cell of the pool ([pooledCell]): it takes an ad when it comes on
  * screen and gives it back when it leaves (P-01, P-01a), so a row scrolled back may show another ad.
  */
@@ -43,7 +48,7 @@ private const val TAG = "Ads"
 class InListAds internal constructor(
     val placement: AdPlacement,
     every: State<Int?>,
-    private val loader: InListAdLoader?,
+    private val rowSource: InListRowSource?,
     private val scope: CoroutineScope,
     private val logger: AppLogger?,
     /** The states of one new cell of the pool of [placement]; null for a format with no pool or without ads. */
@@ -62,6 +67,7 @@ class InListAds internal constructor(
     // Touched on the main thread only (composition and the screen's coroutine scope).
     private val slots = mutableMapOf<Int, MutableState<NativeAdState>>()
     private val loads = mutableMapOf<Int, Job>()
+    private val shown = mutableMapOf<Int, MutableStateFlow<Boolean>>()
     private var destroyed = false
 
     /** Current N, or null while no ad row may be added. */
@@ -75,24 +81,38 @@ class InListAds internal constructor(
         }
     }
 
-    /** The ad of the [index]-th ad row of the list: loaded on the first call, then the same state every time. */
+    /**
+     * The ad of the [index]-th ad row of the list: its states ([InListRowSource]) are collected from the first call
+     * on, and every later call returns the same state. Called while the row is drawn only.
+     */
     internal fun slot(index: Int): State<NativeAdState> {
         slots[index]?.let { return it }
-        if (destroyed || loader == null) return mutableStateOf(NativeAdState.Unavailable)
+        if (destroyed || rowSource == null) return mutableStateOf(NativeAdState.Unavailable)
         val state = mutableStateOf<NativeAdState>(NativeAdState.Loading)
+        val rowShown = MutableStateFlow(true)
         slots[index] = state
+        shown[index] = rowShown
         loads[index] = scope.launch {
-            val result = loader.load(placement)
-            if (destroyed || slots[index] !== state) {
-                // The screen was left while the ad arrived: nobody shows it.
-                (result as? NativeAdState.Loaded)?.ad?.destroy()
-                return@launch
+            rowSource.states(placement, index, rowShown).collect { result ->
+                if (slots[index] !== state) return@collect
+                state.value = result
+                val outcome = when (result) {
+                    is NativeAdState.Loaded -> "LOADED"
+                    NativeAdState.Unavailable -> "UNAVAILABLE"
+                    NativeAdState.Loading -> return@collect
+                }
+                logger?.info(TAG, "in-list ${placement.key} slot $index: $outcome")
             }
-            state.value = result
-            val outcome = if (result is NativeAdState.Loaded) "LOADED" else "UNAVAILABLE"
-            logger?.info(TAG, "in-list ${placement.key} slot $index: $outcome")
         }
         return state
+    }
+
+    /**
+     * The row of slot [index] came into the composition ([isShown] true) or left it. A row that left keeps its flow:
+     * a request in flight goes on and its ad is kept; a retry due meanwhile waits until the row is drawn again.
+     */
+    internal fun onRowShown(index: Int, isShown: Boolean) {
+        shown[index]?.value = isShown
     }
 
     /** Destroys every loaded ad and cancels the loads still running. Called when the screen is left. */
@@ -101,20 +121,52 @@ class InListAds internal constructor(
         release()
     }
 
-    /** Destroys every loaded ad and cancels the running loads; later calls to [slot] load again. */
+    /**
+     * Cancels the state flows of the rows, which destroy the ads they hold and the ads arriving late; the rows still
+     * in the composition draw nothing. Later calls to [slot] load again.
+     */
     private fun release() {
         loads.values.forEach { it.cancel() }
         loads.clear()
-        slots.values.forEach { state -> (state.value as? NativeAdState.Loaded)?.ad?.destroy() }
+        slots.values.forEach { it.value = NativeAdState.Unavailable }
         slots.clear()
+        shown.clear()
     }
 }
 
-/** Loads one native ad for an in-list row. Named apart from the callback-based [NativeAdLoader] of the same package. */
-internal fun interface InListAdLoader {
-    /** Loaded or Unavailable, after the native load timeout at most. The caller owns a Loaded ad. */
-    suspend fun load(placement: AdPlacement): NativeAdState
+/** The states of the native small row of slot `slot` of a list; [rowShown] is true while the row is drawn. */
+internal fun interface InListRowSource {
+    fun states(placement: AdPlacement, slot: Int, rowShown: StateFlow<Boolean>): Flow<NativeAdState>
 }
+
+/**
+ * The states of one native small row of a list (plan T-059): no refresh, no single-ad source. Each send, the first
+ * one and every retry (5 s with no ad, sooner when Internet comes back), goes through [retryingNativeAdStates], which
+ * waits for the in-screen [window] (foreground, no full-screen ad over the app, KB-27) and asks [mayRequestNow]; then
+ * it waits until the row is drawn ([rowShown]) and asks the window and the gate again right before the send, since
+ * that wait may be long. A row scrolled away sends nothing until it is drawn again. A Loaded ad stays until the
+ * collection is cancelled, then is destroyed. Every send path of a row goes through this function (L-072).
+ */
+internal fun inListRowStates(
+    load: suspend () -> NativeAdState,
+    window: StateFlow<Boolean>,
+    rowShown: StateFlow<Boolean>,
+    mayRequestNow: () -> Boolean,
+    retryResets: StateFlow<Int>,
+    logger: AppLogger,
+    placementKey: String,
+): Flow<NativeAdState> = retryingNativeAdStates(
+    load = {
+        rowShown.first { it }
+        if (awaitSendAllowed(window, mayRequestNow)) load() else null
+    },
+    foreground = window,
+    mayRequestNow = mayRequestNow,
+    retryResets = retryResets,
+    logger = logger,
+    placementKey = placementKey,
+    refresh = null,
+)
 
 /**
  * Only small, medium and card (`native_in_collection`) native ads go inside a list. Not an exhaustive `when` on
@@ -152,7 +204,9 @@ fun rememberInListAds(placement: AdPlacement): InListAds {
         InListAds(
             placement = placement,
             every = every,
-            loader = controller?.let { ads -> InListAdLoader { ads.loadNativeAd(it) } },
+            rowSource = controller?.let { ads ->
+                InListRowSource { p, slot, rowShown -> ads.inListRowStates(p, slot, rowShown) }
+            },
             scope = scope,
             logger = controller?.logger,
             pooledCell = controller?.takeIf { placement.format.usesPool }?.let { ads -> { ads.pooledCell(placement) } },
@@ -413,6 +467,10 @@ internal fun InListAdRow(ads: InListAds, slot: Int, modifier: Modifier = Modifie
         return
     }
     val state by remember(ads, slot) { ads.slot(slot) }
+    DisposableEffect(ads, slot) {
+        ads.onRowShown(slot, true)
+        onDispose { ads.onRowShown(slot, false) }
+    }
     Box(modifier = modifier.fillMaxWidth().testTag(inListAdTag(slot))) {
         when (val current = state) {
             NativeAdState.Loading -> Box(Modifier.padding(vertical = Spacing.md)) { NativeAdPlaceholder(size) }

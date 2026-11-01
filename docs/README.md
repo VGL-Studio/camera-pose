@@ -23,9 +23,12 @@ docs/
 ├── test-sessions/           báo cáo phân tích các phiên thử trên máy (log thô ở test-sessions/ ngoài docs, không vào git)
 ├── ops/                     báo cáo vận hành định kỳ, hướng dẫn vận hành
 ├── metrics/                 số liệu đo được qua các phiên, ví dụ token theo task (ops/token-usage.md)
+├── design-system/           token thiết kế (tokens.json), sinh từ code bởi DesignTokensTest, không sửa tay; nguồn dựng design system trên Claude Design hay Figma (ADR-0008)
 ├── templates/               các mẫu tài liệu
 ├── borrowed-assets.md       app clone: tài sản mượn tạm từ app mẫu, phải thay hết trước khi phát hành
 ├── foundation.md            quy tắc nền tảng, sinh từ các ADR bởi scripts/foundation.py, không sửa tay
+├── remote-config-keys.md    bảng khóa Remote Config, sinh từ code bởi RemoteConfigKeysTest, không sửa tay (ADR-0023)
+├── remote-config-template.json  file mẫu Remote Config cho project Firebase mới, sinh cùng bảng khóa
 ├── STATUS.md                trang tiến độ, sinh bởi scripts/status.py; không có trong git, bản đọc được trên nhánh status (status-page.yml)
 ├── auto-run.md              quy trình phiên AI tự chạy
 ├── lessons.md               sổ bài học, đầu vào của retro
@@ -54,10 +57,10 @@ docs/
 2. **Spec.** AI đọc yêu cầu, sinh hoặc cập nhật `features/<feature>/spec.md` theo [mẫu spec](templates/spec.md). Với feature mới, AI tạo thư mục feature. Chỗ nào chưa rõ, AI ghi vào mục câu hỏi còn mở, không tự đoán.
 3. **Xác nhận spec.** Người phụ trách sản phẩm đọc lại, trả lời câu hỏi, chuyển trạng thái spec sang `confirmed`.
 4. **Thiết kế.** Chủ feature dựng bản mẫu trên Claude Design hoặc Figma (tùy dự án), người phụ trách sản phẩm duyệt. Gói bàn giao (ảnh khung chuẩn, bảng chữ, ánh xạ thành phần) lưu vào `features/<feature>/design/` theo [mẫu thiết kế](templates/design.md) và [quy trình thiết kế](ops/design-workflow.md). Giao diện làm ra được đối chiếu với thiết kế bằng ảnh so sánh (ADR-0020).
-5. **Ticket.** AI tách spec thành các ticket trong `features/<feature>/tickets/` theo [mẫu ticket](templates/ticket.md). Ticket chỉ chuyển sang `ready` khi spec đã xác nhận và thiết kế (nếu cần) đã duyệt.
+5. **Ticket.** AI tách spec thành các ticket trong `features/<feature>/tickets/` theo [mẫu ticket](templates/ticket.md). Ticket chỉ chuyển sang `ready` khi spec đã xác nhận và thiết kế (nếu cần) đã duyệt. Ticket chỉ người làm được (ví dụ chạm `scripts/release.sh` hay cấu hình production) ghi `auto_run: false`, để không bao giờ vào phiên tự chạy.
 6. **Plan (ngày 1).** AI sinh plan cho từng ticket được chọn vào sprint, theo [mẫu plan](templates/plan.md), kèm điểm rủi ro.
-7. **Họp đánh giá rủi ro.** Nhóm xem plan, đánh giá ảnh hưởng chéo, duyệt hoặc dừng. AI sắp thứ tự chạy các plan đã duyệt và lập danh sách chạy trong `runs/`, rồi kiểm tra cả danh sách bằng script và một lần rà soát độc lập: mâu thuẫn giữa spec và plan, giữa các plan, test chưa đủ tốt ([ops/pre-run-review.md](ops/pre-run-review.md)). Điểm chặn được xử lý trước khi dev duyệt danh sách.
-8. **Phiên AI tự chạy.** Khi dev đã duyệt xong và kích hoạt, AI thực hiện lần lượt từng plan theo [quy trình phiên tự chạy](auto-run.md): viết test trước, viết code, rà soát độc lập, qua cổng chất lượng thì merge vào nhánh chính. Cuối phiên, AI build bản staging và viết báo cáo phiên.
+7. **Họp đánh giá rủi ro.** Nhóm xem plan, đánh giá ảnh hưởng chéo, duyệt hoặc dừng. AI sắp thứ tự chạy các plan đã duyệt và lập danh sách chạy trong `runs/`, rồi kiểm tra cả danh sách bằng script và một lần rà soát độc lập: mâu thuẫn giữa spec và plan, giữa các plan, test chưa đủ tốt ([ops/pre-run-review.md](ops/pre-run-review.md)). Danh sách ghi cách mở phiên (`cloud`, `routine` hay `local`), chọn theo việc mỗi cách làm được ([ops/session-capabilities.md](ops/session-capabilities.md)). Điểm chặn được xử lý trước khi dev duyệt danh sách.
+8. **Phiên AI tự chạy.** Khi dev đã duyệt xong và kích hoạt, AI thực hiện lần lượt từng plan theo [quy trình phiên tự chạy](auto-run.md): viết test trước, viết code, rà soát độc lập, qua cổng chất lượng thì merge vào nhánh chính. Gặp lệch nhỏ thuộc danh sách của các ADR (ví dụ sửa thêm file ngoài plan mà task cần, test cũ mâu thuẫn với điều plan đã duyệt, test đỏ vì máy chạy thiếu cấu hình chung, điểm chặn của rà soát mà test chạy thật không tái hiện) hay task mà môi trường của phiên không làm được, phiên tự xử lý hoặc bỏ qua theo luật rồi ghi vào báo cáo cho người kiểm sau, không dừng chờ người (ADR-0029, ADR-0031 đến ADR-0033, ADR-0035). Cuối phiên, AI build bản staging và viết báo cáo phiên.
 
    **Đường làm nhanh.** Việc nhỏ, rủi ro thấp, không chạm điểm chặn, mà dev muốn có ngay trong ngày thì làm cùng AI trên máy dev (ADR-0034). Vẫn có yêu cầu, ticket, plan đủ mục, test viết trước, rà soát độc lập, CI, `merge-if-green.sh` và nhật ký; bỏ họp, các PR duyệt riêng, danh sách chạy và báo cáo phiên. Dev đồng ý plan ngay trong phiên, cả task nằm trong một PR. Hướng dẫn cho dev ở [ops/quick-lane.md](ops/quick-lane.md); phần AI phải làm ở [CLAUDE.md](CLAUDE.md), mục Khi làm nhanh có người theo dõi.
 9. **Kiểm tra và phản hồi (ngày 2).** Dev đọc báo cáo phiên, kiểm tra bản staging, ghi phản hồi theo [mẫu phản hồi](templates/feedback.md). AI cập nhật plan theo phản hồi, plan sửa lại đi qua họp đánh giá rủi ro trước phiên tự chạy tiếp theo.

@@ -23,10 +23,10 @@
 set -euo pipefail
 
 BASE_BRANCH="main"
-# Checks that must be green. Names match the job names in .github/workflows/pr-check.yml.
+# Checks that must be green. Names match the job names in .github/workflows/pr-check.yml. The emulator tests run after
+# the merge, in the ui-test job of main-guard.yml (ADR-0043): a PR has no ui-test to wait for, but a red one left from
+# before is still refused below like any red check.
 REQUIRED_CHECKS=("changes" "build-and-test")
-# Checks that may be skipped (when the PR does not touch code that runs in the app).
-SKIPPABLE_CHECKS=("ui-test")
 # Waiting with --update; tests shorten both.
 UPDATE_TIMEOUT_SECONDS="${MERGE_UPDATE_TIMEOUT_SECONDS:-1800}"
 POLL_SECONDS="${MERGE_POLL_SECONDS:-30}"
@@ -93,7 +93,7 @@ REPO="$(echo "$REMOTE_URL" | sed -E 's#(git@github.com:|https://github.com/)##; 
 # Result of one check on HEAD_SHA. A check whose job still shows queued or in_progress while its workflow run
 # has completed with success counts as green: GitHub sometimes leaves the job status behind (app lesson L-017).
 check_one() {
-  local name="$1" allow_skip="$2" latest status conclusion suite run
+  local name="$1" latest status conclusion suite run
   latest="$(jq -c --arg n "$name" '[.[] | select(.name==$n)] | sort_by(.started_at) | last // empty' <<<"$RUNS")"
   if [[ -z "$latest" ]]; then
     pending "chưa thấy kiểm tra '$name' trên commit ${HEAD_SHA:0:7}: CI chưa chạy trên commit này."
@@ -118,7 +118,6 @@ check_one() {
     return 0
   fi
   if [[ "$conclusion" == "success" ]]; then return 0; fi
-  if [[ "$allow_skip" == "yes" && "$conclusion" == "skipped" ]]; then return 0; fi
   die "kiểm tra '$name' kết thúc với kết quả '$conclusion'."
 }
 
@@ -212,11 +211,7 @@ evaluate() {
   [[ -z "$failed" ]] || die "có kiểm tra không qua: $failed."
 
   for c in "${REQUIRED_CHECKS[@]}"; do
-    check_one "$c" no
-    [[ "$RESULT" == "ready" ]] || return 0
-  done
-  for c in "${SKIPPABLE_CHECKS[@]}"; do
-    check_one "$c" yes
+    check_one "$c"
     [[ "$RESULT" == "ready" ]] || return 0
   done
 }

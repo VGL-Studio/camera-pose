@@ -45,6 +45,7 @@ staging_build:               # phiên bản bản staging được phát cuối 
 - [ ] Nhánh chính đang xanh, không có issue hay PR đang mở mang nhãn `main-broken`.
 - [ ] Mọi plan và ticket trong danh sách có trạng thái `approved`.
 - [ ] Các ticket phụ thuộc đã sẵn sàng.
+- [ ] Bật lịch của `resume-run` và `run-watchdog` sau khi đẩy nhánh báo cáo: `scripts/schedule-idle.py --enable`, mã 0 (`docs/auto-run.md`, mục 2).
 
 Task bị bỏ qua: <mã ticket và lý do, hoặc "Không có">
 

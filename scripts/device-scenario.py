@@ -100,7 +100,8 @@ SESSION_SCRIPT = SCRIPTS / "device-session.sh"
 DEFAULT_GLOB = "feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/*.txt"
 MARKER_TAG = "VGL.Session"
 DEFAULT_TIMEOUT, MAX_TIMEOUT = 180, 300
-CONSENT_DECLINE = "text=Do not consent | text=Không đồng ý"
+# Some WebViews of the consent form (Xiaomi HyperOS) label the buttons only in content-desc (L-122).
+CONSENT_DECLINE = "text=Do not consent | text=Không đồng ý | desc=Do not consent | desc=Không đồng ý"
 FIRST_SCREENS = os.environ.get("DEVICE_SCENARIO_FIRST_SCREENS", "id=app_root")
 # MainActivity calls ads.gatherConsent() asynchronously, so the form may show a few seconds after the app root.
 CONSENT_GRACE = float(os.environ.get("DEVICE_SCENARIO_CONSENT_GRACE", "8"))

@@ -105,6 +105,7 @@ internal fun fullScreenLoaderOf(format: AdFormat): FullScreenLoader = when (form
     AdFormat.BANNER_COLLAPSIBLE,
     AdFormat.NATIVE_STEP,
     AdFormat.NATIVE_IN_COLLECTION,
+    AdFormat.BANNER_MREC,
     -> throw IllegalArgumentException("$format has no full-screen slot")
 }
 

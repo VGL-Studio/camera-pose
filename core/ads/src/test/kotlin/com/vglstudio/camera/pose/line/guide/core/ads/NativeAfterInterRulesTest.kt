@@ -16,13 +16,32 @@ import org.junit.Test
 class NativeAfterInterRulesTest {
     @Test
     fun countdownSecondsLeft_roundsUp_andStopsAtZero() {
-        val deadline = 3_000L
-        val expected = mapOf(0L to 3, 1L to 3, 1_000L to 2, 1_001L to 2, 2_999L to 1, 3_000L to 0, 9_000L to 0)
+        val deadline = 5_000L
+        val expected = mapOf(0L to 5, 1L to 5, 1_000L to 4, 4_001L to 1, 4_999L to 1, 5_000L to 0, 9_000L to 0)
         expected.forEach { (now, seconds) ->
-            assertEquals("now = $now", seconds, countdownSecondsLeft(deadline, now))
+            assertEquals("now = $now", seconds, countdownSecondsLeft(deadline, now, countdownSeconds = 5L))
         }
-        // The upper bound: a clock read before the opening never shows more than 3.
-        assertEquals(3, countdownSecondsLeft(deadline, -500L))
+        // The upper bound: a clock read before the opening never shows more than the countdown of the turn.
+        assertEquals(5, countdownSecondsLeft(deadline, -500L, countdownSeconds = 5L))
+        // The longest countdown (30 s).
+        assertEquals(30, countdownSecondsLeft(30_000L, 0L, countdownSeconds = 30L))
+        assertEquals(1, countdownSecondsLeft(30_000L, 29_001L, countdownSeconds = 30L))
+    }
+
+    @Test
+    fun nativeCloseCountdownSeconds_acceptsOneToThirty_elseFive() {
+        mapOf(1L to 1L, 5L to 5L, 12L to 12L, 30L to 30L).forEach { (remote, expected) ->
+            assertEquals("remote = $remote", expected, nativeCloseCountdownSeconds(remote))
+        }
+        listOf(0L, -1L, 31L, Long.MAX_VALUE, Long.MIN_VALUE).forEach { remote ->
+            assertEquals("remote = $remote", 5L, nativeCloseCountdownSeconds(remote))
+        }
+    }
+
+    @Test
+    fun defaultCountdown_isFive_matchesKeyDefault() {
+        assertEquals(5L, NATIVE_CLOSE_COUNTDOWN_DEFAULT_SECONDS)
+        assertEquals(NATIVE_CLOSE_COUNTDOWN_DEFAULT_SECONDS, AdsSettings.TIME_CLOSE_NATIVE.default)
     }
 
     @Test

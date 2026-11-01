@@ -28,6 +28,7 @@ internal fun AdFormat.poolCapacity(): Int? = when (this) {
     AdFormat.APP_OPEN,
     AdFormat.REWARDED,
     AdFormat.BANNER_COLLAPSIBLE,
+    AdFormat.BANNER_MREC,
     -> null
 }
 
@@ -69,11 +70,12 @@ internal interface PooledNativeAds {
  * - O-04: a free ad is destroyed from 55 minutes after its load, by [claim] and by [refill]; so is a free ad whose
  *   impression the SDK reported after it was given back (P-01a).
  * - P-04: the placement of an ad is set in its [PlacementCell] when it is claimed.
- * - P-05: [exhausted] when no free ad, no request in flight, and nothing can be sent now.
+ * - P-05: [exhausted] when no free ad, no request in flight, and nothing can be sent now ([canLoadNow]: in
+ *   background, covered by a full-screen ad (KB-27), SDK not ready or gate closed).
  * - P-08 (close of the ticket): [close] destroys the free ads, cancels the load in flight (a late ad is destroyed),
  *   drops the retry; an ad in use given back after it is destroyed. [reopen] opens it again.
- * - O-05, S-15, L-072: every send goes through [sendNext], which asks [sendGate] (foreground, then the consent gate);
- *   a closed gate sends nothing, counts no failure and plans no retry. A failed load retries after
+ * - O-05, S-15, L-072: every send goes through [sendNext], which asks [sendGate] (foreground and not covered, then
+ *   the consent gate); a closed gate sends nothing, counts no failure and plans no retry. A failed load retries after
  *   [AdRetryPolicy.nativeDelayMillis] (holding an ad when the pool holds one), or when [retryResets] moves (S-24).
  * - S-11: [claim] gives nothing while [canShowNow] is false.
  *
@@ -84,7 +86,10 @@ internal class NativeAdPool(
     private val capacity: Int,
     private val load: suspend () -> PoolLoad?,
     private val sendGate: suspend () -> Boolean,
-    /** SDK ready, foreground and the consent gate open: a request could be sent now. */
+    /**
+     * SDK ready, foreground and not covered by a full-screen ad (the in-screen window, KB-27), and the consent gate
+     * open: a request could be sent now (P-05).
+     */
     private val canLoadNow: () -> Boolean,
     /** Consent given: a loaded ad may go on screen (S-11). */
     private val canShowNow: () -> Boolean,

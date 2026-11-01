@@ -37,10 +37,13 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
@@ -75,22 +78,35 @@ class InListAdsTest {
         it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
     }
 
-    private fun inListAds(every: Int?, loader: InListAdLoader, scope: CoroutineScope) = InListAds(
+    private fun inListAds(every: Int?, rows: InListRowSource, scope: CoroutineScope) = InListAds(
         placement = AdPlacement.SAMPLE_NATIVE_SMALL,
         every = mutableStateOf(every),
-        loader = loader,
+        rowSource = rows,
         scope = scope,
         logger = RecordingAppLogger(),
     )
 
-    private val loadedLoader = InListAdLoader { NativeAdState.Loaded(FakeLoadedNativeAd(sampleNativeAdAssets)) }
+    /** Rows through the real [inListRowStates], the window and the gate open, each loading with [load]. */
+    private fun rowsLoading(load: suspend () -> NativeAdState) = InListRowSource { _, _, shown ->
+        inListRowStates(
+            load = load,
+            window = MutableStateFlow(true),
+            rowShown = shown,
+            mayRequestNow = { true },
+            retryResets = MutableStateFlow(0),
+            logger = RecordingAppLogger(),
+            placementKey = "test",
+        )
+    }
 
-    /** Seven items through the public function, with the real ad rows of [loader], every 3 items. */
-    private fun setPublicListContent(loader: InListAdLoader) {
+    private val loadedRows = rowsLoading { NativeAdState.Loaded(FakeLoadedNativeAd(sampleNativeAdAssets)) }
+
+    /** Seven items through the public function, with the real ad rows of [rows], every 3 items. */
+    private fun setPublicListContent(rows: InListRowSource) {
         composeRule.setContent {
             AppTheme {
                 val scope = rememberCoroutineScope()
-                val ads = remember { inListAds(every = 3, loader = loader, scope = scope) }
+                val ads = remember { inListAds(every = 3, rows = rows, scope = scope) }
                 LazyColumn(modifier = Modifier.fillMaxSize().testTag(LIST)) {
                     itemsWithInListAds(items = (1..7).toList(), ads = ads) {
                         Text("List item $it", Modifier.testTag("item_$it"))
@@ -142,7 +158,7 @@ class InListAdsTest {
                     InListAds(
                         placement = AdPlacement.SAMPLE_NATIVE_SMALL,
                         every = derivedStateOf { every },
-                        loader = loadedLoader,
+                        rowSource = loadedRows,
                         scope = scope,
                         logger = RecordingAppLogger(),
                     )
@@ -165,13 +181,13 @@ class InListAdsTest {
 
     @Test
     fun adRow_showsAdLabel() {
-        setPublicListContent(loadedLoader)
+        setPublicListContent(loadedRows)
         composeRule.onNode(hasText(badge) and hasAnyAncestor(hasTestTag("inlist_ad_0"))).assertExists()
     }
 
     @Test
     fun adRow_isSixteenDpFromItemsAboveAndBelow() {
-        setPublicListContent(loadedLoader)
+        setPublicListContent(loadedRows)
 
         val card = composeRule
             .onNode(hasTestTag(NativeAdTestTags.CARD) and hasAnyAncestor(hasTestTag("inlist_ad_0")))
@@ -182,7 +198,7 @@ class InListAdsTest {
 
     @Test
     fun unavailableSlot_takesNoHeight() {
-        setPublicListContent(InListAdLoader { NativeAdState.Unavailable })
+        setPublicListContent(InListRowSource { _, _, _ -> flowOf(NativeAdState.Unavailable) })
 
         // Control: the ad row is in the list, between item 3 and item 4, so the 0 dp below is the row collapsing.
         composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
@@ -192,7 +208,14 @@ class InListAdsTest {
 
     @Test
     fun loadingSlot_showsPlaceholderOfSmallHeight() {
-        setPublicListContent(InListAdLoader { awaitCancellation() })
+        setPublicListContent(
+            InListRowSource { _, _, _ ->
+                flow {
+                    emit(NativeAdState.Loading)
+                    awaitCancellation()
+                }
+            },
+        )
 
         assertDpEquals("ad row height", 80.dp + 16.dp * 2, bounds("inlist_ad_0").height)
         composeRule
@@ -205,7 +228,7 @@ class InListAdsTest {
         composeRule.setContent {
             AppTheme {
                 val scope = rememberCoroutineScope()
-                val ads = remember { inListAds(every = 3, loader = loadedLoader, scope = scope) }
+                val ads = remember { inListAds(every = 3, rows = loadedRows, scope = scope) }
                 LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.fillMaxSize().testTag(GRID)) {
                     itemsWithInListAds(items = (1..7).toList(), ads = ads, columns = 2) {
                         Text("List item $it", Modifier.testTag("item_$it"))
@@ -230,7 +253,7 @@ class InListAdsTest {
                 val ads = rememberInListAds(AdPlacement.SAMPLE_NATIVE_SMALL)
                 adsWithoutController = ads
                 val scope = rememberCoroutineScope()
-                val allowedAds = remember { inListAds(every = 3, loader = loadedLoader, scope = scope) }
+                val allowedAds = remember { inListAds(every = 3, rows = loadedRows, scope = scope) }
                 Row(modifier = Modifier.fillMaxSize()) {
                     LazyColumn(modifier = Modifier.weight(1f).testTag(LIST)) {
                         itemsWithInListAds(items = (1..20).toList(), ads = ads) {
@@ -260,7 +283,7 @@ class InListAdsTest {
     fun loadedSlots_destroyedWhenEveryBecomesNull_andLoadAgainWhenBack() {
         var every by mutableStateOf<Int?>(3)
         val loaded = mutableListOf<FakeLoadedNativeAd>()
-        val loader = InListAdLoader {
+        val rows = rowsLoading {
             NativeAdState.Loaded(FakeLoadedNativeAd(sampleNativeAdAssets).also { loaded += it })
         }
         composeRule.setContent {
@@ -270,7 +293,7 @@ class InListAdsTest {
                     InListAds(
                         placement = AdPlacement.SAMPLE_NATIVE_SMALL,
                         every = derivedStateOf { every },
-                        loader = loader,
+                        rowSource = rows,
                         scope = scope,
                         logger = RecordingAppLogger(),
                     )
@@ -305,7 +328,7 @@ class InListAdsTest {
         composeRule.setContent {
             AppTheme {
                 val scope = rememberCoroutineScope()
-                val ads = remember { inListAds(every = 3, loader = loadedLoader, scope = scope) }
+                val ads = remember { inListAds(every = 3, rows = loadedRows, scope = scope) }
                 LazyColumn(modifier = Modifier.fillMaxSize().testTag(LIST)) {
                     itemsWithInListAds(items = (0..19).toList(), ads = ads, key = { it }) {
                         Text("List item $it", Modifier.testTag("item_$it"))
@@ -348,6 +371,80 @@ class InListAdsTest {
         // Control: the first slot is not the second placement, so the turn really changes.
         composeRule.onAllNodesWithText("ad a 0").assertCountEquals(1)
         composeRule.onAllNodesWithText("ad b 1").assertCountEquals(1)
+    }
+
+    @Test
+    fun failedRow_showsAdAfterRetry() {
+        val retryResets = MutableStateFlow(0)
+        val secondAnswer = CompletableDeferred<Unit>()
+        val calls = mutableMapOf<Int, Int>()
+        val rows = InListRowSource { _, slot, shown ->
+            inListRowStates(
+                load = {
+                    val call = calls.getOrElse(slot) { 0 }
+                    calls[slot] = call + 1
+                    if (call == 0) {
+                        NativeAdState.Unavailable
+                    } else {
+                        secondAnswer.await()
+                        NativeAdState.Loaded(FakeLoadedNativeAd(sampleNativeAdAssets))
+                    }
+                },
+                window = MutableStateFlow(true),
+                rowShown = shown,
+                mayRequestNow = { true },
+                retryResets = retryResets,
+                logger = RecordingAppLogger(),
+                placementKey = "test",
+            )
+        }
+        setPublicListContent(rows)
+
+        // Internet back: the row tries again at once, without waiting for the 5 s of the clock.
+        retryResets.value += 1
+        composeRule.waitForIdle()
+        // Control: before the ad of the second try comes, the failed row takes no height.
+        assertDpEquals("ad row height before the ad", 0.dp, bounds("inlist_ad_0").height)
+
+        secondAnswer.complete(Unit)
+        composeRule.waitForIdle()
+        composeRule.onNode(hasText(badge) and hasAnyAncestor(hasTestTag("inlist_ad_0"))).assertExists()
+        assertDpEquals("ad row height", 80.dp + 16.dp * 2, bounds("inlist_ad_0").height)
+    }
+
+    @Test
+    fun adRow_scrolledAway_marksHidden_backMarksShown() {
+        val shownOf = mutableMapOf<Int, StateFlow<Boolean>>()
+        val rows = InListRowSource { _, slot, shown ->
+            shownOf[slot] = shown
+            flow {
+                emit(NativeAdState.Loading)
+                awaitCancellation()
+            }
+        }
+        composeRule.setContent {
+            AppTheme {
+                val scope = rememberCoroutineScope()
+                val ads = remember { inListAds(every = 3, rows = rows, scope = scope) }
+                LazyColumn(modifier = Modifier.fillMaxSize().testTag(LIST)) {
+                    itemsWithInListAds(items = (1..40).toList(), ads = ads) {
+                        Text("List item $it", Modifier.testTag("item_$it"))
+                    }
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        // Control: the first ad row is drawn before any scroll.
+        assertTrue(shownOf.getValue(0).value)
+
+        composeRule.onNodeWithTag(LIST).performScrollToIndex(LAST_INDEX_OF_40)
+        composeRule.waitForIdle()
+        assertFalse("row 0 scrolled away", shownOf.getValue(0).value)
+        assertTrue("last row on screen", shownOf.getValue(LAST_SLOT_OF_40).value)
+
+        composeRule.onNodeWithTag(LIST).performScrollToIndex(0)
+        composeRule.waitForIdle()
+        assertTrue("row 0 back on screen", shownOf.getValue(0).value)
     }
 
     @Test
@@ -403,7 +500,7 @@ class InListAdsTest {
                     InListAds(
                         placement = AdPlacement.GALLERY_INLIST_MEDIUM,
                         every = derivedStateOf(every),
-                        loader = loadedLoader,
+                        rowSource = loadedRows,
                         scope = scope,
                         logger = RecordingAppLogger(),
                         pooledCell = cell,
@@ -546,7 +643,7 @@ class InListAdsTest {
         val ads = InListAds(
             placement = AdPlacement.GALLERY_INLIST_MEDIUM,
             every = derivedStateOf { every },
-            loader = loadedLoader,
+            rowSource = loadedRows,
             scope = CoroutineScope(Dispatchers.Unconfined),
             logger = RecordingAppLogger(),
         )
@@ -566,6 +663,10 @@ class InListAdsTest {
 
         /** The last index of 30 items with an ad row after every 3: 30 items and 9 ad rows. */
         const val LAST_INDEX_OF_30 = 38
+
+        /** The last index of 40 items with an ad row after every 3 (40 items and 13 ad rows), and its last slot. */
+        const val LAST_INDEX_OF_40 = 52
+        const val LAST_SLOT_OF_40 = 12
 
         /** The third ad row of a list with an ad after every 3 items (inListAdPositions). */
         const val INDEX_OF_AD_ROW_2 = 11

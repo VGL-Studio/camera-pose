@@ -10,7 +10,7 @@ fun interface AdUnitIds {
     /**
      * The unit of [placement] drawn as [format]: a layer of a bottom bar (banner, collapsible native) is another
      * format than the bar's own (plan T-030, question 2). By default only the placement's own format has a unit, so a
-     * layer of another format sends nothing (B-04) until units per slot exist (spec, question 14).
+     * layer of another format sends nothing (B-04); [ConfiguredAdUnitIds] reads layer units from slot keys (T-056).
      */
     fun of(placement: AdPlacement, format: AdFormat): String? = if (format == placement.format) of(placement) else null
 }
@@ -42,12 +42,17 @@ object GoogleTestAdUnitIds : AdUnitIds {
         // Native video, like the other native cards with media.
         AdFormat.NATIVE_STEP -> "ca-app-pub-3940256099942544/1044960115"
         AdFormat.NATIVE_IN_COLLECTION -> "ca-app-pub-3940256099942544/1044960115"
+        // Google's fixed-size banner unit, for every fixed size, 300 x 250 too (plan T-062, question 1).
+        AdFormat.BANNER_MREC -> "ca-app-pub-3940256099942544/6300978111"
     }
 }
 
 /**
  * Real ad units, given when the release is built and never stored in the repo (ADR-0009).
- * [config] has the form `<placement key>=<ad unit>;<placement key>=<ad unit>`.
+ * [config] has the form `<key>=<ad unit>;<key>=<ad unit>`, with two kinds of key in one table (plan T-056):
+ * - a placement key (`sample_native_small=...`): the unit of the placement's own format;
+ * - a slot key, the code of a layer format of a bottom bar ([BOTTOM_BAR_LAYER_FORMATS]: `banner=...`,
+ *   `native_collap=...`): one unit for that layer of every bottom bar of the app (M-05, spec question 14).
  */
 class ConfiguredAdUnitIds(config: String) : AdUnitIds {
     private val units: Map<String, String> = config.split(';')
@@ -61,11 +66,54 @@ class ConfiguredAdUnitIds(config: String) : AdUnitIds {
         }
 
     /**
-     * Placements that have no ad unit in this build. A release must have none. Staging-only placements
-     * ([AdPlacement.stagingOnly]) never ship, so they are never missing.
+     * The keys of `adUnits` that this build lacks: placement keys first (in declaration order), then the slot keys of
+     * the layers of those placements, each once. A release should have none; a missing slot key only leaves that
+     * layer without an ad (B-04). Staging-only placements ([AdPlacement.stagingOnly]) never ship, so they and their
+     * layers are never missing.
      */
-    val missing: List<AdPlacement> = AdPlacement.entries.filter { !it.stagingOnly && it.key !in units }
+    val missing: List<String> = missingUnitKeys(AdPlacement.entries.map { it.declaration }, units.keys)
 
     /** Staging-only placements get no unit even when the configuration names them: production never shows them. */
     override fun of(placement: AdPlacement): String? = if (placement.stagingOnly) null else units[placement.key]
+
+    /**
+     * The placement's own format reads only its placement key, never a slot key. A layer of another format reads
+     * its slot key ([AdFormat.code]); without one the layer sends nothing (B-04).
+     */
+    override fun of(placement: AdPlacement, format: AdFormat): String? = when {
+        placement.stagingOnly -> null
+        format == placement.format -> of(placement)
+        else -> units[format.code]
+    }
+}
+
+/** The layer formats of a bottom bar (D-01) whose units come from slot keys of the same name (plan T-056). */
+internal val BOTTOM_BAR_LAYER_FORMATS = listOf(AdFormat.BANNER, AdFormat.NATIVE_COLLAPSIBLE)
+
+/**
+ * The layers of this placement: a native small placement is a bottom bar (MC-08, [BottomAdBarScaffold]), so it has
+ * the [BOTTOM_BAR_LAYER_FORMATS]; any other has none.
+ */
+internal val AdPlacementDeclaration.layerFormats: List<AdFormat>
+    get() = if (format == AdFormat.NATIVE_SMALL) BOTTOM_BAR_LAYER_FORMATS else emptyList()
+
+/**
+ * The keys missing from `adUnits` for [placements], given the [configured] keys: placement keys of the placements
+ * that ship, then the slot keys of their layers, each once, in the order of [BOTTOM_BAR_LAYER_FORMATS].
+ */
+internal fun missingUnitKeys(placements: List<AdPlacementDeclaration>, configured: Set<String>): List<String> {
+    val shipped = placements.filterNot { it.stagingOnly }
+    val placementKeys = shipped.map { it.code }.filter { it !in configured }
+    val layers = shipped.flatMap { it.layerFormats }.toSet()
+    val slotKeys = BOTTOM_BAR_LAYER_FORMATS.filter { it in layers }.map { it.code }.filter { it !in configured }
+    return placementKeys + slotKeys
+}
+
+/**
+ * The line logged once when :core:ads starts if production units are missing (plan T-056), or null: only
+ * [ConfiguredAdUnitIds] with missing keys warns, so staging ([GoogleTestAdUnitIds]) never does.
+ */
+internal fun missingUnitsWarning(unitIds: AdUnitIds): String? {
+    val missing = (unitIds as? ConfiguredAdUnitIds)?.missing.orEmpty()
+    return if (missing.isEmpty()) null else "Production ad units missing, these show no ad: ${missing.joinToString()}"
 }

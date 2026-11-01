@@ -42,7 +42,7 @@ class AppsFlyerTrackerTest {
         val tracker = started()
         FORMAT_CODES.forEach { tracker.log(revenue(adFormat = it)) }
 
-        assertEquals(10, sink.events.size)
+        assertEquals(11, sink.events.size)
         assertTrue(sink.events.all { it.name == "af_ad_revenue" })
         assertEquals(FORMAT_CODES, sink.events.map { it.params!!["ad_type"] })
         assertEquals("VN", sink.events.first().params!!["country"])
@@ -278,6 +278,7 @@ class AppsFlyerTrackerTest {
             "NATIVE_ONBOARDING",
             "NATIVE_CONTENT",
             "NATIVE_MEDIUM",
+            "BANNER_MREC",
         )
     }
 }

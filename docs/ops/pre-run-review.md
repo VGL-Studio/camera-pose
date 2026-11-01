@@ -15,7 +15,7 @@ Phiên tự chạy dừng hay merge sai thường vì những lỗi đã nằm s
 | Dòng lịch sử của spec còn ghi "Chờ xác nhận lại" khi spec đã `confirmed` | Chú ý |
 | Spec đổi sau ngày plan được duyệt: plan có thể đã cũ | Chú ý |
 | Kịch bản có ít dòng test hơn số tiêu chí chấp nhận trong spec | Chú ý |
-| Ngoại lệ viết test trước gồm vỏ app (`AppNavHost`, `MainActivity`), nơi lỗi chỉ lộ ra ở `ui-test` (L-045) | Chú ý |
+| Ngoại lệ viết test trước gồm vỏ app (`AppNavHost`, `MainActivity`), nơi lỗi chỉ lộ ra sau merge, ở job `ui-test` của `main-guard` (L-045, ADR-0043) | Chú ý |
 | Hai plan cùng sửa một file mà không phụ thuộc nhau (L-045) | Chú ý |
 | Danh sách chỉ có một chuỗi phụ thuộc (L-045) | Chú ý |
 | Hai plan cùng ghi Tạo một file, kể cả khi phụ thuộc nhau (L-054) | Chú ý |

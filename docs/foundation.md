@@ -245,6 +245,81 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - - đột biến theo hướng điểm chặn làm test thất bại, ghi vào nhật ký plan
 - - test nằm trong file được phép và vào commit của task. - Không áp dụng cho điểm chặn về lệch plan, file ngoài phạm vi, test bị đổi hay xóa, ADR-0031, cấu hình production, bí mật, mã quảng cáo thật, thiết kế hay hiểu spec khác nhau. - Test và lần đột biến đi qua vòng rà soát lại, tính vào giới hạn 2 vòng. Rà soát lại không đồng ý thì điểm là Chặn như cũ. - Mỗi điểm chỉ ghi "không tái hiện" một lần. - Ghi vào mục "Quyết định AI đã tự làm", thêm một dòng `- [ ]` ở "Cần người kiểm tra", và ghi trong mô tả PR
 
+### [ADR-0036](adr/0036-ads-lech-partner-tu-jbase.md): Quảng cáo lệch có chủ đích khỏi PARTNER ở bốn điểm học từ JBase, ghi rõ trong luật nghiệp vụ
+
+- quảng cáo trong màn hình không gửi yêu cầu và không làm mới khi quảng cáo toàn màn hình vẽ trong app đang hiện
+- thanh đáy chừa chỗ đúng chiều cao của khe từ lúc khe đang tải, nạp lỗi thì co về 0
+- `banner_mrec` là một định dạng của danh sách đóng, chỉ dùng khi spec của app khai báo
+- cổng không hiện quảng cáo bật thì mọi định dạng như công tắc tổng tắt và hành động có điều kiện làm thẳng
+- ghi mỗi điểm lệch PARTNER vào `ads-business-rules.md` mục 12 kèm mã ADR
+
+### [ADR-0037](adr/0037-ads-them-max-va-aps.md): Thêm AppLovin MAX làm nền tảng quảng cáo thứ hai bên cạnh AdMob; Amazon APS đi kèm MAX khi có tài khoản
+
+- SDK MAX và APS chỉ nằm trong `:core:ads`
+- MAX và APS khởi tạo sau cổng đồng ý của `:core:ads`, không bao giờ trước, không viết cứng trạng thái đồng ý
+- khóa SDK MAX, mã đơn vị MAX và mã APS không vào repo, tài liệu hay resource của module
+- mọi luồng của MAX đi qua cùng cổng hiện toàn màn hình và cùng mốc `ads_interval` với AdMob
+- native không đi qua MAX
+- adapter của MAX ghi phiên bản cụ thể trong `gradle/libs.versions.toml`, không dùng `+`
+- không tách ticket APS khi chưa có tài khoản Amazon Publisher Services
+
+### [ADR-0038](adr/0038-ads-chuan-nghiep-vu-jbase.md): Nghiệp vụ quảng cáo lấy JBase làm chuẩn; chỗ JBase không có thì giữ PARTNER, chỗ JBase sai thì không theo
+
+- phân xử nghiệp vụ quảng cáo theo thứ tự quyết định của người phụ trách sản phẩm trong spec `ads`, rồi JBase, rồi luật PARTNER đang có
+- không theo JBase ở chỗ trái luật, chính sách hay là lỗi, ghi lý do
+- dẫn chứng JBase bằng đường dẫn và dòng, hoặc lớp và hằng số của bytecode, không theo trí nhớ
+- không chép code hay khóa của JBase
+- ghi mỗi luật đổi theo JBase vào `ads-business-rules.md` kèm mã ADR-0038 và nguồn JBase
+
+### [ADR-0039](adr/0039-main-guard-tin-lan-kiem-cua-pr.md): main-guard không chạy lại cổng chất lượng cho commit có nội dung đã được pr-check kiểm đầy đủ, chỉ chạy test của script khi phần khác chỉ là tài liệu
+
+- `main-guard.yml` chỉ bỏ qua `check.sh` qua `scripts/main-guard-verified.sh`, bằng một bước bên trong job `guard`, không bằng `if:` ở cấp job
+- script không chắc thì chọn `full`
+- commit đổi một file mà job `guard` gọi hay dựa vào, lần chạy tay và lần chạy lại luôn dùng `full`
+- đổi tên bước cổng chất lượng hay tên job `build-and-test` của `pr-check.yml`, hay thêm file trong `docs/` mà Gradle đọc, thì sửa `main-guard-verified.sh` và test của nó cùng PR
+
+### [ADR-0040](adr/0040-bo-build-agp-9.md): Dự án mẫu build bằng Gradle 9.3.1 và AGP 9.1.0 với Kotlin dựng sẵn, compileSdk 37, targetSdk 36
+
+- không áp dụng plugin `org.jetbrains.kotlin.android`
+- trong `build-logic`, cấu hình module Android qua thuộc tính của `CommonExtension` của AGP 9
+- không đặt `android.newDsl=false` ngoài ngoại lệ của plan T-080, plugin cần DSL cũ thì nâng plugin đó
+- giữ `compileSdk = "<số>"` trên một dòng của `gradle/libs.versions.toml`
+- nâng Gradle thì thêm giới hạn Java của bản đó vào `scripts/java-check.sh` kèm test
+
+### [ADR-0041](adr/0041-merge-khong-cap-nhat-khi-main-chi-doi-tai-lieu.md): merge-if-green.sh merge PR code mà không cập nhật nhánh khi nhánh chính chỉ đổi tài liệu từ điểm tách, và PR nháp không chạy pr-check
+
+- `merge-if-green.sh` chỉ merge nhánh chậm hơn nhánh chính mà không cập nhật khi PR đã chạy bước cổng chất lượng `check.sh` xanh, nhánh chính từ điểm tách chỉ đổi file trong `docs/**` hay `**/*.md` không phải file Gradle đọc, không file nào đổi ở cả hai bên và GitHub báo không xung đột
+- thiếu một điều hay không đọc được thì cập nhật nhánh như cũ
+- PR chỉ tài liệu luôn cập nhật nhánh trước khi merge
+- `merge-if-green.sh` quyết "chỉ tài liệu" và "PR đã chạy check.sh" chỉ qua `scripts/main-guard-verified.sh`, không viết lại quy tắc
+- đổi `paths-ignore` của `main-guard.yml` hay quy tắc tài liệu của `main-guard-verified.sh` thì sửa cả hai và test cùng PR
+- `pr-check.yml` khai báo đủ `opened`, `synchronize`, `reopened`, `ready_for_review` và chỉ bỏ PR nháp bằng `if:` cấp job
+- muốn CI cho PR nháp thì chuyển PR sang sẵn sàng, không bỏ điều kiện nháp
+
+### [ADR-0042](adr/0042-runner-tu-host-cho-job-nang.md): Job nặng không đọc bí mật chạy được trên runner tự host chạy một lần, chọn bằng biến HEAVY_RUNNER của repo private; xóa biến thì quay về runner của GitHub
+
+- chỉ job chạy `scripts/check.sh`, Gradle hay emulator mà không đọc `secrets.` mới khai báo `runs-on: ${{ vars.HEAVY_RUNNER || 'ubuntu-latest' }}`
+- job có `secrets.` và job nhẹ giữ `runs-on: ubuntu-latest`
+- job nặng gọi `scripts/runner-check.sh` ở bước ngay sau `actions/checkout`, với `if: runner.environment == 'self-hosted'`, trước `setup-java`, `setup-gradle` và mọi bước build
+- bước đứng trước bước kiểm runner không ghi vào `~/.gradle`, và trong thư mục làm việc chỉ ghi `build.log` trên đường lỗi
+- không coi `runner-check.sh` là hàng rào an toàn, nó chỉ bắt cấu hình nhầm
+- bước dùng `sudo` trong job nặng có `if: runner.environment == 'github-hosted'`
+- không đặt `clean: false` cho `actions/checkout` của job nặng
+- `wait-run.sh` mã 7 (`CHỜ RUNNER`) không phải lỗi của code: không sửa code, không chạy lại, ghi "Cần người kiểm tra"
+- không cài, đăng ký hay đổi cấu hình runner, không đặt hay xóa biến `HEAVY_RUNNER` trong phiên
+- không đề xuất đặt `HEAVY_RUNNER` cho repo công khai
+
+### [ADR-0043](adr/0043-test-emulator-sau-merge.md): Test trên emulator chạy một lần cho mỗi commit đổi code app của nhánh chính, trong job ui-test của main-guard, không chạy ở PR
+
+- test emulator chạy ở job `ui-test` của `main-guard.yml` sau job `guard`, không chạy ở `pr-check.yml`
+- `merge-if-green.sh` không đòi hay chờ `ui-test`
+- chỉ kết luận `red` của `scripts/ui-test-verdict.sh` mở `main-broken`
+- `infra` chỉ cho danh sách trắng PB của script và thiết bị hỏng, app dừng luôn là `red`
+- `find-breaking-commit.sh --check ui-test` không đổ lỗi cho commit có annotation `EMULATOR HẠ TẦNG (`, không chờ commit có `ui-test` bị hủy hay hết giờ
+- issue `main-broken` của emulator có dòng `<!-- check:ui-test -->`, và mỗi job chỉ bình luận, chỉ tự đóng issue của chính nó
+- emulator đỏ vì hạ tầng sau merge thì chạy lại riêng job đỏ theo `docs/ops/failure-playbook.md`, không mở `main-broken`, không đẩy commit rỗng lên nhánh chính
+- thêm đường dẫn code app hay script mà job `ui-test` gọi thì sửa danh sách của `scripts/ui-test-needed.sh` và test của nó cùng PR
+
 ## Quyết định riêng của app
 
 ### [ADR-1001](adr/1001-loading-timeout-15s.md): Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config
@@ -261,6 +336,13 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - test chỉ kiểm giá trị cục bộ, điều Firebase staging trả là kiểm thủ công
 - không đổi tên khóa Remote Config đã phát hành, khóa mới theo ADR-0023
 - không phát bản production trước khi T-075 lấy `scripts/release.sh` mới
+
+### [ADR-1008](adr/1008-khong-co-man-mau.md): App không có màn mẫu `:feature:sample` và vị trí quảng cáo `sample_native_small`; test của khung quảng cáo dùng vị trí `poses_bottom`
+
+- không thêm lại `:feature:sample`, cờ `feature_sample_enabled`, sự kiện `sample_increment` hay vị trí `sample_native_small`
+- test của khung cần một vị trí native small không chỉ có ở staging thì dùng `POSES_BOTTOM`
+- đồng bộ từ dự án mẫu thì bỏ `feature/sample` và dòng `SAMPLE_NATIVE_SMALL`, đổi test mới của mẫu dùng vị trí đó sang `POSES_BOTTOM`
+- vị trí `gallery_*` giữ theo ADR-1007
 
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 

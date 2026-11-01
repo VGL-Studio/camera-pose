@@ -9,6 +9,8 @@ import com.google.android.gms.ads.LoadAdError
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetricEvent
 import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdFunnel
 import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdMetrics
+import com.vglstudio.camera.pose.line.guide.core.logging.LogEntry
+import com.vglstudio.camera.pose.line.guide.core.logging.LogLevel
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -139,6 +141,108 @@ class SdkBannerAdViewTest {
         val click = metrics.events.filterIsInstance<AdMetricEvent.Clicked>().single()
         assertEquals(AdFormat.BANNER.metricCode(), click.adFormat)
         assertEquals("sample_native_small", click.adPlacement)
+    }
+
+    @Test
+    fun mrecBanner_reportsBannerMrecFormatAndPlacement() {
+        // Plan T-062, KB-29: the MREC placement reports its own format code and its placement.
+        val view = SdkBannerAdView(
+            adView = adView,
+            refresh = bannerRefreshOf(AdFormat.BANNER_MREC),
+            placement = AdPlacement.GALLERY_BANNER_MREC,
+            unitId = "unit",
+            telemetry = telemetry,
+            now = { nowMillis },
+            load = { requests += it },
+            format = AdFormat.BANNER_MREC,
+        )
+        view.send()
+        adView.adListener.onAdLoaded()
+        adView.adListener.onAdClicked()
+
+        val success = metrics.events.filterIsInstance<AdMetricEvent.LoadSuccess>().single()
+        assertEquals("BANNER_MREC", success.adFormat)
+        assertEquals("gallery_banner_mrec", success.adPlacement)
+        val click = metrics.events.filterIsInstance<AdMetricEvent.Clicked>().single()
+        assertEquals("BANNER_MREC", click.adFormat)
+        assertEquals("gallery_banner_mrec", click.adPlacement)
+        // Refreshed by its ad unit: the request has no collapsible extras.
+        val extras = requests.single().getNetworkExtrasBundle(AdMobAdapter::class.java)
+        assertTrue("$extras", extras == null || !extras.containsKey("collapsible"))
+    }
+
+    @Test
+    fun networkLog_onLoadResults_logsAtStaging() {
+        // Plan T-058, KB-28: every result of the banner, sent by the app or refreshed by the SDK, logs its networks.
+        // The AdView of Robolectric has no response info, so each result is one "none tried" line.
+        val logger = RecordingAppLogger()
+        SdkBannerAdView(
+            adView = adView,
+            refresh = BannerRefresh.BY_AD_UNIT,
+            placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+            unitId = "unit",
+            telemetry = telemetry,
+            now = { nowMillis },
+            load = { requests += it },
+            networkLog = AdNetworkLog(true, logger),
+        )
+
+        adView.adListener.onAdFailedToLoad(LoadAdError(3, "No fill.", "com.google.android.gms.ads", null, null))
+        adView.adListener.onAdLoaded()
+
+        val lines = logger.entries.filter { it.message.startsWith("Network ") }
+        assertEquals(
+            listOf(
+                LogEntry(LogLevel.INFO, "Ads", "Network sample_native_small: none tried"),
+                LogEntry(LogLevel.INFO, "Ads", "Network sample_native_small: none tried"),
+            ),
+            lines,
+        )
+    }
+
+    @Test
+    fun networkLog_defaultOff_logsNothing() {
+        val logger = RecordingAppLogger()
+        val quietTelemetry = AdTelemetry(
+            metrics = metrics,
+            funnel = RecordingAdFunnel(),
+            lifecycleSwitches = { DEFAULT_FLAGS.copy(logSlotEvents = true) },
+            serving = { true },
+            offline = { false },
+            counter = LoadAttemptCounter(),
+            logger = logger,
+        )
+        SdkBannerAdView(
+            adView = adView,
+            refresh = BannerRefresh.BY_AD_UNIT,
+            placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+            unitId = "unit",
+            telemetry = quietTelemetry,
+            now = { nowMillis },
+            load = { requests += it },
+        )
+
+        adView.adListener.onAdFailedToLoad(LoadAdError(3, "No fill.", "com.google.android.gms.ads", null, null))
+        adView.adListener.onAdLoaded()
+
+        // Control: both results reached the banner (its metrics), so the absence of a network line counts.
+        assertTrue(metrics.events.any { it is AdMetricEvent.LoadFail })
+        assertTrue(metrics.events.any { it is AdMetricEvent.LoadSuccess })
+        assertTrue(logger.entries.toString(), logger.entries.none { it.message.startsWith("Network ") })
+
+        // Control (L-055): the same callbacks with the staging log on write the network lines to that logger.
+        SdkBannerAdView(
+            adView = adView,
+            refresh = BannerRefresh.BY_AD_UNIT,
+            placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+            unitId = "unit",
+            telemetry = quietTelemetry,
+            now = { nowMillis },
+            load = { requests += it },
+            networkLog = AdNetworkLog(true, logger),
+        )
+        adView.adListener.onAdLoaded()
+        assertEquals(1, logger.entries.count { it.message.startsWith("Network ") })
     }
 
     private companion object {

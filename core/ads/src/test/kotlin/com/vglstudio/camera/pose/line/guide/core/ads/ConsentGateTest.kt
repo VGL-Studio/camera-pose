@@ -81,7 +81,13 @@ class ConsentGateTest {
         gate.onUpdateFailed(UmpFailure.NETWORK, umpCanRequestAds = true)
         assertEquals(ConsentPath.CACHED_EARLY, gate.current.path)
         assertTrue(gate.current.allowed)
+        // KB-11, criterion 3: CACHED_EARLY kept through a failed round is asked again (S-09, plan T-066).
+        assertTrue(gate.regatherDue)
+        // Control: a clean result settles and ends the regather.
+        gate.onUpdateSucceeded(umpCanRequestAds = true)
+        gate.onFormFinished(failure = null, umpCanRequestAds = true)
         assertFalse(gate.regatherDue)
+        assertTrue(gate.current.settled)
     }
 
     @Test
@@ -115,9 +121,9 @@ class ConsentGateTest {
     @Test
     fun shortcutOff_networkFailureGivesNothing() {
         val gate = gate(shortcut = false)
-        gate.onRequestSent(umpCanRequestAds = true)
+        gate.onRequestSent(umpCanRequestAds = false)
         assertFalse(gate.current.allowed)
-        gate.onUpdateFailed(UmpFailure.NETWORK, umpCanRequestAds = true)
+        gate.onUpdateFailed(UmpFailure.NETWORK, umpCanRequestAds = false)
         assertFalse(gate.current.allowed)
         assertNotEquals(ConsentPath.ERROR_ALLOWED, gate.current.path)
         assertFalse(gate.current.settled)
@@ -281,8 +287,156 @@ class ConsentGateTest {
         assertNull(gate.current.path)
         assertFalse(gate.current.allowed)
         assertFalse(gate.current.settled)
-        // The shortcut is still on: cached consent opens early again.
+        // CACHED_EARLY opens early again after a reset.
         gate.onRequestSent(umpCanRequestAds = true)
         assertEquals(ConsentPath.CACHED_EARLY, gate.current.path)
+
+        // The shortcut is still on after a reset: a network failure gives ERROR_ALLOWED.
+        val on = gate(shortcut = true)
+        on.onUpdateSucceeded(umpCanRequestAds = true)
+        on.onFormFinished(failure = null, umpCanRequestAds = true)
+        on.onReset()
+        on.onUpdateFailed(UmpFailure.NETWORK, umpCanRequestAds = false)
+        assertEquals(ConsentPath.ERROR_ALLOWED, on.current.path)
+        // Control: the same steps with the shortcut off give no ERROR_ALLOWED.
+        val off = gate(shortcut = false)
+        off.onUpdateSucceeded(umpCanRequestAds = true)
+        off.onFormFinished(failure = null, umpCanRequestAds = true)
+        off.onReset()
+        off.onUpdateFailed(UmpFailure.NETWORK, umpCanRequestAds = false)
+        assertNotEquals(ConsentPath.ERROR_ALLOWED, off.current.path)
+    }
+
+    @Test
+    fun cachedConsent_switchOff_opensAtRequestSent() {
+        val gate = gate(shortcut = false)
+        gate.onRequestSent(umpCanRequestAds = true)
+        assertEquals(ConsentPath.CACHED_EARLY, gate.current.path)
+        assertTrue(gate.current.allowed)
+        assertTrue(gate.current.temporary)
+        assertFalse(gate.current.settled)
+        assertTrue(gate.mayRequestNow(foreground = false))
+
+        // Control (L-055): no consent of an earlier session, no early opening.
+        val none = gate(shortcut = false)
+        none.onRequestSent(umpCanRequestAds = false)
+        assertNull(none.current.path)
+        assertFalse(none.current.allowed)
+    }
+
+    @Test
+    fun cachedConsent_switchOff_keptThroughUpdateFailure() {
+        listOf(UmpFailure.NETWORK, UmpFailure.CONFIGURATION).forEach { failure ->
+            val gate = gate(shortcut = false)
+            gate.onRequestSent(umpCanRequestAds = true)
+            // The round still runs: no regather yet.
+            assertFalse("$failure", gate.regatherDue)
+            gate.onUpdateFailed(failure, umpCanRequestAds = true)
+            assertEquals("$failure", ConsentPath.CACHED_EARLY, gate.current.path)
+            assertNotEquals("$failure", ConsentPath.ERROR_ALLOWED, gate.current.path)
+            assertTrue("$failure", gate.current.allowed)
+            assertFalse("$failure", gate.current.settled)
+            assertTrue("$failure", gate.regatherDue)
+
+            // Control (L-055): the same failure with no consent of an earlier session gives nothing.
+            val none = gate(shortcut = false)
+            none.onUpdateFailed(failure, umpCanRequestAds = true)
+            assertFalse("$failure", none.current.allowed)
+            assertNotEquals("$failure", ConsentPath.ERROR_ALLOWED, none.current.path)
+            assertFalse("$failure", none.regatherDue)
+        }
+    }
+
+    @Test
+    fun cachedConsent_umpNoLongerAllows_closesOnFailure() {
+        fun assertClosed(case: String, gate: ConsentGate) {
+            assertEquals(case, ConsentPath.DENIED_OR_REQUIRED, gate.current.path)
+            assertFalse(case, gate.current.allowed)
+            assertFalse(case, gate.current.temporary)
+            assertFalse(case, gate.current.settled)
+            assertFalse(case, gate.regatherDue)
+            assertFalse(case, gate.mayRequestNow(foreground = true))
+        }
+
+        fun cached(shortcut: Boolean) = gate(shortcut).apply {
+            onRequestSent(umpCanRequestAds = true)
+            assertEquals(ConsentPath.CACHED_EARLY, state.value.path)
+            assertTrue(state.value.allowed)
+        }
+
+        val configuration = cached(shortcut = true)
+        configuration.onUpdateFailed(UmpFailure.CONFIGURATION, umpCanRequestAds = false)
+        assertClosed("configuration, switch on", configuration)
+
+        val networkOff = cached(shortcut = false)
+        networkOff.onUpdateFailed(UmpFailure.NETWORK, umpCanRequestAds = false)
+        assertClosed("network, switch off", networkOff)
+
+        val formError = cached(shortcut = true)
+        formError.onUpdateSucceeded(umpCanRequestAds = true)
+        assertTrue(formError.current.allowed)
+        formError.onFormFinished(UmpFailure.CONFIGURATION, umpCanRequestAds = false)
+        assertClosed("form error, switch on", formError)
+
+        // As with no consent of an earlier session: foreground only (S-04, S-08).
+        val networkOn = cached(shortcut = true)
+        networkOn.onUpdateFailed(UmpFailure.NETWORK, umpCanRequestAds = false)
+        assertEquals(ConsentPath.ERROR_ALLOWED, networkOn.current.path)
+        assertTrue(networkOn.current.allowed)
+        assertFalse(networkOn.mayRequestNow(foreground = false))
+    }
+
+    @Test
+    fun cachedConsent_switchOff_thenRequired_closesAtUpdate() {
+        val gate = gate(shortcut = false)
+        gate.onRequestSent(umpCanRequestAds = true)
+        assertTrue(gate.current.allowed)
+        gate.onUpdateSucceeded(umpCanRequestAds = false)
+        assertFalse(gate.current.allowed)
+        assertEquals(ConsentPath.DENIED_OR_REQUIRED, gate.current.path)
+        assertFalse(gate.current.temporary)
+    }
+
+    @Test
+    fun switchOff_revokesErrorAllowed_nextOpenStillCachedEarly() {
+        val first = gate(shortcut = true)
+        first.onUpdateFailed(UmpFailure.NETWORK, umpCanRequestAds = false)
+        assertEquals(ConsentPath.ERROR_ALLOWED, first.current.path)
+        assertTrue(first.current.allowed)
+        first.onShortcutChanged(false)
+        assertFalse(first.current.allowed)
+
+        // The next open of the app: the stored switch value is off.
+        val next = gate(shortcut = false)
+        next.onRequestSent(umpCanRequestAds = true)
+        assertEquals(ConsentPath.CACHED_EARLY, next.current.path)
+        assertTrue(next.current.allowed)
+        next.onShortcutChanged(true)
+        next.onShortcutChanged(false)
+        assertEquals(ConsentPath.CACHED_EARLY, next.current.path)
+        assertTrue(next.current.allowed)
+    }
+
+    @Test
+    fun cachedConsent_switchOff_formErrorAfterGrant_settles() {
+        listOf(UmpFailure.CONFIGURATION, UmpFailure.NETWORK).forEach { failure ->
+            val gate = gate(shortcut = false)
+            gate.onRequestSent(umpCanRequestAds = true)
+            assertEquals("$failure", ConsentPath.CACHED_EARLY, gate.current.path)
+            gate.onUpdateSucceeded(umpCanRequestAds = true)
+            gate.onFormFinished(failure, umpCanRequestAds = true)
+            assertEquals("$failure", ConsentPath.GRANTED, gate.current.path)
+            assertTrue("$failure", gate.current.settled)
+            assertTrue("$failure", gate.current.allowed)
+            assertFalse("$failure", gate.current.temporary)
+
+            // Control (L-055): with the switch on the same steps keep CACHED_EARLY, not settled.
+            val on = gate(shortcut = true)
+            on.onRequestSent(umpCanRequestAds = true)
+            on.onUpdateSucceeded(umpCanRequestAds = true)
+            on.onFormFinished(failure, umpCanRequestAds = true)
+            assertEquals("$failure", ConsentPath.CACHED_EARLY, on.current.path)
+            assertFalse("$failure", on.current.settled)
+        }
     }
 }

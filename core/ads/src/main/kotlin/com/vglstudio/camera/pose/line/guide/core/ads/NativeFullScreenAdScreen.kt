@@ -42,7 +42,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 
 /**
  * A native ad that covers the whole screen (KB-5), as in design/screens/NativeFullScreenAdScreen_default_*.png: a
- * 36 dp close button (touch area widened to 48 dp) in the top left corner, AdChoices in the top right corner
+ * 48 dp close button in the top left corner (KB-32, ADR-0038; the design images still draw 36 dp), AdChoices in the top right corner
  * ([adChoices]; the SDK draws it on real ads), a large [media] area, then the head of the ad, the body and a wide call
  * to action. The head is 48 dp at font scale 1.0 and grows with larger text, the media giving way (O-08, plan T-045).
  * While [secondsLeft] is above 0, a countdown of the same size takes the place of the close button and
@@ -63,8 +63,13 @@ fun NativeFullScreenAdScreen(
 
 /** Sizes of the native full-screen ad, from design/context/NativeFullScreenAdScreen_default_light.md. */
 internal object NativeFullScreenAdDimens {
-    val CloseButtonSize = 36.dp
+    val CloseButtonSize = 48.dp
     val CloseIconSize = 24.dp
+
+    /** The top bar of the page after an interstitial and of its placeholder: the 48 dp close button (ADR-0038). */
+    val CloseBarHeight = 48.dp
+
+    /** The top bar of the page of a flow step, which has no close button (question 2 of plan T-053). */
     val TopBarHeight = 36.dp
     val HeaderHeight = 48.dp
     val IconSize = 48.dp
@@ -90,8 +95,8 @@ private const val BODY_MAX_LINES = 3
  * The layout of [NativeFullScreenAdScreen]. Each ad part goes through [binder], so a fake ad and a real ad bound to
  * the SDK share it; a real ad puts the SDK's MediaView in [media]. A null [onClose] is the page of a flow step
  * ([NativeFullScreenStep], variant `Flow step` of the design, plan T-032), laid out by [FlowStepPageLayout] (plan
- * T-041): no close button and no countdown ([secondsLeft] is ignored), the 36 dp top bar keeps only AdChoices so the
- * media starts at the same height, no padding for the safe area of the window, and a layout chosen by the height the
+ * T-041): no close button and no countdown ([secondsLeft] is ignored), the 36 dp top bar keeps only AdChoices, so the
+ * media starts at y = 76 (12 dp above the page after an interstitial, whose close bar is 48 dp, plan T-053), no padding for the safe area of the window, and a layout chosen by the height the
  * app gives.
  */
 @Composable
@@ -145,11 +150,11 @@ internal fun NativeFullScreenFrame(modifier: Modifier = Modifier, content: @Comp
     )
 }
 
-/** The 36 dp top bar: the countdown while [secondsLeft] is above 0, else the close button; AdChoices on the right. */
+/** The 48 dp top bar: the countdown while [secondsLeft] is above 0, else the close button; AdChoices on the right. */
 @Composable
 internal fun NativeFullScreenTopBar(secondsLeft: Int?, onClose: () -> Unit, adChoices: @Composable () -> Unit = {}) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(NativeFullScreenAdDimens.TopBarHeight),
+        modifier = Modifier.fillMaxWidth().height(NativeFullScreenAdDimens.CloseBarHeight),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -159,7 +164,7 @@ internal fun NativeFullScreenTopBar(secondsLeft: Int?, onClose: () -> Unit, adCh
 }
 
 /**
- * K-03: the seconds left in a 36 dp circle, where the close button comes once they are over; it takes no touch.
+ * K-03: the seconds left in a 48 dp circle, where the close button comes once they are over; it takes no touch.
  * Same frame and colour as the close button (question 4 of plan T-026).
  */
 @Composable
@@ -183,8 +188,8 @@ private fun CountdownBadge(secondsLeft: Int) {
 }
 
 /**
- * A 36 dp round button, drawn and laid out at 36 dp. Not an IconButton, which would widen the layout to 48 dp;
- * Compose still widens the touch area of this small clickable to 48 dp without moving anything (plan T-027, Q5).
+ * A 48 dp round button, drawn, laid out and touched at 48 dp, so the touch area is the drawn frame (KB-32,
+ * ADR-0038). A plain round Box, like the countdown it replaces, in the same frame.
  */
 @Composable
 private fun CloseButton(onClose: () -> Unit) {

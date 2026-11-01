@@ -378,6 +378,28 @@ class NativeAdCardTest {
         composeRule.onNodeWithTag(NativeAdTestTags.HEADLINE, useUnmergedTree = true).assertHeightIsEqualTo(20.dp)
     }
 
+    /**
+     * KB-1 (plan T-060): a long call to action of small stops at 120 dp, so the headline keeps room; a short one
+     * keeps the 80 dp least width.
+     */
+    @Test
+    fun small_ctaAtMost120dpWide_shortCtaKeepsWidth() {
+        var assets by mutableStateOf(longFullNativeAdAssets)
+        composeRule.setContent {
+            AppTheme { NativeAdCard(assets, NativeAdSize.SMALL, Modifier.width(CARD_WIDTH)) }
+        }
+        val cta = bounds(NativeAdTestTags.CTA)
+        val headline = bounds(NativeAdTestTags.HEADLINE)
+        val measured = "CTA ${(cta.right - cta.left).value} dp, headline ${(headline.right - headline.left).value} dp"
+        assertEquals("long call to action width; $measured", 120f, (cta.right - cta.left).value, 0.5f)
+        assertTrue("headline has no width; $measured", (headline.right - headline.left).value > 0f)
+
+        assets = sampleNativeAdAssets
+        composeRule.waitForIdle()
+        val shortCta = bounds(NativeAdTestTags.CTA)
+        assertEquals("short call to action width", 80f, (shortCta.right - shortCta.left).value, 0.5f)
+    }
+
     @Test
     fun medium_hasMediaOfAtLeast120dp() {
         setCard(NativeAdSize.MEDIUM)

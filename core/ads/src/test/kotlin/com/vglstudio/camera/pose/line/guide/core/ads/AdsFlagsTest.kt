@@ -2,6 +2,8 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 
 import app.cash.turbine.test
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteKey
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -36,6 +38,10 @@ class AdsFlagsTest {
     private fun FakeRemoteSettings.set(name: String, value: Long) = set(long(name), value)
 
     private fun FakeRemoteSettings.set(name: String, value: String) = set(string(name), value)
+
+    private fun adFreeStatus(flow: StateFlow<Boolean>): AdFreeStatus = object : AdFreeStatus {
+        override val adFree = flow
+    }
 
     @Test
     fun masterSwitchOff_turnsEveryPlacementOff() = runTest {
@@ -156,10 +162,11 @@ class AdsFlagsTest {
                 showNativeBottom = false,
                 // Off because is_show_native_bottom is off by default (D-01).
                 showNativeCollap = false,
-                expandCollapAfterSeconds = 30,
+                expandCollapAfterSeconds = 10,
                 consentShortcutEnabled = false,
                 logFullScreenEvents = false,
                 logSlotEvents = false,
+                closeNativeCountdownSeconds = 5,
             ),
             flags.global.first(),
         )
@@ -181,6 +188,8 @@ class AdsFlagsTest {
         settings.set("is_enable_consent_shortcut", true)
         settings.set("is_log_ad_fullscreen_events", true)
         settings.set("is_log_ad_slot_events", true)
+        settings.set("time_close_native", 12L)
+        settings.set("ads_mediation_order", "admob_max")
         assertEquals(
             AdsGlobalFlags(
                 adsEnabled = true,
@@ -197,12 +206,41 @@ class AdsFlagsTest {
                 consentShortcutEnabled = true,
                 logFullScreenEvents = true,
                 logSlotEvents = true,
+                closeNativeCountdownSeconds = 12,
+                mediationOrder = MediationOrder.ADMOB_MAX,
             ),
             flags.global.first(),
         )
         // is_show_native_collap off by itself turns the collapsible layer off.
         settings.set("is_show_native_collap", false)
         assertFalse(flags.global.first().showNativeCollap)
+    }
+
+    @Test
+    fun globalMediationOrder_defaultIsMaxAdmob() = runTest {
+        assertEquals(MediationOrder.MAX_ADMOB, flags.global.first().mediationOrder)
+        // Control (L-055): the key is really read, so the default above is not a constant.
+        settings.set("ads_mediation_order", "admob")
+        assertEquals(MediationOrder.ADMOB, flags.global.first().mediationOrder)
+    }
+
+    @Test
+    fun globalMediationOrder_invalidIsDefault() = runTest {
+        // Control (L-055): a valid value is read first, so the default below comes from the invalid value.
+        settings.set("ads_mediation_order", "max")
+        assertEquals(MediationOrder.MAX, flags.global.first().mediationOrder)
+        settings.set("ads_mediation_order", "x")
+        assertEquals(MediationOrder.MAX_ADMOB, flags.global.first().mediationOrder)
+    }
+
+    @Test
+    fun globalMediationOrder_followsChange() = runTest {
+        flags.global.test {
+            assertEquals(MediationOrder.MAX_ADMOB, awaitItem().mediationOrder)
+            settings.set("ads_mediation_order", "admob")
+            assertEquals(MediationOrder.ADMOB, awaitItem().mediationOrder)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -231,10 +269,23 @@ class AdsFlagsTest {
     }
 
     @Test
+    fun timeCloseNative_outsideOneToThirty_readsFive() = runTest {
+        assertEquals(5L, flags.global.first().closeNativeCountdownSeconds)
+        // Control: a value inside the range is written and read back (L-055).
+        settings.set("time_close_native", 12L)
+        assertEquals(12L, flags.global.first().closeNativeCountdownSeconds)
+        mapOf(1L to 1L, 30L to 30L, 0L to 5L, 31L to 5L, -3L to 5L).forEach { (remote, expected) ->
+            settings.set("time_close_native", remote)
+            assertEquals("time_close_native=$remote", expected, flags.global.first().closeNativeCountdownSeconds)
+        }
+        assertTrue(settings.readNames.toString(), "time_close_native" in settings.readNames)
+    }
+
+    @Test
     fun negativeSeconds_areReadAsZero() = runTest {
         // Control: the defaults before any value is set.
         assertEquals(45L, flags.global.first().adsIntervalSeconds)
-        assertEquals(30L, flags.global.first().expandCollapAfterSeconds)
+        assertEquals(10L, flags.global.first().expandCollapAfterSeconds)
         assertEquals(45L, flags.intervalSeconds(AdIntervalGroup.DEFAULT).first())
         settings.set("ads_interval", -5L)
         settings.set("time_expand_collap_ad", -1L)
@@ -304,5 +355,102 @@ class AdsFlagsTest {
         settings.set("ads_interval", 60L)
         assertEquals(90L, flags.intervalSeconds(sounds.intervalGroup).first())
         assertEquals(60L, flags.intervalSeconds(AdIntervalGroup.DEFAULT).first())
+    }
+
+    @Test
+    fun adFree_turnsEveryPlacementOff() = runTest {
+        // KB-30: the ad-free signal works like is_show_ads off, mid session too (L-061). Control: back off, back on.
+        val adFree = MutableStateFlow(false)
+        val adFreeFlags = DefaultAdsFlags(settings, adFreeStatus(adFree))
+        val placements = AdPlacement.entries.filterNot { it.appWide }
+        assertTrue(AdPlacement.SAMPLE_NATIVE_SMALL in placements)
+        settings.set("is_show_ads", true)
+        placements.forEach { placement ->
+            settings.set("is_show_${placement.key}", true)
+            adFreeFlags.placementEnabled(placement).test {
+                assertEquals(placement.key, true, awaitItem())
+                adFree.value = true
+                assertEquals(placement.key, false, awaitItem())
+                adFree.value = false
+                assertEquals(placement.key, true, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+    }
+
+    @Test
+    fun adFree_turnsAppOpenResumeAndComboOff() = runTest {
+        val adFree = MutableStateFlow(false)
+        val adFreeFlags = DefaultAdsFlags(settings, adFreeStatus(adFree))
+        listOf("show_open_ads", "show_open_ads_first_open", "show_resum_ads", "is_show_native_after_inter")
+            .forEach { settings.set(it, true) }
+        settings.set("is_show_native_bottom", true)
+        settings.set("is_enable_consent_shortcut", true)
+        adFreeFlags.global.test {
+            val on = awaitItem()
+            assertTrue(on.adsEnabled)
+            assertTrue(on.showOpenAds)
+            assertTrue(on.showOpenAdsFirstOpen)
+            assertTrue(on.showResumeAds)
+            assertTrue(on.showNativeAfterInter)
+            adFree.value = true
+            val off = awaitItem()
+            assertFalse(off.adsEnabled)
+            assertFalse(off.showOpenAds)
+            assertFalse(off.showOpenAdsFirstOpen)
+            assertFalse(off.showResumeAds)
+            assertFalse(off.showNativeAfterInter)
+            // Keys that turn no ad on by themselves keep their remote value (plan T-063, section 3.1 B).
+            assertTrue(off.showNativeBottom)
+            assertTrue(off.consentShortcutEnabled)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun adFree_andMasterSwitch_bothMustAllow() = runTest {
+        val placement = AdPlacement.SAMPLE_NATIVE_SMALL
+        settings.set("is_show_${placement.key}", true)
+        mapOf(
+            (true to false) to true,
+            (true to true) to false,
+            (false to false) to false,
+            (false to true) to false,
+        ).forEach { (inputs, expected) ->
+            val (showAds, adFree) = inputs
+            settings.set("is_show_ads", showAds)
+            val adFreeFlags = DefaultAdsFlags(settings, adFreeStatus(MutableStateFlow(adFree)))
+            val label = "is_show_ads=$showAds adFree=$adFree"
+            assertEquals(label, expected, adFreeFlags.placementEnabled(placement).first())
+            assertEquals(label, expected, adFreeFlags.global.first().adsEnabled)
+        }
+    }
+
+    @Test
+    fun adFreeNone_sameFlagsAsBefore() = runTest {
+        // KB-30, criterion 4: an app that wires no signal gets the flags of before.
+        assertFalse(AdFreeStatus.NONE.adFree.value)
+        val placements = AdPlacement.entries.filterNot { it.appWide }
+        listOf("show_open_ads", "show_open_ads_first_open", "show_resum_ads", "is_show_native_after_inter")
+            .forEach { settings.set(it, true) }
+        placements.forEach { settings.set("is_show_${it.key}", true) }
+        listOf(true, false).forEach { showAds ->
+            settings.set("is_show_ads", showAds)
+            val before = DefaultAdsFlags(settings)
+            val none = DefaultAdsFlags(settings, AdFreeStatus.NONE)
+            assertEquals("is_show_ads=$showAds", before.global.first(), none.global.first())
+            placements.forEach { placement ->
+                assertEquals(
+                    "${placement.key} is_show_ads=$showAds",
+                    before.placementEnabled(placement).first(),
+                    none.placementEnabled(placement).first(),
+                )
+            }
+        }
+        // Control (L-055): the same keys with the signal on differ from NONE, so the checks above compare real flags.
+        settings.set("is_show_ads", true)
+        val adFreeOn = DefaultAdsFlags(settings, adFreeStatus(MutableStateFlow(true)))
+        assertFalse(adFreeOn.global.first().adsEnabled)
+        assertTrue(DefaultAdsFlags(settings, AdFreeStatus.NONE).global.first().adsEnabled)
     }
 }

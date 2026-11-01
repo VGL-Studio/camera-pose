@@ -1,7 +1,7 @@
 ---
 ticket: T-088
 title: Bỏ cờ `feature_camera_enabled` (không còn tác dụng từ T-081)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -312,3 +312,15 @@ Phiên bản 2:
 - **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Phiên bản 2 soạn lại sau đồng bộ #279, không đổi code, test hay tiêu chí.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261031-02, phiên bản plan 2
+
+- **Kết quả:** đã merge (2026-11-01 12:39 UTC, commit c505f09 của nhánh).
+- **Nhánh, PR:** `claude/T-088-bo-co-camera`, #290.
+- **Đã làm:** bỏ `FeatureFlag.CAMERA` (`feature_camera_enabled`) và dòng của nó ở `StagingFeatureFlagsModule`; KDoc của `MainScreenChooser.inputs()`; bảng khóa sinh lại (chỉ mất khóa này). Bước 3 đến 5 do phiên con làm trong worktree `../task-T-088`.
+- **Test viết trước:** commit `a1cf168`; `MainScreenTest.noCameraFlag` đỏ đúng lý do ("feature_camera_enabled must not come back"). `chooser_cameraFlagOn_choosesCamera` viết lại thành `chooser_everyOtherFlagOn_choosesCamera` theo mục 3.5, qua ngay như plan; hai đối chứng của mục 3.5 (đọc riêng `POSES`, `|| POSES`) đều đỏ. Test viết chặt bằng đối chứng: 1. `scripts/check.sh` qua: 2724 test JVM, 138 ảnh.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 5 ghi chú (mô tả PR #290): chú thích "camera flag" còn ở `MainScreenTest.kt` dòng 75, 107; `docs/ops/remote-config.md` và spec camera mục 8 còn nhắc cờ (giữ theo câu 1, 2 của plan); việc xóa khóa trên Firebase.
+- **Kết quả CI:** `pr-check` xanh lần đầu (lần chạy 41306645685).
+- **Lệch so với plan:** Không có. Dữ liệu `BOTH_FLAGS` thành `ONBOARDING_ON` theo ADR-0029, câu khẳng định giữ.
+- **Việc còn lại:** dọn chú thích "camera flag" của `MainScreenTest`; bỏ dòng cờ ở spec camera mục 8 ở lần sửa spec sau.
+- **Cần người xem:** xóa khóa `feature_camera_enabled` trên Firebase staging sau khi task lên staging, production sau bản production đầu tiên có T-081.

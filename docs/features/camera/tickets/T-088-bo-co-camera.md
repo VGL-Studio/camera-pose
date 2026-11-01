@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md   # confirmed 2026-10-31, mục 8 (cờ không còn tác dụng, bỏ ở ticket này)
 scenarios: []
 owner: Nhật
-status: backlog
+status: planned
 risk: high
 size: S
 depends_on: [T-081]          # T-081 bỏ chỗ đọc cờ trong chooseMainScreen
 sprint:
-plan:
+plan: features/camera/plans/T-088-bo-co-camera.md
 created: 2026-10-31
 ---
 

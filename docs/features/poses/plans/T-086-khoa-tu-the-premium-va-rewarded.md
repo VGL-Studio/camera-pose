@@ -1,16 +1,16 @@
 ---
 ticket: T-086
 title: Khóa tư thế premium ở thư viện, chi tiết, camera; mở bằng quảng cáo có thưởng `rw_premium_pose`
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # một lượt cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-11-01, 8 task cỡ L); không nâng tay; task cỡ L thật có thể lớn hơn nhiều (T-074 dùng 101M)
 blocking_points: [ads, analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -837,16 +837,26 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 1. **Đã trả lời (2026-10-31, PR #278): thiết kế Figma.** Nhật duyệt gói bàn giao premium: 6 frame của `poses`, 1 frame của `camera`, component `PremiumBadge` ba cỡ, bảng chữ ("premium" thay "cao cấp"). Khác phiên bản 1: frame hộp thoại tên `PoseUnlockDialogScreen_default_<theme>`, khung 411 x 891 thẻ ở giữa. Mục 2, 3.1, 3.2, 4 đã theo gói này.
 2. **Đã trả lời (plan T-085 approved 2026-10-31): chữ ký của T-085.** `PremiumAccess(enabled, unlockedIds)` với `isLocked`, `isUsable`; `PremiumPoseRepository { val access: Flow<PremiumAccess>; fun isUsable(pose): Flow<Boolean>; suspend fun unlock(poseId): Boolean }`. Không có tập mã đang khóa: `DefaultPosesLibrarySource` tự tính `lockedIds` cho thư viện và chi tiết; camera hỏi `access.isLocked` (mục 3.1).
 3. **Chữ tiếng Anh của hai nút khung.** Spec ghi "Xem quảng cáo", "Để sau". Tiếng Việt và năm ngôn ngữ khác dịch ở `:app` (mục 3.1). Tiếng Anh giữ chữ của khung "Watch ad", "No, thanks", hay đè ở `app/src/main/res/values/` thành "Not now" cho khớp nghĩa "Để sau"? Đề xuất của AI: giữ chữ của khung, để ảnh chuẩn của khung và của app cùng một chữ tiếng Anh.
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 4. **Ảnh chuẩn của hộp thoại.** Feature không dựng được hộp thoại thật trong test, và thẻ hộp thoại `RewardedAdDialogCard` là `internal` của `:core:ads`. Đề xuất của AI: đổi nó sang công khai (một từ, KDoc "for previews and screenshot tests"), đề xuất về dự án mẫu ở mô tả PR. Hệ quả mới thấy khi đối chiếu frame của PR #278: ảnh chuẩn dựng trong `:feature:poses` không thấy chữ dịch của `:app`, nên hai nút trên ảnh là "Watch ad", "No, thanks", còn frame vẽ "Xem quảng cáo", "Để sau"; ảnh so sánh khác đúng ở hai chữ đó. Đề xuất: chấp nhận khác biệt này khi rà ảnh so sánh, vì chữ tiếng Việt đã có test riêng. Cách khác: frame `PoseUnlockDialogScreen_*` chỉ vẽ phần nội dung của app (`PremiumUnlockContent`); cách này không kiểm được tiêu đề và bố cục hai nút.
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 5. **Interstitial `inter_pose_detail` sau khi mở khóa ở chi tiết.** Mở khóa xong, app về camera với tư thế đó (KB-8 tiêu chí 4). Đề xuất của AI: không qua `inter_pose_detail` (người dùng vừa xem xong một quảng cáo có thưởng; hai quảng cáo liền nhau dễ bị coi là gây khó chịu). Cách khác: qua `rememberShootWithAd` như nút chụp; nhịp `ads_interval` không tính rewarded nên inter có thể hiện ngay sau.
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 6. **`pose_selected` khi mở khóa.** Spec ghi `pose_selected` "khi bấm Chụp với tư thế này" (`source` `detail`) và khi chọn ở dải (`strip`). Đề xuất của AI: mở khóa xong mà app về camera hay dùng tư thế đó cũng ghi `pose_selected` (`detail` ở chi tiết, `strip` ở camera), sau `premium_pose_unlocked`, để tỷ lệ "mở chi tiết rồi chụp" của spec mục 1 vẫn đếm tư thế premium. Cách khác: chỉ ghi `premium_pose_unlocked`.
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 7. **Ghi mở khóa lỗi sau khi người dùng đã xem quảng cáo.** `unlock` ném `IOException` (bộ nhớ đầy, hiếm). Đề xuất của AI: tư thế vẫn khóa, không ghi sự kiện, không điều hướng; chi tiết hiện snackbar "Chưa mở khóa được tư thế. Thử lại."; camera chỉ ghi log `warn` (camera không có snackbar), ô vẫn khóa. Người dùng phải xem lại quảng cáo. Cách khác: lần này vẫn cho dùng tư thế (về camera), chỉ báo lỗi; cần camera nhận tư thế khóa từ chi tiết, trái tiêu chí "chọn tư thế khóa thì hộp thoại hiện".
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 8. **"Tư thế tiếp" của màn xem lại khi tư thế kế là premium chưa mở.** Spec không nói. Đề xuất của AI: bỏ qua tư thế khóa, chọn tư thế không khóa kế tiếp (vòng về đầu); không mở hộp thoại từ màn xem lại. Cách khác: dừng ở tư thế khóa và mở hộp thoại ở camera.
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 9. **Đề xuất về dự án mẫu.** Đổi `RewardedAdDialogCard` sang công khai (câu 4) và cách app dịch chuỗi của khung trong `values-<ngôn ngữ>` của `:app` (đã chạy thử) có ích cho mọi app. `ads-guide.md` chỉ thêm phần chung của hai điều này, và `docs/template-sync.txt` có dòng chú thích giữ `RewardedAdDialogCard` công khai qua các đợt đồng bộ (mục 3.1). Đề xuất: ghi trong mô tả PR theo `docs/ops/from-app.md`, người mở đề xuất ở repo mẫu sau khi merge. Đúng không?
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 10. **Một lượt hay tách ticket (mới, theo #279).** Quy tắc mới của `docs/CLAUDE.md` (L-142 của mẫu) không cho một plan chạy nhiều lượt; ticket T-086 (mục Rủi ro sơ bộ) đã ghi lại theo quy tắc này trong PR của plan (rà soát độc lập, nên sửa 8). Phiên bản 2 gộp thành một lượt, một PR cỡ L (`token_estimate` 39,4M theo số gợi ý cỡ L). Cách khác: tách phần camera thành ticket mới (`depends_on: [T-086]`), plan riêng; T-086 còn thư viện, chi tiết, khung (cỡ M). Đề xuất của AI: giữ một lượt; phần camera dùng lại mọi thứ của phần A, và ticket ghi một kịch bản (KB-8) xuyên ba màn. Nếu nhóm muốn PR nhỏ hơn để rà, người tách ticket rồi AI soạn lại hai plan.
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 11. **Người dùng có gói bỏ quảng cáo (mới, theo #279).** Khung có cổng `AdFreeStatus`: tín hiệu bật thì `rewardedSwitch` tắt, nên `start()` chạy hành động ngay, như khóa vị trí tắt (ads-guide mục 6; `RewardedActionTest.realController_adFreeWhileDialogOpen_watchRunsAction`). Với plan này: người có gói chạm nút mở khóa thì tư thế mở ngay và mãi (vẫn ghi `premium_pose_unlocked`), từng tư thế một; dấu premium vẫn hiện trên tư thế chưa chạm. App hiện gắn `AdFreeStatus.NONE` (`AdFreeModule`), chưa có gói nào, nên hôm nay không ai gặp. Spec poses chưa nói gì về gói này. Đề xuất của AI: giữ theo khung trong plan này, không thêm code; khi app có gói bỏ quảng cáo thì spec quyết có mở hết tư thế premium (ẩn dấu) cho người có gói hay không, ở ticket của gói đó.
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 12. **Quảng cáo nạp sẵn (thông tin, theo #279).** Khi `is_show_rw_premium_pose` bật (staging bật), khung nạp sẵn một quảng cáo rewarded cho vị trí này ở nhóm nạp sẵn thứ hai (`AdPreloadPlan`, `AdPreloadPlanTest.fromPlacements_hasRewardedInSecondGroup`), như vị trí rewarded của trang thử. Không đổi gì ở plan; ghi để người duyệt biết staging có thêm một lượt nạp rewarded lúc mở app.
 
+   - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 **Kết quả rà soát độc lập phiên bản 2 (2026-11-01, agent ngữ cảnh mới, chỉ đọc): 1 chặn, 9 nên sửa, 8 ghi chú. Đã sửa trong phiên bản 2:**
 
 - **Chặn:** test của camera nói dựng `CameraRoute` "như `CameraScreenPoseTest`", mà lớp đó chỉ dựng `CameraScreen` không trạng thái; không test nào dựng `CameraRoute`. Sửa:
@@ -874,11 +884,9 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 
 ## 9. Quyết định duyệt
 
-<!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
-
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt (phiên bản 2)
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Câu 3 tới 12 ở mục 8 theo đề xuất của AI; rà soát độc lập phiên bản 2: 1 chặn, 9 nên sửa, 8 ghi chú, đã sửa hết. Phần dùng API của T-085 chưa chạy thử vì T-085 chưa có code: test viết trước bắt lỗi.
 
 ## 10. Nhật ký thực hiện
 

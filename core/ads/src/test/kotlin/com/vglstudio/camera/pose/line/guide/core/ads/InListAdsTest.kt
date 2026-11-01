@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +37,8 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnelEvent
+import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdFunnel
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import kotlinx.coroutines.CompletableDeferred
@@ -492,6 +496,7 @@ class InListAdsTest {
         every: () -> Int?,
         cell: () -> Flow<NativeAdState>,
         onOpportunity: (String) -> Unit = {},
+        poolExhausted: (() -> Boolean)? = null,
     ) {
         composeRule.setContent {
             AppTheme {
@@ -505,6 +510,7 @@ class InListAdsTest {
                         logger = RecordingAppLogger(),
                         pooledCell = cell,
                         onPoolOpportunity = onOpportunity,
+                        poolExhausted = poolExhausted,
                     )
                 }
                 LazyColumn(modifier = Modifier.fillMaxSize().testTag(LIST)) {
@@ -635,6 +641,336 @@ class InListAdsTest {
         assertDpEquals("second ad beside item 6", bounds("item_6").top, second.top)
         assertTrue("second ad in the second column", second.left >= grid.left + grid.width / 2 - TOLERANCE_DP.dp)
         assertTrue("item 7 below the second ad", bounds("item_7").top >= second.bottom)
+    }
+
+    // Cards of a collection in a grid when the pool runs out (spec poses KB-6, criterion 5; plan T-080, section 4).
+
+    /** Cells of a fake pool: call k of [cell] gets [script] (k); the calls are counted. */
+    private class ScriptedCells(private val script: (call: Int) -> Flow<NativeAdState>) {
+        var calls = 0
+            private set
+
+        fun cell(): Flow<NativeAdState> = script(calls++)
+    }
+
+    /** One loaded ad named "Pool ad <call + 1>", given back to [released] when its cell leaves. */
+    private fun loadedCell(call: Int, released: MutableList<FakeLoadedNativeAd>): Flow<NativeAdState> = flow {
+        val ad = FakeLoadedNativeAd(sampleNativeAdAssets.copy(headline = "Pool ad ${call + 1}"))
+        try {
+            emit(NativeAdState.Loaded(ad))
+            awaitCancellation()
+        } finally {
+            released += ad
+        }
+    }
+
+    private fun loadingCell(): Flow<NativeAdState> = flow {
+        emit(NativeAdState.Loading)
+        awaitCancellation()
+    }
+
+    /**
+     * [itemCount] items in a grid of [columns] columns with the pooled cards of [cell] (a card of [placement]) every
+     * [every] items, the pool exhausted while [exhausted], through the public grid function. [controller] is provided
+     * as the ads controller when set (events of the funnel).
+     */
+    private fun setPooledGrid(
+        itemCount: Int,
+        every: () -> Int?,
+        cell: () -> Flow<NativeAdState>,
+        exhausted: () -> Boolean,
+        placement: AdPlacement = AdPlacement.GALLERY_IN_COLLECTION,
+        columns: Int = 2,
+        adCellHeight: (@Composable (Dp) -> Dp)? = null,
+        onOpportunity: (String) -> Unit = {},
+        controller: AdsController? = null,
+    ) {
+        composeRule.setContent {
+            val grid = @Composable {
+                AppTheme {
+                    val scope = rememberCoroutineScope()
+                    val ads = remember {
+                        InListAds(
+                            placement = placement,
+                            every = derivedStateOf(every),
+                            rowSource = loadedRows,
+                            scope = scope,
+                            logger = RecordingAppLogger(),
+                            pooledCell = cell,
+                            onPoolOpportunity = onOpportunity,
+                            poolExhausted = exhausted,
+                        )
+                    }
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(columns),
+                        modifier = Modifier.fillMaxSize().testTag(GRID),
+                    ) {
+                        itemsWithInListAds(
+                            items = (1..itemCount).toList(),
+                            ads = ads,
+                            columns = columns,
+                            adCellHeight = adCellHeight,
+                        ) {
+                            Text("List item $it", Modifier.testTag("item_$it"))
+                        }
+                    }
+                }
+            }
+            if (controller == null) grid() else CompositionLocalProvider(LocalAdsController provides controller, grid)
+        }
+    }
+
+    @Test
+    fun grid_inCollection_poolExhausted_noEmptyCell() {
+        val pool = ScriptedCells { flowOf(NativeAdState.Unavailable) }
+        setPooledGrid(itemCount = 7, every = { 3 }, cell = pool::cell, exhausted = { true })
+        composeRule.waitForIdle()
+
+        // Control: the cells did ask the pool, so they were laid out and gave up for lack of ads.
+        assertTrue("cells asked: ${pool.calls}", pool.calls >= 1)
+        composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
+        // Item 4 moves up into the cell the ad left, beside item 3.
+        assertDpEquals("item 4 beside item 3", bounds("item_3").top, bounds("item_4").top)
+    }
+
+    @Test
+    fun grid_inCollection_cellHoldingAd_staysWhenPoolExhausted() {
+        val released = mutableListOf<FakeLoadedNativeAd>()
+        val pool = ScriptedCells { call ->
+            if (call == 0) loadedCell(call, released) else flowOf(NativeAdState.Unavailable)
+        }
+        setPooledGrid(itemCount = 7, every = { 3 }, cell = pool::cell, exhausted = { true })
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+        composeRule.onNode(hasText("Pool ad 1") and hasAnyAncestor(hasTestTag("inlist_ad_0")), useUnmergedTree = true)
+            .assertExists()
+        composeRule.onNodeWithTag("inlist_ad_1").assertDoesNotExist()
+        assertEquals(emptyList<FakeLoadedNativeAd>(), released)
+    }
+
+    @Test
+    fun grid_inCollection_poolHasAdsAgain_cellReturns() {
+        var exhausted by mutableStateOf(true)
+        val released = mutableListOf<FakeLoadedNativeAd>()
+        val pool = ScriptedCells { call ->
+            if (call < 2) flowOf(NativeAdState.Unavailable) else loadedCell(call, released)
+        }
+        composeRule.mainClock.autoAdvance = false
+        setPooledGrid(itemCount = 7, every = { 3 }, cell = pool::cell, exhausted = { exhausted })
+        composeRule.mainClock.advanceTimeBy(500)
+        composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
+
+        exhausted = false
+        // Control: before the 2 s tick the pool is not asked again, so the cell is still out.
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
+
+        composeRule.mainClock.advanceTimeBy(PoolCellPolicy.EXHAUSTED_RETRY_MILLIS + 100 - 1_000)
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+        // The cell that came back is a new cell of the pool: the ad of the third call, not of the first two.
+        composeRule.onNode(hasText("Pool ad 3") and hasAnyAncestor(hasTestTag("inlist_ad_0")), useUnmergedTree = true)
+            .assertExists()
+        composeRule.onAllNodes(hasText("Pool ad 1") or hasText("Pool ad 2"), useUnmergedTree = true)
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun grid_inCollection_everyBackAfterNull_cellsReturn() {
+        var every by mutableStateOf<Int?>(3)
+        var exhausted by mutableStateOf(true)
+        val pool = ScriptedCells { call -> if (call < 2) flowOf(NativeAdState.Unavailable) else loadingCell() }
+        composeRule.mainClock.autoAdvance = false
+        setPooledGrid(itemCount = 7, every = { every }, cell = pool::cell, exhausted = { exhausted })
+        composeRule.mainClock.advanceTimeBy(500)
+        // The pool is exhausted: the cells are out.
+        composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
+
+        every = null
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+        every = 3
+        exhausted = false
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+
+        // Back at once, a few frames later, not at the 2 s tick: switching off reset the exhausted pool.
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+    }
+
+    @Test
+    fun grid_inCollection_everyNull_noCell() {
+        var every by mutableStateOf<Int?>(null)
+        val pool = FakePooledCells()
+        setPooledGrid(itemCount = 20, every = { every }, cell = pool::cell, exhausted = { false })
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodes(adRows()).assertCountEquals(0)
+        // The items keep their order, two by two.
+        assertDpEquals("item 4 beside item 3", bounds("item_3").top, bounds("item_4").top)
+        assertDpEquals("item 10 beside item 9", bounds("item_9").top, bounds("item_10").top)
+
+        // Control: switched on, a cell comes after item 8.
+        every = 8
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+        assertDpEquals("cell beside item 9", bounds("item_9").top, bounds("inlist_ad_0").top)
+    }
+
+    @Test
+    fun lazyColumn_pooledRow_poolExhausted_keepsZeroHeightRow() {
+        val pool = ScriptedCells { flowOf(NativeAdState.Unavailable) }
+        setPooledList(itemCount = 7, every = { 3 }, cell = pool::cell, poolExhausted = { true })
+        composeRule.waitForIdle()
+
+        // A row of a list stays, 0 dp high: only one-cell cards of a grid leave.
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+        assertDpEquals("ad row height", 0.dp, bounds("inlist_ad_0").height)
+    }
+
+    @Test
+    fun grid_fullWidthRow_poolExhausted_keepsZeroHeightRow() {
+        val pool = ScriptedCells { flowOf(NativeAdState.Unavailable) }
+        setPooledGrid(
+            itemCount = 7,
+            every = { 3 },
+            cell = pool::cell,
+            exhausted = { true },
+            placement = AdPlacement.GALLERY_INLIST_MEDIUM,
+        )
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+        assertDpEquals("ad row height", 0.dp, bounds("inlist_ad_0").height)
+    }
+
+    @Test
+    fun grid_inCollection_seventeenItems_twoCellsAt8And17() {
+        assertEquals(listOf(8, 17), gridInListPositions(AdFormat.NATIVE_IN_COLLECTION, 17, 8, 2))
+        assertEquals(listOf(8), gridInListPositions(AdFormat.NATIVE_IN_COLLECTION, 16, 8, 2))
+        // Never last: eight items, no cell.
+        assertEquals(emptyList<Int>(), gridInListPositions(AdFormat.NATIVE_IN_COLLECTION, 8, 8, 2))
+    }
+
+    @Test
+    fun fixedAds_sameCellsAsLive() {
+        var columns by mutableStateOf(2)
+        composeRule.setContent {
+            AppTheme {
+                LazyVerticalGrid(columns = GridCells.Fixed(columns), modifier = Modifier.fillMaxSize().testTag(GRID)) {
+                    itemsWithFixedAds(
+                        items = (1..12).toList(),
+                        format = AdFormat.NATIVE_IN_COLLECTION,
+                        every = 8,
+                        columns = columns,
+                        adContent = { slot -> Text("Fixed ad $slot", Modifier.testTag("fixed_ad_$slot")) },
+                    ) {
+                        Text("List item $it", Modifier.testTag("item_$it"))
+                    }
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodes(adRows("fixed_ad_")).assertCountEquals(1)
+        val grid = bounds(GRID)
+        val twoColumns = bounds("fixed_ad_0")
+        assertDpEquals("ad beside item 9", bounds("item_9").top, twoColumns.top)
+        assertDpEquals("ad in the left column", grid.left, twoColumns.left)
+        // One cell of two, not a full-width row.
+        assertDpEquals("ad in one cell", grid.width / 2, twoColumns.width)
+
+        columns = 3
+        composeRule.waitForIdle()
+        val threeColumns = bounds("fixed_ad_0")
+        assertDpEquals("ad in the row of item 7", bounds("item_7").top, threeColumns.top)
+        assertDpEquals("ad in the row of item 8", bounds("item_8").top, threeColumns.top)
+        assertTrue("ad in the third column", threeColumns.left >= grid.left + grid.width * 2 / 3 - TOLERANCE_DP.dp)
+        assertTrue("item 9 starts the next row", bounds("item_9").top >= threeColumns.bottom)
+        assertDpEquals("item 9 in the first column", grid.left, bounds("item_9").left)
+    }
+
+    @Test
+    fun grid_inCollection_cellTakesAppHeight() {
+        val released = mutableListOf<FakeLoadedNativeAd>()
+        val pool = ScriptedCells { call -> if (call == 0) loadedCell(call, released) else loadingCell() }
+        setPooledGrid(
+            itemCount = 7,
+            every = { 3 },
+            cell = pool::cell,
+            exhausted = { false },
+            adCellHeight = { it * 1.5f },
+        )
+        composeRule.waitForIdle()
+
+        val cell = bounds("inlist_ad_0")
+        val card = composeRule
+            .onNode(hasTestTag(NativeAdTestTags.CARD) and hasAnyAncestor(hasTestTag("inlist_ad_0")))
+            .getBoundsInRoot()
+        assertDpEquals("card height", cell.width * 1.5f, card.height)
+        // No space of its own above or below: the grid spaces its rows.
+        assertDpEquals("cell height", card.height, cell.height)
+        assertDpEquals("cell beside item 3", bounds("item_3").top, cell.top)
+        val placeholder = composeRule
+            .onNode(hasTestTag(NativeAdTestTags.PLACEHOLDER) and hasAnyAncestor(hasTestTag("inlist_ad_1")))
+            .getBoundsInRoot()
+        assertDpEquals("placeholder height", bounds("inlist_ad_1").width * 1.5f, placeholder.height)
+        assertDpEquals("loading cell height", placeholder.height, bounds("inlist_ad_1").height)
+    }
+
+    @Test
+    fun grid_inCollection_noHeight_keeps300() {
+        val released = mutableListOf<FakeLoadedNativeAd>()
+        val pool = ScriptedCells { call -> loadedCell(call, released) }
+        setPooledGrid(itemCount = 7, every = { 3 }, cell = pool::cell, exhausted = { false })
+        composeRule.waitForIdle()
+
+        val card = composeRule
+            .onNode(hasTestTag(NativeAdTestTags.CARD) and hasAnyAncestor(hasTestTag("inlist_ad_0")))
+            .getBoundsInRoot()
+        assertDpEquals("card height", 300.dp, card.height)
+    }
+
+    @Test
+    fun grid_inCollection_poolCycle_reportsOncePerEntry() {
+        val funnel = RecordingAdFunnel()
+        val controller = testAdsController(funnel = funnel)
+        val opportunities = mutableListOf<String>()
+        var exhausted by mutableStateOf(false)
+        val firstCell = MutableStateFlow<NativeAdState>(NativeAdState.Loading)
+        val pool = ScriptedCells { call -> if (call == 0) firstCell else loadingCell() }
+        fun eligible() = funnel.events.count { it is AdFunnelEvent.Eligible }
+        composeRule.mainClock.autoAdvance = false
+        // Five items every three: one cell, after item 3.
+        setPooledGrid(
+            itemCount = 5,
+            every = { 3 },
+            cell = pool::cell,
+            exhausted = { exhausted },
+            onOpportunity = { opportunities += it },
+            controller = controller,
+        )
+        composeRule.mainClock.advanceTimeBy(500)
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+        assertEquals(1, eligible())
+
+        // The pool runs out while the cell waits: the cell leaves the grid, seen without an ad.
+        exhausted = true
+        firstCell.value = NativeAdState.Unavailable
+        composeRule.mainClock.advanceTimeBy(500)
+        composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
+        assertEquals(listOf("not_ready"), opportunities)
+        // Control: while the pool stays exhausted the cell does not come back, nothing more is recorded.
+        composeRule.mainClock.advanceTimeBy(PoolCellPolicy.EXHAUSTED_RETRY_MILLIS + 100)
+        composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
+        assertEquals(1, eligible())
+
+        // Ads again: the cell comes back, once more eligible (a new entry), no other opportunity yet.
+        exhausted = false
+        composeRule.mainClock.advanceTimeBy(PoolCellPolicy.EXHAUSTED_RETRY_MILLIS + 100)
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+        assertEquals(2, eligible())
+        assertEquals(listOf("not_ready"), opportunities)
     }
 
     @Test

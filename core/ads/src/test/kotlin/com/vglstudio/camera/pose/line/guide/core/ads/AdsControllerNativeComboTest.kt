@@ -77,6 +77,13 @@ class AdsControllerNativeComboTest {
     }
 
     @Test
+    fun poolExhausted_noPool_isTrue() {
+        // No ad unit, so no pool (plan T-080): the cells of the placement have no ad to show, like pooledCell.
+        assertTrue(controller.poolExhausted(AdPlacement.GALLERY_IN_COLLECTION))
+        assertTrue(controller.poolExhausted(AdPlacement.POSES_IN_COLLECTION))
+    }
+
+    @Test
     fun closed_opensCombo() {
         val turn = beginComboTurn()
         controller.onInterstitialClosed(AdPlacement.GALLERY_INTERSTITIAL, turn)

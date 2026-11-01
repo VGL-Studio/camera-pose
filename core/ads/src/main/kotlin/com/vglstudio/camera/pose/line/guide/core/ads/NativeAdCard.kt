@@ -95,6 +95,7 @@ fun NativeAdCard(
     size: NativeAdSize,
     modifier: Modifier = Modifier,
     ctaLarge: Boolean = false,
+    cardHeight: Dp? = null,
 ) {
     NativeAdLayout(assets, size, PreviewNativeAdBinder, showAdChoicesMarker = true, modifier = modifier, ctaLarge)
 }
@@ -110,6 +111,7 @@ fun NativeAdPlaceholder(
     modifier: Modifier = Modifier,
     animated: Boolean = true,
     ctaLarge: Boolean = false,
+    cardHeight: Dp? = null,
 ) {
     NativeAdPlaceholderLayout(
         size = size,

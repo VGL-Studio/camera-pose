@@ -18,6 +18,7 @@ class AdPlacementAppTest {
             "pose_detail_bottom" to AdFormat.NATIVE_SMALL,
             "review_interstitial" to AdFormat.INTERSTITIAL,
             "inter_pose_detail" to AdFormat.INTERSTITIAL,
+            "poses_in_collection" to AdFormat.NATIVE_IN_COLLECTION,
         )
         val byKey = AdPlacement.entries.associateBy { it.key }
         expected.forEach { (key, format) ->
@@ -33,6 +34,20 @@ class AdPlacementAppTest {
         assertEquals(AdPlacement.POSE_DETAIL_BOTTOM, byKey["pose_detail_bottom"])
         assertEquals(AdPlacement.REVIEW_INTERSTITIAL, byKey["review_interstitial"])
         assertEquals(AdPlacement.INTER_POSE_DETAIL, byKey["inter_pose_detail"])
+        assertEquals(AdPlacement.POSES_IN_COLLECTION, byKey["poses_in_collection"])
+    }
+
+    @Test
+    fun posesInCollection_cardEvery8_hiddenWhenPoolEmpty_offByDefault() {
+        // Spec ads, question 9; spec poses, KB-6 criterion 5 (plan T-080).
+        val placement = AdPlacement.POSES_IN_COLLECTION
+        assertEquals(AdFormat.NATIVE_IN_COLLECTION, placement.format)
+        assertEquals(8, placement.nativeEvery)
+        assertEquals(8L, AdsSettings.nativeEvery(placement)!!.default)
+        assertFalse(placement.keepSpaceWhenPoolEmpty)
+        assertEquals(false, AdsSettings.placementEnabled(placement).default)
+        // Control: the gallery card of the framework keeps its own N, so the values above are the app's.
+        assertEquals(4, AdPlacement.GALLERY_IN_COLLECTION.nativeEvery)
     }
 
     @Test

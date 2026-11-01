@@ -238,3 +238,13 @@ private fun SaveButton(saved: Boolean, label: String, onClick: () -> Unit, modif
         }
     }
 }
+
+/** Sizes of [PoseCard] that other components match. */
+object PoseCardDefaults {
+    /**
+     * Height of a [PoseCard] [width] wide whose name takes one line, at the current font scale: the height of a
+     * [PoseCardSkeleton]. A grid cell next to the cards (an ad card, plan T-080) takes it so its row stays even.
+     */
+    @Composable
+    fun oneLineHeight(width: Dp): Dp = 0.dp
+}

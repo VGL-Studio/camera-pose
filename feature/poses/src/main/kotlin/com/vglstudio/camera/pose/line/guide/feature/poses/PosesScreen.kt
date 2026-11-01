@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -39,6 +40,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
+import com.vglstudio.camera.pose.line.guide.core.ads.InListAds
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberInListAds
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
@@ -50,7 +53,22 @@ object PosesTestTags {
     const val SCREEN = "poses_screen"
     const val GRID = "poses_grid"
 
+    /** The fixed ad cell of [PosesGridAds.Fixed]; a real ad cell carries the tag of the framework. */
+    const val AD_CELL = "poses_ad_cell"
+
     fun card(id: String) = "poses_card_$id"
+}
+
+/** The ad cells of the library grid (KB-6, criterion 5; plan T-080). */
+sealed interface PosesGridAds {
+    /** No ad cell. */
+    data object None : PosesGridAds
+
+    /** The ad cells of the placement, from [rememberInListAds]. */
+    data class Live(val ads: InListAds) : PosesGridAds
+
+    /** A fixed ad cell after every [every] poses, for screenshots and tests: [cell] draws it at the given height. */
+    class Fixed(val every: Int, val cell: @Composable (modifier: Modifier, cardHeight: Dp) -> Unit) : PosesGridAds
 }
 
 // Skeleton cards while the catalog loads (plan T-021, question 13).
@@ -114,6 +132,7 @@ fun PosesScreen(
     onSaveFailedShown: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    gridAds: PosesGridAds = PosesGridAds.None,
 ) {
     val bottomReserve = contentPadding.calculateBottomPadding()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -155,6 +174,7 @@ fun PosesScreen(
                     onThumbnailReleased = onThumbnailReleased,
                     onRetryThumbnail = onRetryThumbnail,
                     bottomReserve = bottomReserve,
+                    gridAds = gridAds,
                 )
             }
         }
@@ -185,6 +205,7 @@ private fun ColumnScope.ReadyContent(
     onThumbnailReleased: (String) -> Unit,
     onRetryThumbnail: (String) -> Unit,
     bottomReserve: Dp,
+    gridAds: PosesGridAds,
 ) {
     val scope = rememberCoroutineScope()
     // A chip tapped by the user brings the grid back to its start, also once the new cards are there. Coming back from
@@ -233,7 +254,7 @@ private fun ColumnScope.ReadyContent(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                items(state.cards, key = { it.id }) { item ->
+                posesGridItems(state.cards, gridAds, gridColumns()) { item ->
                     PoseGridCell(
                         item = item,
                         onOpenPose = onOpenPose,
@@ -246,6 +267,16 @@ private fun ColumnScope.ReadyContent(
             }
         }
     }
+}
+
+/** The cards of the grid, with the ad cells of [gridAds] among them. */
+private fun LazyGridScope.posesGridItems(
+    cards: List<PoseCardItem>,
+    gridAds: PosesGridAds,
+    columns: Int,
+    cardContent: @Composable (PoseCardItem) -> Unit,
+) {
+    items(cards, key = { it.id }) { cardContent(it) }
 }
 
 /** Catalog still loading: skeleton cards under the top bar, no summary or chips yet. */

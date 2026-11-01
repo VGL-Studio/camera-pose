@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
@@ -55,6 +56,8 @@ class InListAds internal constructor(
     internal val pooledCell: (() -> Flow<NativeAdState>)? = null,
     /** Records the opportunity of a pooled row (P-07). */
     internal val onPoolOpportunity: (result: String) -> Unit = {},
+    /** Whether the pool of [placement] is exhausted now (P-05); null without a pool. */
+    internal val poolExhausted: (() -> Boolean)? = null,
 ) {
     private val everyState = every
 
@@ -72,6 +75,15 @@ class InListAds internal constructor(
 
     /** Current N, or null while no ad row may be added. */
     val every: Int? get() = everyState.value
+
+    /** A one-cell grid ad of [slot] is laid out: the pool may still give an ad, or the cell holds one. */
+    internal fun cellShown(slot: Int): Boolean = true
+
+    /** A pooled cell of [slot] has a new state. */
+    internal fun onCellState(slot: Int, state: NativeAdState) = Unit
+
+    /** The pooled cell of [slot] left the composition: its ad went back to the pool. */
+    internal fun onCellLeft(slot: Int) = Unit
 
     init {
         // Consent withdrawn or placement switched off while the screen is open: the rows go away, so do their ads.
@@ -337,6 +349,7 @@ fun <T> LazyGridScope.itemsWithInListAds(
     columns: Int,
     key: ((item: T) -> Any)? = null,
     contentType: (item: T) -> Any? = { null },
+    adCellHeight: (@Composable (cellWidth: Dp) -> Dp)? = null,
     itemContent: @Composable LazyGridItemScope.(item: T) -> Unit,
 ) {
     val every = ads.every
@@ -352,6 +365,34 @@ fun <T> LazyGridScope.itemsWithInListAds(
         itemContent = itemContent,
     )
 }
+
+/**
+ * Like the grid [itemsWithInListAds], with a fixed ad for screenshots and previews ([NativeAdCard]): an ad after every
+ * [every] items of [items] (never first, never last), one cell for [AdFormat.NATIVE_IN_COLLECTION], else a full-width
+ * row. The app shows real ads with [itemsWithInListAds].
+ */
+fun <T> LazyGridScope.itemsWithFixedAds(
+    items: List<T>,
+    format: AdFormat,
+    every: Int,
+    columns: Int,
+    key: ((item: T) -> Any)? = null,
+    contentType: (item: T) -> Any? = { null },
+    adContent: @Composable (slot: Int) -> Unit,
+    itemContent: @Composable LazyGridItemScope.(item: T) -> Unit,
+) = itemsWithInListAds(
+    items = items,
+    positions = gridInListPositions(format, items.size, every, columns),
+    placementKey = FIXED_ADS_KEY,
+    key = key,
+    contentType = contentType,
+    adSpansOneCell = gridAdSpansOneCell(format),
+    adContent = adContent,
+    itemContent = itemContent,
+)
+
+/** Placement key of the ads of [itemsWithFixedAds]: they belong to no placement. */
+private const val FIXED_ADS_KEY = "fixed"
 
 /** A card of a collection takes one cell of a grid (MC-07); other formats span the whole grid width. */
 internal fun gridAdSpansOneCell(format: AdFormat): Boolean = format == AdFormat.NATIVE_IN_COLLECTION
@@ -372,6 +413,7 @@ internal fun <T> LazyGridScope.itemsWithInListAds(
     key: ((item: T) -> Any)? = null,
     contentType: (item: T) -> Any? = { null },
     adSpansOneCell: Boolean = false,
+    adShown: (slot: Int) -> Boolean = { true },
     adContent: @Composable (slot: Int) -> Unit,
     itemContent: @Composable LazyGridItemScope.(item: T) -> Unit,
 ) {

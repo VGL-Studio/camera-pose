@@ -201,6 +201,11 @@
       "description": "Shows ads in this placement. Off by default. Derived key of placement poses_bottom (native_small).",
       "valueType": "BOOLEAN"
     },
+    "is_show_poses_in_collection": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement poses_in_collection (native_in_collection).",
+      "valueType": "BOOLEAN"
+    },
     "is_show_review_interstitial": {
       "defaultValue": { "value": "false" },
       "description": "Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial).",
@@ -224,6 +229,11 @@
     "native_every_gallery_inlist_small": {
       "defaultValue": { "value": "8" },
       "description": "Number of items between two native ads of this placement, in items. Derived key of placement gallery_inlist_small (native_small).",
+      "valueType": "NUMBER"
+    },
+    "native_every_poses_in_collection": {
+      "defaultValue": { "value": "8" },
+      "description": "Number of items between two native ads of this placement, in items. Derived key of placement poses_in_collection (native_in_collection).",
       "valueType": "NUMBER"
     },
     "open_ad_type": {

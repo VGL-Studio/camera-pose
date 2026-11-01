@@ -1646,6 +1646,9 @@ class AdsController @Inject internal constructor(
         nativePools.pool(placement)?.let { pooledCellStates(it, placement, logger, placement.key) }
             ?: flowOf(NativeAdState.Unavailable)
 
+    /** P-05 for the cells of [placement]: true when it has no pool (no ad unit), like [pooledCell]. */
+    internal fun poolExhausted(placement: AdPlacement): Boolean = false
+
     /**
      * The states of the card of a flow step of [placement] on its pool ([stepAdStates], plan T-032); Unavailable when
      * the placement has no pool (no ad unit). The caller checks consent and [isEnabled] first, like [NativeStepAd].

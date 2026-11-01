@@ -2,7 +2,7 @@
 ticket: T-083
 title: Thẻ native `native_onboarding` ở luồng giới thiệu
 status: draft                # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9.0M         # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay (L-081)
@@ -20,7 +20,16 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 
 Thêm vị trí `native_onboarding` (định dạng `native_step`) và đặt `NativeStepAd` vào khe `onboarding_ad_slot` mà T-082 để sẵn giữa vùng trang và nút đáy, ở mọi trang kể cả trang cuối. Ở trang 1, nút "Tiếp" mờ tối đa 5 giây khi quảng cáo được phép và thẻ chưa có quảng cáo; trạng thái "được phép" lấy từ một hàm công khai mới của `:core:ads` (`rememberNativeStepAdAllowed`), trạng thái "đã có quảng cáo" từ `onAdAvailabilityChange` có sẵn của `NativeStepAd`, và phần chờ là một composable của feature (`rememberIntroAdWait`) đã chạy thử với đồng hồ dừng, ra nền rồi trở lại, cờ tắt giữa chừng và dựng lại activity. Vị trí chỉ bật ở lần mở đầu tiên (thuộc tính mới `firstOpenOnly` của `AdPlacement`), để pool `native_step` không nạp ở những lần mở sau khi không còn luồng giới thiệu; staging bật `is_show_native_onboarding`.
 
-**Điểm chặn trước khi duyệt:** chưa có thiết kế của luồng có thẻ (mục 8, câu 1), và plan T-082 còn là nháp (mục 8, câu 2). Hai phần sửa khung (`rememberNativeStepAdAllowed`, `firstOpenOnly`) có ích cho mọi app có luồng giới thiệu: đề xuất về dự án mẫu (`docs/ops/from-app.md`), ghi vào mô tả PR.
+Hai phần sửa khung (`rememberNativeStepAdAllowed`, `firstOpenOnly`) có ích cho mọi app có luồng giới thiệu: đề xuất về dự án mẫu (`docs/ops/from-app.md`), ghi vào mô tả PR.
+
+**Phiên bản 2 (2026-10-31).** Phiên bản 1 chưa duyệt được vì hai điểm chặn: chưa có thiết kế của luồng có thẻ (mục 8, câu 1 cũ) và plan T-082 còn là nháp phiên bản 1 (câu 2 cũ), nên số đo ở khung thấp là ước lượng và tên ảnh là đề xuất. Gói thiết kế đã merge (PR #276, `docs/features/onboarding/design/`, README `approved` ngày 2026-10-31) và plan T-082 lên phiên bản 2 (nháp, PR #270). Thay đổi so với phiên bản 1:
+
+- Mục 2, 3.1: số đo thật từ `design/context/OnboardingScreen_<trang>-ad_light.md` và `OnboardingScreen_intro-ad-wait_light.md` (thẻ 363 x 250 không lề ngoài, đỉnh thẻ 533 ở trang 1 tới 3 và 477 ở trang cuối, nút đỉnh 807 mọi frame, hình trang 1 co còn 229), đổi sang số của code (nút 56 nên cộng 4); bảng khung thấp thay ước lượng 198 / 134 dp bằng 222 / 166 dp (README mục 6, plan T-082 phiên bản 2 mục 3.1).
+- Mục 3.1: khung chờ của thẻ là khung chờ của khung (`State=Loading`), nút mờ là `PrimaryButton(enabled = false)`, như thiết kế; tên và cấu trúc màn khớp plan T-082 phiên bản 2 (`OnboardingPage`, `adSlot`, `onboarding_ad_slot`, `onboarding_next`, `onboarding_enable_camera`, `nextEnabled`, khe không lề).
+- Mục 4: test `<trang>Ad_layoutMatchesDesign` theo `context/`; mỗi ảnh thiết kế của T-083 có screenshot test cùng tên (ADR-0020), ảnh `intro-ad-wait` chụp với đồng hồ dừng vì khung chờ có hiệu ứng chạy mãi (L-029); bỏ ảnh `camera-ad_light_unfolded` (gói không có frame `-ad` mở gập).
+- Mục 3.2, 3.5, 6: dữ liệu test cũ theo trạng thái sau các plan của RUN-20261031-02 (T-080 `unit/12`, T-081 đổi `SAMPLE_NATIVE_SMALL` thành `POSES_BOTTOM`), số mã `unit/13`.
+- Mục 5: tiêu chí B từ 2 xuống 1. Mục 8: câu 1, 2, 7 đã được thiết kế và plan T-082 trả lời; câu 3, 4, 5, 6, 8 giữ đề xuất.
+- Phần chạy thử của phiên bản 1 giữ nguyên; phiên bản 2 không đổi kỹ thuật (mục 4.1).
 
 ## 2. Hiểu yêu cầu
 
@@ -39,7 +48,15 @@ Ticket xử lý các kịch bản sau trong `features/onboarding/spec.md` (confi
 | Mục 5 spec onboarding | Chỉ ở lần mở đầu tiên | `firstOpenOnly = true`: công tắc của vị trí là `is_show_native_onboarding` và dấu lần mở đầu (A-01). Lần mở sau pool `native_step` không nạp (mục 8, câu 6) |
 | Ticket, Nạp sẵn | Pool `native_step` ở nhóm nạp sẵn đầu chỉ ở lần mở đầu tiên; kiểm log `Preload group` và thứ tự với hộp thoại đồng ý | Kế hoạch nạp mặc định đã có `NATIVE_STEP` ở nhóm đầu (`AdPreloadPlan`, HD-02); app không đặt kế hoạch riêng. Kế hoạch chỉ chạy sau khi đồng ý (S-22). Lần mở sau, nhóm đầu vẫn ghi `NATIVE_STEP` trong log nhưng không còn pool nào bật nên nhóm qua ngay. Kiểm trên máy thật |
 
-Thiết kế tham chiếu: chưa có. Spec mục 4 nói luồng cần thiết kế mới trên Figma có trạng thái `ad` và trang 1 lúc chờ. Plan T-082 đã liệt kê các frame cho T-083: `OnboardingScreen_<trang>-ad_<light|dark>` và `OnboardingScreen_intro-ad-wait_<light|dark>`. Điểm chặn ở mục 8, câu 1.
+Thiết kế tham chiếu: `docs/features/onboarding/design/` (README `approved`, Nhật, 2026-10-31; PR #276). Frame của ticket này, ảnh trong `screens/`, số liệu trong `context/` cùng tên:
+
+- `OnboardingScreen_intro-ad_light`, `OnboardingScreen_intro-ad_dark` (trang 1 có thẻ);
+- `OnboardingScreen_poses-ad_light`, `OnboardingScreen_poses-ad_dark` (trang 2);
+- `OnboardingScreen_premium-ad_light`, `OnboardingScreen_premium-ad_dark` (trang 3, cờ premium bật);
+- `OnboardingScreen_camera-ad_light`, `OnboardingScreen_camera-ad_dark` (trang cuối);
+- `OnboardingScreen_intro-ad-wait_light`, `OnboardingScreen_intro-ad-wait_dark` (trang 1 chờ quảng cáo: thẻ là khung chờ `State=Loading`, nút "Tiếp" là `PrimaryButton(enabled = false)`).
+
+Gói không có frame `-ad` ở khung mở gập; khung thấp có số đo trong README mục 6. Frame không có thẻ (`OnboardingScreen_<trang>_<light|dark>`, `_unfolded`) là của T-082. Chữ trong thẻ là chữ của nhà quảng cáo và của khung (README mục 2, dòng cuối), không có chữ mới của app.
 
 ADR liên quan: ADR-0001 (phụ thuộc module), ADR-0003, ADR-0004, ADR-0013 (đồng ý), ADR-0014 (vị trí mặc định tắt), ADR-0019 (log), ADR-0020 (thiết kế), ADR-0023 (tên khóa), ADR-0026 (AdsKit PARTNER), ADR-0029, ADR-0031.
 
@@ -47,7 +64,7 @@ ADR liên quan: ADR-0001 (phụ thuộc module), ADR-0003, ADR-0004, ADR-0013 (�
 
 ### 3.1. Cách làm
 
-**Phụ thuộc T-082.** Plan T-082 (nháp, nhánh `claude/plan-T-082-onboarding-pager`, PR #270) để sẵn: `enum class OnboardingPage { INTRO, POSES, PREMIUM, CAMERA }`; `OnboardingScreen(uiState, onNext, onBack, onEnableCamera, modifier, adSlot: @Composable (page: OnboardingPage) -> Unit = {})`; khe `onboarding_ad_slot` (một `Box(Modifier.fillMaxWidth())` gọi `adSlot(uiState.page)`, giữa vùng trang `onboarding_page_area` và ghi chú hay nút); nút `onboarding_next` ("Tiếp") và `onboarding_enable_camera` ("Bật camera") ghim đáy; trạng thái `OnboardingUiState.Browsing(pages, index)`. Plan này dùng đúng các tên đó. Plan T-082 lên phiên bản mới thì plan này phải khớp lại (mục 8, câu 2).
+**Phụ thuộc T-082.** Plan T-082 phiên bản 2 (nháp, nhánh `claude/plan-T-082-onboarding-pager`, PR #270, mục 3.1, "Điểm cho T-083") để sẵn: `enum class OnboardingPage { INTRO, POSES, PREMIUM, CAMERA }`; `OnboardingScreen(uiState, onNext, onBack, onEnableCamera, modifier, adSlot: @Composable (page: OnboardingPage) -> Unit = {})`; khe `onboarding_ad_slot` (một `Box(Modifier.fillMaxWidth())` gọi `adSlot(uiState.page)`, giữa vùng trang `onboarding_page_area` và ghi chú hay nút); nút `onboarding_next` ("Tiếp") và `onboarding_enable_camera` ("Bật camera") ghim đáy; trạng thái `OnboardingUiState.Browsing(pages, index)` (mọi trạng thái mang `pages`, `index`, `page`). Khe là `Box(Modifier.fillMaxWidth())` không lề: khoảng cách phía trên thẻ là lề dưới `Spacing.lg` nằm trong phần cuộn của vùng trang (README mục 3). Plan T-082 phiên bản 2 nói T-083 thêm `nextEnabled: Boolean = true` vào `OnboardingScreen` và giữ test `bottomButton_samePlace_onEveryPage_withAndWithoutAdSlot`. Plan này dùng đúng các tên đó. Plan T-082 đổi các tên này trước khi duyệt thì plan này lên phiên bản mới (mục 7).
 
 **Khung, phần 1: trạng thái "được phép" của thẻ** (`NativeFlowStep.kt`, đặt ngay sau `NativeStepAd`; code đã chạy thử, mục 4.1). `onAdAvailabilityChange` của `NativeStepAd` có sẵn: `true` khi có quảng cáo, `false` khi pool cạn, `false` khi thôi được phép sau khi đã báo `true`. Nhưng nó không báo gì khi chưa bao giờ được phép, nên feature không phân biệt được "đang chờ quảng cáo" với "không được phép". Hàm mới chỉ trả lại đúng cổng mà thẻ dùng:
 
@@ -96,7 +113,7 @@ Dòng của vị trí (một dòng, `scripts/release.sh` đọc được, `AdPla
 NATIVE_ONBOARDING("native_onboarding", AdFormat.NATIVE_STEP, firstOpenOnly = true),
 ```
 
-Đặt sau `REVIEW_INTERSTITIAL` (và sau dòng mà T-080, T-084, T-086 thêm, nếu đã merge).
+Đặt cuối nhóm vị trí của app, sau `POSES_IN_COLLECTION` mà T-080 thêm (T-081 đã bỏ `SAMPLE_NATIVE_SMALL`; T-084 không thêm dòng vị trí). T-086 đã merge trước thì đặt sau dòng của T-086.
 
 **Feature, phần chờ ở trang 1** (`IntroAdWait.kt`, mới; code đã chạy thử, mục 4.1):
 
@@ -202,9 +219,9 @@ internal fun OnboardingAdCard(page: OnboardingPage, onAdAvailabilityChange: (Boo
 }
 ```
 
-**Khe.** Plan T-082 gợi ý `Modifier.fillMaxWidth().padding(top = Spacing.lg)` cho thẻ. Plan này bỏ `padding`: khi không được phép hay không có `LocalAdsController`, `NativeStepAd` vẽ `Box(modifier = modifier)`, nên `padding` để lại 24 dp trống, trái tiêu chí "không có chỗ trống của thẻ". Khoảng cách giữa vùng trang và thẻ theo thiết kế (mục 8, câu 1); thiết kế cần khoảng cách thì đặt ở phần cuối nội dung cuộn của trang, không ở thẻ. Tag mới `onboarding_ad_card` trên thẻ.
+**Khe.** Thẻ không có `padding`, như thiết kế (README mục 3, dòng Khe thẻ native: "không có lề ngoài") và plan T-082 phiên bản 2: khi không được phép hay không có `LocalAdsController`, `NativeStepAd` vẽ `Box(modifier = modifier)`, nên `padding` sẽ để lại 24 dp trống, trái tiêu chí "không có chỗ trống của thẻ". Khoảng cách 24 phía trên thẻ là lề dưới của vùng cuộn (T-082), khoảng 24 phía dưới thẻ là `Spacer` trước ghi chú hay nút (T-082). Thẻ rộng hết cột (363 ở khung 411), cao `NativeStepAdDefaults.height()`; khung vẽ viền, bo góc, lề trong 12 (số của `NativeAdDimens`, README mục 3, "ngoài hệ thống"). Tag mới `onboarding_ad_card` trên thẻ.
 
-**Màn hình** (`OnboardingScreen`): thêm tham số `nextEnabled: Boolean = true` (vị trí như plan T-082 đã nêu), truyền cho `PrimaryButton(enabled = nextEnabled)` của nút `onboarding_next`. Nút "Bật camera" không đổi: chỉ trang 1 chờ. Màu mờ là màu `disabled` của `PrimaryButton` trong `:core:designsystem`, không viết cứng.
+**Màn hình** (`OnboardingScreen`): thêm tham số `nextEnabled: Boolean = true` (vị trí như plan T-082 đã nêu), truyền cho `PrimaryButton(enabled = nextEnabled)` của nút `onboarding_next`. Nút "Bật camera" không đổi: chỉ trang 1 chờ. Nút mờ là `PrimaryButton(enabled = false)` của `:core:designsystem`, như frame `intro-ad-wait` (README mục 3: nền `onSurface` 0.12, chữ 0.38, viền `outlineVariant`, không bóng; cùng chỗ, cùng cỡ với nút thường). Không viết cứng màu; không đổi `PrimaryButton`.
 
 **ViewModel** (`OnboardingViewModel.kt`): hai hàm ghi log, không đổi trạng thái:
 
@@ -216,17 +233,33 @@ fun onIntroAdWaitEnded(reason: IntroAdWaitEnd) = logger.info(LOG_TAG, "Intro ad 
 
 Log của khung (`VGL.Ads`): `Pool native_step created for native_onboarding`, `Step native_onboarding: got a new ad`, `Step native_onboarding: step changed`, `Step native_onboarding: no ad (pool exhausted)`.
 
-**Màn thấp (KB-6, L-028).** Chưa đo được vì T-082 chưa có code; số dưới đây là ước lượng theo số của plan T-082 (lề trên 56, chỉ báo 8 và cách 24, ghi chú khoảng 40 và cách 24, cách 24 trước nút, nút 56, lề dưới 24), thẻ 250 không lề:
+**Số đo theo thiết kế (KB-6).** Số của `context/OnboardingScreen_<trang>-ad_light.md` (khung 411 x 891, nút Figma cao 60) và số mà test đo trong code (nút 56, T-007; mọi phần dưới vùng trang ghim theo đáy nên dời xuống 4, vùng trang cao thêm 4, như plan T-082 phiên bản 2 mục 3.1):
 
-| Khung 360 x 640 | Phần cố định | Vùng trang còn lại |
-| --- | --- | --- |
-| Trang 1 tới kế cuối, có thẻ | 56 + 8 + 24 + 250 + 24 + 56 + 24 = 442 | khoảng 198 dp, cuộn |
-| Trang cuối, có thẻ | 56 + 8 + 24 + 250 + 24 + 40 + 24 + 56 + 24 = 506 | khoảng 134 dp, cuộn |
-| Trang cuối, có thẻ, cỡ chữ 2.0 (thẻ 270) | trên 526 | dưới 114 dp, cuộn |
+| Frame | Phần tử | Thiết kế (y, cao) | Code (y, cao) |
+| --- | --- | --- | --- |
+| `intro-ad`, `intro-ad-wait` | Vùng trang (gồm lề trong 24 trên, 24 dưới) | 64, 469 | 64, 473 |
+| `intro-ad`, `intro-ad-wait` | Hình minh họa (`onboarding_illustration`), rộng 363 | 88, 229 | 88, khoảng 233 (`ShrinkFirstLayout`: 473 - 48 - 168 chữ - 24) |
+| `intro-ad`, `intro-ad-wait` | Tiêu đề, giới thiệu | 341, 437 | khoảng 345, 441 |
+| `intro-ad`, `poses-ad`, `premium-ad` | Thẻ (`onboarding_ad_card`), rộng 363, trái 24 | 533, 250 | 537, 250 |
+| `poses-ad`, `premium-ad`, `camera-ad` | Huy hiệu, tiêu đề, điểm hay lời | 88, 208, 268 | 88, 208, 268 (không đổi so với frame không thẻ: nội dung ngắn hơn vùng trang) |
+| `camera-ad` | Vùng trang | 64, 413 | 64, 417 |
+| `camera-ad` | Thẻ | 477, 250 | 481, 250 |
+| `camera-ad` | Ghi chú (`onboarding_note`), hai dòng | 751, 32 | 755, 32 |
+| Mọi frame | Nút (`onboarding_next`, `onboarding_enable_camera`), rộng 363 | 807, 60 | 811, 56 (đáy 867) |
 
-Cách xử lý theo KB-6: vùng trang cuộn (`onboarding_content` của T-082 đã cuộn), thẻ, ghi chú và nút ghim, không ẩn thẻ. Hình minh họa ở trang 1 co trước (`ShrinkFirstLayout`). Test đo thật trong phiên (mục 4): nút nằm trọn trong cửa sổ, ghi chú không bị thẻ che, cuộn được tới phần tử cuối của trang. Thiết kế muốn giảm lề trên ở khung thấp thì ghi trong gói thiết kế (mục 8, câu 7).
+Cỡ chữ 2.0: thẻ 270, vùng trang thấp đi thêm 20; nút không đổi chỗ.
 
-**Bản staging.** `StagingRemoteValuesModule.appPlacementsShown()` thêm `AdPlacement.NATIVE_ONBOARDING`, cập nhật KDoc (spec onboarding, mục 8). Không đặt `show_open_ads_first_open`: lần mở đầu vẫn không có quảng cáo toàn màn hình (KB-1).
+**Màn thấp (KB-6, L-028).** Số đo của README mục 6 (Figma, khung 360 x 640, đo trên bản sao đổi cỡ của frame) và số trong code, khớp plan T-082 phiên bản 2 (mục 3.1, "Phần cho T-083 ở khung thấp có thẻ"). Phiên bản 1 ước 198 / 134 dp vì tính khoảng 24 dưới hàng chấm nằm ngoài phần cuộn; ở thiết kế và ở T-082 phiên bản 2, khoảng này là lề trên của vùng cuộn.
+
+| Khung 360 x 640 | Vùng trang Figma (trừ lề trong 48) | Vùng trang code (trừ lề trong 48) | Nội dung trang cần | Thẻ (code) | Nút (code) |
+| --- | --- | --- | --- | --- | --- |
+| Trang 1, có thẻ | 218 (170) | 222 (174) | 352 khi hình co tới 160 | y 286 tới 536 | 560 tới 616 |
+| Trang cuối, có thẻ | 162 (114) | 166 (118) | 220 | y 230 tới 480; ghi chú 504 tới 536 | 560 tới 616 |
+| Trang cuối, có thẻ, cỡ chữ 2.0 (thẻ 270) | | 146 (98) | 220 trở lên | | 560 tới 616 |
+
+Cách xử lý theo KB-6 và thiết kế (README mục 6: "Không ẩn thẻ, không giảm lề ở khung thấp"): vùng trang cuộn (`onboarding_content` của T-082 đã cuộn), thẻ, ghi chú và nút ghim, không ẩn thẻ. Ở trang 1, hình minh họa co trước (`ShrinkFirstLayout`, tới 160), rồi vùng trang cuộn. Test đo thật trong phiên (mục 4): nút nằm trọn trong cửa sổ, ghi chú không bị thẻ che, cuộn được tới phần tử cuối của trang.
+
+**Bản staging.** `StagingRemoteValuesModule.appPlacementsShown()` thêm `AdPlacement.NATIVE_ONBOARDING` (sau `POSES_IN_COLLECTION` của T-080), cập nhật KDoc (spec onboarding, mục 8: bật lúc phát hành). Không đặt `show_open_ads_first_open`: lần mở đầu vẫn không có quảng cáo toàn màn hình (KB-1).
 
 **Bảng khóa.** `./gradlew :app:testStagingDebugUnitTest -PremoteConfigKeys.update=true`: `docs/remote-config-keys.md` và `docs/remote-config-template.json` thêm `is_show_native_onboarding`. Không sửa tay. Khóa trùng tên AdsKit (`AdsSettings.ADSKIT_KEY_NAMES` đã có), nên mô tả không có hậu tố tên mẫu.
 
@@ -236,7 +269,7 @@ Cách xử lý theo KB-6: vùng trang cuộn (`onboarding_content` của T-082 �
 - `docs/ops/ads-guide.md`: dòng 49 ghi vị trí của app `native_onboarding`; thêm `rememberNativeStepAdAllowed` và `firstOpenOnly` vào phần thẻ bước (dòng 78) và phần khai báo vị trí (mục 5).
 - `scripts/ads-plan.py`: không sửa. Script đọc mô tả từ chú thích ngay trên dòng của `AdPlacement`; dòng mẫu `native_onboarding` của `EXAMPLE_PLACEMENTS` chỉ dùng khi app chưa có vị trí đó. Việc của người sau khi merge: `python3 scripts/ads-plan.py --keep <file trên Drive>`, `native_onboarding` vào danh sách mã cần tạo của T-075 (mã "Native 5 - Step" Nhật đã tạo; giá trị không vào repo).
 
-**Thứ tự commit trong phiên.** Bước 3 (test viết trước): test của mục 4, cùng phần dữ liệu test cũ theo dòng enum (`AdPlacementAppTest`, `AdUnitIdsTest`, `StagingRemoteValuesModuleTest`) ở commit test, vì các test đó kiểm phần mới. Bước 4: code, bảng khóa, tài liệu, ảnh chuẩn.
+**Thứ tự commit trong phiên.** Bước 3 (test viết trước): test của mục 4, cùng phần dữ liệu test cũ theo dòng enum (`AdPlacementAppTest`, `AdUnitIdsTest`, `StagingRemoteValuesModuleTest`) ở commit test, vì các test đó kiểm phần mới. Dòng enum `NATIVE_ONBOARDING` và thuộc tính `firstOpenOnly` (khung rỗng: `placementSwitch` chưa đọc nó) đi cùng commit test để test biên dịch được rồi đỏ ở câu khẳng định (L-025). Dữ liệu test cũ viết theo trạng thái của nhánh chính lúc chạy: tên `POSES_BOTTOM` thay `SAMPLE_NATIVE_SMALL` (T-081), chuỗi của `AdUnitIdsTest` có `poses_in_collection=unit/12` (T-080). Bước 4: code, bảng khóa, tài liệu, ảnh chuẩn.
 
 ### 3.2. Danh sách file
 
@@ -246,17 +279,17 @@ Cách xử lý theo KB-6: vùng trang cuộn (`onboarding_content` của T-082 �
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt` | Thuộc tính `firstOpenOnly` (enum và `AdPlacementDeclaration`, kiểm khai báo); dòng `NATIVE_ONBOARDING` |
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/StartupAdChoice.kt` | `placementSwitch`: vị trí `firstOpenOnly` cộng dấu lần mở đầu |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/NativeFlowStepTest.kt` | Test của `rememberNativeStepAdAllowed` (mục 4) |
-| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/StartupAdChoiceTest.kt` | Test `placementSwitch_firstOpenOnly_*` (mục 4) |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/StartupAdChoiceTest.kt` | Test `placementSwitch_firstOpenOnly_*` (mục 4); khai báo giả, không dùng vị trí `SAMPLE_NATIVE_SMALL` (T-081 bỏ) |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacementTest.kt` | Test kiểm khai báo `firstOpenOnly` (mục 4) |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacementAppTest.kt` | Dòng `native_onboarding` vào tập vị trí của app; test `nativeOnboarding_firstOpenOnly` |
-| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIdsTest.kt` | Thêm `native_onboarding=unit/<số kế tiếp>` vào chuỗi mã (dữ liệu của test, ADR-0029) |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIdsTest.kt` | Thêm `;native_onboarding=unit/13` vào cuối hai chuỗi của `configuredUnits_areParsedPerPlacementKey`, sau `poses_in_collection=unit/12` của T-080 (dữ liệu của test, ADR-0029; số kế tiếp lúc chạy nếu task khác đã dùng 13) |
 | Tạo | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/IntroAdWait.kt` | `INTRO_AD_WAIT_MILLIS`, `IntroAdWaitEnd`, `rememberIntroAdWait` |
 | Sửa | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreen.kt` | `nextEnabled`; `OnboardingAdCard`; tag `onboarding_ad_card`; Route nối `adSlot`, `rememberNativeStepAdAllowed`, `rememberIntroAdWait` |
 | Sửa | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingViewModel.kt` | `onIntroAdWaitStarted`, `onIntroAdWaitEnded` (log) |
 | Tạo | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/IntroAdWaitTest.kt` | Test của phần chờ, đồng hồ dừng (mục 4) |
-| Sửa | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreenTest.kt` | Test thẻ, nút, khung thấp (mục 4) |
+| Sửa | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreenTest.kt` | Test thẻ, nút, khung thấp, bố cục theo `context/` (mục 4) |
 | Sửa | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingViewModelTest.kt` | Test log của hai hàm mới |
-| Sửa | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreenScreenshotTest.kt` | Ảnh trạng thái `ad` và `ad-wait` (dưới) |
+| Sửa | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreenScreenshotTest.kt` | 12 test ảnh mới (mục 4): 10 ảnh cùng tên với frame của T-083, hai ảnh khung thấp |
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_intro-ad_light.png` | Ảnh chuẩn mới |
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_intro-ad_dark.png` | Ảnh chuẩn mới |
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_poses-ad_light.png` | Ảnh chuẩn mới |
@@ -265,11 +298,10 @@ Cách xử lý theo KB-6: vùng trang cuộn (`onboarding_content` của T-082 �
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_premium-ad_dark.png` | Ảnh chuẩn mới |
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_camera-ad_light.png` | Ảnh chuẩn mới |
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_camera-ad_dark.png` | Ảnh chuẩn mới |
-| Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_intro-ad-wait_light.png` | Trang 1 lúc chờ: khung chờ tĩnh của thẻ, nút "Tiếp" mờ |
+| Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_intro-ad-wait_light.png` | Trang 1 lúc chờ: khung chờ của thẻ, nút "Tiếp" mờ; chụp với đồng hồ dừng (L-029) |
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_intro-ad-wait_dark.png` | Như trên, tối |
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_intro-ad_small.png` | Khung thấp, trang 1 có thẻ: nút "Tiếp" không bị che |
 | Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_camera-ad_small.png` | Khung thấp, trang cuối có thẻ (nhiều phần ghim nhất) |
-| Tạo | `feature/onboarding/src/test/screenshots/OnboardingScreen_camera-ad_light_unfolded.png` | Khung mở gập 673 x 841, khi gói thiết kế có frame này (ADR-0020) |
 | Tạo | `feature/onboarding/src/deviceScenarios/T-083-gioi-thieu-tu-choi-dong-y.txt` | Kịch bản emulator (mục 4) |
 | Sửa | `app/src/staging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingRemoteValuesModule.kt` | `appPlacementsShown()` thêm `NATIVE_ONBOARDING`; KDoc |
 | Sửa | `app/src/testStaging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingRemoteValuesModuleTest.kt` | Tập mong đợi thêm `is_show_native_onboarding=true` (mục 3.5) |
@@ -277,8 +309,18 @@ Cách xử lý theo KB-6: vùng trang cuộn (`onboarding_content` của T-082 �
 | Sửa | `docs/remote-config-template.json` | Sinh lại cùng lệnh |
 | Sửa | `docs/ops/manual-test.md` | Mục 2 và mục 11 (mục 3.1, Tài liệu) |
 | Sửa | `docs/ops/ads-guide.md` | Vị trí của app `native_onboarding`; `rememberNativeStepAdAllowed`; `firstOpenOnly` |
-| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro-ad_light_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding`; cùng cách cho mọi ảnh thiết kế `-ad` và `-ad-wait` có trong gói |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro-ad_light_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro-ad_dark_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_poses-ad_light_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_poses-ad_dark_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_premium-ad_light_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_premium-ad_dark_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_camera-ad_light_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_camera-ad_dark_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro-ad-wait_light_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro-ad-wait_dark_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
 | Sửa | `docs/features/onboarding/design/review/summary.md` | Bảng kết quả của `design-compare.sh` |
+| Sửa | `docs/features/onboarding/design/README.md` | Mục 8, Kết quả đối chiếu: thêm 10 dòng của frame `-ad`, `-ad-wait` (tỷ lệ khác, ảnh so sánh) và nhận xét của phiên, như T-082 ghi dòng của nó. Không sửa mục 1 tới 7 |
 
 Không đổi, đã kiểm:
 
@@ -288,6 +330,9 @@ Không đổi, đã kiểm:
 - `app/build.gradle.kts` chỉ nêu đường dẫn hai tệp bảng khóa; không đổi.
 - `docs/features/onboarding/design/review/summary.md`: `scripts/design-compare/DesignCompare.java` ghi file này; plan chỉ chạy script, không sửa (như plan T-080, T-082).
 - `MainActivity`, `AppNavHost.kt`, `MainScreen.kt`: không đổi; luồng vẫn là một đích.
+- `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingStringsTest.kt` chỉ nhắc `docs/features/onboarding/design/README.md` (mục 2, bảng chữ) trong KDoc; plan chỉ thêm dòng vào mục 8 của README, không đổi bảng chữ và không thêm chữ của app: không sửa, không bị ảnh hưởng.
+- Ảnh chuẩn của T-082 (`OnboardingScreen_<trang>_<light|dark>`, `_small`, `_unfolded`): không đổi; test của chúng dùng `adSlot` mặc định (rỗng) và `nextEnabled` mặc định `true`.
+- Test của T-084 trong `AdUnitIdsTest` (`missingLayers_*`, `bottomBarLayers_*`): `NATIVE_STEP` không phải thanh đáy (`hasBottomBarLayers` chỉ đúng với native nhỏ không có `nativeEvery`), nên `native_onboarding` không có lớp; không sửa (mục 3.5).
 - `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/config/RemoteConfigKeysTest.kt` đọc `docs/remote-config-keys.md` và `docs/remote-config-template.json` để so với code: không sửa; qua sau khi sinh lại hai tệp bằng `-PremoteConfigKeys.update=true`.
 - `scripts/tests/run.sh` nhắc `docs/remote-config-keys.md` (khối `ads-plan`, đọc code thật, không đếm số khóa cố định) và một `summary.md` trong thư mục tạm của test thiết kế: không sửa, không bị ảnh hưởng (như plan T-079, T-080).
 - `scripts/device-session.sh` và `.github/workflows/device-session.yml` đọc `summary.md` của thư mục `test-sessions/` của phiên thử, không đọc `docs/features/onboarding/design/review/summary.md`: không sửa.
@@ -306,6 +351,9 @@ Không đổi, đã kiểm:
 - **Điểm chưa chắc:** test chờ 5 giây trên màn đầy đủ của T-082 (Route, ViewModel Hilt giả) với `mainClock.autoAdvance = false` có thể không ổn định: bản chạy thử chỉ đo `rememberIntroAdWait` trong một màn nhỏ.
 - **Điều kiện chuyển:** test thời gian của `OnboardingScreenTest` dựng cả màn hết giờ chờ hay đỏ chập chờn 2 lần liên tiếp vì cùng một lỗi của đồng hồ.
 - **Cách làm thay:** test thời gian chỉ chạy trên `rememberIntroAdWait` trong một màn nhỏ (`IntroAdWaitTest`, như bản chạy thử); test của màn đầy đủ dùng `autoAdvance` mặc định, kiểm nút theo `nextEnabled` truyền vào và kiểm Route truyền đúng `nextEnabled = !held` (một test với `held` giả qua tham số). Tiêu chí và câu khẳng định của mục 4 giữ nguyên; không thêm file.
+- **Điểm chưa chắc thứ hai:** ảnh `intro-ad-wait` chụp khung chờ có hiệu ứng (`NativeAdPlaceholder(..., animated = true)`) với đồng hồ dừng, theo mẫu `PoseDetailScreenScreenshotTest.loading_*` đã có. Mẫu đó chụp vòng chờ, chưa chụp khung chờ của `:core:ads`.
+- **Điều kiện chuyển:** test ảnh `intro-ad-wait_*` chạy quá 60 giây, hay ảnh khác nhau giữa hai lần chạy `recordRoborazziDebug` liên tiếp.
+- **Cách làm thay:** khe vẽ `NativeAdPlaceholder(NativeAdSize.STEP, animated = false)` (khung chờ tĩnh, độ mờ 1, như ảnh chuẩn `NativeAdPlaceholder_step_light` của khung), vẫn trong `runComposeUiTest` với đồng hồ dừng. Ảnh cùng tên, cùng đường dẫn; không thêm file. Ghi lần chuyển vào nhật ký.
 
 ### 3.5. Hành vi đã có bị đổi
 
@@ -315,11 +363,13 @@ Không đổi, đã kiểm:
 | --- | --- | --- | --- |
 | Bản staging bật đúng tập vị trí của T-079, T-080 | Tập thêm `is_show_native_onboarding=true` | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` | Dữ liệu của test thêm một dòng (ADR-0029): `"is_show_native_onboarding" to true`. Ý định giữ: staging chỉ bật điều spec đã chốt |
 | `firstOpenAndCombo_areNotSet`: `show_open_ads_first_open`, `is_show_native_after_inter` không đặt | Không đổi | `StagingRemoteValuesModuleTest.firstOpenAndCombo_areNotSet` | Giữ |
-| Tập vị trí của app (5 tới 7 dòng, tùy T-080, T-084, T-086) | Thêm `native_onboarding` (`NATIVE_STEP`) | `AdPlacementAppTest.appPlacements_declaredWithSpecFormats` | Dữ liệu thêm `"native_onboarding" to AdFormat.NATIVE_STEP` (ADR-0029) |
-| Chuỗi mã đơn vị của mọi vị trí app trong `AdUnitIdsTest` | Thêm `native_onboarding` | `AdUnitIdsTest` (hai chuỗi dòng 15, 22) | Dữ liệu thêm `native_onboarding=unit/<số kế tiếp>` (ADR-0029) |
-| Vị trí không phải app-wide đi theo `is_show_<mã>`, không chờ dấu lần mở đầu | Vẫn vậy trừ vị trí `firstOpenOnly` | `StartupAdChoiceTest.placementSwitch_otherPlacements_unchanged` | Giữ: test dùng `SAMPLE_NATIVE_SMALL`, không `firstOpenOnly` |
+| Staging không bật vị trí `gallery_*` | Không đổi; `native_onboarding` không `stagingOnly` | `StagingRemoteValuesModuleTest.noGalleryPlacement_isShown` (tên sau T-081), `firstOpen_choosesNoStartupAd` | Giữ |
+| Tập vị trí của app sau T-080 và T-081: `poses_bottom`, `pose_detail_bottom`, `review_interstitial`, `inter_pose_detail`, `poses_in_collection` (cộng dòng của T-086 nếu đã merge) | Thêm `native_onboarding` (`NATIVE_STEP`) | `AdPlacementAppTest.appPlacements_declaredWithSpecFormats` | Dữ liệu thêm `"native_onboarding" to AdFormat.NATIVE_STEP` (ADR-0029); các câu của vòng lặp (không `appWide`, không `stagingOnly`, khóa `is_show_<key>`) giữ và áp cho dòng mới. `noSamplePlacement` (T-081) giữ |
+| Chuỗi mã đơn vị của mọi vị trí app trong `AdUnitIdsTest` | Thêm `native_onboarding` | `AdUnitIdsTest.configuredUnits_areParsedPerPlacementKey` (hai chuỗi, đã theo T-081 và có `poses_in_collection=unit/12` của T-080), `placementWithoutUnit_isReportedMissingAndShowsNoAd` | Dữ liệu thêm `;native_onboarding=unit/13` vào cuối hai chuỗi (ADR-0029). `placementWithoutUnit_...` so với `entries.filterNot { stagingOnly }` nên tự đúng: giữ. Phiên tìm theo chuỗi `poses_in_collection=unit/12`, không theo số dòng |
+| Vị trí không phải app-wide đi theo `is_show_<mã>`, không chờ dấu lần mở đầu | Vẫn vậy trừ vị trí `firstOpenOnly` | `StartupAdChoiceTest.placementSwitch_otherPlacements_unchanged` | Giữ: sau T-081 test dùng `POSES_BOTTOM` (đổi tên của T-081), không `firstOpenOnly` |
 | Nút "Tiếp" luôn bấm được (T-082) | Mờ ở trang 1 khi chờ quảng cáo | Test của T-082 trong `OnboardingScreenTest` dựng màn với giá trị mặc định | Giữ: `nextEnabled` mặc định `true` |
 | `bottomButton_samePlace_onEveryPage_withAndWithoutAdSlot` (T-082) | Không đổi | `OnboardingScreenTest` (T-082) | Giữ, chạy cả với `OnboardingAdCard` thật (cao 0) |
+| Bố cục không thẻ khớp thiết kế (T-082: `<trang>_layoutMatchesDesign`, `adSlot_betweenPageAndButton_belowNoteNever`, `adSlot_receivesCurrentPage`) | Không đổi | `OnboardingScreenTest` (T-082) | Giữ: dùng `adSlot` mặc định hay khối 250 dp, `nextEnabled` mặc định |
 
 Không câu khẳng định nào phải viết lại theo ADR-0031.
 
@@ -341,20 +391,24 @@ Test viết trước code (bước 3), qua các quy tắc của `scripts/check.s
 | Chỉ ở lần mở đầu (mục 5 spec) | Unit test (`:core:ads`) | `StartupAdChoiceTest.placementSwitch_firstOpenOnly_followsKeyAndFirstOpen`: khai báo giả `firstOpenOnly`, `is_show_<mã>` bật và dấu `true`: `true`; dấu `false`: `false`; khóa tắt và dấu `true`: `false`. `placementSwitch_firstOpenOnly_waitsForFirstOpen`: dấu chưa đọc thì không phát giá trị (như `placementSwitch_waitsForFirstOpen`). Đối chứng: cùng khai báo không `firstOpenOnly`, dấu `false`: `true` |
 | Khai báo `firstOpenOnly` | Unit test | `AdPlacementTest.firstOpenOnly_notForAppWide`: `AdPlacementDeclaration(code, APP_OPEN, appWide = true, firstOpenOnly = true)` ném `IllegalArgumentException`; khai báo `NATIVE_STEP` với `firstOpenOnly` thì không |
 | Vị trí của app | Unit test | `AdPlacementAppTest.appPlacements_declaredWithSpecFormats` (dữ liệu thêm dòng); `nativeOnboarding_firstOpenOnly`: `NATIVE_ONBOARDING.firstOpenOnly` là `true`, `key` là `native_onboarding`, khóa `AdsSettings.placementEnabled(it).name` là `is_show_native_onboarding` |
-| KB-6 tiêu chí 1: thẻ ở mọi trang, đúng chiều cao | Compose UI test (`NATIVE`, khung 411 x 891) | `OnboardingScreenTest.adSlot_card_onEveryPage_heightOfStepCard`: mỗi trang của danh sách 4 trang, `adSlot` vẽ `NativeAdCard(assets, NativeAdSize.STEP)` giả: khe `onboarding_ad_slot` cao `NativeStepAdDefaults.height()` (250 dp, sai số 1 dp), đáy khe ở trên ghi chú (trang cuối) hay trên nút |
+| KB-6 tiêu chí 1: thẻ ở mọi trang, đúng chiều cao | Compose UI test (`NATIVE`, khung `vi-w411dp-h891dp-xxhdpi`) | `OnboardingScreenTest.adSlot_card_onEveryPage_heightOfStepCard`: mỗi trang của danh sách 4 trang, `adSlot` vẽ `NativeAdCard(assets, NativeAdSize.STEP)` giả: khe `onboarding_ad_slot` cao `NativeStepAdDefaults.height()` (250 dp, sai số 1 dp), đáy khe ở trên ghi chú (trang cuối) hay trên nút |
+| Bố cục có thẻ khớp thiết kế, trang 1 | Compose UI test (khung `vi-w411dp-h891dp-xxhdpi`, `NATIVE`, sai số 4 dp như T-082) | `OnboardingScreenTest.introAd_layoutMatchesDesign` (`context/OnboardingScreen_intro-ad_light.md`), khe vẽ thẻ giả: `onboarding_page_area` đỉnh 64, cao 473; `onboarding_illustration` đỉnh 88, rộng 363, cao 233 (thiết kế 229; đối chứng: nhỏ hơn 280 của trang không thẻ); `onboarding_title` đỉnh 345; `onboarding_body` đỉnh 441; `onboarding_ad_card` trái 24, đỉnh 537, rộng 363, cao `NativeStepAdDefaults.height()`; `onboarding_next` đỉnh 811, đáy 867 |
+| Bố cục có thẻ khớp thiết kế, trang 2 và 3 | Compose UI test | `posesAd_layoutMatchesDesign`, `premiumAd_layoutMatchesDesign` (`context/OnboardingScreen_<poses\|premium>-ad_light.md`): `onboarding_badge` đỉnh 88, `onboarding_title` đỉnh 208, `onboarding_features` (trang 2) hay `onboarding_body` (trang 3) đỉnh 268; thẻ đỉnh 537, cao 250; nút đỉnh 811 |
+| Bố cục có thẻ khớp thiết kế, trang cuối | Compose UI test | `cameraAd_layoutMatchesDesign` (`context/OnboardingScreen_camera-ad_light.md`): `onboarding_page_area` cao 417; thẻ đỉnh 481, đáy 731; `onboarding_note` đỉnh 755, đáy 787; `onboarding_enable_camera` đỉnh 811, đáy 867; khoảng đáy thẻ tới đỉnh ghi chú và đáy ghi chú tới đỉnh nút đều 24 (sai số 1) |
+| Trang 1 chờ khớp thiết kế | Compose UI test | `introAdWait_layoutMatchesDesign` (`context/OnboardingScreen_intro-ad-wait_light.md`): khe vẽ `NativeAdPlaceholder(NativeAdSize.STEP, animated = false)`, `nextEnabled = false`: khung chờ đỉnh 537, cao 250; `onboarding_next` cùng biên với `introAd_layoutMatchesDesign` (đỉnh 811, rộng 363), `assertIsNotEnabled()` |
 | KB-6 tiêu chí 4: thẻ không che nút và ghi chú (trang cuối) | Compose UI test | `OnboardingScreenTest.camera_withCard_noteAndButtonBelowCard`: biên của thẻ, `onboarding_note`, `onboarding_enable_camera` không giao nhau, theo thứ tự trên xuống |
-| KB-6 tiêu chí 4, khung thấp | Compose UI test (`w360dp-h640dp-xxhdpi`) | `OnboardingScreenTest.small_withCard_buttonInWindow_pageScrolls`, trang 1 và trang cuối: nút nằm trọn trong cửa sổ; trang cuối: ghi chú nằm trọn trong cửa sổ và dưới thẻ; `performScrollTo()` phần tử cuối của trang rồi phần tử đó hiện trong `onboarding_page_area`. Ghi số đo vùng trang vào nhật ký (so với ước lượng của mục 3.1) |
+| KB-6 tiêu chí 4, khung thấp | Compose UI test (`vi-w360dp-h640dp-xxhdpi`, `NATIVE`, sai số 4 dp) | `OnboardingScreenTest.small_withCard_buttonInWindow_pageScrolls`, trang 1 và trang cuối (`PAGES_4`), khe vẽ `NativeAdCard(assets, NativeAdSize.STEP)` giả: nút đỉnh 560, đáy 616, nằm trọn trong cửa sổ; `onboarding_page_area` cao 222 (trang 1) và 166 (trang cuối) (README mục 6: 218 / 162 cộng 4); thẻ y 286 tới 536 (trang 1), 230 tới 480 (trang cuối); trang cuối: ghi chú y 504 tới 536, nằm trọn trong cửa sổ, đỉnh ghi chú ≥ đáy thẻ + 24; `performScrollTo()` phần tử cuối của trang (`onboarding_body` trang 1, `onboarding_features` trang cuối) rồi phần tử đó nằm trong biên của `onboarding_page_area`. Đối chứng trong test: trước khi cuộn, phần tử cuối nằm ngoài biên (nội dung 352 / 220 lớn hơn 174 / 118) |
 | KB-6 tiêu chí 7: vùng chạm của nút không chồng thẻ | Compose UI test | `OnboardingScreenTest.nextButton_touchArea_notOverCard`: biên chạm (`touchBoundsInRoot`) của `onboarding_next` không giao biên thẻ, ở khung 411 x 891 và 360 x 640 |
 | KB-6 tiêu chí 2: nút mờ khi được bảo | Compose UI test | `OnboardingScreenTest.nextDisabled_whenNextEnabledFalse`: `nextEnabled = false`: `onboarding_next` `assertIsNotEnabled()`, bấm không gọi `onNext`; đối chứng `true` gọi một lần. Nút "Bật camera" ở trang cuối không đổi theo `nextEnabled` |
 | KB-6 tiêu chí 6, 8: không được phép thì không chỗ trống | Compose UI test | `OnboardingScreenTest.realCard_noAdsController_takesNoSpace`: `adSlot = { OnboardingAdCard(it) }` không có `LocalAdsController`: khe cao 0 dp, nút cùng chỗ với khi `adSlot` rỗng (đối chứng: một `Box` 250 dp làm nút không đổi chỗ, test của T-082) |
 | Log của phần chờ (ADR-0019) | Unit test | `OnboardingViewModelTest.introAdWait_logsStartAndEnd`: `RecordingAppLogger` có `Intro ad wait started` và `Intro ad wait ended: timeout` |
 | Giá trị staging | Unit test (testStaging) | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` (dữ liệu thêm `is_show_native_onboarding=true`); `firstOpenAndCombo_areNotSet` giữ |
 | Bảng khóa khớp code | Unit test sẵn có | `:app:testStagingDebugUnitTest` (test bảng khóa) qua sau khi sinh lại |
-| Giao diện trạng thái `ad` | Screenshot test (Roborazzi, khung `w411dp-h891dp-xxhdpi`) | `OnboardingScreenScreenshotTest`: `captureRoboImage("src/test/screenshots/OnboardingScreen_intro-ad_light.png")` và các ảnh `poses-ad`, `premium-ad`, `camera-ad`, sáng và tối, với `NativeAdCard(assets, NativeAdSize.STEP)` giả trong `adSlot` |
-| Trang 1 lúc chờ | Screenshot test | `captureRoboImage("src/test/screenshots/OnboardingScreen_intro-ad-wait_light.png")`, `_dark`: `adSlot` vẽ `NativeAdPlaceholder(NativeAdSize.STEP, animated = false)`, `nextEnabled = false`. Khung chờ tĩnh, không có hiệu ứng chạy mãi (L-029) |
-| Màn hình thấp (L-028) | Screenshot test khung `w360dp-h640dp-xxhdpi` | `captureRoboImage("src/test/screenshots/OnboardingScreen_intro-ad_small.png")`, `captureRoboImage("src/test/screenshots/OnboardingScreen_camera-ad_small.png")` |
-| Mở gập (ADR-0020) | Screenshot test khung `w673dp-h841dp-xxhdpi` | `captureRoboImage("src/test/screenshots/OnboardingScreen_camera-ad_light_unfolded.png")`, khi gói thiết kế có frame này |
-| Đúng thiết kế | Screenshot test cùng tên với từng ảnh thiết kế, `scripts/design-compare.sh onboarding`, rà soát độc lập theo mục 7 của mẫu thiết kế | Các ảnh `-ad` và `-ad-wait` trên. Gói thiết kế của luồng chưa có (mục 8, câu 1); frame trang không có thẻ là của T-082, plan phiên bản 2 liệt kê theo gói. Ảnh thiết kế của ticket khác (T-012): `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` |
+| Giao diện có thẻ, cùng tên với ảnh thiết kế (ADR-0020) | Screenshot test (Roborazzi, khung `vi-w411dp-h891dp-xxhdpi`, như T-082) | `OnboardingScreenScreenshotTest`, mỗi test một trạng thái `Browsing(PAGES_4, i)` cố định, `adSlot` vẽ `NativeAdCard(assets, NativeAdSize.STEP)` giả (chữ giả như ảnh chuẩn `NativeAdCard_step_*`), `Modifier.fillMaxWidth()`: `introAd_light` gọi `captureRoboImage("src/test/screenshots/OnboardingScreen_intro-ad_light.png") { ... }`; cùng mẫu: `introAd_dark` (`OnboardingScreen_intro-ad_dark.png`), `posesAd_light` (`OnboardingScreen_poses-ad_light.png`, `i = 1`), `posesAd_dark` (`OnboardingScreen_poses-ad_dark.png`), `premiumAd_light` (`OnboardingScreen_premium-ad_light.png`, `i = 2`), `premiumAd_dark` (`OnboardingScreen_premium-ad_dark.png`), `cameraAd_light` (`OnboardingScreen_camera-ad_light.png`, `i = 3`), `cameraAd_dark` (`OnboardingScreen_camera-ad_dark.png`). Thẻ giả là thẻ tĩnh: không có hiệu ứng chạy mãi |
+| Trang 1 lúc chờ, cùng tên với ảnh thiết kế (ADR-0020, L-029) | Screenshot test, đồng hồ dừng | Khung chờ của thẻ có hiệu ứng nhấp nháy chạy mãi (`placeholderAlpha`, `infiniteRepeatable`), nên không chụp bằng dạng có khối composable của `captureRoboImage`. Theo mẫu `PoseDetailScreenScreenshotTest.loading_*` (cùng lớp, không thêm `createComposeRule()`; `Screen` là hàm dựng màn của lớp do T-082 viết, plan này thêm hai tham số `adSlot`, `nextEnabled` truyền thẳng cho `OnboardingScreen`): `@OptIn(ExperimentalTestApi::class) fun introAdWait_light() = runComposeUiTest { mainClock.autoAdvance = false; setContent { Screen(Browsing(PAGES_4, 0), dark = false, adSlot = { NativeAdPlaceholder(NativeAdSize.STEP, Modifier.fillMaxWidth()) }, nextEnabled = false) }; mainClock.advanceTimeBy(WAIT_PULSE_CYCLE_MS); onRoot().captureRoboImage("src/test/screenshots/OnboardingScreen_intro-ad-wait_light.png") }`; `introAdWait_dark` cùng mẫu (`OnboardingScreen_intro-ad-wait_dark.png`). `WAIT_PULSE_CYCLE_MS = 1_600L`: một vòng nhấp nháy của khung (`PULSE_MILLIS` 800 lên và xuống), nên khối của khung chờ ở độ mờ 1 như frame `State=Loading`. Khung `vi-w411dp-h891dp-xxhdpi` của lớp áp cho `runComposeUiTest`. Dự phòng ở mục 3.4 |
+| Màn hình thấp (L-028) | Screenshot test khung `vi-w360dp-h640dp-xxhdpi`, trạng thái nhiều nội dung nhất | `introAd_small`: `captureRoboImage("src/test/screenshots/OnboardingScreen_intro-ad_small.png") { ... }` (trang 1 có thẻ giả, hình co tới 160, vùng trang cuộn); `cameraAd_small`: `captureRoboImage("src/test/screenshots/OnboardingScreen_camera-ad_small.png") { ... }` (trang cuối có thẻ giả, `PAGES_4`, nhiều phần ghim nhất) |
+| Mở gập (ADR-0020) | Không có | Gói thiết kế không có frame `-ad` mở gập (README mục 1); ảnh `_unfolded` không thẻ là của T-082. Bố cục có thẻ ở khung 673 x 841 giống khung 411 (một cột, rộng hết): không thêm ảnh |
+| Đúng thiết kế | Screenshot test cùng tên với từng ảnh thiết kế của T-083 (10 ảnh trên), `scripts/design-compare.sh onboarding`, rà soát độc lập theo mục 7 của mẫu thiết kế; README mục 8 ghi kết quả | `OnboardingScreen_<intro\|poses\|premium\|camera>-ad_<light\|dark>.png`, `OnboardingScreen_intro-ad-wait_<light\|dark>.png`. Lệch được phép (README mục 6): nút cao 56 thay 60 (phần dưới vùng trang dời 4), chữ trong thẻ (README mục 6; thẻ giả dùng chữ giả của ảnh chuẩn `NativeAdCard_step_*`, như Figma). Ảnh thiết kế của ticket khác (T-082): `OnboardingScreen_intro_light`, `OnboardingScreen_intro_dark`, `OnboardingScreen_poses_light`, `OnboardingScreen_poses_dark`, `OnboardingScreen_premium_light`, `OnboardingScreen_premium_dark`, `OnboardingScreen_camera_light`, `OnboardingScreen_camera_dark`, `OnboardingScreen_intro_light_unfolded`, `OnboardingScreen_camera_light_unfolded`; T-012 (bỏ ở T-082): `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` |
 | KB-6: từ chối đồng ý thì không chờ, luồng đi được, không có thẻ | Kiểm tra thủ công (emulator: `feature/onboarding/src/deviceScenarios/T-083-gioi-thieu-tu-choi-dong-y.txt`) | `fresh`, `consent decline 30`, `wait id=onboarding_next 60`, `expect_no id=onboarding_ad_card`, `tap id=onboarding_next`, `wait id=onboarding_page_poses 3` (không chờ 5 giây), `expect_no id=onboarding_ad_card`, chạm "Tiếp" tới `onboarding_enable_camera`, chạm, `need id=camera_poses 15` |
 | KB-6: đồng ý thì trang 1 chờ không quá 5 giây, thẻ ở mọi trang, đổi quảng cáo khi chuyển trang, nhãn "Ad" rõ | Kiểm tra thủ công (máy thật: quảng cáo thật; trình chạy kịch bản chưa có lệnh chấp nhận đồng ý) | Bản staging, xóa dữ liệu app, mở, đồng ý. Đếm thời gian nút "Tiếp" mờ (không quá 5 giây); thẻ ở cả 3 hoặc 4 trang, quảng cáo khác nhau giữa hai trang kề; log `VGL.Onboarding` `Intro ad wait started` và `ended: ad` hay `timeout`. Không bấm vào quảng cáo |
 | Nạp sẵn và thứ tự với đồng ý | Kiểm tra thủ công (máy thật: quảng cáo thật) | Lần mở đầu: log `VGL.Ads` có hộp thoại đồng ý trước, rồi `Preload group 1/2 started: APP_OPEN, NATIVE_STEP`, `Pool native_step created for native_onboarding`. Mở lại lần 2 (đã qua luồng): không có `Pool native_step created for native_onboarding` |
@@ -375,7 +429,8 @@ Test viết trước code (bước 3), qua các quy tắc của `scripts/check.s
   - Đối chứng (mỗi lần một thay đổi rồi trả lại): `begun` dùng `remember` thay `rememberSaveable`: `rebuiltMidway_notHeldAgain` đỏ. Bỏ hai `LifecycleEventEffect`: `backgroundMidway_releasedOnReturn_notHeldAgain` đỏ ở câu `[start, background]`. Trả `canWait && running`: `allowedNoAd_heldFromFirstFrame_releasedAfterFiveSeconds` đỏ ở câu nút mờ ngay khung đầu. Cho chờ lại (`!running` thay `!begun`): `switchOffMidway`, `leftPage`, `adComes`, `rebuiltMidway` đỏ.
   - `scripts/check.sh` (qua `check-locked.sh`, xong 18:19 UTC, nhánh tạm có code và test tạm): `BUILD SUCCESSFUL in 5m 27s`, `Test JVM: 2432 test, 0 lỗi. Ảnh screenshot: 138`, `./feature/onboarding: 47 test, 0 lỗi` (39 test có sẵn và 8 test tạm), `./core/ads: 1100 test, 0 lỗi`, `== Cổng chất lượng: QUA`, `check.sh exit=0`. Không có lỗi ktlint hay lint ở hai file mới.
   - Chưa chạy thử: `firstOpenOnly` (biến thể nhỏ của `placementSwitch` có sẵn, E 1) và màn đầy đủ của T-082 (phương án dự phòng ở mục 3.4).
-- **Test có sẵn (`scripts/existing-tests.py`, chạy trên nhánh plan 2026-10-31):** 552 test dùng tên của các file plan sửa, đa số chỉ vì dùng `AdPlacement`. Nhóm "Cần xem trước" (9): các test `..._withoutAdsController_takesNoSpace`, `InListAdsTest`, `NativeAdCellTest`, `NativeFullScreenOverlayTest`, `RewardedActionTest`, `PosesScreenTest`, `PoseDetailScreenTest` đo khe của vị trí khác; plan không đổi vị trí hay khe nào của chúng, giữ. Nhóm "Nên xem" liên quan: `StartupAdChoiceTest.placementSwitch_*` (giữ; vị trí của chúng không `firstOpenOnly`), `AdPlacementTest.*` (giữ; thêm một test), `AdPlacementSourceTest.releaseScript_readsEveryShippedPlacement` (giữ; dòng mới một dòng), `AdPreloadPlanTest.fromPlacements_*` (giữ; `NATIVE_STEP` đã có qua `GALLERY_NATIVE_STEP`), `NativeFlowStepTest.stepAllowed_*` (giữ), `RemoteConfigKeysTest.*` (qua sau khi sinh lại bảng khóa), `StagingRemoteValuesModuleTest.*` (mục 3.5), `OnboardingScreenScreenshotTest.default_*` (T-082 bỏ; không thuộc plan này).
+- **Phiên bản 2 (2026-10-31): không chạy thử thêm.** Kỹ thuật không đổi so với phiên bản 1: phần chờ và cổng "được phép" như trên; số đo mới là số của bố cục T-082 (cột lấp màn, `weight(1f)`, `ShrinkFirstLayout` có từ T-012) cộng một khe cao 250, suy từ `context/` và luật cộng 4 của nút 56 mà plan T-082 phiên bản 2 dùng; ảnh `intro-ad-wait` chụp với đồng hồ dừng theo mẫu đã có trong dự án (`PoseDetailScreenScreenshotTest.loading_*`, `CameraScreenScreenshotTest.starting_*`), dự phòng ở mục 3.4. Màn đầy đủ chưa có code (T-082 chưa chạy) nên số đo của mục 4 chưa đo được trên code; phiên ghi số đo thật vào nhật ký.
+- **Test có sẵn (`scripts/existing-tests.py`, chạy lại trên nhánh plan phiên bản 2, 2026-10-31):** 552 test, 8 "Cần xem trước" (cùng các test của phiên bản 1, đếm `NativeAdCellTest` một lần ít hơn), 238 "Nên xem"; kết luận như phiên bản 1, cộng các test đổi tên của T-081 ở mục 3.5. Phiên bản 1: 552 test dùng tên của các file plan sửa, đa số chỉ vì dùng `AdPlacement`. Nhóm "Cần xem trước" (9): các test `..._withoutAdsController_takesNoSpace`, `InListAdsTest`, `NativeAdCellTest`, `NativeFullScreenOverlayTest`, `RewardedActionTest`, `PosesScreenTest`, `PoseDetailScreenTest` đo khe của vị trí khác; plan không đổi vị trí hay khe nào của chúng, giữ. Nhóm "Nên xem" liên quan: `StartupAdChoiceTest.placementSwitch_*` (giữ; vị trí của chúng không `firstOpenOnly`), `AdPlacementTest.*` (giữ; thêm một test), `AdPlacementSourceTest.releaseScript_readsEveryShippedPlacement` (giữ; dòng mới một dòng), `AdPreloadPlanTest.fromPlacements_*` (giữ; `NATIVE_STEP` đã có qua `GALLERY_NATIVE_STEP`), `NativeFlowStepTest.stepAllowed_*` (giữ), `RemoteConfigKeysTest.*` (qua sau khi sinh lại bảng khóa), `StagingRemoteValuesModuleTest.*` (mục 3.5), `OnboardingScreenScreenshotTest.default_*` (T-082 bỏ; không thuộc plan này).
 
 ## 5. Chấm rủi ro
 
@@ -384,43 +439,51 @@ Test viết trước code (bước 3), qua các quy tắc của `scripts/check.s
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 3 | `:core:ads`, `:feature:onboarding`, `:app` (staging), bảng khóa, tài liệu |
-| B. Độ rõ của yêu cầu | 2 | Spec đã chốt, nhưng chưa có thiết kế và còn câu hỏi về lúc bắt đầu, ra nền, pool cạn (mục 8) |
+| B. Độ rõ của yêu cầu | 1 | Spec đã chốt (câu 6, 8), thiết kế đã duyệt có đủ 10 frame và số đo khung thấp; còn câu hỏi về lúc bắt đầu, ra nền, pool cạn, lần mở đầu (mục 8, câu 3 tới 6) |
 | C. Khả năng kiểm chứng tự động | 2 | Phần chờ, cổng, công tắc có test JVM; quảng cáo thật, đồng ý chấp nhận và thứ tự nạp chỉ kiểm trên máy thật |
 | D. Ảnh hưởng chéo | 3 | Sửa `placementSwitch` mà mọi vị trí đi qua; T-080, T-084, T-086 cùng sửa `AdPlacement.kt`, staging, bảng khóa; phụ thuộc chữ ký của T-082 |
 | E. Độ mới của kỹ thuật | 2 | Lần đầu dự án giữ nút theo thời gian trong composition với sự kiện lifecycle và đồng hồ dừng; đã chạy thử |
-| **Tổng** | 12 | **Mức: Cao** (chạm điểm chặn) |
+| **Tổng** | 11 | **Mức: Cao** (chạm điểm chặn) |
 
 ## 6. Ảnh hưởng chéo
 
 - File hoặc thành phần dùng chung bị chạm: `AdPlacement.kt` (khai báo, thuộc tính mới), `StartupAdChoice.kt` (`placementSwitch` của mọi vị trí), `NativeFlowStep.kt`, `StagingRemoteValuesModule.kt` và test, `docs/remote-config-keys.md`, `docs/remote-config-template.json`, `docs/ops/manual-test.md`, `docs/ops/ads-guide.md`, `AdPlacementAppTest.kt`, `AdUnitIdsTest.kt`, `AdPlacementTest.kt`.
-- Task khác có thể xung đột:
-  - T-082: tạo màn nhiều trang mà plan này nối vào (`OnboardingScreen.kt`, `OnboardingScreenTest.kt`, `OnboardingScreenScreenshotTest.kt`, `OnboardingViewModel.kt`, `OnboardingViewModelTest.kt`). Phải merge trước.
-  - T-080 (approved, RUN-20261031-02): cùng sửa `AdPlacement.kt`, `AdPlacementAppTest.kt`, `AdPlacementTest.kt`, `AdUnitIdsTest.kt` (T-080 dùng `unit/12`), `StagingRemoteValuesModule.kt` và test, bảng khóa, `manual-test.md` mục 11, `ads-guide.md`. Chạy sau T-080.
-  - T-081, T-084, T-086 (nháp): cùng sửa `AdPlacement.kt`, `StagingRemoteValuesModule(Test).kt`, bảng khóa, có thể cả `AdUnitIdsTest.kt` và `AdPlacementAppTest.kt`. Số `unit/<n>` của `native_onboarding` lấy số kế tiếp lúc chạy; dòng vị trí đặt sau các dòng đã có.
-  - T-085 (premium): trang `PREMIUM` của T-082 phụ thuộc cờ của T-085; plan này chỉ dùng `OnboardingPage`.
-- Đề xuất thứ tự chạy: sau T-080 và T-082; nếu cùng danh sách với T-084, T-086 thì chạy sau chúng hay ngay trước, miễn mỗi task đọc `AdPlacement.kt` ở trạng thái lúc chạy.
+- Task khác có thể xung đột (theo danh sách `docs/runs/RUN-20261031-02.md` trên nhánh `claude/run-20261031-02`: T-080, T-084, T-081, T-085, có thể thêm T-088 và T-082; trạng thái các plan trên nhánh chính ngày 2026-10-31):
+  - **T-082** (plan phiên bản 2, nháp, PR #270): tạo màn nhiều trang mà plan này nối vào. File trùng: `OnboardingScreen.kt`, `OnboardingScreenTest.kt`, `OnboardingScreenScreenshotTest.kt`, `OnboardingViewModel.kt`, `OnboardingViewModelTest.kt`, `docs/features/onboarding/design/README.md` (mục 8), `review/summary.md`. Phải merge trước. T-082 thêm `passOnboarding()` vào `AppLaunchTest`, `SettingsNavigationTest` và dòng `tap_if id=onboarding_next` vào 7 tệp kịch bản: sau plan này vẫn đúng, vì bản staging trên emulator chưa trả lời hay từ chối đồng ý (`consent decline 30` ở mọi tệp), nên quảng cáo không được phép và trang 1 không chờ.
+  - **T-080** (approved, phiên bản 3, chạy đầu RUN-20261031-02): thêm `POSES_IN_COLLECTION("poses_in_collection", AdFormat.NATIVE_IN_COLLECTION, nativeEvery = 8)` vào `AdPlacement.kt`; `poses_in_collection=unit/12` vào cuối hai chuỗi của `AdUnitIdsTest.configuredUnits_areParsedPerPlacementKey`; dòng của `AdPlacementAppTest`; tập `inList` của `AdPlacementTest.inListGalleryPlacements_declareNativeEvery8`; `appPlacementsShown()` và tập mong đợi của `StagingRemoteValuesModuleTest`; bảng khóa; `manual-test.md` mục 11.1; `ads-guide.md`. Plan này chạy sau, viết dữ liệu theo trạng thái đó (mục 3.1, 3.2, 3.5): dòng enum sau `POSES_IN_COLLECTION`, `native_onboarding=unit/13`.
+  - **T-084** (approved): `AdUnitIds.kt` (`hasBottomBarLayers`, `missingLayers`), bảy test mới trong `AdUnitIdsTest`, `ads-guide.md`, `manual-test.md` mục 11.5. Không thêm vị trí, không sửa `configuredUnits_areParsedPerPlacementKey`. `native_step` không có lớp nên test của T-084 không đổi. `manual-test.md`: plan này thêm `is_show_native_onboarding` vào danh sách của mục 11 và mục con kế tiếp còn trống nếu T-084 đã dùng 11.5.
+  - **T-081** (approved): bỏ `SAMPLE_NATIVE_SMALL` và đổi tên test sang `POSES_BOTTOM` (kể cả `StartupAdChoiceTest`, plan T-081 mục 3.1 nhắc T-083); hai chuỗi của `AdUnitIdsTest` viết lại không còn `sample_native_small`; `AdPlacementAppTest.noSamplePlacement`; `StagingRemoteValuesModuleTest.noGalleryPlacement_isShown`; bảng khóa. Plan này không dùng `SAMPLE_NATIVE_SMALL`; test mới của `StartupAdChoiceTest` dùng khai báo giả.
+  - **T-085** (approved): `FeatureFlag.PREMIUM_POSES`, `StagingFeatureFlagsModule`, bảng khóa (`feature_premium_poses_enabled`). Không trùng file Kotlin với plan này; chỉ trùng bảng khóa sinh lại. Trang `PREMIUM` có hay không theo cờ là việc của T-082; plan này chỉ dùng `OnboardingPage`.
+  - **T-088** (chưa có plan): bỏ `FeatureFlag.CAMERA`, sinh lại bảng khóa. Chỉ trùng bảng khóa.
+  - **T-086** (nháp): có thể thêm vị trí rewarded vào `AdPlacement.kt`, `AdPlacementAppTest`, `AdUnitIdsTest`, staging, bảng khóa. Đã merge trước thì dòng `NATIVE_ONBOARDING` đặt sau dòng của T-086 và số mã lấy số kế tiếp.
+- Bảng khóa (`docs/remote-config-keys.md`, `docs/remote-config-template.json`) sinh lại ở T-080, T-081, T-085 và có thể T-088 trước plan này; plan này chỉ thêm `is_show_native_onboarding` (mục 7).
+- Đề xuất thứ tự chạy: sau mọi task của RUN-20261031-02 và sau T-082, trong một phiên sau (T-082 chưa có trong danh sách đã duyệt). Cùng phiên với T-082 thì ngay sau T-082. Mỗi task đọc `AdPlacement.kt`, `AdUnitIdsTest.kt` ở trạng thái lúc chạy và tìm theo chuỗi, không theo số dòng.
 
 ## 7. Điều kiện dừng riêng
 
 - Plan T-082 đã merge mà chữ ký `OnboardingScreen`, tên `OnboardingPage`, tag `onboarding_ad_slot`, `onboarding_next`, `onboarding_enable_camera` hay vị trí của khe (giữa vùng trang và ghi chú hay nút) khác mục 3.1: dừng (điều kiện 3), soạn plan phiên bản mới.
-- Đo ở khung thấp mà nút hay ghi chú không nằm trọn trong cửa sổ khi có thẻ: dừng, không tự giảm lề hay ẩn thẻ (quyết định của thiết kế, mục 8, câu 7).
+- Đo ở khung thấp mà nút hay ghi chú không nằm trọn trong cửa sổ khi có thẻ, hay vùng trang lệch số của mục 3.1 (222 / 166 dp) quá 4 dp: dừng, không tự giảm lề hay ẩn thẻ (thiết kế đã chốt giữ cuộn, README mục 6).
 - Bảng khóa sinh lại có thay đổi ngoài `is_show_native_onboarding` (và khóa của task đã merge trước): dừng.
 - Test có sẵn của `placementSwitch` cho vị trí app-wide hay vị trí thường đỏ: dừng, không sửa test.
 
 ## 8. Câu hỏi cho người duyệt
 
-1. **Thiết kế (điểm chặn).** Chưa có frame `OnboardingScreen_<intro|poses|premium|camera>-ad_<light|dark>`, `OnboardingScreen_intro-ad-wait_<light|dark>`, khung thấp và mở gập có thẻ. Gói thiết kế cần chốt: khoảng cách giữa vùng trang và thẻ (plan để thẻ không có lề ngoài, mục 3.1, Khe), khung chờ của thẻ ở trang 1 (đề xuất: `NativeAdPlaceholder` tĩnh của khung), độ mờ của nút (đề xuất: màu `disabled` của `PrimaryButton`). Đề xuất của AI: làm thiết kế cùng gói của T-082; plan lên phiên bản 2 ghi tên frame và số đo theo gói.
-2. **Khớp plan T-082 (điểm chặn).** Plan này dựa trên plan T-082 phiên bản 1 (nháp): `OnboardingPage`, `OnboardingScreen(..., adSlot)`, khe `onboarding_ad_slot`, nút ghim đáy, tham số `nextEnabled` mà T-082 nói T-083 thêm. Plan T-082 lên phiên bản mới thì plan này phải khớp lại trước khi duyệt. Đề xuất của AI: T-082 bỏ gợi ý `padding(top = Spacing.lg)` cho thẻ (lý do ở mục 3.1, Khe).
+1. **Thiết kế: đã trả lời** (PR #276, README `approved`, Nhật 2026-10-31). Có đủ 10 frame `-ad`, `-ad-wait`; thẻ không lề ngoài, khoảng cách trên thẻ là lề dưới của vùng cuộn; khung chờ của thẻ là `State=Loading` của khung; nút mờ là `PrimaryButton(enabled = false)`. Không có frame `-ad` mở gập. Plan theo đúng gói (mục 2, 3.1, 4).
+2. **Khớp plan T-082: đã trả lời** theo plan T-082 phiên bản 2 (PR #270): cùng tên `OnboardingPage`, `adSlot`, `onboarding_ad_slot`, `onboarding_next`, `onboarding_enable_camera`, `nextEnabled`; khe không lề; số khung thấp 222 / 166 dp. Còn điều kiện, không phải câu hỏi: plan T-082 được duyệt và merge trước; T-082 đổi tên trước khi duyệt thì plan này lên phiên bản mới (mục 7).
 3. **Lúc bắt đầu chờ.** Spec: "Khi trang 1 hiện mà quảng cáo được phép". Người dùng trả lời hộp thoại đồng ý khi trang 1 đã hiện (hộp thoại hiện muộn) thì có chờ không? Đề xuất của AI: có, 5 giây tính từ lúc quảng cáo được phép, vì pool chỉ bắt đầu nạp sau khi đồng ý. Phương án khác: 5 giây tính từ lúc trang 1 hiện, đồng ý muộn thì chỉ chờ phần còn lại.
 4. **Ra nền giữa lúc chờ.** Đề xuất của AI: kết thúc chờ, quay lại thì nút bấm được ngay, thẻ hiện khi có quảng cáo. Phương án khác: tạm dừng và chờ nốt phần còn lại khi quay lại (code dài hơn, phải lưu thời gian đã chờ).
 5. **Pool cạn trong lúc chờ.** Khi mọi lần nạp của pool `native_step` thất bại, khung báo "không có quảng cáo" (`Unavailable`). Đề xuất của AI: hiện plan chỉ kết thúc chờ khi có quảng cáo, hết giờ, thôi được phép, rời trang hay ra nền; `Unavailable` thì vẫn chờ tới 5 giây vì pool vẫn thử lại. Có muốn kết thúc chờ ngay khi pool cạn không? Nếu có, `onAdAvailabilityChange(false)` cũng kết thúc chờ (thêm lý do `no ad`, một test).
 6. **"Chỉ ở lần mở đầu tiên" là dấu lần mở đầu của khung quảng cáo.** `firstOpenOnly` dùng dấu `ads_first_open_done` (A-01), không dùng trạng thái "đã qua màn chào". Hệ quả: người dùng thoát app giữa luồng ở lần mở đầu, mở lại thì luồng hiện lại nhưng không có thẻ; process bị hệ thống dừng giữa luồng rồi khôi phục cũng vậy. Đề xuất của AI: chấp nhận, vì ít người gặp và đúng chữ của spec mục 5. Phương án khác: bỏ `firstOpenOnly`, vị trí bật ở mọi lần mở; khi đó pool `native_step` nạp 3 quảng cáo ở mỗi lần mở mà không màn nào dùng (tỷ lệ hiện trên lượt nạp giảm), và nhóm nạp sẵn đầu chờ pool này tới 6 giây trước các định dạng khác.
-7. **Màn thấp.** Ước lượng vùng trang còn khoảng 134 dp ở trang cuối khung 360 x 640 có thẻ (mục 3.1). Đề xuất của AI: giữ cuộn, không ẩn thẻ, không giảm lề, trừ khi gói thiết kế có frame thấp khác.
+7. **Màn thấp: đã trả lời** (README mục 6): không ẩn thẻ, không giảm lề ở khung 360 x 640; vùng trang còn 218 / 162 dp trên Figma (222 / 166 trong code) và cuộn, nút và ghi chú luôn thấy. Plan theo đúng (mục 3.1, 4, 7).
 8. **Đề xuất về dự án mẫu.** `rememberNativeStepAdAllowed` và `firstOpenOnly` có ích cho mọi app có luồng giới thiệu. Đề xuất của AI: ghi vào mô tả PR theo `docs/ops/from-app.md`; dự án mẫu quyết tên.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
+
+Phiên bản 1: chưa duyệt (chờ thiết kế và plan T-082 phiên bản 2).
+
+Phiên bản 2:
 
 - **Quyết định:**
 - **Người duyệt:** , **duyệt chéo:**

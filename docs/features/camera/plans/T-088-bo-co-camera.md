@@ -2,7 +2,7 @@
 ticket: T-088
 title: Bỏ cờ `feature_camera_enabled` (không còn tác dụng từ T-081)
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 7.1M         # cỡ S theo số gợi ý của scripts/token-usage.py estimate (2026-10-31, 27 task); không nâng tay
@@ -30,6 +30,14 @@ Kiểm chứng:
 - lệnh `git grep` không còn tên cờ trong code.
 
 Plan viết theo trạng thái nhánh chính **sau T-081 và T-085** (mục 6).
+
+**Phiên bản 2 (2026-11-01): soạn lại sau đồng bộ dự án mẫu #279.** Phiên bản 1 (duyệt 2026-11-01) viết trên nhánh chính trước đợt đồng bộ đợt 5 (`9af5928`). Đã rà từng mục theo nhánh chính sau đồng bộ: đợt này không sửa `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `MainScreenChooser.kt`, `MainScreenTest.kt`; `git grep` ở mục 3.1 cho đúng các chỗ dùng như cũ; bảng khóa có thêm khóa của khung quảng cáo (`ads_mediation_order`, `time_close_native`, `is_show_gallery_banner_mrec`), đã nằm trên nhánh gốc nên không đổi điều kiện dừng; `docs/ops/remote-config.md` chỉ thêm câu về khóa JBase, ví dụ `feature_camera_enabled` ở mục 1 vẫn còn (câu 2). Phần code, test và tiêu chí chấp nhận không đổi. Thay đổi so với phiên bản 1:
+
+- Mục 4, dòng test emulator: `AppLaunchTest` chạy ở job `ui-test` của `main-guard` sau merge (ADR-0043), không chạy ở PR nữa.
+- Mục 6: T-084 đã `stopped` (#279); thứ tự đề xuất bỏ T-084.
+- Mục 7: điều kiện dừng về ảnh chuẩn ghi lệnh kiểm với mẫu `'*/src/test/screenshots/*'` (mẫu của `docs/templates/plan.md` sau đồng bộ, L-136 của mẫu). Mẫu cũ `'*/src/test/screenshots/'` không khớp file nào trong thư mục ảnh: đã thử trên nhánh chính (một ảnh sửa và một ảnh mới: mẫu cũ in rỗng, mẫu mới in cả hai dòng).
+- Mục 3.5: số liệu của `scripts/existing-tests.py` chạy lại trên nhánh chính sau đồng bộ.
+- Mục 3.2: thêm dòng cho `scripts/main-guard-verified.sh` mới, đọc tên hai tệp bảng khóa (`plan-check.py` báo, L-020).
 
 ## 2. Hiểu yêu cầu
 
@@ -157,6 +165,7 @@ Nơi đọc các file bị đổi (`docs/CLAUDE.md`, mục Khi viết plan):
   - `scripts/ads-plan.py` đọc mọi dòng của bảng, không đếm số khóa: không đổi.
   - `scripts/tests/run.sh` nhắc `docs/remote-config-keys.md` ở khối `ads-plan`. Khối đó tự dựng bảng giả trong repo giả, còn với repo thật chỉ kiểm tệp có tồn tại và đếm vị trí quảng cáo, không đếm cờ. Không ảnh hưởng.
   - `app/build.gradle.kts` chỉ nêu đường dẫn hai tệp: không đổi.
+  - `scripts/main-guard-verified.sh` (mới từ đồng bộ #279, ADR-0039) liệt kê hai tệp trong `GRADLE_READ_DOCS`: commit đổi chúng luôn được `main-guard` kiểm đủ bằng `check.sh`. PR của task cũng đổi code nên kiểm đủ như mọi task code; script chỉ đọc tên file, không sửa.
 
 ### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
 
@@ -185,6 +194,7 @@ Không có. Task chỉ bỏ một dòng enum, một hàm Hilt và dữ liệu te
 `scripts/existing-tests.py` chạy ngày 2026-10-31 trên plan này, bỏ kết quả của `.claude/worktrees/`:
 
 - 282 test dùng tên của 3 file Kotlin plan sửa: 16 test "Cần xem trước", 195 test "Nên xem"; plan đã nhắc 11 test.
+- Chạy lại ngày 2026-11-01 sau đồng bộ #279 (phiên bản 2): 316 test, 15 "Cần xem trước", 225 "Nên xem". Phần tăng là test mới của `:core:ads` trong đợt (`BannerAdSizeTest.admobOrder_withMaxKey_noMaxPlatform_heightIsAdmob`, `RewardedActionTest.realController_adFreeWhileDialogOpen_watchRunsAction`, `NativeFlowStepTest.stepAd_loading_keeps250dp` và các test native khác); chúng chỉ khớp chữ `settings`, `loading`, không dùng `FeatureFlag.CAMERA` hay `StagingFeatureFlagsModule`. Giữ.
 - 16 test "Cần xem trước" là test đo kích thước của `:core:ads`, `:feature:camera`, `:feature:poses` (ví dụ `BottomAdBarTest.slotLoading_reservesNothing`, `PosesScreenTest.wide_hasThreeColumns`). Chúng chỉ khớp vì chữ `loading`, `settings`, `poses` trùng tên các cờ mà mục 3.1 liệt kê. Đã đọc: không test nào dùng `FeatureFlag.CAMERA` hay `StagingFeatureFlagsModule`. Giữ.
 - Nhóm "Nên xem" đã đọc:
   - `MainScreenTest`: mục trên. Script đọc bản trước T-081; tên test sau T-081 theo plan T-081, mục 3.5.
@@ -206,7 +216,7 @@ Sau task `MainScreenTest` có 14 test: 13 test sau T-081, một test viết lạ
 | Bảng khóa khớp code, chỉ mất `feature_camera_enabled` | Unit test có sẵn, kiểm tra bằng lệnh | `RemoteConfigKeysTest` qua sau khi sinh lại. `git diff origin/main -- docs/remote-config-keys.md docs/remote-config-template.json` chỉ có dòng xóa: 1 dòng ở tệp `.md`, 5 dòng ở tệp `.json`. Ghi `git diff --stat` vào nhật ký |
 | Không còn tên cờ trong code | Kiểm tra bằng lệnh | `git grep -n "FeatureFlag.CAMERA\|feature_camera_enabled" -- app core feature scripts .github docs/remote-config-keys.md docs/remote-config-template.json` chỉ còn hai dòng chuỗi của `MainScreenTest.noCameraFlag` (`"feature_camera_enabled must not come back"` và `it.key == "feature_camera_enabled"`). Ghi kết quả vào nhật ký |
 | Bản staging build được, đồ thị Hilt hợp lệ khi bỏ `camera()` | Build | `scripts/check.sh` (biên dịch `:app` staging và chạy `:app:testStagingDebugUnitTest`) |
-| Mở app staging sau loading vẫn vào màn chào hay camera | Unit test có sẵn, emulator test có sẵn | `MainScreenTest`; `app/src/androidTest` (`AppLaunchTest`) không đọc cờ camera, chạy ở `ui-test` của CI như mọi PR |
+| Mở app staging sau loading vẫn vào màn chào hay camera | Unit test có sẵn, emulator test có sẵn | `MainScreenTest`; `app/src/androidTest` (`AppLaunchTest`) không đọc cờ camera, chạy ở job `ui-test` của `main-guard` sau merge (ADR-0043), không chạy ở PR |
 
 **Thứ tự commit (L-025 của mẫu):**
 
@@ -255,16 +265,16 @@ Không cần (E dưới 2). Task bỏ một dòng enum và một hàm Hilt theo 
     - Hai tệp bảng khóa.
     - Plan này dùng đúng trạng thái sau T-081 ở mục 3.1 và 3.5. T-081 dừng thì task này bỏ qua: cờ vẫn được đọc, bỏ nó sẽ đổi luồng chọn màn.
   - **T-085** (approved, RUN-20261031-02, chạy trước): thêm `PREMIUM_POSES` vào `FeatureFlag.kt`, `premiumPoses()` vào `StagingFeatureFlagsModule.kt`, sinh lại bảng khóa (thêm `feature_premium_poses_enabled`). Không phụ thuộc về nội dung. Chạy sau để không trùng vùng sửa của cùng file trong một phiên.
-  - **T-080, T-084** (approved, chạy trước trong RUN-20261031-02): sinh lại hai tệp bảng khóa. Không sửa file Kotlin chung với plan này.
+  - **T-080** (approved, chạy trước trong RUN-20261031-02): sinh lại hai tệp bảng khóa. Không sửa file Kotlin chung với plan này. T-084 đã `stopped` ở đợt đồng bộ #279 (khóa theo khe của mẫu đã có trong `:core:ads`), không chạy.
   - **T-083, T-086** (plan đang soạn): sinh lại bảng khóa. T-086 có thể sửa `StagingFeatureFlagsModule.kt` hay `StagingRemoteValuesModule.kt`. Chạy trước hay sau T-088 đều được, vì mỗi task sinh lại bảng từ code của nhánh mình; điều kiện dừng ở mục 7 so với bảng của nhánh gốc, không so với một danh sách khóa cố định.
   - **T-082** (plan đang soạn): đọc `FeatureFlag.PREMIUM_POSES`, `ONBOARDING`; ghi `MainScreenTest` "không đổi". Không đọc `CAMERA`.
-- Đề xuất thứ tự chạy: sau T-081 và T-085, cuối RUN-20261031-02 (thứ tự T-080, T-084, T-081, T-085, T-088), như ticket ghi.
+- Đề xuất thứ tự chạy: sau T-081 và T-085, như ticket ghi (thứ tự T-080, T-081, T-085, T-088; T-084 đã bỏ khỏi danh sách vì `stopped`).
 
 ## 7. Điều kiện dừng riêng
 
 - Trên nhánh gốc của task, `git grep -n "FeatureFlag.CAMERA\|feature_camera_enabled" -- app core feature` cho thấy code ngoài test còn đọc cờ (ví dụ `MainScreenChooser` vẫn gọi `enabled(FeatureFlag.CAMERA)`), hay chỗ dùng nằm ngoài `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `MainScreenTest.kt` và KDoc của `MainScreenChooser.kt` (chú thích do T-081 viết, không phải lời gọi): dừng. Chỉ một lời gọi `enabled(FeatureFlag.CAMERA)` ngoài test mới là lý do dừng; chữ trong chú thích thì không. Nghĩa là T-081 chưa merge, hay một task khác đã đọc lại cờ; bỏ cờ khi đó đổi hành vi.
-- Bảng khóa sinh lại khác bảng của nhánh gốc ở chỗ nào khác ngoài việc mất dòng và khối `feature_camera_enabled`: dừng. Nhánh gốc là nhánh chính đã có T-081, T-085 và mọi task trước đó của phiên. Thay đổi hợp lệ của các plan trước (T-081 mất `feature_sample_enabled`, `is_show_sample_native_small`; T-085 thêm `feature_premium_poses_enabled`; T-080, T-084, T-083, T-086 thêm khóa của chúng) đã có sẵn trên nhánh gốc, nên không tính là khác. Khác thêm nghĩa là code của nhánh gốc và bảng của nhánh gốc đã lệch nhau từ trước.
-- Bất kỳ ảnh chuẩn screenshot nào đổi: dừng. Task không đổi giao diện.
+- Bảng khóa sinh lại khác bảng của nhánh gốc ở chỗ nào khác ngoài việc mất dòng và khối `feature_camera_enabled`: dừng. Nhánh gốc là nhánh chính đã có T-081, T-085 và mọi task trước đó của phiên. Thay đổi hợp lệ của các plan trước (T-081 mất `feature_sample_enabled`, `is_show_sample_native_small`; T-085 thêm `feature_premium_poses_enabled`; T-080, T-083, T-086 thêm khóa của chúng) đã có sẵn trên nhánh gốc, nên không tính là khác. Khác thêm nghĩa là code của nhánh gốc và bảng của nhánh gốc đã lệch nhau từ trước.
+- Bất kỳ ảnh chuẩn screenshot nào đổi (`git status --short -- '*/src/test/screenshots/*'` có dòng nào): dừng. Task không đổi giao diện.
 
 ## 8. Câu hỏi cho người duyệt
 
@@ -286,11 +296,19 @@ Không cần (E dưới 2). Task bỏ một dòng enum và một hàm Hilt theo 
 
 ## 9. Quyết định duyệt
 
+Phiên bản 1:
+
 - **Quyết định:** Duyệt
 - **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
 - **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt" khi AI hỏi, ngày 2026-11-01, và đưa T-088 vào RUN-20261031-02 làm task 5. Trả lời mục 8:
   - câu 1: giữ dòng cờ ở spec camera mục 8 (đã đúng sau task), spec giữ `confirmed`; task không sửa spec; ticket sửa theo;
   - câu 2: giữ ví dụ trong `docs/ops/remote-config.md`;
   - câu 3: xóa khóa trên Firebase staging sau khi task lên staging, production sau bản production đầu tiên có T-081 (việc của người, phiên ghi dòng `- [ ]` trong báo cáo).
+
+Phiên bản 2:
+
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Phiên bản 2 soạn lại sau đồng bộ #279, không đổi code, test hay tiêu chí.
 
 ## 10. Nhật ký thực hiện

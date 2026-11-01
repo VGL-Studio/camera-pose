@@ -1,7 +1,7 @@
 ---
 ticket: T-083
 title: Thẻ native `native_onboarding` ở luồng giới thiệu
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 4                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -795,3 +795,19 @@ Phiên bản 4:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261101-01, phiên bản plan 4
+
+- **Kết quả:** đã merge (2026-11-01 17:36 UTC, commit 43b83ca của nhánh).
+- **Nhánh, PR:** `claude/T-083-the-native-gioi-thieu`, #296.
+- **Đã làm:** thẻ native `native_onboarding` ở mọi trang (mặc định tắt, staging bật, chỉ lần mở đầu: `firstOpenOnly`); trang 1 giữ nút "Tiếp" mờ tối đa 5 giây khi được phép (theo UMP) và thẻ chưa có quảng cáo (`rememberNativeStepAdAllowed`, `OnboardingAdContent`, `IntroAdWait`); bộ lọc `enabled=true` của `scripts/device-scenario.py` với test và 2 dump giả; 8 tệp kịch bản và ví dụ `test-sessions.md` chờ nút bật; kịch bản mới `T-083-gioi-thieu-cho-trang-1.txt`; 12 ảnh chuẩn mới, ảnh so sánh, README thiết kế mục 8; bảng khóa; `manual-test.md` 11.7; dòng giữ ở `docs/template-sync.txt`. Bước 3 đến 5 do phiên con làm trong worktree `../task-T-083`.
+- **Test viết trước:** commit `a33bc66`; khoảng 50 test JVM, 12 test ảnh, 3 test script. Trên khung rỗng chỉ đỏ đúng các test plan dự kiến (14 của `:feature:onboarding`, 6 của `:core:ads`, 3 của `:app`, 3 test script), đều ở câu khẳng định. 1 test viết chặt bằng đối chứng (`StartupAdChoiceTest.placementSwitch_firstOpenOnly_adFree_false`). `scripts/check.sh` qua: 2869 test JVM, 167 ảnh.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa, 9 ghi chú. Nên sửa: chú thích sai ở `T-082-luong-gioi-thieu.txt` dòng 9, đã sửa (`43b83ca`, ADR-0033/L12), rà soát lại đồng ý. Ghi chú ở mô tả PR #296.
+- **Kết quả CI:** `pr-check` xanh lần đầu (lần chạy 41331155410).
+- **Lệch so với plan:**
+  - Ngoài mục 3.2 (ADR-0029): `feature/poses/src/deviceScenarios/T-086-mo-khoa-chi-tiet.txt`, sửa đúng như plan ghi sẵn.
+  - `docs/ops/ads-guide.md` sửa thêm dòng 260 (câu cũ đã sai). Thêm chú thích, KDoc ở `placementSwitch`, `StagingRemoteValuesModule`.
+  - ADR-0033/L12: chú thích kịch bản sửa sau rà soát (ở trên).
+  - Không câu khẳng định cũ nào viết lại; không thay đổi file test Kotlin sau commit test.
+- **Việc còn lại:** mở issue `from-app` về dự án mẫu trong vòng một tuần (bộ lọc `enabled=true`, `rememberNativeStepAdAllowed`, `firstOpenOnly`); T-089 sửa ba kịch bản bị interstitial che.
+- **Cần người xem:** 12 ảnh chuẩn mới; `manual-test.md` 11.7 trên máy thật (gồm lượt chọn "Không đồng ý"); bộ lọc `enabled=true` chạy thật lần đầu ở `device-session` của phiên này.

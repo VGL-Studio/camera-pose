@@ -50,6 +50,7 @@ internal class CatalogParser(private val logger: AppLogger) {
         val categories = readCategories(root.categories)
         val dropped = mutableMapOf<String, Int>()
         val keptIds = mutableSetOf<String>()
+        var premiumStarters = 0
         val poses = root.poses.mapNotNull { element ->
             val pose = try {
                 json.decodeFromJsonElement(PoseJson.serializer(), element)
@@ -58,12 +59,24 @@ internal class CatalogParser(private val logger: AppLogger) {
                 return@mapNotNull null
             }
             when (val converted = convert(pose, categories.map { it.id }.toSet(), keptIds)) {
-                is Converted.Kept -> converted.pose.also { keptIds += it.id }
+                is Converted.Kept -> {
+                    keptIds += converted.pose.id
+                    // A starter pose is never premium (spec poses, question 6); scripts/setup-check-app.sh reports it.
+                    if (converted.pose.starter && converted.pose.premium) {
+                        premiumStarters++
+                        converted.pose.copy(premium = false)
+                    } else {
+                        converted.pose
+                    }
+                }
                 is Converted.Dropped -> {
                     dropped.merge(converted.reason, 1, Int::plus)
                     null
                 }
             }
+        }
+        if (premiumStarters > 0) {
+            logger.warn(LOG_TAG, "Ignored premium on $premiumStarters starter poses of the catalog")
         }
         val droppedCount = dropped.values.sum()
         if (droppedCount > 0) {
@@ -111,6 +124,7 @@ internal class CatalogParser(private val logger: AppLogger) {
                     tags = pose.tags,
                     difficulty = pose.difficulty,
                     starter = pose.starter,
+                    premium = pose.premium,
                     name = LocalizedText(pose.name),
                     steps = LocalizedList(pose.steps),
                     mistakes = LocalizedList(pose.mistakes),

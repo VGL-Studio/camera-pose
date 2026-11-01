@@ -34,7 +34,10 @@ class PoseLibrary internal constructor(
     val totalPoses: Int,
     /** Saved poses that are still in the catalog. */
     val savedIds: Set<String>,
-    /** The first pose of the catalog: what the camera uses the very first time. */
+    /**
+     * The first pose of the catalog that is not premium (the first pose when every pose is premium): what the camera
+     * uses the very first time.
+     */
     val defaultPose: Pose?,
     /** The most recently used pose that is still in the catalog. */
     val lastUsedPose: Pose?,

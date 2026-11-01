@@ -28,7 +28,8 @@ internal fun buildPoseLibrary(catalog: PoseCatalog, saved: List<SavedPose>, rece
         categories = catalog.categories.filter { byCategory.containsKey(it.id) },
         totalPoses = catalog.poses.size,
         savedIds = savedPoses.mapTo(mutableSetOf()) { it.id },
-        defaultPose = catalog.poses.firstOrNull(),
+        // Never a premium pose (spec poses, question 6), so the camera never opens on a locked pose.
+        defaultPose = catalog.poses.firstOrNull { !it.premium } ?: catalog.poses.firstOrNull(),
         lastUsedPose = recentPoses(byId, recent).firstOrNull(),
         all = ordered,
         saved = savedPoses,

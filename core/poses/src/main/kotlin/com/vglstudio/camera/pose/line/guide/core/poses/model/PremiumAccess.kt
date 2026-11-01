@@ -8,7 +8,7 @@ data class PremiumAccess(
     val unlockedIds: Set<String>,
 ) {
     /** True when premium poses are on, [pose] is premium and it was not unlocked. */
-    fun isLocked(pose: Pose): Boolean = false
+    fun isLocked(pose: Pose): Boolean = enabled && pose.premium && pose.id !in unlockedIds
 
     fun isUsable(pose: Pose): Boolean = !isLocked(pose)
 }

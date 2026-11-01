@@ -137,7 +137,7 @@ remote_catalog_paths() {
 # Checks one catalog and its starter files. <where> says where the path comes from, for the messages; <strict> is
 # "no" when only conditional values use the path: a catalog for a newer app is then only a note.
 check_catalog() { # <path> <where> <strict>
-  local path="$1" where="$2" strict="$3" catalog="$work/catalog.json" file count=0 bad=0
+  local path="$1" where="$2" strict="$3" catalog="$work/catalog.json" file count=0 bad=0 premium_bad
   rm -f "$catalog"
   r2_get "${base_url}${path}" -o "$catalog"
   [ -z "$r2_down" ] || return 0
@@ -167,6 +167,16 @@ check_catalog() { # <path> <where> <strict>
     fi
     return
   fi
+  # Premium poses (spec poses, question 6): the default pose (the first pose of the catalog) and the starter poses are
+  # never premium. The app copes (it skips premium poses for the default one and ignores premium on starter poses),
+  # but the catalog is then not what the content team meant.
+  premium_bad="$(jq -r '[.poses[] | objects] as $p
+    | ([$p[0] | select(. != null and .premium == true) | "mặc định \(.id)"]
+      + [$p[] | select(.starter == true and .premium == true) | "khởi đầu \(.id)"]) | join(", ")' \
+    "$catalog" 2> /dev/null || true)"
+  if [ -n "$premium_bad" ]; then
+    problem "$where $path có tư thế premium ở chỗ không được ($premium_bad): tư thế mặc định (tư thế đầu tiên của catalog) và tư thế khởi đầu không bao giờ là premium (spec poses, câu 6). Sửa catalog, đẩy bản mới lên R2 với đường dẫn mới."
+  fi
   while IFS= read -r file; do
     count=$((count + 1))
     r2_get "${base_url}${file}" -o /dev/null -I
@@ -179,7 +189,7 @@ check_catalog() { # <path> <where> <strict>
     "$catalog" 2> /dev/null || true)
   if [ "$count" -eq 0 ]; then
     note "$where $path không có tư thế starter nào: bộ khởi đầu của app sẽ trống."
-  elif [ "$bad" -eq 0 ]; then
+  elif [ "$bad" -eq 0 ] && [ -z "$premium_bad" ]; then
     ok "$where $path và $count file khởi đầu trả 200"
   fi
 }

@@ -3,13 +3,16 @@ package com.vglstudio.camera.pose.line.guide.core.poses.di
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.vglstudio.camera.pose.line.guide.core.assets.RemoteAssets
+import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteSettings
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseCatalogRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseHistoryRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLibraryRepository
+import com.vglstudio.camera.pose.line.guide.core.poses.PremiumPoseRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.internal.CatalogParser
 import com.vglstudio.camera.pose.line.guide.core.poses.internal.DataStorePoseHistoryRepository
+import com.vglstudio.camera.pose.line.guide.core.poses.internal.DataStorePremiumPoseRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.internal.DefaultPoseCatalogRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.internal.DefaultPoseLibraryRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.internal.PosesClock
@@ -73,6 +76,15 @@ internal object PosesModule {
         clock: PosesClock,
         logger: AppLogger,
     ): PoseHistoryRepository = DataStorePoseHistoryRepository(dataStore, clock, logger)
+
+    @Provides
+    @Singleton
+    fun premiumRepository(
+        dataStore: DataStore<Preferences>,
+        flags: FeatureFlags,
+        clock: PosesClock,
+        logger: AppLogger,
+    ): PremiumPoseRepository = DataStorePremiumPoseRepository(dataStore, flags, clock, logger)
 
     @Provides
     @Singleton

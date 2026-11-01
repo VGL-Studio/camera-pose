@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -49,14 +50,26 @@ class MainScreenTest {
         assertEquals(MainScreen.CAMERA, chooser.choose())
     }
 
+    // A flag other than the onboarding flag being on does not change the main screen (plan T-088, section 3.5;
+    // was chooser_cameraFlagOn_choosesCamera).
     @Test
-    fun chooser_cameraFlagOn_choosesCamera() = runTest {
-        val chooser = MainScreenChooser(
-            FakeFeatureFlags(setOf(FeatureFlag.CAMERA)),
-            FakeOnboardingStatus(done = false),
-            RecordingAppLogger(),
-        )
+    fun chooser_everyOtherFlagOn_choosesCamera() = runTest {
+        val flags = FakeFeatureFlags(FeatureFlag.entries.toSet() - FeatureFlag.ONBOARDING)
+        val status = FakeOnboardingStatus(done = false)
+        val chooser = MainScreenChooser(flags, status, RecordingAppLogger())
         assertEquals(MainScreen.CAMERA, chooser.choose())
+        assertEquals(0, status.reads)
+        assertEquals(listOf(FeatureFlag.ONBOARDING), flags.read)
+    }
+
+    // Spec camera, section 8 (plan T-088): the camera is always the main screen, so no flag gates it.
+    @Test
+    fun noCameraFlag() {
+        assertTrue(FeatureFlag.entries.isNotEmpty())
+        assertFalse(
+            "feature_camera_enabled must not come back",
+            FeatureFlag.entries.any { it.name == "CAMERA" || it.key == "feature_camera_enabled" },
+        )
     }
 
     // The camera flag is no longer read (plan T-081, question 1): onboarding on and done, camera flag off.
@@ -68,18 +81,18 @@ class MainScreenTest {
         assertEquals(listOf(FeatureFlag.ONBOARDING), flags.read)
     }
 
-    // T-012: onboarding flag, camera flag and "onboarding done".
+    // T-012: onboarding flag and "onboarding done".
 
     @Test
     fun chooser_onboardingAndCameraOn_notDone_choosesOnboarding() = runTest {
         val status = FakeOnboardingStatus(done = false)
-        assertEquals(MainScreen.ONBOARDING, chooser(BOTH_FLAGS, status).choose())
+        assertEquals(MainScreen.ONBOARDING, chooser(ONBOARDING_ON, status).choose())
     }
 
     @Test
     fun chooser_onboardingDone_choosesCamera() = runTest {
         val status = FakeOnboardingStatus(done = true)
-        assertEquals(MainScreen.CAMERA, chooser(BOTH_FLAGS, status).choose())
+        assertEquals(MainScreen.CAMERA, chooser(ONBOARDING_ON, status).choose())
         assertEquals(1, status.reads)
     }
 
@@ -87,7 +100,7 @@ class MainScreenTest {
     @Test
     fun chooser_onboardingFlagOff_choosesCamera_withoutReadingStatus() = runTest {
         val status = FakeOnboardingStatus(done = false)
-        assertEquals(MainScreen.CAMERA, chooser(setOf(FeatureFlag.CAMERA), status).choose())
+        assertEquals(MainScreen.CAMERA, chooser(emptySet(), status).choose())
         assertEquals(0, status.reads)
     }
 
@@ -103,7 +116,7 @@ class MainScreenTest {
     fun chooser_statusReadFails_showsOnboarding_andLogsWarning() = runTest {
         val logger = RecordingAppLogger()
         val status = FakeOnboardingStatus(done = true, readError = IOException("disk read failed"))
-        assertEquals(MainScreen.ONBOARDING, chooser(BOTH_FLAGS, status, logger).choose())
+        assertEquals(MainScreen.ONBOARDING, chooser(ONBOARDING_ON, status, logger).choose())
         val warning = logger.entries.single { it.level == LogLevel.WARN }
         assertEquals("Navigation", warning.tag)
         assertTrue(warning.error is IOException)
@@ -112,7 +125,7 @@ class MainScreenTest {
     @Test
     fun chooser_logsChosenScreen() = runTest {
         val logger = RecordingAppLogger()
-        chooser(BOTH_FLAGS, FakeOnboardingStatus(done = false), logger).choose()
+        chooser(ONBOARDING_ON, FakeOnboardingStatus(done = false), logger).choose()
         assertTrue(logger.entries.contains(LogEntry(LogLevel.INFO, "Navigation", "Main screen: ONBOARDING")))
     }
 
@@ -123,7 +136,7 @@ class MainScreenTest {
     ) = MainScreenChooser(FakeFeatureFlags(flags), status, logger)
 
     private companion object {
-        val BOTH_FLAGS = setOf(FeatureFlag.ONBOARDING, FeatureFlag.CAMERA)
+        val ONBOARDING_ON = setOf(FeatureFlag.ONBOARDING)
     }
 }
 

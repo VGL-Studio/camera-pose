@@ -2,7 +2,7 @@
 ticket: T-082
 title: Luồng giới thiệu 4 trang thay màn chào (chưa có quảng cáo)
 status: draft                # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay
@@ -18,9 +18,16 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 
 ## 1. Tóm tắt
 
-Màn chào một trang của `:feature:onboarding` đổi thành luồng giới thiệu 3 hoặc 4 trang: giới thiệu, tư thế, tư thế premium (chỉ khi cờ `feature_premium_poses_enabled` bật), trang cuối xin quyền camera. ViewModel giữ danh sách trang và trang hiện tại; màn hiện một trang một lúc, không dùng pager; nút "Tiếp" (trang cuối là "Bật camera") ghim ở đáy màn, cùng một chỗ trên mọi trang; nút quay lại của máy về trang trước; mỗi trang ghi `onboarding_step_viewed` một lần. Màn có sẵn một khe quảng cáo (tham số composable, mặc định rỗng) giữa vùng trang và nút, để T-083 đặt `NativeStepAd` mà nút không nhảy; kiểm chứng bằng unit test ViewModel, test giao diện Robolectric (vị trí nút có và không có khối 250 dp trong khe), screenshot test, kịch bản emulator.
+Màn chào một trang của `:feature:onboarding` đổi thành luồng giới thiệu 3 hoặc 4 trang: giới thiệu, tư thế, tư thế premium (chỉ khi cờ `feature_premium_poses_enabled` bật), trang cuối xin quyền camera. ViewModel giữ danh sách trang và trang hiện tại; màn hiện một trang một lúc, không dùng pager; hàng chấm chỉ báo trang ghim ở trên; nút "Tiếp" (trang cuối là "Bật camera") ghim ở đáy màn, cùng một chỗ trên mọi trang (đỉnh y 807 trên thiết kế); nút quay lại của máy về trang trước; mỗi trang ghi `onboarding_step_viewed` một lần. Màn có sẵn một khe quảng cáo (tham số composable, mặc định rỗng, không lề) giữa vùng trang và nút, để T-083 đặt `NativeStepAd` mà nút không nhảy; kiểm chứng bằng unit test ViewModel, test giao diện Robolectric (số đo của `design/context/`, vị trí nút có và không có khối 250 dp trong khe), screenshot test cùng tên với 10 ảnh thiết kế của T-082, kịch bản emulator.
 
-**Điểm chặn trước khi duyệt:** chưa có thiết kế Figma của luồng (mục 8, câu 1). Số đo bố cục, chữ của các trang mới và tên frame trong plan là đề xuất; plan phiên bản 2 ghi lại theo gói bàn giao.
+**Phiên bản 2 (2026-10-31).** Phiên bản 1 soạn khi chưa có thiết kế của luồng (mục 8, câu 1 của phiên bản 1): số đo bố cục, chữ của các trang mới và tên frame là đề xuất, nên chưa duyệt được. Gói thiết kế đã merge (PR #276, `docs/features/onboarding/design/`, README `approved` ngày 2026-10-31). Thay đổi so với phiên bản 1:
+
+- Mục 3.1, Màn hình: bố cục theo `context/`: lề trong `Spacing.lg` trên và dưới nằm **trong** vùng cuộn (phiên bản 1 đặt khoảng 24 dưới hàng chấm ở ngoài); hàng chấm 24 x 8 / 8 x 8; huy hiệu 96; khe quảng cáo không lề (bỏ `padding(top = Spacing.lg)` ở phần cho T-083, khớp plan T-083 và thiết kế); `ShrinkFirstLayout` trừ lề trong khỏi chiều cao vùng trang. Các phần tử `PageDot`, `IconBadge`, `FeatureRow` là composable riêng của `:feature:onboarding`, không thêm vào `:core:designsystem`.
+- Bảng chữ: chữ đề xuất của phiên bản 1 đã được Nhật chốt (README mục 2), không đổi chữ nào.
+- Mục 4: số đo thật cho `*_layoutMatchesDesign` (thêm `unfolded_layoutMatchesDesign`, `pageIndicator_layoutAndColors`); mỗi ảnh thiết kế của T-082 có screenshot test cùng tên; dòng khai báo 10 ảnh `-ad`, `-ad-wait` của T-083.
+- Mục 3.2: xóa hai frame `OnboardingScreen_default_*` khỏi `design/screens/` và `design/context/` (README của gói ghi T-082 bỏ chúng); README mục 1 bỏ dòng `default`.
+- Mục 8: câu 1, 2, 4 đã trả lời theo PR #276; câu 5, 6 đã trả lời (spec, plan T-085); câu 3, 7, 8 còn chờ; câu 9 mới (hình minh họa ở khung mở gập).
+- Mục 5: tiêu chí B từ 2 xuống 1 (đã có thiết kế).
 
 ## 2. Hiểu yêu cầu
 
@@ -39,7 +46,7 @@ Ticket xử lý các kịch bản sau trong `features/onboarding/spec.md` (confi
 | KB-2 | Từ chối quyền vẫn sang camera; "không hỏi lại" thì sang thẳng, không ghi `camera_permission_result` | Không đổi: phần quyền của ViewModel và `PermissionPrompt.kt` giữ nguyên, chỉ chạy ở trang cuối |
 | KB-3 | Đã bấm "Bật camera" thì lần sau vào thẳng camera; đóng app trước khi bấm thì lần sau màn chào hiện lại; xóa dữ liệu thì hiện lại | Không đổi: `:app` chỉ đánh dấu xong khi nhận `OnboardingEvent.Started`, mà "Tiếp" không gửi sự kiện này |
 | KB-4 | Cờ `feature_onboarding_enabled` tắt thì vào thẳng camera | Không đổi (`MainScreen.kt`, `MainScreenTest`) |
-| KB-5 | Màn loading xong thì trang 1 hiện, đúng thiết kế | Như KB-1, tiêu chí 1; cần ảnh thiết kế (mục 8, câu 1) |
+| KB-5 | Màn loading xong thì trang 1 hiện, đúng thiết kế | Như KB-1, tiêu chí 1; thiết kế `OnboardingScreen_intro_<light\|dark>[_unfolded]` |
 | KB-5 | Bấm "Tiếp" thì trang kế hiện; nút "Tiếp" cùng một chỗ trên mọi trang, không nhảy khi thẻ quảng cáo hiện hay ẩn | Nút ghim ở đáy màn. Khe quảng cáo nằm trên nút, dưới vùng trang: thẻ hiện thì vùng trang thấp đi, nút không đổi chỗ |
 | KB-5 | Tới trang cuối thì "Bật camera" thay "Tiếp"; bấm thì theo KB-1, KB-2 | Cùng chỗ, cùng cỡ; tag đổi từ `onboarding_next` sang `onboarding_enable_camera` |
 | KB-5 | Cờ premium bật: 4 trang, trang 3 là tư thế premium; tắt: 3 trang, không nhắc premium | Danh sách trang theo cờ (mục 3.1, Danh sách trang). Giả định: cờ đổi trong lúc luồng chạy thì danh sách chỉ theo cờ khi người dùng còn ở trang 1 hay 2 (mục 8, câu 3) |
@@ -48,7 +55,7 @@ Ticket xử lý các kịch bản sau trong `features/onboarding/spec.md` (confi
 | KB-5 | Xoay máy hay mở gập thì trang đang xem giữ nguyên, không cắt chữ, nút; trang dài thì cuộn | ViewModel sống qua đổi cấu hình; trang hiện tại cũng ghi vào `SavedStateHandle` cho lần hệ thống dừng tiến trình |
 | KB-5 | Đóng app giữa luồng thì lần sau bắt đầu lại từ trang 1 | "Tiếp" không gửi `Started`, nên `:app` không đánh dấu xong; ViewModel mới mở ở trang 1 |
 
-Thiết kế tham chiếu: `features/onboarding/design/README.md` hiện chỉ có màn chào một trang (`OnboardingScreen_default_light`, `OnboardingScreen_default_dark`). Luồng nhiều trang chưa có thiết kế; đây là điểm chặn (mục 8, câu 1). Plan đề xuất tên frame theo quy ước `<Ten>Screen_<trạng thái>_<light|dark>[_unfolded]` của `docs/ops/design-workflow.md`.
+Thiết kế tham chiếu: `features/onboarding/design/README.md` (`approved`, Nhật, 2026-10-31; Figma section "Onboarding flow"), mục 1 tới 6, và `design/context/` của 10 frame của T-082: `OnboardingScreen_<intro|poses|premium|camera>_<light|dark>`, `OnboardingScreen_<intro|camera>_light_unfolded`. Mọi frame vẽ luồng 4 trang. 10 frame `-ad`, `-ad-wait` là của T-083. Hai frame `OnboardingScreen_default_*` là của màn chào một trang; README ghi T-082 bỏ chúng (mục 3.2).
 
 ADR liên quan: ADR-0001 (feature chỉ phụ thuộc core), ADR-0003 (cờ là `Flow`), ADR-0019 (log), ADR-0020 (ảnh thiết kế và screenshot cùng tên, khung gập), ADR-0029, ADR-0031 (test cũ của màn một trang, mục 3.5).
 
@@ -56,7 +63,7 @@ ADR liên quan: ADR-0001 (feature chỉ phụ thuộc core), ADR-0003 (cờ là 
 
 ### 3.1. Cách làm
 
-**Phụ thuộc.** Plan dùng `FeatureFlag.PREMIUM_POSES` (khóa `feature_premium_poses_enabled`) do T-085 thêm vào `:core:config` (ticket T-085, mục Phạm vi, dòng Cờ). T-082 chạy sau khi T-085 đã merge; tên hằng phải khớp plan T-085 (mục 8, câu 6). `:feature:onboarding` đã có `:core:config` qua convention plugin `template.android.feature`, không thêm phụ thuộc.
+**Phụ thuộc.** Plan dùng `FeatureFlag.PREMIUM_POSES` (khóa `feature_premium_poses_enabled`) do T-085 thêm vào `:core:config` (ticket T-085, mục Phạm vi, dòng Cờ). T-082 chạy sau khi T-085 đã merge. Tên hằng khớp plan T-085 (`docs/features/poses/plans/T-085-du-lieu-tu-the-premium.md`, mục 3.1: `PREMIUM_POSES("feature_premium_poses_enabled", ...)`, bật ở staging qua `StagingFeatureFlagsModule.premiumPoses()`; mục 6 của plan đó ghi T-082 chỉ cần `featureFlags.enabled(FeatureFlag.PREMIUM_POSES)`). `:feature:onboarding` đã có `:core:config` qua convention plugin `template.android.feature`, không thêm phụ thuộc.
 
 **Không đổi ở `:app`.** `MainScreen.kt` (`chooseMainScreen`) và `AppNavHost.kt` không đổi: luồng vẫn là một đích `OnboardingDestination`, vẫn gửi `onStarted` khi bấm "Bật camera" và `onFinished` khi xong quyền. Các trang là trạng thái bên trong một màn, không phải đích điều hướng, nên nút quay lại ở trang 1 vẫn đóng app như hiện nay.
 
@@ -178,7 +185,7 @@ Chi tiết:
 - Log (ADR-0019): "Onboarding shown" như cũ; mới: "Page shown: <số> <tên trang>", "Back to page <số>", "Premium page on|off". Không có dữ liệu cá nhân.
 - Sự kiện mới đặt là hằng `EVENT_STEP_VIEWED` để `scripts/ads-plan.py` đọc được (câu 7).
 
-**Màn hình** (`OnboardingScreen.kt`). Một màn hiện một trang một lúc; không dùng `HorizontalPager`, vì người dùng chỉ đi bằng "Tiếp" và nút quay lại, và ViewModel là nơi duy nhất giữ trang hiện tại (không có vuốt để đồng bộ). Trang đổi ngay, không hiệu ứng chuyển (mục 8, câu 4). Chữ ký mới, dùng cho T-083:
+**Màn hình** (`OnboardingScreen.kt`). Một màn hiện một trang một lúc; không dùng `HorizontalPager`, vì người dùng chỉ đi bằng "Tiếp" và nút quay lại, và ViewModel là nơi duy nhất giữ trang hiện tại (không có vuốt để đồng bộ). Trang đổi ngay, không hiệu ứng chuyển (README mục 4). Chữ ký mới, dùng cho T-083:
 
 ```kotlin
 @Composable
@@ -193,30 +200,42 @@ internal fun OnboardingScreen(
 )
 ```
 
-Cấu trúc, từ trên xuống, trong một `Column` lấp màn (`testTag` `onboarding_screen`, nền `background`, lề trái phải `Spacing.lg`, trên `Spacing.xl + Spacing.lg` như hiện nay, dưới `Spacing.lg`):
+Cấu trúc, từ trên xuống, trong một `Column` lấp màn (`testTag` `onboarding_screen`, nền `background`, lề trái, phải, dưới `Spacing.lg`, lề trên `Spacing.xl + Spacing.lg` = 56 như hiện nay). Số trong ngoặc là số của `design/context/OnboardingScreen_<trang>_light.md` (khung 411 x 891):
 
-1. Chỉ báo trang (`onboarding_page_indicator`): một hàng chấm, số chấm bằng số trang, chấm của trang hiện tại nổi bật; một node ngữ nghĩa "Trang 2 trên 4" (`onboarding_page_indicator_description`). Đặt ở trên cùng, cố định, không cuộn (mục 8, câu 4).
-2. Vùng trang (`onboarding_page_area`), `Modifier.weight(1f)`: một `Column` cuộn dọc (`onboarding_content`) chứa nội dung của trang, bọc trong `key(page)` để mỗi trang mở từ đầu. Nội dung có tag theo trang: `onboarding_page_intro`, `onboarding_page_poses`, `onboarding_page_premium`, `onboarding_page_camera`.
-3. Khe quảng cáo (`onboarding_ad_slot`): `Box(Modifier.fillMaxWidth())` gọi `adSlot(uiState.page)`. Ở T-082 khe rỗng, cao 0.
-4. Trang cuối: `Spacer(Spacing.lg)` rồi ghi chú quyền (`onboarding_note`), đặt **trên** nút.
-5. `Spacer(Spacing.lg)`, rồi nút chính `PrimaryButton` rộng hết, ghim ở đáy: trang trước trang cuối là "Tiếp" (`onboarding_next`, không icon); trang cuối là "Bật camera" (`onboarding_enable_camera`, icon `photo_camera`, `loading` khi trạng thái không phải `Browsing`).
+1. Hàng chấm (`onboarding_page_indicator`), ghim, không cuộn: `Row(horizontalArrangement = spacedBy(Spacing.sm))` căn trái; mỗi trang một `PageDot` (`onboarding_page_dot_<số trang từ 1>`), bo `Radius.full`: chấm của trang hiện tại rộng `Spacing.lg` cao `Spacing.sm` (24 x 8) màu `secondary`, chấm khác 8 x 8 màu `outlineVariant` (y 56, rộng 72 với 4 chấm). Hàng mang `Modifier.semantics { contentDescription = "Trang 2 trên 4" }` (chuỗi `onboarding_page_indicator`); các chấm chỉ có `testTag`, không có chữ hay mô tả, nên trình đọc màn hình chỉ đọc mô tả của hàng (không dùng `clearAndSetSemantics`, vì nó xóa luôn tag của chấm mà test đo); không có khoảng cách dưới hàng (khoảng 24 tới nội dung là lề trong của vùng trang).
+2. Vùng trang (`onboarding_page_area`), `Modifier.weight(1f).fillMaxWidth()` (y 64): `BoxWithConstraints` chứa một `Column` cuộn dọc (`onboarding_content`) có `padding(vertical = Spacing.lg)` **bên trong** `verticalScroll` (lề trong nằm trong phần cuộn, README mục 3), các khối cách nhau `Spacing.lg`, bọc trong `key(page)` để mỗi trang mở từ đầu. Nội dung có tag theo trang: `onboarding_page_intro`, `onboarding_page_poses`, `onboarding_page_premium`, `onboarding_page_camera`.
+3. Khe quảng cáo (`onboarding_ad_slot`): `Box(Modifier.fillMaxWidth())` gọi `adSlot(uiState.page)`, **không lề**: khoảng cách phía trên thẻ là lề dưới `Spacing.lg` của vùng trang (README mục 3, dòng Khe thẻ native). Ở T-082 khe rỗng, cao 0.
+4. Trang cuối: `Spacer(Spacing.lg)` rồi ghi chú quyền (`onboarding_note`, `bodySmall`, `onSurfaceVariant`, căn giữa), đặt **trên** nút (frame "note": đỉnh 727, chữ 751 tới 783).
+5. `Spacer(Spacing.lg)`, rồi nút chính `PrimaryButton` rộng hết, ghim ở đáy: trang trước trang cuối là "Tiếp" (`onboarding_next`, không icon); trang cuối là "Bật camera" (`onboarding_enable_camera`, icon `photo_camera`, `loading` khi trạng thái không phải `Browsing`). Thiết kế: đỉnh 807, cao 60, đáy 867; code: nút cao 56 (T-007, README mục 3), nên đỉnh 811, đáy 867.
 
-Vì nút là phần tử cuối của cột lấp màn và các phần trên nó có chiều cao cố định hay co theo `weight`, đáy của nút luôn cách đáy màn `Spacing.lg`, ở mọi trang, có hay không có thẻ trong khe. Khi T-083 đặt thẻ 250 dp vào khe, vùng trang thấp đi 250 dp và cuộn; nút không đổi chỗ (KB-5, KB-6). Ghi chú ở trang cuối nằm giữa khe và nút, nên thẻ không che nút hay ghi chú (KB-6, tiêu chí 4). Cùng lý do, nút "Bật camera" ở trang cuối cùng chỗ và cùng cỡ với nút "Tiếp" ở các trang khác.
+Vì nút là phần tử cuối của cột lấp màn và các phần trên nó có chiều cao cố định hay co theo `weight`, đáy của nút luôn cách đáy màn `Spacing.lg`, ở mọi trang, có hay không có thẻ trong khe. Khi T-083 đặt thẻ 250 dp vào khe, vùng trang thấp đi 250 dp và cuộn; nút không đổi chỗ (KB-5, KB-6; thiết kế: đỉnh nút 807 ở mọi frame, có hay không có thẻ). Ghi chú ở trang cuối nằm giữa khe và nút, nên thẻ không che nút hay ghi chú (KB-6, tiêu chí 4). Cùng lý do, nút "Bật camera" ở trang cuối cùng chỗ và cùng cỡ với nút "Tiếp" ở các trang khác.
 
-Ước lượng cho T-083 ở khung thấp 360 x 640 có thẻ 250 dp, trang cuối (chưa đo, theo `Spacing` hiện có): lề trên 56, chỉ báo 8 và cách 24, khe 250, ghi chú khoảng 32 tới 48 và cách 24, nút 56 và cách 16, lề dưới 24; vùng trang còn khoảng 130 tới 150 dp và cuộn. T-083 đo thật và quyết có cần giảm lề trên ở khung thấp không.
+**Hình co ở trang 1** (`ShrinkFirstLayout`, giữ nguyên hàm hiện có, chỉ đổi chiều cao được truyền vào). Hàm nhận `viewportHeight`; vì lề trong 24 + 24 nay nằm trong phần cuộn, `OnboardingScreen` truyền `maxHeight - Spacing.lg * 2` của `BoxWithConstraints` (vùng trang). Hình vẫn co đều (`OnboardingIllustration` vẽ khung 363 x 280 rồi `graphicsLayer` theo tỷ lệ nhỏ hơn của hai chiều, căn giữa), trong khoảng 160 tới 280. Đây là cơ chế đã có từ T-012 (test `small_*` hiện có), không phải kỹ thuật mới (mục 4.1).
 
-Nội dung từng trang (bảng chữ của spec, mục 4; chữ của trang 2, 3, cuối chờ gói thiết kế, mục 8, câu 1):
+Số đo của vùng trang trong code, theo bố cục trên (nút 56 nên vùng trang cao hơn thiết kế 4 dp, như README mục 6):
+
+| Khung, trang | Vùng trang (gồm lề trong 48) | Thiết kế (nút 60) | Hệ quả |
+| --- | --- | --- | --- |
+| 411 x 891, trang 1 | 64 tới 787: 723 | 719 | Hình 280 (còn chỗ), không cuộn |
+| 411 x 891, trang cuối | 64 tới 731: 667 (ghi chú 2 dòng) | 663 | Không cuộn |
+| 360 x 640, trang 1 | 64 tới 536: 472 | 468 | Hình co, khoảng 232 (thiết kế khoảng 228), không cuộn |
+| 360 x 640, trang cuối | 64 tới 480: 416 (ghi chú 2 dòng ở 312 dp, như thiết kế) | 412 | Nội dung 220: không cuộn |
+| 673 x 841, trang 1 | 64 tới 737: 673 | 669 | Hình 280, rộng 625 |
+
+Phần cho T-083 ở khung thấp có thẻ: README mục 6 đo 218 (trang 1) và 162 (trang cuối) trên Figma; trong code 222 và 166. Không ẩn thẻ, không giảm lề (plan T-083, mục 8, câu 7).
+
+Nội dung từng trang (README mục 2 và 3; số theo `context/`):
 
 | Trang | Tag | Nội dung |
 | --- | --- | --- |
-| 1 `INTRO` | `onboarding_page_intro` | Hình minh họa `OnboardingIllustration` (giữ nguyên, co trước ở màn thấp bằng `ShrinkFirstLayout` như hiện nay), tiêu đề `onboarding_title`, giới thiệu `onboarding_body` |
-| 2 `POSES` | `onboarding_page_poses` | Huy hiệu icon `accessibility_new`, tiêu đề mới `onboarding_poses_title`, hai hàng điểm `onboarding_point_poses`, `onboarding_point_saved` (tag `onboarding_feature_poses`, `onboarding_feature_saved` như cũ) |
-| 3 `PREMIUM` | `onboarding_page_premium` | Huy hiệu icon mới `workspace_premium` (Material Symbols, cùng giấy phép `third_party/material-symbols/LICENSE.txt`), tiêu đề mới `onboarding_premium_title`, lời mới `onboarding_premium_body` |
-| Cuối `CAMERA` | `onboarding_page_camera` | Huy hiệu icon `photo_camera`, tiêu đề mới `onboarding_camera_title`, hàng điểm `onboarding_point_adjust` (tag `onboarding_feature_adjust`); dưới vùng trang: ghi chú `onboarding_note`, nút "Bật camera" |
+| 1 `INTRO` | `onboarding_page_intro` | Hình minh họa `OnboardingIllustration` (`onboarding_illustration`, giữ nguyên; y 88, 363 x 280), tiêu đề `onboarding_title` (y 392, cao 72), giới thiệu `onboarding_body` (y 488, cao 72) |
+| 2 `POSES` | `onboarding_page_poses` | `IconBadge` icon `accessibility_new` (y 88, 96 x 96), tiêu đề mới `onboarding_poses_title` (y 208, cao 36), khối điểm `onboarding_features` (y 268, cao 96): `onboarding_point_poses` (tag `onboarding_feature_poses`, y 268, icon `accessibility_new`), `onboarding_point_saved` (tag `onboarding_feature_saved`, y 324, icon `bookmark`) |
+| 3 `PREMIUM` | `onboarding_page_premium` | `IconBadge` icon mới `workspace_premium` (Material Symbols, cùng giấy phép `third_party/material-symbols/LICENSE.txt`), tiêu đề mới `onboarding_premium_title` (y 208), lời mới `onboarding_premium_body` (`onboarding_body`, y 268, cao 48) |
+| Cuối `CAMERA` | `onboarding_page_camera` | `IconBadge` icon `photo_camera`, tiêu đề mới `onboarding_camera_title` (y 208), khối điểm (y 268, cao 40): `onboarding_point_adjust` (tag `onboarding_feature_adjust`, icon `tune`); dưới vùng trang: ghi chú `onboarding_note`, nút "Bật camera" |
 
-Huy hiệu là vòng tròn 96 dp nền `secondaryContainer`, viền `Stroke.sticker` màu `outline`, icon 48 dp màu `onSecondaryContainer`, cùng kiểu với huy hiệu camera của hình minh họa; tiêu đề `headlineMedium`, lời `bodyLarge`, hàng điểm như `FeatureRow` hiện có. Mọi số này là đề xuất tới khi có gói thiết kế. Trang chung một composable riêng tư `OnboardingPageContent(illustration, title, body, points)`; tag `onboarding_title`, `onboarding_body`, `onboarding_features` gắn cho tiêu đề, lời, khối điểm của trang đang hiện (chỉ một trang có mặt mỗi lúc).
+`IconBadge` (component Figma `IconBadge`): `Box` tròn 96 dp (`BadgeSize`), nền `secondaryContainer`, viền `Stroke.sticker` màu `outline`, icon 48 dp màu `onSecondaryContainer`, căn trái, tag `onboarding_badge`. `FeatureRow` giữ như hiện có (vòng 40, icon 22, cách chữ `Spacing.md`), các hàng cách nhau `Spacing.md`. `PageDot`, `IconBadge`, `FeatureRow` là composable `private` trong `OnboardingScreen.kt` của `:feature:onboarding` (README mục 3: không có thành phần mới cho `:core:designsystem`). Tiêu đề `headlineMedium` `onBackground`, lời `bodyLarge` `onSurfaceVariant`, rộng hết, căn trái. Trang chung một composable riêng tư `OnboardingPageContent(page)`; tag `onboarding_title`, `onboarding_body`, `onboarding_features` gắn cho tiêu đề, lời, khối điểm của trang đang hiện (chỉ một trang có mặt mỗi lúc).
 
-Chữ mới (tiếng Anh ở `values/`, tiếng Việt ở `values-vi/`; năm ngôn ngữ còn lại AI dịch trong phiên theo câu 1 của spec):
+Chữ mới, đã chốt (README mục 2, Nhật 2026-10-31; tiếng Anh theo README mục 2, đoạn cuối; năm ngôn ngữ còn lại AI dịch trong phiên theo câu 1 của spec):
 
 | Khóa | Tiếng Anh | Tiếng Việt |
 | --- | --- | --- |
@@ -227,6 +246,8 @@ Chữ mới (tiếng Anh ở `values/`, tiếng Việt ở `values-vi/`; năm ng
 | `onboarding_camera_title` | Ready to shoot | Sẵn sàng chụp |
 | `onboarding_page_indicator` | Page %1$d of %2$d | Trang %1$d trên %2$d |
 
+Chữ cũ giữ nguyên khóa và nội dung, chia sang các trang: `onboarding_title`, `onboarding_body` (trang 1), `onboarding_point_poses`, `onboarding_point_saved` (trang 2), `onboarding_point_adjust`, `onboarding_note`, `onboarding_enable_camera` (trang cuối).
+
 Chuỗi đi cùng số (L-077): chỉ `onboarding_page_indicator`; `%1$d` là trang hiện tại (từ 1), `%2$d` là tổng số trang (3 hoặc 4). Không có giá trị lớn nhất mang nghĩa riêng.
 
 **Route** (`OnboardingRoute`): truyền `onNext = viewModel::onNextClick`, `onBack = viewModel::onBackClick`; phần quyền giữ nguyên. Sửa KDoc ("No BackHandler" thành "Back goes to the page before, from the second page"). `BackHandler(enabled = uiState is Browsing && uiState.index > 0) { onBack() }` đặt trong `OnboardingScreen`, để test giao diện kiểm được không cần ViewModel.
@@ -234,9 +255,9 @@ Chuỗi đi cùng số (L-077): chỉ `onboarding_page_indicator`; `%1$d` là tr
 **Điểm cho T-083** (cấu trúc mà T-083 dẫn theo):
 
 - Không có pager. Khóa bước cho `NativeStepAd(placement, step)` là `page` mà `adSlot` nhận (`OnboardingPage`, đổi mỗi khi trang đổi; trang đứng yên ngay vì không có vuốt).
-- T-083 truyền `adSlot = { page -> NativeStepAd(AdPlacement.NATIVE_ONBOARDING, step = page, modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg)) }` từ `OnboardingRoute`; screenshot test truyền `NativeAdCard(assets, NativeAdSize.STEP)` giả. Khung cố định nếu cần thì cao `NativeStepAdDefaults.height()`, không viết cứng 250 dp (`docs/ops/ads-guide.md`, dòng 78).
+- T-083 truyền `adSlot = { page -> NativeStepAd(AdPlacement.NATIVE_ONBOARDING, step = page, modifier = Modifier.fillMaxWidth()) }` từ `OnboardingRoute`, **không** `padding`: khoảng cách trên thẻ là lề dưới `Spacing.lg` của vùng cuộn (thiết kế `OnboardingScreen_<trang>-ad_*`: vùng trang của `intro-ad` 64 tới 533, thẻ 533 tới 783, nút 807), và thẻ không được phép thì không để lại chỗ trống (plan T-083, mục 3.1, Khe); screenshot test truyền `NativeAdCard(assets, NativeAdSize.STEP)` giả. Khung cố định nếu cần thì cao `NativeStepAdDefaults.height()`, không viết cứng 250 dp (`docs/ops/ads-guide.md`, dòng 78).
 - Nút "Tiếp" mờ khi chờ quảng cáo ở trang 1: T-083 thêm tham số `nextEnabled: Boolean = true` vào `OnboardingScreen`, truyền cho `PrimaryButton(enabled = ...)`.
-- Tag ổn định: `onboarding_screen`, `onboarding_page_area`, `onboarding_content`, `onboarding_ad_slot`, `onboarding_note`, `onboarding_next`, `onboarding_enable_camera`, `onboarding_page_<intro|poses|premium|camera>`.
+- Tag ổn định: `onboarding_screen`, `onboarding_page_indicator`, `onboarding_page_area`, `onboarding_content`, `onboarding_ad_slot`, `onboarding_note`, `onboarding_next`, `onboarding_enable_camera`, `onboarding_page_<intro|poses|premium|camera>`.
 - Test `OnboardingScreenTest.bottomButton_samePlace_onEveryPage_withAndWithoutAdSlot` của plan này đã kiểm nút không nhảy với khối 250 dp; T-083 giữ test đó.
 
 **Test cũ của `:app` và kịch bản emulator.** `AppLaunchTest`, `SettingsNavigationTest` (emulator, CI) và 7 tệp `deviceScenarios` bấm thẳng `onboarding_enable_camera` ở màn chào. Sau T-082, nút đó chỉ có ở trang cuối, nên các tệp này bấm "Tiếp" trước:
@@ -289,13 +310,26 @@ Chuỗi đi cùng số (L-077): chỉ `onboarding_page_indicator`; `%1$d` là tr
 | Sửa | `feature/camera/src/deviceScenarios/T-064-mot-camera.txt` | Như trên |
 | Sửa | `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt` | Như trên |
 | Sửa | `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt` | Như trên |
-| Xóa | `docs/features/onboarding/design/review/OnboardingScreen_default_light_compare.png` | Ảnh so sánh của màn cũ (gói thiết kế mới không còn frame `default`) |
+| Xóa | `docs/features/onboarding/design/screens/OnboardingScreen_default_light.png` | Frame của màn chào một trang; README của gói ghi T-082 bỏ (đoạn đầu và mục 1) |
+| Xóa | `docs/features/onboarding/design/screens/OnboardingScreen_default_dark.png` | Như trên |
+| Xóa | `docs/features/onboarding/design/context/OnboardingScreen_default_light.md` | Như trên |
+| Xóa | `docs/features/onboarding/design/context/OnboardingScreen_default_dark.md` | Như trên |
+| Xóa | `docs/features/onboarding/design/review/OnboardingScreen_default_light_compare.png` | Ảnh so sánh của màn cũ |
 | Xóa | `docs/features/onboarding/design/review/OnboardingScreen_default_dark_compare.png` | Như trên |
-| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro_light_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding`; cùng cách cho mọi ảnh thiết kế có trong gói (8 ảnh trang, 2 ảnh `_unfolded`) |
-| Sửa | `docs/features/onboarding/design/review/summary.md` | Bảng kết quả của `design-compare.sh` |
-| Sửa | `docs/features/onboarding/design/README.md` | Mục 8, kết quả đối chiếu (phần còn lại của README do phiên thiết kế viết) |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro_light_compare.png` | Sinh bằng `scripts/design-compare.sh onboarding` |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro_dark_compare.png` | Như trên |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_poses_light_compare.png` | Như trên |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_poses_dark_compare.png` | Như trên |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_premium_light_compare.png` | Như trên |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_premium_dark_compare.png` | Như trên |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_camera_light_compare.png` | Như trên |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_camera_dark_compare.png` | Như trên |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_intro_light_unfolded_compare.png` | Như trên |
+| Tạo | `docs/features/onboarding/design/review/OnboardingScreen_camera_light_unfolded_compare.png` | Như trên |
+| Sửa | `docs/features/onboarding/design/review/summary.md` | Bảng kết quả của `design-compare.sh` (bỏ hai dòng `default`, 10 dòng của T-082 có tỷ lệ khác; 10 dòng `-ad`, `-ad-wait` còn "thiếu ảnh chuẩn screenshot" tới T-083) |
+| Sửa | `docs/features/onboarding/design/README.md` | Bỏ đoạn về hai frame `default` (đầu file) và dòng `default` của mục 1; mục 8, kết quả đối chiếu của 10 ảnh T-082 (thay bảng `default`). Phần còn lại do phiên thiết kế viết, không đổi |
 
-Không đổi, đã kiểm: `MainScreen.kt`, `MainScreenTest.kt`, `AppNavHost.kt`, `OnboardingNavigation.kt` (chữ ký `onboardingScreen` giữ nguyên), `PermissionPrompt.kt`, `PermissionPromptTest.kt`, `DataStoreOnboardingStatusTest.kt`. Các plan cũ có dòng `tap_if id=onboarding_enable_camera` (T-056, T-058, T-064, T-076) là bản ghi lịch sử, không sửa. Ảnh chuẩn `OnboardingScreen_default_*.png` không được script hay workflow nào đọc theo tên (`git grep` chỉ thấy test của chính module và gói thiết kế). `docs/features/onboarding/design/review/summary.md`: `scripts/design-compare/DesignCompare.java` ghi file này, plan không sửa script, chỉ chạy nó; `scripts/tests/run.sh` kiểm `summary.md` của một thư mục tạm của test; `scripts/device-session.sh` và `.github/workflows/device-session.yml` đọc một `summary.md` khác (thư mục `test-sessions/` của phiên thử trên máy). Không file nào trong số đó đọc file của gói thiết kế, nên không sửa (như plan T-080).
+Không đổi, đã kiểm: `MainScreen.kt`, `MainScreenTest.kt`, `AppNavHost.kt`, `OnboardingNavigation.kt` (chữ ký `onboardingScreen` giữ nguyên), `PermissionPrompt.kt`, `PermissionPromptTest.kt`, `DataStoreOnboardingStatusTest.kt`. Các plan cũ có dòng `tap_if id=onboarding_enable_camera` (T-056, T-058, T-064, T-076) là bản ghi lịch sử, không sửa. Ảnh chuẩn và frame `OnboardingScreen_default_*` không được script hay workflow nào đọc theo tên (`git grep OnboardingScreen_default` ngày 2026-10-31: test của chính module, gói thiết kế, và các bản ghi lịch sử `spec.md` dòng 120, yêu cầu `2026-10-21-man-chao-xin-quyen-camera.md`, `docs/research/proposal.md`, `docs/runs/RUN-20261023-01.md`, plan T-012; spec `confirmed` và bản ghi cũ không sửa). `docs/features/onboarding/design/review/summary.md`: `scripts/design-compare/DesignCompare.java` ghi file này, plan không sửa script, chỉ chạy nó; `scripts/tests/run.sh` kiểm `summary.md` của một thư mục tạm của test; `scripts/device-session.sh` và `.github/workflows/device-session.yml` đọc một `summary.md` khác (thư mục `test-sessions/` của phiên thử trên máy). Không file nào trong số đó đọc file của gói thiết kế, nên không sửa (như plan T-080).
 
 ### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
 
@@ -323,7 +357,7 @@ Không có. Mọi phần lặp lại mẫu đã có (ViewModel đọc cờ như 
 | Khôi phục khi đang hỏi quyền | Khôi phục cả danh sách trang đã dừng theo cờ, không ghi lại bước | `restoredWhileRequesting_acceptsResult_withoutSecondComplete` | `SavedStateHandle` thêm `"page_index" to 2, "premium_page" to false, "viewed_steps" to intArrayOf(1, 2, 3)`; `assertEquals(RequestingPermission(PAGES_3), …)`; `Finished(PAGES_3)`; thêm `assertTrue(analytics.events.isEmpty())` (không ghi lại bước, không `onboarding_complete`) |
 | Khôi phục ở `Ready` đã ghi `onboarding_complete` | Khôi phục ở trang cuối | `restoredReady_withCompletionLogged_tapDoesNotLogAgain` | Đổi tên `restoredOnLastPage_withCompletionLogged_tapDoesNotLogAgain`; `SavedStateHandle` thêm ba khóa như trên; câu khẳng định giữ |
 | Thứ tự log đúng 4 dòng | Có thêm log trang | `logs_useOnboardingTag` | Danh sách mới: `"Onboarding shown", "Page shown: 1 intro", "Page shown: 2 poses", "Page shown: 3 camera", "Enable camera tapped", "Asking for the camera permission", "Camera permission granted"`; `all { it.tag == "Onboarding" }` giữ |
-| Bố cục một màn theo `design/context/OnboardingScreen_default_*` (minh họa trên 56, chữ, ba điểm, nút trên 753, ghi chú đáy 869) | Bố cục mỗi trang theo gói thiết kế mới | `OnboardingScreenTest.default_layoutMatchesDesign` | Thay bằng `intro_layoutMatchesDesign`, `poses_layoutMatchesDesign`, `premium_layoutMatchesDesign`, `camera_layoutMatchesDesign`: số đo lấy từ `design/context/OnboardingScreen_<trang>_light.md`, sai số 4 dp như cũ. Số cụ thể ghi ở plan phiên bản 2 (mục 8, câu 1). Ý định giữ: bố cục khớp thiết kế trong một bước lưới |
+| Bố cục một màn theo `design/context/OnboardingScreen_default_*` (minh họa trên 56, chữ, ba điểm, nút trên 753, ghi chú đáy 869) | Bố cục mỗi trang theo gói thiết kế mới | `OnboardingScreenTest.default_layoutMatchesDesign` | Thay bằng `intro_layoutMatchesDesign`, `poses_layoutMatchesDesign`, `premium_layoutMatchesDesign`, `camera_layoutMatchesDesign`, `unfolded_layoutMatchesDesign`: số đo lấy từ `design/context/OnboardingScreen_<trang>_light[_unfolded].md`, sai số 4 dp như cũ (`DESIGN_TOLERANCE_DP`); số cụ thể ở mục 4. Như test cũ, phần ghim dưới nút theo nút 56 của code (đỉnh nút 811 thay 807 của thiết kế), README mục 3 cho phép. Ý định giữ: bố cục khớp thiết kế trong một bước lưới |
 | Màu của hình minh họa, vòng icon điểm đầu, nền | Hình minh họa ở trang 1; vòng icon điểm đầu ở trang 2 | `default_illustrationColors_light` | Đổi tên `intro_illustrationColors_light`: các câu thẻ, huy hiệu, nền giữ nguyên (đo theo tag `onboarding_illustration`, `onboarding_screen`). Câu "first icon circle" chuyển sang test mới `poses_iconCircleColor_light` (`FEATURE_POSES`, 4 dp, 20 dp, `0xFFFFC83D`) |
 | Nền tối và nút trắng | Như cũ, ở trang cuối và trang 1 | `default_colors_dark` | Đổi tên `camera_colors_dark`, dựng trang cuối; câu giữ. Thêm câu cùng điểm đo cho `onboarding_next` ở trang 1 (`0xFFFFFFFF`) |
 | Bảy chữ của bảng thiết kế trên một màn | Chữ chia theo trang | `default_showsDesignTexts` | Thay bằng `eachPage_showsItsTexts`: mỗi trang có đúng các chữ của trang đó theo bảng ở mục 3.1 (tiếng Việt), và không có chữ của trang khác; hợp các trang chứa đủ 7 chữ cũ (câu `assertEquals(DESIGN_TEXTS.toSet(), union)`) |
@@ -363,20 +397,28 @@ Hằng của test: `PAGES_3 = listOf(INTRO, POSES, CAMERA)`, `PAGES_4 = listOf(I
 | KB-5, tới trang cuối thì "Bật camera" thay "Tiếp" | Compose UI test | `lastPage_showsEnableCamera_notNext`: trang cuối có `onboarding_enable_camera`, không có `onboarding_next`; trang 1, 2, 3 ngược lại. `next_click_callsOnNextOnce` |
 | KB-5, Back từ trang 2 gọi `onBack`; trang 1 không chặn | Compose UI test | `secondPage_backCallsOnBack`: `Browsing(PAGES_3, 1)`, `activity.onBackPressedDispatcher.hasEnabledCallbacks()` là `true`, `onBackPressed()` gọi `onBack` đúng 1 lần; `firstPage_doesNotInterceptBack` (mục 3.5); `requesting_doesNotInterceptBack`: `RequestingPermission` thì không có callback bật |
 | KB-5, trang premium chỉ khi cờ bật, không nhắc premium khi tắt | Compose UI test | `threePages_noPremiumText_anywhere`: đi qua `PAGES_3`, không trang nào có `onboarding_premium_title`, `onboarding_premium_body`; chỉ báo trang có 3 chấm |
-| Chỉ báo trang | Compose UI test | `pageIndicator_describesCurrentPage`: `Browsing(PAGES_4, 1)` thì node `onboarding_page_indicator_description` có mô tả "Trang 2 trên 4" (tiếng Việt) |
+| Chỉ báo trang | Compose UI test | `pageIndicator_describesCurrentPage`: `Browsing(PAGES_4, 1)` thì node `onboarding_page_indicator` có `contentDescription` "Trang 2 trên 4" (tiếng Việt); `PAGES_3` trang 1: "Trang 1 trên 3". `pageIndicator_layoutAndColors` (`poses_light`: chấm hiện tại là chấm 2): hàng trái 24, đỉnh 56, cao 8, rộng 72; `onboarding_page_dot_2` trái 40, rộng 24, cao 8; `onboarding_page_dot_1`, `_3`, `_4` rộng 8, trái 24, 72, 88; màu tâm chấm 2 `0xFF111111` (`secondary` sáng), tâm chấm 1 `0xFFD9D4C8` (`outlineVariant` sáng); tối (`poses_dark`): chấm 2 `0xFFFFFFFF`, chấm 1 `0xFF4A4744`. Đối chứng trong test: `PAGES_3` thì rộng hàng 56 và không có `onboarding_page_dot_4` |
 | KB-1, KB-5, màn thấp và xoay: nút luôn thấy, trang cuộn | Compose UI test | `small_everyPage_buttonVisible_contentScrolls_<7 ngôn ngữ>`, `landscape_buttonAndNoteVisible_w960h600`, `_w960h520` (mục 3.5) |
 | Chữ đúng bảng chữ của thiết kế | Compose UI test | `eachPage_showsItsTexts` (mục 3.5); `OnboardingStringsTest` thêm 6 khóa vào `ENGLISH`, `VIETNAMESE`; `everyReleaseLanguage_isTranslated` tự kiểm 6 khóa mới ở 7 ngôn ngữ |
-| Màu theo hệ thống thiết kế | Compose UI test | `intro_illustrationColors_light`, `poses_iconCircleColor_light`, `camera_colors_dark` (mục 3.5); `premium_badgeColor_light`: tâm huy hiệu trang premium màu `secondaryContainer` sáng (`0xFFFFC83D`) |
-| Bố cục khớp thiết kế | Compose UI test | `<intro, poses, premium, camera>_layoutMatchesDesign` (mục 3.5), số đo từ `design/context/` khi có gói (mục 8, câu 1) |
-| Giao diện từng trang | Screenshot test | `OnboardingScreenScreenshotTest`, khung `vi-w411dp-h891dp-xxhdpi`, mỗi test một trạng thái `Browsing` cố định: `captureRoboImage("src/test/screenshots/OnboardingScreen_intro_light.png") { ... }`, cùng mẫu cho `_intro_dark`, `_poses_light`, `_poses_dark`, `_premium_light`, `_premium_dark` (dựng `PAGES_4`), `_camera_light`, `_camera_dark` (dựng `PAGES_4`, trang cuối `Browsing`, không vòng chờ) |
+| Màu theo hệ thống thiết kế | Compose UI test | `intro_illustrationColors_light`, `poses_iconCircleColor_light`, `camera_colors_dark` (mục 3.5); `premium_badgeColor_light`: điểm (12 dp, 48 dp) của `onboarding_badge` ở trang premium (trong vòng, ngoài icon 48 ở giữa) màu `secondaryContainer` sáng (`0xFFFFC83D`); `pageIndicator_layoutAndColors` (dòng trên) |
+| Bố cục khớp thiết kế, trang 1 | Compose UI test (khung `vi-w411dp-h891dp-xxhdpi`, sai số 4 dp) | `intro_layoutMatchesDesign` (`context/OnboardingScreen_intro_light.md`): `onboarding_illustration` trái 24, đỉnh 88, rộng 363, cao 280 (cũng là "đủ cao khi còn chỗ"); `onboarding_title` đỉnh 392; `onboarding_body` đỉnh 488; `onboarding_next` rộng 363, cao ≥ 56, đáy 867, đỉnh 811 (thiết kế 807, nút 60; code 56); `onboarding_page_area` đỉnh 64 |
+| Bố cục khớp thiết kế, trang 2 | Compose UI test | `poses_layoutMatchesDesign` (`context/OnboardingScreen_poses_light.md`): `onboarding_badge` trái 24, đỉnh 88, 96 x 96; `onboarding_title` đỉnh 208; `onboarding_features` đỉnh 268, cao 96; `onboarding_feature_poses` đỉnh 268, `onboarding_feature_saved` đỉnh 324; nút đỉnh 811, đáy 867 |
+| Bố cục khớp thiết kế, trang 3 | Compose UI test | `premium_layoutMatchesDesign` (`context/OnboardingScreen_premium_light.md`): `onboarding_badge` đỉnh 88, 96 x 96; `onboarding_title` đỉnh 208; `onboarding_body` đỉnh 268, cao 48; nút đỉnh 811 |
+| Bố cục khớp thiết kế, trang cuối | Compose UI test | `camera_layoutMatchesDesign` (`context/OnboardingScreen_camera_light.md`): `onboarding_badge` đỉnh 88; `onboarding_title` đỉnh 208; `onboarding_features` đỉnh 268, cao 40; `onboarding_note` đáy 787 (thiết kế 783, cộng 4 vì nút 56), rộng 363; `onboarding_enable_camera` rộng 363, đỉnh 811, đáy 867; khoảng giữa đáy ghi chú và đỉnh nút 24 (sai số 1) |
+| Bố cục khớp thiết kế, mở gập | Compose UI test (khung `vi-w673dp-h841dp-xxhdpi`) | `unfolded_layoutMatchesDesign` (`context/OnboardingScreen_<intro\|camera>_light_unfolded.md`), trạng thái trong `mutableStateOf`: trang 1: `onboarding_illustration` trái 24, đỉnh 88, rộng 625, cao 280; `onboarding_title` đỉnh 392; `onboarding_body` đỉnh 452 (tiêu đề một dòng); `onboarding_next` rộng 625, đỉnh 761 (thiết kế 757), đáy 817. Trang cuối: `onboarding_note` đáy 737 (thiết kế 733), `onboarding_enable_camera` đỉnh 761. Vị trí ngang của hình bên trong khung 625 theo mục 8, câu 9 (không khẳng định ở test này) |
+| Giao diện từng trang, cùng tên với ảnh thiết kế (ADR-0020) | Screenshot test | `OnboardingScreenScreenshotTest`, khung `vi-w411dp-h891dp-xxhdpi`, mỗi test một trạng thái `Browsing(PAGES_4, i)` cố định (mọi frame vẽ luồng 4 trang, README mục 1), `adSlot` mặc định: `intro_light` gọi `captureRoboImage("src/test/screenshots/OnboardingScreen_intro_light.png") { ... }`; cùng mẫu: `intro_dark` (`OnboardingScreen_intro_dark.png`), `poses_light`, `poses_dark` (`i = 1`), `premium_light`, `premium_dark` (`i = 2`), `camera_light`, `camera_dark` (`i = 3`, `Browsing`, không vòng chờ của nút) |
 | Màn hình thấp (L-028) | Screenshot test khung `vi-w360dp-h640dp-xxhdpi` | `captureRoboImage("src/test/screenshots/OnboardingScreen_intro_small.png") { ... }` (trang 1, minh họa co), `captureRoboImage("src/test/screenshots/OnboardingScreen_camera_small.png") { ... }` (trang cuối, `PAGES_4`, nhiều phần ghim nhất) |
-| Màn gập (ADR-0020) | Screenshot test khung `vi-w673dp-h841dp-xxhdpi` | `captureRoboImage("src/test/screenshots/OnboardingScreen_intro_light_unfolded.png") { ... }`, `captureRoboImage("src/test/screenshots/OnboardingScreen_camera_light_unfolded.png") { ... }` |
-| Đúng thiết kế (khi có `design/screens/`) | Screenshot test cùng tên với từng ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh onboarding`, rà soát độc lập theo mục 7 của mẫu thiết kế. Hai ảnh thiết kế cũ `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` được phiên Figma thay bằng gói mới; ảnh chuẩn cùng tên bị xóa (mục 3.2). Ảnh `ad` của T-083 khai báo ở plan phiên bản 2, khi các ảnh đó đã có trong `design/screens/` | `OnboardingScreen_<intro\|poses\|premium\|camera>_<light\|dark>.png`, `OnboardingScreen_<intro\|camera>_light_unfolded.png` |
+| Màn gập (ADR-0020) | Screenshot test khung `vi-w673dp-h841dp-xxhdpi`, cùng tên với hai ảnh thiết kế `_unfolded` | `intro_light_unfolded`: `captureRoboImage("src/test/screenshots/OnboardingScreen_intro_light_unfolded.png") { ... }`; `camera_light_unfolded`: `captureRoboImage("src/test/screenshots/OnboardingScreen_camera_light_unfolded.png") { ... }` |
+| Đúng thiết kế | Screenshot test cùng tên với từng ảnh thiết kế của T-082 (10 ảnh trên), ảnh so sánh `scripts/design-compare.sh onboarding`, rà soát độc lập theo mục 7 của mẫu thiết kế; README mục 8 ghi kết quả. Hai frame `OnboardingScreen_default_*` bị xóa cùng ảnh chuẩn cùng tên (mục 3.2) | `OnboardingScreen_<intro\|poses\|premium\|camera>_<light\|dark>.png`, `OnboardingScreen_<intro\|camera>_light_unfolded.png` |
 | KB-5, đi luồng, Back, mở gập giữ trang, trang cuối, Back ở trang 1 đóng app | Kiểm tra thủ công (emulator: `feature/onboarding/src/deviceScenarios/T-082-luong-gioi-thieu.txt`) | Tệp kịch bản dưới đây; `device-session` cuối phiên chạy tệp này |
 | KB-1, KB-2 trên máy thật: cho phép và từ chối camera sau khi đi hết luồng | Kiểm tra thủ công (máy thật: camera thật) | Bản staging, xóa dữ liệu app: đi hết 4 trang, "Bật camera", cho phép: camera có tư thế; xóa dữ liệu lần nữa, từ chối: camera ở trạng thái chưa có quyền. Đếm chạm: 5 với 4 trang |
-| KB-5, 3 trang khi cờ premium tắt, trên máy | Kiểm tra thủ công (máy thật: Remote Config) | Bản staging bật cờ sẵn (`StagingFeatureFlagsModule`, T-085) nên tắt trên Firebase staging không có tác dụng (mục 8, câu 5). Đề xuất: kiểm 3 trang bằng unit test và test giao diện ở trên; trên máy chỉ kiểm 4 trang |
+| KB-5, 3 trang khi cờ premium tắt | Unit test và Compose UI test (không kiểm trên máy) | Bản staging bật cờ sẵn (`StagingFeatureFlagsModule`, plan T-085) nên tắt trên Firebase staging không có tác dụng. Nhật chấp nhận kiểm 3 trang bằng test JVM (khi duyệt T-085, câu 4; mục 8, câu 5): `premiumOff_threePages_withoutPremium`, `threePages_noPremiumText_anywhere`, `taps_equalPagesPlusOne` (3 trang), `pageIndicator_layoutAndColors` (đối chứng 3 chấm). Trên máy chỉ kiểm 4 trang |
 | KB-5, mở gập thật | Kiểm tra thủ công (máy thật: gập có bản lề) | Máy gập: đang ở trang 2, mở máy và gập lại: vẫn trang 2, chữ và nút không bị cắt |
 | Chữ dịch ở 5 ngôn ngữ AI dịch | Kiểm tra thủ công (người: đọc bản dịch) | Người biết tiếng đọc 6 chuỗi mới trước khi phát hành (câu 1 của spec) |
+
+Ảnh thiết kế của ticket khác (T-083): `OnboardingScreen_intro-ad_light`, `OnboardingScreen_intro-ad_dark`, `OnboardingScreen_poses-ad_light`, `OnboardingScreen_poses-ad_dark`, `OnboardingScreen_premium-ad_light`, `OnboardingScreen_premium-ad_dark`, `OnboardingScreen_camera-ad_light`, `OnboardingScreen_camera-ad_dark`, `OnboardingScreen_intro-ad-wait_light`, `OnboardingScreen_intro-ad-wait_dark`
+
+Các ảnh này có thẻ native trong khe; T-083 vẽ ảnh chuẩn cùng tên. Sau T-082, `design-compare.sh` vẫn ghi chúng là "thiếu ảnh chuẩn screenshot" trong `review/summary.md`.
 
 Kịch bản emulator `feature/onboarding/src/deviceScenarios/T-082-luong-gioi-thieu.txt` (bản staging có cờ premium bật sẵn sau T-085, nên 4 trang):
 
@@ -425,10 +467,12 @@ Thứ tự commit (L-025): commit test của bước 3 có `OnboardingPage.kt` v
 
 ### 4.1. Chạy thử
 
-Không cần (E dưới 2): không có kỹ thuật mới; mọi phần là biến thể của mẫu đã có (mục 3.4). Lúc soạn plan (2026-10-31) đã chạy:
+Không cần (E dưới 2): không có kỹ thuật mới; mọi phần là biến thể của mẫu đã có (mục 3.4). Phiên bản 2 đã xét lại theo bố cục của gói thiết kế: hình co đều ở trang 1 là `ShrinkFirstLayout` và `OnboardingIllustration` (`graphicsLayer` theo tỷ lệ) đã có trong module từ T-012, có test `small_*` đo hình co trong khoảng 160 tới 280; phiên bản 2 chỉ đổi chiều cao truyền vào (trừ lề trong 48). Lề trong của vùng cuộn là `padding` bên trong `verticalScroll`, hàng chấm là `Row` các `Box` bo tròn, huy hiệu là `Box` tròn như `FeatureRow`: không có API mới. Số đo của mục 4 suy từ `context/` và luật của bố cục (nút 56 thay 60, như test `default_layoutMatchesDesign` hiện có), chưa đo trên code; phiên đo ở bước 3 và 4 với sai số 4 dp.
 
-- `scripts/existing-tests.py docs/features/onboarding/plans/T-082-luong-gioi-thieu-nhieu-trang.md`: 254 test, 29 đã nhắc trong plan; phần còn lại chỉ trùng tên ở module khác (mục 3.5).
-- `scripts/device-scenario.py check` trên bản nháp của tệp kịch bản ở mục 4, chép vào thư mục tạm của phiên soạn plan, không commit: không có lỗi cú pháp; 16 dòng báo tag `onboarding_page_intro`, `onboarding_page_poses`, `onboarding_page_premium`, `onboarding_page_camera`, `onboarding_next` "không có trong mã nguồn", đúng vì code chưa viết. Phiên chạy lại lệnh này sau bước 4 và phải qua.
+Lúc soạn plan đã chạy:
+
+- `scripts/existing-tests.py docs/features/onboarding/plans/T-082-luong-gioi-thieu-nhieu-trang.md` (phiên bản 1 và chạy lại cho phiên bản 2, 2026-10-31, nhánh plan đã merge `origin/main` e0b06a4): 254 test; 14 "Cần xem trước" và 124 "Nên xem" như phiên bản 1, đều ở module khác (mục 3.5).
+- `scripts/device-scenario.py check` (chạy lại cho phiên bản 2, 2026-10-31) trên bản nháp của tệp kịch bản ở mục 4, chép vào thư mục tạm của phiên soạn plan, không commit: không có lỗi cú pháp; 16 dòng báo tag `onboarding_page_intro`, `onboarding_page_poses`, `onboarding_page_premium`, `onboarding_page_camera`, `onboarding_next` "không có trong mã nguồn", đúng vì code chưa viết. Phiên chạy lại lệnh này sau bước 4 và phải qua.
 
 Đoạn code ở mục 3.1 là phác thảo, chưa biên dịch.
 
@@ -439,21 +483,21 @@ Không cần (E dưới 2): không có kỹ thuật mới; mọi phần là bi�
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 2 | Code trong một module, đổi giao diện công khai của `OnboardingUiState` và `OnboardingViewModel`; test emulator của `:app` và kịch bản emulator của ba module chỉ đổi bước dựng |
-| B. Độ rõ của yêu cầu | 2 | Spec đã chốt nhưng chưa có thiết kế của luồng (bố cục, chữ trang 2 tới cuối, chỉ báo trang); câu 3 (cờ đổi giữa luồng) ảnh hưởng cách làm |
+| B. Độ rõ của yêu cầu | 1 | Spec đã chốt; gói thiết kế đã duyệt (bố cục, chữ, hàng chấm, số đo khung thấp). Còn câu 3 (cờ đổi giữa luồng) và câu 9 (vị trí ngang của hình ở khung mở gập) |
 | C. Khả năng kiểm chứng tự động | 1 | ViewModel, bố cục, Back, chữ có test JVM; đi luồng có kịch bản emulator; quyền camera thật và máy gập kiểm bằng tay |
 | D. Ảnh hưởng chéo | 2 | Sửa test emulator và kịch bản của `:app`, `:feature:camera`, `:feature:poses`; T-083 dựa vào cấu trúc màn; phụ thuộc cờ của T-085 |
 | E. Độ mới của kỹ thuật | 1 | Biến thể nhỏ của mẫu đã có: cờ dạng `Flow` như `PosesViewModel`, `BackHandler` như `ReviewScreen`, nút ghim đáy như màn chào |
-| **Tổng** | 8 (tham khảo) | **Mức: Cao** (điểm chặn) |
+| **Tổng** | 7 (tham khảo) | **Mức: Cao** (điểm chặn) |
 
 ## 6. Ảnh hưởng chéo
 
 - File hoặc thành phần dùng chung bị chạm: không sửa module core. Dùng `PrimaryButton`, `Spacing`, `Radius`, `Stroke` của `:core:designsystem` và `FeatureFlags` của `:core:config` mà không sửa. Sửa `app/src/androidTest/.../AppLaunchTest.kt`, `SettingsNavigationTest.kt` và 7 tệp `deviceScenarios` của `:app`, `:feature:camera`, `:feature:poses` (chỉ bước qua màn chào).
 - Task khác trong sprint có thể xung đột:
   - T-085 (cờ `FeatureFlag.PREMIUM_POSES`, `StagingFeatureFlagsModule`): T-082 phụ thuộc; chạy sau khi T-085 merge.
-  - T-083 (thẻ native ở luồng): sửa cùng `OnboardingScreen.kt`, `OnboardingScreenTest.kt`, `OnboardingScreenScreenshotTest.kt`; chạy sau T-082, plan T-083 dẫn theo mục 3.1 (Điểm cho T-083).
+  - T-083 (thẻ native ở luồng): sửa cùng `OnboardingScreen.kt`, `OnboardingScreenTest.kt`, `OnboardingScreenScreenshotTest.kt`, `design/review/summary.md`, `design/README.md` (mục 8); chạy sau T-082, plan T-083 dẫn theo mục 3.1 (Điểm cho T-083). Phiên bản 2 bỏ `padding(top = Spacing.lg)` của thẻ như plan T-083 phiên bản 1 đã đề xuất; số vùng trang ở khung thấp có thẻ trong code là 222 và 166 (mục 3.1), plan T-083 phiên bản sau dùng số này thay ước lượng 198 / 134.
   - T-080 (đã duyệt, chạy ở RUN-20261031-02): không có file trùng (đã so mục 3.2 của plan T-080).
   - Plan khác thêm tệp kịch bản emulator có `tap_if id=onboarding_enable_camera` trước khi T-082 merge thì cần thêm ba dòng `tap_if id=onboarding_next` như mục 3.1 (phần ngoài mục 3.2 theo ADR-0029).
-- Đề xuất thứ tự chạy: T-085, rồi T-082, rồi T-083; không cùng một lúc. Thiết kế Figma của luồng (mục 8, câu 1) phải có trước khi duyệt plan phiên bản 2.
+- Đề xuất thứ tự chạy: T-085, rồi T-082, rồi T-083; không cùng một lúc. Thiết kế của luồng đã có (PR #276).
 
 ## 7. Điều kiện dừng riêng
 
@@ -463,22 +507,27 @@ Không cần (E dưới 2): không có kỹ thuật mới; mọi phần là bi�
 
 ## 8. Câu hỏi cho người duyệt
 
-1. **Chưa có thiết kế của luồng (điểm chặn).** `docs/features/onboarding/design/` chỉ có màn một trang. Plan không tự dựng Figma. Cần một phiên Figma có người theo dõi (`docs/CLAUDE.md`, mục Khi thiết kế trên Figma) dựng các frame dưới đây, khung 411 x 891 (frame `_unfolded` 673 x 841), hướng Sticker, rồi lập gói bàn giao (`figma-export.py`, `context/`, README mục 1, 2, 3, 6) thay cho hai frame `default`:
-   - Của T-082: `OnboardingScreen_intro_light`, `OnboardingScreen_intro_dark`, `OnboardingScreen_poses_light`, `OnboardingScreen_poses_dark`, `OnboardingScreen_premium_light`, `OnboardingScreen_premium_dark`, `OnboardingScreen_camera_light`, `OnboardingScreen_camera_dark`, `OnboardingScreen_intro_light_unfolded`, `OnboardingScreen_camera_light_unfolded`. Khung thấp 360 x 640 không cần frame (design-workflow, mục 2): README mục 6 ghi phần nào cuộn, phần nào ghim; app kiểm bằng `OnboardingScreen_intro_small.png`, `OnboardingScreen_camera_small.png`.
-   - Của T-083 (dựng cùng phiên để T-083 dùng): `OnboardingScreen_intro-ad_light`, `OnboardingScreen_intro-ad_dark`, `OnboardingScreen_poses-ad_light`, `OnboardingScreen_poses-ad_dark`, `OnboardingScreen_premium-ad_light`, `OnboardingScreen_premium-ad_dark`, `OnboardingScreen_camera-ad_light`, `OnboardingScreen_camera-ad_dark` (thẻ 250 dp trong khe), `OnboardingScreen_intro-ad-wait_light`, `OnboardingScreen_intro-ad-wait_dark` (trang 1 chờ quảng cáo, nút "Tiếp" mờ, khung chờ của thẻ).
-   - Ràng buộc cho thiết kế từ spec và plan: nút chính ghim ở đáy, cùng chỗ trên mọi trang; khe thẻ nằm giữa vùng trang và nút; ở trang cuối ghi chú quyền nằm giữa khe và nút; không có nút "Bỏ qua".
-   - Đề xuất của AI: dựng gói trước, rồi AI sửa plan thành phiên bản 2 với số đo của `context/` (mục 3.5, dòng `*_layoutMatchesDesign`), chữ đã chốt và dòng khai báo các ảnh `ad` mà T-083 vẽ (quy tắc 4 của `scripts/plan-check.py`). Tên trạng thái `intro`, `poses`, `premium`, `camera` là đề xuất; phiên Figma đổi thì plan đổi theo.
-2. **Chữ của trang 2, 3 và trang cuối.** Spec chỉ có nội dung (mục 4); tiêu đề mới là đề xuất ở mục 3.1 ("Tư thế cho mọi kiểu ảnh", "Tư thế premium", "Xem một quảng cáo để mở một tư thế premium, rồi dùng mãi về sau.", "Sẵn sàng chụp", "Tiếp", "Trang 2 trên 4"). Đề xuất của AI: phiên Figma chốt chữ trong bảng chữ của gói; plan phiên bản 2 chép lại. Chữ cũ (tiêu đề, giới thiệu, ba điểm, nút, ghi chú) giữ nguyên, chỉ chia sang các trang.
-3. **Cờ premium đổi khi luồng đang chạy.** Remote Config có thể trả giá trị sau khi trang 1 đã hiện. Đề xuất của AI: danh sách trang theo cờ khi người dùng còn ở trang 1 hay 2 (hai trang này giống nhau ở cả hai danh sách); từ lúc tới trang 3 thì danh sách giữ nguyên tới hết luồng, kể cả khi quay lại. Như vậy người dùng không bao giờ thấy trang premium biến mất dưới tay, và vẫn theo cờ như ADR-0003 trong phần lớn trường hợp.
-4. **Chỉ báo trang và hiệu ứng chuyển trang.** Spec không nói. Đề xuất của AI: có hàng chấm ở trên cùng (cố định, không cuộn, không chiếm chỗ ở đáy nơi đã có khe thẻ, ghi chú và nút); trang đổi ngay, không hiệu ứng trượt. Thiết kế muốn hiệu ứng trượt thì thêm ở plan phiên bản 2 (ảnh chuẩn chụp trạng thái đứng yên nên không đổi).
-5. **Kiểm 3 trang trên máy.** Ticket (Định nghĩa hoàn thành) ghi "tắt cờ premium trên Firebase staging thì còn 3 trang". Nếu T-085 bật cờ ở `StagingFeatureFlagsModule` (như ticket T-085 ghi) thì cờ luôn bật trên staging (`DefaultFeatureFlags` trả `true` cho cờ bật tại chỗ, không đọc Firebase), nên không tắt được từ Firebase. Đề xuất của AI: kiểm 3 trang bằng unit test và test giao diện (mục 4); bỏ ý đó khỏi kiểm tra trên máy. Cách khác: T-085 bật cờ bằng giá trị mặc định của staging trong `StagingRemoteValuesModule` (Firebase ghi đè được); đó là quyết định của plan T-085.
-6. **Tên cờ phải khớp plan T-085.** Plan này dùng `FeatureFlag.PREMIUM_POSES` với khóa `feature_premium_poses_enabled`, theo ticket T-085. Plan T-085 đang soạn song song: nếu đặt tên khác, plan này sửa theo trước khi duyệt. Đề xuất: giữ đúng tên của ticket.
-7. **Tham số của `onboarding_step_viewed`.** Spec chỉ có `step`. Với cờ premium tắt, `step` 3 là trang xin quyền; bật thì `step` 3 là trang premium và `step` 4 là trang xin quyền. Báo cáo "người dùng bỏ app ở trang nào" phải tách theo thời kỳ bật cờ. Đề xuất của AI: làm đúng spec (chỉ `step`) trong plan này. Nếu Nhật muốn rõ hơn, sửa spec trước để thêm tham số `page` (`intro`, `poses`, `premium`, `camera`), rồi plan phiên bản 2 thêm một câu vào `onPageShown` và test.
-8. **Mức rủi ro.** Ticket ghi "trung bình"; plan xếp Cao vì thêm sự kiện phân tích là điểm chặn 4. Đề xuất: giữ Cao, duyệt chéo Tuấn và Nhật; sự kiện đã có trong spec đã chốt nên không cần hỏi thêm người phụ trách sản phẩm.
+1. **Thiết kế của luồng.** Đã trả lời theo PR #276 (gói `docs/features/onboarding/design/`, README `approved`, Nhật, 2026-10-31): 10 frame của T-082 và 10 frame `-ad`, `-ad-wait` của T-083, tên trạng thái `intro`, `poses`, `premium`, `camera` như đề xuất. Phiên bản 2 lấy số đo từ `context/` (mục 3.1, mục 4) và khai báo ảnh của T-083 (mục 4).
+2. **Chữ của trang 2, 3 và trang cuối.** Đã trả lời theo PR #276: Nhật chốt đúng chữ đề xuất của phiên bản 1 (README mục 2), cả tiếng Anh. Không đổi chữ nào.
+3. **Cờ premium đổi khi luồng đang chạy.** (Còn chờ.) Remote Config có thể trả giá trị sau khi trang 1 đã hiện. Đề xuất của AI: danh sách trang theo cờ khi người dùng còn ở trang 1 hay 2 (hai trang này giống nhau ở cả hai danh sách); từ lúc tới trang 3 thì danh sách giữ nguyên tới hết luồng, kể cả khi quay lại. Như vậy người dùng không bao giờ thấy trang premium biến mất dưới tay, và vẫn theo cờ như ADR-0003 trong phần lớn trường hợp. Trước khi cờ trả giá trị, hàng chấm hiện 3 chấm; cờ bật về trễ thì thêm chấm thứ tư.
+4. **Chỉ báo trang và hiệu ứng chuyển trang.** Đã trả lời theo PR #276: hàng chấm ghim trên cùng (chấm hiện tại 24 x 8 `secondary`, chấm khác 8 x 8 `outlineVariant`, cách `Spacing.sm`; README mục 3); trang đổi ngay, không hiệu ứng trượt (README mục 4).
+5. **Kiểm 3 trang trên máy.** Đã trả lời: chấp nhận, bản 3 trang kiểm bằng test JVM (Nhật chấp nhận khi duyệt T-085, câu 4). Mục 4 bỏ dòng kiểm trên máy, ghi các test JVM thay.
+6. **Tên cờ phải khớp plan T-085.** Đã trả lời: `FeatureFlag.PREMIUM_POSES`, khóa `feature_premium_poses_enabled`, khớp plan T-085 trên nhánh chính (`docs/features/poses/plans/T-085-du-lieu-tu-the-premium.md`, mục 3.1 và mục 6).
+7. **Tham số của `onboarding_step_viewed`.** (Còn chờ.) Spec chỉ có `step`. Với cờ premium tắt, `step` 3 là trang xin quyền; bật thì `step` 3 là trang premium và `step` 4 là trang xin quyền. Báo cáo "người dùng bỏ app ở trang nào" phải tách theo thời kỳ bật cờ. Đề xuất của AI: làm đúng spec (chỉ `step`) trong plan này. Nếu Nhật muốn rõ hơn, sửa spec trước để thêm tham số `page` (`intro`, `poses`, `premium`, `camera`), rồi plan phiên bản sau thêm một câu vào `onPageShown` và test.
+8. **Mức rủi ro.** (Còn chờ.) Ticket ghi "trung bình"; plan xếp Cao vì thêm sự kiện phân tích là điểm chặn 4. Đề xuất: giữ Cao, duyệt chéo Tuấn và Nhật; sự kiện đã có trong spec đã chốt nên không cần hỏi thêm người phụ trách sản phẩm.
+9. **Hình minh họa ở khung mở gập (mới, phiên bản 2).** Hai tài liệu của gói lệch nhau: README mục 3 và mục 6 ghi hình "rộng hết, căn giữa" và "khi mở gập ... hình minh họa giữ 280, căn giữa"; nhưng `context/OnboardingScreen_intro_light_unfolded.md` đặt khung "illustration" rộng 625 với các thẻ và huy hiệu ở đúng tọa độ của khung điện thoại (thẻ "women" x 52, huy hiệu x 260), tức hình nằm sát trái, không căn giữa. Code hiện nay căn giữa (`OnboardingIllustration`, `contentAlignment = Alignment.Center`), nên ảnh chuẩn `OnboardingScreen_intro_light_unfolded` sẽ lệch ảnh thiết kế ở phần hình. Đề xuất của AI: theo README (căn giữa, code giữ nguyên), coi tọa độ của `context/` là do frame Figma chưa căn lại; nếu Nhật muốn hình sát trái thì sửa frame Figma hay README trước khi duyệt, và plan đổi `contentAlignment` của trang 1 ở khung rộng. `unfolded_layoutMatchesDesign` không khẳng định vị trí ngang của hình cho tới khi câu này được trả lời.
 
 ## 9. Quyết định duyệt
 
 <!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
+
+Phiên bản 1:
+
+- **Quyết định:**
+- **Người duyệt:**
+- **Ghi chú:**
+
+Phiên bản 2:
 
 - **Quyết định:**
 - **Người duyệt:**

@@ -1,11 +1,6 @@
 {
   "conditions": [],
   "parameters": {
-    "feature_camera_enabled": {
-      "defaultValue": { "value": "false" },
-      "description": "No longer read: the camera is always the start screen (T-081); removed in T-088.",
-      "valueType": "BOOLEAN"
-    },
     "feature_in_app_review_enabled": {
       "defaultValue": { "value": "false" },
       "description": "Asks for a Play review after enough saved photos (core/review rules).",

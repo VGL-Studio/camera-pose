@@ -5,7 +5,7 @@ feature: onboarding
 spec: features/onboarding/spec.md   # confirmed 2026-11-01, câu 6, 8, 9; vị trí cũng ghi ở features/ads/spec.md câu 12
 scenarios: [KB-6]
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: M
 depends_on: [T-082]

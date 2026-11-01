@@ -943,3 +943,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/run-check.py` thêm quy tắc: plan nào trong danh sách Xóa một file ở mục 3.2 mà plan chạy sau dẫn tên file đó (nhất là ảnh thiết kế ở mục 4) thì báo lỗi, để sửa plan trước khi duyệt. Hoặc quy tắc ảnh thiết kế của `plan-check.py` bỏ qua tên mà plan tự ghi là bỏ ở ticket khác. `docs/CLAUDE.md`, mục Khi viết plan: không liệt kê ảnh mà plan khác trong cùng danh sách sẽ xóa.
 - **Áp dụng:**
 - **Kiểm chứng:**
+
+### L-102: save-branch.sh của phiên chính báo "CHƯA ĐẨY" khi push-on-commit.sh vừa đẩy cùng commit
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261101-01, T-083.
+- **Chuyện gì:** phiên con T-083 báo xong; phiên chính gọi `scripts/save-branch.sh claude/T-083-the-native-gioi-thieu` đúng lúc `scripts/push-on-commit.sh` (chạy nền cho cùng nhánh) đẩy commit cuối. Lệnh của phiên chính bị từ chối và in "CHƯA ĐẨY", giữ bundle, dù GitHub đã có đúng commit đó. Phiên phải kiểm lại bằng `git ls-remote` rồi xóa bundle thừa.
+- **Bằng chứng:** RUN-20261101-01, 17:15 UTC: `push-on-commit.sh` in `ĐÃ ĐẨY: claude/T-083-the-native-gioi-thieu tại 2333720 (17:15Z)`; `git ls-remote` trả `2333720` cho nhánh.
+- **Đề xuất sửa:** `scripts/save-branch.sh`: trước khi báo lỗi, đọc lại `git ls-remote`; nhánh trên origin đã là đúng commit đầu nhánh thì in "ĐÃ ĐẨY". Hoặc `docs/auto-run.md` mục Giao bước 3 đến 5: khi `push-on-commit.sh` còn chạy, phiên chính dừng nó (công cụ dừng tác vụ nền) trước khi tự đẩy.
+- **Áp dụng:**
+- **Kiểm chứng:**

@@ -1,7 +1,7 @@
 ---
 ticket: T-086
 title: Khóa tư thế premium ở thư viện, chi tiết, camera; mở bằng quảng cáo có thưởng `rw_premium_pose`
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -917,3 +917,15 @@ Phiên bản 3:
 - **Lệch so với plan:** không file nào ngoài mục 3.2; không câu khẳng định cũ nào viết lại; ba chỗ code khác chữ của plan, giữ ý định: log "Requested pose is locked" đặt ở `onRequestedPose` thay `onLibraryReady` để ghi một lần; `onNextPose` giữ hành vi cũ khi dải chỉ có một tư thế và không có tư thế khóa; mục con của `manual-test.md` là 11.6.
 - **Việc còn lại:** người chọn hướng ở câu 13 mục 8 và duyệt phiên bản 3; phiên sau tiếp tục trên nhánh (mục 3.1, Tiếp tục).
 - **Cần người xem:** câu 13 mục 8; ảnh chuẩn mới trên nhánh (`PosesScreen_premium_*`, `PoseDetailScreen_premium_*`, `PoseUnlockDialogScreen_default_*`, `CameraScreen_premium_dark`); ảnh chi tiết premium có bóng của `PrimaryButton`, có thể lệch trên CI Linux (L-145).
+
+### RUN-20261101-01, phiên bản plan 3
+
+- **Kết quả:** đã merge (2026-11-01 16:39 UTC, commit d52fc4d của nhánh).
+- **Nhánh, PR:** `claude/T-086-khoa-tu-the-premium` (tiếp tục nhánh của RUN-20261031-02), #295.
+- **Đã làm:** gộp nhánh chính (`4ac5c5b`, không xung đột); đổi con số của `PoseDetailScreenTest.unlockDialogCard_matchesDesign` theo mục 4 phiên bản 3 (thẻ cao 296, góc trên 297,5; commit `d52fc4d`). Phần code đã có từ lần trước (`a52568f`). Phiên chính tự làm (task tiếp tục, phần việc nhỏ).
+- **Test viết trước:** bước 3 chỉ áp cho test đổi: test mới qua trên code đã có; đối chứng tạm đặt lại 288 thì đỏ ở `PoseDetailScreenTest.kt:679`. `scripts/check.sh` qua: 2817 test JVM, 155 ảnh.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 7 ghi chú (mô tả PR #295), gồm: hai nút hộp thoại trong ảnh chuẩn giữ chữ tiếng Anh của khung (câu 4); dòng phụ thẻ 4 trong ảnh thư viện lấy từ dữ liệu có sẵn; ở chi tiết, camera mở lúc SDK báo thưởng khi quảng cáo còn che (kiểm ở `manual-test.md` 11.6 bước 4); ghi mở khóa lỗi ở camera chỉ ghi log (câu 7); ba tệp của dự án mẫu bị sửa (đề xuất về mẫu).
+- **Kết quả CI:** `pr-check` xanh lần đầu (lần chạy 41326034335).
+- **Lệch so với plan:** ngoài mục 3.2 không có; ba chỗ code khác chữ của plan giữ ý định (nhật ký lần dừng); thay đổi file test sau commit test chỉ là `d52fc4d` theo phiên bản 3.
+- **Việc còn lại:** đề xuất `RewardedAdDialogCard` công khai và cách dịch chuỗi của khung về dự án mẫu (`docs/ops/from-app.md`); người thiết kế sửa frame `PoseUnlockDialogScreen_*` cho nút "Để sau" cao 48.
+- **Cần người xem:** 8 ảnh chuẩn mới (`PosesScreen_premium_*`, `PoseDetailScreen_premium_*`, `PoseUnlockDialogScreen_default_*`, `CameraScreen_premium_dark`); `manual-test.md` 11.6 trên máy thật với quảng cáo thử.

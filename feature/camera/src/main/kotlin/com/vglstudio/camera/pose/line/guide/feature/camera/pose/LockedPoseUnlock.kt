@@ -20,10 +20,15 @@ internal class LockedPoseUnlock(private val action: State<RewardedAction>, priva
 
     /** Holds [id] in the view model first, so an action that runs at once (key off, consent closed) reads it. */
     fun select(id: String) {
-        // Empty frame of step 3 (plan T-086, section 4).
+        hold(id)
+        action.value.start()
     }
 }
 
+/**
+ * The unlock of the locked cells of [viewModel]. [rememberUpdatedState] keeps the newest [RewardedAction] for the
+ * remembered PoseActions of the screen.
+ */
 @Composable
 internal fun rememberLockedPoseUnlock(viewModel: PoseViewModel): LockedPoseUnlock {
     val action = rememberRewardedAction(AdPlacement.RW_PREMIUM_POSE, onGranted = viewModel::onUnlockGranted)

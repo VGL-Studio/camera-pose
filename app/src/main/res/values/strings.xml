@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Camera Pose: Lines and Guides</string>
+    <string name="app_name" translatable="false">Camera Pose: Lines and Guides</string>
+
+    <!--
+        The rewarded dialog of :core:ads, the same English text as the framework: the app gives the default here so
+        that its values-<language> files translate a string of its own (lint ExtraTranslation; plan T-086).
+    -->
+    <string name="ads_reward_watch">Watch ad</string>
+    <string name="ads_reward_no_thanks">No, thanks</string>
+    <string name="ads_reward_check_connection">Check your connection and try again</string>
 </resources>

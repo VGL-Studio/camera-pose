@@ -30,4 +30,8 @@
     <string name="poses_detail_shoot">Chụp với tư thế này</string>
     <string name="poses_image_error_title">Không tải được ảnh</string>
     <string name="poses_image_error_message">Đã có lỗi khi tải ảnh. Thử lại sau ít phút.</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="poses_detail_unlock">Xem quảng cáo để dùng</string>
+    <string name="poses_unlock_failed">Chưa mở khóa được tư thế. Thử lại.</string>
 </resources>

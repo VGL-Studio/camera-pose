@@ -73,4 +73,7 @@
     <string name="camera_match_straighten_left_leg">เหยียดขาซ้ายให้ตรง</string>
     <string name="camera_match_bend_right_knee">งอเข่าขวาอีก</string>
     <string name="camera_match_straighten_right_leg">เหยียดขาขวาให้ตรง</string>
+
+    <!-- Cell of a premium pose not unlocked yet (spec poses, KB-8; plan T-086). -->
+    <string name="camera_cd_thumb_premium">%1$s, พรีเมียม, แตะเพื่อปลดล็อก</string>
 </resources>

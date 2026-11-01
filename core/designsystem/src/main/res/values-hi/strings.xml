@@ -5,4 +5,9 @@
     <string name="network_dialog_message">ऐप को चलने के लिए नेटवर्क चाहिए। इंटरनेट कनेक्शन जाँचें, फिर से कोशिश करें।</string>
     <string name="network_dialog_retry">फिर से कोशिश करें</string>
     <string name="network_dialog_still_offline">अभी भी नेटवर्क नहीं है</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="premium_badge_label">प्रीमियम पोज़</string>
+    <string name="premium_unlock_title">यह पोज़ अनलॉक करें</string>
+    <string name="premium_unlock_message">इस पोज़ को अनलॉक करने के लिए एक छोटा विज्ञापन देखें, फिर इसे इस डिवाइस पर हमेशा इस्तेमाल करें।</string>
 </resources>

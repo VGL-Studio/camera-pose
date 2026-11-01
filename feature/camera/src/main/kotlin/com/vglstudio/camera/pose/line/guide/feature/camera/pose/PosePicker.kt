@@ -135,7 +135,8 @@ private fun CategoryChips(
 
 /**
  * Cells in the order of the view model. Each cell asks for its thumbnail when it is put on screen; a new
- * [PoseUiState.Ready.scrollRequest] scrolls to its cell unless that cell is already fully on screen.
+ * [PoseUiState.Ready.scrollRequest] scrolls to its cell unless that cell is already fully on screen. A locked cell has
+ * the premium badge and calls [PoseActions.onLockedPoseSelect]; one that failed to load keeps the failure description.
  */
 @Composable
 private fun PoseStrip(state: PoseUiState.Ready, actions: PoseActions, listState: LazyListState, enabled: Boolean) {
@@ -160,15 +161,19 @@ private fun PoseStrip(state: PoseUiState.Ready, actions: PoseActions, listState:
             PoseThumb(
                 image = (item.image as? PoseImage.Ready)?.bitmap,
                 selected = item.id == state.selected?.id,
-                onClick = { actions.onPoseSelect(item.id) },
-                contentDescription = if (failed) {
-                    stringResource(R.string.camera_cd_thumb_failed, item.label)
-                } else {
-                    item.label
+                // A locked cell opens the unlock dialog and keeps the pose in use (spec poses, KB-8).
+                onClick = {
+                    if (item.locked) actions.onLockedPoseSelect(item.id) else actions.onPoseSelect(item.id)
+                },
+                contentDescription = when {
+                    failed -> stringResource(R.string.camera_cd_thumb_failed, item.label)
+                    item.locked -> stringResource(R.string.camera_cd_thumb_premium, item.label)
+                    else -> item.label
                 },
                 modifier = Modifier.testTag(CameraTestTags.pose(item.id)),
                 failed = failed,
                 enabled = enabled,
+                premium = item.locked,
             )
         }
     }

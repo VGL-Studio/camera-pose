@@ -5,4 +5,9 @@
     <string name="network_dialog_message">แอปต้องใช้เครือข่ายในการทำงาน ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง</string>
     <string name="network_dialog_retry">ลองอีกครั้ง</string>
     <string name="network_dialog_still_offline">ยังไม่มีเครือข่าย</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="premium_badge_label">ท่าพรีเมียม</string>
+    <string name="premium_unlock_title">ปลดล็อกท่านี้</string>
+    <string name="premium_unlock_message">ดูโฆษณาสั้นๆ เพื่อปลดล็อกท่านี้ แล้วใช้ได้ตลอดในอุปกรณ์นี้</string>
 </resources>

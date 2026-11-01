@@ -43,7 +43,9 @@ private val BadgeOffset = 7.dp
  * Pose thumbnail of the strip (sticker.md, section 4): 64 dp square, [image] cropped to the rounded corners. Selected:
  * a 3 dp yellow border and a [SelectedBadge] outside the top right corner. No image yet: only the fill. [failed]: a
  * retry icon in the middle. Screen readers hear [contentDescription] and whether it is selected. [enabled] false: not
- * selectable, read as disabled; the caller fades it (plan T-061).
+ * selectable, read as disabled; the caller fades it (plan T-061). [premium]: a premium pose not unlocked yet, with a
+ * [PremiumBadge] over the top left corner, mirroring the selected badge; the badge has no description of its own, as
+ * [contentDescription] already says "premium" (spec poses, KB-8).
  */
 @Composable
 fun PoseThumb(
@@ -108,6 +110,13 @@ fun PoseThumb(
         )
         if (selected) {
             SelectedBadge(modifier = Modifier.align(Alignment.TopEnd).offset(x = BadgeOffset, y = -BadgeOffset))
+        }
+        if (premium) {
+            PremiumBadge(
+                size = PremiumBadgeSize.Thumb,
+                contentDescription = null,
+                modifier = Modifier.align(Alignment.TopStart).offset(x = -BadgeOffset, y = -BadgeOffset),
+            )
         }
     }
 }

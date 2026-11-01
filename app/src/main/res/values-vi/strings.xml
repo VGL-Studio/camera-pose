@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Buttons and message of the rewarded dialog of :core:ads (spec poses, KB-8; plan T-086). -->
+    <string name="ads_reward_watch">Xem quảng cáo</string>
+    <string name="ads_reward_no_thanks">Để sau</string>
+    <string name="ads_reward_check_connection">Kiểm tra kết nối rồi thử lại</string>
+</resources>

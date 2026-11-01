@@ -54,12 +54,14 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.lastphoto.LastPhotoVi
 import com.vglstudio.camera.pose.line.guide.feature.camera.layout.isUnfolded
 import com.vglstudio.camera.pose.line.guide.feature.camera.match.MatchUiState
 import com.vglstudio.camera.pose.line.guide.feature.camera.match.PoseMatchViewModel
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.LockedPoseUnlockDialog
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.OverlayToolColumn
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseActions
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseOverlay
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PosePicker
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseUiState
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.PoseViewModel
+import com.vglstudio.camera.pose.line.guide.feature.camera.pose.rememberLockedPoseUnlock
 import com.vglstudio.camera.pose.line.guide.feature.camera.pose.toolColumnPlacement
 
 /**
@@ -81,10 +83,13 @@ internal fun CameraRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val poseState by poseViewModel.uiState.collectAsStateWithLifecycle()
     val matchState by matchViewModel.uiState.collectAsStateWithLifecycle()
+    // A tap on a locked premium cell: the rewarded unlock (spec poses, KB-8; camera KB-1, criterion 8).
+    val lockedUnlock = rememberLockedPoseUnlock(poseViewModel)
     val poseActions = remember(poseViewModel) {
         PoseActions(
             onCategorySelect = poseViewModel::onCategorySelect,
             onPoseSelect = poseViewModel::onPoseSelect,
+            onLockedPoseSelect = lockedUnlock::select,
             onThumbShown = poseViewModel::onThumbShown,
             onPreviousStep = poseViewModel::onPreviousStep,
             onNextStep = poseViewModel::onNextStep,
@@ -176,6 +181,7 @@ internal fun CameraRoute(
             onLastPhotoClick = lastPhotoUri?.let { uri -> { currentOnOpenLastPhoto(uri) } },
             matchState = matchState,
         )
+        LockedPoseUnlockDialog(lockedUnlock, poseName = (poseState as? PoseUiState.Ready)?.unlockPrompt?.name)
     }
 }
 

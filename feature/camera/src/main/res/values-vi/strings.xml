@@ -73,4 +73,7 @@
     <string name="camera_match_straighten_left_leg">Duỗi thẳng chân trái</string>
     <string name="camera_match_bend_right_knee">Gập gối phải thêm</string>
     <string name="camera_match_straighten_right_leg">Duỗi thẳng chân phải</string>
+
+    <!-- Cell of a premium pose not unlocked yet (spec poses, KB-8; plan T-086). -->
+    <string name="camera_cd_thumb_premium">%1$s, premium, chạm để mở khóa</string>
 </resources>

@@ -1,0 +1,30 @@
+ticket: T-086
+criterion: Tư thế premium chưa mở khóa mở được chi tiết, nút chính là nút mở khóa; bấm nút thì hộp thoại mở khóa hiện, hay tư thế mở ngay khi cổng đồng ý đóng; "Để sau" giữ khóa (spec poses KB-8, tiêu chí 2, 3, 5, 9)
+timeout: 240
+fresh
+consent decline 30
+# Onboarding of T-082 (3 or 4 pages): Next on each page, then Enable camera; a camera already granted skips it.
+wait id=onboarding_page_intro | id=camera_screen 60
+tap_if id=onboarding_next
+wait id=onboarding_page_poses | id=camera_screen 10
+tap_if id=onboarding_next
+wait id=onboarding_page_premium | id=onboarding_page_camera | id=camera_screen 10
+tap_if id=onboarding_next
+wait id=onboarding_page_camera | id=camera_screen 10
+tap_if id=onboarding_enable_camera
+wait id=camera_screen 15
+need id=camera_poses 15
+tap id=camera_poses
+wait id=poses_grid 20
+# The badge is a node of its own (resource-id pose_premium_badge, plan T-086 section 4.1); it takes no tap, so a tap
+# on it lands on its card.
+need id=pose_premium_badge in=poses_grid 20
+tap id=pose_premium_badge in=poses_grid index=1
+wait id=pose_detail_screen 15
+expect id=pose_detail_unlock
+shot locked
+tap id=pose_detail_unlock
+wait str=ads_reward_watch | id=camera_screen 20
+shot after_unlock_tap
+tap_if str=ads_reward_no_thanks
+wait id=pose_detail_unlock | id=camera_screen 15

@@ -32,6 +32,8 @@ object StagingRemoteValuesModule {
         AdPlacement.REVIEW_INTERSTITIAL,
         // The card of the pose library grid (spec ads, question 11; plan T-080).
         AdPlacement.POSES_IN_COLLECTION,
+        // The unlock of a premium pose (spec poses, section 8; plan T-086).
+        AdPlacement.RW_PREMIUM_POSE,
     ).map { LocalRemoteValue.of(AdsSettings.placementEnabled(it), true) }.toSet()
 
     /**

@@ -275,6 +275,7 @@ class PosesViewModel @Inject constructor(
                         steps = pose.steps,
                         saved = savedOverrides[id] ?: (id in content.savedIds),
                         thumbnail = thumbnails[id] ?: ThumbnailState.Loading,
+                        locked = id in content.lockedIds,
                     )
                 }
             },

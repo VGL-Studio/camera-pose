@@ -5,4 +5,9 @@
     <string name="network_dialog_message">App cần mạng để hoạt động. Kiểm tra kết nối Internet rồi thử lại.</string>
     <string name="network_dialog_retry">Thử lại</string>
     <string name="network_dialog_still_offline">Vẫn chưa có mạng</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="premium_badge_label">Tư thế premium</string>
+    <string name="premium_unlock_title">Mở khóa tư thế</string>
+    <string name="premium_unlock_message">Xem một quảng cáo ngắn để mở tư thế này, rồi dùng mãi về sau trên máy này.</string>
 </resources>

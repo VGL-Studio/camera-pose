@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Buttons and message of the rewarded dialog of :core:ads (spec poses, KB-8; plan T-086). -->
+    <string name="ads_reward_watch">Ver anuncio</string>
+    <string name="ads_reward_no_thanks">Ahora no</string>
+    <string name="ads_reward_check_connection">Revisa tu conexión y vuelve a intentarlo</string>
+</resources>

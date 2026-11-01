@@ -1,7 +1,7 @@
 ---
 ticket: T-085
 title: Dữ liệu tư thế premium và danh sách đã mở khóa (`:core:poses`, catalog)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -584,3 +584,15 @@ Phiên bản 2:
 - **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Phiên bản 2 soạn lại sau đồng bộ #279, không đổi code, test hay tiêu chí.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261031-02, phiên bản plan 2
+
+- **Kết quả:** đã merge (2026-11-01 12:16 UTC, commit bc4de77 của nhánh).
+- **Nhánh, PR:** `claude/T-085-du-lieu-tu-the-premium`, #289.
+- **Đã làm:** `Pose.premium` (thiếu trường thì miễn phí; tư thế khởi đầu và mặc định không bao giờ premium); `PremiumPoseRepository` (`access`, `unlock(): Boolean`) và `DataStorePremiumPoseRepository`; `PoseListStore` tách phần chung với danh sách đã dùng gần đây; cờ `PREMIUM_POSES` (mặc định tắt, staging bật); bảng khóa sinh lại; `setup-check-app.sh` kiểm catalog premium; `docs/ops/pose-catalog.md`; một câu ở `docs/ops/staging-and-runs.md`. Bước 3 đến 5 do phiên con làm trong worktree `../task-T-085`.
+- **Test viết trước:** commit `2e72127`; 19 test JVM và 5 test script. 15 test JVM đỏ đúng lý do trên khung rỗng (ví dụ `expected:<[true, false, false]> but was:<[false, false, false]>`), 3 test script đỏ như mục 4.1; `unlock_thenNewRepository_staysUnlocked` đỏ sớm hơn dự kiến ở `assertTrue(unlock)`. 4 test xanh ngay như plan, kiểm bằng đột biến (L-108), đều đỏ đúng lý do. Test viết chặt lại: 0. `scripts/check.sh` qua: 2723 test JVM, 138 ảnh.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 4 ghi chú (mô tả PR #289): `premium` sai kiểu làm app bỏ cả tư thế, chưa có test; mọi tư thế premium thì mặc định vẫn là tư thế đầu; `access` phát `enabled=false` trước khi Remote Config tải xong (T-086 quyết cách hiện); chữ dòng log đọc lỗi đổi.
+- **Kết quả CI:** `pr-check` xanh lần đầu (lần chạy 41304706221).
+- **Lệch so với plan:** Không có (26 file khớp mục 3.2, không thay đổi file test sau commit test).
+- **Việc còn lại:** phần giao diện, quảng cáo có thưởng và sự kiện của KB-8 ở T-086.
+- **Cần người xem:** dòng `premiumPoses()` trong `StagingFeatureFlagsModule`; nội dung `docs/ops/pose-catalog.md` trước khi soạn catalog v4.

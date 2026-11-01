@@ -24,8 +24,6 @@ import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.PoseDetailD
 import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.PosesDestination
 import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.poseDetailScreen
 import com.vglstudio.camera.pose.line.guide.feature.poses.navigation.posesScreen
-import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.SampleDestination
-import com.vglstudio.camera.pose.line.guide.feature.sample.navigation.sampleScreen
 import com.vglstudio.camera.pose.line.guide.feature.settings.navigation.SettingsDestination
 import com.vglstudio.camera.pose.line.guide.feature.settings.navigation.settingsScreen
 import kotlinx.coroutines.CoroutineStart
@@ -99,7 +97,6 @@ internal fun AppNavHost(
                 }
             },
         )
-        sampleScreen()
         cameraScreen(
             onPhotoCaptured = { navController.navigate(ReviewDestination()) { launchSingleTop = true } },
             onOpenPoses = posesOpener(posesEnabled) {
@@ -168,5 +165,4 @@ internal fun ReportPastLoading(navController: NavHostController, onPastLoadingCh
 private fun MainScreen.destination(): Any = when (this) {
     MainScreen.ONBOARDING -> OnboardingDestination
     MainScreen.CAMERA -> CameraDestination()
-    MainScreen.SAMPLE -> SampleDestination
 }

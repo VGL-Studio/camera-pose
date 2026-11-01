@@ -18,11 +18,6 @@ object StagingFeatureFlagsModule {
     @Provides
     @IntoSet
     @LocallyEnabledFlags
-    fun sample(): FeatureFlag = FeatureFlag.SAMPLE
-
-    @Provides
-    @IntoSet
-    @LocallyEnabledFlags
     fun loading(): FeatureFlag = FeatureFlag.LOADING
 
     @Provides

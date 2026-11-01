@@ -21,18 +21,14 @@ internal class MainScreenChooser @Inject constructor(
     /**
      * Read once, when loading is done: the choice only matters at that moment (plan T-001, question 3).
      * Loading has just waited for Remote Config (ADR-1001), so the first value is the latest.
-     * Onboarding only leads to the camera, so it needs both flags (plan T-012, question 2). The stored status is read
-     * only when onboarding is available; a read error shows onboarding rather than skip it (plan T-012, question 3).
+     * The camera is always there, so onboarding only needs its own flag; feature_camera_enabled is not read (plan
+     * T-081, question 1). The stored status is read only when onboarding is available; a read error shows onboarding
+     * rather than skip it (plan T-012, question 3).
      */
     private suspend fun inputs(): MainScreenInputs {
-        val camera = featureFlags.enabled(FeatureFlag.CAMERA).first()
-        val onboarding = featureFlags.enabled(FeatureFlag.ONBOARDING).first() && camera
+        val onboarding = featureFlags.enabled(FeatureFlag.ONBOARDING).first()
         val onboardingDone = onboarding && readOnboardingDone()
-        return MainScreenInputs(
-            onboardingAvailable = onboarding,
-            onboardingDone = onboardingDone,
-            cameraAvailable = camera,
-        )
+        return MainScreenInputs(onboardingAvailable = onboarding, onboardingDone = onboardingDone)
     }
 
     private suspend fun readOnboardingDone(): Boolean = try {

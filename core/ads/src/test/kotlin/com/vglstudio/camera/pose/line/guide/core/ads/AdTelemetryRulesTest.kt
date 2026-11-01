@@ -139,14 +139,14 @@ class AdTelemetryRulesTest {
 
     @Test
     fun loadPlacement_table() {
-        val screen = AdPlacement.SAMPLE_NATIVE_SMALL
+        val screen = AdPlacement.POSES_BOTTOM
         listOf(AdFormat.INTERSTITIAL, AdFormat.NATIVE_FULL_SCREEN, AdFormat.APP_OPEN, AdFormat.REWARDED).forEach {
             assertEquals(it.name, "preload", loadPlacementOf(it, screen))
             assertEquals(it.name, "preload", loadPlacementOf(it, null))
         }
-        assertEquals("sample_native_small", loadPlacementOf(AdFormat.NATIVE_SMALL, screen))
+        assertEquals("poses_bottom", loadPlacementOf(AdFormat.NATIVE_SMALL, screen))
         assertEquals("preload", loadPlacementOf(AdFormat.NATIVE_SMALL, null))
-        assertEquals("sample_native_small", loadPlacementOf(AdFormat.BANNER, screen))
+        assertEquals("poses_bottom", loadPlacementOf(AdFormat.BANNER, screen))
         assertNull(loadPlacementOf(AdFormat.BANNER, null))
     }
 
@@ -158,7 +158,7 @@ class AdTelemetryRulesTest {
             assertEquals(it.name, "pool", loadPlacementOf(it, null))
         }
         // Control: a single native small ad keeps the placement of its screen.
-        assertEquals("sample_native_small", loadPlacementOf(AdFormat.NATIVE_SMALL, AdPlacement.SAMPLE_NATIVE_SMALL))
+        assertEquals("poses_bottom", loadPlacementOf(AdFormat.NATIVE_SMALL, AdPlacement.POSES_BOTTOM))
     }
 
     @Test

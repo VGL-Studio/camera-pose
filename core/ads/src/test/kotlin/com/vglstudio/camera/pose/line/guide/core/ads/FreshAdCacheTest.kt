@@ -10,7 +10,7 @@ import org.junit.Test
 class FreshAdCacheTest {
     private val discarded = mutableListOf<String>()
     private val cache = FreshAdCache<String>(onDiscard = { discarded += it })
-    private val key = AdPlacement.SAMPLE_NATIVE_SMALL
+    private val key = AdPlacement.POSES_BOTTOM
 
     @Test
     fun emptyCache_hasNothingFresh() {

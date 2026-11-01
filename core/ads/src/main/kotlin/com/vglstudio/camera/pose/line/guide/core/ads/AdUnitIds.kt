@@ -50,7 +50,7 @@ object GoogleTestAdUnitIds : AdUnitIds {
 /**
  * Real ad units, given when the release is built and never stored in the repo (ADR-0009).
  * [config] has the form `<key>=<ad unit>;<key>=<ad unit>`, with two kinds of key in one table (plan T-056):
- * - a placement key (`sample_native_small=...`): the unit of the placement's own format;
+ * - a placement key (`poses_bottom=...`): the unit of the placement's own format;
  * - a slot key, the code of a layer format of a bottom bar ([BOTTOM_BAR_LAYER_FORMATS]: `banner=...`,
  *   `native_collap=...`): one unit for that layer of every bottom bar of the app (M-05, spec question 14).
  */

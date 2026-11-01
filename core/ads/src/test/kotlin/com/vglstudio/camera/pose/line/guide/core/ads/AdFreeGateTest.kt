@@ -226,7 +226,7 @@ class AdFreeGateTest {
     /** As FullScreenAdsTest.start_startsAppsFlyerAt10s_notBefore, then the consent gate opened. */
     private fun consentAndAttribution(adFree: Boolean): ConsentRun {
         val settings = FakeRemoteSettings().apply {
-            set(AdsSettings.placementEnabled(AdPlacement.SAMPLE_NATIVE_SMALL), true)
+            set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true)
         }
         val attribution = FakeAppsFlyerStartup()
         val controller = testAdsController(
@@ -251,7 +251,7 @@ class AdFreeGateTest {
             starts = starts,
             prepares = attribution.prepares,
             canRequestAds = controller.canRequestAds.value,
-            enabled = runBlocking { controller.isEnabled(AdPlacement.SAMPLE_NATIVE_SMALL).first() },
+            enabled = runBlocking { controller.isEnabled(AdPlacement.POSES_BOTTOM).first() },
         )
     }
 }

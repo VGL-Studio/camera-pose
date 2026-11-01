@@ -16,42 +16,37 @@ import org.junit.Test
 
 /** The screen after loading (spec loading, KB-1): onboarding the first time, then the camera. */
 class MainScreenTest {
-    private fun choose(onboarding: Boolean, done: Boolean, camera: Boolean) = chooseMainScreen(
-        MainScreenInputs(onboardingAvailable = onboarding, onboardingDone = done, cameraAvailable = camera),
+    private fun choose(onboarding: Boolean, done: Boolean) = chooseMainScreen(
+        MainScreenInputs(onboardingAvailable = onboarding, onboardingDone = done),
     )
 
     @Test
     fun notOnboardedAndOnboardingAvailable_choosesOnboarding() {
-        assertEquals(MainScreen.ONBOARDING, choose(onboarding = true, done = false, camera = true))
-        assertEquals(MainScreen.ONBOARDING, choose(onboarding = true, done = false, camera = false))
+        assertEquals(MainScreen.ONBOARDING, choose(onboarding = true, done = false))
     }
 
     @Test
-    fun onboardedAndCameraAvailable_choosesCamera() {
-        assertEquals(MainScreen.CAMERA, choose(onboarding = true, done = true, camera = true))
+    fun onboarded_choosesCamera() {
+        assertEquals(MainScreen.CAMERA, choose(onboarding = true, done = true))
     }
 
     @Test
-    fun onboardingUnavailable_cameraAvailable_choosesCamera() {
-        assertEquals(MainScreen.CAMERA, choose(onboarding = false, done = false, camera = true))
-        assertEquals(MainScreen.CAMERA, choose(onboarding = false, done = true, camera = true))
+    fun onboardingUnavailable_choosesCamera() {
+        assertEquals(MainScreen.CAMERA, choose(onboarding = false, done = false))
+        assertEquals(MainScreen.CAMERA, choose(onboarding = false, done = true))
+    }
+
+    // The app has no other main screen since the sample screen left it (plan T-081, ADR-1008).
+    @Test
+    fun everyScreen_isOnboardingOrCamera() {
+        assertEquals(listOf(MainScreen.ONBOARDING, MainScreen.CAMERA), MainScreen.entries.toList())
     }
 
     @Test
-    fun onboardingAvailableButDone_cameraUnavailable_choosesSample() {
-        assertEquals(MainScreen.SAMPLE, choose(onboarding = true, done = true, camera = false))
-    }
-
-    @Test
-    fun nothingAvailable_choosesSample() {
-        assertEquals(MainScreen.SAMPLE, choose(onboarding = false, done = false, camera = false))
-    }
-
-    @Test
-    fun chooserBeforeOnboardingAndCamera_choosesSample() = runTest {
+    fun chooserWithNoFlag_choosesCamera() = runTest {
         val chooser =
             MainScreenChooser(FakeFeatureFlags(emptySet()), FakeOnboardingStatus(done = false), RecordingAppLogger())
-        assertEquals(MainScreen.SAMPLE, chooser.choose())
+        assertEquals(MainScreen.CAMERA, chooser.choose())
     }
 
     @Test
@@ -64,11 +59,13 @@ class MainScreenTest {
         assertEquals(MainScreen.CAMERA, chooser.choose())
     }
 
+    // The camera flag is no longer read (plan T-081, question 1): onboarding on and done, camera flag off.
     @Test
-    fun chooser_cameraFlagOff_choosesSample() = runTest {
-        val chooser =
-            MainScreenChooser(FakeFeatureFlags(emptySet()), FakeOnboardingStatus(done = false), RecordingAppLogger())
-        assertEquals(MainScreen.SAMPLE, chooser.choose())
+    fun chooser_cameraFlagOff_choosesCamera() = runTest {
+        val flags = FakeFeatureFlags(setOf(FeatureFlag.ONBOARDING))
+        val chooser = MainScreenChooser(flags, FakeOnboardingStatus(done = true), RecordingAppLogger())
+        assertEquals(MainScreen.CAMERA, chooser.choose())
+        assertEquals(listOf(FeatureFlag.ONBOARDING), flags.read)
     }
 
     // T-012: onboarding flag, camera flag and "onboarding done".
@@ -94,12 +91,12 @@ class MainScreenTest {
         assertEquals(0, status.reads)
     }
 
-    // Passes on the skeleton too; kept as a guard (plan T-012, section 4, question 2).
+    // Onboarding only needs its own flag (plan T-081, question 1; was both flags in plan T-012, question 2).
     @Test
-    fun chooser_onboardingOnCameraOff_choosesSample() = runTest {
+    fun chooser_onboardingOnCameraOff_choosesOnboarding() = runTest {
         val status = FakeOnboardingStatus(done = false)
-        assertEquals(MainScreen.SAMPLE, chooser(setOf(FeatureFlag.ONBOARDING), status).choose())
-        assertEquals(0, status.reads)
+        assertEquals(MainScreen.ONBOARDING, chooser(setOf(FeatureFlag.ONBOARDING), status).choose())
+        assertEquals(1, status.reads)
     }
 
     @Test
@@ -130,8 +127,14 @@ class MainScreenTest {
     }
 }
 
+/** Records every flag read, in order. */
 private class FakeFeatureFlags(private val enabled: Set<FeatureFlag>) : FeatureFlags {
-    override fun enabled(flag: FeatureFlag): Flow<Boolean> = flowOf(flag in enabled)
+    val read = mutableListOf<FeatureFlag>()
+
+    override fun enabled(flag: FeatureFlag): Flow<Boolean> {
+        read += flag
+        return flowOf(flag in enabled)
+    }
 }
 
 /** Counts reads and marks; [readError] makes every read fail. */

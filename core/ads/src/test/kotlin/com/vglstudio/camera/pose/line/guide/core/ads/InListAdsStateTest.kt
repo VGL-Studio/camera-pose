@@ -100,7 +100,7 @@ class InListAdsStateTest {
     }
 
     private fun inListAds(rows: InListRowSource, scope: CoroutineScope) = InListAds(
-        placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+        placement = AdPlacement.POSES_BOTTOM,
         every = every,
         rowSource = rows,
         scope = scope,
@@ -741,7 +741,7 @@ class InListAdsStateTest {
 
     private companion object {
         const val UNIT_ID = "test-native-unit"
-        const val KEY = "sample_native_small"
+        const val KEY = "poses_bottom"
         const val TIMEOUT = 10_000L
     }
 }

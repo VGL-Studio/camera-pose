@@ -351,7 +351,7 @@ class NativeAdSourcesTest {
     }
 
     private companion object {
-        val PLACEMENT = AdPlacement.SAMPLE_NATIVE_SMALL
+        val PLACEMENT = AdPlacement.POSES_BOTTOM
 
         /** The defaults of T-019, as read when Remote Config has no value. */
         val DEFAULT_FLAGS: AdsGlobalFlags = runBlocking { DefaultAdsFlags(FakeRemoteSettings()).global.first() }

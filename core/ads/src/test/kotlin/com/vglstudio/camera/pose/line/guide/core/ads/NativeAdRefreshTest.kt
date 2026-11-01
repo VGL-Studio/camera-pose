@@ -601,6 +601,6 @@ class NativeAdRefreshTest {
     }
 
     private companion object {
-        const val KEY = "sample_native_small"
+        const val KEY = "poses_bottom"
     }
 }

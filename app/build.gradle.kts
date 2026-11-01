@@ -166,7 +166,6 @@ dependencies {
     implementation(project(":core:review"))
     implementation(project(":core:network"))
 
-    implementation(project(":feature:sample"))
     implementation(project(":feature:loading"))
     implementation(project(":feature:camera"))
     implementation(project(":feature:onboarding"))

@@ -51,7 +51,7 @@ class SdkBannerAdViewTest {
     private fun banner(refresh: BannerRefresh) = SdkBannerAdView(
         adView = adView,
         refresh = refresh,
-        placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+        placement = AdPlacement.POSES_BOTTOM,
         unitId = "unit",
         telemetry = telemetry,
         now = { nowMillis },
@@ -124,7 +124,7 @@ class SdkBannerAdViewTest {
         val view = SdkBannerAdView(
             adView = adView,
             refresh = BannerRefresh.BY_AD_UNIT,
-            placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+            placement = AdPlacement.POSES_BOTTOM,
             unitId = "unit",
             telemetry = telemetry,
             now = { nowMillis },
@@ -137,10 +137,10 @@ class SdkBannerAdViewTest {
 
         val success = metrics.events.filterIsInstance<AdMetricEvent.LoadSuccess>().single()
         assertEquals(AdFormat.BANNER.metricCode(), success.adFormat)
-        assertEquals("sample_native_small", success.adPlacement)
+        assertEquals("poses_bottom", success.adPlacement)
         val click = metrics.events.filterIsInstance<AdMetricEvent.Clicked>().single()
         assertEquals(AdFormat.BANNER.metricCode(), click.adFormat)
-        assertEquals("sample_native_small", click.adPlacement)
+        assertEquals("poses_bottom", click.adPlacement)
     }
 
     @Test
@@ -179,7 +179,7 @@ class SdkBannerAdViewTest {
         SdkBannerAdView(
             adView = adView,
             refresh = BannerRefresh.BY_AD_UNIT,
-            placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+            placement = AdPlacement.POSES_BOTTOM,
             unitId = "unit",
             telemetry = telemetry,
             now = { nowMillis },
@@ -193,8 +193,8 @@ class SdkBannerAdViewTest {
         val lines = logger.entries.filter { it.message.startsWith("Network ") }
         assertEquals(
             listOf(
-                LogEntry(LogLevel.INFO, "Ads", "Network sample_native_small: none tried"),
-                LogEntry(LogLevel.INFO, "Ads", "Network sample_native_small: none tried"),
+                LogEntry(LogLevel.INFO, "Ads", "Network poses_bottom: none tried"),
+                LogEntry(LogLevel.INFO, "Ads", "Network poses_bottom: none tried"),
             ),
             lines,
         )
@@ -215,7 +215,7 @@ class SdkBannerAdViewTest {
         SdkBannerAdView(
             adView = adView,
             refresh = BannerRefresh.BY_AD_UNIT,
-            placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+            placement = AdPlacement.POSES_BOTTOM,
             unitId = "unit",
             telemetry = quietTelemetry,
             now = { nowMillis },
@@ -234,7 +234,7 @@ class SdkBannerAdViewTest {
         SdkBannerAdView(
             adView = adView,
             refresh = BannerRefresh.BY_AD_UNIT,
-            placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+            placement = AdPlacement.POSES_BOTTOM,
             unitId = "unit",
             telemetry = quietTelemetry,
             now = { nowMillis },

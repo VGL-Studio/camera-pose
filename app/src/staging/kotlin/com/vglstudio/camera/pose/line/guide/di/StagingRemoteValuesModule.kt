@@ -20,7 +20,7 @@ import dagger.multibindings.ElementsIntoSet
 object StagingRemoteValuesModule {
     /**
      * The placements of this app show Google test ads on staging (plan T-074, section 8, question 2). Named one by
-     * one, not every placement: the gallery and sample placements of the framework stay off (question 1).
+     * one, not every placement: the gallery placements of the framework stay off (question 1).
      */
     @Provides
     @ElementsIntoSet

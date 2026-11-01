@@ -261,7 +261,7 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 
 | Tên cờ | Mặc định | Ý nghĩa |
 | --- | --- | --- |
-| `feature_camera_enabled` | tắt | Bật để dùng camera làm màn chính. Bản staging bật sẵn |
+| `feature_camera_enabled` | tắt | Từ T-081 không còn tác dụng: sau màn chào (hay khi màn chào không áp dụng) app luôn mở camera. Cờ bỏ khỏi code ở T-088. Trước T-081: bật để dùng camera làm màn chính |
 | `feature_pose_matching_enabled` | tắt | Bật nhận dạng dáng và điểm khớp; tắt từ xa nếu máy chậm hay báo sai nhiều |
 | `feature_in_app_review_enabled` | tắt | Bật hỏi đánh giá app trong app |
 | `is_show_review_interstitial` | tắt | Bật quảng cáo `review_interstitial` (`features/ads/spec.md` câu 2; khóa cũ `ads_review_interstitial_enabled` bỏ từ T-074). Khóa chung `is_show_ads` (mặc định bật) tắt thì mọi quảng cáo tắt |
@@ -348,3 +348,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-29 | AI | Sau T-074 (lượt 3, plan mục 3.1): bỏ chữ "Áp dụng từ T-074", "trước đó ..."; tên khóa mới ở KB-9 và mục 8; mục 6 thêm dữ liệu trên máy và sự kiện quảng cáo do khung ghi. Chuyển `changed`, chờ Nhật xác nhận lại |
 | 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |
 | 2026-10-31 | AI | Chép phần dải tư thế của tư thế premium vào KB-1 (spec poses, KB-8, câu 12; Nhật chọn chép trong PR xác nhận spec poses). Nhật xác nhận cùng spec poses: chọn "Ghi và chuyển confirmed" |
+| 2026-10-31 | Nhật | Mục 8: cờ `feature_camera_enabled` không còn tác dụng từ T-081 (app luôn mở camera; plan T-081 câu 1), bỏ ở T-088 (rà soát độc lập plan T-081; AI ghi). Lời của Nhật: chọn "Sửa spec + ticket bỏ cờ", phương án ghi rõ Nhật xác nhận spec lại ngay. Chuyển `changed` rồi lại `confirmed` |

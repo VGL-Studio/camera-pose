@@ -1,16 +1,16 @@
 ---
 ticket: T-082
 title: Luồng giới thiệu 4 trang thay màn chào (chưa có quảng cáo)
-status: approved             # draft | approved | stopped | done
-version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay
 blocking_points: [analytics]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Tuấn               # người duyệt
-cross_reviewer: Nhật         # bắt buộc khi risk_level là high
-approved_at: 2026-11-01
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -28,6 +28,14 @@ Màn chào một trang của `:feature:onboarding` đổi thành luồng giới 
 - Mục 3.2: xóa hai frame `OnboardingScreen_default_*` khỏi `design/screens/` và `design/context/` (README của gói ghi T-082 bỏ chúng); README mục 1 bỏ dòng `default`.
 - Mục 8: câu 1, 2, 4 đã trả lời theo PR #276; câu 5, 6 đã trả lời (spec, plan T-085); câu 3, 7, 8 còn chờ; câu 9 mới (hình minh họa ở khung mở gập).
 - Mục 5: tiêu chí B từ 2 xuống 1 (đã có thiết kế).
+
+**Phiên bản 3 (2026-11-01): soạn lại sau đồng bộ dự án mẫu #279.** Phiên bản 2 (duyệt 2026-11-01) viết trên nhánh chính trước đợt đồng bộ đợt 5 (`9af5928`: AGP 9.1, Robolectric 4.17, Roborazzi 1.77, test emulator chạy sau merge). Đã rà từng mục: đợt này không sửa file nào của `feature/onboarding/src`, `app/src/androidTest`, 7 tệp `deviceScenarios`, `docs/ops/manual-test.md`, và chỉ thêm `implementation(libs.androidx.activity.compose)` vào `feature/onboarding/build.gradle.kts`. Đã chạy thử nhỏ trên nhánh chính mới: số đo bố cục của màn chào hiện có ở 4 khung giống hệt số đo trên nhánh chính trước đồng bộ, ảnh chuẩn của màn chào qua `verifyRoborazziDebug` (mục 4.1). Code, test, số đo và tiêu chí chấp nhận không đổi. Thay đổi so với phiên bản 2:
+
+- Mục 3.3, Thư viện: `BackHandler` có trên classpath biên dịch của module nhờ dòng `libs.androidx.activity.compose` mà đợt đồng bộ thêm (từ AGP 9, `LocalActivity` và `BackHandler` không còn đi qua thư viện khác); câu cũ "qua convention plugin" không còn đúng. Plan không sửa file build.
+- Mục 4, ngoại lệ viết test trước, và mục 3.5: hai test emulator của `:app` chạy ở job `ui-test` của `main-guard` sau merge (ADR-0043), không chạy ở PR. Mục 6 và câu 10 mới ở mục 8 nêu hệ quả.
+- Mục 4.1: thêm lần chạy thử sau đồng bộ.
+- Mục 7: điều kiện dừng ảnh chuẩn dùng mẫu `'*/src/test/screenshots/*'` (mẫu của `docs/templates/plan.md` sau đồng bộ, L-136 của mẫu). Mẫu cũ `'*/src/test/screenshots/'` không khớp file nào trong thư mục ảnh: đã thử (một ảnh sửa và một ảnh mới: mẫu cũ in rỗng, mẫu mới in cả hai dòng), nên điều kiện dừng cũ không bao giờ kích hoạt.
+- Mục 3.5: số liệu của `scripts/existing-tests.py` chạy lại.
 
 ## 2. Hiểu yêu cầu
 
@@ -340,7 +348,7 @@ Chuỗi đi cùng số (L-077): chỉ `onboarding_page_indicator`; `%1$d` là tr
 - File R2: không chạm.
 - Dữ liệu lưu: không thêm khóa DataStore. Ba khóa mới chỉ ở `SavedStateHandle` của ViewModel (`page_index`, `premium_page`, `viewed_steps`), mất khi người dùng đóng app.
 - **Quyền truy cập:** Không thêm. Quyền camera (`CAMERA`) đã có, dùng như cũ ở trang cuối.
-- **Thư viện và SDK:** Không thêm. `BackHandler` (`androidx.activity.compose`) đã dùng ở `:feature:camera` (`ReviewScreen.kt`) và có trên classpath của module qua convention plugin; `FeatureFlags` từ `:core:config` cũng vậy.
+- **Thư viện và SDK:** Không thêm. `BackHandler` (`androidx.activity.compose`) đã dùng ở `:feature:camera` (`ReviewScreen.kt`). Từ đồng bộ #279, `feature/onboarding/build.gradle.kts` có `implementation(libs.androidx.activity.compose)` (AGP 9 không còn đưa `androidx.activity.compose` lên classpath biên dịch qua thư viện khác; màn chào đã dùng `LocalActivity` của nó), nên `BackHandler` biên dịch được trong module mà không sửa file build: đã thử bằng một test tạm gọi `BackHandler` trong `:feature:onboarding` (mục 4.1). `FeatureFlags` từ `:core:config` có qua convention plugin như trước.
 
 ### 3.4. Phương án dự phòng
 
@@ -348,7 +356,7 @@ Không có. Mọi phần lặp lại mẫu đã có (ViewModel đọc cờ như 
 
 ### 3.5. Hành vi đã có bị đổi
 
-`scripts/existing-tests.py` (2026-10-31) tìm 254 test dùng tên hay tag của ba file plan sửa; plan đã nhắc tới 29 test, tức mọi test của `:feature:onboarding` và hai test emulator của `:app`. 14 test "Cần xem trước" và 124 test "Nên xem" còn lại đều ở module khác (`:feature:camera`, `:feature:poses`, `:feature:settings`, `:core:*`) và chỉ trùng tên với `Ready`, `RequestPermission`, `onPermissionResult` của lớp khác (ví dụ `CameraUiState.Ready`, `CameraViewModel.onPermissionResult`); không test nào trong đó đọc lớp của `:feature:onboarding` (ADR-0001: feature không phụ thuộc feature khác), nên không bị đổi. Câu mới dưới đây là test viết trước của phiên (bước 3).
+`scripts/existing-tests.py` (2026-10-31; chạy lại 2026-11-01 sau đồng bộ #279: 267 test, cùng 14 "Cần xem trước" và 124 "Nên xem", phần tăng là test mới của `:core:ads`, ngoài phạm vi) tìm 254 test dùng tên hay tag của ba file plan sửa; plan đã nhắc tới 29 test, tức mọi test của `:feature:onboarding` và hai test emulator của `:app`. 14 test "Cần xem trước" và 124 test "Nên xem" còn lại đều ở module khác (`:feature:camera`, `:feature:poses`, `:feature:settings`, `:core:*`) và chỉ trùng tên với `Ready`, `RequestPermission`, `onPermissionResult` của lớp khác (ví dụ `CameraUiState.Ready`, `CameraViewModel.onPermissionResult`); không test nào trong đó đọc lớp của `:feature:onboarding` (ADR-0001: feature không phụ thuộc feature khác), nên không bị đổi. Câu mới dưới đây là test viết trước của phiên (bước 3).
 
 | Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
 | --- | --- | --- | --- |
@@ -470,7 +478,7 @@ Phiên chạy `scripts/device-scenario.py check feature/onboarding/src/deviceSce
 
 Thứ tự commit (L-025): commit test của bước 3 có `OnboardingPage.kt` và `OnboardingUiState.kt` mới cùng khung rỗng của `onNextClick`, `onBackClick`, tham số `featureFlags`, `onNext`, `onBack`, `adSlot` (để test biên dịch được rồi đỏ ở câu khẳng định), dữ liệu 6 khóa của `OnboardingStringsTest` cùng 6 chuỗi tiếng Anh và tiếng Việt (test so chữ cần chuỗi có thật). Với khung rỗng, các test giữ hành vi cũ sẽ xanh ngay (`requesting_showsSpinner_andIgnoresClicks`, `firstPage_doesNotInterceptBack`, `PermissionPromptTest`); các test còn lại đỏ vì chưa có trang, chưa có sự kiện bước.
 
-**Ngoại lệ viết test trước:** chuỗi dịch của 5 ngôn ngữ còn lại và icon `ic_onboarding_workspace_premium.xml` là tài nguyên, kiểm sau bằng `everyReleaseLanguage_isTranslated` và ảnh chuẩn. Hai test emulator của `:app` và 7 tệp kịch bản đã có chỉ đổi bước dựng, chạy ở CI (`ui-test`) và `device-session`, không "thất bại trước" được trên JVM. Tệp kịch bản mới chạy ở `device-session` cuối phiên. Phần nối `OnboardingRoute` (`onNext`, `onBack` tới ViewModel) không có test JVM riêng, như hiện nay; kịch bản emulator đi qua nó.
+**Ngoại lệ viết test trước:** chuỗi dịch của 5 ngôn ngữ còn lại và icon `ic_onboarding_workspace_premium.xml` là tài nguyên, kiểm sau bằng `everyReleaseLanguage_isTranslated` và ảnh chuẩn. Hai test emulator của `:app` và 7 tệp kịch bản đã có chỉ đổi bước dựng, chạy ở job `ui-test` của `main-guard` sau merge (ADR-0043, không chạy ở PR) và `device-session`, không "thất bại trước" được trên JVM. Tệp kịch bản mới chạy ở `device-session` cuối phiên. Phần nối `OnboardingRoute` (`onNext`, `onBack` tới ViewModel) không có test JVM riêng, như hiện nay; kịch bản emulator đi qua nó.
 
 ### 4.1. Chạy thử
 
@@ -482,6 +490,18 @@ Lúc soạn plan đã chạy:
 - `scripts/device-scenario.py check` (chạy lại cho phiên bản 2, 2026-10-31) trên bản nháp của tệp kịch bản ở mục 4, chép vào thư mục tạm của phiên soạn plan, không commit: không có lỗi cú pháp; 18 dòng (sau khi thêm bước xoay máy theo rà soát) báo tag `onboarding_page_intro`, `onboarding_page_poses`, `onboarding_page_premium`, `onboarding_page_camera`, `onboarding_next` "không có trong mã nguồn", đúng vì code chưa viết. Phiên chạy lại lệnh này sau bước 4 và phải qua.
 
 Đoạn code ở mục 3.1 là phác thảo, chưa biên dịch.
+
+**Lần chạy thử sau đồng bộ #279 (phiên bản 3).** Đợt đồng bộ đổi Robolectric (4.17) và Roborazzi (1.77), mà mục 4 dựa vào số đo và ảnh chuẩn; nên chạy thử nhỏ trên màn chào hiện có, không có code của plan:
+
+- **Đã chạy:** 2026-11-01, 06:36 tới 06:40 UTC, một nhánh tạm trong worktree soạn plan (worktree tạm riêng bị chặn bởi giới hạn của agent), không commit, đã xóa.
+  - Test tạm `OnboardingTryTest` (4 test): dựng `OnboardingScreen(Ready)` kèm một `BackHandler(enabled = true)` ở các khung `vi-w411dp-h891dp-xxhdpi`, `vi-w360dp-h640dp-xxhdpi`, `vi-w673dp-h841dp-xxhdpi`, `vi-w960dp-h520dp-xxhdpi`; kiểm `onBackPressedDispatcher.hasEnabledCallbacks()`, gọi `onBackPressed()` trên luồng chính, ghi số lần gọi và `getUnclippedBoundsInRoot()` của 7 tag ra tệp.
+  - Cùng test tạm chạy trên `origin/main` mới (`2c92def`, chỉ hơn `9af5928` một tệp CSV) và trên commit ngay trước đồng bộ (`e413038`, AGP 8, Robolectric và Roborazzi cũ).
+- **Lệnh:** `./gradlew -q :feature:onboarding:verifyRoborazziDebug :feature:onboarding:testDebugUnitTest`; rồi `./gradlew -q :feature:onboarding:recordRoborazziDebug :feature:onboarding:testDebugUnitTest --rerun` và `git status --short -- '*/src/test/screenshots/*'`; trên `e413038`: `./gradlew -q :feature:onboarding:testDebugUnitTest --tests '*OnboardingTryTest*'`.
+- **Kết quả:**
+  - Nhánh chính mới: 43 test, 0 lỗi (39 test có sẵn và 4 test tạm); `verifyRoborazziDebug` qua với 3 ảnh chuẩn `OnboardingScreen_default_*` có sẵn. `BackHandler` biên dịch và đăng ký được (gọi đúng 1 lần ở cả 4 khung).
+  - Số đo: tệp số đo của hai lần chạy (trước và sau đồng bộ) giống hệt từng dòng (`diff` rỗng). Ví dụ khung 411 x 891: hình trái 24, đỉnh 56, rộng 363, cao 280; tiêu đề đỉnh 360; nút đỉnh 755, đáy 811; ghi chú đáy 867. Khung 360 x 640: hình cao 160, nút đỉnh 504. Khung 960 x 520 và 673 x 841 cũng giống hệt. Robolectric 4.17 không đổi cách đo của Compose; số đo ở mục 4 giữ nguyên.
+  - Ghi lại ảnh bằng `recordRoborazziDebug --rerun`: 3 tệp `OnboardingScreen_default_*` đổi byte. So từng điểm ảnh (Java `ImageIO`): 31, 31 và 13 điểm khác, mỗi kênh lệch tối đa 1 trên 255, trong ảnh 1233 x 2673 và 1080 x 1920; nằm trong ngưỡng so của Roborazzi (verify qua). Ảnh đã hoàn tác. Nghĩa là: ảnh chuẩn mới của T-082 ghi trên bộ build mới là đúng; các ảnh có sẵn ngoài `OnboardingScreen_*` không cần ghi lại, và phiên không ghi lại chúng (mục 7).
+  - Không chạy `scripts/check.sh` cho phần này: không có code của plan; mốc `check.sh` của nhánh chính sau đồng bộ là 2700 test JVM, 0 lỗi, 140 ảnh (mô tả PR #279, và lần chạy mốc ngày 2026-11-01 trong mô tả PR của phiên bản này).
 
 ## 5. Chấm rủi ro
 
@@ -504,12 +524,13 @@ Lúc soạn plan đã chạy:
   - T-083 (thẻ native ở luồng): sửa cùng `OnboardingScreen.kt`, `OnboardingScreenTest.kt`, `OnboardingScreenScreenshotTest.kt`, `design/review/summary.md`, `design/README.md` (mục 8); chạy sau T-082, plan T-083 dẫn theo mục 3.1 (Điểm cho T-083). Phiên bản 2 bỏ `padding(top = Spacing.lg)` của thẻ như plan T-083 phiên bản 1 đã đề xuất; số vùng trang ở khung thấp có thẻ trong code là 222 và 166 (mục 3.1), plan T-083 phiên bản sau dùng số này thay ước lượng 198 / 134.
   - T-086 (mở tư thế premium bằng quảng cáo thưởng): sau T-085 cờ premium bật sẵn ở staging, nên trang 3 "Xem một quảng cáo để mở một tư thế premium" hiện trên bản staging ngay sau T-082, trước khi T-086 có cách mở. Người thử bản staging giữa hai task không ghi đây là lỗi; ghi vào báo cáo phiên ở mục Cần người kiểm tra.
   - T-080 (đã duyệt, chạy ở RUN-20261031-02): không có file trùng (đã so mục 3.2 của plan T-080).
+  - Test emulator sau merge (ADR-0043): `pr-check` không chạy `AppLaunchTest`, `SettingsNavigationTest`; lỗi ở `passOnboarding()` chỉ lộ ra ở job `ui-test` của `main-guard` sau khi merge, và mọi task đổi code app sau đó trong phiên phải chờ kết quả này (`auto-run.md`, bước 9). Câu 10 ở mục 8.
   - Plan khác thêm tệp kịch bản emulator có `tap_if id=onboarding_enable_camera` trước khi T-082 merge thì cần thêm ba dòng `tap_if id=onboarding_next` như mục 3.1 (phần ngoài mục 3.2 theo ADR-0029).
 - Đề xuất thứ tự chạy: T-085, rồi T-082, rồi T-083; không cùng một lúc. Thiết kế của luồng đã có (PR #276).
 
 ## 7. Điều kiện dừng riêng
 
-- `git status --short -- '*/src/test/screenshots/'` có ảnh chuẩn đổi ngoài các ảnh `OnboardingScreen_*` của mục 3.2: dừng (màn khác không được đổi).
+- `git status --short -- '*/src/test/screenshots/*'` có ảnh chuẩn đổi ngoài các ảnh `OnboardingScreen_*` của mục 3.2: dừng (màn khác không được đổi).
 - `FeatureFlag.PREMIUM_POSES` chưa có trên nhánh chính lúc bắt đầu task (T-085 chưa merge hay đặt tên khác): dừng, không tự thêm cờ.
 - Test `MainScreenTest` hay `DataStoreOnboardingStatusTest` đỏ: dừng; luồng không được đổi cách `:app` chọn màn và đánh dấu xong.
 
@@ -528,6 +549,8 @@ Lúc soạn plan đã chạy:
    - Trả lời: giữ Cao, Tuấn và Nhật duyệt chéo. Nhật, 2026-11-01.
 9. **Hình minh họa ở khung mở gập (mới, phiên bản 2).** Hai tài liệu của gói lệch nhau: README mục 3 và mục 6 ghi hình "rộng hết, căn giữa" và "khi mở gập ... hình minh họa giữ 280, căn giữa"; nhưng `context/OnboardingScreen_intro_light_unfolded.md` đặt khung "illustration" rộng 625 với các thẻ và huy hiệu ở đúng tọa độ của khung điện thoại (thẻ "women" x 52, huy hiệu x 260), tức hình nằm sát trái, không căn giữa. Code hiện nay căn giữa (`OnboardingIllustration`, `contentAlignment = Alignment.Center`), nên ảnh chuẩn `OnboardingScreen_intro_light_unfolded` sẽ lệch ảnh thiết kế ở phần hình. Đề xuất của AI: theo README (căn giữa, code giữ nguyên), coi tọa độ của `context/` là do frame Figma chưa căn lại; nếu Nhật muốn hình sát trái thì sửa frame Figma hay README trước khi duyệt, và plan đổi `contentAlignment` của trang 1 ở khung rộng. `unfolded_layoutMatchesDesign` không khẳng định vị trí ngang của hình cho tới khi câu này được trả lời.
    - Trả lời: căn giữa theo README. Nhật, 2026-11-01. Phiên ghi vào README của gói thiết kế (mục 8, phần T-082 đã sửa) rằng `context/OnboardingScreen_intro_light_unfolded.md` lệch, code theo README; test không khẳng định vị trí ngang ngoài "căn giữa".
+
+10. **Hai test emulator chỉ chạy sau merge (mới, phiên bản 3).** Từ ADR-0043, `pr-check` không chạy test emulator; `AppLaunchTest` và `SettingsNavigationTest` (đổi bước qua màn chào bằng `passOnboarding()`) chạy ở job `ui-test` của `main-guard` sau khi merge. Nếu `passOnboarding()` sai (ví dụ không chờ được nút "Tiếp" bật), nhánh chính đỏ ở `ui-test` và phiên revert theo ADR-0025. Kịch bản emulator mới và 7 tệp đã sửa chỉ chạy ở `device-session` cuối phiên. Đề xuất của AI: chấp nhận như mọi task đổi test emulator sau ADR-0043; giữ `passOnboarding()` đơn giản (vòng có giới hạn, chỉ trạng thái ổn định, CLAUDE.md bước 10), phiên chờ `ui-test` của commit merge trước task sau (bước 9). Cách khác: dev chạy `./gradlew :app:connectedStagingDebugAndroidTest` trên máy có emulator cho nhánh task trước khi merge (lệnh mà `scripts/ui-test-on-emulator.sh` của job `ui-test` chạy), là việc tay ngoài phiên tự chạy.
 
 **Rà soát độc lập phiên bản 2 (2026-10-31):** 0 điểm chặn, 5 điểm nên sửa, đã sửa cả 5 trong phiên bản 2:
 
@@ -554,5 +577,11 @@ Phiên bản 2:
 - **Quyết định:** Duyệt
 - **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
 - **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt, thêm vào phiên" khi AI hỏi, ngày 2026-11-01; T-082 vào RUN-20261031-02 sau T-085. Câu 1 tới 9 ở mục 8 đã trả lời (câu 3, 7, 8, 9 theo đề xuất).
+
+Phiên bản 3:
+
+- **Quyết định:**
+- **Người duyệt:**
+- **Ghi chú:**
 
 ## 10. Nhật ký thực hiện

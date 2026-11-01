@@ -49,7 +49,7 @@ class AdsFlagsTest {
         // StartupAdChoiceTest. Control: a placement that is not app-wide is still in the loop.
         val placements = AdPlacement.entries.filterNot { it.appWide }
         assertTrue(AdPlacement.entries.any { it.appWide })
-        assertTrue(AdPlacement.SAMPLE_NATIVE_SMALL in placements)
+        assertTrue(AdPlacement.POSES_BOTTOM in placements)
         placements.forEach { placement ->
             settings.set("is_show_ads", true)
             settings.set("is_show_${placement.key}", true)
@@ -86,7 +86,7 @@ class AdsFlagsTest {
 
     @Test
     fun masterSwitchBackOn_restoresEnabledPlacements() = runTest {
-        val placement = AdPlacement.SAMPLE_NATIVE_SMALL
+        val placement = AdPlacement.POSES_BOTTOM
         settings.set("is_show_${placement.key}", true)
         settings.set("is_show_ads", false)
         flags.placementEnabled(placement).test {
@@ -110,7 +110,7 @@ class AdsFlagsTest {
 
     @Test
     fun placementOffByDefault_evenWithMasterSwitchOn() = runTest {
-        val placement = AdPlacement.SAMPLE_NATIVE_SMALL
+        val placement = AdPlacement.POSES_BOTTOM
         // Control (L-055): the same placement switched on is on.
         val other = FakeRemoteSettings().apply { set("is_show_${placement.key}", true) }
         assertEquals(true, DefaultAdsFlags(other).placementEnabled(placement).first())
@@ -306,7 +306,7 @@ class AdsFlagsTest {
         // Control: the flags read something, so the checks below look at real names; the switch of a placement that
         // is not app-wide is still read.
         assertTrue("Nothing read", read.isNotEmpty())
-        assertTrue(read.toString(), "is_show_sample_native_small" in read)
+        assertTrue(read.toString(), "is_show_poses_bottom" in read)
         val declared = AdsSettings.all().map { it.name }.toSet()
         assertTrue("Read undeclared keys: ${read - declared}", declared.containsAll(read))
         val wave2 = setOf(
@@ -317,7 +317,7 @@ class AdsFlagsTest {
             "ads_interstitial_max_per_session_count",
             "ads_inlist_every_count",
             "ads_native_load_timeout_seconds",
-            "ads_sample_native_small_enabled",
+            "ads_poses_bottom_enabled",
             "ads_gallery_native_small_enabled",
             "ads_gallery_native_medium_enabled",
             "ads_gallery_inlist_small_enabled",
@@ -363,7 +363,7 @@ class AdsFlagsTest {
         val adFree = MutableStateFlow(false)
         val adFreeFlags = DefaultAdsFlags(settings, adFreeStatus(adFree))
         val placements = AdPlacement.entries.filterNot { it.appWide }
-        assertTrue(AdPlacement.SAMPLE_NATIVE_SMALL in placements)
+        assertTrue(AdPlacement.POSES_BOTTOM in placements)
         settings.set("is_show_ads", true)
         placements.forEach { placement ->
             settings.set("is_show_${placement.key}", true)
@@ -409,7 +409,7 @@ class AdsFlagsTest {
 
     @Test
     fun adFree_andMasterSwitch_bothMustAllow() = runTest {
-        val placement = AdPlacement.SAMPLE_NATIVE_SMALL
+        val placement = AdPlacement.POSES_BOTTOM
         settings.set("is_show_${placement.key}", true)
         mapOf(
             (true to false) to true,

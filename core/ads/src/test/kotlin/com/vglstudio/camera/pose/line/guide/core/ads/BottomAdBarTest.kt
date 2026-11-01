@@ -102,7 +102,7 @@ class BottomAdBarTest {
     private val layerChanges = mutableListOf<BottomAdBarLayers?>()
     private var contentTaps = 0
 
-    private val placement = AdPlacement.SAMPLE_NATIVE_SMALL
+    private val placement = AdPlacement.POSES_BOTTOM
 
     /**
      * The bar of the tests. With [enabledFlow] (a real switch of the controller, plan T-063), the switch of the layer
@@ -654,13 +654,13 @@ class BottomAdBarTest {
     @Test
     fun configuredSlotUnits_bannerBuiltAndKeepsHeight() {
         // Control: without the banner slot key, no banner is built and the content keeps the whole screen.
-        layerUnitIds = ConfiguredAdUnitIds("sample_native_small=unit/1")
+        layerUnitIds = ConfiguredAdUnitIds("poses_bottom=unit/1")
         flags = barFlags(nativeBottom = false, collap = false)
         setBar()
         assertEquals(0, banners.createdCount)
         assertContentBottom("no banner slot key", SCREEN_HEIGHT)
 
-        update { layerUnitIds = ConfiguredAdUnitIds("sample_native_small=unit/1;banner=unit/b") }
+        update { layerUnitIds = ConfiguredAdUnitIds("poses_bottom=unit/1;banner=unit/b") }
         assertEquals(1, banners.createdCount)
         update { banners.last.emitLoaded() }
         assertContentBottom("banner with an ad", SCREEN_HEIGHT - BANNER_HEIGHT_DP)
@@ -669,14 +669,14 @@ class BottomAdBarTest {
     @Test
     fun configuredSlotUnits_layerLoads() {
         // Control: without the collapsible slot key, the layer never loads and the slot keeps its ad.
-        layerUnitIds = ConfiguredAdUnitIds("sample_native_small=unit/1")
+        layerUnitIds = ConfiguredAdUnitIds("poses_bottom=unit/1")
         setBar()
         update { slotFeed.load(FakeLoadedNativeAd()) }
         assertEquals(0, layerFeed.collections)
         assertAbsent(CollapsibleNativeAdTestTags.AD)
         assertPresent(SLOT_AD)
 
-        update { layerUnitIds = ConfiguredAdUnitIds("sample_native_small=unit/1;native_collap=unit/c") }
+        update { layerUnitIds = ConfiguredAdUnitIds("poses_bottom=unit/1;native_collap=unit/c") }
         assertEquals(1, layerFeed.collections)
         loadBoth()
         assertPresent(CollapsibleNativeAdTestTags.AD)
@@ -706,10 +706,10 @@ class BottomAdBarTest {
             layerChanges,
         )
         assertEquals(
-            "Bottom bar sample_native_small: slot=NATIVE collapsible=true",
+            "Bottom bar poses_bottom: slot=NATIVE collapsible=true",
             bottomBarLayersLog(placement, BottomAdBarLayers(BottomSlotKind.NATIVE, collapsible = true)),
         )
-        assertEquals("Bottom bar sample_native_small: off", bottomBarLayersLog(placement, null))
+        assertEquals("Bottom bar poses_bottom: off", bottomBarLayersLog(placement, null))
     }
 
     private fun tapAt(x: Dp, y: Dp) {

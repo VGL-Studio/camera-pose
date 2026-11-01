@@ -84,7 +84,7 @@ class InListAdsTest {
     }
 
     private fun inListAds(every: Int?, rows: InListRowSource, scope: CoroutineScope) = InListAds(
-        placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+        placement = AdPlacement.POSES_BOTTOM,
         every = mutableStateOf(every),
         rowSource = rows,
         scope = scope,
@@ -130,7 +130,7 @@ class InListAdsTest {
                     itemsWithInListAds(
                         items = (1..7).toList(),
                         positions = inListAdPositions(itemCount = 7, every = 3),
-                        placementKey = AdPlacement.SAMPLE_NATIVE_SMALL.key,
+                        placementKey = AdPlacement.POSES_BOTTOM.key,
                         adContent = { slot ->
                             NativeAdCard(sampleNativeAdAssets, NativeAdSize.SMALL, Modifier.testTag("inlist_ad_$slot"))
                         },
@@ -161,7 +161,7 @@ class InListAdsTest {
                 val scope = rememberCoroutineScope()
                 val ads = remember {
                     InListAds(
-                        placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+                        placement = AdPlacement.POSES_BOTTOM,
                         every = derivedStateOf { every },
                         rowSource = loadedRows,
                         scope = scope,
@@ -255,7 +255,7 @@ class InListAdsTest {
         var adsWithoutController: InListAds? = null
         composeRule.setContent {
             AppTheme {
-                val ads = rememberInListAds(AdPlacement.SAMPLE_NATIVE_SMALL)
+                val ads = rememberInListAds(AdPlacement.POSES_BOTTOM)
                 adsWithoutController = ads
                 val scope = rememberCoroutineScope()
                 val allowedAds = remember { inListAds(every = 3, rows = loadedRows, scope = scope) }
@@ -296,7 +296,7 @@ class InListAdsTest {
                 val scope = rememberCoroutineScope()
                 val ads = remember {
                     InListAds(
-                        placement = AdPlacement.SAMPLE_NATIVE_SMALL,
+                        placement = AdPlacement.POSES_BOTTOM,
                         every = derivedStateOf { every },
                         rowSource = rows,
                         scope = scope,

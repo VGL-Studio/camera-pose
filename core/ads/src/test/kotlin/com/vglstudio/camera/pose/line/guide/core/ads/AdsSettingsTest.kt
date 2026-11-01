@@ -208,15 +208,15 @@ class AdsSettingsTest {
     fun appWidePlacements_haveNoSwitchKey() {
         val names = AdsSettings.all().map { it.name }
         // Control: the switch of a placement that is not app-wide is listed.
-        assertTrue(names.toString(), "is_show_sample_native_small" in names)
+        assertTrue(names.toString(), "is_show_poses_bottom" in names)
         assertFalse(names.toString(), "is_show_open_app" in names)
         assertFalse(names.toString(), "is_show_open_app_inter" in names)
     }
 
     @Test
     fun all_isDerivedFromDeclaredPlacements() {
-        // Control: the list is the new one, with the switch of the sample placement.
-        assertTrue(AdsSettings.all().any { it.name == "is_show_sample_native_small" })
+        // Control: the list is the new one, with the switch of the library bottom bar.
+        assertTrue(AdsSettings.all().any { it.name == "is_show_poses_bottom" })
         assertEquals(AdsSettings.keysFor(AdPlacement.entries.map { it.declaration }), AdsSettings.all())
     }
 

@@ -411,7 +411,7 @@ class NativeAdRetryTest {
 
     private companion object {
         const val UNIT_ID = "test-native-unit"
-        const val KEY = "sample_native_small"
+        const val KEY = "poses_bottom"
         const val TIMEOUT = 10_000L
     }
 }

@@ -197,7 +197,7 @@ class NativeAdCellTest {
         assertThrows(IllegalArgumentException::class.java) { requireCellFormat(AdFormat.NATIVE_SMALL) }
         assertThrows(IllegalArgumentException::class.java) { requireCellFormat(AdFormat.BANNER) }
         val error = runCatching {
-            composeRule.setContent { AppTheme { NativeAdCell(AdPlacement.SAMPLE_NATIVE_SMALL) } }
+            composeRule.setContent { AppTheme { NativeAdCell(AdPlacement.POSES_BOTTOM) } }
             composeRule.waitForIdle()
         }.exceptionOrNull()
         assertTrue("expected IllegalArgumentException, got $error", error is IllegalArgumentException)

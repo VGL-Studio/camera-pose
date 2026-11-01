@@ -113,10 +113,10 @@ class StartupAdChoiceTest {
 
     @Test
     fun placementSwitch_otherPlacements_unchanged() = runTest {
-        val placement = AdPlacement.SAMPLE_NATIVE_SMALL
+        val placement = AdPlacement.POSES_BOTTOM
         // Other placements do not wait for the first-open mark, and follow is_show_<code> as before.
         assertEquals(false, placementSwitch(placement, flags, neverRead).first())
-        settings.set("is_show_sample_native_small", true)
+        settings.set("is_show_poses_bottom", true)
         assertEquals(true, placementSwitch(placement, flags, neverRead).first())
         settings.set("is_show_ads", false)
         assertEquals(false, placementSwitch(placement, flags, emptyFlow()).first())

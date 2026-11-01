@@ -149,9 +149,9 @@ class AdsControllerInScreenWindowTest {
 
     @Test
     fun realController_smallSlot_refreshTickWhileCovered_isSkipped() {
-        settings.set(AdsSettings.placementEnabled(AdPlacement.SAMPLE_NATIVE_SMALL), true)
+        settings.set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true)
         openAndForeground()
-        val states = collect(controller.nativeAd(AdPlacement.SAMPLE_NATIVE_SMALL))
+        val states = collect(controller.nativeAd(AdPlacement.POSES_BOTTOM))
         assertEquals(1, loader.requests.size)
         val first = FakeLoadedNativeAd()
         loader.deliver(first)
@@ -183,9 +183,9 @@ class AdsControllerInScreenWindowTest {
 
     @Test
     fun realController_smallSlot_nextLoadAfterClaimWhileCovered_waits() {
-        settings.set(AdsSettings.placementEnabled(AdPlacement.SAMPLE_NATIVE_SMALL), true)
+        settings.set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true)
         openAndForeground()
-        val states = collect(controller.nativeAd(AdPlacement.SAMPLE_NATIVE_SMALL))
+        val states = collect(controller.nativeAd(AdPlacement.POSES_BOTTOM))
         assertEquals(1, loader.requests.size)
         cover()
         val first = FakeLoadedNativeAd()
@@ -204,11 +204,11 @@ class AdsControllerInScreenWindowTest {
 
     @Test
     fun realController_retryingSlot_firstLoadWaitsWhileCovered() {
-        settings.set(AdsSettings.placementEnabled(AdPlacement.SAMPLE_NATIVE_SMALL), true)
+        settings.set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true)
         openAndForeground()
         cover()
         // Another format than the placement's own, with no source and no pool: the slot with retries.
-        collect(controller.nativeAd(AdPlacement.SAMPLE_NATIVE_SMALL, AdFormat.NATIVE_MEDIUM))
+        collect(controller.nativeAd(AdPlacement.POSES_BOTTOM, AdFormat.NATIVE_MEDIUM))
         idleFor(60_000)
         assertEquals(0, loader.requests.size)
 

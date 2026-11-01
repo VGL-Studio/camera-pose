@@ -72,9 +72,12 @@ class AdPlacementAppTest {
     }
 
     @Test
-    fun noSampleBottomBanner() {
-        // Control: the sample placement of the framework is there, so the list read is the real one.
-        assertTrue(AdPlacement.entries.any { it.key == "sample_native_small" })
-        assertTrue(AdPlacement.entries.none { it.key == "sample_bottom_banner" })
+    fun noSamplePlacement() {
+        // Control: the library bottom bar of the app is there, so the list read is the real one.
+        assertTrue(AdPlacement.entries.any { it.key == "poses_bottom" })
+        // The app has no sample screen, so no placement of it (spec ads, question 4; plan T-081, ADR-1008).
+        listOf("sample_bottom_banner", "sample_native_small").forEach { key ->
+            assertTrue("$key must be removed", AdPlacement.entries.none { it.key == key })
+        }
     }
 }

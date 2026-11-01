@@ -55,11 +55,14 @@ class StagingRemoteValuesModuleTest {
     }
 
     @Test
-    fun noGalleryNorSamplePlacement_isShown() {
-        val notOfTheApp = AdPlacement.entries.filter { it.stagingOnly || it.key.startsWith("sample_") }
+    fun noGalleryPlacement_isShown() {
+        val notOfTheApp = AdPlacement.entries.filter { it.stagingOnly }
         // Control: the framework does declare such placements, and their switch keys have the name read below.
         assertTrue(notOfTheApp.isNotEmpty())
-        assertEquals("is_show_sample_native_small", AdsSettings.placementEnabled(AdPlacement.SAMPLE_NATIVE_SMALL).name)
+        assertEquals(
+            "is_show_gallery_native_small",
+            AdsSettings.placementEnabled(AdPlacement.GALLERY_NATIVE_SMALL).name,
+        )
         notOfTheApp.forEach { placement ->
             val name = AdsSettings.placementEnabled(placement).name
             assertTrue("$name must not be set on staging", name !in byName)

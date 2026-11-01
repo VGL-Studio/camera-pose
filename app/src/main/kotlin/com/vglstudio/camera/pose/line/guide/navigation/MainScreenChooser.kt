@@ -28,11 +28,7 @@ internal class MainScreenChooser @Inject constructor(
         val camera = featureFlags.enabled(FeatureFlag.CAMERA).first()
         val onboarding = featureFlags.enabled(FeatureFlag.ONBOARDING).first() && camera
         val onboardingDone = onboarding && readOnboardingDone()
-        return MainScreenInputs(
-            onboardingAvailable = onboarding,
-            onboardingDone = onboardingDone,
-            cameraAvailable = camera,
-        )
+        return MainScreenInputs(onboardingAvailable = onboarding, onboardingDone = onboardingDone)
     }
 
     private suspend fun readOnboardingDone(): Boolean = try {

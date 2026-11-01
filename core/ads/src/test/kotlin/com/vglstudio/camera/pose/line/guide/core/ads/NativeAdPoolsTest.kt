@@ -106,10 +106,10 @@ class NativeAdPoolsTest {
             listOf(
                 AdPlacement.GALLERY_NATIVE_MEDIUM,
                 AdPlacement.GALLERY_INLIST_MEDIUM,
-                AdPlacement.SAMPLE_NATIVE_SMALL,
+                AdPlacement.POSES_BOTTOM,
             ),
         )
-        assertNull(pools.pool(AdPlacement.SAMPLE_NATIVE_SMALL))
+        assertNull(pools.pool(AdPlacement.POSES_BOTTOM))
         assertNull(pools.pool(AdPlacement.GALLERY_INLIST_MEDIUM))
         // Control: the medium placement with an ad unit has one.
         assertNotNull(pools.pool(AdPlacement.GALLERY_NATIVE_MEDIUM))

@@ -143,7 +143,7 @@ class NativeAdSlotTest {
     fun withoutAdsController_takesNoSpace() {
         composeRule.setContent {
             AppTheme {
-                NativeAdSlot(AdPlacement.SAMPLE_NATIVE_SMALL, Modifier.width(CARD_WIDTH).testTag(SLOT))
+                NativeAdSlot(AdPlacement.POSES_BOTTOM, Modifier.width(CARD_WIDTH).testTag(SLOT))
             }
         }
         composeRule.onNodeWithTag(SLOT).assertHeightIsEqualTo(0.dp)
@@ -159,7 +159,7 @@ class NativeAdSlotTest {
     fun nativeSize_followsPlacementFormat() {
         assertEquals(NativeAdSize.SMALL, requireNativeFormat(AdFormat.NATIVE_SMALL))
         assertEquals(NativeAdSize.MEDIUM, requireNativeFormat(AdFormat.NATIVE_MEDIUM))
-        assertEquals(NativeAdSize.SMALL, requireNativeFormat(AdPlacement.SAMPLE_NATIVE_SMALL.format))
+        assertEquals(NativeAdSize.SMALL, requireNativeFormat(AdPlacement.POSES_BOTTOM.format))
     }
 
     @Test

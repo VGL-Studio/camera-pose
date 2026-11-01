@@ -46,16 +46,16 @@ class AdTelemetryTest {
         var clicks = 0
         val telemetry = telemetry(onClicked = { clicks++ })
         // Group switches off and nothing served: no event, the click still counts (A-14).
-        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.SAMPLE_NATIVE_SMALL)
+        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.POSES_BOTTOM)
         telemetry.clicked(AdFormat.INTERSTITIAL, AdPlacement.GALLERY_INTERSTITIAL)
         assertEquals(2, clicks)
         assertTrue(metrics.events.isEmpty())
         // Control (L-055): group on and served, both the click and its event.
         logSlot = true
         serving = true
-        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.SAMPLE_NATIVE_SMALL)
+        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.POSES_BOTTOM)
         assertEquals(3, clicks)
-        assertEquals(listOf(AdMetricEvent.Clicked("NATIVE_SMALL", "sample_native_small")), metrics.events)
+        assertEquals(listOf(AdMetricEvent.Clicked("NATIVE_SMALL", "poses_bottom")), metrics.events)
     }
 
     @Test
@@ -63,15 +63,15 @@ class AdTelemetryTest {
         logSlot = true
         serving = true
         val telemetry = telemetry(onClicked = { throw IllegalStateException("boom") })
-        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.SAMPLE_NATIVE_SMALL)
+        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.POSES_BOTTOM)
         // The SDK callback does not break, and the event is still logged.
-        assertEquals(listOf(AdMetricEvent.Clicked("NATIVE_SMALL", "sample_native_small")), metrics.events)
+        assertEquals(listOf(AdMetricEvent.Clicked("NATIVE_SMALL", "poses_bottom")), metrics.events)
         assertTrue(logger.entries.any { it.level == LogLevel.WARN && "IllegalStateException" in it.message })
     }
 
     @Test
     fun revenue_readsPlacementAtEventTime() {
-        var cell: AdPlacement? = AdPlacement.SAMPLE_NATIVE_SMALL
+        var cell: AdPlacement? = AdPlacement.POSES_BOTTOM
         val placement = { cell }
         val telemetry = telemetry()
         // The listener is attached with the cell; the placement changes before the event comes.
@@ -110,12 +110,12 @@ class AdTelemetryTest {
     fun revenue_ignoresLifecycleSwitchesAndServing() {
         val telemetry = telemetry()
 
-        telemetry.revenue(AdFormat.NATIVE_SMALL, "unit", { AdPlacement.SAMPLE_NATIVE_SMALL }, 0, "USD", null, null)
+        telemetry.revenue(AdFormat.NATIVE_SMALL, "unit", { AdPlacement.POSES_BOTTOM }, 0, "USD", null, null)
         assertEquals(1, metrics.events.size)
 
         // Control: under the same conditions a lifecycle event is not logged.
         telemetry.requestSent(SLOT, 0)
-        telemetry.loadSucceeded(AdFormat.NATIVE_SMALL, SLOT, "sample_native_small", 10)
+        telemetry.loadSucceeded(AdFormat.NATIVE_SMALL, SLOT, "poses_bottom", 10)
         assertEquals(1, metrics.events.size)
     }
 
@@ -157,11 +157,11 @@ class AdTelemetryTest {
         // A slot format follows is_log_ad_slot_events, not the full-screen key.
         logFullScreen = true
         logSlot = false
-        telemetry.loadSucceeded(AdFormat.NATIVE_SMALL, NATIVE_SLOT, "sample_native_small", 40)
+        telemetry.loadSucceeded(AdFormat.NATIVE_SMALL, NATIVE_SLOT, "poses_bottom", 40)
         assertEquals(1, metrics.events.size)
         logFullScreen = false
         logSlot = true
-        telemetry.loadSucceeded(AdFormat.NATIVE_SMALL, NATIVE_SLOT, "sample_native_small", 50)
+        telemetry.loadSucceeded(AdFormat.NATIVE_SMALL, NATIVE_SLOT, "poses_bottom", 50)
         assertEquals(2, metrics.events.size)
         assertEquals("NATIVE_SMALL", metrics.events.last().adFormat)
     }
@@ -171,18 +171,18 @@ class AdTelemetryTest {
         val telemetry = telemetry()
         serving = true
         logSlot = false
-        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.SAMPLE_NATIVE_SMALL)
+        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.POSES_BOTTOM)
         assertTrue(metrics.events.isEmpty())
 
         logSlot = true
-        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.SAMPLE_NATIVE_SMALL)
+        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.POSES_BOTTOM)
         assertEquals(
-            listOf(AdMetricEvent.Clicked("NATIVE_SMALL", "sample_native_small")),
+            listOf(AdMetricEvent.Clicked("NATIVE_SMALL", "poses_bottom")),
             metrics.events,
         )
 
         logSlot = false
-        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.SAMPLE_NATIVE_SMALL)
+        telemetry.clicked(AdFormat.NATIVE_SMALL, AdPlacement.POSES_BOTTOM)
         assertEquals(1, metrics.events.size)
     }
 
@@ -331,7 +331,7 @@ class AdTelemetryTest {
 
         // Control (L-055): the same two results of a single-ad slot, one after the other, give 250 and 300.
         val listEvents = metrics.events.size
-        val single = telemetry.nativeLoadReport(AdPlacement.SAMPLE_NATIVE_SMALL, NativeLoadUse.SINGLE_AD)
+        val single = telemetry.nativeLoadReport(AdPlacement.POSES_BOTTOM, NativeLoadUse.SINGLE_AD)
         single.sent(1_000)
         single.succeeded(1_250)
         single.sent(2_000)
@@ -368,17 +368,17 @@ class AdTelemetryTest {
         // Control (L-055): the same sequence for a single-ad slot counts 1, 2, 3 and moves the counter.
         val listEvents = metrics.events.size
         listOf(false, false, true).forEachIndexed { i, success ->
-            val slot = telemetry.nativeLoadReport(AdPlacement.SAMPLE_NATIVE_SMALL, NativeLoadUse.SINGLE_AD)
+            val slot = telemetry.nativeLoadReport(AdPlacement.POSES_BOTTOM, NativeLoadUse.SINGLE_AD)
             slot.sent(1_000 + i * 100L)
             if (success) {
-                assertEquals(2, counter.failuresInARow("sample_native_small"))
+                assertEquals(2, counter.failuresInARow("poses_bottom"))
                 slot.succeeded(1_000 + i * 100L + 10)
             } else {
                 slot.failed(3, null, 1_000 + i * 100L + 10)
             }
         }
         assertEquals(listOf<Int?>(1, 2, 3), metrics.events.drop(listEvents).map { it.loadAttemptOrMissing() })
-        assertEquals(0, counter.failuresInARow("sample_native_small"))
+        assertEquals(0, counter.failuresInARow("poses_bottom"))
     }
 
     @Test
@@ -389,10 +389,10 @@ class AdTelemetryTest {
 
         // Three refresh loads of a single-ad slot (fail, fail, success), each with a new report (section 8.2).
         listOf(false, false, true).forEachIndexed { i, success ->
-            val load = telemetry.nativeLoadReport(AdPlacement.SAMPLE_NATIVE_SMALL, NativeLoadUse.REFRESH)
+            val load = telemetry.nativeLoadReport(AdPlacement.POSES_BOTTOM, NativeLoadUse.REFRESH)
             load.sent(i * 100L)
             if (success) load.succeeded(i * 100L + 10) else load.failed(3, null, i * 100L + 30)
-            assertEquals(0, counter.failuresInARow("sample_native_small"))
+            assertEquals(0, counter.failuresInARow("poses_bottom"))
         }
 
         assertEquals(listOf<Int?>(null, null, null), metrics.events.map { it.loadAttemptOrMissing() })
@@ -408,7 +408,7 @@ class AdTelemetryTest {
         )
         assertTrue(metrics.events.all { it.adFormat == "NATIVE_SMALL" })
         assertEquals(
-            listOf("sample_native_small", "sample_native_small", "sample_native_small"),
+            listOf("poses_bottom", "poses_bottom", "poses_bottom"),
             metrics.events.map {
                 when (it) {
                     is AdMetricEvent.LoadSuccess -> it.adPlacement
@@ -426,12 +426,12 @@ class AdTelemetryTest {
         logSlot = true
         serving = true
 
-        val load = telemetry.nativeLoadReport(AdPlacement.SAMPLE_NATIVE_SMALL, NativeLoadUse.SINGLE_AD)
+        val load = telemetry.nativeLoadReport(AdPlacement.POSES_BOTTOM, NativeLoadUse.SINGLE_AD)
         load.sent(0)
         load.failed(3, null, 10)
 
         assertEquals(listOf<Int?>(1), metrics.events.map { it.loadAttemptOrMissing() })
-        assertEquals(1, counter.failuresInARow("sample_native_small"))
+        assertEquals(1, counter.failuresInARow("poses_bottom"))
     }
 
     @Test
@@ -441,7 +441,7 @@ class AdTelemetryTest {
         serving = true
 
         val collapsible = telemetry.nativeLoadReport(
-            AdPlacement.SAMPLE_NATIVE_SMALL,
+            AdPlacement.POSES_BOTTOM,
             NativeLoadUse.SINGLE_AD,
             AdFormat.NATIVE_COLLAPSIBLE,
         )
@@ -451,15 +451,15 @@ class AdTelemetryTest {
         val event = metrics.events.single() as AdMetricEvent.LoadFail
         assertEquals(AdFormat.NATIVE_COLLAPSIBLE.metricCode(), event.adFormat)
         assertEquals(1, event.loadAttempt)
-        assertEquals(1, counter.failuresInARow("sample_native_small/native_collap"))
-        assertEquals(0, counter.failuresInARow("sample_native_small"))
+        assertEquals(1, counter.failuresInARow("poses_bottom/native_collap"))
+        assertEquals(0, counter.failuresInARow("poses_bottom"))
 
         // Control (L-055): the default format keeps the key of the placement.
-        val small = telemetry.nativeLoadReport(AdPlacement.SAMPLE_NATIVE_SMALL, NativeLoadUse.SINGLE_AD)
+        val small = telemetry.nativeLoadReport(AdPlacement.POSES_BOTTOM, NativeLoadUse.SINGLE_AD)
         small.sent(20)
         small.failed(3, null, 30)
         assertEquals("NATIVE_SMALL", metrics.events.last().adFormat)
-        assertEquals(1, counter.failuresInARow("sample_native_small"))
+        assertEquals(1, counter.failuresInARow("poses_bottom"))
     }
 
     @Test
@@ -576,7 +576,7 @@ class AdTelemetryTest {
         val afRec = RecordingAdMetrics()
         val telemetry = telemetry(target = FanOutAdMetrics(listOf(firebaseRec, afRec), logger))
 
-        telemetry.revenueFallback(AdFormat.NATIVE_SMALL, "unit", { AdPlacement.SAMPLE_NATIVE_SMALL }, null, null)
+        telemetry.revenueFallback(AdFormat.NATIVE_SMALL, "unit", { AdPlacement.POSES_BOTTOM }, null, null)
 
         listOf(firebaseRec, afRec).forEach { recorder ->
             val event = recorder.events.single() as AdMetricEvent.ImpressionRevenue
@@ -734,7 +734,7 @@ class AdTelemetryTest {
 
     private companion object {
         const val SLOT = "preload:INTER"
-        const val NATIVE_SLOT = "sample_native_small"
+        const val NATIVE_SLOT = "poses_bottom"
         const val BANNER_SLOT = "gallery_banner"
         const val MAX_SLOT = "gallery_banner/max"
 

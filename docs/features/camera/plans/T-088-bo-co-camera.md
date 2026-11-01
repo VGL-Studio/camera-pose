@@ -38,7 +38,7 @@ Ticket không xử lý kịch bản mới (`scenarios: []`). Nó dựa trên:
 | Nguồn | Nội dung | Cách hiểu của AI |
 | --- | --- | --- |
 | `features/camera/spec.md` (confirmed 2026-10-31), mục 8 | `feature_camera_enabled`: "Từ T-081 không còn tác dụng ... Cờ bỏ khỏi code ở T-088" | Bỏ khai báo cờ, dòng staging, bảng khóa. Dòng của mục 8 bỏ theo, vì spec chỉ liệt kê cờ có thật |
-| Plan T-081 (approved), câu 1 và mục 3.1 | `MainScreenChooser` không đọc cờ camera nữa; `FeatureFlag.CAMERA` và `camera()` giữ tới T-088; mô tả cờ đổi thành "No longer read: ... removed in T-088." | Sau T-081, `FeatureFlag.CAMERA` chỉ còn ở `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `MainScreenTest.kt` và hai tệp bảng khóa |
+| Plan T-081 (approved), câu 1 và mục 3.1 | `MainScreenChooser` không đọc cờ camera nữa; `FeatureFlag.CAMERA` và `camera()` giữ tới T-088; mô tả cờ đổi thành "No longer read: ... removed in T-088." | Sau T-081, `FeatureFlag.CAMERA` chỉ còn ở `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `MainScreenTest.kt`, hai tệp bảng khóa, và chữ `feature_camera_enabled` trong KDoc của `MainScreenChooser.kt` do T-081 viết (không đọc cờ) |
 | Ticket T-088, Không bao gồm | Khóa trên Firebase staging, production người xóa tay sau khi bản không đọc cờ đã phát hành | Plan không gọi Firebase, không đổi cấu hình production |
 
 Thiết kế tham chiếu: Không có thiết kế riêng (không đổi giao diện).
@@ -82,7 +82,8 @@ Còn 8 hàm: `loading`, `networkDialog`, `onboarding`, `poses`, `settings`, `inA
 
 ```kotlin
      * The camera is always there (plan T-081, question 1), so onboarding only needs its own flag. The stored status is
-     * read only when onboarding is available; a read error shows onboarding rather than skip it (plan T-012, question 3).
+     * read only when onboarding is available; a read error shows onboarding rather than skip it
+     * (plan T-012, question 3).
 ```
 
 Code của `inputs()` không đổi.
@@ -94,10 +95,8 @@ Code của `inputs()` không đổi.
   - `chooser_cameraFlagOn_choosesCamera`;
   - `chooser_onboardingFlagOff_choosesCamera_withoutReadingStatus`.
 - Cách sửa từng chỗ ở mục 3.5. Tóm tắt: hằng `BOTH_FLAGS` thành `ONBOARDING_ON = setOf(FeatureFlag.ONBOARDING)`, test thứ hai viết lại thành `chooser_everyOtherFlagOn_choosesCamera`, test thứ ba bỏ `CAMERA` khỏi tập cờ (dữ liệu, ADR-0029).
-- Tên test có "Camera" chỉ cờ camera thì bỏ phần đó, vì không còn cờ:
-  - `chooser_cameraFlagOff_choosesCamera` thành `chooser_onboardingDone_readsOnlyOnboardingFlag`;
-  - `chooser_onboardingAndCameraOn_notDone_choosesOnboarding` thành `chooser_onboardingOn_notDone_choosesOnboarding`;
-  - `chooser_onboardingOnCameraOff_choosesOnboarding` thành `chooser_onlyOnboardingFlag_readsStatusOnce`.
+- Ba test có "Camera" trong tên (`chooser_cameraFlagOff_choosesCamera`, `chooser_onboardingAndCameraOn_notDone_choosesOnboarding`, `chooser_onboardingOnCameraOff_choosesOnboarding`) **giữ tên**: hành vi vẫn đúng với tên, và đổi tên làm mất hàm `@Test` của nhánh gốc mà rà soát của phiên coi là test bị xóa (auto-run.md bước 6, L-093; rà soát độc lập).
+- Test duy nhất đổi tên là `chooser_cameraFlagOn_choosesCamera` thành `chooser_everyOtherFlagOn_choosesCamera` (viết lại theo ADR-0031). Phiên ghi bảng "tên cũ, tên mới" vào mô tả PR và vào lời giao cho rà soát độc lập.
 
   Thân test và câu khẳng định của ba test này giữ nguyên. Tên kết thúc bằng `choosesCamera` chỉ màn camera (`MainScreen.CAMERA`), giữ.
 - Chú thích `// T-012: onboarding flag, camera flag and "onboarding done".` (nếu T-081 còn giữ) thành `// T-012: onboarding flag and "onboarding done".`
@@ -149,7 +148,7 @@ Dòng lịch sử cũ ngày 2026-10-31 nhắc cờ giữ nguyên (lịch sử kh
 | Sửa | `core/config/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/config/FeatureFlag.kt` | Bỏ `CAMERA(...)` |
 | Sửa | `app/src/staging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingFeatureFlagsModule.kt` | Bỏ `camera()` |
 | Sửa | `app/src/main/kotlin/com/vglstudio/camera/pose/line/guide/navigation/MainScreenChooser.kt` | Chỉ KDoc của `inputs()` (mục 3.1) |
-| Sửa | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/navigation/MainScreenTest.kt` | Bỏ `FeatureFlag.CAMERA` khỏi dữ liệu; viết lại `chooser_cameraFlagOn_choosesCamera`; đổi tên ba test; thêm `noCameraFlag` (mục 3.5, 4) |
+| Sửa | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/navigation/MainScreenTest.kt` | Bỏ `FeatureFlag.CAMERA` khỏi dữ liệu; viết lại `chooser_cameraFlagOn_choosesCamera` (tên mới `chooser_everyOtherFlagOn_choosesCamera`); thêm `noCameraFlag` (mục 3.5, 4) |
 | Sửa | `docs/remote-config-keys.md` | Sinh lại: mất dòng `feature_camera_enabled` |
 | Sửa | `docs/remote-config-template.json` | Sinh lại cùng lệnh: mất khối `feature_camera_enabled` |
 | Sửa | `docs/features/camera/spec.md` | Mục 8 bỏ dòng cờ; `status: changed`; một dòng lịch sử (mục 3.1, câu 1) |
@@ -189,10 +188,10 @@ Không có. Task chỉ bỏ một dòng enum, một hàm Hilt và dữ liệu te
 | --- | --- | --- | --- |
 | `FeatureFlag.entries` có `CAMERA`, bảng khóa có `feature_camera_enabled` | Không còn | `RemoteConfigKeysTest.keysFile_matchesCode`, `templateFile_matchesCode`, `everyFeatureFlagAndPlacement_isListed`; `DefaultFeatureFlagsTest.everyFlag_isOffByDefault`, `withoutLocalOrRemoteValues_everyFlagIsOff`, `everyFlag_remoteKeyMatchesKeyAndDefault`, `everyFlagKey_followsNamingRule` | Giữ. Các test lặp qua `entries` hay so với bảng sinh lại trong cùng commit; không câu nào đếm số cờ |
 | Bản staging bật cục bộ `CAMERA` | Không còn cờ để bật | Không có test | Không có |
-| `chooser_cameraFlagOn_choosesCamera`: chỉ cờ camera bật, chưa qua màn chào thì `CAMERA` (plan T-081 giữ test này: "cờ camera bật vẫn `CAMERA`") | Không còn cờ camera. Ý định viết thành một câu: "một cờ khác cờ màn chào đang bật không đổi màn chính" | `MainScreenTest.chooser_cameraFlagOn_choosesCamera` | Viết lại thành `chooser_everyOtherFlagOn_choosesCamera`. Dữ liệu: `FakeFeatureFlags(FeatureFlag.entries.toSet() - FeatureFlag.ONBOARDING)`, `FakeOnboardingStatus(done = false)`. Câu khẳng định: `choose() == MainScreen.CAMERA`; `status.reads == 0`; các cờ đã đọc đúng bằng `[FeatureFlag.ONBOARDING]` (danh sách mà `FakeFeatureFlags` ghi từ T-081). Thêm câu kiểm trước, không bớt câu nào. Đây là test viết trước của plan, không phải lượt ADR-0031 của phiên. Đối chứng: thêm `&& featureFlags.enabled(FeatureFlag.POSES).first()` vào `MainScreenChooser.inputs()` thì câu "cờ đã đọc" đỏ |
+| `chooser_cameraFlagOn_choosesCamera`: chỉ cờ camera bật, chưa qua màn chào thì `CAMERA` (plan T-081 giữ test này: "cờ camera bật vẫn `CAMERA`") | Không còn cờ camera. Ý định viết thành một câu: "một cờ khác cờ màn chào đang bật không đổi màn chính" | `MainScreenTest.chooser_cameraFlagOn_choosesCamera` | Viết lại thành `chooser_everyOtherFlagOn_choosesCamera`. Dữ liệu: `FakeFeatureFlags(FeatureFlag.entries.toSet() - FeatureFlag.ONBOARDING)`, `FakeOnboardingStatus(done = false)`. Câu khẳng định: `choose() == MainScreen.CAMERA`; `status.reads == 0`; các cờ đã đọc đúng bằng `[FeatureFlag.ONBOARDING]` (danh sách mà `FakeFeatureFlags` ghi từ T-081). Thêm câu kiểm trước, không bớt câu nào. Đây là test viết trước của plan, không phải lượt ADR-0031 của phiên. Đối chứng (sửa theo rà soát: thêm `&& ...` không đỏ được, vì cờ màn chào tắt nên `&&` dừng sớm và cờ thêm không được đọc): thêm một dòng đọc riêng `featureFlags.enabled(FeatureFlag.POSES).first()` ở đầu `MainScreenChooser.inputs()` thì câu "cờ đã đọc đúng bằng `[ONBOARDING]`" đỏ (đọc `[POSES, ONBOARDING]`); hoặc `val onboarding = ... ONBOARDING ... || featureFlags.enabled(FeatureFlag.POSES).first()` thì câu `CAMERA` đỏ (POSES bật nên chọn `ONBOARDING`). Phiên ghi lý do đỏ thật |
 | `BOTH_FLAGS = setOf(ONBOARDING, CAMERA)` | `ONBOARDING_ON = setOf(ONBOARDING)` | `chooser_onboardingAndCameraOn_notDone_choosesOnboarding`, `chooser_onboardingDone_choosesCamera`, `chooser_statusReadFails_showsOnboarding_andLogsWarning`, `chooser_logsChosenScreen` | Dữ liệu (ADR-0029). Câu khẳng định giữ nguyên. Từ T-081, chooser không đọc `CAMERA`, nên bỏ nó khỏi tập không đổi kết quả |
 | `chooser_onboardingFlagOff_choosesCamera_withoutReadingStatus` dùng `setOf(FeatureFlag.CAMERA)` | `emptySet()` | Chính test đó | Dữ liệu (ADR-0029). Câu `CAMERA` và `status.reads == 0` giữ |
-| Ba tên test nhắc cờ camera | Tên mới ở mục 3.1 | `chooser_cameraFlagOff_choosesCamera`, `chooser_onboardingAndCameraOn_notDone_choosesOnboarding`, `chooser_onboardingOnCameraOff_choosesOnboarding` | Chỉ đổi tên. Thân và câu khẳng định giữ |
+| Ba tên test nhắc cờ camera | Giữ tên (mục 3.1) | `chooser_cameraFlagOff_choosesCamera`, `chooser_onboardingAndCameraOn_notDone_choosesOnboarding`, `chooser_onboardingOnCameraOff_choosesOnboarding` | Giữ nguyên tên, thân và câu khẳng định |
 
 `scripts/existing-tests.py` chạy ngày 2026-10-31 trên plan này, bỏ kết quả của `.claude/worktrees/`:
 
@@ -225,7 +224,7 @@ Sau task `MainScreenTest` có 14 test: 13 test sau T-081, một test viết lạ
 
 - Commit test (bước 3), mọi phần của `MainScreenTest.kt`:
   - bỏ `CAMERA` khỏi dữ liệu;
-  - viết lại `chooser_everyOtherFlagOn_choosesCamera`, đổi tên;
+  - viết lại `chooser_cameraFlagOn_choosesCamera` thành `chooser_everyOtherFlagOn_choosesCamera` (đổi tên duy nhất);
   - thêm `noCameraFlag`.
 
   Khi `CAMERA` còn trong enum, mọi test biên dịch được. `noCameraFlag` đỏ. `chooser_everyOtherFlagOn_choosesCamera` qua ngay, vì chooser sau T-081 đã không đọc cờ nào khác; giữ làm test chặn, kèm đối chứng ở mục 3.5. Các test còn lại qua.
@@ -277,7 +276,7 @@ Không cần (E dưới 2). Task bỏ một dòng enum và một hàm Hilt theo 
 
 ## 7. Điều kiện dừng riêng
 
-- Trên nhánh gốc của task, `git grep -n "FeatureFlag.CAMERA\|feature_camera_enabled" -- app core feature` cho thấy code ngoài test còn đọc cờ (ví dụ `MainScreenChooser` vẫn gọi `enabled(FeatureFlag.CAMERA)`), hay chỗ dùng nằm ngoài `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `MainScreenTest.kt`: dừng. Nghĩa là T-081 chưa merge, hay một task khác đã đọc lại cờ; bỏ cờ khi đó đổi hành vi.
+- Trên nhánh gốc của task, `git grep -n "FeatureFlag.CAMERA\|feature_camera_enabled" -- app core feature` cho thấy code ngoài test còn đọc cờ (ví dụ `MainScreenChooser` vẫn gọi `enabled(FeatureFlag.CAMERA)`), hay chỗ dùng nằm ngoài `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `MainScreenTest.kt` và KDoc của `MainScreenChooser.kt` (chú thích do T-081 viết, không phải lời gọi): dừng. Chỉ một lời gọi `enabled(FeatureFlag.CAMERA)` ngoài test mới là lý do dừng; chữ trong chú thích thì không. Nghĩa là T-081 chưa merge, hay một task khác đã đọc lại cờ; bỏ cờ khi đó đổi hành vi.
 - Bảng khóa sinh lại khác bảng của nhánh gốc ở chỗ nào khác ngoài việc mất dòng và khối `feature_camera_enabled`: dừng. Nhánh gốc là nhánh chính đã có T-081, T-085 và mọi task trước đó của phiên. Thay đổi hợp lệ của các plan trước (T-081 mất `feature_sample_enabled`, `is_show_sample_native_small`; T-085 thêm `feature_premium_poses_enabled`; T-080, T-084, T-083, T-086 thêm khóa của chúng) đã có sẵn trên nhánh gốc, nên không tính là khác. Khác thêm nghĩa là code của nhánh gốc và bảng của nhánh gốc đã lệch nhau từ trước.
 - Bất kỳ ảnh chuẩn screenshot nào đổi: dừng. Task không đổi giao diện.
 
@@ -290,6 +289,14 @@ Không cần (E dưới 2). Task bỏ một dòng enum và một hàm Hilt theo 
    - Đề xuất của AI: giữ. Ví dụ chỉ minh họa cách đặt tên cờ, không liệt kê khóa của app. Plan không đưa file này vào mục 3.2.
 3. **Xóa khóa `feature_camera_enabled` trên Firebase staging lúc nào?** Ticket để việc này cho người, sau khi bản không đọc cờ đã phát hành.
    - Đề xuất của AI: staging xóa được ngay sau khi task lên staging. Bản staging từ T-081 không đọc cờ; bản staging cũ hơn không còn được dùng để thử. Production xóa sau khi bản production đầu tiên có T-081 đã phát hành. Phiên ghi việc này thành một dòng `- [ ]` ở mục Cần người kiểm tra của báo cáo.
+
+**Rà soát độc lập (2026-11-01, agent ngữ cảnh mới, chỉ đọc): 2 chặn, 2 nên sửa, 4 ghi chú.** Đã sửa cả bốn điểm trong bản này:
+
+- **Chặn:** điều kiện dừng 1 bắt cả KDoc của `MainScreenChooser.kt` do T-081 viết, nên phiên sẽ dừng vì một thay đổi hợp lệ. Sửa: KDoc được phép, chỉ lời gọi `enabled(FeatureFlag.CAMERA)` ngoài test là lý do dừng (mục 2, mục 7).
+- **Chặn:** phép đối chứng của `chooser_everyOtherFlagOn_choosesCamera` không thể đỏ (`&&` dừng sớm khi cờ màn chào tắt). Sửa: dòng đọc riêng `POSES` ở đầu `inputs()`, hay `||` (mục 3.5).
+- **Nên sửa:** KDoc thay mới dài 122 ký tự: đã ngắt dòng (mục 3.1).
+- **Nên sửa:** đổi tên ba test làm mất hàm `@Test` của nhánh gốc (L-093): giữ tên; chỉ đổi tên test viết lại, phiên ghi bảng tên cũ, tên mới.
+- **Ghi chú:** số cờ 8 và số hàm 8 chỉ đúng khi T-085 đã merge; T-085 dừng thì 7, không phải lệch plan. `noCameraFlag` ở `MainScreenTest` (`:app`): chấp nhận. Danh sách RUN-20261031-02 cần thêm T-088 (dòng 5) khi duyệt. Câu 1 có thêm hướng: giữ dòng cờ ở spec camera (đã ghi "bỏ ở T-088") để spec giữ `confirmed`.
 
 ## 9. Quyết định duyệt
 

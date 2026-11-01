@@ -2,7 +2,7 @@
 id: T-083
 title: Thẻ native `native_onboarding` ở luồng giới thiệu
 feature: onboarding
-spec: features/onboarding/spec.md   # confirmed 2026-10-31, câu 6, 8; vị trí cũng ghi ở features/ads/spec.md câu 12
+spec: features/onboarding/spec.md   # confirmed 2026-11-01, câu 6, 8, 9; vị trí cũng ghi ở features/ads/spec.md câu 12
 scenarios: [KB-6]
 owner: Nhật
 status: approved
@@ -49,10 +49,12 @@ Thẻ native 250 dp hiện ở đáy vùng trang, ở mọi trang, kể cả tra
 
 Ticket chạm điểm chặn của `risk-scoring.md`: thêm vị trí quảng cáo, và quảng cáo ở lần mở đầu tiên ngay cạnh trang xin quyền camera. Không thêm SDK, quyền hay thư viện. Rủi ro cao, cần duyệt chéo (Tuấn và Nhật).
 
+Plan phiên bản 4 (2026-11-01): spec câu 9 coi "Không đồng ý" trên hộp thoại UMP là vẫn được nạp quảng cáo không cá nhân hóa, nên trên emulator trang 1 cũng chờ; plan thêm bộ lọc `enabled=true` vào `scripts/device-scenario.py` (phần dùng chung, đề xuất về dự án mẫu) và sửa 8 tệp kịch bản có sẵn để không chạm nút "Tiếp" đang mờ. Dòng cuối của Định nghĩa hoàn thành đã sửa theo spec câu 9 (plan, mục 8, câu 13; Nhật, 2026-11-01).
+
 ## Định nghĩa hoàn thành
 
 - [ ] Đạt KB-6 của spec onboarding.
 - [ ] Khóa `is_show_native_onboarding` mặc định tắt; bản staging bật; bảng khóa sinh lại khớp code.
 - [ ] Screenshot test trạng thái `ad` khớp ảnh thiết kế; ảnh `_small` cho thấy nút "Tiếp" không bị che.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.
-- [ ] Thử trên máy thật bản staging sau khi xóa dữ liệu app: thẻ hiện ở mọi trang, đổi khi chuyển trang; trang 1 chờ không quá 5 giây; từ chối đồng ý thì không chờ và luồng vẫn đi được. Không bấm vào quảng cáo.
+- [ ] Thử trên máy thật bản staging sau khi xóa dữ liệu app: thẻ hiện ở mọi trang, đổi khi chuyển trang; trang 1 chờ không quá 5 giây khi quảng cáo được phép theo hộp thoại đồng ý (UMP), kể cả khi chọn "Không đồng ý" (quảng cáo không cá nhân hóa, spec câu 9); vị trí tắt hay hộp thoại chưa cho nạp quảng cáo thì không chờ; luồng luôn đi được. Không bấm vào quảng cáo.

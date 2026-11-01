@@ -934,3 +934,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `docs/ops/staging-and-runs.md` mục 2.1: thêm hai tên miền vào Allowed domains, nhắc thêm tên miền khi thêm kho Maven ngoài mới; mục 2.4: log Gradle có `Received status code 403` thì thêm tên miền vào môi trường, không sửa code hay file build. Người thêm hai tên miền vào môi trường trên claude.ai/code rồi chạy lại env-canary. Dự án mẫu có thể cho `scripts/cloud-env-check.sh` hay `scripts/env-canary.sh` thử tải từ từng kho `maven(...)` để báo rõ tên miền bị chặn, và thêm vào `docs/ops/failure-playbook.md` một dòng cho 403 của Gradle trong môi trường cloud.
 - **Áp dụng:** tài liệu sửa ở PR #264 (merge ngày 2026-10-31). Nhật đóng #242 cùng ngày. Thêm hai tên miền vào môi trường cloud là việc của người, chưa kiểm. Dự án mẫu: VGL-Studio/app-project-template#363.
 - **Kiểm chứng:**
+
+### L-101: plan chạy trước xóa ảnh thiết kế mà plan chạy sau còn dẫn, plan-check chặn task sau giữa phiên
+
+- **Trạng thái:** proposed. **Loại:** plan. **Phạm vi:** chung. **Nguồn:** RUN-20261031-02, T-082 và T-083.
+- **Chuyện gì:** T-082 xóa đúng theo plan hai ảnh thiết kế `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` (frame của T-012). Mục 4 của plan T-083 (chạy ngay sau trong cùng danh sách) vẫn liệt kê hai ảnh này trong "ảnh thiết kế của ticket khác", ghi "T-012 (bỏ ở T-082)". `plan-check.py` chạy ngay trước T-083 báo lỗi ảnh không có trong `design/screens/`, nên phiên bỏ qua T-083 theo quy tắc. `run-check.py` và lần rà soát danh sách trước khi duyệt không thấy, vì chúng kiểm từng plan trên trạng thái repo lúc duyệt, khi hai ảnh còn đó.
+- **Bằng chứng:** danh sách chạy RUN-20261031-02, mục 2 (13:46 UTC): `LỖI: ảnh thiết kế của ticket khác OnboardingScreen_default_dark không có trong docs/features/onboarding/design/screens/.` (và `_light`).
+- **Đề xuất sửa:** `scripts/run-check.py` thêm quy tắc: plan nào trong danh sách Xóa một file ở mục 3.2 mà plan chạy sau dẫn tên file đó (nhất là ảnh thiết kế ở mục 4) thì báo lỗi, để sửa plan trước khi duyệt. Hoặc quy tắc ảnh thiết kế của `plan-check.py` bỏ qua tên mà plan tự ghi là bỏ ở ticket khác. `docs/CLAUDE.md`, mục Khi viết plan: không liệt kê ảnh mà plan khác trong cùng danh sách sẽ xóa.
+- **Áp dụng:**
+- **Kiểm chứng:**

@@ -1,7 +1,7 @@
 ---
 ticket: T-081
 title: Bỏ `:feature:sample`, vị trí `sample_native_small` và cờ `feature_sample_enabled`
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -489,3 +489,18 @@ Phiên bản 2:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261031-02, phiên bản plan 2
+
+- **Kết quả:** đã merge (2026-11-01 11:32 UTC, commit 732fb19 của nhánh).
+- **Nhánh, PR:** `claude/T-081-bo-man-mau`, #288.
+- **Đã làm:** bỏ `:feature:sample`, `SAMPLE_NATIVE_SMALL`, `FeatureFlag.SAMPLE`, `MainScreen.SAMPLE` (màn chính chỉ còn màn chào hay camera); đổi tên cơ học trong 30 file test sang `POSES_BOTTOM`, bỏ mục trùng ở chuỗi mã đơn vị; script test, `CLAUDE.md`, `ads-guide.md`, `test-sessions.md`; bảng khóa sinh lại; xóa 3 ảnh chuẩn `SampleScreen`. Bước 3 đến 5 do phiên con làm trong worktree `../task-T-081`.
+- **Test viết trước:** commit `6a2929d`; 13 test đỏ đúng lý do (9 của `MainScreenTest` `expected:<CAMERA|ONBOARDING> but was:<SAMPLE>`, `noSamplePlacement`, ba test dữ liệu mã đơn vị). Test chặn `noGalleryPlacement_isShown` qua ngay như plan, đột biến đỏ. Đối chứng thêm lại `&& CAMERA` làm đúng 2 test đỏ như plan. Test viết chặt lại: 0. `scripts/check.sh` qua: 2706 test JVM, 138 ảnh.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 6 ghi chú (mô tả PR #288).
+- **Kết quả CI:** `pr-check` xanh lần đầu (lần chạy 41300513431).
+- **Lệch so với plan:**
+  - Ngoài mục 3.2: không có.
+  - Ba test dữ liệu (`AdUnitIdsTest.configuredUnits_areParsedPerPlacementKey`, `missingUnitsWarning_listsMissingKeys`, `AdsControllerUnitIdsTest.start_withAllUnits_noWarning`) đỏ ở commit test thay vì qua cả trước lẫn sau như mục 4 dự đoán; đỏ đúng lý do (enum còn `sample_native_small`), qua sau code.
+  - Thay đổi file test sau commit test: test của script (`scripts/tests/run.sh`, `scripts/tests/fixtures/device-scenario/grid.xml`, `scripts/tests/playbook/none.log`) đổi ở commit code theo mục 4 (ngoại lệ viết test trước); file test Kotlin không đổi.
+- **Việc còn lại:** chú thích "(as the sample feature)" ở `core/data/.../DataStoreUserPreferences.kt:21` (ngoài mục 3.2); người xóa khóa Firebase cũ nếu muốn và chạy lại `scripts/ads-plan.py --keep`; đề xuất về dự án mẫu (mô tả PR).
+- **Cần người xem:** bước thử tay trên máy thật: cài bản staging mới vào màn chào, lần mở sau vào camera.

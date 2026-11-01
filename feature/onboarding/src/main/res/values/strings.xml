@@ -8,4 +8,11 @@
     <string name="onboarding_point_saved">Save favorite poses to shoot again later</string>
     <string name="onboarding_enable_camera">Turn on camera</string>
     <string name="onboarding_note">The app needs camera access to show the preview. Photos are stored only on your device.</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_poses_title">A pose for every shot</string>
+    <string name="onboarding_premium_title">Premium poses</string>
+    <string name="onboarding_premium_body">Watch one ad to unlock a premium pose, then keep it for good.</string>
+    <string name="onboarding_camera_title">Ready to shoot</string>
+    <!-- %1$d is the current page (from 1), %2$d the number of pages (3 or 4). Read by screen readers only. -->
+    <string name="onboarding_page_indicator">Page %1$d of %2$d</string>
 </resources>

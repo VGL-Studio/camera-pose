@@ -94,6 +94,8 @@ internal fun OnboardingRoute(
     }
     OnboardingScreen(
         uiState = uiState,
+        onNext = viewModel::onNextClick,
+        onBack = viewModel::onBackClick,
         onEnableCamera = {
             val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                 PackageManager.PERMISSION_GRANTED
@@ -108,7 +110,14 @@ internal fun OnboardingRoute(
  * [MinIllustrationHeight]), then the rest scrolls (design README, section 6).
  */
 @Composable
-internal fun OnboardingScreen(uiState: OnboardingUiState, onEnableCamera: () -> Unit, modifier: Modifier = Modifier) {
+internal fun OnboardingScreen(
+    uiState: OnboardingUiState,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
+    onEnableCamera: () -> Unit,
+    modifier: Modifier = Modifier,
+    adSlot: @Composable (page: OnboardingPage) -> Unit = {},
+) {
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = modifier
@@ -141,7 +150,7 @@ internal fun OnboardingScreen(uiState: OnboardingUiState, onEnableCamera: () -> 
             text = stringResource(R.string.onboarding_enable_camera),
             onClick = onEnableCamera,
             icon = painterResource(R.drawable.ic_onboarding_photo_camera),
-            loading = uiState !is OnboardingUiState.Ready,
+            loading = uiState !is OnboardingUiState.Browsing,
             modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.ENABLE_CAMERA),
         )
         Spacer(modifier = Modifier.height(Spacing.lg))
@@ -264,6 +273,18 @@ internal object OnboardingTestTags {
     const val FEATURE_SAVED = "onboarding_feature_saved"
     const val ENABLE_CAMERA = "onboarding_enable_camera"
     const val NOTE = "onboarding_note"
+    const val NEXT = "onboarding_next"
+    const val PAGE_INDICATOR = "onboarding_page_indicator"
+    const val PAGE_AREA = "onboarding_page_area"
+    const val AD_SLOT = "onboarding_ad_slot"
+    const val BADGE = "onboarding_badge"
+    const val PAGE_INTRO = "onboarding_page_intro"
+    const val PAGE_POSES = "onboarding_page_poses"
+    const val PAGE_PREMIUM = "onboarding_page_premium"
+    const val PAGE_CAMERA = "onboarding_page_camera"
+
+    /** The dot of page [number], counted from 1. */
+    fun pageDot(number: Int) = "onboarding_page_dot_$number"
 }
 
 /** Lowest height of the shrinking illustration (plan T-012, question 7). */

@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.vglstudio.camera.pose.line.guide.core.analytics.Analytics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
+import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -24,13 +25,15 @@ import kotlinx.coroutines.flow.receiveAsFlow
 class OnboardingViewModel @Inject constructor(
     private val analytics: Analytics,
     private val logger: AppLogger,
+    private val featureFlags: FeatureFlags,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+    // Skeleton of plan T-082 step 3: one page list, no page moves yet.
     private val state = MutableStateFlow<OnboardingUiState>(
         if (savedStateHandle.get<Boolean>(KEY_REQUESTING_PERMISSION) == true) {
-            OnboardingUiState.RequestingPermission
+            OnboardingUiState.RequestingPermission(onboardingPages(premium = false))
         } else {
-            OnboardingUiState.Ready
+            OnboardingUiState.Browsing(onboardingPages(premium = false), 0)
         },
     )
     val uiState: StateFlow<OnboardingUiState> = state.asStateFlow()
@@ -42,8 +45,12 @@ class OnboardingViewModel @Inject constructor(
         logger.info(LOG_TAG, "Onboarding shown")
     }
 
+    fun onNextClick() = Unit
+
+    fun onBackClick() = Unit
+
     fun onEnableCameraClick(permissionGranted: Boolean) {
-        if (state.value != OnboardingUiState.Ready) return
+        if (state.value !is OnboardingUiState.Browsing) return
         if (savedStateHandle.get<Boolean>(KEY_COMPLETION_LOGGED) != true) {
             analytics.log(AnalyticsEvent(EVENT_COMPLETE))
             savedStateHandle[KEY_COMPLETION_LOGGED] = true
@@ -55,7 +62,7 @@ class OnboardingViewModel @Inject constructor(
             finish()
         } else {
             savedStateHandle[KEY_REQUESTING_PERMISSION] = true
-            state.value = OnboardingUiState.RequestingPermission
+            state.value = OnboardingUiState.RequestingPermission(state.value.pages)
             logger.info(LOG_TAG, "Asking for the camera permission")
             eventChannel.trySend(OnboardingEvent.RequestPermission)
         }
@@ -66,7 +73,7 @@ class OnboardingViewModel @Inject constructor(
      * asking: there is no user answer to record (plan T-012, version 2; same rule as the camera, T-026).
      */
     fun onPermissionResult(granted: Boolean, dialogShown: Boolean = true) {
-        if (state.value != OnboardingUiState.RequestingPermission) return
+        if (state.value !is OnboardingUiState.RequestingPermission) return
         if (dialogShown) {
             val result = if (granted) "granted" else "denied"
             analytics.log(AnalyticsEvent(EVENT_PERMISSION_RESULT, mapOf("result" to result, "source" to SOURCE)))
@@ -79,7 +86,7 @@ class OnboardingViewModel @Inject constructor(
     }
 
     private fun finish() {
-        state.value = OnboardingUiState.Finished
+        state.value = OnboardingUiState.Finished(state.value.pages)
         eventChannel.trySend(OnboardingEvent.Finished)
     }
 
@@ -90,5 +97,10 @@ class OnboardingViewModel @Inject constructor(
         const val SOURCE = "onboarding"
         const val KEY_REQUESTING_PERMISSION = "requesting_permission"
         const val KEY_COMPLETION_LOGGED = "completion_logged"
+        const val EVENT_STEP_VIEWED = "onboarding_step_viewed"
+        const val PARAM_STEP = "step"
+        const val KEY_PAGE_INDEX = "page_index"
+        const val KEY_PREMIUM = "premium_page"
+        const val KEY_VIEWED_STEPS = "viewed_steps"
     }
 }

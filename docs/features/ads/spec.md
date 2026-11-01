@@ -73,7 +73,8 @@ Khai báo `queries` (thấy gói khác trên máy) mà SDK mediation kéo vào m
 Nguồn: AppLovin, Meta, DT Exchange, InMobi, Unity. App nhận các mục này như dự án mẫu, không gỡ (Nhật, 2026-10-28). Lượt 1 của T-074 có thêm mục nào khác thì quay lại spec này trước khi merge.
 
 AppLovin MAX (câu 16): đợt đồng bộ dự án mẫu 47782ec..151b4c2 (PR #279) đưa vào `:core:ads` lời gọi thẳng SDK AppLovin (`com.applovin:applovin-sdk` 13.6.4, đã có trong app từ T-074 qua adapter AppLovin của AdMob) và thêm thư viện `com.applovin.mediation:google-adapter` (adapter Google của MAX). MAX chưa bật: chỉ khởi động khi bản build có khóa MAX, mà bản staging của CI và bản phát hành hiện không có. Manifest gộp không có quyền mới (`MergedManifestTest`); SDK AppLovin vốn đã nằm trong danh sách nguồn ở trên.
- Sự kiện phân tích mà khung ghi qua Firebase Analytics (nếu có) được plan liệt kê và chép vào mục 6 của spec màn có vị trí trong PR của T-074.
+
+Sự kiện phân tích mà khung ghi qua Firebase Analytics (nếu có) được plan liệt kê và chép vào mục 6 của spec màn có vị trí trong PR của T-074.
 
 ## 7. File tĩnh trên R2
 
@@ -193,6 +194,15 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 16. **SDK AppLovin MAX từ dự án mẫu.** Đợt đồng bộ PR #279 mang về MAX (ADR-0037 của mẫu): banner và MREC tải từ MAX và AdMob theo `ads_mediation_order`, thêm thư viện `com.applovin.mediation:google-adapter`. Spec này chưa có MAX.
     - Đề xuất của AI: nhận MAX vào app nhưng chưa bật. Không có khóa MAX thì MAX không khởi động và mọi vị trí tải từ AdMob như hôm nay. Bật MAX ở production là quyết định sau, qua ticket riêng (cần khóa MAX, mã MAX theo khe, `release.sh` mới ở T-075, khai báo An toàn dữ liệu trên Play).
     - Trả lời: nhận, chưa bật, theo đề xuất. Nhật, 2026-11-01.
+17. **Đổi hành vi khác của khung quảng cáo trong đợt đồng bộ PR #279** (ADR-0037, ADR-0038 của mẫu, nguồn JBase). Đợt này đổi các điều sau ở cả bản staging và production:
+    - khởi động SDK quảng cáo sớm bằng đồng ý thật của lần mở trước (`CACHED_EARLY`) luôn bật, không còn công tắc; `is_enable_consent_shortcut` nay chỉ bật quyền tạm khi UMP lỗi mạng (`ERROR_ALLOWED`), vẫn mặc định tắt;
+    - `time_expand_collap_ad` mặc định 30 giây thành 10 giây (lớp native thu gọn tự mở lại; lớp này đang tắt theo câu 15);
+    - khóa mới `time_close_native`: đếm ngược 5 giây trước khi đóng được native toàn màn hình;
+    - khóa mới `ads_mediation_order` (thứ tự MAX và AdMob, mặc định `max_admob`; không có khóa MAX thì chỉ AdMob, câu 16);
+    - banner cố định dùng cỡ thích ứng neo đáy thường thay cho cỡ lớn (B-01);
+    - vị trí mới `gallery_banner_mrec`, chỉ có ở bản staging (màn xem thử quảng cáo, app không có màn này).
+    - Đề xuất của AI: nhận như dự án mẫu. Đây là chuẩn nghiệp vụ chung của khung (ADR-0038); muốn khác thì đặt giá trị trên Remote Config, trừ `CACHED_EARLY` không còn công tắc. Không cần sửa spec màn nào.
+    - Trả lời: nhận như dự án mẫu, theo đề xuất. Nhật, 2026-11-01.
 
 ## 10. Lịch sử
 
@@ -215,3 +225,5 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-10-31 | Nhật | Sửa câu 13 theo rà soát plan T-084 (AI ghi): tổ hợp `is_show_native_bottom` tắt, `is_show_native_collap` bật ra banner, không có lớp thu gọn (luật D-01 của khung); còn 3 cách hiện. Lời của Nhật: chọn "Sửa spec: 3 cách hiện", phương án ghi rõ Nhật xác nhận spec lại ngay. Chuyển `changed` rồi lại `confirmed` |
 | 2026-11-01 | AI | Đồng bộ dự án mẫu PR #279: mục 6 ghi SDK AppLovin MAX (chưa bật); Nhật trả lời lại câu 14 (khóa khe chung `banner`, `native_collap` của mẫu, dừng T-084) và câu 16 mới (nhận MAX, chưa bật). Chuyển `changed`, chờ xác nhận |
 | 2026-11-01 | Nhật | Xác nhận phần đổi của PR #279 (mục 2, mục 6, câu 14, câu 16). Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-11-01 | AI | Theo rà soát độc lập PR #279: câu 17 mới, liệt kê các đổi hành vi khác của khung trong đợt đồng bộ. Chuyển `changed`, chờ trả lời và xác nhận |
+| 2026-11-01 | Nhật | Trả lời câu 17 (AI ghi) và xác nhận spec. Lời của Nhật: chọn "Nhận như mẫu, xác nhận spec" khi được hỏi. Chuyển lại `confirmed` |

@@ -201,8 +201,7 @@ private fun BannerSlot(
  * window of the slot: [visible] and not [covered] by a full-screen ad ([inScreenAdWindowOf], KB-27, plan T-054).
  * [onAdAvailabilityChange] gets true on the first ad of a frame, and false once when the frame goes after that; a
  * frame kept with its height (B-06) reports nothing, so a bottom bar keeps the space.
- * [separator]: see [AdSlot]; [onLoadResult] gets every load result of the view (true loaded, false failed), only
- * with a separator.
+ * [separator]: see [AdSlot]; [onLoadResult] gets the result of every send (true loaded, false failed).
  *
  * [kind] sets the frame's width ([bannerFrameWidthDp], centred) and height ([bannerSlotHeightDp]): an MREC that failed
  * before its first ad takes no space (B-08). A banner that does not [fits] its place has no frame: no ad view, no
@@ -318,21 +317,11 @@ private fun BannerFrameContent(
     val active = frame == BannerFrame.ACTIVE
     val currentMayRequestNow by rememberUpdatedState(mayRequestNow)
     val currentOnLoaded by rememberUpdatedState(onLoaded)
-    // The result of the last load, for the separator of this app (AdSlot): placed before the sends, so the result of
-    // the first one is seen. Only with a separator: a banner of two platforms (OrderedBannerAdView) allows a single
-    // collection of view.results, the one of runBannerLoads.
+    // The result of the last load, for the separator of this app (AdSlot), from the callbacks of runBannerLoads: a
+    // banner of two platforms (OrderedBannerAdView) allows a single collection of view.results, and a platform handing
+    // the turn to the next one is not a failed load.
     var lastLoadFailed by remember(view) { mutableStateOf(false) }
     val currentOnLoadResult by rememberUpdatedState(onLoadResult)
-    val withSeparator = separator != null
-    LaunchedEffect(view, withSeparator) {
-        if (withSeparator) {
-            view.results.collect { result ->
-                val loaded = result == BannerLoadResult.Loaded
-                lastLoadFailed = !loaded
-                currentOnLoadResult(loaded)
-            }
-        }
-    }
     val currentOnFailed by rememberUpdatedState(onFailed)
     LaunchedEffect(view, active) {
         if (active) {
@@ -342,10 +331,18 @@ private fun BannerFrameContent(
                 visible = visible,
                 mayRequestNow = { currentMayRequestNow() },
                 retryResets = retryResets,
-                onLoaded = { currentOnLoaded() },
+                onLoaded = {
+                    lastLoadFailed = false
+                    currentOnLoadResult(true)
+                    currentOnLoaded()
+                },
                 logger = logger,
                 placementKey = placementKey,
-                onFailed = { currentOnFailed() },
+                onFailed = {
+                    lastLoadFailed = true
+                    currentOnLoadResult(false)
+                    currentOnFailed()
+                },
             )
         }
     }

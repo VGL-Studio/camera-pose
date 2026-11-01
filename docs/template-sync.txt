@@ -25,7 +25,7 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=scripts/release.sh 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6
-# (scenario budget 1500, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
+# (scenario budget 1800, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
 # and start-run.yml, the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md, and the
 # release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh.

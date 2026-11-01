@@ -37,7 +37,7 @@ class AdSlotTest {
     private val views = FakeBannerAdViews()
     private val reported = mutableListOf<Boolean>()
 
-    private fun setBanner(separator: Boolean = true) {
+    private fun setBanner(separator: Boolean = true, newView: () -> BannerAdView = views::newView) {
         composeRule.setContent {
             Column {
                 BannerSlotHost(
@@ -52,7 +52,7 @@ class AdSlotTest {
                     retryResets = MutableStateFlow(0),
                     logger = RecordingAppLogger(),
                     placementKey = AdPlacement.GALLERY_BANNER.key,
-                    newView = views::newView,
+                    newView = newView,
                     modifier = Modifier.testTag(SLOT),
                     separator = if (separator) {
                         { Box(Modifier.fillMaxWidth().height(SEPARATOR_HEIGHT.dp).testTag(SEPARATOR)) }
@@ -139,9 +139,44 @@ class AdSlotTest {
     fun bannerListener_reportsFailedThenLoaded() {
         setBanner()
         failLoad()
+        // A result follows a send, as with the SDK: the load comes on the retry of B-02.
+        composeRule.mainClock.advanceTimeBy(RETRY_WAIT_MILLIS)
+        composeRule.waitForIdle()
+        assertEquals(2, views.last.sendCount)
         result { emitLoaded() }
         // Each result of a load is reported: false for the failure, true for the load.
         assertEquals(listOf(false, true), reported)
+    }
+
+    @Test
+    fun twoPlatforms_firstHasNoAd_keepsSeparator_andSendsToSecond() {
+        // The banner of AdSlot is always an OrderedBannerAdView now (MAX then AdMob, ADR-0037); it allows a single
+        // collection of its results, so the separator must not collect them a second time.
+        val max = FakeBannerAdView()
+        val admob = FakeBannerAdView()
+        setBanner(
+            newView = {
+                OrderedBannerAdView(
+                    listOf(AdPlatform.MAX to max, AdPlatform.ADMOB to admob),
+                    { true },
+                    RecordingAppLogger(),
+                    AdPlacement.GALLERY_BANNER.key,
+                )
+            },
+        )
+        assertEquals(1, max.sendCount)
+
+        composeRule.runOnUiThread { max.emitFailed(NO_FILL) }
+        composeRule.waitForIdle()
+        // MAX handing the turn to AdMob is not a failed load: the separator and the room stay.
+        assertTrue(hasSeparator())
+        assertEquals((SEPARATOR_HEIGHT + BANNER_HEIGHT).toFloat(), slotHeight(), 0.5f)
+        assertEquals(1, admob.sendCount)
+
+        composeRule.runOnUiThread { admob.emitLoaded() }
+        composeRule.waitForIdle()
+        assertTrue(hasSeparator())
+        assertEquals(listOf(true), reported)
     }
 
     private companion object {

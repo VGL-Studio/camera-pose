@@ -1,7 +1,7 @@
 ---
 id: ADR-1008
 title: App không có màn mẫu `:feature:sample` và vị trí quảng cáo `sample_native_small`; test của khung quảng cáo dùng vị trí `poses_bottom`
-status: proposed             # proposed | accepted | superseded
+status: accepted             # proposed | accepted | superseded
 origin: app                  # template: ADR của dự án mẫu (mã dưới 1000) | app: ADR riêng của app (mã từ 1001)
 date: 2026-10-31
 deciders: [Tuấn, Nhật]

@@ -262,6 +262,13 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không đổi tên khóa Remote Config đã phát hành, khóa mới theo ADR-0023
 - không phát bản production trước khi T-075 lấy `scripts/release.sh` mới
 
+### [ADR-1008](adr/1008-khong-co-man-mau.md): App không có màn mẫu `:feature:sample` và vị trí quảng cáo `sample_native_small`; test của khung quảng cáo dùng vị trí `poses_bottom`
+
+- không thêm lại `:feature:sample`, cờ `feature_sample_enabled`, sự kiện `sample_increment` hay vị trí `sample_native_small`
+- test của khung cần một vị trí native small không chỉ có ở staging thì dùng `POSES_BOTTOM`
+- đồng bộ từ dự án mẫu thì bỏ `feature/sample` và dòng `SAMPLE_NATIVE_SMALL`, đổi test mới của mẫu dùng vị trí đó sang `POSES_BOTTOM`
+- vị trí `gallery_*` giữ theo ADR-1007
+
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 
 ### [ADR-0020](adr/0020-design-handoff-and-conformance.md): Thiết kế trên Claude Design hoặc Figma, bàn giao bằng ảnh khung chuẩn trong repo, đối chiếu bằng ảnh so sánh
@@ -279,10 +286,3 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không vượt bộ chặn
 - không tự chuyển trạng thái bản đề xuất hay thiết kế
 - ghi mọi tài sản mượn vào `docs/borrowed-assets.md` trong cùng PR với file mượn
-
-### [ADR-1008](adr/1008-khong-co-man-mau.md): App không có màn mẫu `:feature:sample` và vị trí quảng cáo `sample_native_small`; test của khung quảng cáo dùng vị trí `poses_bottom`
-
-- không thêm lại `:feature:sample`, cờ `feature_sample_enabled`, sự kiện `sample_increment` hay vị trí `sample_native_small`
-- test của khung cần một vị trí native small không chỉ có ở staging thì dùng `POSES_BOTTOM`
-- đồng bộ từ dự án mẫu thì bỏ `feature/sample` và dòng `SAMPLE_NATIVE_SMALL`, đổi test mới của mẫu dùng vị trí đó sang `POSES_BOTTOM`
-- vị trí `gallery_*` giữ theo ADR-1007

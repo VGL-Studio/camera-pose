@@ -1,16 +1,16 @@
 ---
 ticket: T-081
 title: Bỏ `:feature:sample`, vị trí `sample_native_small` và cờ `feature_sample_enabled`
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9.0M         # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay
 blocking_points: [ads, analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-10-31
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -95,11 +95,11 @@ internal fun chooseMainScreen(inputs: MainScreenInputs): MainScreen = when {
 
 `AppNavHost.kt` bỏ hai dòng import `feature.sample.navigation`, dòng `sampleScreen()` và nhánh `MainScreen.SAMPLE -> SampleDestination` của `destination()`. Luồng `scope.launch(Dispatchers.Main.immediate)` của `loadingScreen` không đổi.
 
-**Cờ `feature_camera_enabled` sau task.** Không code nào đọc cờ nữa. `FeatureFlag.CAMERA`, dòng của nó trong `StagingFeatureFlagsModule` và dòng trong bảng khóa giữ nguyên trong task này. Đề xuất bỏ cờ trong một ticket khác (câu 1).
+**Cờ `feature_camera_enabled` sau task.** Không code nào đọc cờ nữa. `FeatureFlag.CAMERA` và dòng của nó trong `StagingFeatureFlagsModule` giữ nguyên trong task này; chỉ mô tả của cờ đổi (nói cờ không còn tác dụng), nên dòng trong bảng khóa đổi mô tả. Cờ bỏ hẳn ở ticket T-088 (Nhật quyết 2026-10-31; spec camera mục 8 đã sửa).
 
 **Cờ `feature_sample_enabled`.**
 
-- `FeatureFlag.kt` bỏ dòng `SAMPLE(...)`; `StagingFeatureFlagsModule` bỏ hàm `sample()`.
+- `FeatureFlag.kt` bỏ dòng `SAMPLE(...)`; đổi mô tả của `CAMERA` thành `"No longer read: the camera is always the start screen (T-081); removed in T-088."` (spec camera mục 8, sửa 2026-10-31); `StagingFeatureFlagsModule` bỏ hàm `sample()`.
 - `DefaultFeatureFlagsTest`: bốn test dùng `FeatureFlag.SAMPLE` làm cờ mẫu đổi sang `FeatureFlag.LOADING` (cờ của dự án mẫu, còn ở cả hai phía). Câu kiểm giữ nguyên (ADR-0029).
 
 **Vị trí `sample_native_small`.**
@@ -107,6 +107,10 @@ internal fun chooseMainScreen(inputs: MainScreenInputs): MainScreen = when {
 - `AdPlacement.kt` bỏ dòng `SAMPLE_NATIVE_SMALL(...)` và KDoc của nó.
 - `StagingRemoteValuesModule.kt`: chú thích "the gallery and sample placements of the framework stay off" thành "the gallery placements of the framework stay off".
 - Đổi tên cơ học trong các file test ở mục 3.2 (nhóm "Đổi tên"): `SAMPLE_NATIVE_SMALL` thành `POSES_BOTTOM`, chuỗi `sample_native_small` thành `poses_bottom`. Ví dụ: `"Bottom bar sample_native_small: off"` thành `"Bottom bar poses_bottom: off"`; `"ads_sample_native_small_enabled"` (tên khóa cũ đợt 2 mà khung không được đọc, `AdsFlagsTest`) thành `"ads_poses_bottom_enabled"`. Bản chạy thử làm bằng một script Python thay chuỗi trong 26 file, rồi sửa tay bốn chỗ dưới.
+- **Luật chung khi đổi tên làm trùng (rà soát độc lập):** đổi tên làm trùng một mục `poses_bottom` đã có (trong chuỗi cấu hình, danh sách mong đợi, tập khóa) thì bỏ mục `sample_*`, không đổi tên (dữ liệu, ADR-0029). Áp cả cho test mà ticket chạy trước thêm vào:
+  - T-084 (plan approved, chạy trước ticket này): `AdUnitIdsTest.missingLayers_listEveryBottomBarLayerWithoutUnit` có `sample_native_small/banner`, `sample_native_small/native_collap` cạnh `poses_bottom/...`. Bỏ hai mục `sample_native_small/...`.
+  - T-083 (plan nháp): `StartupAdChoiceTest` dùng `SAMPLE_NATIVE_SMALL`; đổi tên theo luật trên.
+  - Phiên tìm theo chuỗi (`git grep -n "SAMPLE_NATIVE_SMALL\|sample_native_small"`), không theo số dòng: T-080, T-084 sửa cùng file nên số dòng lệch.
 - Sửa tay (không phải đổi tên đơn thuần):
   - `AdUnitIdsTest.configuredUnits_areParsedPerPlacementKey`: hai chuỗi cấu hình đã có `poses_bottom=unit/8`, đổi tên sẽ cho khóa trùng. Chuỗi mới (trên nhánh chính trước T-080; sau T-080 giữ thêm `;poses_in_collection=unit/12` mà T-080 thêm vào cuối hai chuỗi):
 
@@ -127,7 +131,7 @@ internal fun chooseMainScreen(inputs: MainScreenInputs): MainScreen = when {
 
 **Sau T-080.** T-080 thêm test vào `InListAdsTest`, `AdsControllerNativeComboTest`, `PoseCardTest`, `PosesScreenTest`. Theo plan T-080 (mục 4), test của khung dùng `GALLERY_IN_COLLECTION` và `GALLERY_INLIST_MEDIUM`, không dùng `SAMPLE_NATIVE_SMALL`. Phần T-080 chạm vị trí mẫu chỉ là hai chuỗi của `AdUnitIdsTest` (thêm `poses_in_collection=unit/12`). Dù vậy, phiên chạy `grep -rln "SAMPLE_NATIVE_SMALL\|sample_native_small" core app feature` sau khi tạo nhánh và đổi tên mọi file tìm thấy theo cùng luật; file test nào ngoài mục 3.2 thì theo ADR-0029 (dữ liệu của test cũ).
 
-**Bảng khóa.** `./gradlew :app:testStagingDebugUnitTest -PremoteConfigKeys.update=true`. Chạy thử: `docs/remote-config-keys.md` mất đúng hai dòng (`feature_sample_enabled`, `is_show_sample_native_small`); `docs/remote-config-template.json` mất hai khối (10 dòng). Không sửa tay.
+**Bảng khóa.** `./gradlew :app:testStagingDebugUnitTest -PremoteConfigKeys.update=true`. Chạy thử: `docs/remote-config-keys.md` mất đúng hai dòng (`feature_sample_enabled`, `is_show_sample_native_small`) và dòng `feature_camera_enabled` đổi mô tả (phiên bản sau rà soát; chạy thử là bản trước khi đổi mô tả); `docs/remote-config-template.json` mất hai khối (10 dòng). Không sửa tay.
 
 **Script và test của script (L-075, đã chạy, mục 4.1).**
 
@@ -201,7 +205,7 @@ internal fun chooseMainScreen(inputs: MainScreenInputs): MainScreen = when {
 | Sửa | `app/src/staging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingFeatureFlagsModule.kt` | Bỏ `sample()` |
 | Sửa | `app/src/staging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingRemoteValuesModule.kt` | Chú thích: bỏ "and sample" |
 | Sửa | `app/src/testStaging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingRemoteValuesModuleTest.kt` | `noGalleryPlacement_isShown` (mục 3.5) |
-| Sửa | `core/config/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/config/FeatureFlag.kt` | Bỏ `SAMPLE` |
+| Sửa | `core/config/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/config/FeatureFlag.kt` | Bỏ `SAMPLE`; đổi mô tả của `CAMERA` (cờ không còn tác dụng) |
 | Sửa | `core/config/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/config/DefaultFeatureFlagsTest.kt` | `FeatureFlag.SAMPLE` thành `FeatureFlag.LOADING` (dữ liệu, ADR-0029) |
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt` | Bỏ `SAMPLE_NATIVE_SMALL` và KDoc |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIdsTest.kt` | Sửa tay hai chuỗi cấu hình (mục 3.1), còn lại đổi tên |
@@ -230,7 +234,7 @@ internal fun chooseMainScreen(inputs: MainScreenInputs): MainScreen = when {
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/SdkBannerAdViewTest.kt` | Đổi tên |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/StartupAdChoiceTest.kt` | Đổi tên, kể cả `is_show_poses_bottom` |
 | Sửa | `core/analytics/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/analytics/FirebaseAdMetricsTest.kt` | Chuỗi `ad_placement` thành `poses_bottom` |
-| Sửa | `docs/remote-config-keys.md` | Sinh lại: mất `feature_sample_enabled`, `is_show_sample_native_small` |
+| Sửa | `docs/remote-config-keys.md` | Sinh lại: mất `feature_sample_enabled`, `is_show_sample_native_small`; mô tả mới của `feature_camera_enabled` |
 | Sửa | `docs/remote-config-template.json` | Sinh lại cùng lệnh |
 | Sửa | `scripts/ads-plan.py` | `KNOWN_PLACEMENTS = {}`; bỏ mục `feature_sample_enabled`, `sample_increment` |
 | Sửa | `scripts/failure-kind.sh` | Chú thích dòng 71 |
@@ -371,7 +375,7 @@ Rủi ro Cao, cần duyệt chéo (Tuấn và Nhật). Điểm dưới đây ch�
 
 ## 7. Điều kiện dừng riêng
 
-- Bảng khóa sinh lại có thay đổi khác ngoài việc mất `feature_sample_enabled` và `is_show_sample_native_small`: dừng, vì nghĩa là khung hay cờ khác đã đổi ngoài plan.
+- Bảng khóa sinh lại có thay đổi khác ngoài việc mất `feature_sample_enabled`, `is_show_sample_native_small` và mô tả mới của `feature_camera_enabled`: dừng, vì nghĩa là khung hay cờ khác đã đổi ngoài plan.
 - `git status --short -- '*/src/test/screenshots/'` có ảnh nào đổi hay mất ngoài ba ảnh `feature/sample/src/test/screenshots/SampleScreen_*.png`: dừng, không ghi lại ảnh.
 - Một test của `:core:ads` hay `:core:analytics` đỏ sau khi đổi tên mà không phải vì một chuỗi hay hằng còn sót (ví dụ test phụ thuộc thứ tự `AdPlacement.entries` hay số vị trí): dừng; không đổi câu khẳng định ngoài mục 3.5.
 - Số test JVM của `:core:ads`, `:core:config`, `:core:analytics` sau task ít hơn trên nhánh chính: dừng (không test nào được mất ngoài test của `feature/sample`).
@@ -381,18 +385,37 @@ Rủi ro Cao, cần duyệt chéo (Tuấn và Nhật). Điểm dưới đây ch�
 1. **Màn nào khi màn chào không áp dụng và cờ `feature_camera_enabled` tắt?** Hiện app mở màn mẫu. Bản production có cờ camera mặc định tắt, nên nếu Remote Config production chưa bật cờ, người dùng thấy màn mẫu.
    - Đề xuất của AI (plan viết theo): mở camera. Spec loading mục 2 chỉ có màn chào và camera. Hệ quả: cờ camera không còn được đọc; màn chào chỉ cần cờ của nó (trước đây cần cả cờ camera, plan T-012 câu 2, vì màn chào chỉ dẫn tới camera). Cờ vẫn khai báo và có trong bảng khóa. Đề xuất một ticket sau bỏ hẳn `feature_camera_enabled` (`FeatureFlag.CAMERA`, `StagingFeatureFlagsModule`, bảng khóa, spec camera mục 8).
    - Cách khác: giữ màn chào cần cả hai cờ. Khi đó cờ camera tắt chỉ còn tác dụng bỏ qua màn chào, vẫn vào camera; mục 3.1 giữ dòng `&& camera` và hai test của dòng 2 mục 3.5 giữ câu cũ (đổi `SAMPLE` thành `CAMERA`).
-2. **Feature mẫu trong `CLAUDE.md`.** Không feature nào của app có đủ mọi bước. Đề xuất thay dòng 60 bằng: "Làm theo mẫu `:feature:settings` (bố cục module, `UiState`, `Route` và `Screen`, `navigation/`, test); phần repository có lớp cài đặt `internal`, `Analytics`, `FeatureFlags` và `RemoteAssets` xem `:feature:loading`:". Đúng không?
+2. **Feature mẫu trong `CLAUDE.md`.** Không feature nào của app có đủ mọi bước. Đề xuất thay dòng 60 bằng: "Làm theo mẫu `:feature:settings` (bố cục module, `UiState`, `Route` và `Screen`, `navigation/`, test); phần repository có lớp cài đặt `internal`, `Analytics` và `AppLogger` xem `:feature:loading`; theo dõi cờ dạng `Flow` xem `PoseMatchViewModel` của `:feature:camera`; tải file trên R2 qua `RemoteAssets` xem `:core:poses`:". Sửa theo rà soát độc lập: không feature nào gọi `RemoteAssets`, và `LoadingViewModel` đọc cờ một lần bằng `first()`, trái bước 4. Nhật đồng ý hướng settings + loading ngày 2026-10-31.
 3. **Bỏ sự kiện `sample_increment`.** Đây là sự kiện của màn mẫu, staging từng gửi khi bấm nút đếm; production không có màn mẫu. Điểm chặn 4 nên người phụ trách sản phẩm cần biết. Đề xuất: đồng ý bỏ.
 4. **ADR-1008 trong PR plan.** ADR-1008 (`proposed`) và `docs/foundation.md` sinh lại có trong PR này để người duyệt đọc cùng plan. ADR-1007 (`accepted`) không sửa được, nên `foundation.md` vẫn còn vế "không gọi vị trí `gallery_*` hay `sample_native_small`" của ADR-1007 cạnh vế của ADR-1008 (không mâu thuẫn, chỉ thừa). Đề xuất: người chấp nhận ADR-1008 khi duyệt plan (đổi `status: accepted`, chạy `scripts/foundation.py`); khi nào ADR-1007 có bản thay toàn phần thì vế đó mất. Hay muốn phiên tạo ADR thay vì PR plan?
 5. **Spec loading còn chữ "màn dự phòng"** (mục 5, đoạn quảng cáo mở app: "rồi mới vào màn chính (camera, onboarding hay màn dự phòng)"). Spec đã `confirmed`, plan không sửa. Đề xuất: người sửa chữ này khi spec loading đổi lần sau, hay cho một PR tài liệu nhỏ; không ảnh hưởng hành vi.
 
+**Rà soát độc lập (2026-10-31, agent ngữ cảnh mới, chỉ đọc): 0 chặn, 3 nên sửa, 8 ghi chú.** `plan-check.py` qua, `foundation.py --check` khớp.
+
+- **Nên sửa, đã sửa:**
+  - luật chung khi đổi tên làm trùng, kèm test của T-084 và T-083 (mục 3.1);
+  - câu thay cho `CLAUDE.md` (câu 2): bỏ `RemoteAssets` khỏi `:feature:loading`, dẫn `PoseMatchViewModel` cho cờ dạng `Flow`.
+- **Nên sửa, Nhật đã quyết (2026-10-31):** sửa spec camera mục 8 (cờ không còn tác dụng, bỏ ở T-088, xác nhận lại), plan đổi mô tả cờ trong `FeatureFlag.kt` và bảng khóa, tạo ticket T-088. Ghi chú gốc: spec camera mục 8 ghi `feature_camera_enabled` là "Bật để dùng camera làm màn chính". Theo câu 1 (luôn mở camera), không code nào đọc cờ này nữa, trái spec đã chốt; mô tả cờ trong `docs/remote-config-keys.md` cũng sai (câu 6 dưới).
+- **Ghi chú:**
+  - Khung rỗng: `chooser_cameraFlagOn_choosesCamera`, `chooser_onboardingDone_choosesCamera`, `chooser_onboardingFlagOff_choosesCamera_withoutReadingStatus` cũng đỏ trên khung (không nhánh nào trả `CAMERA`); đỏ đúng lý do, ghi vào nhật ký.
+  - `DataStoreUserPreferences.kt:21` còn chú thích "as the sample feature"; phiên có thể sửa theo ADR-0029 (chỉ chú thích). `NativeAdCardTest.kt:54` là file của mẫu, để nguyên.
+  - Định nghĩa hoàn thành đòi không còn `sample_native_small` trong code; `AdPlacementAppTest.noSamplePlacement` giữ chuỗi này có chủ đích (mục 4). Người duyệt chấp nhận ngoại lệ.
+  - Chạy thử chưa gồm `:app:assembleStagingRelease`; `pr-check` chạy bước này vì PR đổi `settings.gradle.kts`; `consumer-rules.pro` của module rỗng.
+  - `AppNavHost` ở ngoại lệ viết test trước: chỉ xóa một nhánh `when` và `sampleScreen()`; build và `AppLaunchTest` bao phần này.
+  - Bỏ lọc `sample_` ở `StagingRemoteValuesModuleTest` vẫn giữ ý nhờ `noSamplePlacement`.
+  - ADR-1008 `proposed` hiện trong `foundation.md` khi PR plan merge; không xung đột.
+
 ## 9. Quyết định duyệt
 
-<!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
-
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt" khi AI hỏi, ngày 2026-10-31. Trả lời mục 8:
+  - câu 1: luôn mở camera; cờ `feature_camera_enabled` không còn tác dụng, spec camera mục 8 sửa và xác nhận lại, bỏ cờ ở T-088;
+  - câu 2: hướng dẫn trong `CLAUDE.md` dùng `:feature:settings` cộng `:feature:loading` (câu đã sửa theo rà soát);
+  - câu 3: bỏ sự kiện `sample_increment`;
+  - câu 4: ADR-1008 trong PR plan, chuyển `accepted` khi plan được duyệt (đã chuyển);
+  - câu 5: chữ "màn dự phòng" ở spec loading người sửa sau.
+  - Chấp nhận ngoại lệ: `AdPlacementAppTest.noSamplePlacement` giữ chuỗi `sample_native_small`.
 
 ## 10. Nhật ký thực hiện
 

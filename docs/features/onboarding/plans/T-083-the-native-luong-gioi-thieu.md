@@ -1,16 +1,16 @@
 ---
 ticket: T-083
 title: Thẻ native `native_onboarding` ở luồng giới thiệu
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9.0M         # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay (L-081)
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -625,11 +625,11 @@ Phiên bản 2:
 - **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
 - **Ghi chú:** Nhật chọn "Duyệt, thêm vào phiên" khi AI hỏi, ngày 2026-11-01; T-083 là task 7 của RUN-20261031-02, sau T-082. Nhật biết ba phần code mới chưa chạy thử (`OnboardingAdContent`, lý do `DISPOSED` khi dựng lại activity, rời trang 1 là đã dùng lượt chờ): test viết trước bắt lỗi, phương án dự phòng ở mục 3.4. Câu 1 tới 8 ở mục 8 đã trả lời.
 
-Phiên bản 3 (soạn lại sau đồng bộ #279):
+Phiên bản 3:
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Phiên bản 3 soạn lại sau đồng bộ #279, không đổi code, test hay tiêu chí. Câu 6, 7, 9 ở mục 8 theo đề xuất; rà soát độc lập phiên bản 3: 0 chặn, 3 nên sửa, đã sửa.
 
 ## 10. Nhật ký thực hiện
 

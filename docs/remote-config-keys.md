@@ -6,14 +6,13 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 
 | Khóa | Kiểu | Mặc định | Module | Mô tả |
 | --- | --- | --- | --- | --- |
-| `feature_camera_enabled` | boolean | `false` | `:core:config` | Shows the camera screen with pose outlines as the start screen. |
+| `feature_camera_enabled` | boolean | `false` | `:core:config` | No longer read: the camera is always the start screen (T-081); removed in T-088. |
 | `feature_in_app_review_enabled` | boolean | `false` | `:core:config` | Asks for a Play review after enough saved photos (core/review rules). |
 | `feature_loading_enabled` | boolean | `false` | `:core:config` | Shows the loading screen that prepares the app before the start screen. |
 | `feature_network_dialog_enabled` | boolean | `false` | `:core:config` | Shows the dialog that blocks the app while the device has no usable Internet. |
 | `feature_onboarding_enabled` | boolean | `false` | `:core:config` | Shows the welcome screens and the camera permission request on first open. |
 | `feature_pose_matching_enabled` | boolean | `false` | `:core:config` | Shows the live pose match score on the camera. |
 | `feature_poses_enabled` | boolean | `false` | `:core:config` | Shows the pose library button on the camera and the library screens. |
-| `feature_sample_enabled` | boolean | `false` | `:core:config` | Shows the sample feature screen, the reference pattern for new features. |
 | `feature_settings_enabled` | boolean | `false` | `:core:config` | Shows the settings button and the settings screen. |
 | `pose_match_min_in_frame_percent` | long | `50` | `:core:config` | Confidence in percent, 1 to 99, from which a body point counts as in the frame; out of range uses 50. |
 | `pose_match_threshold` | long | `80` | `:core:config` | Score, 1 to 100, from which the pose on the camera counts as matched; out of range uses 80. |
@@ -48,7 +47,6 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 | `is_show_poses_bottom` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement poses_bottom (native_small). |
 | `is_show_poses_in_collection` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement poses_in_collection (native_in_collection). |
 | `is_show_review_interstitial` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial). |
-| `is_show_sample_native_small` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement sample_native_small (native_small). |
 | `native_every_gallery_in_collection` | long | `4` | `:core:ads` | Number of items between two native ads of this placement, in items. Derived key of placement gallery_in_collection (native_in_collection). |
 | `native_every_gallery_inlist_medium` | long | `8` | `:core:ads` | Number of items between two native ads of this placement, in items. Derived key of placement gallery_inlist_medium (native_medium). |
 | `native_every_gallery_inlist_small` | long | `8` | `:core:ads` | Number of items between two native ads of this placement, in items. Derived key of placement gallery_inlist_small (native_small). |

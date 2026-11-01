@@ -945,17 +945,17 @@ expect "fake-gh answers an unknown path with 404" "1 1 0" \
 failure_kind() { printf '%b' "$1" > "$work/fk.log"; scripts/failure-kind.sh "$work/fk.log"; }
 gradle_failure() { printf '* What went wrong:\\nExecution failed for task '"'"'%s'"'"'.\\n> %s\\n' "$1" "$2"; }
 expect "failure-kind: only failing unit tests -> tests" tests \
-  "$(failure_kind "$(gradle_failure :feature:sample:testDebugUnitTest 'There were failing tests. See the report at: x')")"
+  "$(failure_kind "$(gradle_failure :feature:settings:testDebugUnitTest 'There were failing tests. See the report at: x')")"
 expect "failure-kind: failing staging unit tests and verifyRoborazzi -> tests" tests \
-  "$(failure_kind "FAILURE: Build completed with 2 failures.\\n$(gradle_failure :app:testStagingDebugUnitTest 'There were failing tests.')$(gradle_failure :feature:sample:verifyRoborazziDebug 'There were failing tests.')")"
+  "$(failure_kind "FAILURE: Build completed with 2 failures.\\n$(gradle_failure :app:testStagingDebugUnitTest 'There were failing tests.')$(gradle_failure :feature:settings:verifyRoborazziDebug 'There were failing tests.')")"
 expect "failure-kind: compile error -> other" other \
   "$(failure_kind "$(gradle_failure :app:compileStagingDebugKotlin 'Compilation error. See log for more details')")"
 expect "failure-kind: lint -> other" other \
   "$(failure_kind "$(gradle_failure :app:lintStagingDebug 'Lint found errors in the project; aborting build.')")"
 expect "failure-kind: test and lint both failed -> other" other \
-  "$(failure_kind "$(gradle_failure :feature:sample:testDebugUnitTest 'There were failing tests.')$(gradle_failure :app:lintStagingDebug 'Lint found errors.')")"
+  "$(failure_kind "$(gradle_failure :feature:settings:testDebugUnitTest 'There were failing tests.')$(gradle_failure :app:lintStagingDebug 'Lint found errors.')")"
 expect "failure-kind: a test task that failed for another reason -> other" other \
-  "$(failure_kind "$(gradle_failure :feature:sample:testDebugUnitTest 'Could not start Gradle Test Executor 1.')")"
+  "$(failure_kind "$(gradle_failure :feature:settings:testDebugUnitTest 'Could not start Gradle Test Executor 1.')")"
 expect "failure-kind: no Gradle failure line -> other" other \
   "$(failure_kind "FAIL - merge-if-green rejects '12 -n'\\n1 script test(s) failed\\n")"
 expect "failure-kind: missing log -> other" other "$(scripts/failure-kind.sh "$work/no-such.log")"
@@ -1948,12 +1948,12 @@ expect "status-page: a separate job enables the schedules for a pending run list
 java_cmd="java"
 [ -z "${JAVA_HOME:-}" ] || java_cmd="${JAVA_HOME}/bin/java"
 mkdir -p "$work/design" "$work/shots"
-cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/design/Same.png"
-cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/shots/Same.png"
+cp feature/settings/src/test/screenshots/SettingsScreen_default_light.png "$work/design/Same.png"
+cp feature/settings/src/test/screenshots/SettingsScreen_default_light.png "$work/shots/Same.png"
 # Two screens that differ in content, so they differ under any app theme, including one without dark mode (L-144).
-cp feature/sample/src/test/screenshots/SampleScreen_disabled_light.png "$work/design/Other.png"
-cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/shots/Other.png"
-cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/design/Missing.png"
+cp feature/settings/src/test/screenshots/SettingsScreen_language-picker_light.png "$work/design/Other.png"
+cp feature/settings/src/test/screenshots/SettingsScreen_default_light.png "$work/shots/Other.png"
+cp feature/settings/src/test/screenshots/SettingsScreen_default_light.png "$work/design/Missing.png"
 "$java_cmd" -Djava.awt.headless=true scripts/design-compare/DesignCompare.java "$work/design" "$work/shots" "$work/review" > /dev/null
 expect "design-compare: identical images differ by 0%" "| Same | 0.0% | \`Same_compare.png\` |" "$(grep '^| Same ' "$work/review/summary.md")"
 expect "design-compare: two different screens differ" yes "$(grep -qE '^\| Other \| ([1-9][0-9]?|100)\.[0-9]%' "$work/review/summary.md" && echo yes || echo no)"
@@ -4163,10 +4163,10 @@ expect "device-scenario: a shade that stays open is closed once per dump, then t
 ds_script cards.txt 'tap idp=gallery_card_ in=gallery_grid index=2'
 expect "device-scenario: idp= in= index= pick the second card of the grid" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/cards.txt") $(ds_count '^shell input tap 540 600$' "$ds_calls")"
-ds_script strs.txt 'tap str=sample_increment' 'tap str=sample_title'
+ds_script strs.txt 'tap str=poses_chip_all' 'tap str=poses_title'
 expect "device-scenario: str= matches text and content-desc" "0 1 1" \
   "$(ds_run "grid.xml" "$ds_files/strs.txt") $(ds_count '^shell input tap 140 300$' "$ds_calls") $(ds_count '^shell input tap 325 445$' "$ds_calls")"
-ds_script selected.txt 'expect text=Tap selected=true' 'expect text=Chế độ selected=true'
+ds_script selected.txt 'expect text=All selected=true' 'expect text=Chế độ selected=true'
 expect "device-scenario: selected=true matches selected or checked" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/selected.txt") $(ds_count 'result=đạt')"
 ds_script unselected.txt 'expect text=Tất cả selected=true'
@@ -4295,9 +4295,9 @@ ds_repo_files="$(ls feature/*/src/deviceScenarios/*.txt app/src/deviceScenarios/
 # The template has no scenario file of its own; an app's files are checked here as soon as it adds them.
 expect "device-scenario: the scenarios of the repository pass check" 0 \
   "$(code=0; [[ -z "$ds_repo_files" ]] || python3 -I scripts/device-scenario.py check $ds_repo_files > "$work/ds-check.out" 2>&1 || code=$?; echo "$code")"
-# The example of docs/ops/test-sessions.md, section 5, runs on the sample feature: it must keep passing check.
+# The example of docs/ops/test-sessions.md, section 5, runs on the pose library: it must keep passing check.
 sed -n '/^ticket: T-NNN$/,/^shot landscape$/p' docs/ops/test-sessions.md | sed 's/^ticket: T-NNN$/ticket: T-001/' > "$ds_files/doc-example.txt"
-expect "device-scenario: the example of test-sessions.md passes check" "0 11" \
+expect "device-scenario: the example of test-sessions.md passes check" "0 13" \
   "$(code=0; python3 -I scripts/device-scenario.py check "$ds_files/doc-example.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c . "$ds_files/doc-example.txt")"
 # A testTag that only a test still names is gone from the app: check does not count test sources.
 mkdir -p "$work/ds-root/feature/x/src/test/kotlin" "$work/ds-root/feature/x/src/main/kotlin"

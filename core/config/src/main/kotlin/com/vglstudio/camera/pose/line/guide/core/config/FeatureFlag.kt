@@ -9,13 +9,15 @@ package com.vglstudio.camera.pose.line.guide.core.config
  * To see a feature while it is being built, enable it for the staging build only (see [LocallyEnabledFlags]).
  */
 enum class FeatureFlag(val key: String, val description: String, val defaultValue: Boolean = false) {
-    SAMPLE("feature_sample_enabled", "Shows the sample feature screen, the reference pattern for new features."),
     LOADING("feature_loading_enabled", "Shows the loading screen that prepares the app before the start screen."),
     NETWORK_DIALOG(
         "feature_network_dialog_enabled",
         "Shows the dialog that blocks the app while the device has no usable Internet.",
     ),
-    CAMERA("feature_camera_enabled", "Shows the camera screen with pose outlines as the start screen."),
+    CAMERA(
+        "feature_camera_enabled",
+        "No longer read: the camera is always the start screen (T-081); removed in T-088.",
+    ),
     ONBOARDING(
         "feature_onboarding_enabled",
         "Shows the welcome screens and the camera permission request on first open.",

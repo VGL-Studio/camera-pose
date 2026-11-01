@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="sample_title">Sample feature</string>
-    <string name="sample_count_label">Times tapped</string>
-    <string name="sample_increment">Tap</string>
-    <string name="sample_save_failed">Could not save. Please try again.</string>
-    <string name="sample_disabled">This feature is not available yet.</string>
-</resources>

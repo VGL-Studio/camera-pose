@@ -3,7 +3,7 @@
   "parameters": {
     "feature_camera_enabled": {
       "defaultValue": { "value": "false" },
-      "description": "Shows the camera screen with pose outlines as the start screen.",
+      "description": "No longer read: the camera is always the start screen (T-081); removed in T-088.",
       "valueType": "BOOLEAN"
     },
     "feature_in_app_review_enabled": {
@@ -34,11 +34,6 @@
     "feature_poses_enabled": {
       "defaultValue": { "value": "false" },
       "description": "Shows the pose library button on the camera and the library screens.",
-      "valueType": "BOOLEAN"
-    },
-    "feature_sample_enabled": {
-      "defaultValue": { "value": "false" },
-      "description": "Shows the sample feature screen, the reference pattern for new features.",
       "valueType": "BOOLEAN"
     },
     "feature_settings_enabled": {
@@ -209,11 +204,6 @@
     "is_show_review_interstitial": {
       "defaultValue": { "value": "false" },
       "description": "Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial).",
-      "valueType": "BOOLEAN"
-    },
-    "is_show_sample_native_small": {
-      "defaultValue": { "value": "false" },
-      "description": "Shows ads in this placement. Off by default. Derived key of placement sample_native_small (native_small).",
       "valueType": "BOOLEAN"
     },
     "native_every_gallery_in_collection": {

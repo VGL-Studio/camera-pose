@@ -68,7 +68,7 @@ if [ -z "${log}" ] || [ ! -f "${log}" ]; then
   exit 0
 fi
 
-# ':feature:sample:testDebugUnitTest' -> testDebugUnitTest, one per failed task.
+# ':feature:settings:testDebugUnitTest' -> testDebugUnitTest, one per failed task.
 tasks="$(sed -nE "s/^Execution failed for task '([^']+)'\.$/\1/p" "${log}" | sed -E 's/.*://' | sort -u)"
 if [ -z "${tasks}" ] || ! grep -q 'There were failing tests' "${log}"; then
   echo other

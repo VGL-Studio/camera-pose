@@ -170,7 +170,8 @@ APP_WIDE_TEXT = {
     "native_combo": ("Sau inter", "Ngay sau mọi inter của feature đã qua cổng (kể cả khi inter không lên màn). Đếm "
                      "ngược time_close_native giây (mặc định 5) rồi mới đóng được", "Khóa chung: is_show_native_after_inter"),
 }
-KNOWN_PLACEMENTS = {"sample_native_small": ("Màn mẫu (:feature:sample)", "Thanh đáy của màn mẫu")}
+# camera-pose has no sample screen (ADR-1008), so none.
+KNOWN_PLACEMENTS = {}
 
 EXAMPLE_PLACEMENTS = [
     # code, format, screen, when, group, seconds, every, policy, launch, note
@@ -237,8 +238,6 @@ KNOWN_KEYS = {
                                            "Gửi af_inters_displayed_{N}_times, N từ 1 tới 20.", "", "ta đặt"),
     "network_lost_delay_seconds": ("Ngoài quảng cáo", "2", "giây",
                                    "Số giây không có Internet dùng được trước khi hiện popup mất mạng.", "", "ta đặt"),
-    "feature_sample_enabled": ("Ngoài quảng cáo", "false", "true / false", "Hiện màn mẫu. App thật thường bỏ cờ này.",
-                               "", "ta đặt"),
     "feature_loading_enabled": ("Ngoài quảng cáo", "true", "true / false",
                                 "Hiện màn loading chuẩn bị app trước màn bắt đầu.",
                                 "Màn loading cũng là nơi hiện quảng cáo mở app.", "ta đặt"),
@@ -325,7 +324,6 @@ AD_EVENTS = [
 KNOWN_EVENTS = {
     "loading_completed": ("Màn loading xong, chuyển sang màn bắt đầu (một lần mỗi lần mở app)",
                           "duration_ms, retry_count", "Màn loading mất bao lâu, bao nhiêu lần phải thử lại."),
-    "sample_increment": ("Bấm nút tăng ở màn mẫu", "Không có", "Chỉ để minh họa mẫu feature; app thật bỏ."),
     "network_lost_shown": ("Popup mất mạng hiện", "screen", "Màn nào hay mất mạng."),
     "network_restored": ("Có mạng lại sau popup mất mạng", "duration_ms, retry_count", "Người dùng chờ mạng bao lâu."),
 }

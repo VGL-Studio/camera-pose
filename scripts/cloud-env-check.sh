@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Gate of the start-of-session check (auto-run.md, section 2). Checks, in seconds, what scripts/check.sh needs:
 # the environment was built from the current scripts/cloud-setup.sh, Java can run the project's Gradle,
-# the Gradle wrapper starts, and the Android SDK has the compileSdk platform. An environment that fails one of
+# the Gradle wrapper starts, and the Android SDK has the compileSdk platform (in platforms/android-<n>, or
+# platforms/android-<n>.0 as the Android 37 package installs, T-079). An environment that fails one of
 # these fails check.sh too, for reasons no amount of waiting fixes (RUN-20261016-01; lesson L-075, from app
 # lessons L-049, L-056 of camera-pose), so the session stops at once instead of after the 15 minutes of check.sh.
 # JAVA_CHECK_CMD, GRADLEW_CMD, GRADLEW_TIMEOUT (seconds) and VERSIONS_TOML replace the Java check, the wrapper, its time
@@ -39,8 +40,14 @@ tool_problems=()
   setup_problems+=("môi trường dựng từ setup script phiên bản ${actual}, nhánh chính đang ở phiên bản ${expected}")
 [ -f "${init_script}" ] || setup_problems+=("thiếu ${init_script}")
 
-if [ ! -d "${ANDROID_HOME:-}/platforms/android-${compile_sdk}" ]; then
-  setup_problems+=("Android SDK thiếu platforms;android-${compile_sdk} (ANDROID_HOME=${ANDROID_HOME:-chưa đặt})")
+# Only .0 counts as the same platform: android-36.1 is API level 36.1, another platform.
+platform_dir=""
+if [ -d "${ANDROID_HOME:-}/platforms/android-${compile_sdk}" ]; then
+  platform_dir="platforms/android-${compile_sdk}"
+elif [ -d "${ANDROID_HOME:-}/platforms/android-${compile_sdk}.0" ]; then
+  platform_dir="platforms/android-${compile_sdk}.0"
+else
+  setup_problems+=("Android SDK thiếu nền tảng compileSdk ${compile_sdk} (platforms;android-${compile_sdk}: không có thư mục platforms/android-${compile_sdk} hay platforms/android-${compile_sdk}.0, ANDROID_HOME=${ANDROID_HOME:-chưa đặt})")
 fi
 
 if java_out="$("${java_check}" 2>&1)"; then :; else
@@ -68,4 +75,4 @@ if [ "${#setup_problems[@]}" -gt 0 ] || [ "${#tool_problems[@]}" -gt 0 ]; then
   fi
   exit 1
 fi
-echo "Môi trường cloud dùng setup script phiên bản ${expected}; Java, Gradle wrapper và SDK (android-${compile_sdk}) chạy được."
+echo "Môi trường cloud dùng setup script phiên bản ${expected}; Java, Gradle wrapper và SDK (${platform_dir}) chạy được."

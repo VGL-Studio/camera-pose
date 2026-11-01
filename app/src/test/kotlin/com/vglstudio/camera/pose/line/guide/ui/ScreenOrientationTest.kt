@@ -144,7 +144,8 @@ class ScreenOrientationTest {
         activity.applyScreenOrientation(logger, stableDensityDpi = XXHDPI)
         activity.applyScreenOrientation(logger, stableDensityDpi = XXHDPI)
 
-        val widths = "smallest width dp: activity 673, system 673, window 0, panel 673"
+        // Robolectric 4.17 reports the largest window too (before 4.17 it read 0; template sync 47782ec..151b4c2).
+        val widths = "smallest width dp: activity 673, system 673, window 673, panel 673"
         assertEquals(
             listOf(
                 LogEntry(LogLevel.INFO, "Orientation", "Orientation unspecified, changed true ($widths)"),

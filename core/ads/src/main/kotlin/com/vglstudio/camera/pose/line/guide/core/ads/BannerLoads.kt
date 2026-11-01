@@ -22,9 +22,12 @@ internal enum class BannerRefresh {
     MANUAL,
 }
 
-/** [AdFormat.BANNER] is refreshed by its ad unit, [AdFormat.BANNER_COLLAPSIBLE] by hand; other formats throw. */
+/**
+ * [AdFormat.BANNER] and [AdFormat.BANNER_MREC] are refreshed by their ad unit, [AdFormat.BANNER_COLLAPSIBLE] by hand;
+ * other formats throw.
+ */
 internal fun bannerRefreshOf(format: AdFormat): BannerRefresh = when (format) {
-    AdFormat.BANNER -> BannerRefresh.BY_AD_UNIT
+    AdFormat.BANNER, AdFormat.BANNER_MREC -> BannerRefresh.BY_AD_UNIT
     AdFormat.BANNER_COLLAPSIBLE -> BannerRefresh.MANUAL
     else -> throw IllegalArgumentException("$format is not a banner format")
 }
@@ -34,6 +37,12 @@ internal sealed interface BannerLoadResult {
     data object Loaded : BannerLoadResult
 
     data class Failed(val code: Int) : BannerLoadResult
+
+    /**
+     * The platform asked had no ad, and the frame has another platform to ask in this same turn (plan T-071, KB-31):
+     * sent again at once, not a failure.
+     */
+    data object TryNext : BannerLoadResult
 }
 
 /** B-03, section 11 of docs/ops/ads-business-rules.md: a collapsible banner loads again 30 s after it loaded. */
@@ -50,8 +59,11 @@ internal const val COLLAPSIBLE_BANNER_RELOAD_MILLIS = 30_000L
  * - Loaded: the failure count goes back to 0 and [onLoaded] runs. [BannerRefresh.BY_AD_UNIT] sends nothing more (the
  *   SDK refreshes, its results come through [BannerAdView.results] too); [BannerRefresh.MANUAL] sends again
  *   [COLLAPSIBLE_BANNER_RELOAD_MILLIS] later.
- * - Failed: retry after min(n x 2 s, 10 s) for the n-th failure in a row (B-02), cut short when [retryResets] changes
- *   (S-24). The count belongs to this loop, so two slots of one placement count apart (L-068).
+ * - TryNext (a frame of two platforms whose first one had no ad, plan T-071): sent again at once through the same
+ *   step, with no failure counted, no [onFailed] and no wait; only a failure of every platform is Failed.
+ * - Failed: [onFailed] runs, then a retry after min(n x 2 s, 10 s) for the n-th failure in a row (B-02), cut short
+ *   when [retryResets] changes (S-24). The count belongs to this loop, so two slots of one placement count apart
+ *   (L-068).
  * - Waits are coroutine delays: a monotonic clock, not the wall clock (AR-01). No unit id is logged.
  */
 internal suspend fun runBannerLoads(
@@ -63,6 +75,7 @@ internal suspend fun runBannerLoads(
     onLoaded: () -> Unit,
     logger: AppLogger,
     placementKey: String,
+    onFailed: () -> Unit = {},
 ): Unit = coroutineScope {
     val inbox = Channel<BannerLoadResult>(Channel.UNLIMITED)
     // Undispatched: the collector subscribes before the first send, so a result given during send() is not lost.
@@ -95,8 +108,12 @@ internal suspend fun runBannerLoads(
                     }
                 }
 
+                // The next platform of the frame, at once, through the same step (S-15, KB-27, L-072).
+                BannerLoadResult.TryNext -> sending = sendWhenAllowed()
+
                 is BannerLoadResult.Failed -> {
                     failures++
+                    onFailed()
                     val generation = retryResets.value
                     val wait = AdRetryPolicy.fullScreenDelayMillis(failures)
                     logger.info(

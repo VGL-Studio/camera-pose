@@ -1,26 +1,26 @@
 [versions]
 # Android SDK
-compileSdk = "36"
+compileSdk = "37"
 targetSdk = "36"
 minSdk = "26"
 
 # Build toolchain
-androidGradlePlugin = "8.13.0"
+androidGradlePlugin = "9.1.0"
 kotlin = "2.2.10"
-ksp = "2.2.10-2.0.2"
-ktlintGradle = "13.0.0"
+ksp = "2.3.12"
+ktlintGradle = "14.2.0"
 
 # AndroidX
 androidxActivity = "1.10.1"
 androidxCore = "1.16.0"
 androidxLifecycle = "2.9.2"
-androidxNavigation = "2.9.3"
+androidxNavigation = "2.9.8"
 androidxHiltNavigationCompose = "1.2.0"
 androidxDataStore = "1.1.7"
 composeBom = "2025.09.00"
 
 # DI
-hilt = "2.57.1"
+hilt = "2.59.2"
 
 # Kotlin libraries
 kotlinxCoroutines = "1.10.2"
@@ -52,13 +52,15 @@ admobMediationMoloco = "4.13.0.0"
 admobMediationPangle = "8.3.0.4.0"
 admobMediationUnity = "4.21.0.0"
 unityAds = "4.21.0"
+applovinSdk = "13.6.4"
+maxMediationGoogle = "25.5.0.0"
 
 # Testing
 junit4 = "4.13.2"
 mockk = "1.14.5"
 turbine = "1.2.1"
-robolectric = "4.15.1"
-roborazzi = "1.43.0"
+robolectric = "4.17"
+roborazzi = "1.77.0"
 androidxTestCore = "1.7.0"
 androidxTestExtJunit = "1.3.0"
 androidxTestRunner = "1.7.0"
@@ -112,6 +114,8 @@ admob-mediation-moloco = { group = "com.google.ads.mediation", name = "moloco", 
 admob-mediation-pangle = { group = "com.google.ads.mediation", name = "pangle", version.ref = "admobMediationPangle" }
 admob-mediation-unity = { group = "com.google.ads.mediation", name = "unity", version.ref = "admobMediationUnity" }
 unity-ads = { group = "com.unity3d.ads", name = "unity-ads", version.ref = "unityAds" }
+applovin-sdk = { group = "com.applovin", name = "applovin-sdk", version.ref = "applovinSdk" }
+max-mediation-google = { group = "com.applovin.mediation", name = "google-adapter", version.ref = "maxMediationGoogle" }
 user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "userMessagingPlatform" }
 
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
@@ -136,7 +140,6 @@ ktlint-gradlePlugin = { group = "org.jlleitschuh.gradle", name = "ktlint-gradle"
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -20,8 +20,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAdView
 
-/** The parts of a native ad that the SDK must know as views, so it can count clicks on them. */
-internal enum class NativeAdAsset { HEADLINE, ADVERTISER, BODY, CALL_TO_ACTION, ICON }
+/**
+ * The parts of a native ad that the SDK must know as views, so it can count clicks on them. [STAR_RATING] is the star
+ * row, registered only while the ad has stars to draw (KB-2, plan T-060).
+ */
+internal enum class NativeAdAsset { HEADLINE, ADVERTISER, BODY, CALL_TO_ACTION, ICON, STAR_RATING }
 
 /** Lets a native ad layout of any shape mark its parts for the SDK. */
 internal interface NativeAdBinder {
@@ -168,6 +171,7 @@ private class SdkNativeAdBinder(
         NativeAdAsset.BODY -> adView.bodyView
         NativeAdAsset.CALL_TO_ACTION -> adView.callToActionView
         NativeAdAsset.ICON -> adView.iconView
+        NativeAdAsset.STAR_RATING -> adView.starRatingView
     }
 
     private fun register(asset: NativeAdAsset, view: View?) {
@@ -178,6 +182,7 @@ private class SdkNativeAdBinder(
             NativeAdAsset.BODY -> adView.bodyView = view
             NativeAdAsset.CALL_TO_ACTION -> adView.callToActionView = view
             NativeAdAsset.ICON -> adView.iconView = view
+            NativeAdAsset.STAR_RATING -> adView.starRatingView = view
         }
         requestBind()
     }

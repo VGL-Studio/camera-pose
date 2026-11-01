@@ -5,7 +5,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -33,6 +35,9 @@ class NativeAdRefreshTest {
     private val foreground = MutableStateFlow(true)
     private val retryResets = MutableStateFlow(0)
     private var mayRequest = true
+
+    /** The window of the in-screen ads as AdsController builds it, in foreground (KB-27, plan T-054). */
+    private val window = InScreenAdWindow(logger).apply { onForeground(true) }
     private lateinit var loads: FakeNativeLoads
     private lateinit var source: NativeAdSource
     private val ad0 = FakeLoadedNativeAd()
@@ -40,11 +45,14 @@ class NativeAdRefreshTest {
     /** The destroy count of [ad0] when each state was received, to check the new ad is shown first. */
     private val ad0DestroyedAtEmit = mutableListOf<Int>()
 
-    private fun TestScope.newSource(load: (suspend (NativeLoadUse) -> NativeAdState)? = null): NativeAdSource {
+    private fun TestScope.newSource(
+        load: (suspend (NativeLoadUse) -> NativeAdState)? = null,
+        gate: StateFlow<Boolean> = foreground,
+    ): NativeAdSource {
         loads = FakeNativeLoads(loader, { testScheduler.currentTime }, logger)
         source = NativeAdSource(
             load = load ?: { use -> loads.load(use) },
-            sendGate = { awaitSendAllowed(foreground) { mayRequest } },
+            sendGate = { awaitSendAllowed(gate) { mayRequest } },
             clock = { testScheduler.currentTime },
             scope = backgroundScope,
             logger = logger,
@@ -57,8 +65,9 @@ class NativeAdRefreshTest {
     private fun TestScope.collectRefresh(
         firstTickDelayMillis: Long = NativeAdPolicy.REFRESH_INTERVAL_MILLIS,
         load: (suspend (NativeLoadUse) -> NativeAdState)? = null,
+        gate: StateFlow<Boolean> = foreground,
     ): Pair<MutableList<NativeAdState>, Job> {
-        if (!::source.isInitialized) newSource(load)
+        if (!::source.isInitialized) newSource(load, gate)
         val states = mutableListOf<NativeAdState>()
         val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             flow {
@@ -68,7 +77,7 @@ class NativeAdRefreshTest {
                         refreshingNativeAdStates(
                             NativeAdState.Loaded(ad0),
                             source,
-                            foreground,
+                            gate,
                             { mayRequest },
                             retryResets,
                             { testScheduler.currentTime },
@@ -206,6 +215,102 @@ class NativeAdRefreshTest {
         // Control (L-055): the tick after the skipped one sends.
         at(120_000)
         assertEquals(listOf(120_000L), loads.times)
+    }
+
+    @Test
+    fun tickWhileCovered_isSkipped_keepsAd_nextTickAt120s() = runTest {
+        val (states, _) = collectRefresh(gate = window.open)
+        at(50_000)
+        window.onCovered(true)
+        at(60_000)
+        assertTrue(loads.sent.isEmpty())
+        assertEquals(0, ad0.destroyCount)
+
+        at(70_000)
+        window.onCovered(false)
+        runCurrent()
+        assertTrue("a refresh ran when the cover went", loads.sent.isEmpty())
+        assertEquals(1, states.size)
+        assertEquals(0, ad0.destroyCount)
+
+        at(120_000)
+        assertEquals(listOf(120_000L), loads.times)
+        deliver()
+        assertEquals(2, states.size)
+    }
+
+    @Test
+    fun uncovered_noImmediateRefresh() = runTest {
+        collectRefresh(gate = window.open)
+        at(50_000)
+        window.onCovered(true)
+        at(70_000)
+        window.onCovered(false)
+        runCurrent()
+        at(119_000)
+        assertTrue(loads.sent.isEmpty())
+
+        // Control (L-055): the tick after the skipped one sends.
+        at(120_000)
+        assertEquals(listOf(120_000L), loads.times)
+    }
+
+    @Test
+    fun refreshClaimWhileCovered_sendsNothingUntilUncovered() = runTest {
+        val (states, _) = collectRefresh(gate = window.open)
+        // The cover comes at 60 s right after the tick passed its check, before the source sends.
+        backgroundScope.launch {
+            delay(60_000 - testScheduler.currentTime)
+            window.onCovered(true)
+        }
+        at(60_000)
+        at(65_000)
+        assertTrue(loads.sent.isEmpty())
+        assertEquals(0, ad0.destroyCount)
+        assertEquals(1, states.size)
+
+        // Control (L-055): the cover goes, the source sends once.
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(65_000L), loads.times)
+    }
+
+    @Test
+    fun refreshRetryWhileCovered_waitsUntilUncovered() = runTest {
+        collectRefresh(gate = window.open)
+        at(60_000)
+        at(65_000)
+        // The refresh fails: a retry is due 2 s later, at 67 s.
+        fail()
+        at(66_000)
+        window.onCovered(true)
+        at(100_000)
+        assertEquals(1, loads.sent.size)
+
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(60_000L, 100_000L), loads.times)
+    }
+
+    @Test
+    fun consentWithdrawnWhileCovered_destroysAd_noSendAfterUncover() = runTest {
+        val (states, _) = collectRefresh(gate = window.open)
+        at(50_000)
+        window.onCovered(true)
+        // Control (L-055) that the cover holds: the tick of 60 s sends nothing.
+        at(60_000)
+        assertTrue(loads.sent.isEmpty())
+
+        at(61_000)
+        source.shutDown()
+        runCurrent()
+        assertEquals(NativeAdState.Unavailable, states.last())
+        assertEquals(1, ad0.destroyCount)
+
+        window.onCovered(false)
+        runCurrent()
+        at(200_000)
+        assertTrue(loads.sent.isEmpty())
     }
 
     @Test

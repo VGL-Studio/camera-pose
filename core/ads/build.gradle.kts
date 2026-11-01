@@ -35,6 +35,8 @@ dependencies {
     implementation(libs.admob.mediation.pangle)
     implementation(libs.admob.mediation.unity)
     implementation(libs.unity.ads)
+    implementation(libs.applovin.sdk)
+    implementation(libs.max.mediation.google)
     implementation(libs.user.messaging.platform)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

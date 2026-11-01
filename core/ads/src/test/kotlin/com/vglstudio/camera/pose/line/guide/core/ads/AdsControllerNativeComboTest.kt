@@ -206,7 +206,7 @@ class AdsControllerNativeComboTest {
             onFinished,
         )
         assertTrue(shown)
-        assertEquals(3, controller.nativeFullScreenView.value!!.secondsLeft)
+        assertEquals(5, controller.nativeFullScreenView.value!!.secondsLeft)
         controller.onAppActivityDestroyed(activity)
         controller.onAppActivityPaused(activity)
         controller.onAppActivityResumed(activity)
@@ -217,6 +217,29 @@ class AdsControllerNativeComboTest {
         controller.closeNativeFullScreen()
         assertFalse(controller.fullScreenAdShowing.value)
         assertEquals(1, finishes)
+    }
+
+    @Test
+    fun standalone_timeCloseNative_fromRemote() {
+        val placement = AdPlacement.GALLERY_NATIVE_FULL_SCREEN
+        // Remote values reach the controller once it is started, as the app does in onCreate.
+        controller.start(activity.application, AppActivityFilter { true })
+        settings.set(AdsSettings.TIME_CLOSE_NATIVE, 12L)
+        idle()
+        assertTrue(controller.beginStandaloneNativeTurn(placement, { FakeLoadedNativeAd() }, onFinished))
+        assertEquals(12, controller.nativeFullScreenView.value!!.secondsLeft)
+        idleFor(12_000)
+        controller.closeNativeFullScreen()
+        assertEquals(1, finishes)
+
+        // Control: a value outside 1..30 opens the next turn with 5.
+        settings.set(AdsSettings.TIME_CLOSE_NATIVE, 0L)
+        idle()
+        assertTrue(controller.beginStandaloneNativeTurn(placement, { FakeLoadedNativeAd() }, onFinished))
+        assertEquals(5, controller.nativeFullScreenView.value!!.secondsLeft)
+        idleFor(5_000)
+        controller.closeNativeFullScreen()
+        assertEquals(2, finishes)
     }
 
     @Test
@@ -299,8 +322,11 @@ class AdsControllerNativeComboTest {
         assertEquals(0, finishes)
         assertTrue(controller.nativeFullScreenView.value!!.ad === ad)
         assertFalse(logger.entries.any { it.message.contains("skipped") })
-        // The consent gate is open, so the close button waits for its countdown of 3 s (K-03).
-        idleFor(3_000)
+        // The consent gate is open, so the close button waits for its countdown of 5 s by default (K-03,
+        // `time_close_native`).
+        idleFor(4_999)
+        assertFalse(controller.nativeFullScreenView.value!!.closeEnabled)
+        idleFor(1)
         assertTrue(controller.nativeFullScreenView.value!!.closeEnabled)
         controller.closeNativeFullScreen()
         assertEquals(1, finishes)

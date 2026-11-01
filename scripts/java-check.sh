@@ -33,7 +33,11 @@ max_java_for_gradle() {
       elif [ "$minor" -ge 5 ]; then echo 21
       else echo 20
       fi ;;
-    9) if [ "$minor" -ge 1 ]; then echo ""; else echo 24; fi ;;
+    9)
+      if [ "$minor" -ge 4 ]; then echo ""
+      elif [ "$minor" -ge 1 ]; then echo 25
+      else echo 24
+      fi ;;
     *) echo "" ;;
   esac
 }

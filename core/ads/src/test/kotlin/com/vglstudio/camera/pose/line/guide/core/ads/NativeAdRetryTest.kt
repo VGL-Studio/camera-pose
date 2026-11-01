@@ -8,6 +8,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -33,6 +34,9 @@ class NativeAdRetryTest {
     private val retryResets = MutableStateFlow(0)
     private var mayRequest = true
 
+    /** The window of the in-screen ads as AdsController builds it, in foreground (KB-27, plan T-054). */
+    private val window = InScreenAdWindow(logger).apply { onForeground(true) }
+
     /** Times at which a request reached the loader. */
     private val requestTimes = mutableListOf<Long>()
 
@@ -44,10 +48,11 @@ class NativeAdRetryTest {
     private fun TestScope.collectStates(
         load: suspend () -> NativeAdState? = loadOnce(),
         refresh: ((NativeAdState.Loaded) -> Flow<NativeAdState>)? = null,
+        gate: StateFlow<Boolean> = foreground,
     ): Pair<MutableList<NativeAdState>, Job> {
         val states = mutableListOf<NativeAdState>()
         val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-            retryingNativeAdStates(load, foreground, { mayRequest }, retryResets, logger, KEY, refresh)
+            retryingNativeAdStates(load, gate, { mayRequest }, retryResets, logger, KEY, refresh)
                 .collect { states += it }
         }
         return states to job
@@ -169,6 +174,37 @@ class NativeAdRetryTest {
         foreground.value = true
         runCurrent()
         assertEquals(listOf(30_000L), requestTimes)
+    }
+
+    @Test
+    fun firstLoad_whileCovered_waitsUntilUncovered() = runTest {
+        window.onCovered(true)
+        val (states, _) = collectStates(gate = window.open)
+
+        at(60_000)
+        assertEquals(0, loader.requests.size)
+        assertEquals(listOf(NativeAdState.Loading), states)
+
+        // Control (L-055): the cover goes, the first load is sent once.
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(60_000L), requestTimes)
+    }
+
+    @Test
+    fun retryDueWhileCovered_sendsOnceWhenUncovered() = runTest {
+        collectStates(gate = window.open)
+        loader.fail(2)
+        runCurrent()
+
+        at(1_000)
+        window.onCovered(true)
+        at(60_000)
+        assertEquals(1, loader.requests.size)
+
+        window.onCovered(false)
+        runCurrent()
+        assertEquals(listOf(0L, 60_000L), requestTimes)
     }
 
     @Test

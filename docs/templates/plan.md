@@ -99,7 +99,7 @@ Plan sửa lỗi: ghi số đo thật trên code hiện tại (chạy test tạm
 Khung test tái hiện được lỗi gốc: cùng chiều rộng, chiều cao như nơi phát hiện (L-029).
 Test kiểm giá trị mặc định thường qua trên khung rỗng: ghi sẵn bước đối chứng (ghi rồi đọc lại, dữ liệu đúng cạnh dữ liệu sai) (L-055).
 Nút chữ trên nền khác màu: có test đo màu chữ của nút trên ảnh vẽ ra, không chỉ dựa vào ảnh chuẩn (L-053).
-Ghi lại ảnh chuẩn đã có (plan cho phép, mục 3.2): lệnh ghi ảnh kèm `--rerun` của task test như `CLAUDE.md`, mục Lệnh, rồi `git status --short -- '*/src/test/screenshots/'` chỉ được đổi các ảnh của mục 3.2 (L-114).
+Ghi lại ảnh chuẩn đã có (plan cho phép, mục 3.2): lệnh ghi ảnh kèm `--rerun` của task test như `CLAUDE.md`, mục Lệnh, rồi `git status --short -- '*/src/test/screenshots/*'` chỉ được đổi các ảnh của mục 3.2 (L-114, L-136).
 Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ có giới hạn, không khẳng định màn hình thoáng qua (CLAUDE.md, bước 10).
 -->
 

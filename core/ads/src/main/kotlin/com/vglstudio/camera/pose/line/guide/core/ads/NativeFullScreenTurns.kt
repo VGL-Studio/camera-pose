@@ -56,6 +56,9 @@ internal interface NativeFullScreenPort {
 
     /** Preloads [placement] for the next time (K-06). */
     fun reload(placement: AdPlacement)
+
+    /** `time_close_native` read now, already in 1..30 (K-02). */
+    fun closeCountdownSeconds(): Long
 }
 
 /**
@@ -81,6 +84,7 @@ internal class NativeFullScreenTurns(
         var opened = false
         var closed = false
         var deadline = 0L
+        var countdownSeconds = 0L
         var ad: LoadedNativeAd? = null
         var loadFailed = false
         var everShown = false
@@ -147,7 +151,9 @@ internal class NativeFullScreenTurns(
 
     private fun open(current: Turn) {
         current.opened = true
-        current.deadline = clock.nowMillis() + NATIVE_AFTER_INTER_COUNTDOWN_MILLIS
+        // Read once, when the screen opens: a change of the key applies from the next turn (K-02).
+        current.countdownSeconds = port.closeCountdownSeconds()
+        current.deadline = clock.nowMillis() + current.countdownSeconds * TICK_MILLIS
         if (current.combo) {
             // Taken before any load of the combo (section 8.2).
             current.loadStateAtOpen = port.loadStateAtOpen()
@@ -203,7 +209,7 @@ internal class NativeFullScreenTurns(
 
     /** Updates the seconds at each boundary, read from the clock each time, never counted (K-02). */
     private suspend fun countDown(current: Turn) {
-        val boundaries = (MAX_TICKS downTo 0).map { current.deadline - it * TICK_MILLIS }
+        val boundaries = (current.countdownSeconds - 1 downTo 0).map { current.deadline - it * TICK_MILLIS }
         for (boundary in boundaries) {
             val wait = boundary - clock.nowMillis()
             if (wait > 0) delay(wait)
@@ -217,7 +223,7 @@ internal class NativeFullScreenTurns(
         if (turn !== current || current.closed) return
         _view.value = NativeFullScreenView(
             ad = current.ad,
-            secondsLeft = countdownSecondsLeft(current.deadline, clock.nowMillis()),
+            secondsLeft = countdownSecondsLeft(current.deadline, clock.nowMillis(), current.countdownSeconds),
             loadFailed = current.loadFailed,
         )
     }
@@ -274,6 +280,5 @@ internal class NativeFullScreenTurns(
     private companion object {
         const val TAG = "Ads"
         const val TICK_MILLIS = 1_000L
-        const val MAX_TICKS = (NATIVE_AFTER_INTER_COUNTDOWN_MILLIS / TICK_MILLIS).toInt() - 1
     }
 }

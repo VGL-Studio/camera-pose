@@ -1,6 +1,8 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AdFormatTest {
@@ -28,9 +30,21 @@ class AdFormatTest {
             "native_step",
             "native_medium",
             "native_in_collection",
+            "banner_mrec",
         )
         val codes = AdFormat.entries.map { it.code }
         assertEquals(mc02, codes.toSet())
         assertEquals(codes.size, codes.toSet().size)
+    }
+
+    @Test
+    fun bannerMrec_codeAndNotFullScreen() {
+        // Control: a pooled format has a capacity, so the null below is the banner's own answer (plan T-062).
+        assertEquals(3, AdFormat.NATIVE_MEDIUM.poolCapacity())
+        assertEquals("banner_mrec", AdFormat.BANNER_MREC.code)
+        assertFalse(AdFormat.BANNER_MREC.isFullScreen)
+        assertFalse(AdFormat.BANNER_MREC.hasFullScreenSlot)
+        assertNull(AdFormat.BANNER_MREC.poolCapacity())
+        assertNull(AdFormat.BANNER_MREC.nativeLoadSize())
     }
 }

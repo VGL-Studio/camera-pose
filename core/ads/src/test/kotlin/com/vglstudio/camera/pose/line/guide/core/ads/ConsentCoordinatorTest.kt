@@ -74,17 +74,157 @@ class ConsentCoordinatorTest {
     }
 
     @Test
-    fun cachedConsent_shortcutOff_waitsForUpdate() {
+    fun cachedConsent_shortcutOff_opensBeforeUpdateReturns() {
         val env = Env().started(shortcut = false)
         env.platform.canRequest = true
         env.coordinator.gather(activityA)
-        assertFalse(env.state.allowed)
-        assertTrue(env.opened.isEmpty())
+        // CACHED_EARLY is always on (ADR-0038, plan T-066).
+        assertEquals(ConsentPath.CACHED_EARLY, env.state.path)
+        assertTrue(env.state.allowed)
+        assertEquals(listOf(true), env.opened)
         env.platform.completeUpdate()
         env.platform.closeForm(null)
         assertEquals(ConsentPath.GRANTED, env.state.path)
         assertTrue(env.state.allowed)
+        // The SDK starts once: GRANTED does not open the gate again.
         assertEquals(listOf(true), env.opened)
+        assertTrue(env.state.settled)
+    }
+
+    @Test
+    fun gatherWaitsForShortcutValue_thenCachedEarlyWithSwitchOff() {
+        val env = Env()
+        env.coordinator.start()
+        env.platform.canRequest = true
+        env.coordinator.gather(activityA)
+        assertEquals(0, env.updates)
+        assertTrue(env.opened.isEmpty())
+        env.coordinator.onShortcutChanged(false)
+        assertEquals(1, env.updates)
+        assertEquals(ConsentPath.CACHED_EARLY, env.state.path)
+        assertEquals(listOf(true), env.opened)
+    }
+
+    /** CACHED_EARLY with the switch off, then a network failure of the update while UMP still allows ads. */
+    private fun cachedKeptAfterFailure(): Env = Env().started(shortcut = false).apply {
+        platform.canRequest = true
+        coordinator.gather(activityA)
+        platform.failUpdate(INTERNET_ERROR)
+        assertTrue(state.allowed)
+        assertEquals(ConsentPath.CACHED_EARLY, state.path)
+    }
+
+    @Test
+    fun cachedConsent_updateFails_regathersOnInternetBackAndForeground() {
+        val env = cachedKeptAfterFailure()
+        assertEquals(ConsentPath.CACHED_EARLY, env.state.path)
+        assertTrue(env.state.allowed)
+        assertTrue(env.coordinator.finished.value)
+        assertFalse(env.state.settled)
+        assertEquals(1, env.updates)
+
+        env.coordinator.onInternetChanged(false)
+        env.coordinator.onInternetChanged(true)
+        assertEquals(2, env.updates)
+        assertEquals(listOf(activityA, activityA), env.platform.updateActivities)
+
+        env.platform.failUpdate(INTERNET_ERROR)
+        assertEquals(ConsentPath.CACHED_EARLY, env.state.path)
+        env.coordinator.onForegroundChanged(false)
+        env.coordinator.onForegroundChanged(true)
+        assertEquals(3, env.updates)
+
+        env.platform.canRequest = true
+        env.platform.completeUpdate()
+        env.platform.closeForm(null)
+        assertEquals(ConsentPath.GRANTED, env.state.path)
+        assertTrue(env.state.settled)
+
+        // Control (L-055): no regather once settled.
+        env.coordinator.onInternetChanged(false)
+        env.coordinator.onInternetChanged(true)
+        assertEquals(3, env.updates)
+    }
+
+    @Test
+    fun cachedConsent_regather_skippedWhenActivityPausedOrAdShowing() {
+        val env = cachedKeptAfterFailure()
+
+        env.resumed.clear()
+        env.coordinator.onInternetChanged(false)
+        env.coordinator.onInternetChanged(true)
+        assertEquals(1, env.updates)
+
+        env.adShowing = true
+        env.resumed += activityA
+        env.coordinator.onInternetChanged(false)
+        env.coordinator.onInternetChanged(true)
+        assertEquals(1, env.updates)
+
+        // Control (L-055): the waiting regather runs once A is resumed with no ad on screen.
+        env.adShowing = false
+        env.coordinator.onActivityResumed(activityA)
+        assertEquals(2, env.updates)
+    }
+
+    @Test
+    fun cachedConsent_regatherFindsRequired_closesBeforeForm() {
+        val env = cachedKeptAfterFailure()
+        env.coordinator.onInternetChanged(false)
+        env.coordinator.onInternetChanged(true)
+        assertEquals(2, env.updates)
+        env.platform.canRequest = false
+        env.platform.formRequired = true
+        var allowedAtForm: Boolean? = null
+        env.platform.onFormShown = { allowedAtForm = env.state.allowed }
+        env.platform.completeUpdate()
+        assertEquals(false, allowedAtForm)
+        assertEquals(ConsentPath.DENIED_OR_REQUIRED, env.state.path)
+        // Control: the gate opened once, at CACHED_EARLY, and not again.
+        assertEquals(listOf(true), env.opened)
+    }
+
+    @Test
+    fun cachedConsent_updateFailsWithoutConsent_closesGate() {
+        val env = Env().started(shortcut = false)
+        env.platform.canRequest = true
+        env.coordinator.gather(activityA)
+        assertTrue(env.state.allowed)
+        env.platform.canRequest = false
+        env.platform.failUpdate(INTERNAL_ERROR)
+        assertFalse(env.state.allowed)
+        assertFalse(env.coordinator.mayRequestNow(true))
+        assertEquals(ConsentPath.DENIED_OR_REQUIRED, env.state.path)
+        env.coordinator.onInternetChanged(false)
+        env.coordinator.onInternetChanged(true)
+        assertEquals(1, env.updates)
+    }
+
+    @Test
+    fun cachedConsent_switchOff_formError_settledNextGatherSkipsUmp() {
+        val env = Env().started(shortcut = false)
+        env.platform.canRequest = true
+        env.coordinator.gather(activityA)
+        assertEquals(ConsentPath.CACHED_EARLY, env.state.path)
+        assertEquals(listOf(true), env.opened)
+        env.platform.completeUpdate()
+        env.platform.closeForm(INTERNAL_ERROR)
+        assertEquals(ConsentPath.GRANTED, env.state.path)
+        assertTrue(env.state.settled)
+        assertEquals(listOf(true), env.opened)
+        env.coordinator.gather(activityA)
+        assertEquals(1, env.updates)
+        assertTrue(env.coordinator.finished.value)
+
+        // Control (L-055): with the switch on the same steps do not settle, so the next gather asks UMP.
+        val on = Env().started(shortcut = true)
+        on.platform.canRequest = true
+        on.coordinator.gather(activityA)
+        on.platform.completeUpdate()
+        on.platform.closeForm(INTERNAL_ERROR)
+        assertFalse(on.state.settled)
+        on.coordinator.gather(activityA)
+        assertEquals(2, on.updates)
     }
 
     @Test

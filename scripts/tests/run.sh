@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Tests for the shell scripts of the quality gate. Needs bash, python3 and jq.
+# An app made from the template runs them from its first scripts/check.sh: a test that reads this repository's own
+# docs must also pass, or print a `skip - ...` line, with no run list and an empty lessons log, as in a new app (L-134).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -72,6 +74,86 @@ expect "run not created yet is waited for" ccccc03 "$(find_breaking '{
 expect "start of history: blame the oldest red" bbbbbb2 "$(find_breaking '{
   "bbbbbb2":{"parent":"","states":["failure"]},
   "ddddd04":{"parent":"bbbbbb2","states":["failure"]}}')"
+
+# find-breaking-commit.sh --check ui-test (ADR-0043, T-075): the same walk over the check run ui-test of main-guard.yml.
+# Every ui-test answer is a route with check_name=ui-test, so a script asking for another name gets the guard states.
+# POLL_SECONDS=1 and MAX_WAIT_SECONDS=1: a commit the script wrongly waits for ends in one second with the warning.
+ui_run() { # <check run id> <conclusion>: the check-runs answer with one completed run
+  printf '{"check_runs": [{"id": %s, "started_at": "2026-01-01T00:00:00Z", "status": "completed", "conclusion": "%s"}]}' "$1" "$2"
+}
+ui_route() { # <sha> <check run id> <conclusion>: the route of the check run ui-test of that commit
+  printf '"commits/%s/check-runs?check_name=ui-test&per_page=20": %s' "$1" "$(ui_run "$2" "$3")"
+}
+find_breaking_ui() { # <fixture> [args before the sha]: prints stdout; stderr goes to $work/fbc-ui.err
+  rm -f "$work/fxu.json.calls" "$work/fxu.json.seen"
+  echo "$1" > "$work/fxu.json"
+  shift
+  PATH="$work/bin:$PATH" FIXTURE="$work/fxu.json" GITHUB_REPOSITORY=o/r POLL_SECONDS=1 MAX_WAIT_SECONDS=1 \
+    scripts/find-breaking-commit.sh "$@" ddddd04 2> "$work/fbc-ui.err" || true
+}
+fbc_waited() { grep -c 'CẢNH BÁO: chờ quá lâu' "$work/fbc-ui.err" || true; }
+# The guard states say something else: C green, so without --check the head is blamed.
+fbc_guard='"aaaaaa1":{"parent":"","states":["failure"]},
+  "bbbbbb2":{"parent":"aaaaaa1","states":["success"]},
+  "ccccc03":{"parent":"bbbbbb2","states":["success"]},
+  "ddddd04":{"parent":"ccccc03","states":["failure"]}'
+fx_ui='{"routes": {'"$(ui_route aaaaaa1 11 success), $(ui_route bbbbbb2 21 failure), $(ui_route ccccc03 31 skipped)"',
+  '"$(ui_route ddddd04 41 failure)"', "check-runs/21/annotations?per_page=100": [], "check-runs/41/annotations?per_page=100": []},
+  '"$fbc_guard"'}'
+expect "find-breaking-commit --check ui-test: blames the oldest red ui-test after the newest green" bbbbbb2 \
+  "$(find_breaking_ui "$fx_ui" --check ui-test)"
+expect "find-breaking-commit --check ui-test: without --check the guard states decide" ddddd04 "$(find_breaking_ui "$fx_ui")"
+# An infrastructure failure (the check step printed EMULATOR HẠ TẦNG) is not blamed; anything else red is.
+fbc_infra() { # <annotations answer of C, or "error">: D and C red, B green
+  local c_ann='"check-runs/31/annotations?per_page=100": '"$1"','
+  [[ "$1" != error ]] || c_ann=''
+  echo '{"errors": {'"$([[ "$1" == error ]] && echo '"check-runs/31/annotations?per_page=100": "HTTP 500: Server Error"')"'},
+  "routes": {'"$(ui_route bbbbbb2 21 success), $(ui_route ccccc03 31 failure), $(ui_route ddddd04 41 failure)"',
+  '"$c_ann"' "check-runs/41/annotations?per_page=100": []},
+  '"$fbc_guard"'}'
+}
+fx_ann_infra="$(fbc_infra '[{"message": "EMULATOR HẠ TẦNG (PB-11): Kho Maven trả 403; không mở main-broken."}]')"
+fx_ann_none="$(fbc_infra '[]')"
+fx_ann_old="$(fbc_infra '[{"message": "HẠ TẦNG: GitHub không cấp máy."}]')"
+fx_ann_error="$(fbc_infra error)"
+expect "find-breaking-commit --check ui-test: an infrastructure failure is not blamed" ddddd04 \
+  "$(find_breaking_ui "$fx_ann_infra" --check ui-test)"
+expect "find-breaking-commit --check ui-test: a red ui-test without annotation is blamed" ccccc03 \
+  "$(find_breaking_ui "$fx_ann_none" --check ui-test)"
+expect "find-breaking-commit --check ui-test: the PB-02 prefix HẠ TẦNG: is not infrastructure of the emulator" ccccc03 \
+  "$(find_breaking_ui "$fx_ann_old" --check ui-test)"
+expect "find-breaking-commit --check ui-test: annotations that cannot be read make the red commit a suspect" ccccc03 \
+  "$(find_breaking_ui "$fx_ann_error" --check ui-test)"
+# A cancelled or timed-out ui-test is unknown: walk on at once instead of waiting until MAX_WAIT_SECONDS.
+fx_cancelled='{"routes": {'"$(ui_route bbbbbb2 21 success), $(ui_route ccccc03 31 cancelled), $(ui_route ddddd04 41 failure)"'},
+  '"$fbc_guard"'}'
+fx_timed_out='{"routes": {'"$(ui_route bbbbbb2 21 success), $(ui_route ccccc03 31 timed_out), $(ui_route ddddd04 41 failure)"'},
+  '"$fbc_guard"'}'
+expect "find-breaking-commit --check ui-test: a cancelled or timed-out ui-test is walked over without waiting" \
+  "ddddd04 0 ddddd04 0" \
+  "$(find_breaking_ui "$fx_cancelled" --check ui-test) $(fbc_waited) $(find_breaking_ui "$fx_timed_out" --check ui-test) $(fbc_waited)"
+# A commit from before T-075 has no ui-test check run: its main-guard.yml had no ui-test job, the emulator ran on the PR.
+fbc_no_run() { # <main-guard.yml of C>
+  echo '{"routes": {"commits/ccccc03/check-runs?check_name=ui-test&per_page=20": {"check_runs": []},
+  "contents/.github/workflows/main-guard.yml?ref=ccccc03": '"$(jq -Rs . <<<"$1")"',
+  '"$(ui_route ddddd04 41 failure)"'},
+  '"$fbc_guard"'}'
+}
+fx_before="$(fbc_no_run $'jobs:\n  guard:\n    runs-on: ubuntu-latest')"
+fx_after="$(fbc_no_run $'jobs:\n  guard:\n    runs-on: ubuntu-latest\n  ui-test:\n    needs: guard')"
+expect "find-breaking-commit --check ui-test: stops at a commit whose main-guard.yml has no ui-test job" "ddddd04 0" \
+  "$(find_breaking_ui "$fx_before" --check ui-test) $(fbc_waited)"
+expect "find-breaking-commit --check ui-test: waits for a commit whose main-guard.yml has the ui-test job" "ddddd04 1" \
+  "$(find_breaking_ui "$fx_after" --check ui-test) $(fbc_waited)"
+fbc_code=0
+PATH="$work/bin:$PATH" FIXTURE="$work/fxu.json" GITHUB_REPOSITORY=o/r scripts/find-breaking-commit.sh --check foo ddddd04 \
+  > /dev/null 2>&1 || fbc_code=$?
+fx_guard_only='{"aaaaaa1":{"parent":"","states":["success"]},
+  "bbbbbb2":{"parent":"aaaaaa1","states":["failure"]},
+  "ccccc03":{"parent":"bbbbbb2","states":["failure"]},
+  "ddddd04":{"parent":"ccccc03","states":["failure"]}}'
+expect "find-breaking-commit: --check accepts only guard and ui-test" "1 bbbbbb2 bbbbbb2" \
+  "$fbc_code $(find_breaking_ui "$fx_guard_only" --check guard) $(find_breaking_ui "$fx_guard_only")"
 
 # main-guard-status.sh: start-run.yml and the session start only when main-guard passed on the newest commit of main
 # with code (L-076). Same fixture as find-breaking-commit.sh; D=ddddd04 is the head of main.
@@ -251,11 +333,350 @@ awk '/^  build-and-test:$/ { j = 1 } { print } j && /^    needs: changes$/ { pri
   "$pr_wf" > "$work/prwf/job-if.yml"
 expect "pr-check: the job-level if check fails on a copy that skips build-and-test" 1 "$(pr_job_if "$work/prwf/job-if.yml")"
 expect "pr-check: the failure comment of build-and-test also runs for docs-only PRs" yes "$(pr_failure_comment "$pr_wf")"
-expect "pr-check: every check merge-if-green.sh requires or may skip is a job of pr-check.yml" "names=3 missing= none" \
+expect "pr-check: every check merge-if-green.sh requires or may skip is a job of pr-check.yml" "names=2 missing= none" \
   "$(pr_missing_jobs "$pr_wf")"
 sed 's/^  build-and-test:$/  build:/' "$pr_wf" > "$work/prwf/renamed.yml"
-expect "pr-check: the job name check names a renamed job" "names=3 missing= build-and-test" \
+expect "pr-check: the job name check names a renamed job" "names=2 missing= build-and-test" \
   "$(pr_missing_jobs "$work/prwf/renamed.yml")"
+# The emulator runs after the merge, in the ui-test job of main-guard.yml (ADR-0043): no PR runs it.
+pr_no_emulator() { # <workflow>: "yes" when it has no ui-test job, no emulator step, no ui output and no ui filter
+  if grep -qE '^  ui-test:$|android-emulator-runner|ui: \$\{\{|^            ui:$' "$1"; then echo no; else echo yes; fi
+}
+{ cat "$pr_wf"; printf '%s\n' '' '  ui-test:' '    runs-on: ubuntu-latest' '    steps:' \
+  '      - uses: reactivecircus/android-emulator-runner@v2'; } > "$work/prwf/emulator.yml"
+expect "pr-check: has no emulator job" "yes no" "$(pr_no_emulator "$pr_wf") $(pr_no_emulator "$work/prwf/emulator.yml")"
+
+# main-guard-verified.sh (ADR-0039, T-074): which check main-guard runs for a commit of main. full re-runs
+# scripts/check.sh, tests runs only scripts/tests/run.sh, skip trusts the full check pr-check already ran on the same tree.
+# A temporary repo holds A (the parent on main), H (the PR head pr-check checked, A plus the PR's change) and M (the
+# squash commit on main, parent A). Its fetch tests go to a local bare repo, so the fake origin URL is unset here.
+mgv_git_config=("$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0")
+unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+mgv_script="$PWD/scripts/main-guard-verified.sh"
+mgv_repo="$work/mgv"
+mgv_write() { # <path=content>...: writes files in the temporary repo
+  local pair
+  for pair in "$@"; do
+    mkdir -p "$mgv_repo/$(dirname "${pair%%=*}")"
+    printf '%s\n' "${pair#*=}" > "$mgv_repo/${pair%%=*}"
+  done
+}
+mgv_setup() { # [<path=content> changed by the PR too]...: a new repo with A and H; sets mgv_a, mgv_h
+  rm -rf "$mgv_repo"
+  git init -q -b main "$mgv_repo"
+  mgv_write app/x.kt=a docs/a.md=a scripts/check.sh=gate
+  git -C "$mgv_repo" add -A && git -C "$mgv_repo" commit -q -m A
+  mgv_a="$(git -C "$mgv_repo" rev-parse HEAD)"
+  mgv_write app/x.kt=h "$@"
+  git -C "$mgv_repo" add -A && git -C "$mgv_repo" commit -q -m H
+  mgv_h="$(git -C "$mgv_repo" rev-parse HEAD)"
+}
+mgv_main() { # [<path=content> added on main after the check]...: prints M, a commit on A with H's tree plus those files
+  local tree
+  mgv_write "$@"
+  git -C "$mgv_repo" add -A
+  tree="$(git -C "$mgv_repo" write-tree)"
+  git -C "$mgv_repo" reset -q --hard "$mgv_h"
+  git -C "$mgv_repo" commit-tree "$tree" -p "$mgv_a" -m squash
+}
+mgv_fx() { # <M> <H> [<jq filter>]: the GitHub answers for a green PR #7 whose build-and-test ran check.sh
+  jq -n --arg m "$1" --arg h "$2" '{routes: {
+    ("commits/" + $m + "/pulls"): [{number: 7, merged_at: "2026-10-29T00:00:00Z", base: {ref: "main"},
+      merge_commit_sha: $m, head: {sha: $h}}],
+    ("actions/workflows/pr-check.yml/runs?head_sha=" + $h + "&per_page=10"): {workflow_runs: [
+      {id: 91, created_at: "2026-10-29T00:00:00Z", conclusion: "success"}]},
+    "actions/runs/91/jobs?per_page=50": {jobs: [{name: "build-and-test", steps: [
+      {name: "Set up job", conclusion: "success"},
+      {name: "Cổng chất lượng (scripts/check.sh)", conclusion: "success"}]}]}}} | '"${3:-.}"
+}
+mgv() { # <fixture> <sha> [<event> [<run attempt>]]: prints "<exit code> <stdout>"; stderr goes to $work/mgv.err
+  local out code=0
+  # A fixture that is not JSON (a broken jq filter) would make every case full: refuse it instead.
+  jq -e . <<<"$1" > /dev/null 2>&1 || { echo "bad fixture"; return; }
+  printf '%s' "$1" > "$work/mgv.json"
+  rm -f "$work/mgv.json.seen"
+  out="$(cd "$mgv_repo" && PATH="$work/bin:$PATH" FIXTURE="$work/mgv.json" GITHUB_REPOSITORY=o/r PULLS_WAIT_SECONDS=0 \
+    "$mgv_script" "$2" ${3:+"$3"} ${4:+"$4"} 2> "$work/mgv.err")" || code=$?
+  echo "$code $out"
+}
+
+mgv_setup
+m="$(mgv_main)"
+expect "main-guard-verified: same tree as a PR that ran check.sh is skip" "0 skip" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+expect "main-guard-verified: skip names the PR and the checked commit" "1 1" \
+  "$(grep -c 'ĐÃ KIỂM Ở PR #7' "$work/mgv.err") $(grep -c "${mgv_h:0:7}" "$work/mgv.err")"
+expect "main-guard-verified: a run of push, first attempt, is skip" "0 skip" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m" push 1)"
+expect "main-guard-verified: workflow_dispatch is full" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m" workflow_dispatch)"
+expect "main-guard-verified: a re-run is full" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m" push 2)"
+
+m="$(mgv_main docs/b.md=b)"
+expect "main-guard-verified: only docs differ from the checked PR is tests" "0 tests" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+expect "main-guard-verified: tests says so" 1 "$(grep -c 'CHỈ KHÁC TÀI LIỆU' "$work/mgv.err")"
+m="$(mgv_main README.md=b)"
+expect "main-guard-verified: a .md outside docs/ is tests" "0 tests" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+m="$(mgv_main docs/remote-config-keys.md=b)"
+expect "main-guard-verified: a docs file Gradle reads is full (remote-config-keys.md)" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+m="$(mgv_main docs/design-system/tokens.json=b)"
+expect "main-guard-verified: a docs file Gradle reads is full (tokens.json)" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+m="$(mgv_main app/y.kt=b)"
+expect "main-guard-verified: code differs from the checked PR is full" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+expect "main-guard-verified: full says why" 1 "$(grep -c 'KIỂM ĐẦY ĐỦ' "$work/mgv.err")"
+# git diff names only the new path of a renamed file unless renames are off: code moved into docs/ is still code.
+git -C "$mgv_repo" mv app/x.kt docs/x.md
+m="$(mgv_main)"
+expect "main-guard-verified: code renamed into docs/ is full" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+mgv_setup
+git -C "$mgv_repo" mv scripts/check.sh docs/check.md
+git -C "$mgv_repo" commit -q -m H2
+mgv_h="$(git -C "$mgv_repo" rev-parse HEAD)"
+m="$(mgv_main)"
+expect "main-guard-verified: a commit renaming a gate file is full" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+mgv_setup
+
+m="$(mgv_main)"
+step='.routes["actions/runs/91/jobs?per_page=50"].jobs[0].steps[1]'
+expect "main-guard-verified: a PR that skipped check.sh is full" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h" "$step.conclusion = \"skipped\"")" "$m")"
+expect "main-guard-verified: a renamed gate step is full" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h" "$step.name = \"Cổng chất lượng\"")" "$m")"
+expect "main-guard-verified: a renamed gate job is full" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h" '.routes["actions/runs/91/jobs?per_page=50"].jobs[0].name = "build"')" "$m")"
+runs='.routes["actions/workflows/pr-check.yml/runs?head_sha=" + $h + "&per_page=10"].workflow_runs'
+expect "main-guard-verified: a red pr-check run is full" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h" "$runs[0].conclusion = \"failure\"")" "$m")"
+expect "main-guard-verified: no pr-check run is full" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h" "$runs = []")" "$m")"
+# Filters with braces are built in variables first: bash 3.2 (macOS) mangles them inside nested "$(...)" .
+newer_red="$runs += [{id: 92, created_at: \"2026-10-29T01:00:00Z\", conclusion: \"failure\"}]"
+older_red="$runs = [{id: 90, created_at: \"2026-10-28T00:00:00Z\", conclusion: \"failure\"}] + $runs"
+expect "main-guard-verified: the newest pr-check run counts (newer red)" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h" "$newer_red")" "$m")"
+expect "main-guard-verified: the newest pr-check run counts (older red)" "0 skip" "$(mgv "$(mgv_fx "$m" "$mgv_h" "$older_red")" "$m")"
+pulls='.routes["commits/" + $m + "/pulls"]'
+expect "main-guard-verified: a commit without a merged PR is full" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h" "$pulls = []")" "$m")"
+expect "main-guard-verified: a PR merged as another commit is full" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h" "$pulls[0].merge_commit_sha = \"$mgv_a\"")" "$m")"
+expect "main-guard-verified: a PR that is not merged is full" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h" "$pulls[0].merged_at = null")" "$m")"
+expect "main-guard-verified: a PR into another branch is full" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h" "$pulls[0].base.ref = \"release\"")" "$m")"
+late_once="$pulls = {__sequence__: [[], $pulls]}"
+late_thrice="$pulls = {__sequence__: [[], [], [], $pulls]}"
+expect "main-guard-verified: asks again while GitHub has not linked the PR yet" "0 skip" "$(mgv "$(mgv_fx "$m" "$mgv_h" "$late_once")" "$m")"
+expect "main-guard-verified: stops asking after PULLS_TRIES" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h" "$late_thrice")" "$m")"
+pulls_403='.errors = {("commits/" + $m + "/pulls"): "HTTP 403: Resource not accessible by integration"}'
+expect "main-guard-verified: an unreadable PR list is full, exit 0" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h" "$pulls_403")" "$m")"
+jobs_500='.errors = {"actions/runs/91/jobs?per_page=50": "HTTP 500: Server Error"}'
+expect "main-guard-verified: an unreadable job list is full, exit 0" "0 full" "$(mgv "$(mgv_fx "$m" "$mgv_h" "$jobs_500")" "$m")"
+expect "main-guard-verified: a commit unknown to git is full, exit 0" "0 full" \
+  "$(mgv "$(mgv_fx "$m" "$mgv_h")" 0123456789abcdef0123456789abcdef01234567)"
+
+mgv_gate_files=(.github/workflows/pr-check.yml .github/workflows/main-guard.yml scripts/check.sh scripts/failure-kind.sh
+  scripts/find-breaking-commit.sh scripts/main-guard-verified.sh scripts/tests/run.sh scripts/tests/fake-gh
+  scripts/ui-test-needed.sh)
+gate_full=0
+for f in "${mgv_gate_files[@]}"; do
+  mgv_setup "$f=changed"
+  m="$(mgv_main)"
+  [[ "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")" == "0 full" ]] && gate_full=$((gate_full + 1))
+done
+expect "main-guard-verified: a commit changing a file the guard job runs is full" "${#mgv_gate_files[@]}" "$gate_full"
+mgv_setup scripts/status.py=changed
+m="$(mgv_main)"
+expect "main-guard-verified: a commit changing another script can be skip" "0 skip" "$(mgv "$(mgv_fx "$m" "$mgv_h")" "$m")"
+
+# On GitHub H is not in the checkout of main (the squash commit does not descend from it): it comes from refs/pull/7/head.
+mgv_setup
+m="$(mgv_main)"
+git -C "$mgv_repo" branch -q -f squash "$m"
+rm -rf "$work/mgv-origin.git" "$work/mgv-main"
+git init -q --bare "$work/mgv-origin.git"
+git init -q -b main "$work/mgv-main"
+git -C "$work/mgv-main" fetch -q "$mgv_repo" refs/heads/squash
+git -C "$work/mgv-main" reset -q --hard FETCH_HEAD
+git -C "$work/mgv-main" remote add origin "file://$work/mgv-origin.git"
+mgv_in_main() { # <fixture>: runs the script in the clone without H
+  local saved="$mgv_repo" out
+  mgv_repo="$work/mgv-main"
+  out="$(mgv "$1" "$m")"
+  mgv_repo="$saved"
+  echo "$out"
+}
+expect "main-guard-verified: the clone of main does not have H" no \
+  "$(git -C "$work/mgv-main" cat-file -e "$mgv_h^{commit}" 2>/dev/null && echo yes || echo no)"
+expect "main-guard-verified: no refs/pull/7/head is full" "0 full" "$(mgv_in_main "$(mgv_fx "$m" "$mgv_h")")"
+git -C "$mgv_repo" push -q "$work/mgv-origin.git" "$mgv_a:refs/pull/7/head"
+expect "main-guard-verified: refs/pull/7/head on another commit is full" "0 full" "$(mgv_in_main "$(mgv_fx "$m" "$mgv_h")")"
+git -C "$mgv_repo" push -q -f "$work/mgv-origin.git" "$mgv_h:refs/pull/7/head"
+expect "main-guard-verified: fetches H from refs/pull/7/head and skips" "0 skip" "$(mgv_in_main "$(mgv_fx "$m" "$mgv_h")")"
+
+# The names the script reads from pr-check.yml, and the docs files Gradle reads, stay in step with those files.
+mgv_gate_names() { # <script> <workflow>: "yes" when the workflow has the script's GATE_JOB with a step named GATE_STEP
+  local job step
+  job="$(sed -n -E 's/^GATE_JOB="(.*)"$/\1/p' "$1")"
+  step="$(sed -n -E 's/^GATE_STEP="(.*)"$/\1/p' "$1")"
+  if [[ "$job" == build-and-test && -n "$step" ]] && grep -qE "^  $job:$" "$2" \
+    && pr_steps "$2" | grep -qF "name: $step"; then echo yes; else echo no; fi
+}
+expect "main-guard-verified: pr-check.yml has the job and the step it reads" yes "$(mgv_gate_names "$mgv_script" "$pr_wf")"
+sed 's/name: Cổng chất lượng (scripts\/check.sh)/name: Cổng chất lượng/' "$pr_wf" > "$work/prwf/gate-step.yml"
+expect "main-guard-verified: the name check fails on a copy with a renamed gate step" no \
+  "$(mgv_gate_names "$mgv_script" "$work/prwf/gate-step.yml")"
+mgv_gradle_docs() { # <script>: "yes" when GRADLE_READ_DOCS lists exactly the docs files of rootProject.file("docs/...")
+  local listed read
+  listed="$(sed -n -E 's/^GRADLE_READ_DOCS=\((.*)\)$/\1/p' "$1" | tr ' ' '\n' | sed '/^$/d' | sort)"
+  read="$(git grep -hoE 'rootProject\.file\("docs/[^"]+"\)' -- '*.gradle.kts' | sed -E 's/^rootProject\.file\("(.*)"\)$/\1/' | sort -u)"
+  [[ -n "$read" && "$listed" == "$read" ]] && echo yes || echo no
+}
+expect "main-guard-verified: GRADLE_READ_DOCS lists every docs file Gradle reads" yes "$(mgv_gradle_docs "$mgv_script")"
+sed 's# docs/design-system/tokens.json##' "$mgv_script" > "$work/mgv-short.sh" 2>/dev/null || true
+expect "main-guard-verified: the Gradle docs check fails on a copy missing a file" no "$(mgv_gradle_docs "$work/mgv-short.sh")"
+
+# main-guard.yml chooses the mode before the gate, inside the guard job, so the check run guard still ends success or
+# failure and every reader of it (find-breaking-commit.sh, main-guard-status.sh, start-run.yml, release.sh) is unchanged.
+mg_steps() { # <workflow>; prints each step of the guard job on one line, its lines joined by tabs
+  awk '/^  guard:$/ { j = 1; next }
+    j && /^  [^ ]/ { j = 0 }
+    j && /^      - / { if (s != "") print s; s = $0; next }
+    j && s != "" && /^        / { s = s "\t" $0 }
+    END { if (s != "") print s }' "$1"
+}
+mg_step_has() { # <workflow> <text in the step> <text that must be in the same step>: yes or no
+  mg_steps "$1" | grep -F -- "$2" | grep -qF -- "$3" && echo yes || echo no
+}
+mg_wiring() { # <workflow>; prints yes or no for the points (a) to (j) of the plan T-074, section 4, test 13
+  local wf="$1" a b f j
+  a="$(awk '/^  guard:$/ { g = 1; next } g && /^    steps:$/ { g = 0 } g && /^    if:/ { n++; if ($0 ~ /github\.ref == .refs\/heads\/main./) r++ }
+    END { print ((n == 1 && r == 1) ? "yes" : "no") }' "$wf")"
+  b="$(awk '/^  guard:$/ { g = 1 } g && /uses: actions\/checkout/ && !c { c = NR }
+    g && /scripts\/main-guard-verified\.sh "\$\{GITHUB_SHA\}" "\$\{GITHUB_EVENT_NAME\}" "\$\{GITHUB_RUN_ATTEMPT\}"/ && !m { m = NR }
+    g && /id: first$/ && !f { f = NR }
+    END { print ((c && m > c && f > m) ? "yes" : "no") }' "$wf")"
+  f="$(mg_steps "$wf" | grep -F 'id: check' | awk -F'\t' '{ s = index($0, "= \"skip\" ]; then"); o = index($0, "steps.first.outcome") }
+    END { print ((s && o && s < o) ? "yes" : "no") }')"
+  j="$(grep -qE '^  actions: read$' "$wf" && grep -qE '^  pull-requests: read$' "$wf" && echo yes || echo no)"
+  echo "$a $b" \
+    "$(mg_step_has "$wf" 'uses: actions/setup-java' "if: steps.mode.outputs.mode != 'skip'")" \
+    "$(mg_step_has "$wf" 'uses: gradle/actions/setup-gradle' "if: steps.mode.outputs.mode != 'skip' && steps.mode.outputs.mode != 'tests'")" \
+    "$( [[ "$(mg_step_has "$wf" 'id: first' "if: steps.mode.outputs.mode != 'skip'") $(mg_step_has "$wf" 'id: first' '= "tests" ]; then scripts/tests/run.sh 2>&1 | tee build.log; else scripts/check.sh 2>&1 | tee build.log; fi')" == "yes yes" ]] && echo yes || echo no)" \
+    "$f" \
+    "$( [[ "$(mg_step_has "$wf" 'id: kind' "if: steps.first.outcome == 'failure'") $(mg_step_has "$wf" 'id: retry' "if: steps.kind.outputs.kind == 'tests'")" == "yes yes" ]] && echo yes || echo no)" \
+    "$(mg_step_has "$wf" 'name: Đánh dấu nhánh chính đang đỏ' "if: failure() && steps.check.outcome == 'failure'")" \
+    "$(mg_step_has "$wf" 'name: Đóng issue main-broken khi nhánh chính xanh trở lại' 'if: success()')" \
+    "$j"
+}
+expect "main-guard: chooses the mode before the gate and skips inside the guard job" \
+  "yes yes yes yes yes yes yes yes yes yes" "$(mg_wiring "$guard_wf")"
+mkdir -p "$work/mgwf"
+awk '{ print } /^    if: github.ref == .refs\/heads\/main.$/ { print "    if: steps.mode.outputs.mode != '\''skip'\''" }' \
+  "$guard_wf" > "$work/mgwf/a.yml"
+grep -vF 'scripts/main-guard-verified.sh' "$guard_wf" > "$work/mgwf/b.yml"
+sed "s/steps.mode.outputs.mode != 'skip' \&\& steps.mode.outputs.mode != 'tests'/steps.mode.outputs.mode == 'full'/" \
+  "$guard_wf" > "$work/mgwf/d.yml"
+sed 's/= "tests" ]; then scripts\/tests\/run.sh/= "full" ]; then scripts\/tests\/run.sh/' "$guard_wf" > "$work/mgwf/e.yml"
+sed 's/= "skip" ]; then/= "none" ]; then/' "$guard_wf" > "$work/mgwf/f.yml"
+grep -vE '^  pull-requests: read$' "$guard_wf" > "$work/mgwf/j.yml"
+expect "main-guard: the wiring check fails on each broken copy (a, b, d, e, f, j)" "no no no no no no" \
+  "$(mg_wiring "$work/mgwf/a.yml" | cut -d' ' -f1) $(mg_wiring "$work/mgwf/b.yml" | cut -d' ' -f2) $(mg_wiring "$work/mgwf/d.yml" | cut -d' ' -f4) $(mg_wiring "$work/mgwf/e.yml" | cut -d' ' -f5) $(mg_wiring "$work/mgwf/f.yml" | cut -d' ' -f6) $(mg_wiring "$work/mgwf/j.yml" | cut -d' ' -f10)"
+
+# main-guard.yml runs the emulator in its own job ui-test, after guard and only for app code (ADR-0043, T-075, test 18).
+ui_steps() { # <workflow>; prints each step of the ui-test job on one line, its lines joined by tabs
+  awk '/^  ui-test:$/ { j = 1; next }
+    j && /^  [^ ]/ { j = 0 }
+    j && /^      - / { if (s != "") print s; s = $0; next }
+    j && s != "" && /^        / { s = s "\t" $0 }
+    END { if (s != "") print s }' "$1"
+}
+step_by_id() { # <id>: from the step lines on stdin, the step with that id
+  awk -F'\t' -v id="$1" '{ for (i = 1; i <= NF; i++) if ($i ~ "^ +(- )?id: " id "$") { print; next } }'
+}
+step_by_name() { # <name>: from the step lines on stdin, the step with exactly that name
+  awk -F'\t' -v n="$1" '{ for (i = 1; i <= NF; i++) if ($i ~ /^ +(- )?name: / && substr($i, index($i, "name: ") + 6) == n) { print; next } }'
+}
+step_text() { grep -qF -- "$2" <<<"$1" && echo yes || echo no; } # <step> <text>
+step_has_if() { awk -F'\t' '{ for (i = 1; i <= NF; i++) if ($i ~ /^ +(- )?if:/) f = 1 } END { print (f ? "yes" : "no") }' <<<"$1"; }
+step_run() { # <step>: the lines of its "run: |" block, without their indentation
+  awk -F'\t' '{ for (i = 1; i <= NF; i++) { if (r) { l = $i; sub(/^          /, "", l); print l } if ($i ~ /^ +run: \|$/) r = 1 } }' <<<"$1"
+}
+step_all() { # <step> <text>...: yes when the step has every text
+  local s="$1" t
+  shift
+  [[ -n "$s" ]] || { echo no; return; }
+  for t in "$@"; do [[ "$(step_text "$s" "$t")" == yes ]] || { echo no; return; }; done
+  echo yes
+}
+ui_own_filter='select(.body | contains("<!-- check:ui-test -->"))'
+ui_wiring() { # <workflow>; prints yes or no for the points (a) to (i) of the plan T-075, section 4, test 18
+  local wf="$1" a b c d e f g h i step body v code codes=""
+  a="$(awk '/^  guard:$/ { g = NR } /^  ui-test:$/ { u = NR; j = 1; next } j && /^    steps:$/ { j = 0 }
+    j && /^    needs: guard$/ { n++ } j && /^    if:/ { i++; if ($0 == "    if: needs.guard.outputs.ui != '\''no'\''") r++ }
+    END { print ((g && u > g && n == 1 && i == 1 && r == 1) ? "yes" : "no") }' "$wf")"
+  b="$(awk '/^  guard:$/ { g = 1 } /^  ui-test:$/ { g = 0 } g && /^    outputs:$/ { o = 1 } g && /^    steps:$/ { o = 0 }
+    g && o && /^      ui: \$\{\{ steps\.ui\.outputs\.ui \}\}$/ { u = 1 }
+    g && /uses: actions\/checkout/ && !c { c = NR }
+    g && /scripts\/ui-test-needed\.sh "\$\{GITHUB_SHA\}" "\$\{GITHUB_EVENT_NAME\}"/ && !s { s = NR }
+    END { print ((u && c && s > c) ? "yes" : "no") }' "$wf")"
+  step="$(mg_steps "$wf" | step_by_id ui)"
+  [[ "$(step_all "$step" 'scripts/ui-test-needed.sh "${GITHUB_SHA}" "${GITHUB_EVENT_NAME}"')" == yes \
+    && "$(step_has_if "$step")" == no ]] || b=no
+  c="$(step_all "$(ui_steps "$wf" | step_by_id emulator)" 'continue-on-error: true' \
+    'uses: reactivecircus/android-emulator-runner@v2' 'script: scripts/ui-test-on-emulator.sh')"
+  d="$(step_all "$(ui_steps "$wf" | step_by_id verdict)" 'if: always()' \
+    'scripts/ui-test-verdict.sh "${{ steps.emulator.outcome }}"')"
+  # The check step is run for each verdict: only green and flaky may exit 0.
+  body="$(step_run "$(ui_steps "$wf" | step_by_id check)")"
+  mkdir -p "$work/uicheck"
+  printf 'EMULATOR HẠ TẦNG (PB-11): x\nlog line\n' > "$work/uicheck/ui-verdict.txt"
+  for v in green flaky infra red ''; do
+    code=0
+    (cd "$work/uicheck" && VERDICT="$v" bash -c "$body") > /dev/null 2>&1 || code=1
+    codes="$codes$code"
+  done
+  [[ -n "$body" && "$codes" == 00111 ]] && e=yes || e=no
+  f="$(step_all "$(ui_steps "$wf" | step_by_name 'Ghi test chập chờn')" "if: steps.verdict.outputs.verdict == 'flaky'")"
+  g="$(step_all "$(ui_steps "$wf" | step_by_name 'Đánh dấu nhánh chính đang đỏ (emulator)')" \
+    "if: failure() && steps.verdict.outputs.verdict == 'red'" 'MAX_WAIT_SECONDS=900' \
+    'scripts/find-breaking-commit.sh --check ui-test' 'echo "<!-- check:ui-test -->"' "$ui_own_filter")"
+  h="$(step_all "$(ui_steps "$wf" | step_by_name 'Đóng issue main-broken của emulator khi xanh trở lại')" \
+    'if: success()' "$ui_own_filter")"
+  i="$(awk '/^  ui-test:$/ { j = 1; next } j && /^    steps:$/ { j = 0 } j && /^    timeout-minutes: [0-9]+$/ { t = 1 }
+    END { print (t ? "yes" : "no") }' "$wf")"
+  echo "$a $b $c $d $e $f $g $h $i"
+}
+expect "main-guard: ui-test runs after guard only for app code" "yes yes yes yes yes yes yes yes yes" "$(ui_wiring "$guard_wf")"
+grep -vE '^    needs: guard$' "$guard_wf" > "$work/mgwf/ui-a1.yml"
+sed "s/needs.guard.outputs.ui != 'no'/needs.guard.outputs.ui == 'yes'/" "$guard_wf" > "$work/mgwf/ui-a2.yml"
+awk '{ print } /^        id: ui$/ { print "        if: steps.mode.outputs.mode != '\''skip'\''" }' "$guard_wf" > "$work/mgwf/ui-b.yml"
+awk '/id: emulator$/ { e = 1 } e && /continue-on-error: true/ { e = 0; next } { print }' "$guard_wf" > "$work/mgwf/ui-c.yml"
+awk '/id: verdict$/ { v = 1 } v && /if: always\(\)/ { sub(/always\(\)/, "success()"); v = 0 } { print }' "$guard_wf" \
+  > "$work/mgwf/ui-d.yml"
+sed 's/green | flaky)/green | flaky | infra)/' "$guard_wf" > "$work/mgwf/ui-e.yml"
+sed "s/if: steps.verdict.outputs.verdict == 'flaky'/if: always()/" "$guard_wf" > "$work/mgwf/ui-f.yml"
+sed 's/find-breaking-commit.sh --check ui-test/find-breaking-commit.sh/' "$guard_wf" > "$work/mgwf/ui-g1.yml"
+perl -0pe 's/\Qselect(.body | contains("<!-- check:ui-test -->"))\E/select(true)/' "$guard_wf" > "$work/mgwf/ui-g2.yml"
+perl -0pe '$n = 0; s/\Qselect(.body | contains("<!-- check:ui-test -->"))\E/++$n == 2 ? "select(true)" : $&/ge' \
+  "$guard_wf" > "$work/mgwf/ui-h.yml"
+awk '/^  ui-test:$/ { u = 1 } u && /^    timeout-minutes:/ { u = 0; next } { print }' "$guard_wf" > "$work/mgwf/ui-i.yml"
+ui_point() { ui_wiring "$work/mgwf/ui-$1.yml" | cut -d' ' -f"$2"; } # <copy> <field>
+# Closing the issue is a note for people: a GitHub error there must not turn a green ui-test red without annotation,
+# which find-breaking-commit.sh --check ui-test would blame (review of T-075, round 1).
+expect "main-guard: the close step of ui-test cannot turn the job red" yes \
+  "$(step_all "$(ui_steps "$guard_wf" | step_by_name 'Đóng issue main-broken của emulator khi xanh trở lại')" 'continue-on-error: true')"
+expect "main-guard: the ui-test wiring check fails on each broken copy (a, a, b, c, d, e, f, g, g, h, i)" \
+  "no no no no no no no no no no no" \
+  "$(ui_point a1 1) $(ui_point a2 1) $(ui_point b 2) $(ui_point c 3) $(ui_point d 4) $(ui_point e 5) $(ui_point f 6) $(ui_point g1 7) $(ui_point g2 7) $(ui_point h 8) $(ui_point i 9)"
+# guard comments on and closes only its own main-broken issues, never the one of ui-test (test 19).
+guard_own_filter='select(.body | contains("<!-- check:ui-test -->") | not)'
+mg_own_issues() { # <workflow>: yes or no for the mark step and the close step of guard
+  echo "$(step_all "$(mg_steps "$1" | step_by_name 'Đánh dấu nhánh chính đang đỏ')" "$guard_own_filter")" \
+    "$(step_all "$(mg_steps "$1" | step_by_name 'Đóng issue main-broken khi nhánh chính xanh trở lại')" "$guard_own_filter")"
+}
+perl -0pe 's/\Qselect(.body | contains("<!-- check:ui-test -->") | not)\E/select(true)/' "$guard_wf" > "$work/mgwf/own-mark.yml"
+perl -0pe '$n = 0; s/\Qselect(.body | contains("<!-- check:ui-test -->") | not)\E/++$n == 2 ? "select(true)" : $&/ge' \
+  "$guard_wf" > "$work/mgwf/own-close.yml"
+expect "main-guard: guard comments on and closes only its own main-broken issues" "yes yes" "$(mg_own_issues "$guard_wf")"
+expect "main-guard: the own-issue check fails on a copy without the filter in each step" "no yes yes no" \
+  "$(mg_own_issues "$work/mgwf/own-mark.yml") $(mg_own_issues "$work/mgwf/own-close.yml")"
+export GIT_CONFIG_COUNT="${mgv_git_config[0]}" GIT_CONFIG_KEY_0="${mgv_git_config[1]}" GIT_CONFIG_VALUE_0="${mgv_git_config[2]}"
 
 # merge-if-green.sh must reject any argument other than exactly "<PR> [--dry-run]" before doing anything.
 for args in "12 --dryrun" "12 -n" "12 --dry_run" "12 --dry-run extra" "abc" ""; do
@@ -340,6 +761,20 @@ expect "merge-if-green: a docs-only PR whose build-and-test failed is refused" "
 merge_routes claude/template-x '{"behind_by": 0}' "$skipped_docs_runs"
 expect "merge-if-green: a skipped build-and-test is refused" "1 1" \
   "$(merge_run 12 --dry-run) $(grep -c "kiểm tra 'build-and-test' kết thúc với kết quả 'skipped'" "$work/mg.out" || true)"
+# The emulator left pr-check (ADR-0043): a code PR has only changes and build-and-test. An ui-test check run left from
+# before is not waited for, but a red one is still refused like any red check.
+code_runs='{"check_runs": [
+  {"name": "changes", "status": "completed", "conclusion": "success", "started_at": "2026-10-18T02:01:00Z", "check_suite": {"id": 5}},
+  {"name": "build-and-test", "status": "completed", "conclusion": "success", "started_at": "2026-10-18T02:01:00Z", "check_suite": {"id": 5}}]}'
+ui_running_runs="${code_runs%]\}}, {\"name\": \"ui-test\", \"status\": \"in_progress\", \"conclusion\": null, \"started_at\": \"2026-10-18T02:01:00Z\", \"check_suite\": {\"id\": 5}}]}"
+ui_red_runs="${code_runs%]\}}, {\"name\": \"ui-test\", \"status\": \"completed\", \"conclusion\": \"failure\", \"started_at\": \"2026-10-18T02:01:00Z\", \"check_suite\": {\"id\": 5}}]}"
+merge_routes claude/template-x '{"behind_by": 0}' "$code_runs"
+expect "merge-if-green: a code PR without ui-test is ready" 0 "$(merge_run 12 --dry-run)"
+merge_routes claude/template-x '{"behind_by": 0}' "$ui_running_runs"
+expect "merge-if-green: a running ui-test is not waited for" 0 "$(merge_run 12 --dry-run)"
+merge_routes claude/template-x '{"behind_by": 0}' "$ui_red_runs"
+expect "merge-if-green: a red ui-test left from before is still refused" "1 1" \
+  "$(merge_run 12 --dry-run) $(grep -c 'có kiểm tra không qua: ui-test\.' "$work/mg.out" || true)"
 merge_routes claude/RUN-20261018-01-report '{"behind_by": 0}' "$green_runs"
 merge_run 12 --dry-run > /dev/null
 # The page is not in git (status-page.yml builds it on the status branch, L-066): no PR carries it, the report PR neither.
@@ -548,6 +983,13 @@ expect "playbook: PB-13 an R2 file missing (404) in ui-test -> nguoi, before the
 expect "playbook: PB-14 push refused for a workflow file (OAuth App, workflow scope) -> bo-qua-loai" "PB-14 bo-qua-loai" "$(pb_head $pb_dir/PB-14.log)"
 expect "playbook: PB-15 the emulator package failed to download and no test ran -> lich-thu-lai" "PB-15 lich-thu-lai" \
   "$(pb_head $pb_dir/PB-15.log)"
+expect "playbook: PB-16 a job cancelled at its time limit during the release build -> chay-lai, not PB-08" "PB-16 chay-lai" \
+  "$(pb_head $pb_dir/PB-16.log)"
+# R8 prints "WARNING: R8: Missing class ... (referenced from ...)" on a green release build; only its errors are PB-08 (L-138).
+grep 'WARNING: R8' $pb_dir/PB-16.log > "$work/pb-r8-warning.log"
+expect "playbook: an R8 missing-class warning alone is not PB-08" khong-co "$(pb_head "$work/pb-r8-warning.log")"
+printf '%s\n' 'ERROR: Missing class com.example.Gone (referenced from: void com.example.Uses.call())' > "$work/pb-r8-error.log"
+expect "playbook: an R8 missing-class error is PB-08" "PB-08 that" "$(pb_head "$work/pb-r8-error.log")"
 # A row with two patterns joined by "và" matches only when the log has both: the same download warning on a run whose
 # tests did run and fail is a real failure, not infrastructure.
 grep -v 'Không có test nào chạy' $pb_dir/PB-15.log > "$work/pb15-tests-ran.log"
@@ -611,6 +1053,347 @@ expect "playbook: every bo-qua-loai row names the plan-check --touches command" 
 expect "playbook: the table has at least one bo-qua-loai row" yes "$([ -n "$pb_skip_rows" ] && echo yes || echo no)"
 expect "playbook: the table has at least 10 rows" yes "$([ "$(printf '%s\n' "$pb_rows" | wc -l)" -ge 10 ] && echo yes || echo no)"
 expect "failure-kind: a playbook-only log still says other" other "$(scripts/failure-kind.sh $pb_dir/PB-01.log)"
+
+# test-summary.sh counts only this checkout: agent worktrees in .claude/worktrees/ and any other worktree nested in the
+# repository keep their own build results and screenshots (L-137).
+ts_repo="$work/ts-repo"
+mkdir -p "$ts_repo/scripts"
+cp scripts/test-summary.sh "$ts_repo/scripts/"
+ts_result() { # <dir> <tests>: one JUnit file and one screenshot in module m under <dir>
+  mkdir -p "$1/m/build/test-results/testDebugUnitTest" "$1/m/src/test/screenshots"
+  printf '<testsuite tests="%s" failures="0" errors="0"/>\n' "$2" > "$1/m/build/test-results/testDebugUnitTest/TEST-a.xml"
+  : > "$1/m/src/test/screenshots/a.png"
+}
+git -C "$ts_repo" init -q
+git -C "$ts_repo" add scripts
+git -C "$ts_repo" commit -q -m init
+git -C "$ts_repo" worktree add -q "$ts_repo/nested" 2> /dev/null
+ts_result "$ts_repo" 3
+ts_result "$ts_repo/.claude/worktrees/agent-old" 5
+ts_result "$ts_repo/nested" 7
+expect "test-summary: tests and screenshots of nested worktrees are not counted" \
+  "Test JVM: 3 test, 0 lỗi. Ảnh screenshot: 1. ./m: 3 test, 0 lỗi" "$(GITHUB_ACTIONS='' "$ts_repo/scripts/test-summary.sh" jvm)"
+
+# The emulator tests of main-guard.yml (ADR-0043, T-075): ui-test-needed.sh, ui-test-on-emulator.sh, ui-test-verdict.sh.
+# The blocks below commit in temporary repos, so the fake origin URL is unset here and restored at the end (L-082).
+uin_git_config=("$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0")
+unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+uin_script="$PWD/scripts/ui-test-needed.sh"
+uin_repo="$work/uin"
+rm -rf "$uin_repo"
+git init -q -b main "$uin_repo"
+echo root > "$uin_repo/README.md"
+git -C "$uin_repo" add -A && git -C "$uin_repo" commit -q -m root
+uin_root="$(git -C "$uin_repo" rev-parse HEAD)"
+uin_run() { # <sha> [<event>]: runs the script (UIN_SCRIPT, default the real one) in the repo; prints "<exit code> <stdout>"
+  local out code=0
+  out="$(cd "$uin_repo" && "${UIN_SCRIPT:-$uin_script}" "$1" ${2:+"$2"} 2> "$work/uin.err")" || code=$?
+  echo "$code $out"
+}
+uin() { # <event> <file>...: commits a change to those files, then runs the script on that commit
+  local event="$1" f
+  shift
+  for f in "$@"; do
+    mkdir -p "$uin_repo/$(dirname "$f")"
+    echo x >> "$uin_repo/$f"
+  done
+  git -C "$uin_repo" add -A && git -C "$uin_repo" commit -q -m change
+  uin_run "$(git -C "$uin_repo" rev-parse HEAD)" "$event"
+}
+uin_count() { # <expected output> <event> <file>...: how many files, each changed in its own commit, give that output
+  local want="$1" event="$2" f n=0
+  shift 2
+  for f in "$@"; do [[ "$(uin "$event" "$f")" == "$want" ]] && n=$((n + 1)); done
+  echo "$n"
+}
+uin_code=(app/x.kt core/c/x.kt feature/f/x.kt build-logic/x.kts gradle/libs.versions.toml build.gradle.kts
+  settings.gradle.kts gradle.properties gradlew scripts/test-summary.sh scripts/ui-test-on-emulator.sh
+  scripts/ui-test-verdict.sh scripts/ui-test-needed.sh .github/workflows/main-guard.yml)
+expect "ui-test-needed: a commit changing app code is yes" "${#uin_code[@]}" "$(uin_count '0 yes' push "${uin_code[@]}")"
+uin_other=(scripts/status.py docs/a.md README.md .github/workflows/pr-check.yml featurex/a.kt appendix.txt docs/app/x.kt)
+expect "ui-test-needed: a commit without app code is no" "${#uin_other[@]}" "$(uin_count '0 no' push "${uin_other[@]}")"
+expect "ui-test-needed: a commit with app code among other files is yes" "0 yes" "$(uin push scripts/status.py core/c/x.kt)"
+expect "ui-test-needed: workflow_dispatch is yes" "0 yes 0 no" "$(uin workflow_dispatch docs/a.md) $(uin push docs/a.md)"
+expect "ui-test-needed: an unreadable commit is yes, exit 0" "0 yes 1 0 yes" \
+  "$(uin_run 0123456789abcdef0123456789abcdef01234567) $(grep -c 'không đọc được' "$work/uin.err" || true) $(uin_run "$uin_root")"
+git -C "$uin_repo" mv app/x.kt docs/x.kt
+git -C "$uin_repo" commit -q -m move
+expect "ui-test-needed: code moved into docs/ is yes" "0 yes" "$(uin_run "$(git -C "$uin_repo" rev-parse HEAD)")"
+# Every Gradle module of settings.gradle.kts is under UI_PATHS; a copy of the script without core/ misses some.
+uin_modules=()
+while IFS= read -r module; do
+  uin_modules+=("$(tr ':' '/' <<<"${module#:}")/x.kt")
+done < <(sed -n -E 's/^include\("(:[^"]+)"\)$/\1/p' settings.gradle.kts)
+sed 's# core/##' "$uin_script" > "$work/uin-short.sh" 2> /dev/null || true
+chmod +x "$work/uin-short.sh"
+expect "ui-test-needed: every Gradle module is under UI_PATHS" "${#uin_modules[@]}" "$(uin_count '0 yes' push "${uin_modules[@]}")"
+expect "ui-test-needed: the module check fails on a copy without core/" yes \
+  "$([[ "$(UIN_SCRIPT="$work/uin-short.sh" uin_count '0 no' push "${uin_modules[@]}")" -ge 1 ]] && echo yes || echo no)"
+
+# ui-test-on-emulator.sh runs the emulator tests once, and once more on the same emulator when the first run is red.
+# adb and gradlew are fakes: adb records its arguments, gradlew follows a scenario (pass or fail, one line per call).
+uoe_script="$PWD/scripts/ui-test-on-emulator.sh"
+uoe_dir="$work/uoe"
+cat > "$work/bin/fake-adb" << 'SH'
+#!/usr/bin/env bash
+echo "$*" >> "$UOE_DIR/adb.calls"
+if [[ "$1" == logcat && "${2:-}" == -v ]]; then echo "I VGL.Test: device log"; fi
+SH
+cat > "$work/bin/fake-gradlew" << 'SH'
+#!/usr/bin/env bash
+n=$(( $(cat "$UOE_DIR/gradlew.n" 2> /dev/null || echo 0) + 1 ))
+echo "$n" > "$UOE_DIR/gradlew.n"
+result="$(sed -n "${n}p" "$UOE_DIR/gradlew.scenario")"
+echo "gradlew run $n: ${result:-none} $*"
+[[ "$result" == pass ]]
+SH
+chmod +x "$work/bin/fake-adb" "$work/bin/fake-gradlew"
+uoe() { # <pass|fail>...: runs the script in a fresh directory (with test results when UOE_RESULTS is set); prints its exit code
+  local code=0
+  rm -rf "$uoe_dir"
+  mkdir -p "$uoe_dir"
+  printf '%s\n' "$@" > "$uoe_dir/gradlew.scenario"
+  if [[ -n "${UOE_RESULTS:-}" ]]; then
+    mkdir -p "$uoe_dir/app/build/outputs/androidTest-results"
+    echo '<testsuite tests="1" failures="1"/>' > "$uoe_dir/app/build/outputs/androidTest-results/a.xml"
+  fi
+  (cd "$uoe_dir" && UOE_DIR="$uoe_dir" UI_TEST_ADB="$work/bin/fake-adb" UI_TEST_GRADLEW="$work/bin/fake-gradlew" \
+    "$uoe_script") > "$work/uoe.out" 2>&1 || code=$?
+  echo "$code"
+}
+uoe_has() { [[ -f "$uoe_dir/$1" ]] && echo yes || echo no; } # <file>
+uoe_grep() { grep -qF -- "$2" "$uoe_dir/$1" 2> /dev/null && echo yes || echo no; } # <file> <text>
+uoe_clears() { grep -cx 'logcat -c' "$uoe_dir/adb.calls" 2> /dev/null || true; }
+uoe_runs() { cat "$uoe_dir/gradlew.n" 2> /dev/null || echo 0; }
+expect "ui-test-on-emulator: a green first run runs once" "0 1 yes no 1" \
+  "$(uoe pass) $(uoe_runs) $(uoe_has ui-test.log) $(uoe_has ui-test-first.log) $(uoe_clears)"
+expect "ui-test-on-emulator: a red first run runs once more and keeps its log" "0 2 yes no yes yes yes yes 2" \
+  "$(UOE_RESULTS=yes uoe fail pass) $(uoe_runs) $(uoe_grep ui-test-first.log 'gradlew run 1: fail') $(uoe_grep ui-test-first.log 'gradlew run 2') $(uoe_grep ui-test.log 'gradlew run 2: pass') $(uoe_has logcat-first.txt) $(uoe_has logcat.txt) $(uoe_has ui-test-first-results/a.xml) $(uoe_clears)"
+expect "ui-test-on-emulator: says it runs once more" 1 "$(grep -c 'Lần đầu đỏ, chạy lại một lần trên cùng emulator (ADR-0043)' "$work/uoe.out" || true)"
+expect "ui-test-on-emulator: two red runs fail" "red 2" \
+  "$([[ "$(uoe fail fail pass)" != 0 ]] && echo red || echo green) $(uoe_runs)"
+
+# ui-test-verdict.sh: green, flaky, infra or red from the files the emulator step and the summary step leave.
+uv_script="$PWD/scripts/ui-test-verdict.sh"
+uv_dir="$work/uv"
+uv_reset() { # [<file the last commit changes>]: a fresh job directory, a git repo with app/build.gradle.kts
+  local changed="${1:-app/x.kt}"
+  rm -rf "$uv_dir"
+  mkdir -p "$uv_dir/app"
+  git init -q -b main "$uv_dir"
+  printf 'android {\n    defaultConfig {\n        applicationId = "com.vglstudio.camera.pose.line.guide"\n    }\n}\n' > "$uv_dir/app/build.gradle.kts"
+  echo a > "$uv_dir/README.md"
+  git -C "$uv_dir" add -A && git -C "$uv_dir" commit -q -m A
+  mkdir -p "$uv_dir/$(dirname "$changed")"
+  echo b >> "$uv_dir/$changed"
+  git -C "$uv_dir" add -A && git -C "$uv_dir" commit -q -m B
+}
+uv_summary() { # <tests> <failures>: ui-summary.log as scripts/test-summary.sh android writes it
+  printf 'Test emulator: %s test, %s lỗi. ./app: %s test, %s lỗi\n' "$1" "$2" "$1" "$2" > "$uv_dir/ui-summary.log"
+  [[ "$1" != 0 ]] || echo '::error::Không có test nào chạy trên emulator.' >> "$uv_dir/ui-summary.log"
+}
+uv_put() { printf '%s\n' "${@:2}" > "$uv_dir/$1"; } # <file> <line>...
+uv() { # <outcome of the emulator step>: runs the script in the job directory; prints "<exit code> <stdout>"
+  local out code=0
+  out="$(cd "$uv_dir" && "$uv_script" "$1" 2> "$work/uv.err")" || code=$?
+  echo "$code $out"
+}
+uv_said() { grep -qF -- "$1" "$work/uv.err" && echo yes || echo no; } # <text in the reason>
+uv_failed_test='com.vglstudio.camera.pose.line.guide.AppLaunchTest > launches[test(AVD) - 14] FAILED'
+uv_pb01='W VGL.Loading: Task HELLO failed'
+
+uv_reset
+uv_put ui-test.log 'BUILD SUCCESSFUL in 1m'
+uv_summary 3 0
+expect "ui-test-verdict: a green run is green" "0 green" "$(uv success)"
+rm "$uv_dir/ui-summary.log"
+uv_without_summary="$(uv success)"
+uv_summary 0 0
+expect "ui-test-verdict: a green step without a summary, or with 0 tests, is infra" "0 infra 0 infra" \
+  "$uv_without_summary $(uv success)"
+
+uv_reset
+uv_put ui-test-first.log '> Task :app:connectedStagingDebugAndroidTest FAILED' "$uv_failed_test"
+uv_put logcat-first.txt 'I VGL.Home: shown'
+uv_put ui-test.log 'BUILD SUCCESSFUL in 1m'
+uv_summary 3 0
+uv_flaky="$(uv success)"
+uv_put logcat-first.txt "$uv_pb01"
+expect "ui-test-verdict: red then green is flaky; a first run red for R2 (PB-01) is green" "0 flaky 0 green" \
+  "$uv_flaky $(uv success)"
+
+# Infrastructure: no Gradle log, a broken device with 0 tests, or a whitelisted row of the playbook.
+uv_reset
+uv_infra_a="$(uv failure)"
+uv_reset scripts/ui-test-on-emulator.sh
+expect "ui-test-verdict: no log is infra, unless the commit changed the job's own script" "0 infra 0 red" \
+  "$uv_infra_a $(uv failure)"
+uv_reset
+uv_summary 0 0
+uv_put ui-test.log 'com.android.builder.testing.api.DeviceException: No connected devices!'
+expect "ui-test-verdict: 0 tests on a broken device is infra" "0 infra" "$(uv failure)"
+uv_reset
+uv_summary 0 0
+cp "$pb_dir/PB-15.log" "$uv_dir/ui-test.log"
+expect "ui-test-verdict: the emulator package failed (PB-15) is infra" "0 infra yes" "$(uv failure) $(uv_said PB-15)"
+uv_reset
+uv_summary 3 1
+uv_put ui-test.log "$uv_failed_test" 'androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 60000 ms'
+uv_put logcat.txt "10-26 16:35:20.437  6250  6250 $uv_pb01"
+expect "ui-test-verdict: an R2 download timeout (PB-01) is infra" "0 infra yes" "$(uv failure) $(uv_said PB-01)"
+uv_reset
+uv_summary 0 0
+cp "$pb_dir/PB-11.log" "$uv_dir/ui-test.log"
+expect "ui-test-verdict: Maven 403 (PB-11) is infra" "0 infra yes" "$(uv failure) $(uv_said PB-11)"
+uv_reset
+uv_summary 3 1
+uv_put ui-test.log "$uv_failed_test"
+cp "$pb_dir/PB-13.log" "$uv_dir/logcat.txt"
+expect "ui-test-verdict: an R2 file missing (PB-13) is infra" "0 infra yes" "$(uv failure) $(uv_said PB-13)"
+
+# Real failures: a failed test, PB-10 without R2 lines; the same with a PB-01 line is infra (PB-01 comes first).
+uv_reset
+uv_summary 3 1
+uv_put ui-test.log "$uv_failed_test"
+uv_put logcat.txt 'I VGL.Home: shown'
+uv_red_test="$(uv failure)"
+cp "$pb_dir/PB-10.log" "$uv_dir/ui-test.log"
+uv_red_pb10="$(uv failure)"
+uv_put logcat.txt "$uv_pb01"
+expect "ui-test-verdict: a real test failure is red" "0 red 0 red 0 infra" "$uv_red_test $uv_red_pb10 $(uv failure)"
+
+# An app that crashes at start is red with 0 tests, even next to the lines of PB-15 that alone would be infra.
+uv_crash() { # <file> <line>...: 0 tests, the PB-15 log as ui-test.log, plus those lines in that file
+  uv_reset
+  uv_summary 0 0
+  cp "$pb_dir/PB-15.log" "$uv_dir/ui-test.log"
+  printf '%s\n' "${@:2}" >> "$uv_dir/$1"
+  uv failure
+}
+uv_crash_app=('E AndroidRuntime: FATAL EXCEPTION: main' 'E AndroidRuntime: Process: com.vglstudio.camera.pose.line.guide.staging, PID: 123')
+uv_crash_gms=('E AndroidRuntime: FATAL EXCEPTION: main' 'E AndroidRuntime: Process: com.google.android.gms, PID: 99')
+expect "ui-test-verdict: an app that crashes at start is red" "0 red 0 red 0 red" \
+  "$(uv_crash ui-test.log 'Tests on test(AVD) - 14 failed: Process crashed.') $(uv_crash ui-test.log "Tests on test(AVD) - 14 failed: Instrumentation run failed due to 'java.lang.IllegalStateException'") $(uv_crash logcat.txt "${uv_crash_app[@]}")"
+expect "ui-test-verdict: 0 tests next to PB-15 without a crash is infra" "0 infra" "$(uv_crash logcat.txt 'I VGL.Home: shown')"
+uv_reset
+uv_summary 0 0
+uv_put ui-test.log 'BUILD FAILED in 1m'
+expect "ui-test-verdict: 0 tests without any sign is red" "0 red" "$(uv failure)"
+uv_reset
+uv_summary 3 1
+uv_put ui-test.log "$uv_failed_test"
+uv_put logcat.txt "${uv_crash_gms[@]}" "$uv_pb01"
+expect "ui-test-verdict: a crash of a system process (gms) is not the app" "0 infra" "$(uv failure)"
+# The applicationId is a regular expression with its dots escaped; without one, only Gradle's crash lines count.
+uv_put logcat.txt 'E AndroidRuntime: FATAL EXCEPTION: main' 'E AndroidRuntime: Process: comXvglstudio.template.staging, PID: 1' "$uv_pb01"
+expect "ui-test-verdict: the dots of the applicationId are not any character" "0 infra" "$(uv failure)"
+uv_put logcat.txt "${uv_crash_app[@]}" "$uv_pb01"
+uv_app_crash="$(uv failure)"
+echo 'android { }' > "$uv_dir/app/build.gradle.kts"
+expect "ui-test-verdict: without an applicationId only Gradle's crash lines count, with a warning" "0 red 0 infra yes" \
+  "$uv_app_crash $(uv failure) $(uv_said 'CẢNH BÁO')"
+
+# Only the emulator infrastructure rows are infra: PB-09 (a timeout in the app's own log) is red.
+uv_reset
+uv_summary 3 1
+uv_put ui-test.log "$uv_failed_test"
+uv_put logcat.txt 'E AndroidRuntime: java.net.SocketTimeoutException: Read timed out'
+expect "ui-test-verdict: only the emulator infrastructure rows are infra" "0 red" "$(uv failure)"
+uv_infra_pb="$(sed -n -E 's/^INFRA_PB=\((.*)\)$/\1/p' "$uv_script" 2> /dev/null || true)"
+uv_rows=0
+for pb_code in $uv_infra_pb; do
+  grep -qE "^\| $pb_code \|" docs/ops/failure-playbook.md && uv_rows=$((uv_rows + 1))
+done
+expect "ui-test-verdict: INFRA_PB is PB-01 PB-11 PB-13 PB-15, each a row of the playbook" "PB-01 PB-11 PB-13 PB-15 4" \
+  "$uv_infra_pb $uv_rows"
+
+# A real failure of the first run stays red when the second run fails on infrastructure.
+uv_reset
+uv_put ui-test-first.log "$uv_failed_test"
+uv_put logcat-first.txt 'I VGL.Home: shown'
+cp "$pb_dir/PB-01.log" "$uv_dir/ui-test.log"
+uv_put logcat.txt "$uv_pb01"
+uv_summary 3 1
+uv_first_real="$(uv failure)"
+cp "$pb_dir/PB-01.log" "$uv_dir/ui-test-first.log"
+uv_put logcat-first.txt "$uv_pb01"
+expect "ui-test-verdict: a real first failure stays red when the rerun fails on infrastructure" "0 red 0 infra" \
+  "$uv_first_real $(uv failure)"
+# Gradle (AGP CustomTestRunListener) prints a failed device test as "<class> > <test>[<device>] \e[31mFAILED \e[0m":
+# the colour codes and the trailing space must not hide the failure (review of T-075, round 1).
+uv_agp_failed=$'com.vglstudio.camera.pose.line.guide.AppLaunchTest > launches[test(AVD) - 14] \033[31mFAILED \033[0m'
+uv_reset
+uv_put ui-test-first.log '> Task :app:connectedStagingDebugAndroidTest FAILED' "$uv_agp_failed"
+uv_put logcat-first.txt 'I VGL.Home: shown'
+uv_put ui-test.log 'BUILD SUCCESSFUL in 1m'
+uv_summary 3 0
+uv_agp_flaky="$(uv success)"
+cp "$pb_dir/PB-01.log" "$uv_dir/ui-test.log"
+uv_put logcat.txt "$uv_pb01"
+uv_summary 3 1
+uv_agp_red="$(uv failure)"
+uv_put ui-test-first.log '> Task :app:connectedStagingDebugAndroidTest FAILED' \
+  'Tests on test(AVD) - 14 failed: There was 1 failure(s).'
+expect "ui-test-verdict: a failed test in Gradle's coloured format is a real first failure (flaky, red, summary line)" \
+  "0 flaky 0 red 0 red" "$uv_agp_flaky $uv_agp_red $(uv failure)"
+# The flaky step of main-guard.yml reads the test names from the same coloured lines.
+uv_flaky_names() { # <workflow>: the test names the tests= line of the flaky step of ui-test finds in ui-test-first.log
+  local line
+  line="$(step_run "$(ui_steps "$1" | step_by_name 'Ghi test chập chờn')" | grep -E '^tests=' || true)"
+  [[ -n "$line" ]] || { echo none; return 0; }
+  (cd "$uv_dir" && eval "$line" && printf '%s' "$tests")
+}
+expect "main-guard: the flaky step of ui-test reads the name of a test in Gradle's coloured format" \
+  'com.vglstudio.camera.pose.line.guide.AppLaunchTest > launches[test(AVD) - 14]' \
+  "$(uv_put ui-test-first.log '> Task :app:connectedStagingDebugAndroidTest FAILED' "$uv_agp_failed"; uv_flaky_names "$guard_wf")"
+# scripts/ui-test-needed.sh runs in guard, not in ui-test: a commit changing only it is not the ui-test job broken.
+uv_reset scripts/ui-test-needed.sh
+expect "ui-test-verdict: no log after a commit changing only ui-test-needed.sh is infra" "0 infra" "$(uv failure)"
+
+uv_reset
+expect "ui-test-verdict: an unknown outcome is infra" "0 infra 0 infra 0 infra" "$(uv cancelled) $(uv skipped) $(uv '')"
+
+# The check step prints ui-verdict.txt: gh run view --log-failed of that step then looks up the right playbook row,
+# never PB-02 (GitHub did not start the job), whose pattern is "HẠ TẦNG:".
+uv_step_log() { # [<sed expression for the first line>]: the log of the check step as gh run view --log-failed prints it
+  local p=$'ui-test\tKết quả test trên emulator\t2026-10-30T00:00:00.0000000Z '
+  [[ -f "$uv_dir/ui-verdict.txt" ]] || { echo "${p}##[error]Không có ui-verdict.txt." > "$work/uv-step.log"; return 0; }
+  {
+    echo "${p}##[error]$(head -n 1 "$uv_dir/ui-verdict.txt" | sed -e "${1:-s/^//}")"
+    tail -n +2 "$uv_dir/ui-verdict.txt" | awk -v p="$p" '{ print p $0 }'
+  } > "$work/uv-step.log"
+}
+uv_reset
+uv_summary 0 0
+cp "$pb_dir/PB-11.log" "$uv_dir/ui-test.log"
+uv failure > /dev/null
+uv_step_log
+uv_lookup_11="$(pb_head "$work/uv-step.log")"
+uv_step_log 's/^EMULATOR HẠ TẦNG ([^)]*)/HẠ TẦNG/'
+uv_lookup_old="$(pb_head "$work/uv-step.log")"
+uv_reset
+uv_summary 0 0
+cp "$pb_dir/PB-15.log" "$uv_dir/ui-test.log"
+uv failure > /dev/null
+uv_step_log
+expect "ui-test-verdict: the check step log looks up the right playbook row" "PB-11 chay-lai PB-15 lich-thu-lai PB-02 cho" \
+  "$uv_lookup_11 $(pb_head "$work/uv-step.log") $uv_lookup_old"
+# Infra without a row (a broken device, no log): a fixed label, which the playbook does not read as PB-02.
+uv_reset
+uv_summary 0 0
+uv_put ui-test.log 'com.android.builder.testing.api.DeviceException: No connected devices!'
+uv failure > /dev/null
+uv_step_log
+uv_label_device="$(grep -c 'EMULATOR HẠ TẦNG (thiết bị): ' "$work/uv-step.log" || true) $(pb_head "$work/uv-step.log")"
+uv_reset
+uv failure > /dev/null
+uv_step_log
+expect "ui-test-verdict: infra without a playbook row has a fixed label and is not PB-02" "1 khong-co 1 khong-co" \
+  "$uv_label_device $(grep -c 'EMULATOR HẠ TẦNG (không có log): ' "$work/uv-step.log" || true) $(pb_head "$work/uv-step.log")"
+
+expect "ui-test scripts are executable in git" "100755 100755 100755" \
+  "$(git ls-files -s scripts/ui-test-needed.sh scripts/ui-test-on-emulator.sh scripts/ui-test-verdict.sh | awk '{ print $1 }' | tr '\n' ' ' | sed 's/ $//')"
+export GIT_CONFIG_COUNT="${uin_git_config[0]}" GIT_CONFIG_KEY_0="${uin_git_config[1]}" GIT_CONFIG_VALUE_0="${uin_git_config[2]}"
 
 # is-exact-revert.sh (ADR-0025, point 3), on a throwaway repo: A, B (the culprit), C (main).
 root="$PWD"
@@ -680,6 +1463,10 @@ expect "merge-if-green lets the exact revert through while a run is running" 3 \
   "$(merge_while_broken "$one_issue" "$work/bin/revert-yes" running)"
 expect "merge-if-green still refuses a revert branch that is not checked while a run is running" 1 \
   "$(merge_while_broken '[]' "$work/bin/revert-yes" running)"
+# The main-broken issue of the emulator job has one more marker line; its culprit still gets the exact revert (ADR-0043).
+ui_issue='[{"number": 7, "body": "<!-- culprit:'"$culprit"' -->\n<!-- check:ui-test -->\nTest trên emulator không qua."}]'
+expect "merge-if-green: an exact revert passes a main-broken issue of ui-test" "3 1" \
+  "$(merge_while_broken "$ui_issue" "$work/bin/revert-yes") $(merge_while_broken "$ui_issue" "$work/bin/revert-no")"
 
 # wait-run.sh waits for one workflow run in a single command and says how it ended.
 wait_run() { # <fixture JSON> <args...>; prints "<exit code> <first word of the line>"
@@ -994,18 +1781,182 @@ PY
 expect "run-watchdog: GitHub that cannot be read exits 1" 1 \
   "$(PATH="$work/bin:$PATH" FIXTURE="$work/wd.json" GITHUB_REPOSITORY=o/r WATCHDOG_NOW=2026-10-27T12:00:00Z python3 -I scripts/run-watchdog.py > /dev/null 2>&1; echo $?)"
 
+# schedule-idle.py turns resume-run.yml and run-watchdog.yml off when no session runs and no approved run list waits,
+# and status-page.yml, start-run.yml and the session turn them back on (T-051, L-126). Fixed time 2026-10-29 12:00 UTC.
+cat > "$work/si-fixture.py" << 'PY'
+# Builds the fixture of one schedule-idle run from key=value arguments; a JSON argument is merged into it.
+import datetime as d, json, sys
+now = d.datetime(2026, 10, 29, 12, 0, tzinfo=d.timezone.utc)
+ago = lambda hours: (now - d.timedelta(hours=float(hours))).strftime("%Y-%m-%dT%H:%M:%SZ")
+run = lambda status, rid: f"---\nid: {rid}\nstatus: {status}\n---\n"
+o = {"report": "none", "pending": "none", "pending_hours": "10", "pending_report": "none", "updated": "100",
+     "start": "100", "state": "active", "nodocs": "", "old": ""}
+extra = {}
+for arg in sys.argv[2:]:
+    if arg.startswith("{"):
+        extra = json.loads(arg)
+    else:
+        key, value = arg.split("=", 1)
+        o[key] = value
+branches = [{"name": "main"}, {"name": "claude/T-099-other"}]
+routes = {}
+if o["report"] != "none":
+    branches.append({"name": "claude/RUN-20261029-01-report"})
+    if o["report"] != "nofile":
+        statuses = o["report"].split(",")
+        texts = [run(s, "RUN-20261029-01") for s in statuses]
+        routes["contents/docs/runs/RUN-20261029-01.md?ref=claude/RUN-20261029-01-report"] = \
+            texts[0] if len(texts) == 1 else {"__sequence__": texts}
+listing = [{"name": "README.md", "type": "file"}, {"name": "RUN-20261029-01.md", "type": "file"}]
+if o["pending"] != "none":
+    listing.append({"name": "RUN-20261028-01.md", "type": "file"})
+    routes["contents/docs/runs/RUN-20261028-01.md?ref=main"] = run(o["pending"], "RUN-20261028-01")
+    routes["commits?path=docs/runs/RUN-20261028-01.md&sha=main&per_page=1"] = \
+        [{"commit": {"committer": {"date": ago(o["pending_hours"])}}}]
+    if o["pending_report"] != "none":
+        branches.append({"name": "claude/RUN-20261028-01-report"})
+        routes["contents/docs/runs/RUN-20261028-01.md?ref=claude/RUN-20261028-01-report"] = \
+            run(o["pending_report"], "RUN-20261028-01")
+errors = {}
+if o["old"]:
+    listing.append({"name": "RUN-20261001-01.md", "type": "file"})
+    errors["contents/docs/runs/RUN-20261001-01.md?ref=main"] = "HTTP 500: Server Error"
+if not o["nodocs"]:
+    routes["contents/docs/runs?ref=main"] = listing
+routes["branches?per_page=100&page=1"] = branches
+for name in ("resume-run.yml", "run-watchdog.yml"):
+    routes[f"actions/workflows/{name}"] = {"state": o["state"], "updated_at": ago(o["updated"])}
+routes["actions/workflows/start-run.yml/runs?per_page=1"] = \
+    {"workflow_runs": [] if o["start"] == "none" else [{"created_at": ago(o["start"])}]}
+fx = {"routes": routes, "errors": errors}
+for key, value in extra.items():
+    if isinstance(value, dict):
+        fx.setdefault(key, {}).update(value)
+    else:
+        fx[key] = value
+json.dump(fx, open(sys.argv[1], "w"))
+PY
+schedule_idle() { # <mode args...> -- [key=value ...] [extra JSON]; prints the exit code, output in $work/si.out
+  local mode=() code=0
+  while [ "$1" != "--" ]; do mode+=("$1"); shift; done
+  shift
+  rm -f "$work/si.json.writes" "$work/si.json.seen"
+  python3 -I "$work/si-fixture.py" "$work/si.json" "$@"
+  PATH="$work/bin:$PATH" FIXTURE="$work/si.json" GITHUB_REPOSITORY=o/r SCHEDULE_IDLE_NOW=2026-10-29T12:00:00Z \
+    python3 -I scripts/schedule-idle.py "${mode[@]}" > "$work/si.out" 2>&1 || code=$?
+  echo "$code"
+}
+si_writes() { if [ -f "$work/si.json.writes" ]; then paste -sd ';' - < "$work/si.json.writes"; else echo none; fi; }
+si_off="PUT actions/workflows/resume-run.yml/disable"
+si_on="PUT actions/workflows/resume-run.yml/enable"
+si_both="PUT actions/workflows/resume-run.yml/enable;PUT actions/workflows/run-watchdog.yml/enable"
+expect "schedule-idle: a running session keeps the schedule" "0 none" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- report=running) $(si_writes)"
+expect "schedule-idle: no session, no pending list, enabled long ago, no recent start-run: disables" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml --) $(si_writes)"
+expect "schedule-idle: ... and says it turned the schedule off" 1 "$(grep -c 'đã tắt' "$work/si.out")"
+expect "schedule-idle: an approved run list without a report branch keeps the schedule" "0 none" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- pending=approved pending_hours=10) $(si_writes)"
+expect "schedule-idle: ... but not once it was merged more than 72 hours ago" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- pending=approved pending_hours=80) $(si_writes)"
+expect "schedule-idle: ... nor once its report branch is finished" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- pending=approved pending_report=finished) $(si_writes)"
+expect "schedule-idle: a draft run list does not keep the schedule" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- pending=draft) $(si_writes)"
+expect "schedule-idle: enabled within the grace hours keeps" "0 none" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- updated=1) $(si_writes)"
+expect "schedule-idle: ... but not after 4 hours" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- updated=4) $(si_writes)"
+expect "schedule-idle: start-run ran within the grace hours keeps" "0 none" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- start=1) $(si_writes)"
+expect "schedule-idle: ... but not after 4 hours" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- start=4) $(si_writes)"
+expect "schedule-idle: no start-run run at all still disables, exit 0" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- start=none) $(si_writes)"
+expect "schedule-idle: a session that appears after the disable turns the schedule back on" "0 $si_off;$si_on" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- report=finished,running) $(si_writes)"
+expect "schedule-idle: ... and says why" 1 "$(grep -c 'bật lại' "$work/si.out")"
+expect "schedule-idle: a failed second read turns the schedule back on" "0 $si_off;$si_on" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- \
+    '{"routes": {"branches?per_page=100&page=1": {"__sequence__": [[{"name": "main"}], "x"]}}}') $(si_writes)"
+expect "schedule-idle: no docs/runs folder means no pending list" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- nodocs=1) $(si_writes)"
+expect "schedule-idle: an approved run list dated more than 14 days ago is not read" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- old=1) $(si_writes)"
+expect "schedule-idle: a finished run does not keep the schedule" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- report=finished) $(si_writes)"
+expect "schedule-idle: a report branch without its run file does not keep the schedule" "0 $si_off" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- report=nofile) $(si_writes)"
+expect "schedule-idle: an unreadable run file keeps the schedule, exit 0" "0 none" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- report=running \
+    '{"errors": {"contents/docs/runs/RUN-20261029-01.md?ref=claude/RUN-20261029-01-report": "HTTP 500: Server Error"}}') $(si_writes)"
+expect "schedule-idle: GitHub unreadable keeps, exit 0" "0 none 1" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- '{"errors": {"branches?per_page=100&page=1": "HTTP 502: Bad Gateway"}}') $(si_writes) $(grep -c 'Không đọc được GitHub' "$work/si.out")"
+expect "schedule-idle: an unreadable workflow keeps, exit 0" "0 none" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- '{"errors": {"actions/workflows/resume-run.yml": "HTTP 500: Server Error"}}') $(si_writes)"
+expect "schedule-idle: a failed disable warns and exits 0" "0 1" \
+  "$(schedule_idle --disable-if-idle resume-run.yml -- '{"fail_writes": ["PUT actions/workflows/resume-run.yml/disable"]}') $(grep -c 'CHÚ Ý' "$work/si.out")"
+expect "schedule-idle: disables only the workflow it is given" "0 PUT actions/workflows/run-watchdog.yml/disable" \
+  "$(schedule_idle --disable-if-idle run-watchdog.yml --) $(si_writes)"
+expect "schedule-idle: an unknown workflow is refused" "2 none" \
+  "$(schedule_idle --disable-if-idle staging.yml --) $(si_writes)"
+expect "schedule-idle --enable: enables both schedules" "0 $si_both" \
+  "$(schedule_idle --enable --) $(si_writes)"
+expect "schedule-idle --enable: a failed enable exits 1 and names the workflow" "1 1" \
+  "$(schedule_idle --enable -- '{"fail_writes": ["PUT actions/workflows/run-watchdog.yml/enable"]}') $(grep -c 'Chưa bật được lịch: run-watchdog.yml\.' "$work/si.out")"
+expect "schedule-idle --enable: a schedule still disabled after enable exits 1" 1 \
+  "$(schedule_idle --enable -- state=disabled_manually)"
+expect "schedule-idle --enable-if-pending: enables when an approved list waits" "0 $si_both" \
+  "$(schedule_idle --enable-if-pending -- pending=approved) $(si_writes)"
+expect "schedule-idle --enable-if-pending: enables while a session runs" "0 $si_both" \
+  "$(schedule_idle --enable-if-pending -- report=running) $(si_writes)"
+expect "schedule-idle --enable-if-pending: nothing otherwise" "0 none" \
+  "$(schedule_idle --enable-if-pending --) $(si_writes)"
+expect "schedule-idle --enable-if-pending: a failed enable warns and exits 0" "0 1" \
+  "$(schedule_idle --enable-if-pending -- pending=approved '{"fail_writes": ["PUT actions/workflows/resume-run.yml/enable"]}') $(grep -c '::warning::.*resume-run.yml' "$work/si.out")"
+expect "schedule-idle --enable-if-pending: GitHub unreadable enables to be safe" "0 $si_both" \
+  "$(schedule_idle --enable-if-pending -- '{"errors": {"branches?per_page=100&page=1": "HTTP 502: Bad Gateway"}}') $(si_writes)"
+
+# The workflows that call it: each schedule turns itself off in a job of its own, after its main job, and only that
+# job may write Actions; start-run.yml and status-page.yml turn both on.
+wf_job() { # <workflow> <job>; prints the lines of that job
+  awk -v job="  $2:" '$0 == job { f = 1; print; next } f && /^  [^ #]/ { f = 0 } f' "$1"
+}
+wf_level() { awk '/^permissions:$/ { f = 1; next } f && /^[^ ]/ { f = 0 } f' "$1"; }
+si_idle_job() { # <workflow file name> <main job>; "yes" when the idle job is complete
+  local wf=".github/workflows/$1" job
+  job="$(wf_job "$wf" idle)"
+  if grep -qE "^    needs: $2$" <<<"$job" && grep -qE "^    if: always\(\) && github.ref == 'refs/heads/main'$" <<<"$job" &&
+    grep -qE '^      actions: write$' <<<"$job" && grep -qF 'GH_TOKEN: ${{ github.token }}' <<<"$job" &&
+    grep -qF 'persist-credentials: false' <<<"$job" &&
+    grep -qF "python3 -I scripts/schedule-idle.py --disable-if-idle $1" <<<"$job" &&
+    ! grep -q 'actions: write' <<<"$(wf_level "$wf")"; then echo yes; else echo no; fi
+}
+expect "workflows: resume-run and run-watchdog disable themselves when idle" "yes yes" \
+  "$(si_idle_job resume-run.yml resume) $(si_idle_job run-watchdog.yml watch)"
+expect "workflows: the jobs with secrets or issue writes keep their permissions" "0 0" \
+  "$(wf_job .github/workflows/resume-run.yml resume | grep -c 'actions: write') $(wf_job .github/workflows/run-watchdog.yml watch | grep -c 'actions: write')"
+expect "start-run: enables both schedules before firing the routine" "yes" \
+  "$(wf_job .github/workflows/start-run.yml fire | awk '/^      actions: write$/ { p = NR } /GH_TOKEN: \$\{\{ github.token \}\}/ { t = NR }
+     /actions\/workflows\/resume-run.yml\/enable/ { r = NR } /actions\/workflows\/run-watchdog.yml\/enable/ { w = NR }
+     /curl / && !c { c = NR } END { print ((p && t && r && w && c && r < c && w < c) ? "yes" : "no") }')"
+expect "start-run: only the fire job writes Actions" "1" "$(grep -c 'actions: write' .github/workflows/start-run.yml)"
+expect "status-page: a separate job enables the schedules for a pending run list" "yes 0 0" \
+  "$(wf_job .github/workflows/status-page.yml schedules | grep -q '^      actions: write$' && wf_job .github/workflows/status-page.yml schedules | grep -qF 'python3 -I scripts/schedule-idle.py --enable-if-pending' && echo yes || echo no) $(wf_job .github/workflows/status-page.yml page | grep -c 'actions: write') $(wf_level .github/workflows/status-page.yml | grep -c 'actions: write')"
+
 # DesignCompare: an identical image differs by 0%, a design without a screenshot is reported missing.
 java_cmd="java"
 [ -z "${JAVA_HOME:-}" ] || java_cmd="${JAVA_HOME}/bin/java"
 mkdir -p "$work/design" "$work/shots"
 cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/design/Same.png"
 cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/shots/Same.png"
-cp feature/sample/src/test/screenshots/SampleScreen_ready_dark.png "$work/design/Dark.png"
-cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/shots/Dark.png"
+# Two screens that differ in content, so they differ under any app theme, including one without dark mode (L-144).
+cp feature/sample/src/test/screenshots/SampleScreen_disabled_light.png "$work/design/Other.png"
+cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/shots/Other.png"
 cp feature/sample/src/test/screenshots/SampleScreen_ready_light.png "$work/design/Missing.png"
 "$java_cmd" -Djava.awt.headless=true scripts/design-compare/DesignCompare.java "$work/design" "$work/shots" "$work/review" > /dev/null
 expect "design-compare: identical images differ by 0%" "| Same | 0.0% | \`Same_compare.png\` |" "$(grep '^| Same ' "$work/review/summary.md")"
-expect "design-compare: light against dark differs" yes "$(grep -qE '^\| Dark \| ([1-9][0-9]?|100)\.[0-9]%' "$work/review/summary.md" && echo yes || echo no)"
+expect "design-compare: two different screens differ" yes "$(grep -qE '^\| Other \| ([1-9][0-9]?|100)\.[0-9]%' "$work/review/summary.md" && echo yes || echo no)"
 expect "design-compare: missing screenshot is listed" 1 "$(grep -c '^| Missing | thiếu ảnh chuẩn' "$work/review/summary.md")"
 expect "design-compare: writes side-by-side images" yes "$([ -s "$work/review/Same_compare.png" ] && echo yes || echo no)"
 
@@ -1121,6 +2072,12 @@ elif GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com GIT_COMMITTER_NAME=t
     "$([ -e "$new_app/.github/ISSUE_TEMPLATE/from-app.yml" ] && echo present || echo absent)"
   expect "new-app.sh starts an empty lessons log" 0 "$(grep -c '^### L-' "$new_app/docs/lessons.md" || true)"
   expect "new-app.sh leaves out the template's run reports" 0 "$(ls "$new_app/docs/runs" | grep -c '^RUN-' || true)"
+  expect "new-app.sh leaves out the template's tickets, plans, feedback and requests" "" \
+    "$(find "$new_app/docs/features" -mindepth 2 -maxdepth 2 -type d \( -name tickets -o -name plans -o -name feedback -o -name requests \))"
+  expect "new-app.sh leaves out the template's process feature" absent \
+    "$([ -e "$new_app/docs/features/quy-trinh" ] && echo present || echo absent)"
+  expect "new-app.sh keeps the specs and designs of the template's modules" "yes yes" \
+    "$([ -f "$new_app/docs/features/loading/spec.md" ] && echo yes || echo no) $([ -d "$new_app/docs/features/loading/design" ] && echo yes || echo no)"
   expect "new-app.sh regenerates the progress page without the template's lessons" 0 \
     "$(grep -c 'L-0[0-9][0-9]' "$new_app/docs/STATUS.md" || true)"
   expect "new-app.sh leaves pages that match the documents" 0 \
@@ -1146,6 +2103,42 @@ if [[ -f scripts/new-app.sh ]]; then
   expect "new-app.sh leaves out template-sync.sh" absent \
     "$([ -e "$new_app/scripts/template-sync.sh" ] && echo present || echo absent)"
 fi
+
+# Workflow commands (.claude/skills/) only point at documents and scripts, so they must name real ones. In the
+# template /whatnow lists every command; an app adds its own commands without changing /whatnow, which shows them
+# from the folder. Files that exist only in the template, or only in an app, are left out.
+skill_problems=""
+for skill in .claude/skills/*/SKILL.md; do
+  dir="$(basename "$(dirname "$skill")")"
+  [[ "$(sed -n '2s/^name: //p' "$skill")" == "$dir" ]] || skill_problems+=" $dir:name"
+  grep -q '^description: .' "$skill" || skill_problems+=" $dir:description"
+  if [[ -f docs/ops/new-app.md ]]; then
+    grep -q "^| \`/$dir[ \`]" .claude/skills/whatnow/SKILL.md || skill_problems+=" $dir:whatnow"
+  fi
+  for path in $(grep -oE '(scripts/[A-Za-z0-9_./-]+\.(sh|py)|docs/[A-Za-z0-9_./-]+\.md)' "$skill" | sort -u); do
+    case "$path" in
+      scripts/new-app.sh | scripts/template-sync.sh | docs/ops/new-app.md | *YYYY* | *NNN*) continue ;;
+    esac
+    # Generated pages such as docs/STATUS.md are ignored by git, so a fresh checkout (CI) does not have them.
+    [[ -e "$path" ]] || git check-ignore -q "$path" || skill_problems+=" $dir:$path"
+  done
+done
+expect "every skill names its folder, real files and, in the template, has a row in /whatnow" "" "$skill_problems"
+
+# The command that lists the reference images a recording changed (CLAUDE.md, section Lệnh; the plan template,
+# section 4) must list a changed image and a new one. A wildcard pathspec that ends in "/" matches no file (L-136).
+sp_repo="$work/screenshot-pathspec"
+git init -q -b main "$sp_repo"
+mkdir -p "$sp_repo/feature/demo/src/test/screenshots"
+echo old > "$sp_repo/feature/demo/src/test/screenshots/Changed.png"
+git -C "$sp_repo" add -A && git -C "$sp_repo" commit -q -m root
+echo new > "$sp_repo/feature/demo/src/test/screenshots/Changed.png"
+echo new > "$sp_repo/feature/demo/src/test/screenshots/Added.png"
+for doc in CLAUDE.md docs/templates/plan.md; do
+  pathspec="$(sed -n "s/.*git status --short -- '\([^']*\)'.*/\1/p" "$doc" | sed -n 1p)"
+  expect "$doc: the command for changed reference images lists a changed one and a new one" 2 \
+    "$(git -C "$sp_repo" status --short -- "$pathspec" | grep -c -e 'screenshots/Changed\.png$' -e 'screenshots/Added\.png$' || true)"
+done
 
 # template-sync.sh brings later template commits into an app made by new-app.sh (ADR-0030). It runs on a scratch
 # copy of the template, so the test can add template commits; like new-app.sh it exists only in the template.
@@ -1196,8 +2189,10 @@ else
       "$code $(grep -cx '// template v2' "$app_ads") $(grep -c '^hold=' "$app/docs/template-sync.txt")"
 
     sed -i.bak '2s/.*/# app change/' "$app/scripts/wait-run.sh" && rm "$app/scripts/wait-run.sh.bak"
+    sed -i.bak '2s/.*/name: app change/' "$app/.claude/skills/whatnow/SKILL.md" && rm "$app/.claude/skills/whatnow/SKILL.md.bak"
     git -C "$app" commit --quiet -am "app change"
     sed -i.bak '2s/.*/# template v3/' "$tpl/scripts/wait-run.sh" && rm "$tpl/scripts/wait-run.sh.bak"
+    sed -i.bak '2s/.*/name: template v3/' "$tpl/.claude/skills/whatnow/SKILL.md" && rm "$tpl/.claude/skills/whatnow/SKILL.md.bak"
     # new-app.sh put the app's name on the first line of README.md, so a template change there conflicts too.
     sed -i.bak '1s/.*/# TEMPLATE V3/' "$tpl/README.md" && rm "$tpl/README.md.bak"
     git -C "$tpl" commit --quiet -am "template v3"
@@ -1205,6 +2200,9 @@ else
     expect "template-sync.sh stops on a conflict and sorts the files" "1 1 1" \
       "$code $(sed -n '/Phần của dự án mẫu/,/Phần app cũng sửa/p' <<< "$out" | grep -cx '   scripts/wait-run.sh') $(
         sed -n '/Phần app cũng sửa/,$p' <<< "$out" | grep -cx '   README.md')"
+    # Workflow commands are the template's (docs/ops/to-app.md, section 2).
+    expect "template-sync.sh sorts a Claude Code skill with the template's files" 1 \
+      "$(sed -n '/Phần của dự án mẫu/,/Phần app cũng sửa/p' <<< "$out" | grep -cx '   .claude/skills/whatnow/SKILL.md')"
 
     code=0; out="$("$tpl/scripts/template-sync.sh" --app "$app" --to HEAD 2>&1)" || code=$?
     expect "template-sync.sh refuses an app with uncommitted changes" "1 1" "$code $(grep -c 'chưa commit' <<< "$out")"
@@ -1242,6 +2240,15 @@ env_check() {
     scripts/cloud-env-check.sh > "$work/env-check.out" 2>&1; then echo pass; else echo stop; fi
 }
 expect "cloud-setup.sh has a version" yes "$([[ -n "$setup_version" ]] && echo yes || echo no)"
+# Plugins that only Google's Maven repository hosts (Android, Google services, Crashlytics) must be found before
+# the plugin portal: the portal sends what it does not host to Maven Central, which answers 429 to cloud sessions,
+# and Gradle stops at that error instead of trying Google (L-121).
+init_plugin_repos="$(sed -n '/settings.pluginManagement.repositories {/,/^    }$/p' scripts/cloud-setup.sh)"
+expect "cloud-setup.sh: the init script adds Google to the plugin repositories" 1 \
+  "$(grep -c 'google()' <<< "$init_plugin_repos" || true)"
+expect "cloud-setup.sh: the init script puts Google before the plugin portal" yes \
+  "$(awk '/google\(\)/ && !g {g = NR} /gradlePluginPortal\(\)/ && !p {p = NR}
+    END {print (g && p && g < p) ? "yes" : "no"}' <<< "$init_plugin_repos")"
 expect "cloud-env-check.sh passes on the current version" pass "$(env_check "$setup_version" "$work/gradle-home")"
 expect "cloud-env-check.sh stops on an older version" stop "$(env_check 1 "$work/gradle-home")"
 expect "cloud-env-check.sh stops without the mirror init script" stop \
@@ -1284,6 +2291,21 @@ expect "cloud-env-check.sh stops when compileSdk cannot be read" stop \
   "$(VERSIONS_TOML="$work/no-compile-sdk.toml" env_check "$setup_version" "$work/gradle-home")"
 expect "cloud-env-check.sh names compileSdk when it cannot be read" 1 \
   "$(grep -c '^LỖI: không đọc được compileSdk' "$work/env-check.out" || true)"
+# The Android 37 package is platforms;android-37.0 and lives in platforms/android-37.0, not android-37 (T-079, L-127).
+# A minor version other than .0 is another platform (android-36.1 is API level 36.1) and does not count.
+expect "cloud-setup.sh installs platforms;android-37.0 next to platforms;android-36" "1 1" \
+  "$(grep -cxF '  "platforms;android-37.0" \' scripts/cloud-setup.sh || true) $(grep -cxF '  "platforms;android-36" \' scripts/cloud-setup.sh || true)"
+printf '[versions]\ncompileSdk = "37"\n' > "$work/v37.toml"
+printf '[versions]\ncompileSdk = "36"\n' > "$work/v36.toml"
+mkdir -p "$work/sdk-37-0/platforms/android-37.0" "$work/sdk-37/platforms/android-37" "$work/sdk-36-1/platforms/android-36.1"
+expect "cloud-env-check.sh passes for compileSdk 37 with platforms/android-37.0" "pass 1" \
+  "$(VERSIONS_TOML="$work/v37.toml" ENV_SDK="$work/sdk-37-0" env_check "$setup_version" "$work/gradle-home") $(grep -c 'platforms/android-37\.0' "$work/env-check.out" || true)"
+expect "cloud-env-check.sh passes for compileSdk 37 with platforms/android-37" pass \
+  "$(VERSIONS_TOML="$work/v37.toml" ENV_SDK="$work/sdk-37" env_check "$setup_version" "$work/gradle-home")"
+expect "cloud-env-check.sh names both directories for a missing compileSdk 37" "stop 1" \
+  "$(VERSIONS_TOML="$work/v37.toml" ENV_SDK="$work/sdk-empty" env_check "$setup_version" "$work/gradle-home") $(grep -c 'platforms/android-37 hay platforms/android-37\.0' "$work/env-check.out" || true)"
+expect "cloud-env-check.sh does not take platforms/android-36.1 for compileSdk 36" stop \
+  "$(VERSIONS_TOML="$work/v36.toml" ENV_SDK="$work/sdk-36-1" env_check "$setup_version" "$work/gradle-home")"
 
 # local-setup.sh installs on a developer machine the JDK and the SDK packages of cloud-setup.sh, checking every
 # download against its published checksum (T-069 of camera-pose). curl, the Adoptium API, Google's package list and
@@ -1437,7 +2459,8 @@ expect "local-setup.sh downloads nothing the second time" 0 "$(ls_calls)"
 expect "local-setup.sh says both steps were skipped" 2 "$(grep -c '^Bỏ qua:' "$ls_dir/out" || true)"
 expect "local-setup.sh leaves env.sh as it was" same "$(cmp -s "$ls_dir/env-first.sh" "$ls_env" && echo same || echo changed)"
 expect "local-setup.sh --check after the install passes" 0 "$(ls_run "$ls_dir/home-mac" --check)"
-expect "local-setup.sh --check lists every package" 3 "$(grep -c '^QUA: \(platform-tools\|platforms;\|build-tools;\)' "$ls_dir/out" || true)"
+expect "local-setup.sh --check lists every package" 4 "$(grep -c '^QUA: \(platform-tools\|platforms;\|build-tools;\)' "$ls_dir/out" || true)"
+expect "local-setup.sh --check finds platforms;android-37.0" 1 "$(grep -cxF 'QUA: platforms;android-37.0' "$ls_dir/out" || true)"
 
 ls_pkg="$(scripts/local-setup.sh --print-versions | sed -n 's/^gói SDK: //p' | awk '{print $NF}' || true)"
 mv "$ls_dir/home-mac/android-sdk/${ls_pkg//;//}" "$ls_dir/pkg-aside" 2> /dev/null || true
@@ -1867,10 +2890,21 @@ expect "existing-tests: --all lists the test using a tag the plan does not name"
   "$(grep -c 'DemoScreenTest.card_exists' "$work/existing.out")"
 
 # The latest run list must not get an error from rule 11 (the plans of a run list are approved, so rule 11 only warns).
-latest_run="$(ls docs/runs/RUN-*.md | sort | tail -n 1)"
-python3 -I scripts/run-check.py "$latest_run" > "$work/run-check-latest.out" 2>&1 || true
-expect "run-check: the latest run list has no new error from rule 11" "0 yes" \
-  "$(grep -c 'LỖI.*kiểm tra thủ công\|LỖI.*quy tắc 11' "$work/run-check-latest.out" || true) $([[ -s "$work/run-check-latest.out" ]] && echo yes || echo no)"
+# A new app has no run list until its first run (new-app.sh leaves out the template's), so it skips the test; the new
+# app made above checks that finding none does not stop the tests (L-134).
+latest_run_list() { find docs/runs -maxdepth 1 -name 'RUN-*.md' | sort | tail -n 1; }
+latest_run="$(latest_run_list)"
+if [[ -z "$latest_run" ]]; then
+  echo "skip - run-check: repo chưa có danh sách chạy nào trong docs/runs/"
+else
+  python3 -I scripts/run-check.py "$latest_run" > "$work/run-check-latest.out" 2>&1 || true
+  expect "run-check: the latest run list has no new error from rule 11" "0 yes" \
+    "$(grep -c 'LỖI.*kiểm tra thủ công\|LỖI.*quy tắc 11' "$work/run-check-latest.out" || true) $([[ -s "$work/run-check-latest.out" ]] && echo yes || echo no)"
+fi
+if [[ -f scripts/new-app.sh && -d "$new_app/docs" ]]; then
+  expect "run-check: a new app has no latest run list, and looking for it does not fail" ":0" \
+    "$(cd "$new_app" && latest_run_list 2>&1; echo ":$?")"
+fi
 
 # The shell of the app exposes testTags to uiautomator in the main window and in the network dialog window.
 expect "app: MainActivity and NetworkDialogHost call exposeTestTagsForUiAutomator" "1 1" \
@@ -2635,14 +3669,28 @@ expect "status: a checked item leaves the page" "0 1" \
 expect "status: check passes after the release readiness section" "0 1" \
   "$(status_page --check > /dev/null; echo $?) $(grep -c '^## 6. Sẵn sàng phát hành$' "$page" || true)"
 # The page also builds from this repository's own docs, so a docs-only PR with a lesson number used twice is red in
-# build-and-test, not only in status-page.yml after the merge (L-040).
+# build-and-test, not only in status-page.yml after the merge (L-040). The number used twice is the first one of the
+# log, so the copy sits far from the original, as when two branches add lessons at once (L-056); a new app starts with
+# an empty log, so there the same lesson is added twice, as the new app made above checks (L-134).
+lesson_number_used_twice() { # <copy of a repository>: prints the exit code of status.py and whether it names the number
+  local log="$1/docs/lessons.md" number
+  number="$(sed -n 's/^### \(L-[0-9]*\)[.:].*/\1/p' "$log" | sed -n 1p)"
+  [[ -n "$number" ]] || { number=L-001; printf -- '\n### %s. Một\n\n- **Trạng thái:** proposed\n' "$number" >> "$log"; }
+  printf -- '\n### %s. Trùng số\n\n- **Trạng thái:** proposed\n' "$number" >> "$log"
+  echo "$(STATUS_ROOT="$1" python3 -I scripts/status.py > "$1.out" 2>&1; echo $?) $(grep -c "số bài học dùng hai lần: $number" "$1.out" || true)"
+}
 mkdir -p "$work/status-real"
 cp -R docs "$work/status-real/docs"
 expect "status: the progress page builds from this repository's docs" 0 \
   "$(STATUS_ROOT="$work/status-real" python3 -I scripts/status.py > "$work/status-real.out" 2>&1; echo $?)"
-printf -- '\n### L-040. Trùng số\n\n- **Trạng thái:** proposed\n' >> "$work/status-real/docs/lessons.md"
 expect "status: this repository's docs with a lesson number used twice stop the page" "1 1" \
-  "$(STATUS_ROOT="$work/status-real" python3 -I scripts/status.py > "$work/status-real.out" 2>&1; echo $?) $(grep -c 'số bài học dùng hai lần: L-040' "$work/status-real.out" || true)"
+  "$(lesson_number_used_twice "$work/status-real")"
+if [[ -f scripts/new-app.sh && -d "$new_app/docs" ]]; then
+  mkdir -p "$work/status-new-app"
+  cp -R "$new_app/docs" "$work/status-new-app/docs"
+  expect "status: a new app's docs with a lesson number used twice stop the page" "1 1" \
+    "$(lesson_number_used_twice "$work/status-new-app")"
+fi
 
 
 # status.py --sync moves each ticket's status after its plan's (L-050).
@@ -2714,6 +3762,38 @@ printf 'applovin_sdk_key: FAKE%sKl\n' "$(printf "$applovin_piece%.0s" 1 2 3 4 5 
   > "$work/scan-applovin-fake/strings.md"
 expect "secret-scan: a fake AppLovin key passes" 0 \
   "$(SECRET_SCAN_ROOT="$work/scan-applovin-fake" python3 -I scripts/secret-scan.py > /dev/null; echo $?)"
+# The AppLovin MAX SDK key is the same 86-character key, on lines named after the build parameter (plan T-068).
+mkdir -p "$work/scan-max" "$work/scan-max-fake"
+printf 'ads.maxSdkKey=%s\n' "$applovin_key" > "$work/scan-max/local.properties"
+printf './gradlew bundleProductionRelease -PmaxSdkKey=%s\n' "$applovin_key" > "$work/scan-max/notes.md"
+expect "secret-scan: a MAX SDK key fails" "1 2 0" \
+  "$(SECRET_SCAN_ROOT="$work/scan-max" python3 -I scripts/secret-scan.py > /dev/null; echo $?) $(
+    SECRET_SCAN_ROOT="$work/scan-max" python3 -I scripts/secret-scan.py | grep -c 'khóa SDK AppLovin' || true) $(
+    SECRET_SCAN_ROOT="$work/scan-max" python3 -I scripts/secret-scan.py | grep -c "$applovin_key" || true)"
+max_fake="FAKE$(printf "$applovin_piece%.0s" 1 2 3 4 5 6 7 8)Kl"
+printf 'ads.maxSdkKey=%s\n' "$max_fake" > "$work/scan-max-fake/local.properties"
+printf './gradlew bundleProductionRelease -PmaxSdkKey=%s\n' "$max_fake" > "$work/scan-max-fake/notes.md"
+expect "secret-scan: a fake MAX SDK key passes" 0 \
+  "$(SECRET_SCAN_ROOT="$work/scan-max-fake" python3 -I scripts/secret-scan.py > /dev/null; echo $?)"
+# A MAX ad unit (16 hex characters on the Ad Units page of MAX) after a slot name, on a line about MAX ad units (plan
+# T-071); built from pieces, so this file holds no unit-like string. Only the slot name is printed, never the unit.
+max_unit="$(printf 'a1b2%.0s' 1 2 3 4)"
+mkdir -p "$work/scan-max-units" "$work/scan-max-units-ok"
+printf 'ads.maxAdUnits=banner=%s;banner_mrec=%s\n' "$max_unit" "$max_unit" > "$work/scan-max-units/local.properties"
+printf './gradlew bundleProductionRelease -PmaxAdUnits="banner=%s"\n' "$max_unit" > "$work/scan-max-units/notes.md"
+printf 'maxAdUnits ghi: banner=%s\n' "$max_unit" > "$work/scan-max-units/report.md"
+printf 'val config = MaxConfig("k", "banner=%s")\n' "$max_unit" > "$work/scan-max-units/Sample.kt"
+expect "secret-scan: a MAX ad unit fails and is masked" "1 5 0 0" \
+  "$(SECRET_SCAN_ROOT="$work/scan-max-units" python3 -I scripts/secret-scan.py > /dev/null; echo $?) $(
+    SECRET_SCAN_ROOT="$work/scan-max-units" python3 -I scripts/secret-scan.py | grep -c 'mã đơn vị MAX' || true) $(
+    SECRET_SCAN_ROOT="$work/scan-max-units" python3 -I scripts/secret-scan.py | grep -c "$max_unit" || true) $(
+    SECRET_SCAN_ROOT="$work/scan-max-units" python3 -I scripts/secret-scan.py | grep -c '=a1b2' || true)"
+printf 'ads.maxAdUnits=banner=FAKE%s\n' "$max_unit" > "$work/scan-max-units-ok/local.properties"
+printf '%s\n' '-PmaxAdUnits="banner=<MAX ad unit>;banner_mrec=<MAX ad unit>"' > "$work/scan-max-units-ok/build.md"
+printf '%s\n' 'maxAdUnits = "banner=u1;banner_mrec=b2"' > "$work/scan-max-units-ok/Test.kt"
+printf 'ghi: banner=%s\n' "$max_unit" > "$work/scan-max-units-ok/report.md"
+expect "secret-scan: fake, placeholder and short MAX ad units pass" 0 \
+  "$(SECRET_SCAN_ROOT="$work/scan-max-units-ok" python3 -I scripts/secret-scan.py > /dev/null; echo $?)"
 expect "secret-scan: this repository has no real ad IDs or keys" 0 \
   "$(python3 -I scripts/secret-scan.py > /dev/null; echo $?)"
 
@@ -2753,6 +3833,25 @@ expect "java-check: names Android Studio's JDK" 1 "$(grep -c 'JDK đi kèm Andro
 if [[ "$(sed -n 's/^distributionUrl=.*gradle-\([0-9]*\)\..*/\1/p' gradle/wrapper/gradle-wrapper.properties)" == 8 && "$gradle_minor" -ge 14 ]]; then
   expect "java-check: Java 26 is too new for Gradle 8.14" 1 "$(java_check 26)"
 fi
+# The Java bounds per Gradle version, on a copy of the script with a given wrapper (not the repo's Gradle).
+java_check_gradle() { # <Gradle version> <Java version>; prints the exit code
+  local dir="$work/java-gradle-$1"
+  mkdir -p "$dir/scripts" "$dir/gradle/wrapper" "$dir/build-logic"
+  cp scripts/java-check.sh "$dir/scripts/"
+  printf 'distributionUrl=https\\://services.gradle.org/distributions/gradle-%s-bin.zip\n' "$1" \
+    > "$dir/gradle/wrapper/gradle-wrapper.properties"
+  printf 'val java = JavaVersion.VERSION_17\n' > "$dir/build-logic/KotlinAndroid.kt"
+  java_check "$2" > /dev/null
+  local code=0
+  JAVA_HOME="$work/jdk-$2" "$dir/scripts/java-check.sh" > "$work/java.out" 2>&1 || code=$?
+  echo "$code"
+}
+expect "java-check: Gradle 9.3.1 runs on Java 25" 0 "$(java_check_gradle 9.3.1 25)"
+expect "java-check: Java 26 is too new for Gradle 9.3.1" 1 "$(java_check_gradle 9.3.1 26)"
+expect "java-check: names Gradle 9.3.1 and Java 17 to 25" 1 \
+  "$(grep -c '^LỖI: Java 26 quá mới .*Gradle 9.3.1 chỉ chạy trên Java 17 đến 25.$' "$work/java.out" || true)"
+expect "java-check: Java 25 is too new for Gradle 9.0" 1 "$(java_check_gradle 9.0.0 25)"
+expect "java-check: a Gradle newer than the table has no upper bound" 0 "$(java_check_gradle 9.4.0 26)"
 expect "java-check: a missing Java stops" 1 \
   "$(JAVA_HOME="$work/no-jdk" scripts/java-check.sh > /dev/null 2>&1; echo $?)"
 
@@ -3035,6 +4134,9 @@ expect "device-scenario: marks the start of each file in the log" 1 \
 ds_script consent.txt 'consent decline 5'
 expect "device-scenario: consent decline taps Do not consent when shown" "0 1" \
   "$(ds_run "consent.xml" "$ds_files/consent.txt") $(ds_count '^shell input tap 540 1970$' "$ds_calls")"
+# The consent form's WebView on some devices (Xiaomi HyperOS) labels its buttons only in content-desc (L-122).
+expect "device-scenario: consent decline taps Do not consent labelled only in content-desc" "0 1" \
+  "$(ds_run "consent-desc.xml" "$ds_files/consent.txt") $(ds_count '^shell input tap 540 1970$' "$ds_calls")"
 ds_script late.txt 'consent decline 5' 'wait id=welcome_screen 3'
 expect "device-scenario: consent decline waits for a late consent form" "0 1 1" \
   "$(ds_run "blank.xml blank.xml consent.xml welcome.xml" "$ds_files/late.txt") $(ds_count '^shell input tap 540 1970$' "$ds_calls") $(ds_count 'result=đạt')"
@@ -4203,6 +5305,24 @@ else
     "$(python3 -I scripts/ads-plan.py --dump --with-staging --no-examples | python3 -I -c 'import json,sys; print(len(json.load(sys.stdin)["placements"]))')"
   expect "ads-plan: this repo lists its app-wide placements" True \
     "$(python3 -I scripts/ads-plan.py --dump | python3 -I -c 'import json,sys; c={p["code"] for p in json.load(sys.stdin)["placements"]}; print({"open_app","open_app_inter","resume","resume_inter","native_combo"} <= c)')"
+  # The format sheet has one row per AdFormat code, read with the regex of read_placements (plan T-062).
+  expect "ads-plan: the format table lists every AdFormat code of :core:ads" True \
+    "$(python3 -I - "$ap_real_file" << 'PY'
+import re, runpy, sys
+plan = runpy.run_path("scripts/ads-plan.py")
+text = open(sys.argv[1]).read().split("enum class AdPlacement")[0]
+codes = {code for _, code in re.findall(r'^\s*([A-Z_]+)\("([a-z_]+)"\),', text, re.M)}
+print(bool(codes) and codes == {row[0] for row in plan["FORMATS"]})
+PY
+)"
+  expect "ads-plan: banner_mrec is a placement format with metric code BANNER_MREC" "True BANNER_MREC" \
+    "$(python3 -I - << 'PY'
+import runpy
+plan = runpy.run_path("scripts/ads-plan.py")
+rows = {row[0]: row for row in plan["FORMATS"]}
+print("banner_mrec" in plan["PLACEMENT_FORMATS"], rows["banner_mrec"][6] if "banner_mrec" in rows else None)
+PY
+)"
 fi
 if python3 -I -c 'import openpyxl' 2> /dev/null; then
   ads_plan --out "$work/ap-1.xlsx" > /dev/null

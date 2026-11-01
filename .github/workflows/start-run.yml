@@ -6,7 +6,8 @@
 # Before firing, scripts/setup-check.sh --staging also reads the staging secrets of staging.yml
 # (STAGING_GOOGLE_SERVICES_JSON, STAGING_APP_DISTRIBUTION_CREDENTIALS) and the STAGING_TESTER_GROUPS variable.
 # A green check closes an open setup-broken issue before the routine is fired, so the session does not stop on an
-# old one (L-113). Three jobs: check, close-setup-broken (the only one with issues: write), fire.
+# old one (L-113). Three jobs: check, close-setup-broken (the only one with issues: write), fire (the only one that may
+# write Actions: it enables the schedules of resume-run.yml and run-watchdog.yml for the session, T-051).
 # The fire endpoint is a research preview behind a beta header, so its contract may still change.
 # It has no idempotency key: every successful call starts a new session, so it is never retried.
 # Changing this file is a high-risk plan; cross-review required.
@@ -134,7 +135,21 @@ jobs:
     needs: [check, close-setup-broken]
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      actions: write
     steps:
+      # The schedules turn themselves off while no session runs (scripts/schedule-idle.py). Turned on before the
+      # routine, so the session is watched and continued from its start. A failure only warns: the session enables
+      # them again at its start.
+      - name: Bật lịch của phiên
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/resume-run.yml/enable" > /dev/null ||
+            echo "::warning::Không bật được lịch resume-run.yml. Phiên sẽ thử bật ở đầu phiên."
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/run-watchdog.yml/enable" > /dev/null ||
+            echo "::warning::Không bật được lịch run-watchdog.yml. Phiên sẽ thử bật ở đầu phiên."
+
       - name: Kích hoạt routine
         env:
           FIRE_URL: ${{ secrets.ROUTINE_FIRE_URL }}

@@ -22,7 +22,7 @@ internal fun umpFailureOf(errorCode: Int, activityGone: Boolean): UmpFailure = w
     else -> UmpFailure.CONFIGURATION
 }
 
-/** S-12: both the build switch of :app and is_enable_consent_shortcut. */
+/** S-12: ERROR_ALLOWED needs both the build switch of :app and is_enable_consent_shortcut; CACHED_EARLY needs neither (ADR-0038). */
 internal fun shortcutActive(enabledInBuild: Boolean, remoteEnabled: Boolean): Boolean = enabledInBuild && remoteEnabled
 
 internal data class ConsentGateState(
@@ -46,8 +46,11 @@ internal class ConsentGate {
 
     val state: StateFlow<ConsentGateState> = _state.asStateFlow()
 
-    /** The consent shortcut (S-12), read when a result comes, never when the request is sent (S-06). */
+    /** The ERROR_ALLOWED switch (S-12), read when a result comes (S-06); CACHED_EARLY does not read it. */
     private var shortcut = false
+
+    /** CACHED_EARLY was kept through a failed round while UMP still allowed ads: a regather is due (S-03, S-09). */
+    private var cachedKeptAfterFailure = false
 
     private val current get() = _state.value
 
@@ -59,9 +62,10 @@ internal class ConsentGate {
         }
     }
 
-    /** S-03: consent of an earlier session opens the gate before UMP answers, shortcut on only. */
+    /** S-03: consent of an earlier session opens the gate before UMP answers, in every build (ADR-0038). */
     fun onRequestSent(umpCanRequestAds: Boolean) {
-        if (shortcut && umpCanRequestAds && current.path == null && !current.settled) {
+        if (umpCanRequestAds && current.path == null && !current.settled) {
+            cachedKeptAfterFailure = false
             _state.value = current.copy(path = ConsentPath.CACHED_EARLY, allowed = true, temporary = true)
         }
     }
@@ -69,16 +73,23 @@ internal class ConsentGate {
     /** S-10: UMP says consent must be asked again: a temporary right closes now, before the form. */
     fun onUpdateSucceeded(umpCanRequestAds: Boolean) {
         if (current.temporary && !umpCanRequestAds) {
+            cachedKeptAfterFailure = false
             _state.value = current.copy(path = ConsentPath.DENIED_OR_REQUIRED, allowed = false, temporary = false)
         }
     }
 
-    /** S-04, S-05, S-06: a failed update never settles, and with the shortcut off it gives nothing (S-12). */
+    /**
+     * S-04, S-05, S-06: a failed update never settles. CACHED_EARLY is kept while UMP still allows ads; otherwise,
+     * with the ERROR_ALLOWED switch off, it gives nothing (S-12).
+     */
     fun onUpdateFailed(failure: UmpFailure, umpCanRequestAds: Boolean) {
         onFailure(failure, umpCanRequestAds, formStep = false)
     }
 
-    /** S-05, S-06: a clean result always settles; with the shortcut off, a form error settles once UMP allows ads. */
+    /**
+     * S-05, S-06: a clean result always settles; with the ERROR_ALLOWED switch off, a form error settles once UMP
+     * allows ads, CACHED_EARLY included (as GRANTED).
+     */
     fun onFormFinished(failure: UmpFailure?, umpCanRequestAds: Boolean) {
         if (failure == null) {
             _state.value = finalState(umpCanRequestAds)
@@ -94,6 +105,7 @@ internal class ConsentGate {
 
     /** S-18: back to the first state; the shortcut is kept. */
     fun onReset() {
+        cachedKeptAfterFailure = false
         _state.value = ConsentGateState.INITIAL
     }
 
@@ -101,16 +113,24 @@ internal class ConsentGate {
     fun mayRequestNow(foreground: Boolean): Boolean =
         current.allowed && (foreground || current.path != ConsentPath.ERROR_ALLOWED)
 
-    /** S-09: a regather is due (ERROR_ALLOWED and not settled). */
+    /** S-09: a regather is due (ERROR_ALLOWED, or CACHED_EARLY kept through a failed round; not settled). */
     val regatherDue: Boolean
-        get() = current.path == ConsentPath.ERROR_ALLOWED && current.allowed && !current.settled
+        get() {
+            val path = current.path
+            val cachedDue = path == ConsentPath.CACHED_EARLY && cachedKeptAfterFailure
+            val dueOnPath = path == ConsentPath.ERROR_ALLOWED || cachedDue
+            return dueOnPath && current.allowed && !current.settled
+        }
 
-    private fun finalState(umpCanRequestAds: Boolean) = ConsentGateState(
-        path = if (umpCanRequestAds) ConsentPath.GRANTED else ConsentPath.DENIED_OR_REQUIRED,
-        allowed = umpCanRequestAds,
-        temporary = false,
-        settled = true,
-    )
+    private fun finalState(umpCanRequestAds: Boolean): ConsentGateState {
+        cachedKeptAfterFailure = false
+        return ConsentGateState(
+            path = if (umpCanRequestAds) ConsentPath.GRANTED else ConsentPath.DENIED_OR_REQUIRED,
+            allowed = umpCanRequestAds,
+            temporary = false,
+            settled = true,
+        )
+    }
 
     private fun onFailure(failure: UmpFailure, umpCanRequestAds: Boolean, formStep: Boolean) {
         val cachedEarly = current.path == ConsentPath.CACHED_EARLY && current.allowed
@@ -122,8 +142,16 @@ internal class ConsentGate {
                 temporary = false,
                 settled = false,
             )
-            // The real right of the earlier session is kept, never lowered to the network one (S-04, S-05).
-            cachedEarly -> current
+            // S-06 with ERROR_ALLOWED off: a form error once UMP allows ads settles, CACHED_EARLY included (KB-11, criterion 8).
+            formStep && umpCanRequestAds && !shortcut -> ConsentGateState(
+                path = ConsentPath.GRANTED,
+                allowed = true,
+                temporary = false,
+                settled = true,
+            )
+            // The real right of the earlier session is kept while UMP still allows ads, never lowered to the
+            // network one, and asked again (S-03, S-04, S-05, S-09).
+            cachedEarly && umpCanRequestAds -> current
             failure == UmpFailure.NETWORK && shortcut -> ConsentGateState(
                 path = ConsentPath.ERROR_ALLOWED,
                 allowed = true,
@@ -135,8 +163,10 @@ internal class ConsentGate {
                 path = if (umpCanRequestAds && formStep) ConsentPath.GRANTED else ConsentPath.DENIED_OR_REQUIRED,
                 allowed = umpCanRequestAds && formStep,
                 temporary = false,
-                settled = umpCanRequestAds && formStep && !shortcut,
+                settled = false,
             )
         }
+        // Only the branch that keeps the real right of the earlier session leaves CACHED_EARLY.
+        cachedKeptAfterFailure = current.path == ConsentPath.CACHED_EARLY
     }
 }

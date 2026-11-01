@@ -31,6 +31,7 @@ class AdTelemetryRulesTest {
             AdFormat.APP_OPEN to null,
             AdFormat.BANNER to null,
             AdFormat.BANNER_COLLAPSIBLE to null,
+            AdFormat.BANNER_MREC to null,
         )
         assertEquals(AdFormat.entries.toSet(), expected.keys)
         expected.forEach { (format, kind) -> assertEquals(format.name, kind, format.funnelKind()) }
@@ -51,13 +52,14 @@ class AdTelemetryRulesTest {
             AdFormat.NATIVE_STEP to "NATIVE_ONBOARDING",
             AdFormat.NATIVE_IN_COLLECTION to "NATIVE_CONTENT",
             AdFormat.NATIVE_MEDIUM to "NATIVE_MEDIUM",
+            AdFormat.BANNER_MREC to "BANNER_MREC",
         )
         assertEquals(AdFormat.entries.toSet(), expected.keys)
         expected.forEach { (format, code) -> assertEquals(format.name, code, format.metricCode()) }
         assertEquals(
             setOf(
                 "INTER", "REWARDED", "APP_OPEN", "BANNER", "NATIVE_FULL", "NATIVE_COLLAP", "NATIVE_SMALL",
-                "NATIVE_ONBOARDING", "NATIVE_CONTENT", "NATIVE_MEDIUM",
+                "NATIVE_ONBOARDING", "NATIVE_CONTENT", "NATIVE_MEDIUM", "BANNER_MREC",
             ),
             AdFormat.entries.map { it.metricCode() }.toSet(),
         )
@@ -87,6 +89,22 @@ class AdTelemetryRulesTest {
         assertEquals("internal", loadStateAfterError(0, offline = false, sdkThrottled = false))
         assertEquals("unknown", loadStateAfterError(2, offline = false, sdkThrottled = false))
         assertEquals("unknown", loadStateAfterError(7, offline = false, sdkThrottled = false))
+    }
+
+    @Test
+    fun maxLoadStateAfterError_table() {
+        // Plan T-071, question 2: the codes of com.applovin.mediation.MaxErrorCode, read with javap (13.6.4).
+        assertEquals("no_fill", maxLoadStateAfterError(204, offline = false))
+        listOf(-1000, -1001, -1009).forEach { assertEquals("code $it", "network", maxLoadStateAfterError(it, false)) }
+        assertEquals("internal", maxLoadStateAfterError(-1, offline = false))
+        listOf(-5001, -5603, 0, 3, -9000).forEach {
+            assertEquals("code $it", "unknown", maxLoadStateAfterError(it, offline = false))
+        }
+        assertEquals("network", maxLoadStateAfterError(204, offline = true))
+        assertEquals("network", maxLoadStateAfterError(-1, offline = true))
+        // Control: a code of AdMob keeps its meaning for AdMob only.
+        assertEquals("no_fill", loadStateAfterError(3, offline = false, sdkThrottled = false))
+        assertEquals("unknown", maxLoadStateAfterError(3, offline = false))
     }
 
     @Test
@@ -141,5 +159,15 @@ class AdTelemetryRulesTest {
         }
         // Control: a single native small ad keeps the placement of its screen.
         assertEquals("sample_native_small", loadPlacementOf(AdFormat.NATIVE_SMALL, AdPlacement.SAMPLE_NATIVE_SMALL))
+    }
+
+    @Test
+    fun bannerMrec_slotGroup_loadPlacementOfScreen() {
+        // Control: a pooled format loads as `pool`, whatever the screen.
+        assertEquals("pool", loadPlacementOf(AdFormat.NATIVE_MEDIUM, AdPlacement.GALLERY_NATIVE_MEDIUM))
+        assertEquals(MetricGroup.SLOT, AdFormat.BANNER_MREC.metricGroup())
+        assertNull(AdFormat.BANNER_MREC.funnelKind())
+        assertEquals("gallery_banner_mrec", loadPlacementOf(AdFormat.BANNER_MREC, AdPlacement.GALLERY_BANNER_MREC))
+        assertNull(loadPlacementOf(AdFormat.BANNER_MREC, null))
     }
 }

@@ -13,9 +13,11 @@ internal const val FAKE_BANNER_TAG = "fake_banner"
 
 /**
  * A banner of the SDK for tests: records sends (at [clock]), pauses, resumes and destroys, emits results on
- * command, and draws a tagged box while it shows its ad. Like the SDK, it replays no result to a late collector.
+ * command, and draws a box tagged [tag] while it shows its ad (two fakes of one frame take two tags, plan T-071). Like
+ * the SDK, it replays no result to a late collector.
  */
-internal class FakeBannerAdView(private val clock: () -> Long = { 0L }) : BannerAdView {
+internal class FakeBannerAdView(private val clock: () -> Long = { 0L }, private val tag: String = FAKE_BANNER_TAG) :
+    BannerAdView {
     private val emitted = MutableSharedFlow<BannerLoadResult>(extraBufferCapacity = 64)
 
     /** Called at the end of every [send], to answer it (for example fail at once). */
@@ -30,6 +32,10 @@ internal class FakeBannerAdView(private val clock: () -> Long = { 0L }) : Banner
     var destroyCount = 0
         private set
 
+    /** False after a [pause] until the next [resume]: whether the last of the two calls was a resume. */
+    var isRunning = true
+        private set
+
     override val results: Flow<BannerLoadResult> = emitted
 
     fun emitLoaded() {
@@ -40,6 +46,11 @@ internal class FakeBannerAdView(private val clock: () -> Long = { 0L }) : Banner
         check(emitted.tryEmit(BannerLoadResult.Failed(code)))
     }
 
+    /** The result of a frame of two platforms whose first platform had no ad (plan T-071). */
+    fun emitTryNext() {
+        check(emitted.tryEmit(BannerLoadResult.TryNext))
+    }
+
     override fun send() {
         sendTimes += clock()
         onSend()
@@ -47,10 +58,12 @@ internal class FakeBannerAdView(private val clock: () -> Long = { 0L }) : Banner
 
     override fun pause() {
         pauseCount++
+        isRunning = false
     }
 
     override fun resume() {
         resumeCount++
+        isRunning = true
     }
 
     override fun destroy() {
@@ -60,7 +73,7 @@ internal class FakeBannerAdView(private val clock: () -> Long = { 0L }) : Banner
     @Composable
     override fun Content(showAd: Boolean, modifier: Modifier) {
         Box(modifier = modifier) {
-            if (showAd) Box(modifier = Modifier.fillMaxSize().testTag(FAKE_BANNER_TAG))
+            if (showAd) Box(modifier = Modifier.fillMaxSize().testTag(tag))
         }
     }
 }

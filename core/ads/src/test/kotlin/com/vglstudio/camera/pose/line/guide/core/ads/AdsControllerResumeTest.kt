@@ -10,6 +10,8 @@ import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import java.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,6 +39,10 @@ class AdsControllerResumeTest {
         metrics = metrics,
         logger = logger,
     )
+
+    private fun adFreeStatus(flow: StateFlow<Boolean>): AdFreeStatus = object : AdFreeStatus {
+        override val adFree = flow
+    }
 
     private fun idle() = shadowOf(Looper.getMainLooper()).idle()
 
@@ -132,5 +138,46 @@ class AdsControllerResumeTest {
         assertFalse(other.readResumeGate().startupFinished)
         idleFor(1_100)
         assertTrue(other.readResumeGate().startupFinished)
+    }
+
+    @Test
+    fun adFreeMidSession_resumeOff_noOpportunity() {
+        // KB-30, criteria 1 and 3 (L-061): the signal turns on mid session, the next return shows and records nothing.
+        settings.set(AdsSettings.IS_LOG_AD_FULLSCREEN_EVENTS, true)
+        settings.set(AdsSettings.SHOW_RESUM_ADS, true)
+        val adFree = MutableStateFlow(false)
+        val controller = testAdsController(
+            context = application,
+            unitIds = AdUnitIds { null },
+            flags = DefaultAdsFlags(settings, adFreeStatus(adFree)),
+            metrics = metrics,
+            logger = logger,
+        )
+        controller.start(application, AppActivityFilter { true })
+        idle()
+        controller.openConsentGateForTest()
+        idleFor(45_100)
+        assertEquals(AdPlacement.RESUME, controller.readResumeGate().placement)
+        adFree.value = true
+        idle()
+        assertNull(controller.readResumeGate().placement)
+        controller.onProcessForegroundChanged(true)
+        controller.onProcessForegroundChanged(false)
+        controller.onProcessForegroundChanged(true)
+        idle()
+        assertTrue(metrics.events.none { it is AdMetricEvent.Opportunity })
+        val resumeLogs = logger.entries.map { it.message }.filter { it.startsWith("Resume ad ") }
+        assertEquals(listOf("Resume ad FIRST_FOREGROUND: none", "Resume ad OFF: none"), resumeLogs)
+        // Control (L-055): the signal back off, the next return is an opportunity of the resume placement.
+        adFree.value = false
+        idle()
+        assertEquals(AdPlacement.RESUME, controller.readResumeGate().placement)
+        controller.onProcessForegroundChanged(false)
+        controller.onProcessForegroundChanged(true)
+        idle()
+        val opportunities = metrics.events.filterIsInstance<AdMetricEvent.Opportunity>()
+        assertEquals(1, opportunities.size)
+        assertEquals("resume", opportunities.single().adPlacement)
+        assertEquals("not_ready", opportunities.single().result)
     }
 }

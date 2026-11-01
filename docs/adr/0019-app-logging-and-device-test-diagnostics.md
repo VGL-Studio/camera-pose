@@ -9,6 +9,8 @@ deciders: [Nhóm phát triển]
 
 # ADR-0019: APP GHI LOG HÀNH VI QUA :CORE:LOGGING; CI GIỮ LẠI CHI TIẾT LỖI VÀ LOG KHI TEST TRÊN EMULATOR ĐỎ
 
+> Ghi chú 2026-10-30: chẩn đoán test trên emulator nay ở job `ui-test` của `main-guard.yml`, sau merge, không còn ở `pr-check.yml` ([ADR-0043](0043-test-emulator-sau-merge.md)); các bước và artifact `ui-test-report` giữ nguyên, artifact thêm log của lần chạy đầu khi job chạy lại.
+
 ## Bối cảnh
 
 Phiên tự chạy RUN-20261015-01 dừng vì test trên emulator đỏ ba lần. Phiên không đọc được lý do đầy đủ: Gradle cắt mất phần lớn thông báo lỗi, app không ghi gì về việc mình đang làm, và CI không giữ lại log của emulator. Phiên phải thêm lệnh in chẩn đoán vào test rồi chạy lại, tốn thời gian và vẫn không rõ. Một phiên chạy qua đêm cần tự đọc được vì sao test đỏ. Khi app lỗi trên máy người test, nhóm cũng cần biết app đã làm gì trước đó.

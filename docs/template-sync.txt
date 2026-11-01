@@ -1,4 +1,4 @@
-base=47782ec35ebe9d1f441460ed258abe1be27cf3a7
+base=151b4c2ba6a541ae394a799f6fbbda25c5c994ce
 package=com.vglstudio.camera.pose.line.guide
 # app/ and feature/loading took parts of template T-007, T-008, T-024 by hand (plan T-074): MainActivity.kt,
 # TemplateApplication.kt, di/AnalyticsConfigModule.kt, config/AppRemoteKeys.kt, the remoteConfigKeys block of
@@ -6,6 +6,11 @@ package=com.vglstudio.camera.pose.line.guide
 # di/ProductionAdsModule.kt, their tests (AppAdsRootTest, LeaveAppCallSitesTest, LocalRemoteValuesSourceSetTest,
 # MergedManifestTest, NoAppsFlyerDependencyTest, RemoteConfigKeysTest, StagingRemoteValuesModuleTest), and
 # feature/loading LoadingViewModel.kt, LoadingScreen.kt with their tests. No AdGalleryActivity (spec ads, question 4).
+# Sync 47782ec..151b4c2 also took by hand every app/ change of the template in that range except the ad gallery and
+# ProductionPropertiesTest (the app has neither): di/AdFreeModule.kt, di/MaxConfigModule.kt, the localProperties,
+# ADS_TEST_DEVICE_IDS, MAX_SDK_KEY and MAX_AD_UNITS blocks of app/build.gradle.kts, the changes of staging
+# di/StagingAdsModule.kt and production di/ProductionAdsModule.kt, AdsDebugOptionsSourceSetTest, AdFreeModuleTest,
+# StagingAdsModuleTest. Not its appBuildFile test input, read only by ProductionPropertiesTest.
 hold=app 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=core/assets 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=core/designsystem 0eaeadbc2b04a94c81d9877aec4681b05a11587a
@@ -20,7 +25,7 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=scripts/release.sh 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6
-# (scenario budget 1500, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
+# (scenario budget 1800, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
 # and start-run.yml, the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md, and the
 # release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh.

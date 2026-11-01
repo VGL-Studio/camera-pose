@@ -548,6 +548,138 @@ class NativeFullScreenTurnsTest {
     }
 
     @Test
+    fun combo_countdownFromPort_fiveSeconds() = runTest {
+        val port = newPort().apply {
+            countdownSeconds = 5L
+            slot = FakeLoadedNativeAd()
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        runCurrent()
+        assertEquals(5, turns.view.value!!.secondsLeft)
+        at(4_999)
+        assertEquals(1, turns.view.value!!.secondsLeft)
+        turns.close()
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+        at(5_000)
+        assertTrue(turns.view.value!!.closeEnabled)
+        turns.close()
+        turns.close()
+        assertNull(turns.view.value)
+        assertEquals(1, finishes)
+    }
+
+    @Test
+    fun combo_countdownThirtySeconds() = runTest {
+        val port = newPort().apply {
+            countdownSeconds = 30L
+            slot = FakeLoadedNativeAd()
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        runCurrent()
+        assertEquals(30, turns.view.value!!.secondsLeft)
+        at(29_999)
+        assertEquals(1, turns.view.value!!.secondsLeft)
+        turns.close()
+        assertNotNull(turns.view.value)
+        at(30_000)
+        assertTrue(turns.view.value!!.closeEnabled)
+        turns.close()
+        assertEquals(1, finishes)
+    }
+
+    @Test
+    fun countdownChange_whileOpen_keepsDeadline_nextTurnUsesNew() = runTest {
+        val port = newPort().apply {
+            countdownSeconds = 5L
+            slot = FakeLoadedNativeAd()
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        runCurrent()
+        assertEquals(5, turns.view.value!!.secondsLeft)
+        at(1_000)
+        port.countdownSeconds = 30L
+        at(5_000)
+        // The turn open keeps its deadline: the key is read once, when the screen opens (K-02).
+        assertTrue(turns.view.value!!.closeEnabled)
+        turns.close()
+        assertEquals(1, finishes)
+
+        // The next turn reads the new value.
+        port.slot = FakeLoadedNativeAd()
+        val next = currentTime
+        turns.afterInter(port)
+        runCurrent()
+        assertEquals(30, turns.view.value!!.secondsLeft)
+        at(next + 5_000)
+        assertFalse(turns.view.value!!.closeEnabled)
+        turns.close()
+        assertEquals(1, finishes)
+    }
+
+    @Test
+    fun interNeverGone_opensAfter2s_thenFullCountdown() = runTest {
+        val port = newPort().apply {
+            countdownSeconds = 5L
+            interGoneAt = null
+            slot = FakeLoadedNativeAd()
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(1_999)
+        assertNull(turns.view.value)
+        at(2_000)
+        assertEquals(5, turns.view.value!!.secondsLeft)
+        at(6_999)
+        assertFalse(turns.view.value!!.closeEnabled)
+        at(7_000)
+        assertTrue(turns.view.value!!.closeEnabled)
+    }
+
+    @Test
+    fun loadFailed_autoClosesAtEndOfFiveSeconds() = runTest {
+        val port = newPort().apply {
+            countdownSeconds = 5L
+            ensureLoadingResult = false
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        runCurrent()
+        assertTrue(turns.view.value!!.loadFailed)
+        assertTrue(turns.view.value!!.closeEnabled)
+        at(4_999)
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+        at(5_000)
+        assertNull(turns.view.value)
+        assertEquals(1, finishes)
+    }
+
+    @Test
+    fun standalone_usesPortCountdown() = runTest {
+        val port = newPort().apply {
+            countdownSeconds = 5L
+            interGoneAt = null
+        }
+        assertTrue(port.presence.tryBegin(AdPlacement.GALLERY_NATIVE_FULL_SCREEN, 0, 0L))
+        val turns = turnsOf(port)
+        turns.showStandalone(AdPlacement.GALLERY_NATIVE_FULL_SCREEN, FakeLoadedNativeAd(), onFinished)
+        assertEquals(5, turns.view.value!!.secondsLeft)
+        at(4_999)
+        assertFalse(turns.view.value!!.closeEnabled)
+        turns.close()
+        assertEquals(0, finishes)
+        at(5_000)
+        assertTrue(turns.view.value!!.closeEnabled)
+        turns.close()
+        assertEquals(1, finishes)
+        assertEquals(listOf(AdPlacement.GALLERY_NATIVE_FULL_SCREEN to 5_000L), port.marks)
+    }
+
+    @Test
     fun standaloneWhileComboOpen_isRejected() = runTest {
         val comboAd = FakeLoadedNativeAd()
         val port = newPort().apply { slot = comboAd }
@@ -616,6 +748,9 @@ internal class FakeNativeFullScreenPort(private val now: () -> Long) : NativeFul
     var loadState = "idle"
     var loadStateAfterEnsure: String? = null
     var throwOnOpportunity = false
+
+    /** `time_close_native` as the controller reads it, already in 1..30 (plan T-053); 3 keeps the older tests. */
+    var countdownSeconds = 3L
     var takeCount = 0
         private set
     var ensureCount = 0
@@ -674,6 +809,8 @@ internal class FakeNativeFullScreenPort(private val now: () -> Long) : NativeFul
         check(!throwOnOpportunity) { "metrics failed" }
         opportunities += result to loadState
     }
+
+    override fun closeCountdownSeconds(): Long = countdownSeconds
 
     override fun reload(placement: AdPlacement) {
         calls += "reload"

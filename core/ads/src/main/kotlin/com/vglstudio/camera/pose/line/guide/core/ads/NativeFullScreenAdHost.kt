@@ -9,7 +9,7 @@ import androidx.compose.ui.window.DialogProperties
 
 /**
  * Draws the native full-screen turn of the running app over the current screen, in a full-screen dialog: the combo
- * after an interstitial and the standalone turn (HD-05, plan T-026), with the countdown of 3 s; the screen below keeps
+ * after an interstitial and the standalone turn (HD-05, plan T-026), with the countdown of `time_close_native`; the screen below keeps
  * its state, and closing the ad returns to it (KB-5, KB-16). :app places it once, inside its theme, after the
  * navigation host. It draws nothing in tests and previews (no [LocalAdsController]).
  */

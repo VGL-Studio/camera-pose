@@ -5,12 +5,12 @@ feature: poses
 spec: features/poses/spec.md   # confirmed 2026-10-31, câu 7, 8, 10, 11, 12; vị trí cũng ghi ở features/ads/spec.md câu 12; KB-1 của features/camera/spec.md
 scenarios: [KB-8]
 owner: Nhật
-status: backlog
+status: approved
 risk: high
 size: L
 depends_on: [T-085, T-080]     # T-085 cho dữ liệu premium; T-080 sửa trước PosesScreen.kt, AdPlacement.kt và bảng khóa
 sprint:
-plan:
+plan: features/poses/plans/T-086-khoa-tu-the-premium-va-rewarded.md
 created: 2026-10-31
 ---
 
@@ -58,7 +58,7 @@ Phần người dùng thấy của tư thế premium, theo yêu cầu của Nh�
 
 Ticket chạm điểm chặn của `risk-scoring.md`: thêm vị trí quảng cáo, thêm sự kiện phân tích, đổi hành vi chọn tư thế ở camera (màn chính). Có thiết kế mới ở hai feature. Không thêm SDK, quyền hay thư viện. Rủi ro cao, cần duyệt chéo (Tuấn và Nhật).
 
-Cỡ L. Nếu plan thấy không xong trong một lượt, chia hai lượt: thư viện và chi tiết; rồi camera.
+Cỡ L, một lượt: một plan chạy đúng một lượt trong danh sách chạy (`docs/CLAUDE.md`, mục Khi tách spec thành ticket; L-142 của mẫu). Muốn chia nhỏ thì tách camera thành ticket riêng (plan T-086, mục 8, câu 10).
 
 ## Định nghĩa hoàn thành
 

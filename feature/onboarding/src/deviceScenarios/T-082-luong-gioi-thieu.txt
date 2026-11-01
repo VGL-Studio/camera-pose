@@ -6,6 +6,8 @@ consent decline 30
 wait id=onboarding_page_intro 60
 expect id=onboarding_next
 expect_no id=onboarding_enable_camera
+# T-083: page 1 may hold Next up to 5 s while its ad card waits; wait until it is enabled (no spare round, plan T-083)
+wait id=onboarding_next enabled=true 15
 tap id=onboarding_next
 wait id=onboarding_page_poses 10
 device unfold

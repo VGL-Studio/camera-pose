@@ -21,6 +21,7 @@ class AdPlacementAppTest {
             "inter_pose_detail" to AdFormat.INTERSTITIAL,
             "poses_in_collection" to AdFormat.NATIVE_IN_COLLECTION,
             "rw_premium_pose" to AdFormat.REWARDED,
+            "native_onboarding" to AdFormat.NATIVE_STEP,
         )
         val byKey = AdPlacement.entries.associateBy { it.key }
         expected.forEach { (key, format) ->
@@ -38,6 +39,19 @@ class AdPlacementAppTest {
         assertEquals(AdPlacement.INTER_POSE_DETAIL, byKey["inter_pose_detail"])
         assertEquals(AdPlacement.POSES_IN_COLLECTION, byKey["poses_in_collection"])
         assertEquals(AdPlacement.RW_PREMIUM_POSE, byKey["rw_premium_pose"])
+        assertEquals(AdPlacement.NATIVE_ONBOARDING, byKey["native_onboarding"])
+    }
+
+    @Test
+    fun nativeOnboarding_firstOpenOnly() {
+        // Spec onboarding, KB-6 and section 5: the step card of the flow, first open only (plan T-083).
+        val placement = AdPlacement.NATIVE_ONBOARDING
+        assertTrue(placement.firstOpenOnly)
+        assertEquals("native_onboarding", placement.key)
+        assertEquals(AdFormat.NATIVE_STEP, placement.format)
+        assertEquals("is_show_native_onboarding", AdsSettings.placementEnabled(placement).name)
+        // Control: the other placements of the app are not first open only.
+        assertFalse(AdPlacement.POSES_BOTTOM.firstOpenOnly)
     }
 
     @Test

@@ -164,6 +164,11 @@ enum class AdPlacement(
      * the line and in the app's spec.
      */
     val noAdPolicy: RewardedNoAdPolicy? = null,
+    /**
+     * Shown only in the first open since install (A-01): `is_show_<code>` and the first-open mark; a later open reads
+     * it as off, so its pool is not filled (plan T-083). Not for an [appWide] placement, which reads the mark its own way.
+     */
+    val firstOpenOnly: Boolean = false,
 ) {
     OPEN_APP("open_app", AdFormat.APP_OPEN, appWide = true),
     OPEN_APP_INTER("open_app_inter", AdFormat.INTERSTITIAL, ignoreInterval = true, appWide = true),
@@ -190,6 +195,9 @@ enum class AdPlacement(
 
     /** Holds the unlock of a premium pose, from the detail and the camera strip; no ad blocks (spec poses, KB-8, question 8). */
     RW_PREMIUM_POSE("rw_premium_pose", AdFormat.REWARDED),
+
+    /** The step card of the onboarding flow, on every page, first open only (spec onboarding, KB-6; spec ads, question 12). */
+    NATIVE_ONBOARDING("native_onboarding", AdFormat.NATIVE_STEP, firstOpenOnly = true),
 
     // Staging ad gallery only (plans T-014, T-036): placements of every format, see [stagingOnly]. The collapsible
     // layer has none of its own: it loads through the placement of its bottom bar (GALLERY_NATIVE_SMALL, T-030).
@@ -231,6 +239,7 @@ enum class AdPlacement(
             ctaLarge,
             keepSpaceWhenPoolEmpty,
             noAdPolicy,
+            firstOpenOnly,
         )
 }
 
@@ -257,6 +266,8 @@ internal data class AdPlacementDeclaration(
     val keepSpaceWhenPoolEmpty: Boolean = false,
     /** What the action does when no ad can be shown (MC-05); rewarded only. */
     val noAdPolicy: RewardedNoAdPolicy? = null,
+    /** Shown only in the first open since install (A-01, plan T-083); not for an app-wide placement. */
+    val firstOpenOnly: Boolean = false,
 ) {
     /** The policy of this placement: [noAdPolicy], or [RewardedNoAdPolicy.Block] (MC-05). */
     val effectiveNoAdPolicy: RewardedNoAdPolicy get() = noAdPolicy ?: RewardedNoAdPolicy.Block
@@ -281,6 +292,7 @@ internal data class AdPlacementDeclaration(
         require(noAdPolicy == null || format == AdFormat.REWARDED) {
             "Placement $code: noAdPolicy is for rewarded only"
         }
+        require(!firstOpenOnly || !appWide) { "Placement $code: firstOpenOnly is not for an app-wide placement" }
         if (nativeEvery != null) {
             require(format in NATIVE_EVERY_FORMATS) { "Placement $code: nativeEvery is for list formats only" }
             require(nativeEvery >= 1) { "Placement $code: nativeEvery must be 1 or more" }

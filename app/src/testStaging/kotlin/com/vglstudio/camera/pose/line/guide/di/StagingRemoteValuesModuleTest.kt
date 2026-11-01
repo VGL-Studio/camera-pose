@@ -44,6 +44,8 @@ class StagingRemoteValuesModuleTest {
             "is_show_poses_in_collection" to true,
             // The unlock of a premium pose (spec poses, section 8; plan T-086).
             "is_show_rw_premium_pose" to true,
+            // The step card of the onboarding flow, first open only (spec onboarding, section 8; plan T-083).
+            "is_show_native_onboarding" to true,
             "show_open_ads" to true,
             "show_resum_ads" to true,
             "is_show_native_bottom" to true,

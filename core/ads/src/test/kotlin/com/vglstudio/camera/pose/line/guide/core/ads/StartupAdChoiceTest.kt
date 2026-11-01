@@ -127,6 +127,48 @@ class StartupAdChoiceTest {
     }
 
     @Test
+    fun placementSwitch_firstOpenOnly_followsKeyAndFirstOpen() = runTest {
+        // Spec onboarding, section 5: the step card of the flow shows only in the first open (plan T-083).
+        val placement = AdPlacement.NATIVE_ONBOARDING
+        settings.set(AdsSettings.placementEnabled(placement), true)
+        assertEquals(true, placementSwitch(placement, flags, flowOf(true)).first())
+        assertEquals(false, placementSwitch(placement, flags, flowOf(false)).first())
+        // Control (L-055): a placement that is not first open only stays on in a later open.
+        settings.set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true)
+        assertEquals(true, placementSwitch(AdPlacement.POSES_BOTTOM, flags, flowOf(false)).first())
+        settings.set(AdsSettings.placementEnabled(placement), false)
+        assertEquals(false, placementSwitch(placement, flags, flowOf(true)).first())
+    }
+
+    @Test
+    fun placementSwitch_firstOpenOnly_waitsForFirstOpen() = runTest {
+        settings.set(AdsSettings.placementEnabled(AdPlacement.NATIVE_ONBOARDING), true)
+        placementSwitch(AdPlacement.NATIVE_ONBOARDING, flags, neverRead).test {
+            advanceTimeBy(1_000)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+        // Control: once the mark is read, the switch has a value.
+        assertEquals(true, placementSwitch(AdPlacement.NATIVE_ONBOARDING, flags, flowOf(true)).first())
+    }
+
+    @Test
+    fun placementSwitch_firstOpenOnly_adFree_false() = runTest {
+        // KB-30: ad removal turns the first-open-only placement off too.
+        settings.set(AdsSettings.placementEnabled(AdPlacement.NATIVE_ONBOARDING), true)
+        val adFree = MutableStateFlow(false)
+        val adFreeFlags = DefaultAdsFlags(settings, adFreeStatus(adFree))
+        // Control (L-055): the switch read is the first-open-only one, off in a later open.
+        assertEquals(false, placementSwitch(AdPlacement.NATIVE_ONBOARDING, adFreeFlags, flowOf(false)).first())
+        placementSwitch(AdPlacement.NATIVE_ONBOARDING, adFreeFlags, flowOf(true)).test {
+            assertEquals(true, awaitItem())
+            adFree.value = true
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun placementSwitch_nativeCombo_followsNativeAfterInterKey() = runTest {
         val combo = AdPlacement.NATIVE_AFTER_INTER
         // Waits for nothing: the combo does not depend on the first-open mark.

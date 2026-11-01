@@ -4175,6 +4175,16 @@ expect "device-scenario: selected=true does not match an unselected chip" "0 1 1
 ds_script clickable.txt 'tap text=Nhãn clickable=true'
 expect "device-scenario: clickable=true skips plain nodes" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/clickable.txt") $(ds_count '^shell input tap 250 35$' "$ds_calls")"
+# A held Compose button stays clickable="true" with enabled="false" in the dump (plan T-083, section 3.1).
+ds_script enabled.txt 'wait id=onboarding_next enabled=true 5' 'tap id=onboarding_next enabled=true'
+expect "device-scenario: enabled=true waits until the held button is enabled, then taps it" "0 1 1" \
+  "$(ds_run "next-held.xml next-held.xml next-ready.xml" "$ds_files/enabled.txt") $(ds_count 'result=đạt') $(ds_count '^shell input tap 540 1806$' "$ds_calls")"
+ds_script held.txt 'tap_if id=onboarding_next enabled=true' 'wait id=onboarding_next enabled=true 1'
+expect "device-scenario: enabled=true skips a disabled button that is clickable" "0 0 1" \
+  "$(ds_run "next-held.xml" "$ds_files/held.txt") $(ds_count '^shell input tap 540 1806$' "$ds_calls") $(ds_count 'step=2 wait id=onboarding_next enabled=true 1 FAIL')"
+ds_script enabled-false.txt 'tap id=onboarding_next enabled=false'
+expect "device-scenario: enabled= only takes true" "1 1" \
+  "$(code=0; python3 -I scripts/device-scenario.py check "$ds_files/enabled-false.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c 'enabled= chỉ nhận true' "$work/ds-check.out" || true)"
 ds_script alternatives.txt 'wait id=missing_tag | id=gallery_grid 2'
 expect "device-scenario: alternatives separated by | match any of them" "0 1" \
   "$(ds_run "grid.xml" "$ds_files/alternatives.txt") $(ds_count 'result=đạt')"
@@ -4297,7 +4307,7 @@ expect "device-scenario: the scenarios of the repository pass check" 0 \
   "$(code=0; [[ -z "$ds_repo_files" ]] || python3 -I scripts/device-scenario.py check $ds_repo_files > "$work/ds-check.out" 2>&1 || code=$?; echo "$code")"
 # The example of docs/ops/test-sessions.md, section 5, runs on the pose library: it must keep passing check.
 sed -n '/^ticket: T-NNN$/,/^shot landscape$/p' docs/ops/test-sessions.md | sed 's/^ticket: T-NNN$/ticket: T-001/' > "$ds_files/doc-example.txt"
-expect "device-scenario: the example of test-sessions.md passes check" "0 16" \
+expect "device-scenario: the example of test-sessions.md passes check" "0 21" \
   "$(code=0; python3 -I scripts/device-scenario.py check "$ds_files/doc-example.txt" > "$work/ds-check.out" 2>&1 || code=$?; echo "$code") $(grep -c . "$ds_files/doc-example.txt")"
 # A testTag that only a test still names is gone from the app: check does not count test sources.
 mkdir -p "$work/ds-root/feature/x/src/test/kotlin" "$work/ds-root/feature/x/src/main/kotlin"

@@ -186,6 +186,11 @@
       "description": "Collapsible native layer on the bottom ad bar, only when is_show_native_bottom is also true. Name set by the template, not an AdsKit key.",
       "valueType": "BOOLEAN"
     },
+    "is_show_native_onboarding": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement native_onboarding (native_step).",
+      "valueType": "BOOLEAN"
+    },
     "is_show_pose_detail_bottom": {
       "defaultValue": { "value": "false" },
       "description": "Shows ads in this placement. Off by default. Derived key of placement pose_detail_bottom (native_small).",

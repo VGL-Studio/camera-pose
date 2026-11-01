@@ -12,9 +12,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -29,6 +32,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdAssets
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdCard
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdPlaceholder
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdSize
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeStepAdDefaults
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButtonTestTags
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.OnboardingPage.CAMERA
@@ -62,10 +70,12 @@ class OnboardingScreenTest {
         uiState: OnboardingUiState,
         darkTheme: Boolean,
         adSlot: @Composable (OnboardingPage) -> Unit,
+        nextEnabled: Boolean,
     ) {
         var uiState by mutableStateOf(uiState)
         var darkTheme by mutableStateOf(darkTheme)
         var adSlot by mutableStateOf(adSlot)
+        var nextEnabled by mutableStateOf(nextEnabled)
     }
 
     private fun setScreen(
@@ -75,8 +85,9 @@ class OnboardingScreenTest {
         onBack: () -> Unit = {},
         onEnableCamera: () -> Unit = {},
         adSlot: @Composable (OnboardingPage) -> Unit = {},
+        nextEnabled: Boolean = true,
     ): ScreenState {
-        val screen = ScreenState(uiState, darkTheme, adSlot)
+        val screen = ScreenState(uiState, darkTheme, adSlot, nextEnabled)
         composeRule.setContent {
             AppTheme(darkTheme = screen.darkTheme) {
                 OnboardingScreen(
@@ -85,6 +96,7 @@ class OnboardingScreenTest {
                     onBack = onBack,
                     onEnableCamera = onEnableCamera,
                     adSlot = screen.adSlot,
+                    nextEnabled = screen.nextEnabled,
                 )
             }
         }
@@ -371,6 +383,225 @@ class OnboardingScreenTest {
         }
     }
 
+    // ---- The card of T-083 (spec onboarding, KB-6; plan T-083, section 4) ----
+
+    @Test
+    fun adSlot_card_onEveryPage_heightOfStepCard() {
+        val screen = setScreen(adSlot = cardSlot)
+        PAGES_4.indices.forEach { index ->
+            val state = OnboardingUiState.Browsing(PAGES_4, index)
+            screen.show(state)
+            val slot = bounds(OnboardingTestTags.AD_SLOT)
+            assertEquals("page ${index + 1}: slot height", stepHeight.value, slot.height.value, 1f)
+            val below = if (state.isLastPage) OnboardingTestTags.NOTE else OnboardingTestTags.NEXT
+            assertTrue("page ${index + 1}: slot bottom ${slot.bottom} over $below", slot.bottom <= bounds(below).top)
+        }
+        // Control: the card is the step card of the framework, 250 dp at the default font scale.
+        assertEquals(250f, stepHeight.value, 0.5f)
+    }
+
+    @Test
+    fun introAd_layoutMatchesDesign() {
+        setScreen(OnboardingUiState.Browsing(PAGES_4, 0), adSlot = cardSlot)
+        val pageArea = bounds(OnboardingTestTags.PAGE_AREA)
+        assertDp("page area top", 64f, pageArea.top)
+        assertDp("page area height", 473f, pageArea.height)
+        val illustration = bounds(OnboardingTestTags.ILLUSTRATION)
+        assertDp("illustration top", 88f, illustration.top)
+        assertDp("illustration width", 363f, illustration.width)
+        assertDp("illustration height", 233f, illustration.height)
+        // Control: the card takes its room from the illustration (280 without the card).
+        assertTrue("illustration height ${illustration.height}", illustration.height < 280.dp)
+        assertDp("title top", 345f, bounds(OnboardingTestTags.TITLE).top)
+        assertDp("body top", 441f, bounds(OnboardingTestTags.BODY).top)
+        assertCard(top = 537f)
+        val next = bounds(OnboardingTestTags.NEXT)
+        assertDp("next top", 811f, next.top)
+        assertDp("next bottom", 867f, next.bottom)
+    }
+
+    @Test
+    fun posesAd_layoutMatchesDesign() {
+        setScreen(OnboardingUiState.Browsing(PAGES_4, 1), adSlot = cardSlot)
+        assertDp("badge top", 88f, bounds(OnboardingTestTags.BADGE).top)
+        assertDp("title top", 208f, bounds(OnboardingTestTags.TITLE).top)
+        assertDp("features top", 268f, bounds(OnboardingTestTags.FEATURES).top)
+        assertCard(top = 537f)
+        assertDp("next top", 811f, bounds(OnboardingTestTags.NEXT).top)
+    }
+
+    @Test
+    fun premiumAd_layoutMatchesDesign() {
+        setScreen(OnboardingUiState.Browsing(PAGES_4, 2), adSlot = cardSlot)
+        assertDp("badge top", 88f, bounds(OnboardingTestTags.BADGE).top)
+        assertDp("title top", 208f, bounds(OnboardingTestTags.TITLE).top)
+        assertDp("body top", 268f, bounds(OnboardingTestTags.BODY).top)
+        assertCard(top = 537f)
+        assertDp("next top", 811f, bounds(OnboardingTestTags.NEXT).top)
+    }
+
+    @Test
+    fun cameraAd_layoutMatchesDesign() {
+        setScreen(OnboardingUiState.Browsing(PAGES_4, 3), adSlot = cardSlot)
+        assertDp("page area height", 417f, bounds(OnboardingTestTags.PAGE_AREA).height)
+        val card = assertCard(top = 481f)
+        assertDp("card bottom", 731f, card.bottom)
+        val note = bounds(OnboardingTestTags.NOTE)
+        assertDp("note top", 755f, note.top)
+        assertDp("note bottom", 787f, note.bottom)
+        val button = bounds(OnboardingTestTags.ENABLE_CAMERA)
+        assertDp("button top", 811f, button.top)
+        assertDp("button bottom", 867f, button.bottom)
+        assertEquals("card to note", 24f, (note.top - card.bottom).value, 1f)
+        assertEquals("note to button", 24f, (button.top - note.bottom).value, 1f)
+    }
+
+    @Test
+    fun introAdWait_layoutMatchesDesign() {
+        setScreen(
+            OnboardingUiState.Browsing(PAGES_4, 0),
+            adSlot = { NativeAdPlaceholder(NativeAdSize.STEP, Modifier.fillMaxWidth(), animated = false) },
+            nextEnabled = false,
+        )
+        val slot = bounds(OnboardingTestTags.AD_SLOT)
+        assertDp("placeholder top", 537f, slot.top)
+        assertDp("placeholder height", 250f, slot.height)
+        val next = bounds(OnboardingTestTags.NEXT)
+        assertDp("next top", 811f, next.top)
+        assertDp("next width", 363f, next.width)
+        composeRule.onNodeWithTag(OnboardingTestTags.NEXT).assertIsNotEnabled()
+    }
+
+    @Test
+    fun camera_withCard_noteAndButtonBelowCard() {
+        setScreen(OnboardingUiState.Browsing(PAGES_4, 3), adSlot = cardSlot)
+        val card = bounds(OnboardingTestTags.AD_CARD)
+        val note = bounds(OnboardingTestTags.NOTE)
+        val button = bounds(OnboardingTestTags.ENABLE_CAMERA)
+        assertTrue("card ${card.height} drawn", card.height > 0.dp)
+        assertTrue("card bottom ${card.bottom} over note top ${note.top}", card.bottom <= note.top)
+        assertTrue("note bottom ${note.bottom} over button top ${button.top}", note.bottom <= button.top)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-$SHORT_SCREEN")
+    fun small_withCard_buttonInWindow_pageScrolls() {
+        val screen = setScreen(OnboardingUiState.Browsing(PAGES_4, 0), adSlot = cardSlot)
+        assertShortWithCard(INTRO, pageArea = 222f, cardTop = 286f, cardBottom = 536f)
+        screen.show(OnboardingUiState.Browsing(PAGES_4, 3))
+        assertShortWithCard(CAMERA, pageArea = 166f, cardTop = 230f, cardBottom = 480f)
+        val note = bounds(OnboardingTestTags.NOTE)
+        assertDp("note top", 504f, note.top)
+        assertDp("note bottom", 536f, note.bottom)
+        assertTrue("note bottom ${note.bottom} inside the window", note.bottom <= SHORT_SCREEN_HEIGHT)
+        val cardToNote = note.top - bounds(OnboardingTestTags.AD_CARD).bottom
+        assertTrue("note $cardToNote below the card, at least 24", cardToNote.value >= 24f - 0.5f)
+    }
+
+    private fun assertShortWithCard(page: OnboardingPage, pageArea: Float, cardTop: Float, cardBottom: Float) {
+        val button = bounds(if (page == CAMERA) OnboardingTestTags.ENABLE_CAMERA else OnboardingTestTags.NEXT)
+        assertDp("$page: button top", 560f, button.top)
+        assertDp("$page: button bottom", 616f, button.bottom)
+        assertTrue("$page: button bottom ${button.bottom} inside the window", button.bottom <= SHORT_SCREEN_HEIGHT)
+        val area = bounds(OnboardingTestTags.PAGE_AREA)
+        assertDp("$page: page area height", pageArea, area.height)
+        val card = bounds(OnboardingTestTags.AD_CARD)
+        assertDp("$page: card top", cardTop, card.top)
+        assertDp("$page: card bottom", cardBottom, card.bottom)
+        val last = LAST_ELEMENT.getValue(page)
+        // Control: before scrolling, the last element is below the page area.
+        assertTrue("$page: $last before scrolling", bounds(last).bottom > area.bottom)
+        composeRule.onNodeWithTag(last).performScrollTo()
+        val scrolled = bounds(last)
+        assertTrue("$page: $last top ${scrolled.top} in the page area", scrolled.top >= area.top)
+        assertTrue("$page: $last bottom ${scrolled.bottom} in the page area", scrolled.bottom <= area.bottom)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-$SHORT_SCREEN", fontScale = 2f)
+    fun small_withCard_fontScale2_buttonAndNoteInWindow() {
+        setScreen(OnboardingUiState.Browsing(PAGES_4, 3), adSlot = cardSlot)
+        // Control: the card grows with large text.
+        assertTrue("step card height $stepHeight", stepHeight > 250.dp)
+        val card = bounds(OnboardingTestTags.AD_CARD)
+        assertEquals("card height", stepHeight.value, card.height.value, 1f)
+        val note = bounds(OnboardingTestTags.NOTE)
+        val button = bounds(OnboardingTestTags.ENABLE_CAMERA)
+        assertTrue("button bottom ${button.bottom} inside the window", button.bottom <= SHORT_SCREEN_HEIGHT)
+        assertTrue("note bottom ${note.bottom} inside the window", note.bottom <= SHORT_SCREEN_HEIGHT)
+        assertTrue("note top ${note.top} below the card ${card.bottom}", note.top >= card.bottom)
+        val area = bounds(OnboardingTestTags.PAGE_AREA)
+        assertTrue("page area height ${area.height}", area.height > 0.dp)
+        composeRule.onNodeWithTag(OnboardingTestTags.FEATURE_ADJUST).performScrollTo()
+        val adjust = bounds(OnboardingTestTags.FEATURE_ADJUST)
+        assertTrue("adjust top ${adjust.top} in the page area", adjust.top >= area.top)
+    }
+
+    @Test
+    fun nextButton_touchArea_notOverCard_w411() = assertTouchAreaNotOverCard()
+
+    @Test
+    @Config(qualifiers = "vi-$SHORT_SCREEN")
+    fun nextButton_touchArea_notOverCard_small() = assertTouchAreaNotOverCard()
+
+    private fun assertTouchAreaNotOverCard() {
+        setScreen(OnboardingUiState.Browsing(PAGES_4, 0), adSlot = cardSlot)
+        val touch = composeRule.onNodeWithTag(OnboardingTestTags.NEXT).fetchSemanticsNode().touchBoundsInRoot
+        val card = composeRule.onNodeWithTag(OnboardingTestTags.AD_CARD).fetchSemanticsNode().boundsInRoot
+        assertTrue("card drawn: $card", card.height > 0f)
+        assertFalse("touch area $touch over the card $card", touch.overlaps(card))
+    }
+
+    @Test
+    fun nextDisabled_whenNextEnabledFalse() {
+        var clicks = 0
+        val screen = setScreen(OnboardingUiState.Browsing(PAGES_4, 0), onNext = { clicks++ }, nextEnabled = false)
+        composeRule.onNodeWithTag(OnboardingTestTags.NEXT).assertIsNotEnabled().performClick()
+        assertEquals("held Next does nothing", 0, clicks)
+        // Control: enabled again, one tap calls onNext once.
+        screen.nextEnabled = true
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(OnboardingTestTags.NEXT).assertIsEnabled().performClick()
+        assertEquals(1, clicks)
+        // "Turn on camera" on the last page does not follow nextEnabled.
+        screen.nextEnabled = false
+        screen.show(OnboardingUiState.Browsing(PAGES_4, 3))
+        composeRule.onNodeWithTag(OnboardingTestTags.ENABLE_CAMERA).assertIsEnabled()
+    }
+
+    @Test
+    fun realCard_noAdsController_takesNoSpace() {
+        val screen = setScreen(OnboardingUiState.Browsing(PAGES_4, 0), adSlot = { OnboardingAdCard(it) })
+        assertEquals("slot height", 0f, bounds(OnboardingTestTags.AD_SLOT).height.value, 0.5f)
+        val withRealCard = bounds(OnboardingTestTags.NEXT)
+        screen.adSlot = NO_AD
+        composeRule.waitForIdle()
+        assertEquals("next top", bounds(OnboardingTestTags.NEXT).top, withRealCard.top)
+        // Control: a slot with content takes its height.
+        screen.adSlot = AD_BLOCK
+        composeRule.waitForIdle()
+        assertEquals("slot height with a block", 250f, bounds(OnboardingTestTags.AD_SLOT).height.value, 0.5f)
+    }
+
+    /** The card, left 24, 363 wide, as high as the step card of the framework; its bounds. */
+    private fun assertCard(top: Float): DpRect {
+        val card = bounds(OnboardingTestTags.AD_CARD)
+        assertDp("card left", 24f, card.left)
+        assertDp("card top", top, card.top)
+        assertDp("card width", 363f, card.width)
+        assertEquals("card height", stepHeight.value, card.height.value, 1f)
+        return card
+    }
+
+    /** Height of the step card read in composition, at the font scale of the test. */
+    private var stepHeight: Dp = 0.dp
+
+    /** A fake step card with the texts of the reference images of the framework (NativeAdCard_step_*). */
+    private val cardSlot: @Composable (OnboardingPage) -> Unit = {
+        stepHeight = NativeStepAdDefaults.height()
+        NativeAdCard(FAKE_AD, NativeAdSize.STEP, Modifier.fillMaxWidth().testTag(OnboardingTestTags.AD_CARD))
+    }
+
     // ---- Clicks and Back ----
 
     @Test
@@ -563,6 +794,15 @@ class OnboardingScreenTest {
 
         val PAGES_3 = listOf(INTRO, POSES, CAMERA)
         val PAGES_4 = listOf(INTRO, POSES, PREMIUM, CAMERA)
+
+        val FAKE_AD = NativeAdAssets(
+            headline = "Headline of the ad",
+            advertiser = "Advertiser",
+            body = "Body text of the ad. Up to three lines; the ad decides the words, the app decides the style.",
+            callToAction = "Install",
+            icon = null,
+            hasMedia = true,
+        )
 
         val NO_AD: @Composable (OnboardingPage) -> Unit = {}
         val AD_BLOCK: @Composable (OnboardingPage) -> Unit = {

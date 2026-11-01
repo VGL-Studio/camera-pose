@@ -1,16 +1,16 @@
 ---
 ticket: T-082
 title: Luồng giới thiệu 4 trang thay màn chào (chưa có quảng cáo)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay
 blocking_points: [analytics]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -551,6 +551,7 @@ Lúc soạn plan đã chạy:
    - Trả lời: căn giữa theo README. Nhật, 2026-11-01. Phiên ghi vào README của gói thiết kế (mục 8, phần T-082 đã sửa) rằng `context/OnboardingScreen_intro_light_unfolded.md` lệch, code theo README; test không khẳng định vị trí ngang ngoài "căn giữa".
 
 10. **Hai test emulator chỉ chạy sau merge (mới, phiên bản 3).** Từ ADR-0043, `pr-check` không chạy test emulator; `AppLaunchTest` và `SettingsNavigationTest` (đổi bước qua màn chào bằng `passOnboarding()`) chạy ở job `ui-test` của `main-guard` sau khi merge. Nếu `passOnboarding()` sai (ví dụ không chờ được nút "Tiếp" bật), nhánh chính đỏ ở `ui-test` và phiên revert theo ADR-0025. Kịch bản emulator mới và 7 tệp đã sửa chỉ chạy ở `device-session` cuối phiên. Đề xuất của AI: chấp nhận như mọi task đổi test emulator sau ADR-0043; giữ `passOnboarding()` đơn giản (vòng có giới hạn, chỉ trạng thái ổn định, CLAUDE.md bước 10), phiên chờ `ui-test` của commit merge trước task sau (bước 9). Cách khác: dev chạy `./gradlew :app:connectedStagingDebugAndroidTest` trên máy có emulator cho nhánh task trước khi merge (lệnh mà `scripts/ui-test-on-emulator.sh` của job `ui-test` chạy), là việc tay ngoài phiên tự chạy.
+   - Trả lời: chấp nhận, theo đề xuất của AI (phiên chờ `ui-test` của commit merge trước task kế tiếp). Nhật ủy quyền ngày 2026-11-01.
 
 **Rà soát độc lập phiên bản 2 (2026-10-31):** 0 điểm chặn, 5 điểm nên sửa, đã sửa cả 5 trong phiên bản 2:
 
@@ -580,8 +581,8 @@ Phiên bản 2:
 
 Phiên bản 3:
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Phiên bản 3 soạn lại sau đồng bộ #279, không đổi code, test hay tiêu chí. Câu 10 ở mục 8 theo đề xuất.
 
 ## 10. Nhật ký thực hiện

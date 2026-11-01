@@ -1,16 +1,16 @@
 ---
 ticket: T-082
 title: Luồng giới thiệu 4 trang thay màn chào (chưa có quảng cáo)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-10-31); không nâng tay
 blocking_points: [analytics]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -551,8 +551,8 @@ Phiên bản 1:
 
 Phiên bản 2:
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt, thêm vào phiên" khi AI hỏi, ngày 2026-11-01; T-082 vào RUN-20261031-02 sau T-085. Câu 1 tới 9 ở mục 8 đã trả lời (câu 3, 7, 8, 9 theo đề xuất).
 
 ## 10. Nhật ký thực hiện

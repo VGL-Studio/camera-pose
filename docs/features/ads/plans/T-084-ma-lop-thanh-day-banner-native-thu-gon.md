@@ -307,7 +307,7 @@ Rủi ro Cao, cần duyệt chéo (Tuấn và Nhật). Nhật là người phụ
 
 **Rà soát độc lập (2026-10-31, agent ngữ cảnh mới, chỉ đọc, trên `437e232`): 1 chặn, 4 nên sửa, 6 ghi chú.** Code ở mục 3.1 khớp code hiện tại (đối chiếu từng tên; chưa biên dịch thử).
 
-- **Chặn, chờ Nhật quyết:** tổ hợp 4 của câu 13 (câu 1 ở trên). Spec `confirmed` chốt tổ hợp mà khung không làm được, và ticket ghi "bốn tổ hợp" ở Định nghĩa hoàn thành. Theo `docs/ops/pre-run-review.md` mục 3, spec sai thì chuyển `changed`, không giải quyết bằng câu trả lời trong plan. Hai cách:
+- **Chặn, đã xử lý (2026-10-31):** Nhật chọn cách (a). Spec ads câu 13 đã sửa (3 cách hiện, tổ hợp tắt, bật ra banner) và xác nhận lại; Định nghĩa hoàn thành của ticket sửa theo. Plan giữ như hiện nay. Ghi chú gốc: tổ hợp 4 của câu 13 (câu 1 ở trên). Spec `confirmed` chốt tổ hợp mà khung không làm được, và ticket ghi "bốn tổ hợp" ở Định nghĩa hoàn thành. Theo `docs/ops/pre-run-review.md` mục 3, spec sai thì chuyển `changed`, không giải quyết bằng câu trả lời trong plan. Hai cách:
   - (a) sửa câu 13 của spec (tổ hợp 4 ra banner, không có lớp), chuyển `changed` rồi xác nhận lại; sửa dòng 2 của Định nghĩa hoàn thành của ticket; plan giữ như hiện nay;
   - (b) mở ticket riêng đổi luật D-01, đề xuất về dự án mẫu.
 - **Nên sửa, đã sửa trong bản này:**

@@ -1,16 +1,16 @@
 ---
 ticket: T-086
 title: Khóa tư thế premium ở thư viện, chi tiết, camera; mở bằng quảng cáo có thưởng `rw_premium_pose`
-status: stopped              # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # một lượt cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-11-01, 8 task cỡ L); không nâng tay; task cỡ L thật có thể lớn hơn nhiều (T-074 dùng 101M)
 blocking_points: [ads, analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -862,7 +862,7 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 
    - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
 13. **Chiều cao thẻ hộp thoại (mới, phiên bản 3).** Frame `PoseUnlockDialogScreen_*` vẽ nút "Để sau" cao 40 dp nên thẻ 288 dp; khung `:core:ads` giữ vùng chạm tối thiểu 48 dp của Material nên thẻ thật 296 dp. Hai hướng: (a) nhận thẻ 296, góc trên 297,5 (phiên bản 3 viết theo hướng này); (b) sửa frame cho nút "Để sau" cao 48, ghi lại `design/context/PoseUnlockDialogScreen_*`, rồi test lấy số mới của frame. Đổi khung `:core:ads` để nút cao 40 làm giảm vùng chạm (trợ năng) và đổi ảnh chuẩn `RewardedAdDialog*`, nên không đề xuất. Đề xuất của AI: (a), và người thiết kế sửa frame cho khớp khi rảnh.
-   - Trả lời:
+   - Trả lời: (a) nhận thẻ 296 dp, góc trên 297,5. Nhật, 2026-11-01, khi AI hỏi sau RUN-20261031-02.
 
 **Kết quả rà soát độc lập phiên bản 2 (2026-11-01, agent ngữ cảnh mới, chỉ đọc): 1 chặn, 9 nên sửa, 8 ghi chú. Đã sửa trong phiên bản 2:**
 
@@ -897,9 +897,9 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 
 Phiên bản 3:
 
-- **Quyết định:**
-- **Người duyệt:**, **duyệt chéo:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật chọn (a) ở câu 13 khi AI hỏi sau RUN-20261031-02 (2026-11-01). Phiên bản 3 chỉ đổi con số chiều cao thẻ hộp thoại ở mục 4 và thêm cách tiếp tục ở mục 3.1; phần còn lại giữ như phiên bản 2 đã duyệt, nên không rà soát độc lập lại. Plan rủi ro cao, người duyệt và duyệt chéo cùng là Nhật theo ủy quyền ngày 2026-11-01.
 
 ## 10. Nhật ký thực hiện
 

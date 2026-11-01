@@ -1,7 +1,7 @@
 ---
 ticket: T-080
 title: Ô quảng cáo trong lưới thư viện (`poses_in_collection`, tắt lúc phát hành); khung bỏ ô khi pool cạn
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 4                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -636,3 +636,20 @@ Phiên bản 4:
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261031-02, phiên bản plan 4
+
+- **Kết quả:** đã merge (2026-11-01 10:51 UTC, commit 96dd6a6 của nhánh).
+- **Nhánh, PR:** `claude/T-080-o-quang-cao-trong-luoi`, #287.
+- **Đã làm:** vị trí `POSES_IN_COLLECTION` (mặc định tắt, staging bật); ô native trong lưới thư viện sau thẻ 8, cao bằng thẻ tên một dòng; khung `InListAds` bỏ ô một-cột khi pool cạn, `adCellHeight`, `cardHeight`, `itemsWithFixedAds`; `PoseCardDefaults.oneLineHeight`; bảng khóa sinh lại; `ads-guide.md`; `manual-test.md` mục 11.5; ảnh chuẩn `PosesScreen_ad-collection_light`. Bước 3 đến 5 do phiên con làm trong worktree `../task-T-080`.
+- **Test viết trước:** 27 test mới (commit `8ce10e4`), 15 đã thất bại đúng lý do trên khung rỗng (ví dụ "card height expected:<308.0> but was:<300.0>", "could not find any node (TestTag = 'poses_ad_cell')"); test giữ hành vi kiểm bằng 4 đột biến của plan (L-108), đều đỏ đúng lý do, cộng 1 đột biến thêm (`release()` không đặt lại `poolEmpty`). Test viết chặt lại sau khi chạy: 0. `scripts/check.sh` qua: 2725 test JVM, 141 ảnh.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 7 ghi chú (mô tả PR #287): chữ dòng phụ thẻ 8 "Nhóm" so với "Gia đình" của frame (code đúng spec); lệch nhỏ 2 dp và 24 dp do thanh trạng thái; dòng thêm ở `manual-test.md`; hai test yếu (`fixedGridAds_savedAndGroupFilters_haveCell`, `poolCycle_reportsOncePerEntry`); sự kiện có thể lặp mỗi chu kỳ 2 giây; đề xuất phần khung về dự án mẫu.
+- **Kết quả CI:** `pr-check` xanh lần đầu (lần chạy 41298321824).
+- **Lệch so với plan:**
+  - Ngoài mục 3.2: không có.
+  - ADR-0032/L4: `InListAdsTest.grid_inCollection_everyBackAfterNull_cellsReturn` thêm câu kiểm "ô đã bị bỏ" nên đỏ thay vì xanh ngay; `everyNull_noCell` kiểm thêm thẻ 9; `poolCycle` có đối chứng trong test.
+  - ADR-0032/L5: dữ liệu `AdUnitIdsTest` xuống dòng.
+  - Thay đổi file test sau commit test: `InListAdsTest.grid_inCollection_everyBackAfterNull_cellsReturn` thêm `Snapshot.sendApplyNotifications()` (phần dựng khi đồng hồ dừng; câu khẳng định giữ, đối chứng đỏ); `PosesScreenScreenshotTest.adCollection_light` đặt `ready` cho cả 12 thẻ trước khi ghi ảnh chuẩn.
+  - `manual-test.md` thêm `is_show_poses_in_collection` vào danh sách khóa Firebase staging không đặt `false`.
+- **Việc còn lại:** đề xuất phần khung `core/ads` về dự án mẫu (`docs/ops/from-app.md`); sửa dòng phụ thẻ 8 trên frame thiết kế cho khớp spec.
+- **Cần người xem:** ảnh chuẩn `feature/poses/src/test/screenshots/PosesScreen_ad-collection_light.png`; bước tay 11.5 (ô quay lại sau khi pool có quảng cáo: trên JVM composition cũ có thể được dùng lại, chưa có test bắt điều này).

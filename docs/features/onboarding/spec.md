@@ -8,7 +8,7 @@ requests:
   - requests/2026-10-31-luong-gioi-thieu-nhieu-trang.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-31
+confirmed: 2026-11-01
 ---
 
 # SPEC: MÀN CHÀO VÀ XIN QUYỀN CAMERA
@@ -107,11 +107,11 @@ Thẻ ở mọi trang, kể cả trang cuối; không có trang quảng cáo to�
 Tiêu chí chấp nhận:
 
 - [ ] Khi vị trí `native_onboarding` bật và có quảng cáo thì thẻ native 250 dp hiện ở đáy vùng trang, ở mọi trang; nhãn "Ad" luôn thấy rõ.
-- [ ] Khi trang 1 hiện mà quảng cáo được phép (vị trí bật, người dùng đã đồng ý) và thẻ chưa có quảng cáo thì nút "Tiếp" mờ đi, không bấm được, tối đa 5 giây; quảng cáo về thì nút dùng được ngay; hết 5 giây mà chưa có thì nút dùng được, thẻ hiện khi quảng cáo về (câu 8).
-- [ ] Khi quảng cáo không được phép (vị trí tắt, người dùng từ chối đồng ý hay chưa trả lời hộp thoại đồng ý) thì trang 1 không chờ.
+- [ ] Khi trang 1 hiện mà quảng cáo được phép (vị trí bật, hộp thoại đồng ý đã cho nạp quảng cáo, kể cả khi người dùng chọn "Không đồng ý": khi đó quảng cáo không cá nhân hóa) và thẻ chưa có quảng cáo thì nút "Tiếp" mờ đi, không bấm được, tối đa 5 giây; quảng cáo về thì nút dùng được ngay; hết 5 giây mà chưa có thì nút dùng được, thẻ hiện khi quảng cáo về (câu 8).
+- [ ] Khi quảng cáo không được phép (vị trí tắt, đã mua gói bỏ quảng cáo, hay hộp thoại đồng ý chưa cho nạp quảng cáo: chưa trả lời, lỗi) thì trang 1 không chờ. Người dùng chọn "Không đồng ý" trên hộp thoại đồng ý vẫn được nạp quảng cáo không cá nhân hóa, nên vẫn có thẻ và trang 1 vẫn chờ (bộ đồng ý UMP của Google, câu 9).
 - [ ] Khi ở trang cuối thì thẻ không che nút "Bật camera" và dòng ghi chú về quyền; ở khung thấp `w360dp-h640dp` trang cuộn được để thấy đủ nội dung, nút luôn thấy được.
 - [ ] Khi chuyển trang thì thẻ đổi sang quảng cáo khác nếu pool còn quảng cáo.
-- [ ] Khi chưa có quảng cáo, không có quảng cáo hay người dùng chưa đồng ý quảng cáo thì chỗ của thẻ không làm nút "Tiếp" nhảy, và luồng đi tiếp bình thường.
+- [ ] Khi chưa có quảng cáo, không có quảng cáo hay hộp thoại đồng ý chưa cho nạp quảng cáo thì chỗ của thẻ không làm nút "Tiếp" nhảy, và luồng đi tiếp bình thường.
 - [ ] Khi chạm vào thẻ thì chỉ mở quảng cáo; vùng chạm của nút "Tiếp" không chồng lên thẻ.
 - [ ] Khi vị trí tắt (`is_show_native_onboarding` tắt) thì luồng không có thẻ, không có chỗ trống của thẻ.
 
@@ -223,6 +223,9 @@ Không có. Hình minh họa vẽ bằng thành phần của hệ thống thiế
 8. **Đồng ý quảng cáo ở lần mở đầu tiên.** Hộp thoại đồng ý của khung hiện ở lần mở đầu, trước hay trong luồng giới thiệu. Người dùng chưa trả lời thì chưa nạp được quảng cáo, nên thẻ ở trang 1 có thể chưa có quảng cáo.
    - Đề xuất của AI: chấp nhận. Khung nạp pool khi đồng ý xong, thẻ hiện từ trang có quảng cáo. Plan kiểm thứ tự hộp thoại đồng ý, màn loading và luồng trên máy thật.
    - Trả lời: trang 1 chờ quảng cáo, tối đa 5 giây, chỉ khi quảng cáo được phép; nút "Tiếp" mờ đi trong lúc chờ. Nhật, 2026-10-31 (KB-6).
+9. **"Không đồng ý" trên hộp thoại đồng ý có phải là không được phép không?** (mới, sau RUN-20261031-02.) Bộ đồng ý UMP của Google coi "Do not consent" là đã trả lời: vẫn cho nạp quảng cáo không cá nhân hóa. Emulator của `device-session` cho thấy điều này (log `Consent path: GRANTED` sau khi chạm "Do not consent", interstitial vẫn hiện).
+   - Đề xuất của AI: hiểu "được phép" theo UMP, không đổi khung `:core:ads`. "Không được phép" chỉ khi vị trí tắt, đã mua gói bỏ quảng cáo, hay UMP chưa cho nạp (chưa trả lời, lỗi).
+   - Trả lời: theo đề xuất của AI. Nhật, 2026-11-01 (KB-6 tiêu chí 2, 3, 6 sửa lời).
 
 ## 10. Lịch sử
 
@@ -232,3 +235,4 @@ Không có. Hình minh họa vẽ bằng thành phần của hệ thống thiế
 | 2026-10-22 | AI | Theo quyết định của Nhật (cùng quy tắc với spec `camera`, KB-7, và plan T-026): chỉ ghi `camera_permission_result` khi hộp hỏi quyền hiện ra; không ghi khi quyền đã bị từ chối vĩnh viễn (KB-1, KB-2, mục 6). Chờ xác nhận lại |
 | 2026-10-31 | AI | Yêu cầu của Nhật (`requests/2026-10-31-luong-gioi-thieu-nhieu-trang.md`): luồng giới thiệu 3 đến 5 trang có thẻ native `native_onboarding` (mục 2, KB-5, KB-6, mục 4, 5, 6, 8; câu 4 tới 8). Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-10-31 | Nhật | Trả lời câu 4 tới 8 (AI ghi, cùng phiên). Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-11-01 | Nhật | Sau RUN-20261031-02 (AI ghi, cùng phiên): emulator cho thấy chọn "Do not consent" trên hộp thoại UMP vẫn cho nạp quảng cáo không cá nhân hóa (`canRequestAds` đúng, log `Consent path: GRANTED`, interstitial vẫn hiện). Nhật chọn hiểu "được phép" theo UMP: KB-6 tiêu chí 2, 3, 6 sửa lời; "Không đồng ý" vẫn có thẻ và trang 1 vẫn chờ. Giữ `confirmed` |

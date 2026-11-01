@@ -1,16 +1,16 @@
 ---
 ticket: T-088
 title: Bỏ cờ `feature_camera_enabled` (không còn tác dụng từ T-081)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 7.1M         # cỡ S theo số gợi ý của scripts/token-usage.py estimate (2026-10-31, 27 task); không nâng tay
 blocking_points: [core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -20,7 +20,7 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 
 Bỏ `FeatureFlag.CAMERA` (`feature_camera_enabled`) khỏi `:core:config`, bỏ hàm `camera()` của `StagingFeatureFlagsModule`, bỏ `FeatureFlag.CAMERA` khỏi dữ liệu của `MainScreenTest`, sinh lại bảng khóa. Từ T-081 không code nào đọc cờ này: sau màn chào, hay khi màn chào không áp dụng, app luôn mở camera (plan T-081, câu 1). Người dùng không thấy gì khác.
 
-Spec camera mục 8 bỏ dòng cờ và thêm một dòng lịch sử. Spec chuyển `changed`, chờ Nhật xác nhận lại (câu 1 ở mục 8).
+Spec camera mục 8 **không sửa** (Nhật chọn ở câu 1, 2026-11-01): dòng cờ hiện tại đã đúng sau task ("Từ T-081 không còn tác dụng ... Cờ bỏ khỏi code ở T-088"), spec giữ `confirmed`; dòng bỏ ở lần sửa spec camera sau.
 
 Kiểm chứng:
 
@@ -37,7 +37,7 @@ Ticket không xử lý kịch bản mới (`scenarios: []`). Nó dựa trên:
 
 | Nguồn | Nội dung | Cách hiểu của AI |
 | --- | --- | --- |
-| `features/camera/spec.md` (confirmed 2026-10-31), mục 8 | `feature_camera_enabled`: "Từ T-081 không còn tác dụng ... Cờ bỏ khỏi code ở T-088" | Bỏ khai báo cờ, dòng staging, bảng khóa. Dòng của mục 8 bỏ theo, vì spec chỉ liệt kê cờ có thật |
+| `features/camera/spec.md` (confirmed 2026-10-31), mục 8 | `feature_camera_enabled`: "Từ T-081 không còn tác dụng ... Cờ bỏ khỏi code ở T-088" | Bỏ khai báo cờ, dòng staging, bảng khóa. Dòng của mục 8 giữ nguyên ở task này (câu 1: đã ghi cờ bỏ ở T-088), spec giữ `confirmed` |
 | Plan T-081 (approved), câu 1 và mục 3.1 | `MainScreenChooser` không đọc cờ camera nữa; `FeatureFlag.CAMERA` và `camera()` giữ tới T-088; mô tả cờ đổi thành "No longer read: ... removed in T-088." | Sau T-081, `FeatureFlag.CAMERA` chỉ còn ở `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, `MainScreenTest.kt`, hai tệp bảng khóa, và chữ `feature_camera_enabled` trong KDoc của `MainScreenChooser.kt` do T-081 viết (không đọc cờ) |
 | Ticket T-088, Không bao gồm | Khóa trên Firebase staging, production người xóa tay sau khi bản không đọc cờ đã phát hành | Plan không gọi Firebase, không đổi cấu hình production |
 
@@ -122,17 +122,8 @@ Code của `inputs()` không đổi.
 - `docs/remote-config-template.json` mất đúng một khối `"feature_camera_enabled": { ... },` (5 dòng);
 - không đổi gì khác. Phiên so bằng `git diff --stat` và `git diff` của hai tệp. Không sửa tay.
 
-**Spec camera, mục 8 (đề xuất, câu 1 ở mục 8).** Bảng cờ bỏ dòng:
+**Spec camera, mục 8.** Không sửa trong task này (câu 1, Nhật chọn giữ dòng, spec giữ `confirmed`).
 
-```markdown
-| `feature_camera_enabled` | tắt | Từ T-081 không còn tác dụng: sau màn chào (hay khi màn chào không áp dụng) app luôn mở camera. Cờ bỏ khỏi code ở T-088. Trước T-081: bật để dùng camera làm màn chính |
-```
-
-Bảng còn `feature_pose_matching_enabled`, `feature_in_app_review_enabled`, `is_show_review_interstitial`. Frontmatter `status: confirmed` thành `status: changed`; dòng `confirmed:` giữ nguyên. Lịch sử thêm ở cuối:
-
-```markdown
-| <ngày của phiên> | AI | Mục 8: bỏ dòng `feature_camera_enabled`, cờ đã bỏ khỏi code và bảng khóa ở T-088 (plan T-088). App luôn mở camera từ T-081. Khóa trên Firebase người xóa tay sau khi bản không đọc cờ đã phát hành. Chuyển `changed`, chờ Nhật xác nhận lại |
-```
 
 Dòng lịch sử cũ ngày 2026-10-31 nhắc cờ giữ nguyên (lịch sử không sửa).
 
@@ -151,7 +142,6 @@ Dòng lịch sử cũ ngày 2026-10-31 nhắc cờ giữ nguyên (lịch sử kh
 | Sửa | `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/navigation/MainScreenTest.kt` | Bỏ `FeatureFlag.CAMERA` khỏi dữ liệu; viết lại `chooser_cameraFlagOn_choosesCamera` (tên mới `chooser_everyOtherFlagOn_choosesCamera`); thêm `noCameraFlag` (mục 3.5, 4) |
 | Sửa | `docs/remote-config-keys.md` | Sinh lại: mất dòng `feature_camera_enabled` |
 | Sửa | `docs/remote-config-template.json` | Sinh lại cùng lệnh: mất khối `feature_camera_enabled` |
-| Sửa | `docs/features/camera/spec.md` | Mục 8 bỏ dòng cờ; `status: changed`; một dòng lịch sử (mục 3.1, câu 1) |
 | Sửa | `docs/features/camera/tickets/T-088-bo-co-camera.md` | Trạng thái theo phiên (`on-staging` hay `stopped`) |
 | Sửa | `docs/features/camera/plans/T-088-bo-co-camera.md` | Nhật ký thực hiện |
 
@@ -167,7 +157,6 @@ Nơi đọc các file bị đổi (`docs/CLAUDE.md`, mục Khi viết plan):
   - `scripts/ads-plan.py` đọc mọi dòng của bảng, không đếm số khóa: không đổi.
   - `scripts/tests/run.sh` nhắc `docs/remote-config-keys.md` ở khối `ads-plan`. Khối đó tự dựng bảng giả trong repo giả, còn với repo thật chỉ kiểm tệp có tồn tại và đếm vị trí quảng cáo, không đếm cờ. Không ảnh hưởng.
   - `app/build.gradle.kts` chỉ nêu đường dẫn hai tệp: không đổi.
-- `docs/features/camera/spec.md`: `scripts/tests/run.sh` chỉ dựng `features/demo/spec.md` giả trong repo giả, không đọc spec camera thật: không ảnh hưởng. `scripts/status.py`, `scripts/plan-queue.py` đọc `status` của spec. Spec `changed` thì `plan-queue.py` không soạn plan cho ticket camera tới khi Nhật xác nhận lại (câu 1).
 
 ### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
 
@@ -217,7 +206,6 @@ Sau task `MainScreenTest` có 14 test: 13 test sau T-081, một test viết lạ
 | Bảng khóa khớp code, chỉ mất `feature_camera_enabled` | Unit test có sẵn, kiểm tra bằng lệnh | `RemoteConfigKeysTest` qua sau khi sinh lại. `git diff origin/main -- docs/remote-config-keys.md docs/remote-config-template.json` chỉ có dòng xóa: 1 dòng ở tệp `.md`, 5 dòng ở tệp `.json`. Ghi `git diff --stat` vào nhật ký |
 | Không còn tên cờ trong code | Kiểm tra bằng lệnh | `git grep -n "FeatureFlag.CAMERA\|feature_camera_enabled" -- app core feature scripts .github docs/remote-config-keys.md docs/remote-config-template.json` chỉ còn hai dòng chuỗi của `MainScreenTest.noCameraFlag` (`"feature_camera_enabled must not come back"` và `it.key == "feature_camera_enabled"`). Ghi kết quả vào nhật ký |
 | Bản staging build được, đồ thị Hilt hợp lệ khi bỏ `camera()` | Build | `scripts/check.sh` (biên dịch `:app` staging và chạy `:app:testStagingDebugUnitTest`) |
-| Spec camera mục 8 không còn dòng cờ, đã xác nhận lại | Kiểm tra thủ công (người: Nhật xác nhận spec) | Nhật đọc mục 8 và dòng lịch sử mới, chuyển spec lại `confirmed` (câu 1). Phiên ghi một dòng `- [ ]` ở mục Cần người kiểm tra của báo cáo |
 | Mở app staging sau loading vẫn vào màn chào hay camera | Unit test có sẵn, emulator test có sẵn | `MainScreenTest`; `app/src/androidTest` (`AppLaunchTest`) không đọc cờ camera, chạy ở `ui-test` của CI như mọi PR |
 
 **Thứ tự commit (L-025 của mẫu):**
@@ -230,15 +218,13 @@ Sau task `MainScreenTest` có 14 test: 13 test sau T-081, một test viết lạ
   Khi `CAMERA` còn trong enum, mọi test biên dịch được. `noCameraFlag` đỏ. `chooser_everyOtherFlagOn_choosesCamera` qua ngay, vì chooser sau T-081 đã không đọc cờ nào khác; giữ làm test chặn, kèm đối chứng ở mục 3.5. Các test còn lại qua.
 - Commit code (bước 4):
   - `FeatureFlag.kt`, `StagingFeatureFlagsModule.kt`, chú thích `MainScreenChooser.kt`;
-  - hai tệp bảng khóa sinh lại;
-  - spec camera mục 8.
+  - hai tệp bảng khóa sinh lại.
 
 **Ngoại lệ viết test trước:**
 
 - Bỏ `camera()` của `StagingFeatureFlagsModule`: một dòng nối của Hilt, không có hành vi riêng để kiểm; build `:app` staging kiểm nó.
 - Chú thích của `MainScreenChooser`: không có hành vi.
 - Hai tệp bảng khóa: sinh từ code; `RemoteConfigKeysTest` kiểm.
-- Spec camera mục 8: tài liệu, người xác nhận.
 
 ### 4.1. Chạy thử
 
@@ -300,8 +286,11 @@ Không cần (E dưới 2). Task bỏ một dòng enum và một hàm Hilt theo 
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt" khi AI hỏi, ngày 2026-11-01, và đưa T-088 vào RUN-20261031-02 làm task 5. Trả lời mục 8:
+  - câu 1: giữ dòng cờ ở spec camera mục 8 (đã đúng sau task), spec giữ `confirmed`; task không sửa spec; ticket sửa theo;
+  - câu 2: giữ ví dụ trong `docs/ops/remote-config.md`;
+  - câu 3: xóa khóa trên Firebase staging sau khi task lên staging, production sau bản production đầu tiên có T-081 (việc của người, phiên ghi dòng `- [ ]` trong báo cáo).
 
 ## 10. Nhật ký thực hiện

@@ -1,16 +1,16 @@
 ---
 ticket: T-081
 title: Bỏ `:feature:sample`, vị trí `sample_native_small` và cờ `feature_sample_enabled`
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9.0M         # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-11-01); không nâng tay
 blocking_points: [ads, analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-11-01
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -482,9 +482,9 @@ Ghi chú đã áp: số file đổi tên 30, `AdTelemetryTest` 32 chỗ khớp; 
 
 Phiên bản 2:
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt" khi AI hỏi, ngày 2026-11-01. Phiên bản 2 soạn lại sau đồng bộ #279, sửa theo rà soát độc lập (0 chặn, 3 nên sửa); câu trả lời mục 8 giữ như phiên bản 1.
 
 ## 10. Nhật ký thực hiện
 

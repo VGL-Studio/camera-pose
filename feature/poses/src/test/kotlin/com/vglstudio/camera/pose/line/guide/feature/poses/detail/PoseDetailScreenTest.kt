@@ -671,12 +671,14 @@ class PoseDetailScreenTest {
                 }
             }
         }
-        // Design: the card is 312 x 288 at (50, 302) of the 411 x 891 frame, centred.
+        // Design: the card is 312 x 288 at (50, 302) of the 411 x 891 frame, centred. The framework keeps the
+        // 48 dp touch target of "No, thanks" (the frame draws it 40 dp tall), so the card is 296 tall at 297.5
+        // (plan T-086 version 3, question 13).
         val card = composeRule.onNodeWithTag(RewardedAdDialogTestTags.CARD).getUnclippedBoundsInRoot()
         assertEquals(312f, card.width.value, 1f)
-        assertEquals(288f, card.height.value, 1f)
+        assertEquals(296f, card.height.value, 1f)
         assertEquals(49.5f, card.left.value, 1f)
-        assertEquals(302f, card.top.value, 1f)
+        assertEquals(297.5f, card.top.value, 1f)
     }
 
     private fun ready(

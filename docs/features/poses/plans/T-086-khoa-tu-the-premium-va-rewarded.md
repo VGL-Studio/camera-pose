@@ -5,7 +5,7 @@ status: draft                # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
-token_estimate: 39.4M        # một lượt cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-11-01, 8 task cỡ L); không nâng tay
+token_estimate: 39.4M        # một lượt cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-11-01, 8 task cỡ L); không nâng tay; task cỡ L thật có thể lớn hơn nhiều (T-074 dùng 101M)
 blocking_points: [ads, analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer:                    # người duyệt
@@ -54,6 +54,12 @@ Kiểm chứng gồm:
      - F-08 (T-055 của mẫu): activity không dùng được lúc hiện thì lượt kết thúc như không có quảng cáo, chặn với vị trí này.
    - Lệnh xem ảnh chuẩn đổi thành `git status --short -- '*/src/test/screenshots/*'` (mục 7). Bộ build mới (AGP 9) không đổi gì cho plan: `:feature:poses` vẫn biên dịch được với `:core:ads` không thêm phụ thuộc (chạy thử lại, mục 4.1).
    - Chạy thử lại trên `origin/main` `9af5928` (mục 4.1). `scripts/existing-tests.py` chạy lại (mục 3.5).
+4. **Rà soát độc lập phiên bản 2 (2026-11-01): 1 chặn, 9 nên sửa, 8 ghi chú, đã sửa trong phiên bản này** (kết quả ở cuối mục 8):
+   - Phần nối của camera tách thành `LockedPoseUnlock.kt`, có test với `PoseViewModel` thật; `PoseDetailRoute` dựng được trong test (chạy thử).
+   - `PremiumBadge` có tham số `contentDescription`; ô camera truyền `null` để TalkBack không đọc trùng (chạy thử trên cây ngữ nghĩa và `AccessibilityNodeInfo`).
+   - Kịch bản emulator đi qua luồng giới thiệu của T-082 (kiểm bằng `device-scenario.py check`).
+   - `ads-guide.md` chỉ giữ phần chung; đổi `RewardedAdDialogCard` ghi vào `docs/template-sync.txt`.
+   - Thêm hai test; ticket bỏ câu "chia hai lượt" (sửa trong PR của plan); `unit/14` thống nhất.
 
 ## 2. Hiểu yêu cầu
 
@@ -126,7 +132,13 @@ Gói: `com.vglstudio.camera.pose.line.guide.core.poses.PremiumPoseRepository`, `
 
 Không khai báo `noAdPolicy` (câu 8). `scripts/release.sh` và `scripts/ads-plan.py` đọc dòng một-dòng và chú thích ngay trên, nên không sửa script.
 
-**`RewardedAction.kt` (mục 8, câu 4).** Đổi `internal fun RewardedAdDialogCard(...)` thành công khai, thêm vào KDoc "Public for previews and screenshot tests; screens use [RewardedAdDialog]". Lý do: feature không dựng được hộp thoại thật trong test (không có `AdsController` thì `start()` chạy hành động ngay, và `RewardedAction` có hàm dựng `internal`), nên ảnh thiết kế của hộp thoại chỉ so được bằng thẻ không trạng thái này. Không đổi hành vi, không đổi ảnh chuẩn của khung. Tệp không đổi ở #279 (đã so `git diff 4a5ee7e 9af5928`).
+**`RewardedAction.kt` (mục 8, câu 4).** Đổi `internal fun RewardedAdDialogCard(...)` thành công khai, thêm vào KDoc "Public for previews and screenshot tests; screens use [RewardedAdDialog]". Lý do: feature không dựng được hộp thoại thật trong test (không có `AdsController` thì `start()` chạy hành động ngay, và `RewardedAction` có hàm dựng `internal`), nên ảnh thiết kế của hộp thoại chỉ so được bằng thẻ không trạng thái này. Không đổi hành vi, không đổi ảnh chuẩn của khung. Tệp không đổi ở #279 (đã so `git diff 4a5ee7e 9af5928`). `RewardedAction.kt` là tệp của dự án mẫu (`docs/ops/to-app.md` của mẫu, mục 2): đợt đồng bộ sau phải giữ chữ `fun RewardedAdDialogCard` không có `internal`. Plan ghi điều này vào đoạn chú thích "App values kept inside template files after each sync" của `docs/template-sync.txt` (chỉ thêm một dòng chú thích `#`, không chạm dòng `base=` hay `hold=`, ADR-0030):
+
+```text
+# core/ads RewardedAction.kt: RewardedAdDialogCard is public (plan T-086, screenshot of the unlock dialog); keep it.
+```
+
+**`docs/ops/ads-guide.md`** (tệp của mẫu): chỉ thêm phần chung, để đề xuất về mẫu: dòng Rewarded của mục 5 thêm "thẻ `RewardedAdDialogCard` công khai cho ảnh chuẩn của hộp thoại" và "app dịch ba chuỗi trong `values-<ngôn ngữ>` của `:app`, kèm chuỗi gốc tiếng Anh ở `values/` và `app_name` `translatable="false"` (lint `ExtraTranslation`, `MissingTranslation`)". Không ghi tên vị trí hay ticket của app vào tệp này.
 
 **`:core:designsystem`** (số đo: `features/poses/design/README.md` mục 4; `context/PosesScreen_premium_light.md`, `PoseDetailScreen_premium_light.md`, `features/camera/design/context/CameraScreen_premium_dark.md`):
 
@@ -143,15 +155,23 @@ Không khai báo `noAdPolicy` (câu 8). `scripts/release.sh` và `scripts/ads-pl
       Inline(20.dp, 14.dp),
   }
 
-  /** The premium mark of a pose not unlocked yet (spec poses, KB-8): never blurs or covers the pose image. */
+  /**
+   * The premium mark of a pose not unlocked yet (spec poses, KB-8): never blurs or covers the pose image.
+   * [contentDescription] is null where the parent already says "premium" (a camera cell), so TalkBack does not
+   * read it twice.
+   */
   @Composable
-  fun PremiumBadge(size: PremiumBadgeSize, modifier: Modifier = Modifier)
+  fun PremiumBadge(size: PremiumBadgeSize, contentDescription: String?, modifier: Modifier = Modifier)
 
   const val PREMIUM_BADGE_TAG = "pose_premium_badge"
   ```
 
-  Vòng `CircleShape`, nền `tertiaryContainer`, viền `Stroke.sticker` màu `outline`; icon `ic_premium` màu `onTertiaryContainer`, cỡ `size.icon`, ở giữa. `Modifier.semantics { contentDescription = premium_badge_label }` và `testTag(PREMIUM_BADGE_TAG)` trên vòng. Màu theo theme: chế độ tối của camera cho nền `#6B1D35`, viền trắng, icon `#FFD6E2` đúng `context/` (không viết cứng mã màu).
-- `PoseCard.kt`: tham số cuối `premium: Boolean = false`. `true` thì vẽ `PremiumBadge(PremiumBadgeSize.Card)` trong `Box` của ảnh, `Modifier.align(Alignment.TopStart).offset(x = PremiumOffsetX, y = PremiumOffsetY)` với `PremiumOffsetX = 6.dp`, `PremiumOffsetY = 10.dp`. Chú thích: "Design: the 32 dp badge sits at (6, 10) in the image, its centre mirroring the 36 dp save circle (48 dp area 2 dp outside the top right corner)". Dấu không nhận chạm, nên chạm vào dấu rơi vào thẻ. `PoseCardSkeleton` không đổi. Mặc định `false` giữ mọi ảnh chuẩn cũ.
+  Vòng `CircleShape`, nền `tertiaryContainer`, viền `Stroke.sticker` màu `outline`; icon `ic_premium` màu `onTertiaryContainer`, cỡ `size.icon`, ở giữa, `contentDescription = null`. `testTag(PREMIUM_BADGE_TAG)` trên vòng; `contentDescription` khác `null` thì thêm `Modifier.semantics { this.contentDescription = it }`. Đây là code đã chạy thử (mục 4.1). Màu theo theme: chế độ tối của camera cho nền `#6B1D35`, viền trắng, icon `#FFD6E2` đúng `context/` (không viết cứng mã màu).
+  Ai truyền gì (trợ năng, L-004; đo ở mục 4.1):
+  - `PoseCard` truyền `premium_badge_label`: thẻ là node gộp (`clickable`), chữ tên và dòng phụ là `text`, nên TalkBack đọc tên, dòng phụ rồi "Tư thế premium" một lần.
+  - `PoseThumb` truyền `null`: ô đã có `contentDescription` riêng `camera_cd_thumb_premium` ("…, premium, chạm để mở khóa"); truyền nhãn thì node gộp có hai mô tả và TalkBack đọc "premium" hai lần (đối chứng của chạy thử).
+  - Dòng phụ ở chi tiết truyền `premium_badge_label` (dòng phụ không phải node gộp).
+- `PoseCard.kt`: tham số cuối `premium: Boolean = false`. `true` thì vẽ `PremiumBadge(PremiumBadgeSize.Card)` trong `Box` của ảnh, `Modifier.align(Alignment.TopStart).offset(x = PremiumOffsetX, y = PremiumOffsetY)` với `PremiumOffsetX = 6.dp`, `PremiumOffsetY = 10.dp`. Chú thích: "Design: the 32 dp badge sits at (6, 10) in the image, its centre mirroring the 36 dp save circle (48 dp area 2 dp outside the top right corner)". `contentDescription = stringResource(R.string.premium_badge_label)`. Dấu không nhận chạm, nên chạm vào dấu rơi vào thẻ. `PoseCardSkeleton` không đổi. Mặc định `false` giữ mọi ảnh chuẩn cũ.
 - `component/PremiumUnlockContent.kt` (mới): `@Composable fun PremiumUnlockContent(poseName: String, modifier: Modifier = Modifier)`: `Column(verticalArrangement = spacedBy(Spacing.sm))` gồm tên tư thế (`titleMedium`, `onSurface`) và `premium_unlock_message` (`bodyMedium`, `onSurfaceVariant`). Đúng `context/PoseUnlockDialogScreen_default_light.md`: tên 24 cao, lời 40 cao, cách 8. Dùng làm `content` của `RewardedAdDialog` ở chi tiết và camera, để chữ chỉ dịch một lần.
 - `res/drawable/ic_premium.xml` (mới): vector 24 dp `workspace_premium` của Material Symbols (Apache 2.0, như các icon đã có), vẽ ở cỡ `size.icon`.
 - Chuỗi mới trong `values/strings.xml` và 6 thư mục ngôn ngữ (bảng ở cuối phần A).
@@ -258,12 +278,12 @@ Không khai báo `noAdPolicy` (câu 8). `scripts/release.sh` và `scripts/ads-pl
     - `val unlock = rememberRewardedAction(AdPlacement.RW_PREMIUM_POSE, onGranted = viewModel::onUnlockGranted)`.
     - `LaunchedEffect(viewModel) { viewModel.openCamera.collect { currentOnShootWithPose(it) } }`: điều hướng chạy trong `LaunchedEffect` của composition, trên luồng chính (L-030). Mở khóa xong thì không qua `inter_pose_detail` (mục 8, câu 5).
     - `RewardedAdDialog(unlock, title = stringResource(DesignR.string.premium_unlock_title)) { PremiumUnlockContent(poseName = ...) }`, với tên tư thế lấy từ `uiState` (`Ready.pose.name.resolve(screenLocale())`), không có `Ready` thì chuỗi rỗng.
-    - `PoseDetailScreen` nhận thêm `onUnlock = unlock::start`, `onUnlockFailedShown`.
+    - `PoseDetailScreen` nhận thêm `onUnlock: () -> Unit = {}`, `onUnlockFailedShown: () -> Unit = {}` (có mặc định, nên các test và ảnh chuẩn đang gọi `PoseDetailScreen` không đổi); route truyền `onUnlock = unlock::start`, `onUnlockFailedShown = viewModel::onUnlockFailedShown`.
   - `PoseDetailScreen` hiện snackbar `poses_unlock_failed` khi `unlockFailed`, như `saveFailed`.
   - `PoseDetailTestTags.UNLOCK = "pose_detail_unlock"`.
 - `PoseDetailComponents.kt`:
   - `PoseDetailBottomBar(locked: Boolean, onShoot, onUnlock)`: khóa thì `PrimaryButton(text = poses_detail_unlock, icon = painterResource(R.drawable.ic_poses_smart_display), onClick = onUnlock, modifier = ...testTag(UNLOCK))`; không khóa thì nút cũ. Cùng chỗ, cùng cỡ (`context/PoseDetailScreen_premium_light.md`: nút 379 x 60 ở y 811, icon 20, chữ `titleMedium`, như nút chụp).
-  - `PoseDetailMeta(pose, locked)`: khóa thì `Row(verticalAlignment = CenterVertically)` gồm `PremiumBadge(PremiumBadgeSize.Inline)`, `Spacer(Modifier.width(Spacing.sm))`, rồi chữ dòng phụ như cũ (`context/`: dấu 20 ở x 16, chữ ở x 44).
+  - `PoseDetailMeta(pose, locked)`: khóa thì `Row(verticalAlignment = CenterVertically)` gồm `PremiumBadge(PremiumBadgeSize.Inline, contentDescription = stringResource(DesignR.string.premium_badge_label))`, `Spacer(Modifier.width(Spacing.sm))`, rồi chữ dòng phụ như cũ (`context/`: dấu 20 ở x 16, chữ ở x 44).
   - `PhoneDetailLayout`, `WideDetailLayout` truyền tiếp `locked`, `onUnlock`.
 - `res/drawable/ic_poses_smart_display.xml` (mới): vector 24 dp `smart_display` của Material Symbols, như `ic_poses_photo_camera.xml`.
 
@@ -341,7 +361,7 @@ Năm ngôn ngữ còn lại:
         ?: ready.defaultPose
     ```
 
-    Tư thế được yêu cầu (từ chi tiết) chỉ tới sau khi đã mở khóa, nên nhánh khóa của nó chỉ là phòng hờ. `onRequestedPose` (khóa được đặt sau khi mở) làm tương tự: `access.isLocked(pose)` thì log warn, giữ tư thế hiện tại.
+    Tư thế được yêu cầu (từ chi tiết) chỉ tới sau khi đã mở khóa, nên nhánh khóa của nó chỉ là phòng hờ. `onRequestedPose` (khóa được đặt sau khi mở) làm tương tự: `access.isLocked(pose)` thì log warn, giữ tư thế hiện tại. Camera là đích mới mở từ chi tiết, nên `PoseViewModel` mới đọc `access.first()` trong `onLibraryReady` trước `onRequestedPose`: giá trị đó đã có tư thế vừa mở (DataStore ghi xong trước khi chi tiết điều hướng), nên tư thế được yêu cầu không bị coi là khóa.
   - `onPoseSelect(id)`: `access.isLocked(pose)` thì không chọn, trả về (phòng hờ; ô khóa gọi `onLockedPoseSelect`).
   - `fun onLockedPoseSelect(id: String)`: tư thế có trong catalog và `access.isLocked(pose)` thì `savedStateHandle[KEY_UNLOCK_POSE_ID] = id`, `publish()` (để `unlockPrompt` có tên), log `"Locked pose tapped"`. Không chọn, không ghi `pose_selected`. Tư thế không khóa (vừa mở ở nơi khác) thì như `onPoseSelect`.
   - `fun onUnlockGranted()`:
@@ -391,13 +411,47 @@ Năm ngôn ngữ còn lại:
   - `publish()`: `PoseThumbItem(..., locked = access.isLocked(it))`; `unlockPrompt` từ `KEY_UNLOCK_POSE_ID` và tên tư thế (`name.resolve()`).
   - `EVENT_PREMIUM_POSE_UNLOCKED = "premium_pose_unlocked"`, `SOURCE_CAMERA = "camera"`, `KEY_UNLOCK_POSE_ID = "unlockPoseId"`.
 - `PosePicker.kt`: `PoseActions` thêm `val onLockedPoseSelect: (String) -> Unit = {}`. Trong `PoseStrip`, ô khóa có `onClick = { actions.onLockedPoseSelect(item.id) }`, `premium = true`, `contentDescription = camera_cd_thumb_premium` (ô lỗi tải ảnh vẫn dùng chuỗi lỗi; ô khóa mà ảnh lỗi: chạm vẫn mở hộp thoại, và tải lại ảnh như cũ).
-- `PoseThumb.kt` (`:core:designsystem`): tham số cuối `premium: Boolean = false`; `true` thì vẽ `PremiumBadge(PremiumBadgeSize.Thumb, Modifier.align(Alignment.TopStart).offset(x = -BadgeOffset, y = -BadgeOffset))`, đối xứng `SelectedBadge` (`BadgeOffset = 7.dp` có sẵn; `context/CameraScreen_premium_dark.md`: dấu 22 ở (-7, -7) của ô 64). Ô khóa thường không phải ô đang chọn; tư thế đang dùng trở thành khóa giữa phiên (cờ bật từ xa) thì ô có cả hai dấu, ở hai góc, không chồng nhau.
+- `PoseThumb.kt` (`:core:designsystem`): tham số cuối `premium: Boolean = false`; `true` thì vẽ `PremiumBadge(PremiumBadgeSize.Thumb, contentDescription = null, Modifier.align(Alignment.TopStart).offset(x = -BadgeOffset, y = -BadgeOffset))`, đối xứng `SelectedBadge` (`BadgeOffset = 7.dp` có sẵn; `context/CameraScreen_premium_dark.md`: dấu 22 ở (-7, -7) của ô 64). Ô khóa thường không phải ô đang chọn; tư thế đang dùng trở thành khóa giữa phiên (cờ bật từ xa) thì ô có cả hai dấu, ở hai góc, không chồng nhau.
+- `pose/LockedPoseUnlock.kt` (mới, rà soát độc lập, điểm chặn): phần nối của ô khóa, tách khỏi `CameraRoute` để test được (không test nào dựng `CameraRoute`: cần bốn ViewModel Hilt, `CameraController`, `PoseFrameSource`):
+
+  ```kotlin
+  /** The unlock of a locked cell (spec poses, KB-8; camera KB-1, criterion 8): the rewarded action and the tap. */
+  @Stable
+  internal class LockedPoseUnlock(private val action: State<RewardedAction>, private val hold: (String) -> Unit) {
+      val rewarded: RewardedAction get() = action.value
+
+      /** Holds [id] in the view model first, so an action that runs at once (key off, consent closed) reads it. */
+      fun select(id: String) {
+          hold(id)
+          action.value.start()
+      }
+  }
+
+  @Composable
+  internal fun rememberLockedPoseUnlock(viewModel: PoseViewModel): LockedPoseUnlock {
+      val action = rememberRewardedAction(AdPlacement.RW_PREMIUM_POSE, onGranted = viewModel::onUnlockGranted)
+      val current = rememberUpdatedState(action)
+      return remember(viewModel) { LockedPoseUnlock(current, viewModel::onLockedPoseSelect) }
+  }
+
+  /** The dialog of [unlock]; inside the dark theme of the camera. */
+  @Composable
+  internal fun LockedPoseUnlockDialog(unlock: LockedPoseUnlock, poseName: String?) {
+      RewardedAdDialog(unlock.rewarded, title = stringResource(DesignR.string.premium_unlock_title)) {
+          PremiumUnlockContent(poseName = poseName.orEmpty())
+      }
+  }
+  ```
+
+  `rememberUpdatedState` giữ `RewardedAction` mới nhất cho `PoseActions` đã `remember` (ghi chú của rà soát). Cách nối này (ViewModel giữ tư thế rồi `start()`, không có `LocalAdsController` thì chạy ngay) đã chạy thử với `PoseViewModel` thật và kho giả (mục 4.1).
 - `CameraScreen.kt`, `CameraRoute`:
-  - `val unlock = rememberRewardedAction(AdPlacement.RW_PREMIUM_POSE, onGranted = poseViewModel::onUnlockGranted)`.
-  - `PoseActions(onLockedPoseSelect = { id -> poseViewModel.onLockedPoseSelect(id); unlock.start() }, ...)`: `start()` sau khi ViewModel đã giữ tư thế, nên khi khóa tắt `onGranted` (chạy ngay) đọc đúng tư thế.
-  - Trong `AppTheme(darkTheme = true)`: `RewardedAdDialog(unlock, title = premium_unlock_title) { PremiumUnlockContent(prompt?.name.orEmpty()) }`, với `prompt = (poseState as? PoseUiState.Ready)?.unlockPrompt`.
+  - `val lockedUnlock = rememberLockedPoseUnlock(poseViewModel)` trước `PoseActions`.
+  - `PoseActions(onLockedPoseSelect = lockedUnlock::select, ...)`.
+  - Trong `AppTheme(darkTheme = true)`: `LockedPoseUnlockDialog(lockedUnlock, poseName = prompt?.name)`, với `prompt = (poseState as? PoseUiState.Ready)?.unlockPrompt`.
   - Đang đếm ngược thì dải bị khóa (`enabled = false`), nên không mở được hộp thoại lúc đếm (KB-6 giữ nguyên).
 - Hộp thoại của khung giữ trạng thái `ASKING` qua dựng lại activity; tư thế chờ nằm trong `SavedStateHandle`, nên sau xoay màn hình `onGranted` vẫn mở đúng tư thế.
+- Sau "Để sau" hay đóng quảng cáo sớm, `KEY_UNLOCK_POSE_ID` còn giữ tư thế: vô hại, vì `onUnlockGranted` chỉ chạy khi khung cho thưởng, và lần chạm ô khóa sau ghi đè giá trị. `unlockPrompt` còn nhưng hộp thoại không hiện (khung chỉ vẽ khi `dialogVisible`).
+- **Lúc `access` phát `enabled = false` trước rồi `true`** (plan T-085, mục 3.1: trước khi Remote Config tải xong cờ là mặc định tắt, trừ staging; T-085 giao T-086 quyết cách hiện): plan hiện đúng theo giá trị đang có, không giấu hay chờ. Lý do: màn loading chờ Remote Config (tối đa 15 giây, ADR-1001) trước khi vào app, nên lúc thư viện mở thường đã có giá trị thật; bản staging bật cờ cục bộ nên không bao giờ thấy. Trong khoảng ngắn còn lại, tư thế premium hiện như mở; chạm "Chụp" hay ô lúc đó dùng được tư thế (đúng với cờ lúc đó), không ghi gì; khi `true` tới thì dấu hiện. Camera đã chọn tư thế premium lúc cờ tắt thì giữ tới lần mở sau (như tiêu chí 9 của KB-1).
 
 ### 3.2. Danh sách file
 
@@ -434,6 +488,7 @@ Năm ngôn ngữ còn lại:
 | Sửa | `feature/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/detail/PoseDetailScreen.kt` | Phần A: `rememberRewardedAction`, `RewardedAdDialog`, `openCamera`, snackbar, `UNLOCK` |
 | Sửa | `feature/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/detail/PoseDetailComponents.kt` | Phần A: nút mở khóa, dấu ở dòng phụ |
 | Tạo | `feature/poses/src/main/res/drawable/ic_poses_smart_display.xml` | Phần A: icon của nút mở khóa (Material Symbols `smart_display`) |
+| Tạo | `feature/poses/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/poses/detail/PremiumUnlock.kt` | (dự phòng) Phần A: phần nối của nút mở khóa khi `PoseDetailRoute` không dựng được trong test (mục 3.4) |
 | Sửa | `feature/poses/src/main/res/values/strings.xml` | Phần A: `poses_detail_unlock`, `poses_unlock_failed` |
 | Sửa | `feature/poses/src/main/res/values-vi/strings.xml` | Phần A: hai chuỗi trên |
 | Sửa | `feature/poses/src/main/res/values-hi/strings.xml` | Phần A: hai chuỗi trên |
@@ -477,12 +532,14 @@ Năm ngôn ngữ còn lại:
 | Sửa | `app/src/testStaging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingRemoteValuesModuleTest.kt` | Phần A: tập mong đợi thêm `is_show_rw_premium_pose=true` (mục 3.5) |
 | Sửa | `docs/remote-config-keys.md` | Phần A: sinh lại bằng `-PremoteConfigKeys.update=true` |
 | Sửa | `docs/remote-config-template.json` | Phần A: sinh lại cùng lệnh |
-| Sửa | `docs/ops/ads-guide.md` | Phần A: dòng Rewarded của bảng định dạng ghi vị trí của app `rw_premium_pose` (T-086); `RewardedAdDialogCard` cho ảnh chuẩn; chữ hộp thoại dịch ở `:app` |
-| Sửa | `docs/ops/manual-test.md` | Phần A: mục 11 thêm `is_show_rw_premium_pose` vào danh sách khóa không được `false`, mục 11.5 mở khóa ở chi tiết. Phần B: bước mở khóa ở camera |
+| Sửa | `docs/ops/ads-guide.md` | Phần A: chỉ phần chung của dòng Rewarded, mục 5 (`RewardedAdDialogCard` công khai cho ảnh chuẩn; cách app dịch chữ hộp thoại); không ghi tên vị trí của app (3.1) |
+| Sửa | `docs/template-sync.txt` | Phần A: một dòng chú thích trong đoạn "App values kept inside template files": giữ `RewardedAdDialogCard` công khai; không chạm `base=`, `hold=` (ADR-0030) |
+| Sửa | `docs/ops/manual-test.md` | Phần A: mục 11 thêm `is_show_rw_premium_pose` vào danh sách khóa không được `false`; mục con kế tiếp còn trống của mục 11 (T-083 cũng thêm mục con, nên không định trước số) cho mở khóa ở chi tiết. Phần B: bước mở khóa ở camera trong cùng mục con |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/pose/PoseUiState.kt` | Phần B: `PoseThumbItem.locked`, `UnlockPrompt` |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/pose/PoseViewModel.kt` | Phần B: nhận `PremiumPoseRepository`, theo `access`; `onLockedPoseSelect`, `onUnlockGranted`, tư thế đầu khi khóa, `onNextPose` |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/pose/PosePicker.kt` | Phần B: `onLockedPoseSelect`, `premium` của ô |
-| Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreen.kt` | Phần B: `rememberRewardedAction`, `RewardedAdDialog` trong `CameraRoute` |
+| Tạo | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/pose/LockedPoseUnlock.kt` | Phần B: `LockedPoseUnlock`, `rememberLockedPoseUnlock`, `LockedPoseUnlockDialog` (3.1) |
+| Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreen.kt` | Phần B: `rememberLockedPoseUnlock`, `LockedPoseUnlockDialog`, `PoseActions.onLockedPoseSelect` trong `CameraRoute` |
 | Sửa | `feature/camera/src/main/res/values/strings.xml` | Phần B: `camera_cd_thumb_premium` |
 | Sửa | `feature/camera/src/main/res/values-vi/strings.xml` | Phần B: như trên |
 | Sửa | `feature/camera/src/main/res/values-hi/strings.xml` | Phần B: như trên |
@@ -492,7 +549,8 @@ Năm ngôn ngữ còn lại:
 | Sửa | `feature/camera/src/main/res/values-th/strings.xml` | Phần B: như trên |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/pose/PoseFakes.kt` | Phần B: `FakePremiumPoseRepository` (`MutableStateFlow<PremiumAccess>`, `unlocks`, `unlockResult`, `failUnlock`, cổng `CompletableDeferred`); hàm dựng tư thế premium (`copy(premium = true)`) |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/pose/PoseViewModelTest.kt` | Phần B: hàm dựng `viewModel()` nhận kho giả (dựng test, mục 3.5); test mới (mục 4) |
-| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenPoseTest.kt` | Phần B: test ô khóa |
+| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenPoseTest.kt` | Phần B: test ô khóa trên `CameraScreen` (dấu, mô tả, `onLockedPoseSelect`) |
+| Tạo | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/pose/LockedPoseUnlockTest.kt` | Phần B: `noAdsController_lockedCellTap_unlocksAndSelectsAtOnce` với `PoseViewModel` thật (mục 4) |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/CameraScreenScreenshotTest.kt` | Phần B: ảnh `premium` |
 | Tạo | `feature/camera/src/test/screenshots/CameraScreen_premium_dark.png` | Phần B: ảnh chuẩn mới |
 | Tạo | `docs/features/camera/design/review/CameraScreen_premium_dark_compare.png` | Phần B: ảnh so sánh của `scripts/design-compare.sh camera` |
@@ -505,6 +563,7 @@ Nơi khác đọc các file bị đổi (L-020 của mẫu; rà lại trên `9af
 - `AdUnitIds.kt` (#279: `ConfiguredAdUnitIds.missing` là `List<String>`, có `missingUnitKeys`): vị trí rewarded không có khe của thanh đáy (`layerFormats` chỉ cho thanh đáy), nên khóa thiếu là `rw_premium_pose`; `AdUnitIdsTest` chỉ thêm `rw_premium_pose=unit/13` vào chuỗi cấu hình (dữ liệu, mục 3.5).
 - `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/config/RemoteConfigKeysTest.kt` so `docs/remote-config-keys.md` và `docs/remote-config-template.json` với khóa của code; tập khóa lấy từ `AdsSettings.all()` và `AdPlacement.entries`, không ghi tên vị trí, nên không sửa test; hai tệp được sinh lại trong cùng commit code.
 - `scripts/main-guard-verified.sh` (mới ở #279, ADR-0039) có `docs/remote-config-keys.md` và `docs/remote-config-template.json` trong `GRADLE_READ_DOCS`: commit merge khác lần kiểm của PR ở hai tệp này thì `main-guard` kiểm đầy đủ. Script chỉ đọc tên tệp, không đọc nội dung; PR của task có cả code nên dù sao cũng kiểm đầy đủ. Không sửa.
+- `docs/template-sync.txt`: `scripts/setup-check-app.sh` chỉ nhắc tên tệp trong một thông báo (`note`), không đọc tệp. `scripts/tests/run.sh` chỉ đọc `template-sync.txt` của repo giả do test dựng (dòng `base=`, `hold=`), không đọc tệp thật của app. Plan chỉ thêm một dòng chú thích `#`, không chạm `base=`, `hold=` (ADR-0030). Không sửa script nào.
 - `app/build.gradle.kts` chỉ nêu đường dẫn của `docs/remote-config-keys.md` và `docs/remote-config-template.json` cho tham số `-PremoteConfigKeys.update`; đường dẫn không đổi, nên không sửa.
 - `.github/workflows/device-session.yml` đọc `summary.md` của thư mục phiên thử, không đọc `docs/features/camera/design/review/summary.md` hay `docs/features/poses/design/review/summary.md` của gói thiết kế, nên không sửa.
 - `RewardedActionTest` gọi `RewardedAdDialogCard` trong cùng module: đổi `internal` thành công khai không ảnh hưởng.
@@ -530,7 +589,10 @@ Nơi khác đọc các file bị đổi (L-020 của mẫu; rà lại trên `9af
   Chạy thử phiên bản 1, lần 1, đã gặp đúng hai lỗi này; cách chính của mục 3.1 (chuỗi gốc ở `values/` của `:app`, `app_name` không dịch) là cách sửa đã chạy thử lần 2, và chạy lại qua sau #279 (mục 4.1).
 - **Điều kiện chuyển:** trên nhánh có code, `:app:lintStagingDebug` vẫn báo `ExtraTranslation` hay `MissingTranslation` ở các tệp này sau cách của mục 3.1.
 - **Cách làm thay:** thêm `tools:ignore="ExtraTranslation"` vào thẻ `<resources>` của sáu tệp ngôn ngữ (dòng chú thích nêu lý do: chuỗi của thư viện), không tắt quy tắc lint ở cấu hình chung. Test `AdsStringsTranslationTest` giữ nguyên.
-- **Điểm chưa chắc thứ hai:** T-085 merge với chữ ký khác mục 3.1 (tên, kiểu trả của `unlock`). Không có phương án dự phòng: dừng (mục 7).
+- **Điểm chưa chắc thứ hai:** `PoseDetailRouteTest` dựng `PoseDetailRoute` với ViewModel thật (đã chạy thử trên route hiện có, mục 4.1); route mới thêm `rememberRewardedAction`, `RewardedAdDialog`, `LaunchedEffect` theo `openCamera`.
+  - **Điều kiện chuyển:** sau khi thêm các phần đó, test dựng route không chạy được trên Robolectric (lỗi dựng, không phải câu khẳng định đỏ).
+  - **Cách làm thay:** tách phần nối thành `detail/PremiumUnlock.kt` (`rememberPremiumUnlock(viewModel, onShootWithPose)`: giữ `rememberRewardedAction`, thu `openCamera`, trả hàm `start`; `PremiumUnlockDialog(...)` vẽ hộp thoại), như `LockedPoseUnlock.kt` của camera; test dựng composable đó với ViewModel thật. Câu khẳng định của test giữ nguyên. Tệp ghi "(dự phòng)" ở mục 3.2.
+- **Điểm chưa chắc thứ ba:** T-085 merge với chữ ký khác mục 3.1 (tên, kiểu trả của `unlock`). Không có phương án dự phòng: dừng (mục 7).
 
 ### 3.5. Hành vi đã có bị đổi
 
@@ -539,11 +601,12 @@ Nơi khác đọc các file bị đổi (L-020 của mẫu; rà lại trên `9af
 | Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
 | --- | --- | --- | --- |
 | Tập vị trí của app có bốn dòng (năm sau T-080) | Thêm `rw_premium_pose` | `AdPlacementAppTest.appPlacements_declaredWithSpecFormats` | Giữ câu khẳng định; thêm `"rw_premium_pose" to AdFormat.REWARDED` vào bản đồ mong đợi (dữ liệu, ADR-0029) |
-| Mọi vị trí không phải `gallery_` có mã đơn vị trong chuỗi cấu hình thì `missing` rỗng; thiếu hai khóa khe thì `missing == [banner, native_collap]`; thiếu vị trí cả app thì đúng danh sách bảy khóa | Vị trí mới cần mã | `AdUnitIdsTest.configuredUnits_areParsedPerPlacementKey` (ba chuỗi), `AdUnitIdsTest.missingUnitsWarning_listsMissingKeys` (`placementUnits`; phép đối chứng "đủ hai khóa khe thì không cảnh báo") | Giữ; thêm `rw_premium_pose=unit/14` vào ba chuỗi và vào `placementUnits` (dữ liệu). Thiếu thì `missing` có thêm `rw_premium_pose` và phép đối chứng có cảnh báo |
+| Mọi vị trí không phải `gallery_` có mã đơn vị trong chuỗi cấu hình thì `missing` rỗng; thiếu hai khóa khe thì `missing == [banner, native_collap]`; thiếu vị trí cả app thì đúng danh sách bảy khóa | Vị trí mới cần mã | `AdUnitIdsTest.configuredUnits_areParsedPerPlacementKey` (ba chuỗi), `AdUnitIdsTest.missingUnitsWarning_listsMissingKeys` (`placementUnits`; phép đối chứng "đủ hai khóa khe thì không cảnh báo") | Giữ; thêm `rw_premium_pose=unit/14` vào cuối ba chuỗi và vào cuối `placementUnits` (dữ liệu). Tìm chỗ sửa theo chuỗi (`inter_pose_detail=unit/13`, `PLACEMENT_UNITS`), không theo số dòng: T-080, T-081, T-083 cũng thêm dòng vào các chuỗi này. Thiếu thì `missing` có thêm `rw_premium_pose` và phép đối chứng có cảnh báo |
 | Đủ mã của mọi vị trí và hai khóa khe thì lúc khởi động không cảnh báo | Vị trí mới cần mã | `AdsControllerUnitIdsTest.start_withAllUnits_noWarning` (`PLACEMENT_UNITS`) | Giữ; thêm `rw_premium_pose=unit/14` vào `PLACEMENT_UNITS` (dữ liệu). `start_withMissingUnits_warnsOnce` vẫn qua: cảnh báo vẫn chứa `banner, native_collap` |
 | Bỏ vị trí rewarded của trang thử thì không nhóm nạp sẵn nào có `REWARDED` | Vị trí rewarded thứ hai của app | `AdPreloadPlanTest.fromPlacements_hasRewardedInSecondGroup` (phép đối chứng `AdPlacement.entries - AdPlacement.GALLERY_RW_ACTION`) | Giữ ý định của phép đối chứng (không vị trí rewarded nào thì không nạp sẵn rewarded); dữ liệu thành `AdPlacement.entries - AdPlacement.GALLERY_RW_ACTION - AdPlacement.RW_PREMIUM_POSE` (dòng enum mới, ADR-0029). Câu khẳng định `REWARDED in groups[1]` giữ |
 | Bản staging bật bốn (năm sau T-080) vị trí của app | Thêm `is_show_rw_premium_pose` | `StagingRemoteValuesModuleTest` (tập `expected`) | Giữ; thêm `"is_show_rw_premium_pose" to true` (dữ liệu). `noGalleryNorSamplePlacement_isShown`, `firstOpen_choosesNoStartupAd` không đổi |
 | Danh sách chuỗi đã dịch của poses, designsystem | Thêm chuỗi mới | `PosesStringsTest.everyReleaseLanguage_isTranslated` (`TRANSLATED`), `DesignSystemStringsTest` (danh sách) | Giữ; thêm tên chuỗi mới (dữ liệu). `CameraStringsTest` đọc mọi chuỗi bằng phản chiếu, không sửa |
+| `PoseDetailScreen` có các callback hiện có | Thêm `onUnlock`, `onUnlockFailedShown`, cả hai mặc định `{}` | `PoseDetailScreenTest`, `PoseDetailScreenScreenshotTest` (mọi lời gọi `PoseDetailScreen(...)`) | Giữ: tham số có mặc định nên lời gọi cũ biên dịch, không đổi dòng dựng test nào |
 | Chi tiết: nút chính luôn "Chụp với tư thế này" | Khóa thì nút mở khóa | `PoseDetailScreenTest` (nút chụp, `onShoot`), ảnh `PoseDetailScreen_*` | Giữ: dữ liệu cũ không khóa (`locked = false` mặc định) |
 | `onShoot()` ghi `pose_selected` | `onShoot()` gọi `logSelected`, cùng sự kiện | `PoseDetailViewModelTest` (sự kiện `pose_selected`) | Giữ nguyên câu khẳng định |
 | `DefaultPosesLibrarySource` có hai tham số, chỉ `map` thư viện | Thêm `PremiumPoseRepository`, `combine` với `access` | Không có test có sẵn (lớp chưa có test) | Test mới `DefaultPosesLibrarySourceTest` (mục 4) |
@@ -552,7 +615,7 @@ Nơi khác đọc các file bị đổi (L-020 của mẫu; rà lại trên `9af
 | Camera: "Tư thế tiếp" theo dải, vòng về đầu | Bỏ qua tư thế khóa | `PoseViewModelTest.nextPose_followsStrip_andWraps`, `adjustment_isKeptWhenPoseChanges` | Giữ: không tư thế nào khóa |
 | Camera: `PoseViewModel` có 10 tham số | Thêm `PremiumPoseRepository` | Hàm `viewModel()` của `PoseViewModelTest` | Dựng test: truyền `FakePremiumPoseRepository()` (ADR-0033/L11, không đổi câu khẳng định) |
 | `PosesLibrarySource` có ba thành viên | Thêm `unlock(): Boolean` | `FakePosesLibrarySource` (`PosesFakes.kt`) | Dựng test: cài `unlock` (dữ liệu giả), không đổi câu khẳng định |
-| Cỡ thẻ, ô 64 dp, vị trí nút chính và dải (nhóm "Cần xem trước") | Dấu vẽ bên trong vùng ảnh của thẻ, lấn góc ô như `SelectedBadge`, không đổi cỡ; tham số mặc định `false` | `PoseCardTest.skeleton_withOnClick_callsIt`, `skeleton_withoutOnClick_notClickable`, `PoseCardTest.skeleton_sameSizeAsOneLineCard`, `PoseComponentsTest.poseThumb_is64dp`, `selectedBadge_is22dpYellow`, `poseThumb_selectedBorder_isYellow3dp`, `PosesScreenTest.skeletonThenImage_keepsCardBounds`, `wideLoading_hasThreeColumns`, `PoseDetailScreenTest.realBottomBar_withoutAds_takesNoSpace`, `PoseDetailScreenTest.wide_imageFailed_retryInLeftColumn`, `CameraScreenPoseTest.small_noPose_hintInsidePreview`, `CameraScreenOverlayTest.outline_largestAndMovedDown_notDrawnOverPickerOrCaptureRow` | Giữ nguyên: dữ liệu không khóa. Test mới `PoseDetailScreenTest.locked_small_unlockButtonFullyVisible` kiểm nút mở khóa ở khung thấp |
+| Cỡ thẻ, ô 64 dp, vị trí nút chính và dải (nhóm "Cần xem trước") | Dấu vẽ bên trong vùng ảnh của thẻ, lấn góc ô như `SelectedBadge`, không đổi cỡ; tham số mặc định `false` | `PoseCardTest.skeleton_withOnClick_callsIt`, `skeleton_withoutOnClick_notClickable`, `PoseCardTest.skeleton_sameSizeAsOneLineCard`, `PoseCardTest.imageArea_hasDesignAspectRatio`, `PoseCardTest.saved_buttonFillIsSecondaryContainer_unsavedIsSurface`, `CameraScreenMatchTest.small_matchHintInsidePreview_clearOfStepCardAndZoom`, `PoseComponentsTest.poseThumb_is64dp`, `selectedBadge_is22dpYellow`, `poseThumb_selectedBorder_isYellow3dp`, `PosesScreenTest.skeletonThenImage_keepsCardBounds`, `wideLoading_hasThreeColumns`, `PoseDetailScreenTest.realBottomBar_withoutAds_takesNoSpace`, `PoseDetailScreenTest.wide_imageFailed_retryInLeftColumn`, `CameraScreenPoseTest.small_noPose_hintInsidePreview`, `CameraScreenOverlayTest.outline_largestAndMovedDown_notDrawnOverPickerOrCaptureRow` | Giữ nguyên: dữ liệu không khóa. Test mới `PoseDetailScreenTest.locked_small_unlockButtonFullyVisible` kiểm nút mở khóa ở khung thấp |
 | `RewardedAdDialogCard` là `internal`; test của khung đo nút, màu chữ; gói bỏ quảng cáo bật lúc hộp thoại mở thì "Watch ad" chạy hành động (#279) | Công khai, không đổi bố cục hay hành vi | `RewardedActionTest.watchButton_is56dpHigh_fullCardWidth`, `noThanksText_usesOnSurfaceVariant_light_and_dark`, `longContent_small_buttonsInsideWindow`, `realController_adFreeWhileDialogOpen_watchRunsAction` | Giữ nguyên |
 | Test khác của `:core:ads` thuộc nhóm "Cần xem trước" (`AdSlotTest`, `BannerAdSizeTest`, `InListAdsTest`, `NativeAdCellTest`, `NativeAdSlotTest`, `NativeEligibleReportTest`, `NativeFlowStepTest`, `NativeFullScreenOverlayTest`), của camera và settings (`CameraScreenTest`, `ReviewScreen*Test`, `Settings*Test`) | Không đổi | Các test đó | Giữ: chỉ khớp vì tên chung; không đọc vị trí rewarded hay tham số mới |
 
@@ -574,16 +637,18 @@ Kho giả của hai feature (`FakePremiumPoseRepository`) giữ `access = Mutabl
 | KB-8 tiêu chí 1, thư viện | Unit test | `PosesViewModelTest.lockedPose_cardIsLocked_othersNot`: `testContent(lockedIds = setOf("w03"))` thì thẻ `w03` có `locked = true`, thẻ khác `false`. Đối chứng cùng test: phát lại nội dung với `lockedIds` rỗng thì `w03` thành `false` |
 | KB-8 tiêu chí 1, thư viện | Compose UI test | `PosesScreenTest.lockedCard_showsPremiumBadge_andOpensDetail`: thẻ khóa có node `PREMIUM_BADGE_TAG` trong cây con của `poses_card_w03`, thẻ khác không; chạm thẻ khóa gọi `onOpenPose("w03")` |
 | KB-8 tiêu chí 1, thành phần thẻ | Compose UI test (`@GraphicsMode(NATIVE)`) | `PoseCardTest.premium_drawsBadge_32dpAtTopLeft_withDescription`: `premium = true` có node `PREMIUM_BADGE_TAG`, `contentDescription` là `premium_badge_label`, cỡ 32 x 32 dp, góc trên trái ở (6, 10) dp so với `POSE_CARD_IMAGE_TAG` (dung sai 0,5 dp), tâm cách mép trái ảnh đúng bằng tâm vòng lưu cách mép phải; `premium = false` không có node |
+| Trợ năng của thẻ (L-004) | Compose UI test | `PoseCardTest.premium_mergedNode_readsBadgeOnce`: thẻ có `onClick`, `premium = true`: node gộp của thẻ `assertContentDescriptionEquals("Premium pose")` (một mô tả; tên và dòng phụ là `text`); dấu cũng là một node riêng có tag `pose_premium_badge` (đo trên `AccessibilityNodeInfo` ở mục 4.1). Đã chạy thử |
 | KB-8 tiêu chí 1, màu dấu | Compose UI test (`@GraphicsMode(NATIVE)`) | `PoseCardTest.premiumBadge_colors_light_and_dark`: vẽ `decorView` ra `Bitmap` (L-006), điểm giữa vành nền của dấu (lệch 4 dp từ mép vòng, xa icon) là `tertiaryContainer` của theme, sáng và tối |
 | KB-8 tiêu chí 1, 2, chi tiết | Unit test | `PoseDetailViewModelTest.lockedPose_isLocked_andSaveStillWorks`: `lockedIds = setOf(poseId)` thì `Ready.locked`; `onToggleSave()` vẫn ghi `setSaved` và `pose_saved` như tư thế thường |
 | KB-8 tiêu chí 2 | Compose UI test | `PoseDetailScreenTest.locked_mainButtonIsUnlock_callsOnUnlock`: `locked = true` thì có node `pose_detail_unlock` với chữ `poses_detail_unlock`, không có chữ `poses_detail_shoot`; chạm gọi `onUnlock`, không gọi `onShoot`; có node `PREMIUM_BADGE_TAG` cỡ 20 dp đứng trước chữ dòng phụ (`left` của chữ cách `right` của dấu `Spacing.sm`). Đối chứng: `locked = false` thì nút chụp như cũ, không có dấu |
+| KB-8 tiêu chí 2, màn mở gập (L-072: đường `WideDetailLayout`) | Compose UI test (`@Config(qualifiers = "w673dp-h841dp-xxhdpi")`) | `PoseDetailScreenTest.wide_locked_showsUnlockAndBadge`: `locked = true` ở khung mở gập: có node `pose_detail_unlock` (chạm gọi `onUnlock`) và node `PREMIUM_BADGE_TAG`, không có chữ `poses_detail_shoot` |
 | KB-8 tiêu chí 4, chi tiết | Unit test | `PoseDetailViewModelTest.unlockGranted_unlocks_logsEvent_thenOpensCamera`: tư thế khóa, `onUnlockGranted()` thì `FakePosesLibrarySource.unlocks == listOf(poseId)`, sự kiện `premium_pose_unlocked` với `pose_id`, `category`, `source = "detail"`, rồi `pose_selected` `source = "detail"`, rồi `openCamera` phát đúng `poseId` một lần; sự kiện mở khóa ghi sau khi `unlock` xong (cổng `CompletableDeferred` của kho giả: trước khi mở cổng chưa có sự kiện, chưa có `openCamera`) |
 | KB-8 tiêu chí 8, 10 (cờ vừa tắt: kho trả `false`) | Unit test | `PoseDetailViewModelTest.unlockReturnsFalse_noEvent_stillOpensCamera`: tư thế khóa, `unlockResult = false`: `unlocks == listOf(poseId)`, không `premium_pose_unlocked`, có `pose_selected` `detail`, `openCamera` phát `poseId` một lần, có dòng log `INFO` "Unlock skipped: premium off", không `warn`. Đối chứng là test được thưởng ở trên (`true` thì có sự kiện) |
 | KB-8 tiêu chí 4 (một lần) | Unit test | `PoseDetailViewModelTest.unlockGranted_twiceWhileWriting_writesOnce`: hai lần gọi khi lượt ghi đầu đang chờ cổng thì một lần `unlock`, một sự kiện, một lần `openCamera` |
 | KB-8 tiêu chí 4, sau khi mở | Unit test | `PoseDetailViewModelTest.afterUnlock_libraryUpdate_clearsLocked`: kho giả phát nội dung không còn id trong `lockedIds` sau khi ghi thì `Ready.locked` thành `false` |
 | KB-8 tiêu chí 5 (không thưởng thì không làm gì) | Unit test | `PoseDetailViewModelTest.noGrant_nothingWritten_noNavigation`: mở chi tiết tư thế khóa, không gọi `onUnlockGranted`: không `unlock`, không sự kiện `premium_pose_unlocked`, `openCamera` không phát (đọc bằng `backgroundScope` với `toList`). Khung giữ phần "đóng sớm, Để sau, không có quảng cáo thì không gọi `onGranted`" (`RewardedActionTest`, đã có) |
 | KB-8 tiêu chí 8 (cờ tắt) | Unit test | `PoseDetailViewModelTest.notLocked_grant_opensCamera_withoutWriteOrEvent`: `lockedIds` rỗng, `onUnlockGranted()` thì `openCamera` phát `poseId`, không `unlock`, không `premium_pose_unlocked`. Đối chứng là test được thưởng ở trên (tư thế khóa thì có ghi) |
-| KB-8 tiêu chí 9 (khóa tắt hay chưa đồng ý: mở ngay) | Compose UI test | `PoseDetailRouteTest.noAdsController_unlockButton_unlocksAtOnce_withoutDialog` (lớp mới trong `PoseDetailScreenTest.kt`): dựng `PoseDetailRoute` với ViewModel thật và kho giả (tư thế khóa), không có `LocalAdsController` (như khóa tắt hay cổng đóng: `start()` gọi `onGranted` ngay, đã chạy thử lại sau #279, mục 4.1); chạm `pose_detail_unlock` thì `unlocks == listOf(poseId)`, `onShootWithPose(poseId)` được gọi một lần, không có node `RewardedAdDialogTestTags.CARD` |
+| KB-8 tiêu chí 9 (khóa tắt hay chưa đồng ý: mở ngay) | Compose UI test | `PoseDetailRouteTest.noAdsController_unlockButton_unlocksAtOnce_withoutDialog` (lớp mới trong `PoseDetailScreenTest.kt`, `@GraphicsMode(NATIVE)`): dựng `PoseDetailRoute(onBack, onShootWithPose, viewModel)` với `PoseDetailViewModel` thật và kho giả (tư thế khóa); repo chưa có test nào dựng route, nhưng route hiện có dựng được như vậy (chạy thử, mục 4.1; không được thì phương án dự phòng ở 3.4), không có `LocalAdsController` (như khóa tắt hay cổng đóng: `start()` gọi `onGranted` ngay, đã chạy thử lại sau #279, mục 4.1); chạm `pose_detail_unlock` thì `unlocks == listOf(poseId)`, `onShootWithPose(poseId)` được gọi một lần, không có node `RewardedAdDialogTestTags.CARD` |
 | Ghi lỗi (CLAUDE.md, bước 4) | Unit test | `PoseDetailViewModelTest.unlockWriteFails_staysLocked_showsMessage_noEvent`: `failUnlock` thì `Ready.unlockFailed`, `locked` vẫn `true`, không sự kiện, `openCamera` không phát, `logger` có một dòng `warn`; `onUnlockFailedShown()` xóa cờ; gọi lại `onUnlockGranted()` sau khi hết lỗi thì ghi được (người dùng thử lại) |
 | Ghi lỗi, màn hình | Compose UI test | `PoseDetailScreenTest.unlockFailed_showsSnackbar_once`: `unlockFailed = true` thì snackbar `poses_unlock_failed` hiện, rồi `onUnlockFailedShown` được gọi |
 | KB-8 tiêu chí 3, nội dung hộp thoại | Compose UI test | `PoseDetailScreenTest.unlockContent_showsNameAndMessage`: `PremiumUnlockContent("Tựa lan can")` có chữ tên và chữ `premium_unlock_message`, chữ lời nằm dưới chữ tên, cách `Spacing.sm` |
@@ -599,11 +664,11 @@ Kho giả của hai feature (`FakePremiumPoseRepository`) giữ `access = Mutabl
 | Ảnh thiết kế đã có, không đổi | Screenshot test có sẵn | Ảnh thiết kế của ticket khác (T-021, T-022, T-024, T-079, T-080): `PoseDetailScreen_ad_dark`, `PoseDetailScreen_ad_light`, `PoseDetailScreen_default_dark`, `PoseDetailScreen_default_dark_unfolded`, `PoseDetailScreen_default_light`, `PoseDetailScreen_default_light_unfolded`, `PoseDetailScreen_error_dark`, `PoseDetailScreen_error_light`, `PoseDetailScreen_loading_dark`, `PoseDetailScreen_loading_light`, `PosesScreen_ad-collection_light`, `PosesScreen_ad_dark`, `PosesScreen_ad_light`, `PosesScreen_default_dark`, `PosesScreen_default_dark_unfolded`, `PosesScreen_default_light`, `PosesScreen_default_light_unfolded`, `PosesScreen_error_dark`, `PosesScreen_error_light`, `PosesScreen_loading_dark`, `PosesScreen_loading_light`, `PosesScreen_saved-empty_dark`, `PosesScreen_saved-empty_light` |
 | Chữ đúng bảng chữ của thiết kế | Compose UI test | `PoseDetailScreenTest.locked_mainButtonIsUnlock_callsOnUnlock` và `unlockContent_showsNameAndMessage` đọc chữ qua `stringResource`; `PosesStringsTest`, `DesignSystemStringsTest` thêm một câu: giá trị tiếng Việt của `poses_detail_unlock`, `premium_badge_label`, `premium_unlock_title`, `premium_unlock_message` đúng chữ của bảng chữ (README mục 2) |
 | KB-8 tiêu chí 2, 3, 5, 9 trên máy | Kiểm tra thủ công (emulator: `feature/poses/src/deviceScenarios/T-086-mo-khoa-chi-tiet.txt`) | Tệp kịch bản dưới; `device-session` cuối phiên chạy tệp này. Catalog staging chưa có tư thế premium (nội dung sau T-085) thì tệp `bỏ qua (môi trường)` ở bước `need` |
-| KB-8 tiêu chí 4, 5, 6 với quảng cáo thử thật | Kiểm tra thủ công (máy thật: quảng cáo thật) | `manual-test.md` mục 11.5: bản staging, đã đồng ý; mở chi tiết tư thế premium, bấm nút mở khóa, "Xem quảng cáo", xem quảng cáo thử có thưởng tới hết (không bấm vào quảng cáo): camera mở với tư thế đó, dấu mất ở thư viện; tư thế khác: đóng quảng cáo sớm thì vẫn khóa; "Để sau" thì vẫn khóa; chế độ máy bay rồi "Xem quảng cáo" thì vẫn khóa, có thông báo kiểm tra kết nối (tiếng Việt khi máy để tiếng Việt). `is_show_rw_premium_pose` nằm ở `StagingRemoteValuesModule`, nên tắt được trên Firebase staging cho bước "khóa tắt thì mở ngay"; cờ `feature_premium_poses_enabled` bật sẵn ở `StagingFeatureFlagsModule` (T-085), Firebase không tắt được, nên nhánh cờ tắt kiểm bằng test, không bằng tay |
+| KB-8 tiêu chí 4, 5, 6 với quảng cáo thử thật | Kiểm tra thủ công (máy thật: quảng cáo thật) | `manual-test.md`, mục con mới của mục 11: bản staging, đã đồng ý; mở chi tiết tư thế premium, bấm nút mở khóa, "Xem quảng cáo", xem quảng cáo thử có thưởng tới hết (không bấm vào quảng cáo): camera mở với tư thế đó, dấu mất ở thư viện; tư thế khác: đóng quảng cáo sớm thì vẫn khóa; "Để sau" thì vẫn khóa; chế độ máy bay rồi "Xem quảng cáo" thì vẫn khóa, có thông báo kiểm tra kết nối (tiếng Việt khi máy để tiếng Việt). `is_show_rw_premium_pose` nằm ở `StagingRemoteValuesModule`, nên tắt được trên Firebase staging cho bước "khóa tắt thì mở ngay"; cờ `feature_premium_poses_enabled` bật sẵn ở `StagingFeatureFlagsModule` (T-085), Firebase không tắt được, nên nhánh cờ tắt kiểm bằng test, không bằng tay |
 | KB-8 tiêu chí 7 (giữ qua lần mở sau) | Kiểm tra thủ công (máy thật: khác, cần đóng hẳn app và mở lại trên bản staging thật cùng catalog R2 của T-085) | Sau bước trên, vuốt app khỏi danh sách gần đây, mở lại: tư thế vẫn không có dấu ở thư viện, chi tiết, camera |
 | Sự kiện `premium_pose_unlocked` tới Firebase | Kiểm tra thủ công (máy thật: Remote Config) | Bản staging không gửi số liệu (ADR-0012); kiểm bằng log `VGL.Analytics` hay DebugView khi có bản dùng Firebase thật; ghi kết quả vào nhật ký |
 
-Tệp kịch bản `feature/poses/src/deviceScenarios/T-086-mo-khoa-chi-tiet.txt` (`scripts/device-scenario.py check` chạy ở bước 3 của task, vì `pose_detail_unlock` và `pose_premium_badge` chưa có trong code lúc viết plan):
+Tệp kịch bản `feature/poses/src/deviceScenarios/T-086-mo-khoa-chi-tiet.txt` (chạy `scripts/device-scenario.py check` ở bước 3 của task; đã kiểm ở mục 4.1):
 
 ```text
 ticket: T-086
@@ -611,11 +676,21 @@ criterion: Tư thế premium chưa mở khóa mở được chi tiết, nút ch�
 timeout: 240
 fresh
 consent decline 30
-wait id=onboarding_screen | id=camera_screen 60
+# Onboarding of T-082 (3 or 4 pages): Next on each page, then Enable camera; a camera already granted skips it.
+wait id=onboarding_page_intro | id=camera_screen 60
+tap_if id=onboarding_next
+wait id=onboarding_page_poses | id=camera_screen 10
+tap_if id=onboarding_next
+wait id=onboarding_page_premium | id=onboarding_page_camera | id=camera_screen 10
+tap_if id=onboarding_next
+wait id=onboarding_page_camera | id=camera_screen 10
 tap_if id=onboarding_enable_camera
+wait id=camera_screen 15
 need id=camera_poses 15
 tap id=camera_poses
 wait id=poses_grid 20
+# The badge is a node of its own (resource-id pose_premium_badge, plan T-086 section 4.1); it takes no tap, so a tap
+# on it lands on its card.
 need id=pose_premium_badge in=poses_grid 20
 tap id=pose_premium_badge in=poses_grid index=1
 wait id=pose_detail_screen 15
@@ -628,28 +703,35 @@ tap_if str=ads_reward_no_thanks
 wait id=pose_detail_unlock | id=camera_screen 15
 ```
 
-Chạm vào dấu (không nhận chạm) rơi vào thẻ bọc nó, nên mở chi tiết. `fresh` đặt ngôn ngữ app là tiếng Anh, nên `str=ads_reward_watch` khớp "Watch ad". Bộ chọn dùng chữ, không dùng `RewardedAdDialogTestTags.CARD`, vì hộp thoại là cửa sổ riêng và tag của nó có thể không thành `resource-id`. Luồng giới thiệu nhiều trang của T-082 có thể chạy trước task này: `onboarding_enable_camera` nằm ở trang cuối, nên khi T-082 đã merge, phiên đổi dòng `tap_if id=onboarding_enable_camera` theo kịch bản của T-082 (nút "Tiếp" qua các trang) trước khi chạy `device-scenario.py check`; đây là dữ liệu của tệp kịch bản, không đổi tiêu chí.
+- Luồng giới thiệu là của T-082 (plan đã duyệt, chạy trước task này): "Tiếp" ở mỗi trang, trang premium chỉ có khi cờ bật, rồi "Bật camera". Tag `onboarding_page_*`, `onboarding_next` lấy từ kịch bản của plan T-082 (mục 4). `fresh` cấp quyền camera, nên app có thể vào thẳng camera; mọi bước giới thiệu là `tap_if` hay `wait` có nhánh `camera_screen`.
+- Chọn thẻ khóa: dấu có `contentDescription` trên thẻ nên là một node riêng trong cây trợ năng, `resource-id` `pose_premium_badge` (đo trên `AccessibilityNodeInfo`, mục 4.1). Dấu không nhận chạm, nên chạm vào tâm của nó rơi vào thẻ bọc nó và mở chi tiết.
+- `fresh` đặt ngôn ngữ app là tiếng Anh, nên `str=ads_reward_watch` khớp "Watch ad". Bộ chọn dùng chữ, không dùng `RewardedAdDialogTestTags.CARD`, vì hộp thoại là cửa sổ riêng và tag của nó có thể không thành `resource-id`.
+- Catalog staging chưa có tư thế premium thì tệp `bỏ qua (môi trường)` ở bước `need`.
 
 **Phần B**
 
+Dữ liệu camera là `PoseFixtures` của `:feature:camera` (`w01, m01, w02, m02, w03`; mặc định `w01`); tư thế khóa trong các test dưới là `m02` (`PoseFixtures.pose("m02").copy(premium = true)`).
+
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
-| Camera KB-1 tiêu chí 8, dấu trên ô | Unit test | `PoseViewModelTest.lockedPose_cellIsLocked_andUpdatesWhenUnlockedElsewhere`: catalog có `c01` premium, kho giả `PremiumAccess(true, emptySet())` thì ô `c01` `locked`, ô khác không; kho phát `PremiumAccess(true, setOf("c01"))` (mở ở chi tiết) thì ô thành không khóa, dải giữ thứ tự |
-| Camera KB-1 tiêu chí 8, chạm ô khóa | Unit test | `PoseViewModelTest.lockedPoseTap_keepsSelection_noEvent_setsPrompt`: tư thế đang chọn `w01`, `onLockedPoseSelect("c01")` thì `selected.id == "w01"`, không `pose_selected`, không `markUsed`, `unlockPrompt == UnlockPrompt("c01", <tên>)`; `onPoseSelect("c01")` cũng không đổi tư thế (phòng hờ) |
-| Camera KB-1 tiêu chí 8, mở khóa xong | Unit test | `PoseViewModelTest.unlockGranted_unlocks_logsCameraEvent_thenSelects`: sau `onLockedPoseSelect("c01")`, `onUnlockGranted()` thì `unlocks == listOf("c01")`, `premium_pose_unlocked` với `pose_id`, `category`, `source = "camera"`, rồi `selected.id == "c01"`, `pose_selected` `source = "strip"`, `markUsed("c01")`, `unlockPrompt == null` |
-| Camera, cờ vừa tắt: kho trả `false` | Unit test | `PoseViewModelTest.unlockReturnsFalse_noEvent_stillSelects`: tư thế khóa, `unlockResult = false`: `unlocks == listOf("c01")`, không `premium_pose_unlocked`, `selected.id == "c01"`, `pose_selected` `strip`, `unlockPrompt == null`, có dòng `INFO` "Unlock skipped: premium off". Đối chứng là test trên |
+| Camera KB-1 tiêu chí 8, dấu trên ô | Unit test | `PoseViewModelTest.lockedPose_cellIsLocked_andUpdatesWhenUnlockedElsewhere`: catalog có `m02` premium, kho giả `PremiumAccess(true, emptySet())` thì ô `m02` `locked`, ô khác không; kho phát `PremiumAccess(true, setOf("m02"))` (mở ở chi tiết) thì ô thành không khóa, dải giữ thứ tự |
+| Camera KB-1 tiêu chí 8, chạm ô khóa | Unit test | `PoseViewModelTest.lockedPoseTap_keepsSelection_noEvent_setsPrompt`: tư thế đang chọn `w01`, `onLockedPoseSelect("m02")` thì `selected.id == "w01"`, không `pose_selected`, không `markUsed`, `unlockPrompt == UnlockPrompt("m02", <tên>)`; `onPoseSelect("m02")` cũng không đổi tư thế (phòng hờ) |
+| Camera KB-1 tiêu chí 8, mở khóa xong | Unit test | `PoseViewModelTest.unlockGranted_unlocks_logsCameraEvent_thenSelects`: sau `onLockedPoseSelect("m02")`, `onUnlockGranted()` thì `unlocks == listOf("m02")`, `premium_pose_unlocked` với `pose_id`, `category`, `source = "camera"`, rồi `selected.id == "m02"`, `pose_selected` `source = "strip"`, `markUsed("m02")`, `unlockPrompt == null` |
+| Camera, cờ vừa tắt: kho trả `false` | Unit test | `PoseViewModelTest.unlockReturnsFalse_noEvent_stillSelects`: tư thế khóa, `unlockResult = false`: `unlocks == listOf("m02")`, không `premium_pose_unlocked`, `selected.id == "m02"`, `pose_selected` `strip`, `unlockPrompt == null`, có dòng `INFO` "Unlock skipped: premium off". Đối chứng là test trên |
 | Camera KB-1 tiêu chí 8, ghi lỗi | Unit test | `PoseViewModelTest.unlockWriteFails_keepsPose_noEvent`: `failUnlock` thì tư thế cũ giữ, không sự kiện, một dòng `warn`; ô vẫn khóa; `unlockPrompt == null` |
-| Camera, cờ tắt | Unit test | `PoseViewModelTest.notLocked_grant_selectsWithoutWriteOrEvent`: `PremiumAccess(false, emptySet())`, `onLockedPoseSelect("c01")` rồi `onUnlockGranted()` thì chọn `c01`, không `unlock`, không `premium_pose_unlocked` |
-| Camera, dựng lại | Unit test | `PoseViewModelTest.pendingUnlock_survivesRecreation`: `onLockedPoseSelect("c01")` rồi dựng ViewModel mới với cùng `SavedStateHandle`: `onUnlockGranted()` mở đúng `c01` |
-| Camera KB-1 tiêu chí 9 | Unit test | `PoseViewModelTest.lastUsedLocked_fallsBackToDefault`: lịch sử dùng gần nhất `c01`, `c01` premium, `PremiumAccess(true, emptySet())` thì mở với `defaultPose` (`w01`), không sự kiện. Đối chứng cùng test: `PremiumAccess(true, setOf("c01"))` thì mở `c01` |
-| Camera, tư thế được yêu cầu bị khóa (phòng hờ) | Unit test | `PoseViewModelTest.requestedLocked_isIgnored_andLogsWarning`: `KEY_POSE_ID = "c01"`, `c01` khóa thì không chọn `c01`, có một dòng `warn` "Requested pose is locked" |
-| "Tư thế tiếp" (mục 8, câu 8) | Unit test | `PoseViewModelTest.nextPose_skipsLockedPoses`: dải `w01, w02, w03, ...`, `w02` khóa, đang ở `w01` thì `onNextPose()` chọn `w03`; mọi tư thế khác khóa thì không đổi |
-| Camera KB-1 tiêu chí 8, màn hình | Compose UI test | `CameraScreenPoseTest.lockedCell_showsBadge_tapCallsLockedSelect`: ô khóa có `PREMIUM_BADGE_TAG` trong cây con của `camera_pose_c01`, `contentDescription` là `camera_cd_thumb_premium`; chạm gọi `onLockedPoseSelect("c01")`, không gọi `onPoseSelect` |
+| Camera, cờ tắt | Unit test | `PoseViewModelTest.notLocked_grant_selectsWithoutWriteOrEvent`: `PremiumAccess(false, emptySet())`, `onLockedPoseSelect("m02")` rồi `onUnlockGranted()` thì chọn `m02`, không `unlock`, không `premium_pose_unlocked` |
+| Camera, dựng lại | Unit test | `PoseViewModelTest.pendingUnlock_survivesRecreation`: `onLockedPoseSelect("m02")` rồi dựng ViewModel mới với cùng `SavedStateHandle`: `onUnlockGranted()` mở đúng `m02` |
+| Camera KB-1 tiêu chí 9 | Unit test | `PoseViewModelTest.lastUsedLocked_fallsBackToDefault`: lịch sử dùng gần nhất `m02`, `m02` premium, `PremiumAccess(true, emptySet())` thì mở với `defaultPose` (`w01`), không sự kiện. Đối chứng cùng test: `PremiumAccess(true, setOf("m02"))` thì mở `m02` |
+| Camera, tư thế được yêu cầu bị khóa (phòng hờ) | Unit test | `PoseViewModelTest.requestedLocked_isIgnored_andLogsWarning`: `KEY_POSE_ID = "m02"`, `m02` khóa thì không chọn `m02`, có một dòng `warn` "Requested pose is locked" |
+| "Tư thế tiếp" (mục 8, câu 8) | Unit test | `PoseViewModelTest.nextPose_skipsLockedPoses`: dải `w01, m01, w02, m02, w03`, `m01` khóa, đang ở `w01` thì `onNextPose()` chọn `w02`; mọi tư thế khác khóa thì không đổi |
+| Camera KB-1 tiêu chí 8, màn hình | Compose UI test | `CameraScreenPoseTest.lockedCell_showsBadge_tapCallsLockedSelect`: ô khóa có `PREMIUM_BADGE_TAG` trong cây con của `camera_pose_m02`, `contentDescription` là `camera_cd_thumb_premium`; chạm gọi `onLockedPoseSelect("m02")`, không gọi `onPoseSelect` |
 | Thành phần ô | Compose UI test (`@GraphicsMode(NATIVE)`) | `PoseComponentsTest.thumb_premium_drawsBadge_22dpOverTopLeft`: `PoseThumb(premium = true)` có node dấu 22 x 22 dp, góc trên trái ở (-7, -7) dp so với ô (đối xứng `SelectedBadge`, `context/CameraScreen_premium_dark.md`); `false` không có |
-| Camera KB-1 tiêu chí 8, khóa tắt hay chưa đồng ý | Compose UI test | `CameraScreenPoseTest.noAdsController_lockedCellTap_unlocksAndSelectsAtOnce`: dựng `CameraRoute` với các ViewModel giả như `CameraScreenPoseTest` đang làm (hay `PoseViewModel` thật và kho giả nếu lớp test đã dựng như vậy; phiên chọn theo cách lớp đang dựng): chạm ô khóa thì `unlocks == listOf("c01")` và ô `c01` thành ô đang chọn, không có node `RewardedAdDialogTestTags.CARD` |
+| Trợ năng của ô (L-004) | Compose UI test | `PoseComponentsTest.thumb_premium_readsDescriptionOnce`: `PoseThumb(premium = true, contentDescription = "Lean, premium, tap to unlock")`: node gộp của ô `assertContentDescriptionEquals("Lean, premium, tap to unlock")` (một mô tả, dấu không thêm). Đã chạy thử; đối chứng cùng lớp: một ô `selectable` chứa `PremiumBadge` có mô tả thì node gộp có hai mô tả |
+| Camera KB-1 tiêu chí 8, khóa tắt hay chưa đồng ý (phần nối) | Compose UI test (`@GraphicsMode(NATIVE)`) | `LockedPoseUnlockTest.noAdsController_lockedCellTap_unlocksAndSelectsAtOnce` (lớp mới): `setContent` dựng `rememberLockedPoseUnlock(viewModel)`, một nút gọi `select("m02")` và `LockedPoseUnlockDialog(unlock, null)`; `PoseViewModel` thật với các kho giả như `PoseViewModelTest` và `FakePremiumPoseRepository` (`m02` khóa), không có `LocalAdsController`. Chạm nút thì `unlocks == listOf("m02")`, tư thế đang chọn thành `m02`, không có node `RewardedAdDialogTestTags.CARD`. Cách dựng đã chạy thử (mục 4.1): bỏ `start()` thì đỏ `expected:<[m02]> but was:<[w01]>` |
+| Camera KB-8 tiêu chí 4 (một lần) | Unit test | `PoseViewModelTest.unlockGranted_twiceWhileWriting_writesOnce`: `onLockedPoseSelect("m02")`, rồi hai lần `onUnlockGranted()` khi kho giả đang chờ cổng `CompletableDeferred`: một lần `unlock`, một `premium_pose_unlocked`, một `pose_selected` sau khi mở cổng |
 | Giao diện dải có ô khóa | Screenshot test | `CameraScreenScreenshotTest`: `CameraScreen_premium_dark.png`, dữ liệu theo `context/CameraScreen_premium_dark.md` (ô 4 và 6 khóa, ô 2 đang chọn) |
 | Đúng thiết kế | Screenshot test cùng tên, `scripts/design-compare.sh camera` | `CameraScreen_premium_dark` |
-| Camera KB-1 tiêu chí 8 với quảng cáo thử | Kiểm tra thủ công (máy thật: quảng cáo thật) | `manual-test.md` mục 11.5, bước camera: chạm ô có dấu ở dải, hộp thoại hiện, tư thế đang dùng không đổi; "Xem quảng cáo", xem hết: camera dùng tư thế đó; tư thế khác: "Để sau" thì không đổi |
+| Camera KB-1 tiêu chí 8 với quảng cáo thử | Kiểm tra thủ công (máy thật: quảng cáo thật) | `manual-test.md`, mục con mới của mục 11, bước camera: chạm ô có dấu ở dải, hộp thoại hiện, tư thế đang dùng không đổi; "Xem quảng cáo", xem hết: camera dùng tư thế đó; tư thế khác: "Để sau" thì không đổi |
 
 Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-check.py` báo lỗi dòng thiếu khi plan còn `draft` (quy tắc 11).
 
@@ -657,7 +739,7 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 
 - Ba tệp bảng khóa sinh lại, ảnh chuẩn và ảnh so sánh mới: sinh ra từ code, không viết trước được.
 - Tệp kịch bản `T-086-mo-khoa-chi-tiet.txt`: chạy ở `device-session` cuối phiên, không "thất bại trước" được.
-- Phần nối ở `CameraRoute`: `onLockedPoseSelect` gọi `start()` sau ViewModel, và `RewardedAdDialog` dùng `unlockPrompt`. Đường "không có bộ điều khiển" có test ở phần B; đường hộp thoại thật (khóa bật, đã đồng ý) không dựng được trong test của feature (`RewardedAction` có hàm dựng `internal`), nên kiểm bằng tay ở mục 11.5 và bằng test của khung.
+- Phần nối ở `CameraRoute`: chỉ còn hai dòng gọi `rememberLockedPoseUnlock` và `LockedPoseUnlockDialog`; phần nối có test ở `LockedPoseUnlockTest`. Đường hộp thoại thật (khóa bật, đã đồng ý) không dựng được trong test của feature (`RewardedAction` có hàm dựng `internal`), nên kiểm bằng tay ở `manual-test.md` và bằng test của khung.
 - Tương tự ở `PoseDetailRoute`: đường hộp thoại thật chỉ kiểm bằng tay.
 
 ### 4.1. Chạy thử
@@ -684,6 +766,28 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
   - `scripts/check.sh`: `Cổng chất lượng: QUA`, `check.sh exit=0`. Test script qua; test JVM 2708, 0 lỗi (`./app` 114, gồm 3 test tạm; `./feature/poses` 173, gồm 3 test tạm; `./core/ads` 1374). 140 ảnh screenshot; `git status --short -- '*/src/test/screenshots/*'` rỗng, không ảnh chuẩn nào đổi (ảnh `RewardedAdDialog*` của `:core:ads` giữ tiếng Anh). ktlint, `:app:lintStagingDebug` (không `ExtraTranslation`, không `MissingTranslation` với khối `values/strings.xml` của mục 3.1) và build staging qua. Cách chính của mục 3.1 vẫn đúng sau #279; phương án dự phòng của mục 3.4 chưa cần.
   - Tệp tạm đã xóa sau khi chạy; nhánh plan chỉ có plan.
 
+**Lần chạy thử theo rà soát độc lập (2026-11-01, phiên bản 2).** Nhánh tạm `tmp/T-086-try2` từ nhánh plan (`9af5928` cộng plan), trong worktree của phiên soạn plan; code tạm không commit, nhánh tạm xóa sau khi chạy.
+
+- **Đã chạy thử:**
+  - Code thật của plan ở `:core:designsystem`: `PremiumBadge.kt` đúng mục 3.1 (có `contentDescription`), `PoseCard(premium)` với dấu ở `offset(6.dp, 10.dp)` và nhãn `premium_badge_label`, `PoseThumb(premium)` với dấu ở `(-7, -7)` và `contentDescription = null`, chuỗi `premium_badge_label` ở 7 thư mục. `ic_premium.xml` tạm dùng hình của `ic_check.xml`; task lấy hình `workspace_premium`.
+  - `PremiumTrialTest` (`:core:designsystem`, `@GraphicsMode(NATIVE)`, 3 test):
+    - `card_mergedDescription_andBadgeNode`: node gộp của thẻ có đúng một mô tả "Premium pose"; dấu ở (6, 10) dp trong ảnh, cỡ 32 dp; trên `AccessibilityNodeInfo` (gốc có `testTagsAsResourceId`), dấu là một node riêng có `viewIdResourceName` `pose_premium_badge` và mô tả "Premium pose".
+    - `thumb_nullBadgeDescription_readsOnce`: node gộp của ô có đúng một mô tả (của ô).
+    - `control_badgeWithDescription_insideSelectable_readsTwice` (đối chứng): ô `selectable` chứa `PremiumBadge` có mô tả thì node gộp có hai mô tả. Đây là lỗi đọc trùng mà `contentDescription = null` tránh.
+  - `LockedPoseUnlockTrialTest` (`:feature:camera`, 1 test): bản thay tạm của `rememberLockedPoseUnlock` (giữ tư thế rồi `start()` của `rememberRewardedAction(GALLERY_RW_ACTION)`, `RewardedAdDialog`, `rememberUpdatedState`) với `PoseViewModel` thật và kho giả của `PoseViewModelTest`, không `LocalAdsController`. Chạm nút thì tư thế đang chọn đổi từ `w01` sang `m02`, không có node `RewardedAdDialogTestTags.CARD`. `onPoseSelect` thay cho `onLockedPoseSelect`, `onUnlockGranted` chưa có.
+  - `PoseDetailRouteTrialTest` (`:feature:poses`, 1 test): `PoseDetailRoute(onBack, onShootWithPose, viewModel)` với `PoseDetailViewModel` thật và kho giả, không `LocalAdsController`; chạm "Shoot with this pose" thì `onShootWithPose("w01")` chạy một lần.
+  - Tệp kịch bản `T-086-mo-khoa-chi-tiet.txt` (mục 4) qua `scripts/device-scenario.py check`.
+- **Lệnh:**
+  - `./gradlew -q :core:designsystem:testDebugUnitTest --tests '*PremiumTrialTest' :feature:camera:testDebugUnitTest --tests '*LockedPoseUnlockTrialTest' :feature:poses:testDebugUnitTest --tests '*PoseDetailRouteTrialTest' -i` (05:59 tới 06:00 UTC); lần đó hai test feature đỏ vì dựng ảnh ở chế độ đồ họa mặc định (`Bitmap.setHasAlpha` trên `null`), thêm `@GraphicsMode(NATIVE)` rồi chạy lại hai lớp đó (06:00 tới 06:01 UTC). Test thật của plan ghi `@GraphicsMode(NATIVE)` (mục 4).
+  - Đối chứng camera: bỏ `current.start()` trong bản thay tạm, chạy lại `LockedPoseUnlockTrialTest`.
+  - `python3 scripts/device-scenario.py check feature/poses/src/deviceScenarios/T-086-mo-khoa-chi-tiet.txt`, lần đầu với một tệp tạm khai các tag của T-082 và `pose_detail_unlock` (chưa có trong code), lần sau không có tệp tạm (đối chứng).
+  - `scripts/check.sh` qua khóa chung (`check-locked.sh`), với mọi code tạm của lần này, trừ tệp kịch bản và tệp tag tạm (06:03 tới 06:24 UTC, kể cả lúc chờ khóa).
+- **Kết quả:**
+  - `PremiumTrialTest` 3/3, `LockedPoseUnlockTrialTest` 1/1, `PoseDetailRouteTrialTest` 1/1 qua. In ra: `card badge offset=(6.0, 10.0) size=32.0`, `badge a11y=(Premium pose, pose_premium_badge)`. `AccessibilityNodeInfo.contentDescription` của chính node thẻ và node ô là `null` trên Robolectric (mô tả nằm ở cây ngữ nghĩa gộp); vì vậy test thật khẳng định trên node gộp (`assertContentDescriptionEquals`), và kịch bản chọn bằng node dấu, không bằng `desc=` của thẻ.
+  - Đối chứng camera: đỏ đúng lý do, `expected:<[m02]> but was:<[w01]>`.
+  - `device-scenario.py check`: exit 0 khi có tag; không có tệp tag tạm thì exit 1, chỉ báo các tag chưa có (`onboarding_page_*`, `onboarding_next` của T-082, `pose_detail_unlock`); `pose_premium_badge` (đã có trong code tạm) không bị báo.
+  - `scripts/check.sh`: `Cổng chất lượng: QUA`, `check.sh exit=0`. Test JVM 2707, 0 lỗi (`./core/designsystem` 119, gồm 3 test tạm; `./feature/camera` 464, gồm 1; `./feature/poses` 171, gồm 1). 140 ảnh screenshot; `git status --short -- '*/src/test/screenshots/*'` rỗng: tham số `premium` mặc định `false` giữ mọi ảnh chuẩn cũ của `PoseCard`, `PoseThumb`. ktlint, lint (chuỗi `premium_badge_label` đủ 7 ngôn ngữ) và build staging qua.
+
 **Lần chạy thử của phiên bản 1 (2026-10-31, commit gốc `4a5ee7e`, trước #279; giữ để đối chiếu).** Cùng hai điểm, chạy trong worktree của nhánh plan.
 
 - `./gradlew -q :app:testStagingDebugUnitTest --tests ...AdsStringsTranslationTest :feature:poses:testDebugUnitTest --tests ...RewardedTrialTest` (17:38 tới 17:40 UTC): 3/3 và 1/1 qua. Đối chứng bỏ `values-vi`: 2 trong 3 đỏ đúng lý do.
@@ -691,7 +795,7 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 - Sửa: `app/src/main/res/values/strings.xml` thêm ba chuỗi gốc tiếng Anh và `translatable="false"` cho `app_name` (khối XML ở mục 3.1).
 - `scripts/check.sh` lần 2 (17:51 tới 17:58 UTC): `Cổng chất lượng: QUA`, exit 0. Test JVM 2428, 0 lỗi; 138 ảnh screenshot, không ảnh chuẩn nào đổi.
 
-**Chưa chạy thử:** phần dữ liệu của T-085 (chưa có code trên nhánh chính: `PremiumAccess`, `PremiumPoseRepository`, `Pose.premium`); giao diện dấu và hộp thoại (mẫu `Box`, `offset`, `CircleShape`, `PrimaryButton` có icon đã có trong hệ thống thiết kế); đường hộp thoại thật với `AdsController` (không dựng được trong feature; khung đã có test). Phần còn lại là mẫu đã có: `combine` luồng, `Channel` cho sự kiện một lần, `SavedStateHandle`, snackbar như `saveFailed`.
+**Chưa chạy thử:** phần dữ liệu của T-085 (chưa có code trên nhánh chính: `PremiumAccess`, `PremiumPoseRepository`, `Pose.premium`); màu dấu, ảnh chuẩn và hộp thoại có `PremiumUnlockContent` (mẫu `Box`, `CircleShape`, `PrimaryButton` có icon đã có trong hệ thống thiết kế; cỡ, chỗ đặt và trợ năng của dấu đã chạy thử); đường hộp thoại thật với `AdsController` (không dựng được trong feature; khung đã có test). Phần còn lại là mẫu đã có: `combine` luồng, `Channel` cho sự kiện một lần, `SavedStateHandle`, snackbar như `saveFailed`.
 
 ## 5. Chấm rủi ro
 
@@ -710,12 +814,13 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 
 - File hoặc thành phần dùng chung bị chạm: `AdPlacement.kt`, `RewardedAction.kt` (`:core:ads`); `PoseCard.kt`, `PoseThumb.kt`, chuỗi của `:core:designsystem`; bảng khóa; `StagingRemoteValuesModule.kt`; tài nguyên đè của `:app`; `docs/ops/ads-guide.md`, `docs/ops/manual-test.md`.
 - Task khác có thể xung đột:
-  - **T-080** (approved phiên bản 2 trước #279; đang soạn lại song song sau #279): cùng sửa `AdPlacement.kt` (dòng `POSES_IN_COLLECTION`, plan này thêm dòng sau), `AdPlacementAppTest.kt`, `AdUnitIdsTest.kt` (T-080 phiên bản 2 ghi `unit/12`, đã trùng với `review_interstitial`; plan này dùng `unit/14`, mã trong test chỉ là chữ, trùng không làm test sai), `StagingRemoteValuesModule.kt`, `StagingRemoteValuesModuleTest.kt`, `docs/remote-config-keys.md`, `docs/remote-config-template.json`, `PoseCard.kt` (`PoseCardDefaults.oneLineHeight`), `PosesScreenTest.kt`, `PosesScreenScreenshotTest.kt`, `docs/ops/ads-guide.md`, `docs/ops/manual-test.md` (mục 11), `docs/features/poses/design/review/summary.md`. Có thể cùng sửa `AdsControllerUnitIdsTest.kt` nếu bản soạn lại của T-080 theo #279. Không sửa `PosesScreen.kt` (tag của dấu ở `:core:designsystem`), tránh phần lưới mà T-080 viết lại.
-  - **T-081, T-083** (đang soạn lại song song sau #279): cùng sửa `AdPlacement.kt` và bảng khóa (`docs/remote-config-keys.md`, `docs/remote-config-template.json`), có thể cả `StagingRemoteValuesModule.kt` và test dữ liệu của `:core:ads` (`AdPlacementAppTest`, `AdUnitIdsTest`, `AdsControllerUnitIdsTest`). Mỗi task sinh lại bảng khóa từ code của nhánh mình; điều kiện dừng ở mục 7 so với bảng của nhánh gốc.
+  - **T-080** (approved phiên bản 2 trước #279; đang soạn phiên bản 4 song song sau #279): cùng sửa `AdPlacement.kt` (dòng `POSES_IN_COLLECTION`, plan này thêm dòng sau), `AdPlacementAppTest.kt`, `AdUnitIdsTest.kt` (T-080 phiên bản 2 ghi `unit/12`, đã trùng với `review_interstitial`; plan này dùng `unit/14`, mã trong test chỉ là chữ, trùng không làm test sai), `StagingRemoteValuesModule.kt`, `StagingRemoteValuesModuleTest.kt`, `docs/remote-config-keys.md`, `docs/remote-config-template.json`, `PoseCard.kt` (`PoseCardDefaults.oneLineHeight`), `PosesScreenTest.kt`, `PosesScreenScreenshotTest.kt`, `docs/ops/ads-guide.md`, `docs/ops/manual-test.md` (mục 11), `docs/features/poses/design/review/summary.md`. Có thể cùng sửa `AdsControllerUnitIdsTest.kt` nếu bản soạn lại của T-080 theo #279. Không sửa `PosesScreen.kt` (tag của dấu ở `:core:designsystem`), tránh phần lưới mà T-080 viết lại.
+  - **T-081, T-083** (đang soạn lại song song sau #279: T-081 phiên bản 2, T-083 phiên bản 3): cùng sửa `AdPlacement.kt` và bảng khóa (`docs/remote-config-keys.md`, `docs/remote-config-template.json`), có thể cả `StagingRemoteValuesModule.kt` và test dữ liệu của `:core:ads` (`AdPlacementAppTest`, `AdUnitIdsTest`, `AdsControllerUnitIdsTest`). Mỗi task sinh lại bảng khóa từ code của nhánh mình; điều kiện dừng ở mục 7 so với bảng của nhánh gốc.
   - **T-085** (approved): plan này dùng `Pose.premium`, `PremiumAccess`, `PremiumPoseRepository` (`access`, `unlock(): Boolean`); T-085 sửa `PosesModule.kt`, `StagingFeatureFlagsModule`, bảng khóa (`feature_premium_poses_enabled`). Hai plan cùng sinh lại bảng khóa: chạy nối tiếp thì không xung đột.
-  - **T-082** (approved phiên bản 2): trang 3 của luồng giới thiệu dùng icon `workspace_premium` (thiết kế ghi dấu premium giống trang này). Plan T-082 không tạo `PremiumBadge` hay `ic_premium.xml` (đã rà `docs/features/onboarding/plans/T-082-*.md`), nên không trùng file (L-033). Tệp kịch bản của plan này đi qua màn giới thiệu (mục 4, ghi chú dưới tệp kịch bản).
+  - **T-082** (plan phiên bản 2 đã duyệt và merge vào nhánh chính; chạy trước task này): trang 3 của luồng giới thiệu dùng icon `workspace_premium` (thiết kế ghi dấu premium giống trang này). Plan T-082 không tạo `PremiumBadge` hay `ic_premium.xml` (đã rà `docs/features/onboarding/plans/T-082-*.md`), nên không trùng file (L-033). Tệp kịch bản của plan này đi qua màn giới thiệu (mục 4, ghi chú dưới tệp kịch bản).
   - **T-088** (draft): sinh lại bảng khóa (bỏ `feature_camera_enabled`); chạy trước hay sau đều được.
   - **T-084**: `stopped`, không chạy.
+- Dữ liệu test của `:core:ads` sau #279 (`AdUnitIdsTest` ba chuỗi và `missingUnitsWarning_listsMissingKeys`, `AdsControllerUnitIdsTest.PLACEMENT_UNITS`): T-080, T-081, T-083 cũng thêm khóa vào các chuỗi này. T-086 chỉ thêm `rw_premium_pose=unit/14` vào cuối mỗi chuỗi, tìm chỗ theo chuỗi, không theo số dòng; chạy sau các plan đó thì chuỗi dài hơn nhưng cách sửa không đổi.
 - Đề xuất thứ tự chạy: sau T-080 và sau T-085 (phụ thuộc trong ticket); sau T-081, T-083 nếu chúng cùng danh sách, vì cùng sửa `AdPlacement.kt` và bảng khóa. Một lượt, từ nhánh chính mới nhất.
 - Phần có ích cho mọi app (đổi `RewardedAdDialogCard` sang công khai để app có ảnh chuẩn của hộp thoại; cách app dịch chuỗi của khung): ghi vào mô tả PR để đề xuất về dự án mẫu (`docs/ops/from-app.md`).
 
@@ -737,10 +842,35 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 6. **`pose_selected` khi mở khóa.** Spec ghi `pose_selected` "khi bấm Chụp với tư thế này" (`source` `detail`) và khi chọn ở dải (`strip`). Đề xuất của AI: mở khóa xong mà app về camera hay dùng tư thế đó cũng ghi `pose_selected` (`detail` ở chi tiết, `strip` ở camera), sau `premium_pose_unlocked`, để tỷ lệ "mở chi tiết rồi chụp" của spec mục 1 vẫn đếm tư thế premium. Cách khác: chỉ ghi `premium_pose_unlocked`.
 7. **Ghi mở khóa lỗi sau khi người dùng đã xem quảng cáo.** `unlock` ném `IOException` (bộ nhớ đầy, hiếm). Đề xuất của AI: tư thế vẫn khóa, không ghi sự kiện, không điều hướng; chi tiết hiện snackbar "Chưa mở khóa được tư thế. Thử lại."; camera chỉ ghi log `warn` (camera không có snackbar), ô vẫn khóa. Người dùng phải xem lại quảng cáo. Cách khác: lần này vẫn cho dùng tư thế (về camera), chỉ báo lỗi; cần camera nhận tư thế khóa từ chi tiết, trái tiêu chí "chọn tư thế khóa thì hộp thoại hiện".
 8. **"Tư thế tiếp" của màn xem lại khi tư thế kế là premium chưa mở.** Spec không nói. Đề xuất của AI: bỏ qua tư thế khóa, chọn tư thế không khóa kế tiếp (vòng về đầu); không mở hộp thoại từ màn xem lại. Cách khác: dừng ở tư thế khóa và mở hộp thoại ở camera.
-9. **Đề xuất về dự án mẫu.** Đổi `RewardedAdDialogCard` sang công khai (câu 4) và cách app dịch chuỗi của khung trong `values-<ngôn ngữ>` của `:app` (đã chạy thử) có ích cho mọi app. Đề xuất: ghi trong mô tả PR theo `docs/ops/from-app.md`, người mở đề xuất ở repo mẫu sau khi merge. Đúng không?
-10. **Một lượt hay tách ticket (mới, theo #279).** Quy tắc mới của `docs/CLAUDE.md` (L-142 của mẫu) không cho một plan chạy nhiều lượt; ticket T-086 (mục Rủi ro sơ bộ) vẫn ghi "nếu không xong trong một lượt, chia hai lượt", nên hai tài liệu lệch nhau. Phiên bản 2 gộp thành một lượt, một PR cỡ L (`token_estimate` 39,4M theo số gợi ý cỡ L). Cách khác: tách phần camera thành ticket mới (`depends_on: [T-086]`), plan riêng; T-086 còn thư viện, chi tiết, khung (cỡ M). Đề xuất của AI: giữ một lượt; phần camera dùng lại mọi thứ của phần A, và ticket ghi một kịch bản (KB-8) xuyên ba màn. Nếu nhóm muốn PR nhỏ hơn để rà, người tách ticket rồi AI soạn lại hai plan.
+9. **Đề xuất về dự án mẫu.** Đổi `RewardedAdDialogCard` sang công khai (câu 4) và cách app dịch chuỗi của khung trong `values-<ngôn ngữ>` của `:app` (đã chạy thử) có ích cho mọi app. `ads-guide.md` chỉ thêm phần chung của hai điều này, và `docs/template-sync.txt` có dòng chú thích giữ `RewardedAdDialogCard` công khai qua các đợt đồng bộ (mục 3.1). Đề xuất: ghi trong mô tả PR theo `docs/ops/from-app.md`, người mở đề xuất ở repo mẫu sau khi merge. Đúng không?
+10. **Một lượt hay tách ticket (mới, theo #279).** Quy tắc mới của `docs/CLAUDE.md` (L-142 của mẫu) không cho một plan chạy nhiều lượt; ticket T-086 (mục Rủi ro sơ bộ) đã ghi lại theo quy tắc này trong PR của plan (rà soát độc lập, nên sửa 8). Phiên bản 2 gộp thành một lượt, một PR cỡ L (`token_estimate` 39,4M theo số gợi ý cỡ L). Cách khác: tách phần camera thành ticket mới (`depends_on: [T-086]`), plan riêng; T-086 còn thư viện, chi tiết, khung (cỡ M). Đề xuất của AI: giữ một lượt; phần camera dùng lại mọi thứ của phần A, và ticket ghi một kịch bản (KB-8) xuyên ba màn. Nếu nhóm muốn PR nhỏ hơn để rà, người tách ticket rồi AI soạn lại hai plan.
 11. **Người dùng có gói bỏ quảng cáo (mới, theo #279).** Khung có cổng `AdFreeStatus`: tín hiệu bật thì `rewardedSwitch` tắt, nên `start()` chạy hành động ngay, như khóa vị trí tắt (ads-guide mục 6; `RewardedActionTest.realController_adFreeWhileDialogOpen_watchRunsAction`). Với plan này: người có gói chạm nút mở khóa thì tư thế mở ngay và mãi (vẫn ghi `premium_pose_unlocked`), từng tư thế một; dấu premium vẫn hiện trên tư thế chưa chạm. App hiện gắn `AdFreeStatus.NONE` (`AdFreeModule`), chưa có gói nào, nên hôm nay không ai gặp. Spec poses chưa nói gì về gói này. Đề xuất của AI: giữ theo khung trong plan này, không thêm code; khi app có gói bỏ quảng cáo thì spec quyết có mở hết tư thế premium (ẩn dấu) cho người có gói hay không, ở ticket của gói đó.
 12. **Quảng cáo nạp sẵn (thông tin, theo #279).** Khi `is_show_rw_premium_pose` bật (staging bật), khung nạp sẵn một quảng cáo rewarded cho vị trí này ở nhóm nạp sẵn thứ hai (`AdPreloadPlan`, `AdPreloadPlanTest.fromPlacements_hasRewardedInSecondGroup`), như vị trí rewarded của trang thử. Không đổi gì ở plan; ghi để người duyệt biết staging có thêm một lượt nạp rewarded lúc mở app.
+
+**Kết quả rà soát độc lập phiên bản 2 (2026-11-01, agent ngữ cảnh mới, chỉ đọc): 1 chặn, 9 nên sửa, 8 ghi chú. Đã sửa trong phiên bản 2:**
+
+- **Chặn:** test của camera nói dựng `CameraRoute` "như `CameraScreenPoseTest`", mà lớp đó chỉ dựng `CameraScreen` không trạng thái; không test nào dựng `CameraRoute`. Sửa:
+  - phần nối tách thành `pose/LockedPoseUnlock.kt`, test `LockedPoseUnlockTest` với `PoseViewModel` thật, đã chạy thử (mục 3.1, 4, 4.1);
+  - `PoseDetailRouteTest` dựng `PoseDetailRoute` với ViewModel thật: đã chạy thử trên route hiện có; phương án dự phòng tách phần nối ở mục 3.4.
+- **Nên sửa:**
+  1. Dấu nằm trong node gộp, TalkBack có thể đọc trùng: `PremiumBadge` có tham số `contentDescription`, ô camera truyền `null`; thêm test `assertContentDescriptionEquals` cho ô và thẻ; đã chạy thử trên cây ngữ nghĩa và `AccessibilityNodeInfo` (L-004).
+  2. Kịch bản emulator: đi qua các trang của T-082; cách chọn thẻ khóa dựa trên số đo (dấu là node riêng có `resource-id`); đã kiểm bằng `device-scenario.py check`.
+  3. `manual-test.md`: ghi "mục con mới của mục 11", không định trước số 11.5.
+  4. `ads-guide.md` chỉ giữ phần chung; ghi `RewardedAdDialogCard` công khai vào chú thích của `docs/template-sync.txt`.
+  5. Thêm `PoseViewModelTest.unlockGranted_twiceWhileWriting_writesOnce`.
+  6. Thêm `PoseDetailScreenTest.wide_locked_showsUnlockAndBadge` (`WideDetailLayout`, L-072).
+  7. Gộp vào điểm chặn (`PoseDetailRouteTest`).
+  8. Ticket T-086 (mục Rủi ro sơ bộ) bỏ câu "chia hai lượt", ghi một lượt theo L-142; sửa ngay trong PR của plan này (#273).
+  9. `rw_premium_pose=unit/14` ở mọi chỗ; tìm chỗ sửa theo chuỗi.
+- **Ghi chú đã áp:**
+  - mục 6 cập nhật phiên bản đang soạn của T-080, T-081, T-083, T-082 đã merge, dữ liệu test sau #279;
+  - `PoseDetailScreen` thêm callback có mặc định (3.5);
+  - ba test "Cần xem trước" được nêu tên ở dòng "Giữ nguyên" (3.5);
+  - `rememberUpdatedState` cho `RewardedAction` trong `PoseActions` (3.1);
+  - hành vi sau "Để sau" (3.1);
+  - `onRequestedPose` trên ViewModel mới (3.1);
+  - cách hiện khi `access` phát `enabled = false` rồi `true` (3.1);
+  - ghi chú token cỡ L (frontmatter).
 
 ## 9. Quyết định duyệt
 

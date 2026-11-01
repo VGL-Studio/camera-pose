@@ -5,7 +5,7 @@ feature: poses
 spec: features/poses/spec.md   # confirmed 2026-10-31, câu 6, 9, 10, 12
 scenarios: [KB-8]              # phần dữ liệu: đánh dấu premium, mở khóa vĩnh viễn, tư thế mặc định không premium
 owner: Nhật
-status: approved
+status: planned
 risk: high
 size: M
 depends_on: []

@@ -292,6 +292,7 @@ internal data class AdPlacementDeclaration(
         require(noAdPolicy == null || format == AdFormat.REWARDED) {
             "Placement $code: noAdPolicy is for rewarded only"
         }
+        require(!firstOpenOnly || !appWide) { "Placement $code: firstOpenOnly is not for an app-wide placement" }
         if (nativeEvery != null) {
             require(format in NATIVE_EVERY_FORMATS) { "Placement $code: nativeEvery is for list formats only" }
             require(nativeEvery >= 1) { "Placement $code: nativeEvery must be 1 or more" }

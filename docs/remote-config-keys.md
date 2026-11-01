@@ -43,6 +43,7 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 | `is_show_native_after_inter` | boolean | `false` | `:core:ads` | Shows a full-screen native ad right after an interstitial (combo). |
 | `is_show_native_bottom` | boolean | `false` | `:core:ads` | Bottom slot of every bottom ad bar: a small native ad when true, a banner when false. |
 | `is_show_native_collap` | boolean | `true` | `:core:ads` | Collapsible native layer on the bottom ad bar, only when is_show_native_bottom is also true. Name set by the template, not an AdsKit key. |
+| `is_show_native_onboarding` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement native_onboarding (native_step). |
 | `is_show_pose_detail_bottom` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement pose_detail_bottom (native_small). |
 | `is_show_poses_bottom` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement poses_bottom (native_small). |
 | `is_show_poses_in_collection` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement poses_in_collection (native_in_collection). |

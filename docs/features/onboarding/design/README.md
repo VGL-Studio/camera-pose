@@ -146,3 +146,24 @@ Nhận xét của phiên viết code (T-082; rà soát độc lập bổ sung �
 - Nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56), nên đỉnh nút thấp hơn 4 dp (811 thay 807; 761 thay 757 ở khung mở gập) và ghi chú ở trang cuối thấp hơn 4 dp. Phần lớn tỷ lệ khác ở các frame là viền chữ khi vẽ và dải 4 dp này.
 - `intro_light_unfolded` (18.3%): `context/OnboardingScreen_intro_light_unfolded.md` đặt hình minh họa sát trái trong khung 625, lệch với mục 3 và mục 6 của README ("căn giữa"). Theo câu trả lời câu 9 của plan T-082 (Nhật, 2026-11-01), code theo README: hình 363 x 280 căn giữa trong khung 625. Phần khác gần như toàn bộ là vị trí ngang của hình; chữ và nút khớp. Frame Figma chưa căn lại.
 - Icon huy hiệu trang premium là `workspace_premium` của Material Symbols Outlined, cùng bộ với các icon `ic_onboarding_*` có sẵn.
+
+Đối chiếu các frame có thẻ của T-083 (`scripts/design-compare.sh onboarding`, 2026-11-02, RUN-20261101-01): ảnh chuẩn chụp bằng tiếng Việt, luồng 4 trang, thẻ giả `NativeAdCard(NativeAdSize.STEP)` với chữ giả của ảnh chuẩn `NativeAdCard_step_*` của khung; frame `intro-ad-wait` dùng khung chờ `NativeAdPlaceholder(NativeAdSize.STEP)` chụp với đồng hồ dừng sau một vòng nhấp nháy (1 600 ms) và nút "Tiếp" `PrimaryButton(enabled = false)`.
+
+| Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |
+| --- | --- | --- |
+| OnboardingScreen_intro-ad_light | 6.1% | `OnboardingScreen_intro-ad_light_compare.png` |
+| OnboardingScreen_intro-ad_dark | 6.8% | `OnboardingScreen_intro-ad_dark_compare.png` |
+| OnboardingScreen_poses-ad_light | 2.7% | `OnboardingScreen_poses-ad_light_compare.png` |
+| OnboardingScreen_poses-ad_dark | 3.4% | `OnboardingScreen_poses-ad_dark_compare.png` |
+| OnboardingScreen_premium-ad_light | 2.2% | `OnboardingScreen_premium-ad_light_compare.png` |
+| OnboardingScreen_premium-ad_dark | 3.0% | `OnboardingScreen_premium-ad_dark_compare.png` |
+| OnboardingScreen_camera-ad_light | 2.6% | `OnboardingScreen_camera-ad_light_compare.png` |
+| OnboardingScreen_camera-ad_dark | 3.3% | `OnboardingScreen_camera-ad_dark_compare.png` |
+| OnboardingScreen_intro-ad-wait_light | 4.9% | `OnboardingScreen_intro-ad-wait_light_compare.png` |
+| OnboardingScreen_intro-ad-wait_dark | 4.9% | `OnboardingScreen_intro-ad-wait_dark_compare.png` |
+
+Nhận xét của phiên viết code (T-083; rà soát độc lập bổ sung ở bước 6):
+
+- Thẻ rộng hết cột (363), không lề ngoài, đỉnh 537 ở trang 1 tới 3 và 481 ở trang cuối, cao 250; ghi chú và nút ở dưới thẻ, cách 24 (test `*Ad_layoutMatchesDesign`). Các số này thấp hơn thiết kế 4 dp vì nút cao 56 thay 60 (mục 6, như T-082).
+- `intro-ad` (6.1%, 6.8%): thêm vào dải 4 dp ở trên, tiêu đề xuống dòng sau "không" thay vì sau "cần" (như frame `intro` không thẻ của T-082), nên hình minh họa cao 233 thay 229 và tiêu đề, lời giới thiệu lệch vài dp; thẻ giả ghi "Advertiser" thay "Advertiser or short body" của Figma (chữ trong thẻ là chữ của nhà quảng cáo, mục 2).
+- `intro-ad-wait` (4.9%): khung chờ của khung `State=Loading` và nút mờ đúng màu của thiết kế (nền `onSurface` 0.12, chữ 0.38, không bóng); khác biệt là dải 4 dp và chữ của trang 1 như trên.

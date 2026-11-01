@@ -1,0 +1,23 @@
+ticket: T-083
+criterion: KB-6 tiêu chí 2, 3, 6: sau "Do not consent" (UMP vẫn cho nạp quảng cáo không cá nhân hóa, spec câu 9) trang 1 có thể giữ "Tiếp" mờ tối đa 5 giây; emulator không có quảng cáo native mà nút vẫn bật lại, luồng đi tới camera; quay lại trang 1 thì nút không mờ lại
+timeout: 180
+fresh
+consent decline 30
+wait id=onboarding_page_intro 60
+expect id=onboarding_next
+wait id=onboarding_next enabled=true 15
+shot intro-ready
+tap id=onboarding_next enabled=true
+wait id=onboarding_page_poses 10
+back
+wait id=onboarding_page_intro 10
+expect id=onboarding_next enabled=true
+tap id=onboarding_next enabled=true
+wait id=onboarding_page_poses 10
+tap id=onboarding_next enabled=true
+wait id=onboarding_page_premium 10
+tap id=onboarding_next enabled=true
+wait id=onboarding_page_camera 10
+expect id=onboarding_enable_camera
+tap id=onboarding_enable_camera
+need id=camera_poses 15

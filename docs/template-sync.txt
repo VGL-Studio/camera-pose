@@ -34,4 +34,5 @@ hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh.
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
 # core/ads RewardedAction.kt: RewardedAdDialogCard is public (plan T-086, screenshot of the unlock dialog); keep it.
+# T-083 (spec onboarding KB-6): keep the enabled=true filter of scripts/device-scenario.py with its tests in scripts/tests/run.sh and fixtures next-held.xml, next-ready.xml, the waits for an enabled Next in docs/ops/test-sessions.md section 5, core/ads rememberNativeStepAdAllowed (NativeFlowStep.kt) and AdPlacement.firstOpenOnly (AdPlacement.kt, StartupAdChoice.kt), and native_onboarding in docs/ops/ads-guide.md, until the template takes them (from-app).
 # App-only files a sync never touches: scripts/setup-check-app.sh, scripts/tests/app.sh, docs/ops/manual-test.md.

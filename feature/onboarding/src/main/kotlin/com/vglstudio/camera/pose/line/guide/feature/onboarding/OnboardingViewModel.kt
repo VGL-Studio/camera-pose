@@ -70,12 +70,12 @@ class OnboardingViewModel @Inject constructor(
         return OnboardingUiState.Browsing(pages, index)
     }
 
-    /** Skeleton of plan T-083, step 3. */
-    internal fun onIntroAdWaitStarted() = Unit
+    /** Page 1 holds "Next" while its ad card waits (spec onboarding, KB-6; plan T-083). */
+    internal fun onIntroAdWaitStarted() = logger.info(LOG_TAG, "Intro ad wait started")
 
-    /** Skeleton of plan T-083, step 3. */
-    @Suppress("UNUSED_PARAMETER")
-    internal fun onIntroAdWaitEnded(reason: IntroAdWaitEnd) = Unit
+    /** The hold of page 1 ended, and why (plan T-083). */
+    internal fun onIntroAdWaitEnded(reason: IntroAdWaitEnd) =
+        logger.info(LOG_TAG, "Intro ad wait ended: ${reason.logName}")
 
     fun onNextClick() {
         val current = state.value as? OnboardingUiState.Browsing ?: return

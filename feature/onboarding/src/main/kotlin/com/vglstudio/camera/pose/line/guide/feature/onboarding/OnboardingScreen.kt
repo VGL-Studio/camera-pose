@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -56,6 +57,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.NativeStepAd
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberAdHoldingLauncher
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberNativeStepAdAllowed
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
@@ -99,8 +101,9 @@ internal fun OnboardingRoute(
             }
         }
     }
-    OnboardingScreen(
+    OnboardingAdContent(
         uiState = uiState,
+        adsAllowed = rememberNativeStepAdAllowed(AdPlacement.NATIVE_ONBOARDING),
         onNext = viewModel::onNextClick,
         onBack = viewModel::onBackClick,
         onEnableCamera = {
@@ -108,6 +111,8 @@ internal fun OnboardingRoute(
                 PackageManager.PERMISSION_GRANTED
             viewModel.onEnableCameraClick(granted)
         },
+        onIntroAdWaitStarted = viewModel::onIntroAdWaitStarted,
+        onIntroAdWaitEnded = viewModel::onIntroAdWaitEnded,
     )
 }
 
@@ -119,6 +124,7 @@ internal fun OnboardingRoute(
  * [MinIllustrationHeight]), then the page scrolls (design README, section 6). Back goes to the page before, from the
  * second page; on the first page it closes the app.
  * [adSlot] draws the card of T-083 between the page and the bottom; nothing by default, with no padding of its own.
+ * [nextEnabled] false holds "Next" while the card of page 1 waits for an ad (plan T-083); "Turn on camera" never.
  */
 @Composable
 internal fun OnboardingScreen(
@@ -181,6 +187,7 @@ internal fun OnboardingScreen(
             PrimaryButton(
                 text = stringResource(R.string.onboarding_next),
                 onClick = onNext,
+                enabled = nextEnabled,
                 modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.NEXT),
             )
         }
@@ -205,14 +212,22 @@ internal fun OnboardingAdContent(
     adSlot: @Composable (page: OnboardingPage, onAdAvailabilityChange: (Boolean) -> Unit) -> Unit =
         { page, onChange -> OnboardingAdCard(page, onChange) },
 ) {
-    // Skeleton of plan T-083, step 3: Next is never held.
+    var cardHasAd by remember { mutableStateOf(false) }
+    val nextHeld = rememberIntroAdWait(
+        onIntro = uiState is OnboardingUiState.Browsing && uiState.page == OnboardingPage.INTRO,
+        allowed = adsAllowed,
+        hasAd = cardHasAd,
+        onStarted = onIntroAdWaitStarted,
+        onEnded = onIntroAdWaitEnded,
+    )
     OnboardingScreen(
         uiState = uiState,
         onNext = onNext,
         onBack = onBack,
         onEnableCamera = onEnableCamera,
         modifier = modifier,
-        adSlot = { page -> adSlot(page) {} },
+        nextEnabled = !nextHeld,
+        adSlot = { page -> adSlot(page) { cardHasAd = it } },
     )
 }
 

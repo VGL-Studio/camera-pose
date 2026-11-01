@@ -164,8 +164,9 @@ fun NativeStepAd(
  */
 @Composable
 fun rememberNativeStepAdAllowed(placement: AdPlacement): Boolean {
-    // Skeleton of plan T-083, step 3.
-    return false
+    requireStepFormat(placement.format)
+    val ads = LocalAdsController.current ?: return false
+    return rememberStepAllowed(placement, ads.canRequestAds, ads::isEnabled) { ads.unitId(it) }
 }
 
 /**

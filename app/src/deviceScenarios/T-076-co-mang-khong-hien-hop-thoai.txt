@@ -4,9 +4,15 @@ timeout: 180
 fresh
 consent decline 30
 wait id=onboarding_screen | id=camera_screen 60
-tap_if id=onboarding_next
-tap_if id=onboarding_next
-tap_if id=onboarding_next
+# T-083: page 1 may hold Next up to 5 s while its ad card waits; four rounds for at most four pages and one spare
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
 tap_if id=onboarding_enable_camera
 need id=camera_poses 15
 # (1) online: past the loading screen for longer than the 3 s delay, the dialog never shows

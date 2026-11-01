@@ -1,16 +1,16 @@
 ---
 ticket: T-084
 title: Mã quảng cáo theo lớp cho thanh đáy (banner, native thu gọn), chọn lớp bằng Remote Config
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9.0M         # cỡ M theo scripts/token-usage.py estimate (2026-10-31), không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-10-31
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -325,8 +325,12 @@ Rủi ro Cao, cần duyệt chéo (Tuấn và Nhật). Nhật là người phụ
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:**
-- **Người duyệt:** , **duyệt chéo:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt" khi AI hỏi, ngày 2026-10-31. Trả lời mục 8:
+  - câu 1: sửa spec ads câu 13 (3 cách hiện; tổ hợp tắt, bật ra banner), Nhật xác nhận spec lại;
+  - câu 2: suy từ khai báo (`NATIVE_SMALL` không có `nativeEvery`);
+  - câu 3, 4: `missingLayers` riêng; không sửa `release.md`; ghi chú khuôn mã lớp vào ticket T-075; phần chặn khi phát hành là đề xuất về dự án mẫu;
+  - câu 5: chấp nhận việc đã đọc `scripts/release.sh` lúc soạn plan (không sửa). Nhắc lại quy tắc: phiên chạy T-084 không đọc hay sửa `scripts/release.sh`.
 
 ## 10. Nhật ký thực hiện

@@ -156,6 +156,19 @@ fun NativeStepAd(
 }
 
 /**
+ * Whether the step card of [placement] may take an ad now: consent given, `is_show_<placement>` on (the master switch
+ * applied, off too while ad-free, [AdFreeStatus]), an ad unit (the gate [NativeStepAd] reads before it takes any
+ * space). False with no ads controller, and false as soon as ads stop being allowed (L-061). An app that holds its
+ * Next button while the card of the first step waits for an ad (plan T-083) waits only while this is true. Placements
+ * of another format are an [IllegalArgumentException].
+ */
+@Composable
+fun rememberNativeStepAdAllowed(placement: AdPlacement): Boolean {
+    // Skeleton of plan T-083, step 3.
+    return false
+}
+
+/**
  * [NativeStepAd] without an ads controller: [step] goes into one stream of steps, read by the states [newStates]
  * builds once ([stepAdStates] in the app); drawn by the gate of every native slot at the size of the step card.
  */

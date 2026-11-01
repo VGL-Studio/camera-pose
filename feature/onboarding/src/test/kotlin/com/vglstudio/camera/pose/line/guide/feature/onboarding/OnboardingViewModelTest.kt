@@ -464,6 +464,23 @@ class OnboardingViewModelTest {
         params = mapOf("result" to result, "source" to "onboarding"),
     )
 
+    @Test
+    fun introAdWait_logsStartAndEnd() {
+        val viewModel = viewModel()
+        // Control: nothing about the hold before it is reported.
+        assertFalse(logger.entries.any { it.message.startsWith("Intro ad wait") })
+        viewModel.onIntroAdWaitStarted()
+        viewModel.onIntroAdWaitEnded(IntroAdWaitEnd.TIMEOUT)
+        val hold = logger.entries.filter { it.message.startsWith("Intro ad wait") }
+        assertEquals(
+            listOf(
+                onboardingLog(LogLevel.INFO, "Intro ad wait started"),
+                onboardingLog(LogLevel.INFO, "Intro ad wait ended: timeout"),
+            ),
+            hold,
+        )
+    }
+
     private companion object {
         const val STEP = "onboarding_step_viewed"
         const val MAX_TAPS = 10

@@ -208,6 +208,16 @@ class AdPlacementTest {
     }
 
     @Test
+    fun firstOpenOnly_notForAppWide() {
+        // Control: a step card shown only in the first open is accepted (plan T-083).
+        val step = AdPlacementDeclaration("x", AdFormat.NATIVE_STEP, firstOpenOnly = true)
+        assertTrue(step.firstOpenOnly)
+        assertThrows(IllegalArgumentException::class.java) {
+            AdPlacementDeclaration("x", AdFormat.APP_OPEN, appWide = true, firstOpenOnly = true)
+        }
+    }
+
+    @Test
     fun appWidePlacements_areOpenAppAndCombo() {
         val appWide = AdPlacement.entries.filter { it.appWide }
         assertEquals(

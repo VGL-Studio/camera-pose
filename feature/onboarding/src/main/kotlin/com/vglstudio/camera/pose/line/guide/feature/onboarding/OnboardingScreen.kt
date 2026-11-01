@@ -53,6 +53,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeStepAd
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberAdHoldingLauncher
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
@@ -126,6 +128,7 @@ internal fun OnboardingScreen(
     onEnableCamera: () -> Unit,
     modifier: Modifier = Modifier,
     adSlot: @Composable (page: OnboardingPage) -> Unit = {},
+    nextEnabled: Boolean = true,
 ) {
     BackHandler(enabled = uiState is OnboardingUiState.Browsing && uiState.index > 0) { onBack() }
     val colors = MaterialTheme.colorScheme
@@ -182,6 +185,46 @@ internal fun OnboardingScreen(
             )
         }
     }
+}
+
+/**
+ * The onboarding screen with the ad card of plan T-083: holds Next on page one while the card waits for an ad
+ * (spec onboarding, KB-6). [adsAllowed] is the gate of the card; [adSlot] draws the card and reports whether it has
+ * an ad (the real card by default, a fake in tests).
+ */
+@Composable
+internal fun OnboardingAdContent(
+    uiState: OnboardingUiState,
+    adsAllowed: Boolean,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
+    onEnableCamera: () -> Unit,
+    modifier: Modifier = Modifier,
+    onIntroAdWaitStarted: () -> Unit = {},
+    onIntroAdWaitEnded: (IntroAdWaitEnd) -> Unit = {},
+    adSlot: @Composable (page: OnboardingPage, onAdAvailabilityChange: (Boolean) -> Unit) -> Unit =
+        { page, onChange -> OnboardingAdCard(page, onChange) },
+) {
+    // Skeleton of plan T-083, step 3: Next is never held.
+    OnboardingScreen(
+        uiState = uiState,
+        onNext = onNext,
+        onBack = onBack,
+        onEnableCamera = onEnableCamera,
+        modifier = modifier,
+        adSlot = { page -> adSlot(page) {} },
+    )
+}
+
+/** The step card of [page] (spec onboarding, KB-6): no padding, so it leaves no space while it takes none. */
+@Composable
+internal fun OnboardingAdCard(page: OnboardingPage, onAdAvailabilityChange: (Boolean) -> Unit = {}) {
+    NativeStepAd(
+        placement = AdPlacement.NATIVE_ONBOARDING,
+        step = page,
+        modifier = Modifier.fillMaxWidth().testTag(OnboardingTestTags.AD_CARD),
+        onAdAvailabilityChange = onAdAvailabilityChange,
+    )
 }
 
 /** One dot per page, the current one wider; screen readers read "Page 2 of 4" for the whole row. */
@@ -399,6 +442,7 @@ internal object OnboardingTestTags {
     const val PAGE_INDICATOR = "onboarding_page_indicator"
     const val PAGE_AREA = "onboarding_page_area"
     const val AD_SLOT = "onboarding_ad_slot"
+    const val AD_CARD = "onboarding_ad_card"
     const val BADGE = "onboarding_badge"
     const val PAGE_INTRO = "onboarding_page_intro"
     const val PAGE_POSES = "onboarding_page_poses"

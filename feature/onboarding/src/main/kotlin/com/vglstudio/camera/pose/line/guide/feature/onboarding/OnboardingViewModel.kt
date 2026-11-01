@@ -70,6 +70,13 @@ class OnboardingViewModel @Inject constructor(
         return OnboardingUiState.Browsing(pages, index)
     }
 
+    /** Skeleton of plan T-083, step 3. */
+    internal fun onIntroAdWaitStarted() = Unit
+
+    /** Skeleton of plan T-083, step 3. */
+    @Suppress("UNUSED_PARAMETER")
+    internal fun onIntroAdWaitEnded(reason: IntroAdWaitEnd) = Unit
+
     fun onNextClick() {
         val current = state.value as? OnboardingUiState.Browsing ?: return
         if (current.isLastPage) return

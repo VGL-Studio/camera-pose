@@ -47,6 +47,7 @@ import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberInListAds
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_IMAGE_TAG
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PREMIUM_BADGE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardDefaults
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
@@ -519,6 +520,22 @@ class PosesScreenTest {
         setScreen(ready())
         card("w01").performClick()
         assertEquals(listOf("w01"), opened)
+    }
+
+    // KB-8: premium poses (plan T-086)
+
+    @Test
+    fun lockedCard_showsPremiumBadge_andOpensDetail() {
+        setScreen(ready(cards = fixtureCards().map { if (it.id == "w03") it.copy(locked = true) else it }))
+        val badges = composeRule.onAllNodesWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true)
+        badges.assertCountEquals(1)
+        composeRule.onNode(
+            hasTestTag(PREMIUM_BADGE_TAG) and hasAnyAncestor(hasTestTag(PosesTestTags.card("w03"))),
+            useUnmergedTree = true,
+        ).assertExists()
+        // A tap on a locked card still opens the detail (spec poses, question 7).
+        card("w03").performClick()
+        assertEquals(listOf("w03"), opened)
     }
 
     @Test

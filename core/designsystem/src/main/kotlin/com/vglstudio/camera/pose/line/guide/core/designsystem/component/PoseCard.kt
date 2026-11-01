@@ -30,6 +30,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -63,6 +64,11 @@ private val SaveIconSize = 20.dp
 // Design: the 48 dp touch area of the save button is 2 dp right of and 2 dp below the top right corner of the image.
 private val SaveOffset = 2.dp
 
+// Design: the 32 dp badge sits at (6, 10) in the image, its centre mirroring the 36 dp save circle (48 dp area 2 dp
+// outside the top right corner).
+private val PremiumOffsetX = 6.dp
+private val PremiumOffsetY = 10.dp
+
 // Skeleton text bars (design `loading`).
 private val NameBarWidth = 120.dp
 private val NameBarHeight = 16.dp
@@ -73,7 +79,8 @@ private val MetaBarHeight = 12.dp
  * Pose card of the library (sticker.md, section 4; poses design README, section 3): an image on the category color
  * with a save button in its top right corner, then the name (at most two lines) and a second line. The card takes the
  * width of its grid cell; the image keeps the 162 : 210 ratio of the design. [onClick] makes the whole card tappable.
- * Screen readers hear the save button as a toggle button named [saveLabel].
+ * Screen readers hear the save button as a toggle button named [saveLabel]. [premium]: a premium pose not unlocked yet,
+ * with a [PremiumBadge] in the top left corner of the image, read once with the card (spec poses, KB-8).
  */
 @Composable
 fun PoseCard(
@@ -86,6 +93,7 @@ fun PoseCard(
     onSaveClick: () -> Unit,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    premium: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     CardFrame(borderColor = colors.outline, modifier = modifier, onClick = onClick) {
@@ -105,6 +113,13 @@ fun PoseCard(
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.matchParentSize(),
                 )
+                if (premium) {
+                    PremiumBadge(
+                        size = PremiumBadgeSize.Card,
+                        contentDescription = stringResource(R.string.premium_badge_label),
+                        modifier = Modifier.align(Alignment.TopStart).offset(x = PremiumOffsetX, y = PremiumOffsetY),
+                    )
+                }
             }
             SaveButton(
                 saved = saved,

@@ -341,7 +341,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 **Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
 
-- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080).
+- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080), `is_show_rw_premium_pose` đặt `false` (T-086).
 - [ ] Không có `show_open_ads_first_open`, `is_show_native_after_inter`, `is_show_native_collap` đặt `true`.
 - [ ] Hai khóa cũ `is_show_poses_banner`, `is_show_poses_detail_banner` không còn ai đọc từ T-079; để nguyên trên Firebase.
 - [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
@@ -412,6 +412,36 @@ Màn loading tắt thì không có quảng cáo mở app. Bản staging bật s�
 3. Cuộn qua lại nhiều lần qua nhiều ô quảng cáo cho tới khi hết quảng cáo (pool cạn), rồi bật chế độ máy bay.
    - [ ] Lưới không còn ô trống: ô không có quảng cáo biến mất, các thẻ sau dồn lên.
    - [ ] Popup mất mạng của app hiện (ADR-0024). Tắt chế độ máy bay, "Thử lại".
+
+### 11.6 Mở khóa tư thế premium bằng quảng cáo có thưởng (T-086)
+
+Điều kiện: bản staging có T-085 và T-086, catalog staging có tư thế premium; đã đồng ý quảng cáo ở hộp thoại đồng ý. Thử trên máy thật: quảng cáo thử có thưởng không chắc có trên emulator. Cờ `feature_premium_poses_enabled` bật sẵn ở bản staging (T-085), Firebase không tắt được, nên nhánh cờ tắt kiểm bằng test, không bằng tay. Log: `adb logcat -v threadtime | grep -E ' VGL\.(Ads|Poses|Camera)'`.
+
+1. Mở thư viện.
+   - [ ] Thẻ tư thế premium chưa mở khóa có dấu premium ở góc trên trái ảnh; ảnh không bị mờ hay che.
+2. Chạm một thẻ có dấu.
+   - [ ] Chi tiết mở như tư thế thường: ảnh, các bước, lỗi hay gặp; dòng phụ có dấu ở đầu; nút chính là "Xem quảng cáo để dùng".
+   - [ ] Lưu và bỏ lưu vẫn được.
+3. Bấm "Xem quảng cáo để dùng".
+   - [ ] Hộp thoại "Mở khóa tư thế" hiện: tên tư thế, lời giải thích, "Xem quảng cáo", "Để sau" (máy để tiếng Việt).
+4. Bấm "Xem quảng cáo", xem quảng cáo thử có thưởng tới hết (không bấm vào quảng cáo), đóng quảng cáo.
+   - [ ] Camera mở với tư thế đó; log `VGL.Poses` có `Premium pose unlocked`.
+   - [ ] Quay lại thư viện: thẻ đó không còn dấu.
+5. Chọn tư thế premium khác ở thư viện, bấm nút mở khóa, "Xem quảng cáo", đóng quảng cáo trước khi nhận thưởng.
+   - [ ] Vẫn ở chi tiết, tư thế vẫn khóa.
+6. Bấm nút mở khóa lần nữa, "Để sau".
+   - [ ] Hộp thoại đóng, tư thế vẫn khóa.
+7. Bật chế độ máy bay, bấm nút mở khóa, "Xem quảng cáo".
+   - [ ] Tư thế vẫn khóa; có thông báo "Kiểm tra kết nối rồi thử lại" (hay popup mất mạng của app). Tắt chế độ máy bay.
+8. Ở camera, chạm ô có dấu premium ở dải tư thế.
+   - [ ] Hộp thoại mở khóa hiện với tên tư thế đó; tư thế đang dùng không đổi.
+   - [ ] "Để sau": không đổi gì.
+   - [ ] Chạm lại, "Xem quảng cáo", xem hết: camera dùng tư thế đó, ô không còn dấu.
+9. Trên Firebase staging đặt `is_show_rw_premium_pose` thành `false`, mở lại app, chạm một tư thế premium chưa mở (thẻ rồi nút mở khóa, hay ô ở camera).
+   - [ ] Tư thế mở ngay, không có hộp thoại, không có quảng cáo. Đặt lại khóa như cũ.
+10. Vuốt app khỏi danh sách gần đây, mở lại.
+   - [ ] Các tư thế đã mở khóa ở trên vẫn không có dấu ở thư viện, chi tiết, camera.
+- [ ] Ghi kết quả vào nhật ký của plan T-086. Sự kiện `premium_pose_unlocked` không gửi đi từ bản staging (ADR-1007): kiểm bằng log `VGL.Analytics` hay DebugView khi có bản dùng Firebase thật.
 
 ## 12. Không kiểm được trên staging
 

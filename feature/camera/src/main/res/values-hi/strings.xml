@@ -73,4 +73,7 @@
     <string name="camera_match_straighten_left_leg">बायां पैर सीधा करें</string>
     <string name="camera_match_bend_right_knee">दायां घुटना और मोड़ें</string>
     <string name="camera_match_straighten_right_leg">दायां पैर सीधा करें</string>
+
+    <!-- Cell of a premium pose not unlocked yet (spec poses, KB-8; plan T-086). -->
+    <string name="camera_cd_thumb_premium">%1$s, प्रीमियम, अनलॉक करने के लिए टैप करें</string>
 </resources>

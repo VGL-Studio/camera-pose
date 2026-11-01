@@ -21,11 +21,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -44,6 +47,11 @@ class PoseDetailViewModel @Inject constructor(
 ) : ViewModel() {
     private val state = MutableStateFlow<PoseDetailUiState>(PoseDetailUiState.Loading)
     val uiState: StateFlow<PoseDetailUiState> = state.asStateFlow()
+
+    private val openCameraChannel = Channel<String>(Channel.BUFFERED)
+
+    /** Each element opens the camera with that pose, once an unlock is done (spec poses, KB-8). */
+    val openCamera: Flow<String> = openCameraChannel.receiveAsFlow()
 
     private val poseId: String = savedStateHandle.get<String>(KEY_POSE_ID).orEmpty()
 
@@ -66,6 +74,10 @@ class PoseDetailViewModel @Inject constructor(
     private var savedOverride: Boolean? = null
     private var writing = false
     private var saveFailed = false
+
+    /** An unlock is being written (spec poses, KB-8): a second grant meanwhile is ignored. */
+    private var unlocking = false
+    private var unlockFailed = false
 
     init {
         viewModelScope.launch {
@@ -115,6 +127,52 @@ class PoseDetailViewModel @Inject constructor(
         publish()
     }
 
+    /** The rewarded action of the unlock button ran (KB-8): unlocks, logs, then opens the camera with the pose. */
+    fun onUnlockGranted() {
+        val ready = state.value as? PoseDetailUiState.Ready ?: return
+        if (unlocking) return
+        val pose = ready.pose
+        if (!ready.locked) {
+            // Already usable (flag off, or unlocked elsewhere): no write, no event (KB-8, criterion 8).
+            logSelected(pose)
+            openCameraChannel.trySend(pose.id)
+            return
+        }
+        unlocking = true
+        viewModelScope.launch {
+            try {
+                if (librarySource.unlock(pose.id)) {
+                    analytics.log(
+                        AnalyticsEvent(
+                            EVENT_PREMIUM_POSE_UNLOCKED,
+                            mapOf("pose_id" to pose.id, "category" to pose.categoryId, "source" to SOURCE_DETAIL),
+                        ),
+                    )
+                    logger.info(LOG_TAG, "Premium pose unlocked")
+                } else {
+                    // Premium poses were switched off meanwhile: nothing written, the pose is usable (T-085).
+                    logger.info(LOG_TAG, "Unlock skipped: premium off")
+                }
+                // pose_selected, source detail, as "Shoot with this pose" (question 6).
+                logSelected(pose)
+                openCameraChannel.send(pose.id)
+            } catch (e: IOException) {
+                // Question 7: the pose stays locked; the screen tells the user, who can watch an ad again.
+                unlockFailed = true
+                logger.warn(LOG_TAG, "Premium pose could not be unlocked", e)
+                publish()
+            } finally {
+                unlocking = false
+            }
+        }
+    }
+
+    fun onUnlockFailedShown() {
+        if (!unlockFailed) return
+        unlockFailed = false
+        publish()
+    }
+
     fun onRetryImage() {
         if (pose == null) return
         logger.info(LOG_TAG, "Retrying image")
@@ -124,14 +182,19 @@ class PoseDetailViewModel @Inject constructor(
     /** The id of the pose to shoot with, or null when the screen is not ready. */
     fun onShoot(): String? {
         val ready = state.value as? PoseDetailUiState.Ready ?: return null
+        logSelected(ready.pose)
+        return ready.pose.id
+    }
+
+    /** `pose_selected` with source `detail`: the pose goes to the camera. */
+    private fun logSelected(pose: PoseDetail) {
         analytics.log(
             AnalyticsEvent(
                 EVENT_POSE_SELECTED,
-                mapOf("pose_id" to ready.pose.id, "category" to ready.pose.categoryId, "source" to "detail"),
+                mapOf("pose_id" to pose.id, "category" to pose.categoryId, "source" to SOURCE_DETAIL),
             ),
         )
         logger.info(LOG_TAG, "Shoot with pose")
-        return ready.pose.id
     }
 
     private fun onLibrary(result: LibraryResult) {
@@ -239,6 +302,8 @@ class PoseDetailViewModel @Inject constructor(
             saved = savedOverride ?: (pose.id in content.savedIds),
             image = shownImage(),
             saveFailed = saveFailed,
+            locked = pose.id in content.lockedIds,
+            unlockFailed = unlockFailed,
         )
     }
 
@@ -256,6 +321,8 @@ class PoseDetailViewModel @Inject constructor(
         const val EVENT_POSE_DETAIL_OPENED = "pose_detail_opened"
         const val EVENT_POSE_SELECTED = "pose_selected"
         const val EVENT_POSE_SAVED = "pose_saved"
+        const val EVENT_PREMIUM_POSE_UNLOCKED = "premium_pose_unlocked"
+        const val SOURCE_DETAIL = "detail"
         const val EVENT_CONTENT_LOAD_FAILED = "content_load_failed"
         const val CONTENT_IMAGE = "image"
     }

@@ -5,4 +5,9 @@
     <string name="network_dialog_message">Aplikasi memerlukan jaringan agar dapat berfungsi. Periksa koneksi internet Anda, lalu coba lagi.</string>
     <string name="network_dialog_retry">Coba lagi</string>
     <string name="network_dialog_still_offline">Masih belum ada jaringan</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="premium_badge_label">Pose premium</string>
+    <string name="premium_unlock_title">Buka pose ini</string>
+    <string name="premium_unlock_message">Tonton iklan singkat untuk membuka pose ini, lalu pakai selamanya di perangkat ini.</string>
 </resources>

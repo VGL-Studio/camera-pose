@@ -17,6 +17,8 @@ data class LibraryContent(
     val totalPoses: Int,
     /** Saved poses that are still in the catalog. */
     val savedIds: Set<String>,
+    /** Premium poses not unlocked yet; empty while premium poses are off (spec poses, KB-8). */
+    val lockedIds: Set<String> = emptySet(),
     private val lists: Map<PoseFilter, List<Pose>>,
 ) {
     /** The poses of [filter]; empty for a filter that has no list. */
@@ -40,4 +42,10 @@ interface PosesLibrarySource {
 
     /** Throws [java.io.IOException] when the saved list cannot be written. */
     suspend fun setSaved(poseId: String, saved: Boolean)
+
+    /**
+     * Unlocks [poseId] for good (spec poses, KB-8). False when premium poses are off, so nothing was written and no
+     * unlock is logged. Throws [java.io.IOException] when the list cannot be written.
+     */
+    suspend fun unlock(poseId: String): Boolean
 }

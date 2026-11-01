@@ -30,4 +30,8 @@
     <string name="poses_detail_shoot">Fotografar com esta pose</string>
     <string name="poses_image_error_title">Não foi possível carregar a imagem</string>
     <string name="poses_image_error_message">Algo deu errado ao carregar a imagem. Tente novamente em alguns minutos.</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="poses_detail_unlock">Assista a um anúncio para usar</string>
+    <string name="poses_unlock_failed">Não foi possível desbloquear a pose. Tente novamente.</string>
 </resources>

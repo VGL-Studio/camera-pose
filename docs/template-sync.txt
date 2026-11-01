@@ -33,4 +33,5 @@ hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md, and the
 # release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh.
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
+# core/ads RewardedAction.kt: RewardedAdDialogCard is public (plan T-086, screenshot of the unlock dialog); keep it.
 # App-only files a sync never touches: scripts/setup-check-app.sh, scripts/tests/app.sh, docs/ops/manual-test.md.

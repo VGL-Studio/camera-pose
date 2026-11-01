@@ -43,6 +43,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PremiumBadge
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PremiumBadgeSize
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StateMessage
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
@@ -171,16 +173,19 @@ internal fun PoseDetailImage(
 
 /** The text part of the detail: second line, the steps, and the common mistakes when the catalog has some. */
 @Composable
-internal fun PoseDetailInfo(pose: PoseDetail, locale: Locale) {
-    PoseDetailMeta(pose)
+internal fun PoseDetailInfo(pose: PoseDetail, locale: Locale, locked: Boolean) {
+    PoseDetailMeta(pose, locked)
     PoseDetailSteps(pose.steps.resolve(locale), locale)
     val mistakes = pose.mistakes.resolve(locale)
     if (mistakes.isNotEmpty()) PoseDetailMistakes(mistakes)
 }
 
-/** Second line: subject type, group, framing, number of steps; the group is left out when the catalog has no name. */
+/**
+ * Second line: subject type, group, framing, number of steps; the group is left out when the catalog has no name.
+ * [locked]: the premium badge before it, [Spacing.sm] apart (design PoseDetailScreen_premium; spec poses, KB-8).
+ */
 @Composable
-internal fun PoseDetailMeta(pose: PoseDetail) {
+internal fun PoseDetailMeta(pose: PoseDetail, locked: Boolean) {
     val locale = screenLocale()
     val steps = pose.steps.resolve(locale).size
     val subject = subjectLabel(pose.subjectType)
@@ -191,11 +196,25 @@ internal fun PoseDetailMeta(pose: PoseDetail) {
     } else {
         stringResource(R.string.poses_detail_meta_no_group, subject, framing, steps)
     }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    val meta = @Composable {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (locked) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PremiumBadge(
+                size = PremiumBadgeSize.Inline,
+                contentDescription = stringResource(DesignR.string.premium_badge_label),
+            )
+            Spacer(modifier = Modifier.width(Spacing.sm))
+            meta()
+        }
+    } else {
+        meta()
+    }
 }
 
 /** The numbered steps under the title "Các bước". */
@@ -271,9 +290,12 @@ internal fun PoseDetailMistakes(mistakes: List<String>) {
     }
 }
 
-/** The bar under the scrolling content: a line, then the main button. */
+/**
+ * The bar under the scrolling content: a line, then the main button. [locked]: the main button unlocks the premium pose
+ * ("Xem quảng cáo để dùng", icon smart_display), at the same place and size (spec poses, KB-8).
+ */
 @Composable
-internal fun PoseDetailBottomBar(onShoot: () -> Unit) {
+internal fun PoseDetailBottomBar(locked: Boolean, onShoot: () -> Unit, onUnlock: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -281,12 +303,21 @@ internal fun PoseDetailBottomBar(onShoot: () -> Unit) {
             .testTag(PoseDetailTestTags.BOTTOM_BAR),
     ) {
         HorizontalDivider(thickness = Stroke.sticker, color = MaterialTheme.colorScheme.outlineVariant)
-        PrimaryButton(
-            text = stringResource(R.string.poses_detail_shoot),
-            onClick = onShoot,
-            modifier = Modifier.fillMaxWidth().padding(Spacing.md),
-            icon = painterResource(R.drawable.ic_poses_photo_camera),
-        )
+        if (locked) {
+            PrimaryButton(
+                text = stringResource(R.string.poses_detail_unlock),
+                onClick = onUnlock,
+                modifier = Modifier.fillMaxWidth().padding(Spacing.md).testTag(PoseDetailTestTags.UNLOCK),
+                icon = painterResource(R.drawable.ic_poses_smart_display),
+            )
+        } else {
+            PrimaryButton(
+                text = stringResource(R.string.poses_detail_shoot),
+                onClick = onShoot,
+                modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+                icon = painterResource(R.drawable.ic_poses_photo_camera),
+            )
+        }
     }
 }
 
@@ -301,6 +332,7 @@ internal fun PhoneDetailLayout(
     scrollState: ScrollState,
     onRetryImage: () -> Unit,
     onShoot: () -> Unit,
+    onUnlock: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -311,10 +343,10 @@ internal fun PhoneDetailLayout(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             PoseDetailImage(ready.pose.categoryId, ready.image, onRetryImage)
-            PoseDetailInfo(ready.pose, locale)
+            PoseDetailInfo(ready.pose, locale, ready.locked)
             Spacer(modifier = Modifier.height(Spacing.md))
         }
-        PoseDetailBottomBar(onShoot = onShoot)
+        PoseDetailBottomBar(locked = ready.locked, onShoot = onShoot, onUnlock = onUnlock)
     }
 }
 
@@ -326,6 +358,7 @@ internal fun WideDetailLayout(
     scrollState: ScrollState,
     onRetryImage: () -> Unit,
     onShoot: () -> Unit,
+    onUnlock: () -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxSize().padding(start = Spacing.md, top = Spacing.md)) {
         // The columns are 315 and 326 wide in the design (the right one with the right margin), as 315 : 326.
@@ -341,10 +374,10 @@ internal fun WideDetailLayout(
                     .padding(end = Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                PoseDetailInfo(ready.pose, locale)
+                PoseDetailInfo(ready.pose, locale, ready.locked)
                 Spacer(modifier = Modifier.height(Spacing.md))
             }
-            PoseDetailBottomBar(onShoot = onShoot)
+            PoseDetailBottomBar(locked = ready.locked, onShoot = onShoot, onUnlock = onUnlock)
         }
     }
 }

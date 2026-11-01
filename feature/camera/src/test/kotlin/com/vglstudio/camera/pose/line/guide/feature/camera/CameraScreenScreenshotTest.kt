@@ -66,6 +66,14 @@ class CameraScreenScreenshotTest {
         captureRoboImage("src/test/screenshots/CameraScreen_default_dark.png") { Screen(DEFAULT) }
     }
 
+    // Design `premium` (spec poses, KB-8; plan T-086): cells 4 and 6 are premium poses not unlocked yet, cell 2 selected.
+    @Test
+    fun premium_dark() {
+        captureRoboImage("src/test/screenshots/CameraScreen_premium_dark.png") {
+            Screen(DEFAULT, poseState = samplePoses(locked = setOf("p4", "p6")))
+        }
+    }
+
     @Test
     fun noPose_dark() {
         captureRoboImage("src/test/screenshots/CameraScreen_no-pose_dark.png") {
@@ -179,6 +187,7 @@ class CameraScreenScreenshotTest {
             selected: Boolean = true,
             stepsHidden: Boolean = false,
             overlay: OverlayState = OverlayState(),
+            locked: Set<String> = emptySet(),
         ): PoseUiState.Ready {
             val ids = (1..8).map { "p$it" }
             val thumb = PoseImage.Ready(TestPoseImages.thumbnail())
@@ -187,7 +196,12 @@ class CameraScreenScreenshotTest {
                 categories = CHIPS.map { (id, label) -> CategoryChip(id, label) },
                 selectedCategoryId = null,
                 strip = ids.map { id ->
-                    PoseThumbItem(id, "Pose $id", if (selected && id == "p2") selectedThumb else thumb)
+                    PoseThumbItem(
+                        id,
+                        "Pose $id",
+                        if (selected && id == "p2") selectedThumb else thumb,
+                        locked = id in locked,
+                    )
                 },
                 selected = if (selected) {
                     SelectedPose(

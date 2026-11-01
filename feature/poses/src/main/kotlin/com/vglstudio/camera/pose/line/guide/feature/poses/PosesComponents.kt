@@ -149,6 +149,8 @@ internal fun PoseGridCell(
                 onSaveClick = { onToggleSave(item.id) },
                 modifier = modifier,
                 onClick = onOpenPose?.let { open -> { open(item.id) } },
+                // A locked card still opens the detail (spec poses, question 7).
+                premium = item.locked,
             )
         }
         ThumbnailState.Loading -> PoseCardSkeleton(modifier = modifier)

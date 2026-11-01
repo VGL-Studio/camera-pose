@@ -47,6 +47,8 @@ data class PoseCardItem(
     val steps: LocalizedList,
     val saved: Boolean,
     val thumbnail: ThumbnailState,
+    /** A premium pose not unlocked yet: the card shows the premium badge (spec poses, KB-8). */
+    val locked: Boolean = false,
 )
 
 sealed interface ThumbnailState {

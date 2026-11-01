@@ -6,12 +6,12 @@ tool: figma
 link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=20-23
 designer: AI (Claude), Nhật
 approved_by: Nhật
-approved_at: 2026-10-21
+approved_at: 2026-10-31
 ---
 
 # THIẾT KẾ: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
 
-Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Chi tiết tư thế ở section PoseDetail trên Figma (node `20-501`).
+Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Chi tiết tư thế ở section PoseDetail trên Figma (node `20-501`). Tư thế premium (spec KB-8, plan T-086) ở section "Premium poses": https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=75-2531 (Nhật duyệt ngày 2026-10-31); dải tư thế của camera ở gói `camera`.
 
 ## 1. Các màn hình và trạng thái
 
@@ -29,8 +29,13 @@ Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../desig
 | `PoseDetailScreen` | Tải ảnh lỗi | `PoseDetailScreen_error_light`, `PoseDetailScreen_error_dark` | KB-5 |
 | `PoseDetailScreen` | Có thanh đáy native, dưới nút chính | `PoseDetailScreen_ad_light`, `PoseDetailScreen_ad_dark` | KB-6 |
 | `PoseDetailScreen` | Máy gập mở ra, hai cột | `PoseDetailScreen_default_light_unfolded`, `PoseDetailScreen_default_dark_unfolded` | KB-7 |
+| `PosesScreen` | Tư thế premium chưa mở khóa: chip "Tất cả", ba thẻ có dấu premium, một thẻ vừa có dấu vừa đã lưu | `PosesScreen_premium_light`, `PosesScreen_premium_dark` | KB-8 |
+| `PoseDetailScreen` | Tư thế premium chưa mở khóa: dấu đầu dòng phụ, nút mở khóa | `PoseDetailScreen_premium_light`, `PoseDetailScreen_premium_dark` | KB-8 |
+| Hộp thoại mở khóa (`RewardedAdDialog` của khung với nội dung của app) | Bình thường | `PoseUnlockDialogScreen_default_light`, `PoseUnlockDialogScreen_default_dark` | KB-8 |
 
 Hộp thoại mất mạng thuộc gói `network`.
+
+**Frame hộp thoại mở khóa.** Khung 411 x 891 (để `scripts/figma-export.py` xuất được), nền `background` trơn, chỉ có thẻ hộp thoại ở giữa: không vẽ màn phía sau, không lớp mờ, giống ảnh chuẩn `RewardedAdDialog_default_*` của `:core:ads`. Thẻ thật rộng 312, cao 288, ở (50, 302). Tên frame có `Screen` (`PoseUnlockDialogScreen_*`, như `NetworkDialogScreen_*`) vì script chỉ nhận tên dạng `<Ten>Screen_<trạng thái>_<light|dark>`; plan T-086 đề xuất `PoseUnlockDialog_default_*`, nên plan đổi tên ảnh chuẩn theo.
 
 Từ T-079 (câu hỏi 5 của spec, 2026-10-30), trạng thái `ad` vẽ thanh đáy native nhỏ của khung thay banner 320 x 50. `PosesScreen_ad-collection_light` là lưới cuộn tới tư thế thứ 7: hàng thứ năm có ô quảng cáo (sau 8 tư thế) và tư thế thứ 9; frame này không vẽ thanh đáy, để thấy riêng thẻ quảng cáo cạnh thẻ tư thế. Tên tư thế trên frame này chỉ để minh họa.
 
@@ -52,6 +57,14 @@ Từ T-079 (câu hỏi 5 của spec, 2026-10-30), trạng thái `ad` vẽ thanh 
 | Chi tiết | Khối lỗi | Lỗi hay gặp; nội dung từ catalog | `titleSmall`, `bodyMedium` |
 | Chi tiết | Nút chính | Chụp với tư thế này | chữ của nút chính |
 | Chi tiết, lỗi ảnh | Tiêu đề, lời hướng dẫn, nút | Không tải được ảnh; Đã có lỗi khi tải ảnh. Thử lại sau ít phút.; Thử lại | `titleLarge`, `bodyMedium`, nút chính |
+| Tư thế premium | Nhãn trợ năng của dấu (`premium_badge_label`, không hiện trên ảnh) | Tư thế premium | |
+| Chi tiết, tư thế premium | Nút chính (`poses_detail_unlock`) | Xem quảng cáo để dùng (icon `smart_display`) | chữ của nút chính |
+| Hộp thoại mở khóa | Tiêu đề (`premium_unlock_title`) | Mở khóa tư thế | `headlineSmall` |
+| Hộp thoại mở khóa | Tên tư thế | Tên tư thế từ catalog (trên ảnh: Tựa lan can) | `titleMedium` |
+| Hộp thoại mở khóa | Lời giải thích (`premium_unlock_message`) | Xem một quảng cáo ngắn để mở tư thế này, rồi dùng mãi về sau trên máy này. | `bodyMedium` |
+| Hộp thoại mở khóa | Hai nút của khung (`ads_reward_watch`, `ads_reward_no_thanks` của `:core:ads`, app dịch) | Xem quảng cáo; Để sau | `labelLarge` |
+
+Chữ premium Nhật chốt ngày 2026-10-31: dùng "premium" như trang 3 của luồng giới thiệu ("Tư thế premium"), không dùng "cao cấp" của plan T-086. Dấu trên ô của dải camera đọc là `camera_cd_thumb_premium` (gói `camera`). Lỗi ghi mở khóa (`poses_unlock_failed`, plan T-086 câu 7) không có frame: "Chưa mở khóa được tư thế. Thử lại." trong `Snackbar` như các thông báo khác.
 
 Loại tư thế: Một người, Cặp đôi, Nhóm. Khung hình: Toàn thân, Nửa người, Cận mặt. Tên, bước, lỗi hay gặp đến từ catalog theo ngôn ngữ của máy; chữ mẫu trên thiết kế chỉ để minh họa.
 
@@ -73,8 +86,12 @@ Loại tư thế: Một người, Cặp đôi, Nhóm. Khung hình: Toàn thân, 
 | Thanh nút đáy ở chi tiết | Đường kẻ 2 và `PrimaryButton` `photo_camera` | Đường kẻ `outlineVariant`; nền `background` | | Cao 96; nút rộng hết trừ lề `Spacing.md` |
 | Thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`) | Theo khung: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe 80, cách mép trái, phải, đáy `Spacing.md`; nội dung chừa 96 ở đáy |
 | Ô quảng cáo trong lưới | `itemsWithInListAds` của `:core:ads` (component Figma `NativeAdCard`, theo `NativeAdCard` cỡ `CARD`) | Như thanh đáy; ảnh `surfaceContainer` | Theo khung | Chiếm một ô, cùng cỡ thẻ tư thế; lề trong `Spacing.sm` |
+| Dấu premium | `PremiumBadge` (mới, `:core:designsystem`; component Figma `PremiumBadge`, ba cỡ) | Nền `tertiaryContainer`, viền `outline` `Stroke.sticker`, icon `workspace_premium` màu `onTertiaryContainer` | | `Size=Card` 32, icon 20: góc trên trái ảnh của thẻ, ở (6, 10) trong ảnh, tâm đối xứng nút lưu 36 qua trục giữa; `Size=Inline` 20, icon 14: đầu dòng phụ của chi tiết, cách chữ `Spacing.sm`; `Size=Thumb` 22, icon 14: ô 64 của camera (gói `camera`). Không làm mờ hay che ảnh |
+| Thẻ tư thế premium | `PoseCard(premium = true)` (Figma `PoseCard`, `Premium=Yes`) | Như thẻ thường | | Dấu và nút lưu cùng lúc được |
+| Nút mở khóa ở chi tiết | `PrimaryButton` icon `smart_display`, cùng chỗ nút "Chụp với tư thế này" | `secondary`, `onSecondary` | `titleMedium` | Như nút chính |
+| Hộp thoại mở khóa | `RewardedAdDialog` của `:core:ads` (thẻ `RewardedAdDialogCard`), tiêu đề của app, nội dung `PremiumUnlockContent` (mới, `:core:designsystem`); component Figma `PremiumUnlockDialog` vẽ lại thẻ của khung | Thẻ `surfaceContainerHigh`; tiêu đề, tên `onSurface`; lời `onSurfaceVariant`; nút "Xem quảng cáo" `primary`, `onPrimary`; "Để sau" `onSurfaceVariant` | `headlineSmall`; tên `titleMedium`; lời `bodyMedium`; nút `labelLarge` | Theo khung: rộng tối đa 312, bo 28 (`shapes.extraLarge`), lề `Spacing.lg`, các phần cách `Spacing.md`; nút 56 bo 28; nút chữ 40; hai nút cách `Spacing.sm`. Nội dung của app: tên và lời cách `Spacing.sm` |
 
-- **Thành phần mới cần thêm vào hệ thống thiết kế:** `PoseCard`, `PoseCardSkeleton`, `StickerChip`, `SelectedBadge`, `StateMessage` (xem `sticker.md`, mục 4).
+- **Thành phần mới cần thêm vào hệ thống thiết kế:** `PoseCard`, `PoseCardSkeleton`, `StickerChip`, `SelectedBadge`, `StateMessage` (xem `sticker.md`, mục 4). Tư thế premium (T-086): `PremiumBadge` (mới), `PremiumUnlockContent` (mới), tham số `premium` của `PoseCard` và `PoseThumb`; thay đổi module core, rủi ro cao. Giá trị icon 20, 14 và cỡ vòng 32, 22, 20 là số của dấu, `context/` ghi kiểu chữ icon "ngoài hệ thống" như các icon khác.
 - **Component quảng cáo trên Figma:** `NativeAdSmall`, `NativeAdCard` (trang Design system, cạnh `AdSlot`) chỉ vẽ lại giao diện của khung `:core:ads` để đặt vào màn hình; không phải thành phần mới của app. Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 là số của khung (`NativeAdDimens`), `context/` ghi "ngoài hệ thống".
 
 **Máy gập mở ra (673 x 841).** Thư viện: 3 cột. Chi tiết: ảnh 315 x 440 bên trái; cột phải rộng 310 có dòng phụ, các bước, lỗi hay gặp; thanh nút đáy chỉ ở cột phải.
@@ -85,6 +102,7 @@ Loại tư thế: Một người, Cặp đôi, Nhóm. Khung hình: Toàn thân, 
 - `PosesScreen`, chạm thẻ, sang `PoseDetailScreen`; quay lại về `PosesScreen` giữ chip và vị trí cuộn.
 - `PoseDetailScreen`, "Chụp với tư thế này", sang `CameraScreen` với tư thế đó.
 - `PosesScreen`, nút cài đặt, sang `SettingsScreen`.
+- Tư thế premium chưa mở khóa: chạm thẻ vẫn sang `PoseDetailScreen`; nút "Xem quảng cáo để dùng" mở hộp thoại mở khóa. "Xem quảng cáo" xem hết thì mở khóa và về `CameraScreen` với tư thế đó; "Để sau" hay đóng quảng cáo sớm thì ở lại chi tiết, tư thế vẫn khóa. Lưu và bỏ lưu vẫn được.
 - Đã lưu rỗng, "Xem tất cả tư thế", chuyển về chip "Tất cả".
 
 ## 5. Vị trí quảng cáo

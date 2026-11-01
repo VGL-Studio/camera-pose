@@ -14,7 +14,7 @@
 | PoseDetailScreen_premium_light | thiếu ảnh chuẩn screenshot | |
 | PoseUnlockDialogScreen_default_dark | thiếu ảnh chuẩn screenshot | |
 | PoseUnlockDialogScreen_default_light | thiếu ảnh chuẩn screenshot | |
-| PosesScreen_ad-collection_light | thiếu ảnh chuẩn screenshot | |
+| PosesScreen_ad-collection_light | 19.9% | `PosesScreen_ad-collection_light_compare.png` |
 | PosesScreen_ad_dark | 22.4% | `PosesScreen_ad_dark_compare.png` |
 | PosesScreen_ad_light | 22.5% | `PosesScreen_ad_light_compare.png` |
 | PosesScreen_default_dark | 22.1% | `PosesScreen_default_dark_compare.png` |

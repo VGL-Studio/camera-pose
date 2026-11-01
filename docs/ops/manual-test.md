@@ -329,7 +329,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 **Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
 
-- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079).
+- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080).
 - [ ] Không có `show_open_ads_first_open`, `is_show_native_after_inter`, `is_show_native_collap` đặt `true`.
 - [ ] Hai khóa cũ `is_show_poses_banner`, `is_show_poses_detail_banner` không còn ai đọc từ T-079; để nguyên trên Firebase.
 - [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
@@ -387,6 +387,19 @@ Màn loading tắt thì không có quảng cáo mở app. Bản staging bật s�
 1. Khi quảng cáo mở app (mục 11.2 hay 11.3) đang hiện, bật chế độ máy bay.
    - [ ] Hộp "Mất kết nối mạng" không đè lên quảng cáo.
    - [ ] Đóng quảng cáo: hộp thoại hiện. Tắt chế độ máy bay, "Thử lại".
+
+### 11.5 Ô quảng cáo trong lưới thư viện (T-080)
+
+Điều kiện: đã đồng ý quảng cáo ở hộp thoại đồng ý. Thử trên máy thật: quảng cáo thử của lưới không chắc có trên emulator.
+
+1. Mở thư viện, nhóm "Tất cả", cuộn xuống qua tư thế 8.
+   - [ ] Ngay sau tư thế 8 có một ô quảng cáo native thử chiếm một ô của lưới, cao bằng thẻ tư thế có tên một dòng; thẻ có nhãn "Ad", khác rõ thẻ tư thế; log `VGL.Ads` có `poses_in_collection`.
+   - [ ] Không có ô quảng cáo ở đầu hay ở cuối lưới.
+2. Chọn một nhóm có từ 9 tư thế trở lên.
+   - [ ] Có ô quảng cáo sau tư thế 8 của nhóm.
+3. Cuộn qua lại nhiều lần qua nhiều ô quảng cáo cho tới khi hết quảng cáo (pool cạn), rồi bật chế độ máy bay.
+   - [ ] Lưới không còn ô trống: ô không có quảng cáo biến mất, các thẻ sau dồn lên.
+   - [ ] Popup mất mạng của app hiện (ADR-0024). Tắt chế độ máy bay, "Thử lại".
 
 ## 12. Không kiểm được trên staging
 

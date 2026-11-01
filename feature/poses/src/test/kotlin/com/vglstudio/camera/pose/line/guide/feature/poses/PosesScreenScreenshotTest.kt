@@ -125,6 +125,22 @@ class PosesScreenScreenshotTest {
         }
     }
 
+    // Design `ad-collection` (KB-6, criterion 5; plan T-080): the ad card after the eighth pose, the grid scrolled to
+    // card 7, no bottom bar (design README, section 3). A fixed ad: the real one is never drawn in tests.
+    @Test
+    fun adCollection_light() {
+        captureRoboImage("src/test/screenshots/PosesScreen_ad-collection_light.png") {
+            Screen(
+                defaultState(ready = AD_COLLECTION_CARDS.size, cards = AD_COLLECTION_CARDS),
+                dark = false,
+                gridAds = PosesGridAds.Fixed(every = 8) { modifier, cardHeight ->
+                    NativeAdCard(SCREENSHOT_CARD_AD, NativeAdSize.CARD, modifier, cardHeight = cardHeight)
+                },
+                firstVisibleItem = 6,
+            )
+        }
+    }
+
     // Design `unfolded` (KB-7): three columns, the same data as `default` (six cards in two rows).
     @Test
     @Config(qualifiers = UNFOLDED)
@@ -178,19 +194,33 @@ class PosesScreenScreenshotTest {
             SampleCard("k01", "cafe", "Cầm ly cà phê", SubjectType.SINGLE, 3),
         )
 
+        // Twelve cards of design `ad-collection` (context/PosesScreen_ad-collection_light.md): cards 7 to 11 as drawn.
+        val AD_COLLECTION_CARDS = CARDS + listOf(
+            SampleCard("c02", "couples", "Ôm từ phía sau", SubjectType.COUPLE, 4),
+            SampleCard("fa01", "family", "Cả nhà nắm tay", SubjectType.GROUP, 3),
+            SampleCard("w02", "women", "Đứng tựa cửa sổ", SubjectType.SINGLE, 4),
+            SampleCard("t02", "travel", "Ngồi bên hồ", SubjectType.SINGLE, 3),
+            SampleCard("k02", "cafe", "Đọc sách bên cửa sổ", SubjectType.SINGLE, 3),
+            SampleCard("f02", "friends", "Nhảy cùng nhau", SubjectType.GROUP, 4),
+        )
+
         const val LONG_NAME = "Tựa lan can nhìn về phía hoàng hôn"
 
         fun text(value: String) = LocalizedText(mapOf("en" to value))
 
         /** Design `default`: "Tất cả" selected, the second card saved, every image ready. */
-        fun defaultState(longName: Boolean = false, ready: Int = CARDS.size): PosesUiState.Ready {
+        fun defaultState(
+            longName: Boolean = false,
+            ready: Int = CARDS.size,
+            cards: List<SampleCard> = CARDS,
+        ): PosesUiState.Ready {
             val image = figure()
             return PosesUiState.Ready(
                 totalPoses = 214,
                 chips = listOf(PoseChip.All, PoseChip.Saved) +
                     CHIPS.map { (id, name) -> PoseChip.Category(id, text(name)) },
                 selected = PoseFilter.All,
-                cards = CARDS.mapIndexed { index, card ->
+                cards = cards.mapIndexed { index, card ->
                     PoseCardItem(
                         id = card.id,
                         categoryId = card.category,
@@ -250,12 +280,18 @@ class PosesScreenScreenshotTest {
 }
 
 @Composable
-private fun Screen(uiState: PosesUiState, dark: Boolean, ad: Boolean = false) {
+private fun Screen(
+    uiState: PosesUiState,
+    dark: Boolean,
+    ad: Boolean = false,
+    gridAds: PosesGridAds = PosesGridAds.None,
+    firstVisibleItem: Int = 0,
+) {
     AppTheme(darkTheme = dark) {
         val screen = @Composable { contentPadding: PaddingValues ->
             PosesScreen(
                 uiState = uiState,
-                gridState = rememberLazyGridState(),
+                gridState = rememberLazyGridState(initialFirstVisibleItemIndex = firstVisibleItem),
                 onBack = {},
                 onOpenSettings = {},
                 onOpenPose = {},
@@ -268,6 +304,7 @@ private fun Screen(uiState: PosesUiState, dark: Boolean, ad: Boolean = false) {
                 onRetryThumbnail = {},
                 onSaveFailedShown = {},
                 contentPadding = contentPadding,
+                gridAds = gridAds,
             )
         }
         if (ad) {
@@ -293,3 +330,20 @@ private val SCREENSHOT_AD = NativeAdAssets(
     icon = null,
     hasMedia = false,
 )
+
+/** The ad card of design `ad-collection` (design/context/PosesScreen_ad-collection_light.md): icon and media. */
+private val SCREENSHOT_CARD_AD = NativeAdAssets(
+    headline = "Headline of the ad",
+    advertiser = "Advertiser or short body",
+    body = null,
+    callToAction = "Install",
+    icon = solidIcon(Color(0xFFFFC83D)),
+    hasMedia = true,
+)
+
+/** A square icon of one [color], as the icon block of the design. */
+private fun solidIcon(color: Color): ImageBitmap {
+    val image = ImageBitmap(96, 96)
+    Canvas(image).drawRect(0f, 0f, 96f, 96f, Paint().apply { this.color = color })
+    return image
+}

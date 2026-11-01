@@ -133,6 +133,8 @@ class AdPlacementTest {
             AdPlacement.GALLERY_INLIST_SMALL,
             AdPlacement.GALLERY_INLIST_MEDIUM,
             AdPlacement.GALLERY_IN_COLLECTION,
+            // The card of the pose library grid (plan T-080; value checked in AdPlacementAppTest).
+            AdPlacement.POSES_IN_COLLECTION,
         )
         AdPlacement.entries.filterNot { it in inList }
             .forEach { assertNull(it.key, it.nativeEvery) }

@@ -5,10 +5,15 @@ import android.graphics.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
@@ -27,6 +32,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -36,6 +42,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CAR
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_SAVE_CIRCLE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_SAVE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCard
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardDefaults
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import org.junit.Assert.assertEquals
@@ -197,6 +204,48 @@ class PoseCardTest {
     }
 
     @Test
+    fun oneLineHeight_matchesSkeletonAndOneLineCard() {
+        var width by mutableStateOf(156.dp)
+        var fontScale by mutableStateOf(1f)
+        var expected = 0.dp
+        composeRule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                AppTheme(darkTheme = false) {
+                    expected = PoseCardDefaults.oneLineHeight(width)
+                    Column {
+                        PoseCard(
+                            name = SHORT_NAME,
+                            meta = META,
+                            image = ColorPainter(Color.Transparent),
+                            imageBackground = CATEGORY,
+                            saved = false,
+                            saveLabel = "Lưu tư thế",
+                            onSaveClick = {},
+                            modifier = Modifier.width(width).testTag(CARD),
+                        )
+                        PoseCardSkeleton(modifier = Modifier.width(width).testTag(SKELETON))
+                    }
+                }
+            }
+        }
+        listOf(1f, 2f).forEach { scale ->
+            listOf(156.dp, 182.dp, 203.dp).forEach { cardWidth ->
+                fontScale = scale
+                width = cardWidth
+                composeRule.waitForIdle()
+                val card = composeRule.onNodeWithTag(CARD).getUnclippedBoundsInRoot()
+                val skeleton = composeRule.onNodeWithTag(SKELETON).getUnclippedBoundsInRoot()
+                val at = "width $cardWidth, font scale $scale"
+                assertEquals("card width, $at", cardWidth.value, card.width.value, 0.5f)
+                assertEquals("skeleton, $at", skeleton.height.value, expected.value, 0.5f)
+                assertEquals("one-line card, $at", card.height.value, expected.value, 0.5f)
+                if (scale == 1f && cardWidth == 182.dp) assertEquals("design height", 284f, expected.value, 0.5f)
+            }
+        }
+    }
+
+    @Test
     fun skeleton_withoutOnClick_notClickable() {
         composeRule.setContent {
             AppTheme { PoseCardSkeleton(modifier = Modifier.width(CARD_WIDTH).testTag(SKELETON)) }
@@ -239,6 +288,9 @@ class PoseCardTest {
         const val CARD = "card"
         const val SKELETON = "skeleton"
         const val NAME = "Tựa lan can"
+
+        // One line at 156 dp, even at font scale 2.0.
+        const val SHORT_NAME = "Tựa cửa"
         const val META = "Một người · 4 bước"
         const val LONG_NAME = "Tựa lan can nhìn về phía hoàng hôn trên bờ biển vào một buổi chiều có gió nhẹ"
         val CARD_WIDTH = 182.dp

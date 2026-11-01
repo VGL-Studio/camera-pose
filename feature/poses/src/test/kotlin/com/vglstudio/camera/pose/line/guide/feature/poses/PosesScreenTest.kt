@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -43,7 +45,9 @@ import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarDefaults
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberInListAds
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_IMAGE_TAG
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardDefaults
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.LoadFailureReason
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
@@ -89,6 +93,8 @@ class PosesScreenTest {
         onOpenPose: ((String) -> Unit)? = { opened += it },
         bar: (@Composable (screen: @Composable (PaddingValues) -> Unit) -> Unit)? = null,
         width: (() -> Dp)? = null,
+        gridAds: @Composable () -> PosesGridAds = { PosesGridAds.None },
+        probe: @Composable () -> Unit = {},
     ) {
         state = initial
         composeRule.setContent {
@@ -109,8 +115,10 @@ class PosesScreenTest {
                         onRetryThumbnail = { thumbnailRetries += it },
                         onSaveFailedShown = { saveFailedShown++ },
                         contentPadding = contentPadding,
+                        gridAds = gridAds(),
                     )
                 }
+                probe()
                 // The screen alone, or inside the bottom bar that gives it its padding (plan T-079, section 4).
                 val screen = @Composable { if (bar == null) content(PaddingValues()) else bar(content) }
                 if (width == null) {
@@ -622,6 +630,144 @@ class PosesScreenTest {
         assertEquals("control: with a slot", 112f, root.bottom.value - lastRowBottom(), 0.5f)
     }
 
+    // Ad cells of the grid (spec poses KB-6, criteria 5 and 6; plan T-080, section 4)
+
+    /** A fixed ad cell after every 8 poses: a box of the height the screen gives it. */
+    private val fixedGridAds = PosesGridAds.Fixed(every = 8) { modifier, cardHeight ->
+        Box(modifier.fillMaxWidth().height(cardHeight))
+    }
+
+    private fun adCell() = composeRule.onNodeWithTag(PosesTestTags.AD_CELL)
+
+    /**
+     * Shows [cards] with the fixed ad cells, scrolls the cell into view, and returns the height of a one-line card as
+     * wide as the cell, computed in the composition of the screen ([PoseCardDefaults.oneLineHeight]).
+     */
+    private fun showFixedAdsAndOneLineHeight(cards: List<PoseCardItem> = manyCards()): Float {
+        var probeWidth by mutableStateOf<Dp?>(null)
+        var oneLine: Dp? = null
+        setScreen(
+            ready(cards = cards),
+            gridAds = { fixedGridAds },
+            probe = { probeWidth?.let { oneLine = PoseCardDefaults.oneLineHeight(it) } },
+        )
+        composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(AD_INDEX)
+        composeRule.waitForIdle()
+        probeWidth = adCell().getUnclippedBoundsInRoot().width
+        composeRule.waitForIdle()
+        return oneLine!!.value
+    }
+
+    @Test
+    fun fixedGridAds_adCellAfterEighthPose() {
+        val oneLine = showFixedAdsAndOneLineHeight()
+
+        composeRule.onAllNodesWithTag(PosesTestTags.AD_CELL).assertCountEquals(1)
+        val ad = adCell().getUnclippedBoundsInRoot()
+        val seventh = card("p07").getUnclippedBoundsInRoot()
+        assertEquals("ad in the left column", seventh.left.value, ad.left.value, 0.5f)
+        assertEquals("ad beside card 9", card("p09").getUnclippedBoundsInRoot().top.value, ad.top.value, 0.5f)
+        assertEquals("ad height, a one-line card of its width", oneLine, ad.height.value, 0.5f)
+        // Same column: card 7 has the same width (the two columns can differ by a pixel).
+        assertEquals("ad height, card 7 above it", seventh.height.value, ad.height.value, 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
+    fun fixedGridAds_small_cellHeightIsOneLineCardOfItsWidth() {
+        val oneLine = showFixedAdsAndOneLineHeight()
+
+        val ad = adCell().getUnclippedBoundsInRoot()
+        assertEquals("ad height, a one-line card of its width", oneLine, ad.height.value, 0.5f)
+        val seventh = card("p07").getUnclippedBoundsInRoot()
+        assertEquals("ad in the column of card 7", seventh.left.value, ad.left.value, 0.5f)
+        assertEquals("ad height, card 7 above it", seventh.height.value, ad.height.value, 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun fixedGridAds_unfolded_cellHeightIsOneLineCardOfItsWidth() {
+        val oneLine = showFixedAdsAndOneLineHeight()
+
+        val ad = adCell().getUnclippedBoundsInRoot()
+        assertEquals("ad height, a one-line card of its width", oneLine, ad.height.value, 0.5f)
+        val sixth = card("p06").getUnclippedBoundsInRoot()
+        assertEquals("ad in the column of card 6", sixth.left.value, ad.left.value, 0.5f)
+        assertEquals("ad height, card 6 above it", sixth.height.value, ad.height.value, 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun fixedGridAds_unfolded_threeColumns() {
+        setScreen(ready(cards = manyCards()), gridAds = { fixedGridAds })
+        composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(AD_INDEX)
+        composeRule.waitForIdle()
+
+        val ad = adCell().getUnclippedBoundsInRoot()
+        val seventh = card("p07").getUnclippedBoundsInRoot()
+        val eighth = card("p08").getUnclippedBoundsInRoot()
+        assertEquals("ad in the row of card 7", seventh.top.value, ad.top.value, 0.5f)
+        assertEquals("ad in the row of card 8", eighth.top.value, ad.top.value, 0.5f)
+        assertTrue("ad in the third column: $ad, $eighth", ad.left >= eighth.right)
+        assertEquals(
+            "ad in the column of card 6",
+            card("p06").getUnclippedBoundsInRoot().left.value,
+            ad.left.value,
+            0.5f,
+        )
+        val ninth = card("p09").getUnclippedBoundsInRoot()
+        assertTrue("card 9 starts the next row", ninth.top > ad.top)
+        assertEquals("card 9 in the first column", seventh.left.value, ninth.left.value, 0.5f)
+    }
+
+    @Test
+    fun fixedGridAds_savedAndGroupFilters_haveCell() {
+        setScreen(
+            ready(selected = PoseFilter.Category("women"), cards = manyCards(count = 9)),
+            gridAds = { fixedGridAds },
+        )
+        listOf(PoseFilter.Category("women"), PoseFilter.Saved).forEach { filter ->
+            state = ready(selected = filter, cards = manyCards(count = 9))
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(AD_INDEX)
+            composeRule.waitForIdle()
+            composeRule.onAllNodesWithTag(PosesTestTags.AD_CELL).assertCountEquals(1)
+            val ad = adCell().getUnclippedBoundsInRoot()
+            assertEquals(
+                "$filter: ad beside card 9",
+                card("p09").getUnclippedBoundsInRoot().top.value,
+                ad.top.value,
+                0.5f,
+            )
+            assertTrue("$filter: ad after card 8", ad.top > card("p08").getUnclippedBoundsInRoot().top)
+        }
+    }
+
+    @Test
+    fun noGridAds_noAdCell() {
+        setScreen(ready(cards = manyCards()))
+        composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(AD_INDEX)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(PosesTestTags.AD_CELL).assertDoesNotExist()
+        assertEquals(card("p09").getUnclippedBoundsInRoot().top, card("p10").getUnclippedBoundsInRoot().top)
+    }
+
+    @Test
+    fun posesScreen_liveGridAdsWithoutController_noAdCell() {
+        setScreen(
+            ready(cards = manyCards()),
+            gridAds = { PosesGridAds.Live(rememberInListAds(AdPlacement.POSES_IN_COLLECTION)) },
+        )
+        composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(AD_INDEX)
+        composeRule.waitForIdle()
+
+        // No ads controller (tests, previews): the placement is never allowed, so no cell.
+        composeRule.onNodeWithTag(PosesTestTags.AD_CELL).assertDoesNotExist()
+        composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
+        assertEquals(card("p09").getUnclippedBoundsInRoot().top, card("p10").getUnclippedBoundsInRoot().top)
+    }
+
     private fun scrollToLastCard() {
         composeRule.onNodeWithTag(PosesTestTags.GRID).performScrollToIndex(11)
         composeRule.waitForIdle()
@@ -642,6 +788,9 @@ class PosesScreenTest {
 
     private companion object {
         const val UNFOLDED = "vi-w673dp-h841dp-xxhdpi"
+
+        /** The index of the ad cell after card 8 in the grid (cards 1 to 8, then the cell). */
+        const val AD_INDEX = 8
         const val SLOT = "fake_ad_slot"
         const val SLOT_HEIGHT = 80f
 

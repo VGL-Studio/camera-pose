@@ -2,6 +2,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -19,6 +20,7 @@ class AdPlacementAppTest {
             "review_interstitial" to AdFormat.INTERSTITIAL,
             "inter_pose_detail" to AdFormat.INTERSTITIAL,
             "poses_in_collection" to AdFormat.NATIVE_IN_COLLECTION,
+            "rw_premium_pose" to AdFormat.REWARDED,
         )
         val byKey = AdPlacement.entries.associateBy { it.key }
         expected.forEach { (key, format) ->
@@ -35,6 +37,21 @@ class AdPlacementAppTest {
         assertEquals(AdPlacement.REVIEW_INTERSTITIAL, byKey["review_interstitial"])
         assertEquals(AdPlacement.INTER_POSE_DETAIL, byKey["inter_pose_detail"])
         assertEquals(AdPlacement.POSES_IN_COLLECTION, byKey["poses_in_collection"])
+        assertEquals(AdPlacement.RW_PREMIUM_POSE, byKey["rw_premium_pose"])
+    }
+
+    @Test
+    fun rwPremiumPose_blocksWithoutAd() {
+        // Spec ads, question 12; spec poses, KB-8 criterion 6: the unlock is blocked when no ad can be shown (plan T-086).
+        val placement = AdPlacement.RW_PREMIUM_POSE
+        assertEquals("rw_premium_pose", placement.key)
+        assertEquals(AdFormat.REWARDED, placement.format)
+        assertNull(placement.noAdPolicy)
+        assertEquals(RewardedNoAdPolicy.Block, placement.declaration.effectiveNoAdPolicy)
+        assertFalse(placement.stagingOnly)
+        assertFalse(placement.appWide)
+        assertEquals("is_show_rw_premium_pose", AdsSettings.placementEnabled(placement).name)
+        assertEquals(false, AdsSettings.placementEnabled(placement).default)
     }
 
     @Test

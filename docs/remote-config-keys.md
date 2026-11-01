@@ -47,6 +47,7 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 | `is_show_poses_bottom` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement poses_bottom (native_small). |
 | `is_show_poses_in_collection` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement poses_in_collection (native_in_collection). |
 | `is_show_review_interstitial` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial). |
+| `is_show_rw_premium_pose` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement rw_premium_pose (rewarded). |
 | `native_every_gallery_in_collection` | long | `4` | `:core:ads` | Number of items between two native ads of this placement, in items. Derived key of placement gallery_in_collection (native_in_collection). |
 | `native_every_gallery_inlist_medium` | long | `8` | `:core:ads` | Number of items between two native ads of this placement, in items. Derived key of placement gallery_inlist_medium (native_medium). |
 | `native_every_gallery_inlist_small` | long | `8` | `:core:ads` | Number of items between two native ads of this placement, in items. Derived key of placement gallery_inlist_small (native_small). |

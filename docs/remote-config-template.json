@@ -206,6 +206,11 @@
       "description": "Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial).",
       "valueType": "BOOLEAN"
     },
+    "is_show_rw_premium_pose": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement rw_premium_pose (rewarded).",
+      "valueType": "BOOLEAN"
+    },
     "native_every_gallery_in_collection": {
       "defaultValue": { "value": "4" },
       "description": "Number of items between two native ads of this placement, in items. Derived key of placement gallery_in_collection (native_in_collection).",

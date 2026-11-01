@@ -141,6 +141,17 @@ class PosesScreenScreenshotTest {
         }
     }
 
+    // Design `premium` (KB-8; plan T-086): cards 1, 2 and 4 are premium poses not unlocked yet, card 2 also saved.
+    @Test
+    fun premium_light() {
+        captureRoboImage("src/test/screenshots/PosesScreen_premium_light.png") { Screen(premiumState(), dark = false) }
+    }
+
+    @Test
+    fun premium_dark() {
+        captureRoboImage("src/test/screenshots/PosesScreen_premium_dark.png") { Screen(premiumState(), dark = true) }
+    }
+
     // Design `unfolded` (KB-7): three columns, the same data as `default` (six cards in two rows).
     @Test
     @Config(qualifiers = UNFOLDED)
@@ -233,6 +244,14 @@ class PosesScreenScreenshotTest {
                 },
             )
         }
+
+        /** Design `premium` (context/PosesScreen_premium_light.md): the cards of `default`, 1, 2 and 4 locked. */
+        fun premiumState(): PosesUiState.Ready {
+            val state = defaultState()
+            return state.copy(cards = state.cards.mapIndexed { index, card -> card.copy(locked = index in PREMIUM) })
+        }
+
+        val PREMIUM = setOf(0, 1, 3)
 
         /** Design `loading`: the first two cards have their image, the others are skeletons. */
         fun loadingState() = defaultState(ready = 2)

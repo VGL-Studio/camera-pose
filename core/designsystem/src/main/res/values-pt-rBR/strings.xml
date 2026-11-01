@@ -5,4 +5,9 @@
     <string name="network_dialog_message">O app precisa de rede para funcionar. Verifique sua conexão com a internet e tente novamente.</string>
     <string name="network_dialog_retry">Tentar novamente</string>
     <string name="network_dialog_still_offline">Ainda sem conexão</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="premium_badge_label">Pose premium</string>
+    <string name="premium_unlock_title">Desbloquear esta pose</string>
+    <string name="premium_unlock_message">Assista a um anúncio curto para desbloquear esta pose e use-a para sempre neste aparelho.</string>
 </resources>

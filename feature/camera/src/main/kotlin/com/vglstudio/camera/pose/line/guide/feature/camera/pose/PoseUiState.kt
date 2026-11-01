@@ -24,6 +24,8 @@ sealed interface PoseUiState {
         /** The strip scrolls to [StripScroll.index] once per new key. */
         val scrollRequest: StripScroll? = null,
         val overlay: OverlayState = OverlayState(),
+        /** The locked pose whose unlock dialog may show, so the dialog can name it (spec poses, KB-8). */
+        val unlockPrompt: UnlockPrompt? = null,
     ) : PoseUiState
 }
 
@@ -38,8 +40,14 @@ data class OverlayState(
 
 data class CategoryChip(val id: String, val label: String)
 
-/** One cell of the strip; [label] is the pose name for screen readers. */
-data class PoseThumbItem(val id: String, val label: String, val image: PoseImage)
+/**
+ * One cell of the strip; [label] is the pose name for screen readers. [locked]: a premium pose not unlocked yet, with
+ * the premium badge; a tap opens the unlock dialog instead of selecting it (spec poses, KB-8).
+ */
+data class PoseThumbItem(val id: String, val label: String, val image: PoseImage, val locked: Boolean = false)
+
+/** The pose waiting for its unlock, with its name for the dialog. */
+data class UnlockPrompt(val id: String, val name: String)
 
 data class SelectedPose(val id: String, val steps: List<String>, val stepIndex: Int, val outline: PoseImage)
 

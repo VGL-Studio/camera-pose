@@ -30,4 +30,8 @@
     <string name="poses_detail_shoot">ถ่ายด้วยท่านี้</string>
     <string name="poses_image_error_title">โหลดรูปไม่ได้</string>
     <string name="poses_image_error_message">เกิดข้อผิดพลาดขณะโหลดรูป ลองอีกครั้งในอีกสักครู่</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="poses_detail_unlock">ดูโฆษณาเพื่อใช้</string>
+    <string name="poses_unlock_failed">ปลดล็อกท่าไม่ได้ ลองอีกครั้ง</string>
 </resources>

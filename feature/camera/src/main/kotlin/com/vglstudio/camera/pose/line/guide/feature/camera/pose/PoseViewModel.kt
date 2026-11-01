@@ -12,11 +12,13 @@ import com.vglstudio.camera.pose.line.guide.core.poses.PoseCatalogRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseFileResult
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseHistoryRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLibraryRepository
+import com.vglstudio.camera.pose.line.guide.core.poses.PremiumPoseRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LibraryState
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Pose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFile
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFilter
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseLibrary
+import com.vglstudio.camera.pose.line.guide.core.poses.model.PremiumAccess
 import com.vglstudio.camera.pose.line.guide.feature.camera.data.OverlaySettings
 import com.vglstudio.camera.pose.line.guide.feature.camera.data.PoseOverlaySettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,12 +38,15 @@ import kotlinx.coroutines.launch
  * chips and the strip work in every camera state (KB-7). The library is taken once, when it is first ready: the strip
  * keeps that order for the life of the screen, also after a pose is marked as used (plan T-014, question 2). Only
  * choices of the user count as used and log `pose_selected`; the pose chosen on opening does not (question 13).
+ * Premium poses not unlocked yet follow the premium access of :core:poses for the life of the screen: their cells are
+ * locked, a tap holds the pose for the unlock dialog, and only a granted unlock selects it (spec poses, KB-8; T-086).
  */
 @HiltViewModel
 class PoseViewModel @Inject constructor(
     private val libraryRepository: PoseLibraryRepository,
     private val catalogRepository: PoseCatalogRepository,
     private val historyRepository: PoseHistoryRepository,
+    private val premiumRepository: PremiumPoseRepository,
     private val overlaySettingsRepository: PoseOverlaySettingsRepository,
     private val decoder: PoseImageDecoder,
     private val activePose: ActivePoseHolder,
@@ -78,7 +83,19 @@ class PoseViewModel @Inject constructor(
     private var gestureHintShown = false
     private var gestureZoom = 1f
 
+    /** Nothing is locked until the first value; it is read before the first pose is chosen (onLibraryReady). */
+    private var access = PremiumAccess(enabled = false, unlockedIds = emptySet())
+
+    /** An unlock is being written: a second grant meanwhile is ignored. */
+    private var unlocking = false
+
     init {
+        viewModelScope.launch {
+            premiumRepository.access.collect {
+                access = it
+                publish()
+            }
+        }
         viewModelScope.launch { libraryRepository.library.collect(::onLibraryState) }
         viewModelScope.launch {
             // T-022 opens the camera with a pose, as a new destination or by setting the key on this one.
@@ -104,8 +121,64 @@ class PoseViewModel @Inject constructor(
     fun onPoseSelect(id: String) {
         val pose = posesById[id] ?: return
         if (thumbnails[id] == PoseImage.Failed) loadThumbnail(pose)
+        // A locked cell calls onLockedPoseSelect; this guard keeps a locked pose from being selected anyway.
+        if (access.isLocked(pose)) return
         if (selected?.id == id) return
         select(pose, Source.STRIP)
+    }
+
+    /** A tap on the cell of a locked pose (spec poses, KB-8): holds it for the unlock, keeps the selected pose. */
+    fun onLockedPoseSelect(id: String) {
+        val pose = posesById[id] ?: return
+        if (!access.isLocked(pose)) {
+            // Unlocked meanwhile (in the detail, or the flag went off): a plain tap.
+            onPoseSelect(id)
+            return
+        }
+        if (thumbnails[id] == PoseImage.Failed) loadThumbnail(pose)
+        savedStateHandle[KEY_UNLOCK_POSE_ID] = id
+        publish()
+        logger.info(LOG_TAG, "Locked pose tapped")
+    }
+
+    /** The rewarded action of a locked cell ran (KB-8): unlocks, logs, then selects the pose as a tap on a cell. */
+    fun onUnlockGranted() {
+        val id = savedStateHandle.get<String>(KEY_UNLOCK_POSE_ID) ?: return
+        val pose = posesById[id] ?: return
+        if (unlocking) return
+        if (!access.isLocked(pose)) {
+            // Usable already (flag off, unlocked elsewhere): no write, no event (KB-8, criterion 8).
+            savedStateHandle[KEY_UNLOCK_POSE_ID] = null
+            select(pose, Source.STRIP)
+            return
+        }
+        unlocking = true
+        viewModelScope.launch {
+            try {
+                if (premiumRepository.unlock(id)) {
+                    analytics.log(
+                        AnalyticsEvent(
+                            EVENT_PREMIUM_POSE_UNLOCKED,
+                            mapOf("pose_id" to pose.id, "category" to pose.categoryId, "source" to SOURCE_CAMERA),
+                        ),
+                    )
+                    logger.info(LOG_TAG, "Premium pose unlocked")
+                } else {
+                    // Premium poses were switched off meanwhile: nothing written, the pose is usable (T-085).
+                    logger.info(LOG_TAG, "Unlock skipped: premium off")
+                }
+                savedStateHandle[KEY_UNLOCK_POSE_ID] = null
+                // Selected at once, before the new access arrives: select does not check the lock.
+                select(pose, Source.STRIP)
+            } catch (e: IOException) {
+                // Question 7: the pose stays locked and the current pose stays; the cell keeps its badge.
+                savedStateHandle[KEY_UNLOCK_POSE_ID] = null
+                logger.warn(LOG_TAG, "Premium pose could not be unlocked", e)
+                publish()
+            } finally {
+                unlocking = false
+            }
+        }
     }
 
     /** A cell was put on screen: loads its thumbnail once. A failed one loads again only on a tap or network back. */
@@ -308,13 +381,19 @@ class PoseViewModel @Inject constructor(
 
     /**
      * "Tư thế tiếp" of the review screen (T-016): the pose after the selected one in the strip of the selected chip;
-     * after the last one, or when the selected pose is not in the strip, the first one.
+     * after the last one, or when the selected pose is not in the strip, the first one. Locked premium poses are
+     * skipped; with no other pose that is not locked, nothing changes (plan T-086, question 8).
      */
     fun onNextPose() {
         val strip = strip()
         if (strip.isEmpty()) return
         val index = strip.indexOfFirst { it.id == selected?.id }
-        val next = if (index < 0 || index == strip.lastIndex) strip.first() else strip[index + 1]
+        // From the pose after the selected one, round the strip once. With nothing locked, a strip of only the selected
+        // pose selects it again, as before T-086.
+        val order = (1..strip.size).map { strip[(index + it).mod(strip.size)] }
+        val next = order.firstOrNull { it.id != selected?.id && !access.isLocked(it) }
+            ?: order.last().takeIf { strip.none(access::isLocked) }
+            ?: return
         select(next, Source.NEXT)
     }
 
@@ -333,11 +412,17 @@ class PoseViewModel @Inject constructor(
     private suspend fun onLibraryReady(ready: PoseLibrary) {
         stepsHidden = overlaySettingsRepository.stepsHidden.first()
         outlineSettings = overlaySettingsRepository.overlay.first()
+        // The locks before the first pose: a pose used last time that is now locked is not opened (camera KB-1, 9).
+        access = premiumRepository.access.first()
         library = ready
         posesById = ready.posesFor(PoseFilter.All).associateBy { it.id }
         logger.info(LOG_TAG, "Pose library ready: ${posesById.size} poses, ${ready.categories.size} categories")
         val requested = savedStateHandle.get<String>(KEY_POSE_ID)?.let { posesById[it] }
-        val first = requested ?: ready.lastUsedPose ?: ready.defaultPose
+        // The detail sends a pose only once it is unlocked, so a locked one here is a safeguard: onRequestedPose below
+        // logs it and keeps the pose chosen here.
+        val first = requested?.takeUnless(access::isLocked)
+            ?: ready.lastUsedPose?.takeUnless(access::isLocked)
+            ?: ready.defaultPose
         if (first != null) select(first, Source.AUTO) else publish()
         savedStateHandle.get<String>(KEY_POSE_ID)?.let(::onRequestedPose)
     }
@@ -347,6 +432,10 @@ class PoseViewModel @Inject constructor(
         val pose = posesById[id]
         if (pose == null) {
             logger.warn(LOG_TAG, "Requested pose is not in the catalog")
+            return
+        }
+        if (access.isLocked(pose)) {
+            logger.warn(LOG_TAG, "Requested pose is locked")
             return
         }
         select(pose, Source.DETAIL)
@@ -462,7 +551,9 @@ class PoseViewModel @Inject constructor(
         state.value = PoseUiState.Ready(
             categories = library.categories.map { CategoryChip(it.id, it.name.resolve()) },
             selectedCategoryId = categoryId,
-            strip = strip().map { PoseThumbItem(it.id, it.name.resolve(), thumbnails[it.id] ?: PoseImage.Loading) },
+            strip = strip().map {
+                PoseThumbItem(it.id, it.name.resolve(), thumbnails[it.id] ?: PoseImage.Loading, access.isLocked(it))
+            },
             selected = selected?.let { SelectedPose(it.id, it.steps.resolve(), stepIndex, outline) },
             stepsHidden = stepsHidden,
             scrollRequest = scrollRequest,
@@ -473,6 +564,9 @@ class PoseViewModel @Inject constructor(
                 panelOpen = panelOpen,
                 lockHintVisible = lockHintVisible,
             ),
+            unlockPrompt = savedStateHandle.get<String>(KEY_UNLOCK_POSE_ID)
+                ?.let { posesById[it] }
+                ?.let { UnlockPrompt(it.id, it.name.resolve()) },
         )
     }
 
@@ -489,6 +583,9 @@ class PoseViewModel @Inject constructor(
         const val EVENT_POSE_SELECTED = "pose_selected"
         const val EVENT_CONTENT_LOAD_FAILED = "content_load_failed"
         const val EVENT_OVERLAY_ADJUSTED = "overlay_adjusted"
+        const val EVENT_PREMIUM_POSE_UNLOCKED = "premium_pose_unlocked"
+        const val SOURCE_CAMERA = "camera"
+        const val KEY_UNLOCK_POSE_ID = "unlockPoseId"
         const val LOCK_HINT_MILLIS = 2_000L
         const val ZOOM_SLOP = 0.03f
         const val THUMBNAIL_PX = 256

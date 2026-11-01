@@ -188,6 +188,9 @@ enum class AdPlacement(
     /** The ad card in the pose library grid, after every 8 poses (spec ads, question 9; plan T-080). */
     POSES_IN_COLLECTION("poses_in_collection", AdFormat.NATIVE_IN_COLLECTION, nativeEvery = 8),
 
+    /** Holds the unlock of a premium pose, from the detail and the camera strip; no ad blocks (spec poses, KB-8, question 8). */
+    RW_PREMIUM_POSE("rw_premium_pose", AdFormat.REWARDED),
+
     // Staging ad gallery only (plans T-014, T-036): placements of every format, see [stagingOnly]. The collapsible
     // layer has none of its own: it loads through the placement of its bottom bar (GALLERY_NATIVE_SMALL, T-030).
     GALLERY_NATIVE_SMALL("gallery_native_small", AdFormat.NATIVE_SMALL),

@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.text.Normalizer
 import java.util.Locale
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -50,18 +51,33 @@ class DesignSystemStringsTest {
         }
     }
 
+    @Test
+    fun vietnamese_premiumText_matchesDesignTable() {
+        // Text table of the poses design, section 2 (plan T-086).
+        val vietnamese = context("vi")
+        assertEquals("Tư thế premium", vietnamese.getString(R.string.premium_badge_label))
+        assertEquals("Mở khóa tư thế", vietnamese.getString(R.string.premium_unlock_title))
+        assertEquals(
+            "Xem một quảng cáo ngắn để mở tư thế này, rồi dùng mãi về sau trên máy này.",
+            vietnamese.getString(R.string.premium_unlock_message),
+        )
+    }
+
     /** Vietnamese letters, double marks included (ậ, ở, ừ…): any combining mark of Vietnamese after NFD, or đ. */
     private fun isVietnamese(text: String) =
         VIETNAMESE_MARK.containsMatchIn(Normalizer.normalize(text, Normalizer.Form.NFD))
 
     private companion object {
-        /** Every string of values/ (5 strings, plan T-051 section 3.1). */
+        /** Every string of values/ (5 strings, plan T-051 section 3.1; 3 premium strings, plan T-086). */
         val TRANSLATED = listOf(
             R.string.brand_tagline,
             R.string.network_dialog_title,
             R.string.network_dialog_message,
             R.string.network_dialog_retry,
             R.string.network_dialog_still_offline,
+            R.string.premium_badge_label,
+            R.string.premium_unlock_title,
+            R.string.premium_unlock_message,
         )
 
         val VIETNAMESE_MARK = Regex("[\\u0300-\\u0323đĐ]")

@@ -30,4 +30,8 @@
     <string name="poses_detail_shoot">Foto dengan pose ini</string>
     <string name="poses_image_error_title">Gambar tidak dapat dimuat</string>
     <string name="poses_image_error_message">Terjadi kesalahan saat memuat gambar. Coba lagi dalam beberapa menit.</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="poses_detail_unlock">Tonton iklan untuk memakai</string>
+    <string name="poses_unlock_failed">Pose belum bisa dibuka. Coba lagi.</string>
 </resources>

@@ -21,12 +21,14 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -41,6 +43,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_IMAGE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_SAVE_CIRCLE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_CARD_SAVE_TAG
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PREMIUM_BADGE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCard
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardDefaults
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseCardSkeleton
@@ -269,6 +272,110 @@ class PoseCardTest {
         assertEquals(1, clicks)
     }
 
+    // Premium poses (spec poses, KB-8; plan T-086)
+
+    @Test
+    fun premium_drawsBadge_32dpAtTopLeft_withDescription() {
+        var premium by mutableStateOf(true)
+        composeRule.setContent {
+            AppTheme(darkTheme = false) {
+                PoseCard(
+                    name = NAME,
+                    meta = META,
+                    image = ColorPainter(Color.Transparent),
+                    imageBackground = CATEGORY,
+                    saved = false,
+                    saveLabel = "Lưu tư thế",
+                    onSaveClick = {},
+                    modifier = Modifier.padding(16.dp).width(CARD_WIDTH),
+                    premium = premium,
+                )
+            }
+        }
+        val badge = composeRule.onNodeWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true)
+        badge.assertWidthIsEqualTo(32.dp).assertHeightIsEqualTo(32.dp)
+        badge.assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf(PREMIUM_LABEL)))
+        val bounds = badge.getUnclippedBoundsInRoot()
+        val image = composeRule.onNodeWithTag(POSE_CARD_IMAGE_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        // Design: the badge sits at (6, 10) in the image.
+        assertEquals(6f, (bounds.left - image.left).value, 0.5f)
+        assertEquals(10f, (bounds.top - image.top).value, 0.5f)
+        // Its centre is as far from the left edge of the image as the centre of the save circle from the right edge.
+        val circle = composeRule.onNodeWithTag(POSE_CARD_SAVE_CIRCLE_TAG, useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val badgeCentre = (bounds.left + bounds.right) / 2 - image.left
+        val circleCentre = image.right - (circle.left + circle.right) / 2
+        assertEquals(circleCentre.value, badgeCentre.value, 0.5f)
+        // Control: not premium, no badge.
+        premium = false
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun premium_mergedNode_readsBadgeOnce() {
+        composeRule.setContent {
+            AppTheme(darkTheme = false) {
+                PoseCard(
+                    name = NAME,
+                    meta = META,
+                    image = ColorPainter(Color.Transparent),
+                    imageBackground = CATEGORY,
+                    saved = false,
+                    saveLabel = "Lưu tư thế",
+                    onSaveClick = {},
+                    modifier = Modifier.padding(16.dp).width(CARD_WIDTH).testTag(CARD),
+                    onClick = {},
+                    premium = true,
+                )
+            }
+        }
+        // L-004: the name and the second line are text; the badge adds its label once to the merged card.
+        composeRule.onNodeWithTag(CARD).assertContentDescriptionEquals(PREMIUM_LABEL)
+        // The badge is also a node of its own, which the device scenario selects.
+        composeRule.onNodeWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun premiumBadge_colors_light_and_dark() {
+        composeRule.setContent {
+            Column {
+                listOf(false, true).forEach { dark ->
+                    AppTheme(darkTheme = dark) {
+                        PoseCard(
+                            name = NAME,
+                            meta = META,
+                            image = ColorPainter(Color.Transparent),
+                            imageBackground = CATEGORY,
+                            saved = false,
+                            saveLabel = if (dark) "dark" else "light",
+                            onSaveClick = {},
+                            modifier = Modifier.width(CARD_WIDTH),
+                            premium = true,
+                        )
+                    }
+                }
+            }
+        }
+        // The ring is tertiaryContainer: 4 dp inside its left edge, at its middle height, away from the icon.
+        assertEquals(Color(0xFFFFD6E2).toArgb(), badgePixel(index = 0))
+        assertEquals(Color(0xFF6B1D35).toArgb(), badgePixel(index = 1))
+    }
+
+    private fun badgePixel(index: Int): Int {
+        composeRule.waitForIdle()
+        val root = (composeRule as AndroidComposeTestRule<*, *>).activity.window.decorView
+        val bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(bitmap))
+        val bounds = composeRule.onAllNodesWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true)[index]
+            .fetchSemanticsNode().boundsInWindow
+        with(composeRule.density) {
+            val left = bounds.left + 4.dp.toPx()
+            val top = (bounds.top + bounds.bottom) / 2
+            return bitmap.getPixel(left.toInt(), top.toInt())
+        }
+    }
+
     private fun circlePixel(saveLabel: String, x: Dp, y: Dp): Int {
         composeRule.waitForIdle()
         val root = (composeRule as AndroidComposeTestRule<*, *>).activity.window.decorView
@@ -295,5 +402,6 @@ class PoseCardTest {
         const val LONG_NAME = "Tựa lan can nhìn về phía hoàng hôn trên bờ biển vào một buổi chiều có gió nhẹ"
         val CARD_WIDTH = 182.dp
         val CATEGORY = Color(0xFF4D8DFF)
+        const val PREMIUM_LABEL = "Premium pose"
     }
 }

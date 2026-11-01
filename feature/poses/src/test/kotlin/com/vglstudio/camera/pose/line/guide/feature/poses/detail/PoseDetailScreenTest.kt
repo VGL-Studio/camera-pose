@@ -1,11 +1,13 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,9 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasProgressBarRangeInfo
@@ -35,16 +40,29 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarDefaults
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
+import com.vglstudio.camera.pose.line.guide.core.ads.RewardedAdDialogCard
+import com.vglstudio.camera.pose.line.guide.core.ads.RewardedAdDialogTestTags
+import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PREMIUM_BADGE_TAG
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PremiumUnlockContent
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
+import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedText
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
+import com.vglstudio.camera.pose.line.guide.feature.poses.FakeAnalytics
+import com.vglstudio.camera.pose.line.guide.feature.poses.FakeFeatureFlags
+import com.vglstudio.camera.pose.line.guide.feature.poses.FakeNetworkStatus
+import com.vglstudio.camera.pose.line.guide.feature.poses.FakePoseImageRepository
+import com.vglstudio.camera.pose.line.guide.feature.poses.FakePosesLibrarySource
+import com.vglstudio.camera.pose.line.guide.feature.poses.testContent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -69,6 +87,8 @@ class PoseDetailScreenTest {
     private var retries = 0
     private var shoots = 0
     private var saveFailedShown = 0
+    private var unlocks = 0
+    private var unlockFailedShown = 0
 
     private var state by mutableStateOf<PoseDetailUiState>(PoseDetailUiState.Loading)
 
@@ -89,6 +109,8 @@ class PoseDetailScreenTest {
                         onShoot = { shoots++ },
                         onSaveFailedShown = { saveFailedShown++ },
                         contentPadding = contentPadding,
+                        onUnlock = { unlocks++ },
+                        onUnlockFailedShown = { unlockFailedShown++ },
                     )
                 }
                 // The screen alone, or inside the bottom bar that gives it its padding (plan T-079, section 4).
@@ -557,12 +579,123 @@ class PoseDetailScreenTest {
         composeRule.onNodeWithText(STEPS[0]).assertExists()
     }
 
+    // KB-8: premium poses (plan T-086)
+
+    @Test
+    fun locked_mainButtonIsUnlock_callsOnUnlock() {
+        setScreen(ready(locked = true))
+        val unlock = composeRule.onNodeWithTag(PoseDetailTestTags.UNLOCK)
+        unlock.assertExists()
+        composeRule.onNodeWithText(UNLOCK_TEXT).assertExists()
+        composeRule.onNodeWithText(SHOOT_TEXT).assertDoesNotExist()
+        unlock.performClick()
+        assertEquals(1, unlocks)
+        assertEquals(0, shoots)
+        // The 20 dp badge stands before the second line, Spacing.sm away.
+        val badge = composeRule.onNodeWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true)
+        badge.assertWidthIsEqualTo(20.dp).assertHeightIsEqualTo(20.dp)
+        val badgeBounds = badge.getUnclippedBoundsInRoot()
+        val meta = composeRule.onNodeWithText(META).getUnclippedBoundsInRoot()
+        assertEquals(8f, (meta.left - badgeBounds.right).value, 0.5f)
+        // Control: not locked, the shoot button as before and no badge.
+        state = ready(locked = false)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(SHOOT_TEXT).assertExists()
+        composeRule.onNodeWithTag(PoseDetailTestTags.UNLOCK).assertDoesNotExist()
+        composeRule.onNodeWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = UNFOLDED)
+    fun wide_locked_showsUnlockAndBadge() {
+        setScreen(ready(locked = true))
+        composeRule.onNodeWithTag(PoseDetailTestTags.UNLOCK).performClick()
+        assertEquals(1, unlocks)
+        composeRule.onNodeWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText(SHOOT_TEXT).assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
+    fun locked_small_unlockButtonFullyVisible() {
+        setScreen(ready(detail = detail(steps = FIVE_STEPS, mistakes = listOf(MISTAKE, LONG_MISTAKE)), locked = true))
+        val screen = composeRule.onRoot().getUnclippedBoundsInRoot()
+        val button = composeRule.onNodeWithTag(PoseDetailTestTags.UNLOCK).getUnclippedBoundsInRoot()
+        assertTrue("button $button in $screen", button.top.value >= 0f && button.bottom <= screen.bottom)
+        assertTrue(button.left.value >= 0f && button.right <= screen.right)
+        // The content scrolls above the button: the last mistake comes into view.
+        composeRule.onNodeWithText(LONG_MISTAKE).performScrollTo()
+        composeRule.waitForIdle()
+        val last = composeRule.onNodeWithText(LONG_MISTAKE).getUnclippedBoundsInRoot()
+        val after = composeRule.onNodeWithTag(PoseDetailTestTags.UNLOCK).getUnclippedBoundsInRoot()
+        assertTrue("last mistake ${last.bottom} above button ${after.top}", last.bottom <= after.top)
+    }
+
+    @Test
+    fun unlockFailed_showsSnackbar_once() {
+        composeRule.mainClock.autoAdvance = false
+        setScreen(ready(locked = true, unlockFailed = true))
+        composeRule.mainClock.advanceTimeBy(500)
+        composeRule.onNodeWithText("Chưa mở khóa được tư thế. Thử lại.").assertExists()
+        assertEquals(0, unlockFailedShown)
+        composeRule.mainClock.advanceTimeBy(10_000)
+        composeRule.mainClock.advanceTimeBy(1_000)
+        assertEquals(1, unlockFailedShown)
+    }
+
+    @Test
+    fun unlockContent_showsNameAndMessage() {
+        composeRule.setContent {
+            AppTheme(darkTheme = false) { PremiumUnlockContent(poseName = "Tựa lan can") }
+        }
+        val name = composeRule.onNodeWithText("Tựa lan can").getUnclippedBoundsInRoot()
+        val message = composeRule.onNodeWithText(UNLOCK_MESSAGE).getUnclippedBoundsInRoot()
+        assertEquals(8f, (message.top - name.bottom).value, 0.5f)
+    }
+
+    @Test
+    fun unlockDialogCard_matchesDesign() {
+        composeRule.setContent {
+            AppTheme(darkTheme = false) {
+                Box(
+                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RewardedAdDialogCard(
+                        title = stringResource(DesignR.string.premium_unlock_title),
+                        onWatch = {},
+                        onNoThanks = {},
+                    ) {
+                        PremiumUnlockContent(poseName = "Tựa lan can")
+                    }
+                }
+            }
+        }
+        // Design: the card is 312 x 288 at (50, 302) of the 411 x 891 frame, centred. The framework keeps the
+        // 48 dp touch target of "No, thanks" (the frame draws it 40 dp tall), so the card is 296 tall at 297.5
+        // (plan T-086 version 3, question 13).
+        val card = composeRule.onNodeWithTag(RewardedAdDialogTestTags.CARD).getUnclippedBoundsInRoot()
+        assertEquals(312f, card.width.value, 1f)
+        assertEquals(296f, card.height.value, 1f)
+        assertEquals(49.5f, card.left.value, 1f)
+        assertEquals(297.5f, card.top.value, 1f)
+    }
+
     private fun ready(
         detail: PoseDetail = detail(),
         saved: Boolean = false,
         image: DetailImageState = DetailImageState.Ready(IMAGE),
         saveFailed: Boolean = false,
-    ) = PoseDetailUiState.Ready(pose = detail, saved = saved, image = image, saveFailed = saveFailed)
+        locked: Boolean = false,
+        unlockFailed: Boolean = false,
+    ) = PoseDetailUiState.Ready(
+        pose = detail,
+        saved = saved,
+        image = image,
+        saveFailed = saveFailed,
+        locked = locked,
+        unlockFailed = unlockFailed,
+    )
 
     private fun detail(
         subject: SubjectType = SubjectType.SINGLE,
@@ -587,6 +720,9 @@ class PoseDetailScreenTest {
         const val UNFOLDED = "vi-w673dp-h841dp-xxhdpi"
         const val UNFOLDED_LOW = "vi-w673dp-h641dp-xxhdpi"
         const val META = "Một người · Nữ · Toàn thân · 4 bước"
+        const val SHOOT_TEXT = "Chụp với tư thế này"
+        const val UNLOCK_TEXT = "Xem quảng cáo để dùng"
+        const val UNLOCK_MESSAGE = "Xem một quảng cáo ngắn để mở tư thế này, rồi dùng mãi về sau trên máy này."
         const val LONG_META = "Một người · Nữ · Toàn thân · 12 bước"
         const val SLOT = "fake_ad_slot"
 
@@ -604,6 +740,44 @@ class PoseDetailScreenTest {
         val FIVE_STEPS = STEPS + "Nhìn qua vai về phía ống kính, mắt mở tự nhiên và thả lỏng cổ."
         const val LONG_MISTAKE = "Vai trái bị che mất khi hai người đứng sát nhau và cùng xoay về một phía."
         const val MISTAKE = "Rút vai lên sát tai làm cổ ngắn lại. Thả vai xuống trước khi chụp."
+    }
+}
+
+/**
+ * [PoseDetailRoute] with the real view model and fake sources, without an ads controller: as when
+ * `is_show_rw_premium_pose` is off or consent is closed, the unlock button unlocks at once, with no dialog (spec poses,
+ * KB-8 criterion 9; plan T-086, section 4).
+ */
+@RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "vi-w411dp-h891dp-xxhdpi")
+class PoseDetailRouteTest {
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun noAdsController_unlockButton_unlocksAtOnce_withoutDialog() {
+        val library = FakePosesLibrarySource().apply { ready(testContent(lockedIds = setOf("w01"))) }
+        val viewModel = PoseDetailViewModel(
+            librarySource = library,
+            imageRepository = FakePoseImageRepository { ImageBitmap(1, 1) },
+            networkStatus = FakeNetworkStatus(),
+            analytics = FakeAnalytics(),
+            logger = RecordingAppLogger(),
+            featureFlags = FakeFeatureFlags(),
+            savedStateHandle = SavedStateHandle(mapOf("poseId" to "w01")),
+        )
+        val opened = mutableListOf<String>()
+        composeRule.setContent {
+            AppTheme(darkTheme = false) {
+                PoseDetailRoute(onBack = {}, onShootWithPose = { opened += it }, viewModel = viewModel)
+            }
+        }
+        composeRule.onNodeWithTag(PoseDetailTestTags.UNLOCK).performClick()
+        composeRule.waitForIdle()
+        assertEquals(listOf("w01"), library.unlocks)
+        assertEquals(listOf("w01"), opened)
+        composeRule.onNodeWithTag(RewardedAdDialogTestTags.CARD).assertDoesNotExist()
     }
 }
 

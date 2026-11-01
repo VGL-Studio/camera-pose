@@ -42,6 +42,8 @@ class StagingRemoteValuesModuleTest {
             "is_show_inter_pose_detail" to true,
             // The card of the pose library grid (spec ads, question 11; plan T-080).
             "is_show_poses_in_collection" to true,
+            // The unlock of a premium pose (spec poses, section 8; plan T-086).
+            "is_show_rw_premium_pose" to true,
             "show_open_ads" to true,
             "show_resum_ads" to true,
             "is_show_native_bottom" to true,

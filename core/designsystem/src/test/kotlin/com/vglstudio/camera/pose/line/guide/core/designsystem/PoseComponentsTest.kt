@@ -5,12 +5,17 @@ import android.graphics.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -33,7 +38,10 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.POSE_THUMB_RETRY_TAG
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PREMIUM_BADGE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PoseThumb
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PremiumBadge
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PremiumBadgeSize
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SELECTED_BADGE_TAG
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SelectedBadge
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.StepCard
@@ -285,6 +293,73 @@ class PoseComponentsTest {
         assertEquals(1, enabledClicks)
     }
 
+    // Premium cell (spec poses, KB-8; camera design, CameraScreen_premium_dark; plan T-086)
+
+    @Test
+    fun thumb_premium_drawsBadge_22dpOverTopLeft() {
+        composeRule.setContent {
+            AppTheme(darkTheme = true) {
+                Column(Modifier.padding(24.dp)) {
+                    PoseThumb(
+                        image = null,
+                        selected = false,
+                        onClick = {},
+                        contentDescription = "Pose w01",
+                        modifier = Modifier.testTag(THUMB),
+                        premium = true,
+                    )
+                    PoseThumb(
+                        image = null,
+                        selected = false,
+                        onClick = {},
+                        contentDescription = "Pose w02",
+                        modifier = Modifier.padding(top = 24.dp),
+                    )
+                }
+            }
+        }
+        val badges = composeRule.onAllNodesWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true).fetchSemanticsNodes()
+        assertEquals(1, badges.size)
+        val badge = composeRule.onNodeWithTag(PREMIUM_BADGE_TAG, useUnmergedTree = true)
+        badge.assertWidthIsEqualTo(22.dp).assertHeightIsEqualTo(22.dp)
+        val bounds = badge.getUnclippedBoundsInRoot()
+        val cell = composeRule.onNodeWithTag(THUMB).getUnclippedBoundsInRoot()
+        // Design: the 22 dp badge at (-7, -7) of the 64 dp cell, mirroring the selected badge.
+        assertEquals(-7f, (bounds.left - cell.left).value, 0.5f)
+        assertEquals(-7f, (bounds.top - cell.top).value, 0.5f)
+    }
+
+    @Test
+    fun thumb_premium_readsDescriptionOnce() {
+        composeRule.setContent {
+            AppTheme(darkTheme = true) {
+                Column(Modifier.padding(24.dp)) {
+                    PoseThumb(
+                        image = null,
+                        selected = false,
+                        onClick = {},
+                        contentDescription = PREMIUM_CELL,
+                        modifier = Modifier.testTag(THUMB),
+                        premium = true,
+                    )
+                    // Control: a selectable cell with a badge that has a label of its own reads two descriptions.
+                    Box(
+                        Modifier
+                            .padding(top = 24.dp)
+                            .size(64.dp)
+                            .semantics { contentDescription = PREMIUM_CELL }
+                            .selectable(selected = false, onClick = {})
+                            .testTag(CARD),
+                    ) {
+                        PremiumBadge(PremiumBadgeSize.Thumb, contentDescription = "Premium pose")
+                    }
+                }
+            }
+        }
+        composeRule.onNodeWithTag(THUMB).assertContentDescriptionEquals(PREMIUM_CELL)
+        composeRule.onNodeWithTag(CARD).assertContentDescriptionEquals(PREMIUM_CELL, "Premium pose")
+    }
+
     // StepCard
 
     @Test
@@ -395,6 +470,7 @@ class PoseComponentsTest {
         const val LIGHT = "light"
         const val THUMB = "thumb"
         const val CARD = "card"
+        const val PREMIUM_CELL = "Lean, premium, tap to unlock"
         const val STEP_TEXT = "Turn your shoulders 45 degrees to the camera."
         const val PREVIOUS = "Previous step"
         const val NEXT = "Next step"

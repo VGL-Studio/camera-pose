@@ -22,6 +22,10 @@ sealed interface PoseDetailUiState {
         val saved: Boolean,
         val image: DetailImageState,
         val saveFailed: Boolean = false,
+        /** A premium pose not unlocked yet: the main button unlocks it (spec poses, KB-8). */
+        val locked: Boolean = false,
+        /** The unlock could not be written: the screen shows a message once. */
+        val unlockFailed: Boolean = false,
     ) : PoseDetailUiState
 }
 

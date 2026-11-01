@@ -9,6 +9,7 @@ import com.vglstudio.camera.pose.line.guide.core.poses.PoseFileResult
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseHistoryRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLibraryRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.PoseLoadFailure
+import com.vglstudio.camera.pose.line.guide.core.poses.PremiumPoseRepository
 import com.vglstudio.camera.pose.line.guide.core.poses.StarterSetResult
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LibraryState
@@ -20,6 +21,7 @@ import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseCategory
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseFile
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseGender
 import com.vglstudio.camera.pose.line.guide.core.poses.model.PoseLibrary
+import com.vglstudio.camera.pose.line.guide.core.poses.model.PremiumAccess
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SavedPose
 import com.vglstudio.camera.pose.line.guide.core.poses.model.SubjectType
 import com.vglstudio.camera.pose.line.guide.core.poses.model.UsedPose
@@ -33,6 +35,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 
 /**
  * Catalog of the pose tests: categories women ("Nữ"), men ("Nam") and kids (no pose); poses in catalog order
@@ -74,6 +77,11 @@ internal object PoseFixtures {
 
     fun catalog(poses: List<Pose> = listOf("w01", "m01", "w02", "m02", "w03").map { pose(it) }): PoseCatalog =
         PoseCatalog(datasetVersion = "test", categories = CATEGORIES, poses = poses)
+
+    /** The fixture catalog with the poses of [premium] premium (plan T-085, section 3.1). */
+    fun premiumCatalog(vararg premium: String): PoseCatalog = catalog(
+        listOf("w01", "m01", "w02", "m02", "w03").map { id -> pose(id).copy(premium = id in premium) },
+    )
 
     fun library(
         saved: List<SavedPose> = emptyList(),
@@ -175,6 +183,32 @@ internal class FakePoseImageDecoder : PoseImageDecoder {
 
     override suspend fun decode(file: File, targetPx: Int): ImageBitmap? =
         if (file in undecodable) null else bitmapOf(file)
+}
+
+/**
+ * The premium poses of :core:poses (T-085): [access] off by default, as the real flag. An unlock records the call,
+ * waits for [unlockGate] when set, fails when [failUnlock], then, when [unlockResult], adds the pose to the unlocked
+ * list and returns true.
+ */
+internal class FakePremiumPoseRepository(
+    initial: PremiumAccess = PremiumAccess(enabled = false, unlockedIds = emptySet()),
+) : PremiumPoseRepository {
+    override val access = MutableStateFlow(initial)
+    val unlocks = mutableListOf<String>()
+    var unlockResult = true
+    var failUnlock = false
+    var unlockGate: CompletableDeferred<Unit>? = null
+
+    override fun isUsable(pose: Pose): Flow<Boolean> = access.map { it.isUsable(pose) }
+
+    override suspend fun unlock(poseId: String): Boolean {
+        unlocks += poseId
+        unlockGate?.await()
+        if (failUnlock) throw IOException("disk full")
+        if (!unlockResult) return false
+        access.value = access.value.copy(unlockedIds = access.value.unlockedIds + poseId)
+        return true
+    }
 }
 
 internal class FakeNetworkStatus : NetworkStatus {

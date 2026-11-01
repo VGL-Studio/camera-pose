@@ -30,4 +30,8 @@
     <string name="poses_detail_shoot">इस पोज़ के साथ फ़ोटो लें</string>
     <string name="poses_image_error_title">इमेज लोड नहीं हो सकी</string>
     <string name="poses_image_error_message">इमेज लोड करते समय गड़बड़ी हुई। कुछ मिनट बाद फिर से कोशिश करें।</string>
+
+    <!-- Premium poses (spec poses, KB-8; plan T-086). -->
+    <string name="poses_detail_unlock">इस्तेमाल के लिए विज्ञापन देखें</string>
+    <string name="poses_unlock_failed">पोज़ अनलॉक नहीं हो सका। फिर से कोशिश करें।</string>
 </resources>

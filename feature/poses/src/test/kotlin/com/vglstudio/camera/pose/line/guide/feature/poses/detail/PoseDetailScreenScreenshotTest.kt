@@ -1,7 +1,13 @@
 package com.vglstudio.camera.pose.line.guide.feature.poses.detail
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
@@ -11,6 +17,7 @@ import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.runComposeUiTest
@@ -21,6 +28,9 @@ import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
 import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdAssets
 import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdCard
 import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdSize
+import com.vglstudio.camera.pose.line.guide.core.ads.RewardedAdDialogCard
+import com.vglstudio.camera.pose.line.guide.core.designsystem.R as DesignR
+import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PremiumUnlockContent
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.poses.model.Framing
 import com.vglstudio.camera.pose.line.guide.core.poses.model.LocalizedList
@@ -139,6 +149,42 @@ class PoseDetailScreenScreenshotTest {
         }
     }
 
+    // Design `premium` (KB-8; plan T-086): the badge before the second line, the unlock button as the main button.
+    @Test
+    fun premium_light() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_premium_light.png") {
+            Screen(readyState(locked = true), dark = false)
+        }
+    }
+
+    @Test
+    fun premium_dark() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_premium_dark.png") {
+            Screen(readyState(locked = true), dark = true)
+        }
+    }
+
+    // The most content while locked: the unlock button stays on screen (L-028).
+    @Test
+    @Config(qualifiers = SHORT_SCREEN)
+    fun premium_small() {
+        captureRoboImage("src/test/screenshots/PoseDetailScreen_premium_small.png") {
+            Screen(readyState(detail = longDetail(), locked = true), dark = false)
+        }
+    }
+
+    // Design `PoseUnlockDialogScreen_default`: the card of the framework dialog alone on the background, centred; the
+    // two buttons keep the English of :core:ads, as the app translation lives in :app (plan T-086, question 4).
+    @Test
+    fun unlockDialog_light() {
+        captureRoboImage("src/test/screenshots/PoseUnlockDialogScreen_default_light.png") { UnlockDialog(dark = false) }
+    }
+
+    @Test
+    fun unlockDialog_dark() {
+        captureRoboImage("src/test/screenshots/PoseUnlockDialogScreen_default_dark.png") { UnlockDialog(dark = true) }
+    }
+
     // Design `unfolded` (KB-7): the image on the left, the text on the right, the button bar in the right column.
     @Test
     @Config(qualifiers = UNFOLDED)
@@ -209,8 +255,11 @@ class PoseDetailScreenScreenshotTest {
             ),
         )
 
-        fun readyState(image: DetailImageState = DetailImageState.Ready(figure()), detail: PoseDetail = detail()) =
-            PoseDetailUiState.Ready(pose = detail, saved = false, image = image)
+        fun readyState(
+            image: DetailImageState = DetailImageState.Ready(figure()),
+            detail: PoseDetail = detail(),
+            locked: Boolean = false,
+        ) = PoseDetailUiState.Ready(pose = detail, saved = false, image = image, locked = locked)
 
         /** A figure drawn with lines on a transparent background, so the category color shows, as on the design. */
         fun figure(): ImageBitmap {
@@ -276,6 +325,25 @@ private fun Screen(uiState: PoseDetailUiState, dark: Boolean, ad: Boolean = fals
             )
         } else {
             screen(PaddingValues())
+        }
+    }
+}
+
+/** The unlock dialog of the design (context/PoseUnlockDialogScreen_default_light.md): the card centred, no scrim. */
+@Composable
+private fun UnlockDialog(dark: Boolean) {
+    AppTheme(darkTheme = dark) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center,
+        ) {
+            RewardedAdDialogCard(
+                title = stringResource(DesignR.string.premium_unlock_title),
+                onWatch = {},
+                onNoThanks = {},
+            ) {
+                PremiumUnlockContent(poseName = "Tựa lan can")
+            }
         }
     }
 }

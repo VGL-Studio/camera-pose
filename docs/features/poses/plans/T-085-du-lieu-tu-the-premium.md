@@ -1,16 +1,16 @@
 ---
 ticket: T-085
 title: Dữ liệu tư thế premium và danh sách đã mở khóa (`:core:poses`, catalog)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 9.0M         # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-10-31, 19 task); không nâng tay
 blocking_points: [core, r2]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Tuấn               # người duyệt
+cross_reviewer: Nhật         # bắt buộc khi risk_level là high
+approved_at: 2026-10-31
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -91,11 +91,12 @@ interface PremiumPoseRepository {
     fun isUsable(pose: Pose): Flow<Boolean>
 
     /**
-     * Unlocks [poseId] for good on this device. Does nothing when FeatureFlag.PREMIUM_POSES is off (spec poses,
-     * question 10); a second call keeps the first unlock time. Throws [java.io.IOException] when the list cannot be
+     * Unlocks [poseId] for good on this device and returns true. Writes nothing and returns false when
+     * FeatureFlag.PREMIUM_POSES is off (spec poses, question 10), so the caller logs an unlock only when one happened;
+     * a second call keeps the first unlock time and returns true. Throws [java.io.IOException] when the list cannot be
      * written; the caller tells the user.
      */
-    suspend fun unlock(poseId: String)
+    suspend fun unlock(poseId: String): Boolean
 }
 ```
 
@@ -249,16 +250,17 @@ internal class DataStorePremiumPoseRepository(
 
     override fun isUsable(pose: Pose): Flow<Boolean> = access.map { it.isUsable(pose) }.distinctUntilChanged()
 
-    override suspend fun unlock(poseId: String) {
+    override suspend fun unlock(poseId: String): Boolean {
         // A decision at one moment (ADR-0003): with the flag off nothing is written (spec poses, question 10).
         if (!flags.enabled(FeatureFlag.PREMIUM_POSES).first()) {
             logger.info(LOG_TAG, "Unlock skipped: flag_off")
-            return
+            return false
         }
         store.update(UNLOCKED_KEY) { list ->
             if (list.any { it.id == poseId }) list else listOf(StoredPose(poseId, clock.nowMillis())) + list
         }
         logger.info(LOG_TAG, "A premium pose was unlocked")
+        return true
     }
 
     private companion object {
@@ -424,16 +426,16 @@ Test JVM của `:core:poses` dùng `InMemoryDataStore` có sẵn (`failWrites`, 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
 | Câu 6: catalog có `premium` đọc đúng | Unit test | `CatalogParserTest.premium_readsTrue_missingAndFalseAreFree`: catalog ba tư thế không `starter` (`premium: true`, `premium: false`, không có trường): `poses.map { it.premium } == [true, false, false]`, `droppedPoses == 0` |
-| Câu 6: catalog cũ không có trường thì mọi tư thế miễn phí | Unit test | `RealCatalogV3Test.realCatalog_hasNoPremiumField_everyPoseFree`: catalog v3 thật (350 tư thế) không có tư thế nào `premium`; đối chứng ở bước 3: bản tạm của file mẫu thêm `"premium": true` vào một tư thế không `starter` thì đỏ |
+| Câu 6: catalog cũ không có trường thì mọi tư thế miễn phí | Unit test | `RealCatalogV3Test.realCatalog_hasNoPremiumField_everyPoseFree`: catalog v3 thật (350 tư thế) không có tư thế nào `premium`; đối chứng làm ở bước 4, sau khi parser đã đọc `premium` (ở bước 3 khung rỗng bỏ qua trường này nên đối chứng không đỏ được): đột biến parser đặt `premium = true` cho mọi tư thế không `starter` thì đỏ (cùng phép đột biến ở danh sách cuối mục 4) |
 | KB-8 tiêu chí 11: tư thế khởi đầu không bao giờ premium (app) | Unit test | `CatalogParserTest.premiumOnStarter_isIgnored_andLogsCountWithoutIds`: tư thế `starter` có `premium: true` vẫn được giữ, `premium == false`; có một cảnh báo thẻ `Poses` chứa `"premium on 1 starter"`, không chứa mã tư thế. Đối chứng đã chạy (mục 4.1): bỏ luật thì `[true, false, true]` |
 | KB-8 tiêu chí 11: tư thế mặc định không bao giờ premium (app) | Unit test | `PoseOrderingTest.defaultPose_isFirstFreePose_whenFirstIsPremium`: catalog `[p1 premium, p2, p3]`, có `saved` và `recent` như test cũ: `defaultPose.id == "p2"`. `PoseOrderingTest.defaultPose_everyPosePremium_isFirstPose`: mọi tư thế premium: `"p1"`. Đối chứng đã chạy: bỏ luật thì `expected f1 but was p1` |
 | KB-8 tiêu chí 11: script báo lỗi | Test của script | `scripts/tests/app.sh`, ba test: "a premium default pose stops, naming it" (`1 1 0`: mã thoát 1, một dòng `LỖI - catalog mặc định của app <v3> có tư thế premium ở chỗ không được (mặc định a)`, không có dòng `ok`); "a premium starter pose stops, naming it, and its files are still checked" (`1 1 1`: dòng `(khởi đầu b)`, file nét viền của `b` vẫn được hỏi một lần); "a premium starter pose in the Remote Config catalog stops" (`--staging`, `1 1`: dòng `khóa poses_catalog_path trỏ tới catalog <v9> ... (khởi đầu b)`). Cả ba đỏ trên script hiện tại (mục 4.1) |
 | Script không báo nhầm | Test của script | Hai test giữ hành vi: "a catalog without the premium field has no premium line" (`0 0`), "a premium pose that is neither the default nor a starter passes" (`0 0 1`: mã thoát 0, không dòng nào chứa `premium`, có dòng `ok ... và 1 file khởi đầu`). Qua trên cả script cũ và mới (mục 4.1); phép đột biến làm chúng đỏ: bỏ `select(.starter == true ...)` để mọi tư thế premium bị báo thì test thứ hai đỏ |
 | KB-8 tiêu chí 8: cờ bật thì tư thế premium khóa, tư thế thường dùng được | Unit test | `DataStorePremiumPoseRepositoryTest.flagOn_premiumLocked_freeUsable`: `access.first()`: `isLocked(premium) == true`, `isUsable(free) == true`, `enabled == true` |
-| KB-8 tiêu chí 8: cờ tắt thì mọi tư thế dùng được, không ghi gì | Unit test | `DataStorePremiumPoseRepositoryTest.flagOff_everyPoseUsable_andUnlockWritesNothing`: cờ tắt: `isUsable(premium).first() == true`; `unlock("p1")` rồi `dataStore.data.first()[stringPreferencesKey("poses_unlocked")] == null`; đối chứng trong cùng test: bật cờ, `isUsable(premium).first() == false` (không có gì được ghi). Đã chạy (mục 4.1): bỏ phần đọc cờ thì đỏ `expected null, but was [{"id":"p1","at":1000}]` |
+| KB-8 tiêu chí 8: cờ tắt thì mọi tư thế dùng được, không ghi gì | Unit test | `DataStorePremiumPoseRepositoryTest.flagOff_everyPoseUsable_andUnlockWritesNothing`: cờ tắt: `isUsable(premium).first() == true`; `unlock("p1") == false` rồi `dataStore.data.first()[stringPreferencesKey("poses_unlocked")] == null`; cờ bật thì `unlock("p1") == true` (câu 8); đối chứng trong cùng test: bật cờ, `isUsable(premium).first() == false` (không có gì được ghi). Đã chạy (mục 4.1): bỏ phần đọc cờ thì đỏ `expected null, but was [{"id":"p1","at":1000}]` |
 | Cờ đổi giữa chừng (L-061 của mẫu) | Unit test | `DataStorePremiumPoseRepositoryTest.access_followsFlagOffAndOnAgain`: Turbine trên `isUsable(premium)` khi cờ bật: `false`; tắt cờ: `true`; bật lại: `false`. Danh sách không bị xóa: mở khóa `p2` trước khi tắt, sau khi bật lại `p2` vẫn mở |
 | KB-8 tiêu chí 7: mở khóa giữ qua lần mở app sau | Unit test | `DataStorePremiumPoseRepositoryTest.unlock_thenNewRepository_staysUnlocked`: `repository().unlock("p1")`, rồi một repository mới trên cùng bộ lưu: `isUsable(premium).first() == true`. Đối chứng cùng test: `p3` premium chưa mở vẫn khóa |
-| Danh sách kèm thời điểm mở, mở lại giữ thời điểm đầu | Unit test | `DataStorePremiumPoseRepositoryTest.unlock_storesTimeNewestFirst_secondUnlockKeepsFirstTime`: `now = 1000` mở `a`, `now = 2000` mở `b`, `now = 5000` mở lại `a`: chuỗi lưu là `[{"id":"b","at":2000},{"id":"a","at":1000}]` |
+| Danh sách kèm thời điểm mở, mở lại giữ thời điểm đầu | Unit test | `DataStorePremiumPoseRepositoryTest.unlock_storesTimeNewestFirst_secondUnlockKeepsFirstTime`: `now = 1000` mở `a`, `now = 2000` mở `b`, `now = 5000` mở lại `a` (trả `true`): chuỗi lưu là `[{"id":"b","at":2000},{"id":"a","at":1000}]` |
 | Câu 9: tư thế bỏ khỏi catalog rồi quay lại vẫn mở | Unit test | `DataStorePremiumPoseRepositoryTest.unlockedId_keptWhateverTheCatalog`: mở `gone`; `access.first().unlockedIds == setOf("gone")`; một `Pose` mã `gone` premium dựng sau đó `isLocked == false` |
 | `isUsable` phát lại khi mở khóa | Unit test | `DataStorePremiumPoseRepositoryTest.isUsable_turnsTrueAfterUnlock`: Turbine: `false`, `unlock("p1")`, `true`, không phát thêm (`expectNoEvents`) |
 | Lỗi ghi | Unit test | `DataStorePremiumPoseRepositoryTest.unlock_writeFails_throwsIOException`: `failWrites = true`: `unlock` ném lỗi, `assertTrue(error is IOException)` (CLAUDE.md bước 10) |
@@ -522,10 +524,27 @@ Tiêu chí E là 1, nên không bắt buộc chạy `scripts/check.sh`. Vẫn ch
 5. **Catalog mặc định của app.** Plan không đổi `DEFAULT_CATALOG_PATH` (vẫn v3, mọi tư thế miễn phí) và không thêm file bắt buộc, vì catalog có `premium` chỉ lên R2 sau khi merge. Khi người làm nội dung đẩy catalog v4 và đổi `poses_catalog_path` trên staging, `setup-check` tự kiểm v4 (giá trị của khóa). Bản build không đọc được Remote Config thì vẫn dùng v3, nên không có tư thế premium. Đề xuất của AI: mở một ticket nhỏ sau khi v4 có trên R2 (theo cách của T-071) để đổi `DEFAULT_CATALOG_PATH`, `docs/ops/required-assets.txt` và file mẫu của test. Đúng không?
 6. **`premium` sai kiểu.** Giá trị không phải `true` hay `false` (ví dụ `"yes"`) làm app bỏ cả tư thế, như mọi trường sai kiểu hiện nay; script không báo riêng. Đề xuất của AI: giữ luật chung của parser, ghi rõ trong `docs/ops/pose-catalog.md`. Cách khác: script báo lỗi thêm cho trường hợp này (vài dòng `jq` và một test).
 
+**Rà soát độc lập (2026-10-31, agent ngữ cảnh mới, chỉ đọc; chạy lại phần chạy thử trên bản sao `origin/main`): 0 chặn, 2 nên sửa, 4 ghi chú.** Kết quả chạy lại khớp mục 4.1 (test tạm, đột biến, test script, bảng khóa, Hilt).
+
+- **Nên sửa, đã sửa:** đối chứng của `realCatalog_hasNoPremiumField_everyPoseFree` làm ở bước 4, không ở bước 3 (mục 4).
+- **Nên sửa, chặn T-086, không chặn plan này:** plan T-086 (nháp) giả định `PremiumPoseRepository.lockedIds: Flow<Set<String>>`. Plan này cho `access: Flow<PremiumAccess>` (`isLocked(pose)`, `isUsable(pose)`) và `isUsable(pose)`. Repository không biết catalog nên không có tập mã đang khóa. Đề xuất: giữ API của plan này, T-086 soạn lại theo (câu 7).
+- **Ghi chú:**
+  - `existing-tests.py` trên `origin/main` hôm nay: 588 test, 6 "Cần xem trước" (đều là test đo bố cục của camera), không phải 10 như mục 3.5 ghi; plan không đổi giao diện, không test nào đỏ.
+  - Cờ tắt thì `unlock` không ghi; nếu cờ tắt đúng giữa lúc T-086 kiểm "đang khóa" và gọi `unlock`, T-086 có thể ghi `premium_pose_unlocked` thừa. Đã xử lý theo câu 8: `unlock` trả `Boolean`.
+  - `docs/ops/pose-catalog.md` mục 6 nhắc `is_show_rw_premium_pose`: khóa này có từ T-086; phiên ghi "(T-086)" cạnh tên khóa (ADR-0029, chỉ tài liệu).
+  - Câu 1 và 4: luật của app là phần làm thêm so với ticket; cờ bật cục bộ ở staging thì Firebase không tắt được, đúng như plan ghi.
+
+7. **API cho T-086.** Giữ `access: Flow<PremiumAccess>` của plan này (một `Flow` cho cả danh sách), T-086 đổi `lockedIds` thành `access` và `access.isLocked(pose)`. Đề xuất của AI: giữ. Cách khác: thêm `lockedIds` vào repository, phải gộp `PoseCatalogRepository`, là đổi thiết kế.
+8. **`unlock` khi cờ tắt.** Đề xuất của AI: `unlock` trả `Boolean` (đã ghi hay không), để T-086 chỉ ghi sự kiện khi đã ghi. Cách khác: giữ `Unit`, ghi rõ trong KDoc.
+
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
+- **Ghi chú:** Nhật chọn "Tuấn và Nhật duyệt" khi AI hỏi, ngày 2026-10-31. Trả lời mục 8:
+  - câu 1, 2, 5, 6: theo đề xuất (app tự giữ luật tư thế mặc định và khởi đầu; tạo `docs/ops/pose-catalog.md`; catalog mặc định giữ v3, ticket sau chuyển v4; `premium` sai kiểu thì bỏ tư thế);
+  - câu 3, 4: chấp nhận (giữ cấu hình sao lưu; giữ `StagingFeatureFlagsModule`, bản 3 trang kiểm bằng test JVM);
+  - câu 7: giữ `access: Flow<PremiumAccess>`, plan T-086 soạn lại theo;
+  - câu 8: `unlock` trả `Boolean` (đã sửa ở mục 3.1 và mục 4).
 
 ## 10. Nhật ký thực hiện

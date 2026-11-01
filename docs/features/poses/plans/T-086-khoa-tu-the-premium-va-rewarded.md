@@ -1,16 +1,16 @@
 ---
 ticket: T-086
 title: Khóa tư thế premium ở thư viện, chi tiết, camera; mở bằng quảng cáo có thưởng `rw_premium_pose`
-status: approved             # draft | approved | stopped | done
-version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: stopped              # draft | approved | stopped | done
+version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 39.4M        # một lượt cỡ L theo số gợi ý của scripts/token-usage.py estimate (2026-11-01, 8 task cỡ L); không nâng tay; task cỡ L thật có thể lớn hơn nhiều (T-074 dùng 101M)
 blocking_points: [ads, analytics, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Tuấn               # người duyệt
-cross_reviewer: Nhật         # bắt buộc khi risk_level là high
-approved_at: 2026-11-01
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -31,6 +31,8 @@ Kiểm chứng gồm:
 - test giao diện Robolectric cho dấu premium, nút mở khóa và đường "không có bộ điều khiển quảng cáo thì chạy ngay";
 - screenshot test cùng tên với 7 ảnh thiết kế premium (PR #278), ảnh `_small` của chi tiết khi còn khóa;
 - test giá trị staging, bảng khóa sinh lại, test chữ của hộp thoại khung trong 7 ngôn ngữ.
+
+**Phiên bản 3 (2026-11-01, `draft`, soạn sau lần dừng ở RUN-20261031-02).** Phiên bản 2 chưa đủ tốt ở một điểm: mục 4 lấy chiều cao thẻ hộp thoại 288 dp từ frame `PoseUnlockDialogScreen_*`, frame vẽ nút "Để sau" cao 40 dp. Code thật dùng `RewardedAdDialogCard` của khung `:core:ads` (không đổi, theo mục 3.1), nút chữ của Material giữ vùng chạm tối thiểu 48 dp, nên thẻ cao 296 dp và góc trên ở 297,5 dp. Test `PoseDetailScreenTest.unlockDialogCard_matchesDesign` đỏ: `expected:<288.0> but was:<296.00003>`. Phiên không được đổi con số test viết trước kiểm (điều kiện dừng 8 của `risk-scoring.md` mục 4), nên dừng. Thay đổi so với phiên bản 2: chỉ dòng "Kích thước thẻ hộp thoại" và mô tả khung của dòng "Hộp thoại mở khóa" ở mục 4 (thẻ cao 296, góc trên 297,5, theo vùng chạm 48 dp của khung); mục 3.1 thêm cách tiếp tục; câu 13 ở mục 8. Cách làm, phạm vi, file và mọi test khác giữ như phiên bản 2.
 
 **Phiên bản 2 (2026-11-01).** Phiên bản 1 (`draft`, PR #273) viết trên nhánh chính trước ba việc, nên chưa đủ:
 
@@ -95,6 +97,8 @@ ADR liên quan: ADR-0001 (phụ thuộc module), ADR-0003 (cờ là `Flow`), ADR
 ## 3. Giải pháp
 
 ### 3.1. Cách làm
+
+**Tiếp tục (phiên bản 3).** Tiếp tục trên nhánh `claude/T-086-khoa-tu-the-premium` (commit test `b356d3e`, commit code `a52568f`, chưa có PR). Phiên cập nhật nhánh theo nhánh chính (sau `git fetch origin main`), sửa con số của `unlockDialogCard_matchesDesign` theo mục 4 phiên bản 3 (thay đổi điều test kiểm đã được người duyệt ở phiên bản này, không phải lệch), chạy `scripts/check.sh`, rồi đi tiếp từ bước 5. Bước 3 chỉ áp cho test đổi: test mới phải qua trên code đã có, và đỏ khi tạm đặt lại 288 (đối chứng). Ảnh chuẩn `PoseUnlockDialogScreen_default_<light|dark>.png` đã ghi với thẻ 296 trên nhánh. Câu 13 ở mục 8 chọn (b) thì không cần phiên bản này: người sửa frame rồi ghi lại `context/` và phiên đổi lại 288 thành số mới của frame.
 
 **Một lượt.** Danh sách chạy có một dòng cho ticket và plan này. Nhánh `claude/T-086-khoa-tu-the-premium`, từ nhánh chính có T-080 và T-085. Task đi đủ 10 bước của `docs/auto-run.md`, mục 3. Commit test (bước 3) và commit code (bước 4) mỗi loại đi theo thứ tự phần A rồi phần B, để rà soát đọc từng phần; `scripts/check.sh` chạy một lần cho cả nhánh.
 
@@ -658,8 +662,8 @@ Kho giả của hai feature (`FakePremiumPoseRepository`) giữ `access = Mutabl
 | Giao diện thư viện có tư thế khóa | Screenshot test | `PosesScreenScreenshotTest`: `PosesScreen_premium_light.png`, `PosesScreen_premium_dark.png`, khung `w411dp-h891dp-xxhdpi`, dữ liệu theo `context/PosesScreen_premium_light.md`: chip "Tất cả", "Tựa lan can", "Nhìn qua vai" (đã lưu), "Ngồi bậc thềm" khóa |
 | Giao diện chi tiết khi khóa | Screenshot test | `PoseDetailScreenScreenshotTest`: `PoseDetailScreen_premium_light.png`, `PoseDetailScreen_premium_dark.png`, tư thế theo `context/PoseDetailScreen_premium_light.md` (dòng phụ "Một người · Nữ · Toàn thân · 4 bước") |
 | Màn hình thấp (L-028; ticket: ảnh `_small` có nút chính khi còn khóa) | Screenshot test khung `w360dp-h640dp-xxhdpi`, trạng thái nhiều nội dung nhất | `PoseDetailScreen_premium_small.png`: tư thế khóa có 5 bước và khối lỗi hay gặp; kèm test `PoseDetailScreenTest.locked_small_unlockButtonFullyVisible` (`@Config(qualifiers = "w360dp-h640dp-xxhdpi")`): `boundsInRoot` của `pose_detail_unlock` nằm trọn trong cửa sổ, nội dung cuộn được |
-| Hộp thoại mở khóa | Screenshot test | `PoseDetailScreenScreenshotTest`: `PoseUnlockDialogScreen_default_light.png`, `PoseUnlockDialogScreen_default_dark.png`: khung `w411dp-h891dp-xxhdpi`, `Box(fillMaxSize, background, contentAlignment = Center)` chứa `RewardedAdDialogCard(title = premium_unlock_title, onWatch = {}, onNoThanks = {}) { PremiumUnlockContent("Tựa lan can") }` (mục 8, câu 4), đúng frame (thẻ 312 x 288 ở (50, 302), nền trơn `background`). Ảnh chạy tiếng Việt như các ảnh khác của lớp (`vi-w411dp-h891dp-xxhdpi`): tiêu đề và nội dung tiếng Việt; hai nút giữ tiếng Anh của khung ("Watch ad", "No, thanks"), vì test của `:feature:poses` không thấy chữ dịch ở `:app`. Ảnh so sánh khác frame đúng ở chữ hai nút; chữ tiếng Việt của hai nút kiểm bằng `AdsStringsTranslationTest` (mục 8, câu 4) |
-| Kích thước thẻ hộp thoại | Compose UI test (`@GraphicsMode(NATIVE)`) | `PoseDetailScreenTest.unlockDialogCard_matchesDesign`: cùng dựng như ảnh trên: node `RewardedAdDialogTestTags.CARD` rộng 312 dp, cao 288 dp (dung sai 1 dp), góc trên trái (49,5; 302) dp |
+| Hộp thoại mở khóa | Screenshot test | `PoseDetailScreenScreenshotTest`: `PoseUnlockDialogScreen_default_light.png`, `PoseUnlockDialogScreen_default_dark.png`: khung `w411dp-h891dp-xxhdpi`, `Box(fillMaxSize, background, contentAlignment = Center)` chứa `RewardedAdDialogCard(title = premium_unlock_title, onWatch = {}, onNoThanks = {}) { PremiumUnlockContent("Tựa lan can") }` (mục 8, câu 4), đúng frame trừ chiều cao thẻ (thẻ 312 x 296 ở (49,5; 297,5) vì nút "Để sau" của khung giữ vùng chạm 48 dp, frame vẽ 312 x 288 ở (50, 302); nền trơn `background`). Ảnh chạy tiếng Việt như các ảnh khác của lớp (`vi-w411dp-h891dp-xxhdpi`): tiêu đề và nội dung tiếng Việt; hai nút giữ tiếng Anh của khung ("Watch ad", "No, thanks"), vì test của `:feature:poses` không thấy chữ dịch ở `:app`. Ảnh so sánh khác frame đúng ở chữ hai nút; chữ tiếng Việt của hai nút kiểm bằng `AdsStringsTranslationTest` (mục 8, câu 4) |
+| Kích thước thẻ hộp thoại | Compose UI test (`@GraphicsMode(NATIVE)`) | `PoseDetailScreenTest.unlockDialogCard_matchesDesign`: cùng dựng như ảnh trên: node `RewardedAdDialogTestTags.CARD` rộng 312 dp, cao 296 dp (dung sai 1 dp), góc trên trái (49,5; 297,5) dp (dung sai 1 dp); phiên bản 3: 296 thay 288 của frame, vì nút "Để sau" của `RewardedAdDialogCard` giữ vùng chạm tối thiểu 48 dp của Material (frame vẽ 40 dp); đo thật ở RUN-20261031-02: cao 296,00003, nội dung 72, nút "Watch ad" 56. Đối chứng: tạm đặt lại 288 thì đỏ |
 | Đúng thiết kế | Screenshot test cùng tên với từng ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh poses`, rà soát độc lập theo mục 7 của mẫu thiết kế | `PosesScreen_premium_light`, `PosesScreen_premium_dark`, `PoseDetailScreen_premium_light`, `PoseDetailScreen_premium_dark`, `PoseUnlockDialogScreen_default_light`, `PoseUnlockDialogScreen_default_dark` |
 | Ảnh thiết kế đã có, không đổi | Screenshot test có sẵn | Ảnh thiết kế của ticket khác (T-021, T-022, T-024, T-079, T-080): `PoseDetailScreen_ad_dark`, `PoseDetailScreen_ad_light`, `PoseDetailScreen_default_dark`, `PoseDetailScreen_default_dark_unfolded`, `PoseDetailScreen_default_light`, `PoseDetailScreen_default_light_unfolded`, `PoseDetailScreen_error_dark`, `PoseDetailScreen_error_light`, `PoseDetailScreen_loading_dark`, `PoseDetailScreen_loading_light`, `PosesScreen_ad-collection_light`, `PosesScreen_ad_dark`, `PosesScreen_ad_light`, `PosesScreen_default_dark`, `PosesScreen_default_dark_unfolded`, `PosesScreen_default_light`, `PosesScreen_default_light_unfolded`, `PosesScreen_error_dark`, `PosesScreen_error_light`, `PosesScreen_loading_dark`, `PosesScreen_loading_light`, `PosesScreen_saved-empty_dark`, `PosesScreen_saved-empty_light` |
 | Chữ đúng bảng chữ của thiết kế | Compose UI test | `PoseDetailScreenTest.locked_mainButtonIsUnlock_callsOnUnlock` và `unlockContent_showsNameAndMessage` đọc chữ qua `stringResource`; `PosesStringsTest`, `DesignSystemStringsTest` thêm một câu: giá trị tiếng Việt của `poses_detail_unlock`, `premium_badge_label`, `premium_unlock_title`, `premium_unlock_message` đúng chữ của bảng chữ (README mục 2) |
@@ -857,6 +861,9 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 12. **Quảng cáo nạp sẵn (thông tin, theo #279).** Khi `is_show_rw_premium_pose` bật (staging bật), khung nạp sẵn một quảng cáo rewarded cho vị trí này ở nhóm nạp sẵn thứ hai (`AdPreloadPlan`, `AdPreloadPlanTest.fromPlacements_hasRewardedInSecondGroup`), như vị trí rewarded của trang thử. Không đổi gì ở plan; ghi để người duyệt biết staging có thêm một lượt nạp rewarded lúc mở app.
 
    - Trả lời: theo đề xuất của AI. Nhật ủy quyền ngày 2026-11-01 ("Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi").
+13. **Chiều cao thẻ hộp thoại (mới, phiên bản 3).** Frame `PoseUnlockDialogScreen_*` vẽ nút "Để sau" cao 40 dp nên thẻ 288 dp; khung `:core:ads` giữ vùng chạm tối thiểu 48 dp của Material nên thẻ thật 296 dp. Hai hướng: (a) nhận thẻ 296, góc trên 297,5 (phiên bản 3 viết theo hướng này); (b) sửa frame cho nút "Để sau" cao 48, ghi lại `design/context/PoseUnlockDialogScreen_*`, rồi test lấy số mới của frame. Đổi khung `:core:ads` để nút cao 40 làm giảm vùng chạm (trợ năng) và đổi ảnh chuẩn `RewardedAdDialog*`, nên không đề xuất. Đề xuất của AI: (a), và người thiết kế sửa frame cho khớp khi rảnh.
+   - Trả lời:
+
 **Kết quả rà soát độc lập phiên bản 2 (2026-11-01, agent ngữ cảnh mới, chỉ đọc): 1 chặn, 9 nên sửa, 8 ghi chú. Đã sửa trong phiên bản 2:**
 
 - **Chặn:** test của camera nói dựng `CameraRoute` "như `CameraScreenPoseTest`", mà lớp đó chỉ dựng `CameraScreen` không trạng thái; không test nào dựng `CameraRoute`. Sửa:
@@ -888,6 +895,25 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 - **Người duyệt:** Tuấn, **duyệt chéo:** Nhật
 - **Ghi chú:** Nhật ủy quyền ngày 2026-11-01: "Hãy hoàn thành tất cả những việc lập kế hoạch, sau đó merge tự động, không cần hỏi ý kiến tôi". AI ghi duyệt theo ủy quyền đó. Câu 3 tới 12 ở mục 8 theo đề xuất của AI; rà soát độc lập phiên bản 2: 1 chặn, 9 nên sửa, 8 ghi chú, đã sửa hết. Phần dùng API của T-085 chưa chạy thử vì T-085 chưa có code: test viết trước bắt lỗi.
 
+Phiên bản 3:
+
+- **Quyết định:**
+- **Người duyệt:**, **duyệt chéo:**
+- **Ghi chú:**
+
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). Mục mới thêm vào cuối, không sửa mục cũ. -->
+
+### RUN-20261031-02, phiên bản plan 2
+
+- **Kết quả:** dừng ở bước 4 (2026-11-01 14:09 UTC), điều kiện dừng 8 (và 3: frame mâu thuẫn với khung đã có) của `risk-scoring.md` mục 4.
+- **Nhánh, PR:** `claude/T-086-khoa-tu-the-premium` (commit test `b356d3e`, commit code `a52568f`, đã đẩy), không có PR.
+- **Đã làm:** toàn bộ code của mục 3.1 (phần A và B): vị trí `RW_PREMIUM_POSE`, sự kiện `premium_pose_unlocked`, `PremiumBadge`, khóa ở thư viện, chi tiết và camera, `LockedPoseUnlock`, chữ của hộp thoại khung trong 6 ngôn ngữ, bảng khóa, staging, kịch bản emulator, `manual-test.md` mục 11.6, 8 ảnh chuẩn mới, ảnh so sánh của `poses` và `camera`. Bước 3 đến 5 do phiên con làm trong worktree `../task-T-086`.
+- **Test viết trước:** khoảng 50 test mới hay mở rộng (commit `b356d3e`), đều đỏ đúng lý do trên khung rỗng (ví dụ `expected:<[w02, c01]> but was:<[]>`, "could not find any node … pose_premium_badge"); hai test qua ngay như plan dự kiến, đột biến hay đối chứng đỏ; 2 test viết chặt bằng đối chứng (L-055).
+- **Lý do dừng:** `PoseDetailScreenTest.unlockDialogCard_matchesDesign` đỏ: `expected:<288.0> but was:<296.00003>`, góc trên 297,7 thay 302. Nội dung đúng 72 dp, nút "Watch ad" đúng 56 dp; phần lệch là nút "No, thanks" của `RewardedAdDialogCard`: Material giữ vùng chạm tối thiểu 48 dp, frame Figma vẽ 40 dp. Mục 3.1 không cho đổi khung `:core:ads` và ảnh chuẩn `RewardedAdDialog*`; đổi con số test kiểm là điều kiện dừng 8.
+- **Kiểm tra cục bộ:** `scripts/check.sh` không chạy tới cuối vì test trên. Chạy tay tương đương: `testDebugUnitTest testStagingDebugUnitTest :app:lintStagingDebug :app:assembleStagingDebug ktlintCheck checkModuleDependencies --continue`: 2817 test, 1 đỏ (test trên); lint, build staging, ktlint, quy tắc phụ thuộc qua. `verifyRoborazziDebug --rerun` của `:feature:poses`, `:feature:camera`, `:core:designsystem`, `:core:ads`: mọi ảnh chuẩn cũ khớp. `device-scenario.py check` của kịch bản mới qua. Phương án dự phòng 3.4 không dùng.
+- **Rà soát độc lập:** chưa rà soát (task dừng trước bước 6).
+- **Lệch so với plan:** không file nào ngoài mục 3.2; không câu khẳng định cũ nào viết lại; ba chỗ code khác chữ của plan, giữ ý định: log "Requested pose is locked" đặt ở `onRequestedPose` thay `onLibraryReady` để ghi một lần; `onNextPose` giữ hành vi cũ khi dải chỉ có một tư thế và không có tư thế khóa; mục con của `manual-test.md` là 11.6.
+- **Việc còn lại:** người chọn hướng ở câu 13 mục 8 và duyệt phiên bản 3; phiên sau tiếp tục trên nhánh (mục 3.1, Tiếp tục).
+- **Cần người xem:** câu 13 mục 8; ảnh chuẩn mới trên nhánh (`PosesScreen_premium_*`, `PoseDetailScreen_premium_*`, `PoseUnlockDialogScreen_default_*`, `CameraScreen_premium_dark`); ảnh chi tiết premium có bóng của `PrimaryButton`, có thể lệch trên CI Linux (L-145).

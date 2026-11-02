@@ -18,7 +18,7 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 
 ## 1. Tóm tắt
 
-Ba tệp kịch bản emulator (T-058, T-022, T-024) chờ camera ngay sau khi bấm "Chụp với tư thế này", nhưng từ T-079 interstitial `inter_pose_detail` hiện trước camera (spec ads, poses KB-4), nên cả ba lỗi ở mọi `device-session` (FB-20261031-01). Plan thêm vào ba tệp, ngay sau lần bấm, một bước chờ nút "Close" của quảng cáo hoặc màn camera, chạm "Close" khi có, rồi mới chờ camera. Plan cũng ghi vào `docs/ops/test-sessions.md` rằng sau `consent decline` app vẫn có thể hiện quảng cáo. Kiểm bằng `scripts/device-scenario.py check`, một lần `device-session.yml` trên nhánh task trước merge, và `device-session` cuối phiên. Dev cũng chạy được ba tệp trên máy thật (mục 4).
+Ba tệp kịch bản emulator (T-058, T-022, T-024) chờ camera ngay sau khi bấm "Chụp với tư thế này", nhưng từ T-079 interstitial `inter_pose_detail` hiện trước camera (spec ads, poses KB-4), nên cả ba lỗi ở mọi `device-session` (FB-20261031-01). Plan thêm vào ba tệp, ngay sau lần bấm, một bước chờ nút "Close" của quảng cáo hoặc màn camera, chạm "Close" khi có, rồi mới chờ camera. Plan cũng ghi vào `docs/ops/test-sessions.md` rằng sau `consent decline` app vẫn có thể hiện quảng cáo. Kiểm bằng `scripts/device-scenario.py check` và `device-session` cuối phiên; nên có thêm một lần dev chạy thử ba tệp trên máy trước khi duyệt (mục 8, câu 5). Dev cũng chạy được ba tệp trên máy thật (mục 4).
 
 ## 2. Hiểu yêu cầu
 
@@ -104,14 +104,16 @@ Nơi đọc các file này (L-020 của mẫu):
 ### 3.4. Phương án dự phòng
 
 - **Điểm chưa chắc:** chạm vào nút `Close` của `WebView` quảng cáo có đóng được quảng cáo trên emulator CI không. Mục 4.1 chỉ kiểm được cú pháp: máy dev lúc viết plan không có máy nào nối `adb`.
-- **Điều kiện chuyển:** lần chạy `device-session.yml` trên nhánh task, trước merge (mục 4, dòng emulator), có một trong hai dấu hiệu:
+- **Điều kiện chuyển:** lần dev chạy thử trước khi duyệt (mục 8, câu 5) hay `device-session` cuối phiên có một trong hai dấu hiệu:
   - (a) bước `wait id=camera_screen 15` cuối `FAIL không thấy phần tử`, dòng `note` của bước `tap_if` có tọa độ chạm, và `fail.png` vẫn là quảng cáo thử;
   - (b) bước `wait text="Close" | id=camera_screen 20` đầu `FAIL không thấy phần tử`, `fail.png` là quảng cáo, và `fail.xml` không có nút chữ `Close` (mẫu quảng cáo khác, ví dụ video, có nút đóng khác).
 - **Cách làm thay:**
   - Trường hợp (a): lần chạm đầu có thể rơi vào lúc `WebView` chưa nhận chạm. Thêm vòng thứ hai trước `wait` cuối của cả ba tệp: `wait id=camera_screen | text="Close" 10`, rồi `tap_if text="Close"`. Vòng này thêm tối đa 10 giây, nên nâng `timeout:` của T-058 từ 120 lên 150 (lần chạy trước tới bước bấm ở khoảng giây 63; đi hết đường có quảng cáo ước khoảng 90 giây).
   - Trường hợp (b): `fail.xml` có nút đóng mang `text` hay `content-desc` cố định thì thêm bộ chọn đó vào hai dòng, `text=` hay `desc=` theo `fail.xml` (ví dụ `wait text="Close" | desc="<chữ>" | id=camera_screen 20`, rồi `tap_if desc="<chữ>"`; `<chữ>` là chỗ điền). Không có bộ chọn cố định thì dừng task, báo người.
-  - Sửa xong thì chạy lại `device-session.yml` trên nhánh task. Lỗi chỉ thấy ở `device-session` sau merge thì không sửa trong task: ghi vào báo cáo phiên, FB-20261031-01 giữ `planned`.
-  - Không dùng `back`: trình chạy không có lệnh `back` có điều kiện, và `back` khi quảng cáo đã đóng thì thoát khỏi camera. Hai vòng vẫn không đóng được thì dừng task, báo người (mục 7). Tiêu chí ở mục 4 giữ nguyên.
+  - Phiên không chạy được kịch bản trước merge: job `emulator` của `device-session.yml` chỉ chạy trên nhánh chính (`if: github.ref == 'refs/heads/main'`), và `scripts/wait-run.sh --workflow` chỉ đọc lần chạy trên nhánh chính. Vì vậy:
+    - thấy dấu hiệu ở lần dev chạy thử trước khi duyệt: sửa plan (phiên bản 2) theo (a) hay (b) trước khi duyệt;
+    - chỉ thấy ở `device-session` cuối phiên: không sửa trong task; ghi vào báo cáo phiên, FB-20261031-01 giữ `planned`, plan phiên bản sau áp (a) hay (b).
+  - Không dùng `back`: trình chạy không có lệnh `back` có điều kiện, và `back` khi quảng cáo đã đóng thì thoát khỏi camera. Hai vòng vẫn không đóng được thì không viết plan phiên bản sau theo hướng này, báo người (mục 7). Tiêu chí ở mục 4 giữ nguyên.
 - **Ngoài phạm vi, chỉ ghi lại:** bật `is_show_native_after_inter` trên Firebase staging (hiện tắt, `StagingRemoteValuesModule`) thì sau interstitial có thêm một quảng cáo native toàn màn hình, nút đóng "Close ad" (`ads_close_full_screen`). `text="Close"` không khớp nút này, nên ba tệp sẽ lỗi ở `wait` cuối. Khi bật khóa đó, plan khác thêm `tap_if str=ads_close_full_screen`.
 
 ### 3.5. Hành vi đã có bị đổi
@@ -123,7 +125,7 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
 | Cú pháp, `testTag` và chuỗi của ba tệp có thật | Script | `python3 scripts/device-scenario.py check feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt` trả mã 0; `scripts/check.sh` (chạy `scripts/tests/run.sh`) qua, kể cả "the example of test-sessions.md passes check" |
-| Ba kịch bản đi qua interstitial và kiểm được phần sau bước lỗi cũ (chụp ở T-058; Back thoát app, mất mạng, tối, tiếng Anh ở T-022; camera khi mở gập ở T-024) | Kiểm tra thủ công (emulator: `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt`, `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt`, `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`) | Trước merge, sau khi `scripts/check.sh` qua: ghi giờ UTC, chạy `gh api -X POST repos/{owner}/{repo}/actions/workflows/device-session.yml/dispatches -f ref=<nhánh task> -f "inputs[reason]=T-089"`, chờ bằng `scripts/wait-run.sh --workflow device-session.yml --since <giờ vừa ghi>` (khoảng 25 phút; trong lúc chờ làm rà soát độc lập), tải artifact `device-session`. Cả ba dòng `đạt` trong bảng "Kịch bản theo plan" của `summary.md`; `scenarios.txt` có dòng `note step=<n> ... tap <x>,<y> Close` ngay trước dòng `step=<n> tap_if text="Close" ok` (quảng cáo hiện và được đóng), hay dòng `note` không có tọa độ (camera mở thẳng). `camera_screen` không có trên emulator thì `need id=camera_poses` cho `bỏ qua (môi trường)` như trước. `device-session` cuối phiên chạy lại ba tệp trên nhánh chính |
+| Ba kịch bản đi qua interstitial và kiểm được phần sau bước lỗi cũ (chụp ở T-058; Back thoát app, mất mạng, tối, tiếng Anh ở T-022; camera khi mở gập ở T-024) | Kiểm tra thủ công (emulator: `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt`, `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt`, `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`) | `device-session` cuối phiên: cả ba dòng `đạt` trong bảng "Kịch bản theo plan" của `summary.md`; `scenarios.txt` có dòng `note step=<n> ... tap <x>,<y> Close` ngay trước dòng `step=<n> tap_if text="Close" ok` (quảng cáo hiện và được đóng), hay dòng `note` không có tọa độ (camera mở thẳng). `camera_screen` không có trên emulator thì `need id=camera_poses` cho `bỏ qua (môi trường)` như trước. |
 | Kịch bản cũng chạy được trên máy thật, nơi quảng cáo thử có thể có nút đóng khác cỡ, khác chỗ | Kiểm tra thủ công (máy thật: cỡ màn hình và WebView khác emulator CI, nút đóng của quảng cáo thử có thể khác cỡ và chỗ) | Dev chạy ba tệp trên máy staging: `scripts/device-session.sh start T089`, `scripts/device-session.sh scenarios --yes`, `scripts/device-session.sh stop`; ba tệp `đạt`, hay `bỏ qua (môi trường)` có lý do. Các bước tay ở mục "Kịch bản kiểm tay" dưới |
 | Ghi chú `consent decline` đúng và dễ hiểu | Kiểm tra thủ công (người: đọc tài liệu) | Người duyệt PR đọc gạch đầu dòng mới ở `docs/ops/test-sessions.md`, mục 5 |
 
@@ -151,7 +153,7 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 
 - **Đã chạy thử:** 2026-11-02, trên `12b296e`, bản sửa của `T-058-chup-tu-chi-tiet.txt` theo đúng mục 3.1, đặt trong thư mục tạm (không commit).
 - **Lệnh:** `python3 scripts/device-scenario.py check <tệp tạm>`
-- **Kết quả:** mã 0, không lỗi: `text="Close"` trong ngoặc kép hợp lệ, cả ở `wait` có nhiều bộ chọn lẫn ở `tap_if`. Chưa chạy trên máy: không có thiết bị nối `adb` lúc viết plan. Phần chạm thật kiểm bằng `device-session.yml` trên nhánh task trước merge (mục 4, dòng emulator); dev cũng chạy được trên máy thật (mục 4, dòng máy thật). Tiêu chí E dưới 2, mục này chỉ để ghi lại.
+- **Kết quả:** mã 0, không lỗi: `text="Close"` trong ngoặc kép hợp lệ, cả ở `wait` có nhiều bộ chọn lẫn ở `tap_if`. Chưa chạy trên máy: không có thiết bị nối `adb` lúc viết plan. Phần chạm thật chỉ kiểm được ở `device-session` cuối phiên (emulator CI, nhánh chính) hay khi dev chạy ba tệp trên máy (mục 8, câu 5). Tiêu chí E dưới 2, mục này chỉ để ghi lại.
 
 ## 5. Chấm rủi ro
 
@@ -161,7 +163,7 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 1 | Ba tệp kịch bản ở hai module feature, ba dòng mỗi tệp, cộng một câu tài liệu |
 | B. Độ rõ của yêu cầu | 0 | Lỗi có bằng chứng ở hai phiên (log, `fail.xml`, ảnh); app đúng spec; hướng sửa đã nêu trong phản hồi và ticket |
-| C. Khả năng kiểm chứng tự động | 1 | `check` tự động; lần chạm thật kiểm tự động bằng `device-session.yml` (emulator CI) trên nhánh task trước merge, không cần máy thật. Máy thật chỉ để kiểm thêm (mục 4). Nếu người duyệt coi đây là "phụ thuộc nhiều vào kiểm tra thủ công" (2 điểm) thì tổng 5, mức Trung bình, không chạm điểm chặn (mục 8, câu 4) |
+| C. Khả năng kiểm chứng tự động | 1 | `check` tự động; lần chạm thật kiểm tự động ở `device-session` cuối phiên (emulator CI), không cần người; nhưng chỉ sau merge, nên lỗi lúc đó phải sửa ở plan phiên bản sau. Máy thật chỉ để kiểm thêm (mục 4). Nếu người duyệt coi đây là "phụ thuộc nhiều vào kiểm tra thủ công" (2 điểm) thì tổng 5, mức Trung bình, không chạm điểm chặn (mục 8, câu 4) |
 | D. Ảnh hưởng chéo | 1 | Ba tệp chạy ở `device-session` cuối mọi phiên; `docs/ops/test-sessions.md` là file của dự án mẫu |
 | E. Độ mới của kỹ thuật | 1 | Lần đầu kịch bản chạm phần tử trong `WebView` quảng cáo bằng `text=`; các lệnh `wait`, `tap_if` đã dùng nhiều |
 | **Tổng** | 4 | **Mức: Thấp** |
@@ -174,7 +176,7 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 
 ## 7. Điều kiện dừng riêng
 
-- Hai vòng chạm "Close" của mục 3.4 vẫn không đóng được quảng cáo trên emulator CI: dừng, không tắt `is_show_inter_pose_detail` ở staging hay sửa `scripts/device-scenario.py` để kịch bản qua (một việc là hành vi quảng cáo, việc kia là script của dự án mẫu).
+- Trong phiên, `device-session` cuối phiên báo ba tệp lỗi sau merge: không tắt `is_show_inter_pose_detail` ở staging hay sửa `scripts/device-scenario.py` để kịch bản qua (một việc là hành vi quảng cáo, việc kia là script của dự án mẫu); ghi vào báo cáo phiên như mục 3.4.
 - Muốn sửa code app (ví dụ thêm `testTag` cho quảng cáo): dừng; ticket không đổi hành vi app.
 
 ## 8. Câu hỏi cho người duyệt
@@ -182,7 +184,8 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 1. Kịch bản chờ nút đóng bằng chữ `Close` của quảng cáo thử AdMob. Chữ này do AdMob vẽ, có thể đổi khi nâng SDK hay theo ngôn ngữ máy (`fresh` đặt app tiếng Anh, nhưng `WebView` quảng cáo có thể theo ngôn ngữ của máy). Đề xuất: chấp nhận; nếu chữ đổi, ba tệp lỗi rõ ràng ở bước `wait text="Close" | id=camera_screen 20` đầu (sau 20 giây), `fail.png` là quảng cáo, và sửa theo mục 3.4 (b). Phương án khác: chạm theo tọa độ góc trên phải, nhưng trình chạy không có lệnh chạm tọa độ.
 2. Sửa `docs/ops/test-sessions.md` (file của dự án mẫu) ngay ở app như ticket ghi, rồi đề xuất về dự án mẫu. Đề xuất: đồng ý. Tài liệu này đã có các ghi chú riêng "camera-pose", và đây chỉ là câu giải thích, không đổi quy trình, nên plan không coi là điểm chặn 7.
 3. Đóng FB-20261031-01 (`fixed`) khi ba tệp đạt ở `device-session` sau merge, không chờ dev kiểm tay mục 4. Đề xuất: đồng ý; kiểm tay là để bắt lỗi của app mà kịch bản có thể che, không phải điều kiện của phản hồi.
-4. Tiêu chí C chấm 1 (tổng 4, mức Thấp). Rà soát độc lập nêu C có thể là 2 (tổng 5, mức Trung bình) vì lần chạm thật chỉ thấy ở `device-session`, không có test chạy trên máy. Đề xuất: giữ 1, vì `device-session` trên emulator CI tự kiểm phần đó, không cần người. Mức chỉ ảnh hưởng tới ai duyệt và việc có đi đường làm nhanh được không.
+4. Tiêu chí C chấm 1 (tổng 4, mức Thấp). Rà soát độc lập nêu C có thể là 2 (tổng 5, mức Trung bình) vì lần chạm thật chỉ thấy ở `device-session`, không có test chạy trên máy. Đề xuất: giữ 1, vì `device-session` trên emulator CI tự kiểm phần đó, không cần người; lần chạy thử của câu 5 bớt rủi ro phải sửa sau merge. Mức chỉ ảnh hưởng tới ai duyệt và việc có đi đường làm nhanh được không.
+5. Trước khi duyệt, dev chạy thử ba tệp trên máy của mình (máy thật hay emulator có Google Play): cài bản staging từ nhánh chính (hành vi app không đổi), sửa tạm ba tệp theo mục 3.1 trên máy (không commit), rồi `scripts/device-session.sh start T089-thu`, `scripts/device-session.sh scenarios --yes`, `scripts/device-session.sh stop`. Ghi kết quả vào mục 4.1. Đề xuất: làm, vì phiên tự chạy không chạy được kịch bản trước merge (mục 3.4); nếu thấy dấu hiệu (a) hay (b) thì sửa plan trước khi duyệt.
 
 ## 9. Quyết định duyệt
 

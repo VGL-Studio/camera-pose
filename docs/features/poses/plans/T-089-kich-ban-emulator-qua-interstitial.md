@@ -81,7 +81,7 @@ Phản hồi FB-20261031-01: PR plan này ghi mục Phân loại (Nhật chọn 
 
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
-| Sửa | `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt` | Sau `tap str=poses_detail_shoot`: chờ `Close` hay camera, `tap_if text="Close"`, rồi `wait id=camera_screen 15` (mục 3.1). (dự phòng: vòng chạm thứ hai, `timeout: 150`, mục 3.4) |
+| Sửa | `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt` | Sau `tap str=poses_detail_shoot`: chờ `Close` hay camera, `tap_if text="Close"`, rồi `wait id=camera_screen 15` (mục 3.1). (dự phòng, áp khi sửa plan trước khi duyệt hay ở plan phiên bản sau: vòng chạm thứ hai, `timeout: 150`, mục 3.4) |
 | Sửa | `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt` | Như trên, ở bước (4) |
 | Sửa | `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt` | Như trên, ở bước (3) |
 | Sửa | `docs/ops/test-sessions.md` | Mục 5, đoạn Hộp thoại đồng ý: một gạch đầu dòng về quảng cáo sau `consent decline` (mục 3.1). Khối ví dụ không đổi |
@@ -109,7 +109,7 @@ Nơi đọc các file này (L-020 của mẫu):
   - (b) bước `wait text="Close" | id=camera_screen 20` đầu `FAIL không thấy phần tử`, `fail.png` là quảng cáo, và `fail.xml` không có nút chữ `Close` (mẫu quảng cáo khác, ví dụ video, có nút đóng khác).
 - **Cách làm thay:**
   - Trường hợp (a): lần chạm đầu có thể rơi vào lúc `WebView` chưa nhận chạm. Thêm vòng thứ hai trước `wait` cuối của cả ba tệp: `wait id=camera_screen | text="Close" 10`, rồi `tap_if text="Close"`. Vòng này thêm tối đa 10 giây, nên nâng `timeout:` của T-058 từ 120 lên 150 (lần chạy trước tới bước bấm ở khoảng giây 63; đi hết đường có quảng cáo ước khoảng 90 giây).
-  - Trường hợp (b): `fail.xml` có nút đóng mang `text` hay `content-desc` cố định thì thêm bộ chọn đó vào hai dòng, `text=` hay `desc=` theo `fail.xml` (ví dụ `wait text="Close" | desc="<chữ>" | id=camera_screen 20`, rồi `tap_if desc="<chữ>"`; `<chữ>` là chỗ điền). Không có bộ chọn cố định thì dừng task, báo người.
+  - Trường hợp (b): `fail.xml` có nút đóng mang `text` hay `content-desc` cố định thì thêm bộ chọn đó vào hai dòng, `text=` hay `desc=` theo `fail.xml` (ví dụ `wait text="Close" | desc="<chữ>" | id=camera_screen 20`, rồi `tap_if desc="<chữ>"`; `<chữ>` là chỗ điền). Không có bộ chọn cố định thì không viết plan phiên bản sau theo hướng này, báo người.
   - Phiên không chạy được kịch bản trước merge: job `emulator` của `device-session.yml` chỉ chạy trên nhánh chính (`if: github.ref == 'refs/heads/main'`), và `scripts/wait-run.sh --workflow` chỉ đọc lần chạy trên nhánh chính. Vì vậy:
     - thấy dấu hiệu ở lần dev chạy thử trước khi duyệt: sửa plan (phiên bản 2) theo (a) hay (b) trước khi duyệt;
     - chỉ thấy ở `device-session` cuối phiên: không sửa trong task; ghi vào báo cáo phiên, FB-20261031-01 giữ `planned`, plan phiên bản sau áp (a) hay (b).
@@ -185,7 +185,7 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 2. Sửa `docs/ops/test-sessions.md` (file của dự án mẫu) ngay ở app như ticket ghi, rồi đề xuất về dự án mẫu. Đề xuất: đồng ý. Tài liệu này đã có các ghi chú riêng "camera-pose", và đây chỉ là câu giải thích, không đổi quy trình, nên plan không coi là điểm chặn 7.
 3. Đóng FB-20261031-01 (`fixed`) khi ba tệp đạt ở `device-session` sau merge, không chờ dev kiểm tay mục 4. Đề xuất: đồng ý; kiểm tay là để bắt lỗi của app mà kịch bản có thể che, không phải điều kiện của phản hồi.
 4. Tiêu chí C chấm 1 (tổng 4, mức Thấp). Rà soát độc lập nêu C có thể là 2 (tổng 5, mức Trung bình) vì lần chạm thật chỉ thấy ở `device-session`, không có test chạy trên máy. Đề xuất: giữ 1, vì `device-session` trên emulator CI tự kiểm phần đó, không cần người; lần chạy thử của câu 5 bớt rủi ro phải sửa sau merge. Mức chỉ ảnh hưởng tới ai duyệt và việc có đi đường làm nhanh được không.
-5. Trước khi duyệt, dev chạy thử ba tệp trên máy của mình (máy thật hay emulator có Google Play): cài bản staging từ nhánh chính (hành vi app không đổi), sửa tạm ba tệp theo mục 3.1 trên máy (không commit), rồi `scripts/device-session.sh start T089-thu`, `scripts/device-session.sh scenarios --yes`, `scripts/device-session.sh stop`. Ghi kết quả vào mục 4.1. Đề xuất: làm, vì phiên tự chạy không chạy được kịch bản trước merge (mục 3.4); nếu thấy dấu hiệu (a) hay (b) thì sửa plan trước khi duyệt.
+5. Trước khi duyệt, dev chạy thử ba tệp trên máy của mình (máy thật hay emulator có Google Play): cài bản staging từ nhánh chính (hành vi app không đổi), sửa tạm ba tệp theo mục 3.1 trên máy (không commit), rồi `scripts/device-session.sh start T089-thu`, `DEVICE_SCENARIOS_GLOB="feature/camera/src/deviceScenarios/T-058-*.txt feature/poses/src/deviceScenarios/T-022-*.txt feature/poses/src/deviceScenarios/T-024-*.txt" scripts/device-session.sh scenarios --yes` (chỉ ba tệp; mở nguội và monkey vẫn chạy), `scripts/device-session.sh stop`. Xong thì khôi phục ba tệp (`git checkout -- <ba tệp>`). Ghi kết quả vào mục 4.1. Đề xuất: làm, vì phiên tự chạy không chạy được kịch bản trước merge (mục 3.4); nếu thấy dấu hiệu (a) hay (b) thì sửa plan trước khi duyệt.
 
 ## 9. Quyết định duyệt
 

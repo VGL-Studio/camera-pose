@@ -914,7 +914,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** `./gradlew :feature:poses:recordRoborazziDebug :feature:poses:testDebugUnitTest --rerun` ghi lại mọi ảnh của module. Ngoài 6 ảnh `ad` mà plan cho phép, 11 ảnh không có quảng cáo đổi vì nhiễu vẽ (tối đa 1 mỗi kênh màu, vài chục tới khoảng 110 điểm ảnh), dù `verifyRoborazziDebug` vẫn qua với ảnh cũ. Không quy tắc nào nói phải làm gì; phiên con tự khôi phục 11 ảnh và không coi là điều kiện dừng.
 - **Bằng chứng:** RUN-20261031-01, báo cáo phiên con T-079 lượt 1; PR #256 chỉ có 6 ảnh `ad`; `scripts/check.sh` và CI xanh.
 - **Đề xuất sửa:** `CLAUDE.md` mục Lệnh, dòng ghi lại ảnh chuẩn: sau khi ghi, khôi phục mọi ảnh ngoài mục 3.2 (`git checkout -- <ảnh>`) khi `verifyRoborazziDebug` qua với ảnh cũ; ảnh ngoài mục 3.2 mà `verify` đỏ với ảnh cũ thì vẫn là điều kiện dừng.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
 - **Kiểm chứng:**
 
 ### L-099: phiên `local` và một phiên Claude Code khác dùng chung thư mục chính
@@ -923,7 +923,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** phiên `local` làm việc của nhánh báo cáo trong thư mục chính của repo. Trong lúc phiên chờ `device-session`, một phiên Claude Code khác cũng làm việc trong thư mục đó: chuyển sang `main`, `pull`, tạo nhánh `claude/docs-T-081-ticket` và commit, rồi về `main`. Lần sửa báo cáo tiếp theo của phiên chạy trên tệp của `main` (thất bại vì không thấy đoạn cần thay), và commit kèm theo rơi vào `main` cục bộ thay vì nhánh báo cáo.
 - **Bằng chứng:** RUN-20261031-01, `git reflog` lúc khoảng 14:58 UTC: `checkout: moving from claude/RUN-20261031-01-report to main`, `pull -q --ff-only`, commit `78bdb32` (T-081, không phải của phiên), rồi commit `d8ac7b4` của phiên trên `main`. Không có gì bị đẩy lên `main`. Phiên chuyển commit sang nhánh báo cáo trong worktree `../run-report` (`46cdde8`) và trả `main` cục bộ về `origin/main` bằng `git reset --keep`.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 2, phiên `local`: làm mọi việc của nhánh báo cáo trong một worktree riêng (`git worktree add ../run-report claude/RUN-YYYYMMDD-NN-report`), để thư mục chính không mang trạng thái của phiên. `docs/ops/session-capabilities.md`, dòng `local`: người không mở phiên khác trong thư mục repo khi danh sách chạy đang `running`, hay mở phiên đó trong worktree riêng.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
 - **Kiểm chứng:**
 
 ### L-100: bảng thiết lập môi trường cloud thiếu tên miền kho Maven của mediation, env-canary đỏ hai ngày
@@ -941,7 +941,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** T-082 xóa đúng theo plan hai ảnh thiết kế `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` (frame của T-012). Mục 4 của plan T-083 (chạy ngay sau trong cùng danh sách) vẫn liệt kê hai ảnh này trong "ảnh thiết kế của ticket khác", ghi "T-012 (bỏ ở T-082)". `plan-check.py` chạy ngay trước T-083 báo lỗi ảnh không có trong `design/screens/`, nên phiên bỏ qua T-083 theo quy tắc. `run-check.py` và lần rà soát danh sách trước khi duyệt không thấy, vì chúng kiểm từng plan trên trạng thái repo lúc duyệt, khi hai ảnh còn đó.
 - **Bằng chứng:** danh sách chạy RUN-20261031-02, mục 2 (13:46 UTC): `LỖI: ảnh thiết kế của ticket khác OnboardingScreen_default_dark không có trong docs/features/onboarding/design/screens/.` (và `_light`).
 - **Đề xuất sửa:** `scripts/run-check.py` thêm quy tắc: plan nào trong danh sách Xóa một file ở mục 3.2 mà plan chạy sau dẫn tên file đó (nhất là ảnh thiết kế ở mục 4) thì báo lỗi, để sửa plan trước khi duyệt. Hoặc quy tắc ảnh thiết kế của `plan-check.py` bỏ qua tên mà plan tự ghi là bỏ ở ticket khác. `docs/CLAUDE.md`, mục Khi viết plan: không liệt kê ảnh mà plan khác trong cùng danh sách sẽ xóa.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
 - **Kiểm chứng:**
 
 ### L-102: save-branch.sh của phiên chính báo "CHƯA ĐẨY" khi push-on-commit.sh vừa đẩy cùng commit
@@ -950,5 +950,5 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** phiên con T-083 báo xong; phiên chính gọi `scripts/save-branch.sh claude/T-083-the-native-gioi-thieu` đúng lúc `scripts/push-on-commit.sh` (chạy nền cho cùng nhánh) đẩy commit cuối. Lệnh của phiên chính bị từ chối và in "CHƯA ĐẨY", giữ bundle, dù GitHub đã có đúng commit đó. Phiên phải kiểm lại bằng `git ls-remote` rồi xóa bundle thừa.
 - **Bằng chứng:** RUN-20261101-01, 17:15 UTC: `push-on-commit.sh` in `ĐÃ ĐẨY: claude/T-083-the-native-gioi-thieu tại 2333720 (17:15Z)`; `git ls-remote` trả `2333720` cho nhánh.
 - **Đề xuất sửa:** `scripts/save-branch.sh`: trước khi báo lỗi, đọc lại `git ls-remote`; nhánh trên origin đã là đúng commit đầu nhánh thì in "ĐÃ ĐẨY". Hoặc `docs/auto-run.md` mục Giao bước 3 đến 5: khi `push-on-commit.sh` còn chạy, phiên chính dừng nó (công cụ dừng tác vụ nền) trước khi tự đẩy.
-- **Áp dụng:**
+- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
 - **Kiểm chứng:**

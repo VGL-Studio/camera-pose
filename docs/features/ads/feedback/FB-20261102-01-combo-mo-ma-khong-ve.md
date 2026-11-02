@@ -21,7 +21,7 @@ Nguyên nhân: Remote Config của project Firebase staging bật `is_show_nativ
 
 ## Các bước làm lại
 
-1. Firebase staging: `is_show_native_after_inter = true` (hiện trạng).
+1. Firebase staging: `is_show_native_after_inter = true` và `resume_ad_type = inter` (hiện trạng).
 2. Mở bản staging 22, ở camera, ra màn hình chính rồi quay lại app tới khi có interstitial `resume_inter`.
 3. Đóng interstitial.
 
@@ -41,7 +41,7 @@ Không có. Bằng chứng là log, trích trong báo cáo TS-20261102-01.
 
 ## Phân loại
 
-- **Loại:** đề xuất của AI: lỗi cấu hình staging, kèm thay đổi yêu cầu đã chốt (spec ads câu 18).
+- **Loại:** đề xuất của AI: thay đổi yêu cầu (spec ads câu 18); nguyên nhân là cấu hình staging.
 - **Xử lý:** đề xuất: tắt khóa trên Firebase staging ngay (việc của người); T-090 làm combo chạy đúng; đề xuất `from-app` về dự án mẫu: khung không mở lượt combo khi không có host nào vẽ.
 - **Lý do:** chủ feature quyết.
 - **Liên kết:** T-090

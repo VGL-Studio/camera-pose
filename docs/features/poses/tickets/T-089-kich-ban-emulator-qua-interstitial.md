@@ -5,7 +5,7 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: []                # không đổi hành vi của app; sửa kịch bản emulator theo FB-20261031-01
 owner: Nhật
-status: planned              # backlog | ready | planned | approved | on-staging | accepted | released | stopped | cancelled
+status: approved              # backlog | ready | planned | approved | on-staging | accepted | released | stopped | cancelled
 risk: low                    # đánh giá sơ bộ: low | medium | high
 size: S                      # S | M | L, xem giải thích ở cuối
 depends_on: [T-083]          # các ticket phải xong trước, ví dụ [T-010]

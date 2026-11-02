@@ -1,16 +1,16 @@
 ---
 ticket: T-089
 title: Kịch bản emulator đóng interstitial `inter_pose_detail` trước khi chờ camera; ghi đúng nghĩa `consent decline`
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 4                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: low              # low | medium | high
 token_estimate: 7.0M         # cỡ S, số gợi ý của scripts/token-usage.py estimate (L-081)
 blocking_points: []          # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
+reviewer: Nhật               # người duyệt
 cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+approved_at: 2026-11-02
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -189,8 +189,8 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật
+- **Ghi chú:** Nhật trả lời mục 8 trong phiên ngày 2026-11-02 và chọn duyệt luôn. Câu 1: chấp nhận tìm nút theo chữ `Close`. Câu 2: đồng ý sửa `docs/ops/test-sessions.md` ở app rồi mở issue `from-app`. Câu 3: đóng FB-20261031-01 khi ba tệp đạt ở `device-session` sau merge, không chờ kiểm tay. Câu 4: giữ tiêu chí C ở 1 điểm, mức Thấp. Câu 5: không chạy thử trên máy trước khi duyệt; chấp nhận rằng nếu chạm `Close` không đóng được quảng cáo thì chỉ biết sau merge và sửa ở plan phiên bản sau (mục 3.4). Rà soát độc lập: vòng đầu 4 nên sửa, rà lại vòng 1 có 1 nên sửa, vòng 2 có 1 chặn; đã sửa hết.
 
 ## 10. Nhật ký thực hiện

@@ -53,7 +53,7 @@ Kịch bản kiểm đúng luồng KB-4: sau lần bấm, chờ interstitial (n�
 
 ## Phân loại
 
-- **Loại:** lỗi của kịch bản emulator, không phải lỗi của app. App đúng spec poses KB-4: camera mở sau khi đóng interstitial `inter_pose_detail` (T-079). Ba tệp viết trước T-079 nên không chờ quảng cáo.
-- **Xử lý:** ticket T-089, sửa ở phiên tự chạy kế tiếp. Nhật chọn ngày 2026-11-02 (`/triage-feedback`). Vẫn lỗi ở `device-session` lần chạy 41334189241 (TS-20261101-02, sau RUN-20261101-01), cả ba tệp, cùng bước.
+- **Loại:** góp ý mới (lỗi của kịch bản emulator, không phải lỗi của app). App đúng spec poses KB-4: camera mở sau khi đóng interstitial `inter_pose_detail` (T-079). Ba tệp viết trước T-079 nên không chờ quảng cáo.
+- **Xử lý:** sửa trong sprint này: ticket T-089, phiên tự chạy kế tiếp. Nhật chọn ngày 2026-11-02 (`/triage-feedback`). Vẫn lỗi ở `device-session` lần chạy 41334189241 (TS-20261101-02, sau RUN-20261101-01), cả ba tệp, cùng bước.
 - **Lý do:** log `VGL.Poses: Shoot with pose` rồi `VGL.Ads: Interstitial shown: inter_pose_detail` cách nhau 5 ms; `fail.xml` là quảng cáo thử, nút đóng là `android.widget.Button` chữ `Close`; không crash, ANR hay log lỗi `E VGL.*`.
 - **Liên kết:** ticket và plan T-089 (`docs/features/poses/plans/T-089-kich-ban-emulator-qua-interstitial.md`).

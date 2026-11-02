@@ -104,8 +104,14 @@ Nơi đọc các file này (L-020 của mẫu):
 ### 3.4. Phương án dự phòng
 
 - **Điểm chưa chắc:** chạm vào nút `Close` của `WebView` quảng cáo có đóng được quảng cáo trên emulator CI không. Mục 4.1 chỉ kiểm được cú pháp: máy dev lúc viết plan không có máy nào nối `adb`.
-- **Điều kiện chuyển:** `device-session` sau merge (hay lần chạy tay trước merge, mục 4) báo bước `wait id=camera_screen 15` cuối `FAIL không thấy phần tử`, trong khi dòng `note` của bước `tap_if` có tọa độ chạm, và `fail.png` vẫn là quảng cáo thử.
-- **Cách làm thay:** lần chạm đầu có thể rơi vào lúc `WebView` chưa nhận chạm. Thêm vòng thứ hai trước `wait` cuối của cả ba tệp: `wait id=camera_screen | text="Close" 10`, rồi `tap_if text="Close"`. Không dùng `back`: trình chạy không có lệnh `back` có điều kiện, và `back` khi quảng cáo đã đóng thì thoát khỏi camera. Hai vòng vẫn không đóng được thì dừng task, báo người (mục 7). Tiêu chí ở mục 4 giữ nguyên.
+- **Điều kiện chuyển:** `device-session` sau merge (hay lần chạy tay trước merge, mục 4) có một trong hai dấu hiệu:
+  - (a) bước `wait id=camera_screen 15` cuối `FAIL không thấy phần tử`, dòng `note` của bước `tap_if` có tọa độ chạm, và `fail.png` vẫn là quảng cáo thử;
+  - (b) bước `wait text="Close" | id=camera_screen 20` đầu `FAIL không thấy phần tử`, `fail.png` là quảng cáo, và `fail.xml` không có nút chữ `Close` (mẫu quảng cáo khác, ví dụ video, có nút đóng khác).
+- **Cách làm thay:**
+  - Trường hợp (a): lần chạm đầu có thể rơi vào lúc `WebView` chưa nhận chạm. Thêm vòng thứ hai trước `wait` cuối của cả ba tệp: `wait id=camera_screen | text="Close" 10`, rồi `tap_if text="Close"`. Vòng này thêm tối đa 10 giây, nên nâng `timeout:` của T-058 từ 120 lên 150 (lần chạy trước tới bước bấm ở khoảng giây 63; đi hết đường có quảng cáo ước khoảng 90 giây).
+  - Trường hợp (b): `fail.xml` có nút đóng mang `text` hay `content-desc` cố định thì thêm bộ chọn đó vào hai dòng (`wait text="Close" | desc="<chữ>" | id=camera_screen 20`, `tap_if desc="<chữ>"`). Không có bộ chọn cố định thì dừng task, báo người.
+  - Không dùng `back`: trình chạy không có lệnh `back` có điều kiện, và `back` khi quảng cáo đã đóng thì thoát khỏi camera. Hai vòng vẫn không đóng được thì dừng task, báo người (mục 7). Tiêu chí ở mục 4 giữ nguyên.
+- **Ngoài phạm vi, chỉ ghi lại:** bật `is_show_native_after_inter` trên Firebase staging (hiện tắt, `StagingRemoteValuesModule`) thì sau interstitial có thêm một quảng cáo native toàn màn hình, nút đóng "Close ad" (`ads_close_full_screen`). `text="Close"` không khớp nút này, nên ba tệp sẽ lỗi ở `wait` cuối. Khi bật khóa đó, plan khác thêm `tap_if str=ads_close_full_screen`.
 
 ### 3.5. Hành vi đã có bị đổi
 
@@ -116,8 +122,8 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
 | Cú pháp, `testTag` và chuỗi của ba tệp có thật | Script | `python3 scripts/device-scenario.py check feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt` trả mã 0; `scripts/check.sh` (chạy `scripts/tests/run.sh`) qua, kể cả "the example of test-sessions.md passes check" |
-| Ba kịch bản đi qua interstitial và kiểm được phần sau bước lỗi cũ (chụp ở T-058; Back thoát app, mất mạng, tối, tiếng Anh ở T-022; camera khi mở gập ở T-024) | Kiểm tra thủ công (emulator: `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt`, `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt`, `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`) | `device-session` cuối phiên: cả ba dòng `đạt` trong bảng "Kịch bản theo plan" của `summary.md`; `scenarios.txt` có `tap_if text="Close" ok` kèm dòng `note ... tap <x>,<y>` (quảng cáo hiện và được đóng) hay không có tọa độ (camera mở thẳng). `camera_screen` không có trên emulator thì `need id=camera_poses` cho `bỏ qua (môi trường)` như trước |
-| Kịch bản cũng chạy được trên máy thật, nơi quảng cáo thử có thể có nút đóng khác cỡ, khác chỗ | Kiểm tra thủ công (máy thật: quảng cáo thật, khác emulator CI) | Dev chạy ba tệp trên máy staging: `scripts/device-session.sh start T089`, `scripts/device-session.sh scenarios --yes`, `scripts/device-session.sh stop`; ba tệp `đạt`, hay `bỏ qua (môi trường)` có lý do. Các bước tay ở mục "Kịch bản kiểm tay" dưới |
+| Ba kịch bản đi qua interstitial và kiểm được phần sau bước lỗi cũ (chụp ở T-058; Back thoát app, mất mạng, tối, tiếng Anh ở T-022; camera khi mở gập ở T-024) | Kiểm tra thủ công (emulator: `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt`, `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt`, `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt`) | `device-session` cuối phiên: cả ba dòng `đạt` trong bảng "Kịch bản theo plan" của `summary.md`; `scenarios.txt` có dòng `note step=<n> ... tap <x>,<y> Close` ngay trước dòng `step=<n> tap_if text="Close" ok` (quảng cáo hiện và được đóng), hay dòng `note` không có tọa độ (camera mở thẳng). `camera_screen` không có trên emulator thì `need id=camera_poses` cho `bỏ qua (môi trường)` như trước |
+| Kịch bản cũng chạy được trên máy thật, nơi quảng cáo thử có thể có nút đóng khác cỡ, khác chỗ | Kiểm tra thủ công (máy thật: khác: cỡ màn hình và WebView khác emulator CI, nút đóng của quảng cáo thử có thể khác cỡ và chỗ) | Dev chạy ba tệp trên máy staging: `scripts/device-session.sh start T089`, `scripts/device-session.sh scenarios --yes`, `scripts/device-session.sh stop`; ba tệp `đạt`, hay `bỏ qua (môi trường)` có lý do. Các bước tay ở mục "Kịch bản kiểm tay" dưới |
 | Ghi chú `consent decline` đúng và dễ hiểu | Kiểm tra thủ công (người: đọc tài liệu) | Người duyệt PR đọc gạch đầu dòng mới ở `docs/ops/test-sessions.md`, mục 5 |
 
 **Kịch bản kiểm tay (máy thật, bản staging từ nhánh chính sau merge).** Kiểm đúng luồng mà ba tệp đi qua, để biết kịch bản tự động không che lỗi của app:
@@ -125,16 +131,16 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 1. Xóa dữ liệu app (`scripts/device-session.sh reset`), mở app, chọn "Do not consent" ở hộp thoại đồng ý, đi hết luồng giới thiệu tới camera.
    - [ ] Log có `VGL.Ads: Consent path: GRANTED` (từ chối vẫn cho quảng cáo không cá nhân hóa, mục 2).
 2. Mở thư viện, chạm thẻ đầu, bấm "Chụp với tư thế này".
-   - [ ] Quảng cáo thử toàn màn hình hiện, có nút "Close" (X) ở góc trên phải; log `Interstitial shown: inter_pose_detail`.
+   - [ ] Quảng cáo thử toàn màn hình hiện, có nút "Close" (X) ở góc trên phải; log `Interstitial shown: inter_pose_detail`. Quảng cáo chưa nạp xong thì camera mở ngay, không phải lỗi: chờ một lúc rồi thử lại (spec KB-4, như `docs/ops/manual-test.md` mục 11.1).
    - [ ] Chạm "Close": camera mở với đúng tư thế vừa chọn (tên tư thế trên camera trùng thẻ).
-3. Quay lại chi tiết, trong vòng 45 giây bấm "Chụp với tư thế này" lần nữa.
+3. Từ camera mở thư viện, chạm lại thẻ đó để vào chi tiết (Back ở camera thoát app), rồi trong vòng 45 giây từ quảng cáo trước bấm "Chụp với tư thế này".
    - [ ] Không có quảng cáo; camera mở ngay (nhịp 45 giây).
-4. Đợi hơn 45 giây, lặp lại bước 2 nhưng đóng quảng cáo bằng phím Back thay vì "Close".
-   - [ ] Quảng cáo đóng, camera mở với đúng tư thế; không thoát app, không quay về chi tiết.
-5. Đợi hơn 45 giây. Mở gập (máy gập) hay xoay ngang, rồi lặp lại bước 2.
+4. Đợi hơn 45 giây, vào chi tiết theo đường của bước 3, bấm "Chụp với tư thế này", rồi đóng quảng cáo bằng phím Back thay vì "Close".
+   - [ ] Nếu Back đóng được quảng cáo thì camera mở với đúng tư thế; không thoát app, không quay về chi tiết. Back không đóng được quảng cáo là hành vi của SDK AdMob (một số mẫu quảng cáo bỏ qua Back), không phải lỗi app: đóng bằng "Close" rồi ghi lại.
+5. Chỉ trên máy gập hay màn lớn (app khóa dọc trên điện thoại, xoay ngang không có tác dụng): đợi hơn 45 giây, mở gập, rồi lặp lại bước 2.
    - [ ] Nút "Close" vẫn thấy và chạm được; camera mở.
-6. Bấm "Chụp với tư thế này" khi mất mạng (tắt Wi-Fi và dữ liệu ở chi tiết, sau khi ảnh đã tải).
-   - [ ] Hộp thoại mất mạng hiện. Không có quảng cáo treo, không có màn trắng.
+6. Ở chi tiết, sau khi ảnh đã tải, tắt Wi-Fi và dữ liệu.
+   - [ ] Hộp thoại mất mạng hiện ngay, che chi tiết và nút "Chụp với tư thế này" (ADR-0024). Bật lại mạng, chạm "Thử lại": hộp thoại đóng, vẫn ở chi tiết.
 7. Ở camera vừa mở qua quảng cáo, bấm chụp.
    - [ ] Màn xem lại mở (đúng phần mà T-058 không còn kiểm từ RUN-20261031-01).
 
@@ -154,14 +160,14 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 1 | Ba tệp kịch bản ở hai module feature, ba dòng mỗi tệp, cộng một câu tài liệu |
 | B. Độ rõ của yêu cầu | 0 | Lỗi có bằng chứng ở hai phiên (log, `fail.xml`, ảnh); app đúng spec; hướng sửa đã nêu trong phản hồi và ticket |
-| C. Khả năng kiểm chứng tự động | 1 | `check` tự động; lần chạm thật chỉ kiểm được ở `device-session` sau merge hay trên máy dev |
+| C. Khả năng kiểm chứng tự động | 1 | `check` tự động; lần chạm thật kiểm tự động ở `device-session` (emulator CI) sau merge, không cần máy thật. Máy thật chỉ để kiểm thêm (mục 4). Nếu người duyệt coi đây là "phụ thuộc nhiều vào kiểm tra thủ công" (2 điểm) thì tổng 5, mức Trung bình, không chạm điểm chặn (mục 8, câu 4) |
 | D. Ảnh hưởng chéo | 1 | Ba tệp chạy ở `device-session` cuối mọi phiên; `docs/ops/test-sessions.md` là file của dự án mẫu |
 | E. Độ mới của kỹ thuật | 1 | Lần đầu kịch bản chạm phần tử trong `WebView` quảng cáo bằng `text=`; các lệnh `wait`, `tap_if` đã dùng nhiều |
 | **Tổng** | 4 | **Mức: Thấp** |
 
 ## 6. Ảnh hưởng chéo
 
-- File hoặc thành phần dùng chung bị chạm: `docs/ops/test-sessions.md` (lấy từ dự án mẫu). Ghi chú về `consent decline` có ích chung, đề xuất về dự án mẫu qua `docs/ops/from-app.md` (ghi trong mô tả PR của task).
+- File hoặc thành phần dùng chung bị chạm: `docs/ops/test-sessions.md`. `docs/ops/to-app.md` (dòng 18) xếp `docs/ops/` vào phần của dự án mẫu mà app không sửa, nhưng app đã thêm ghi chú riêng vào file này nhiều lần (T-076, T-082, T-083). Để đợt đồng bộ sau không làm mất câu mới, phiên ghi vào mô tả PR của task rằng cần mở issue `from-app` (`docs/ops/to-app.md` mục 4, bước 1; `docs/ops/from-app.md`), và thêm một dòng `- [ ]` ở Cần người kiểm tra của báo cáo phiên để người mở issue.
 - Task khác có thể xung đột: plan nào khác sửa ba tệp kịch bản này hay `docs/ops/test-sessions.md` trong cùng danh sách chạy (hiện không có plan `approved` nào chưa chạy). `T-086-mo-khoa-chi-tiet.txt` không đi qua nút "Chụp với tư thế này" nên không sửa.
 - Đề xuất thứ tự chạy: độc lập, chạy đầu danh sách, để `device-session` cuối phiên kiểm được luôn.
 
@@ -175,6 +181,7 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 1. Kịch bản chờ nút đóng bằng chữ `Close` của quảng cáo thử AdMob. Chữ này do AdMob vẽ, có thể đổi khi nâng SDK hay theo ngôn ngữ máy (`fresh` đặt app tiếng Anh, nhưng `WebView` quảng cáo có thể theo ngôn ngữ của máy). Đề xuất: chấp nhận; nếu chữ đổi, ba tệp lỗi rõ ràng ở bước `wait id=camera_screen` với `fail.png` là quảng cáo, và sửa lại dễ. Phương án khác: chạm theo tọa độ góc trên phải, nhưng trình chạy không có lệnh chạm tọa độ.
 2. Sửa `docs/ops/test-sessions.md` (file của dự án mẫu) ngay ở app như ticket ghi, rồi đề xuất về dự án mẫu. Đề xuất: đồng ý. Tài liệu này đã có các ghi chú riêng "camera-pose", và đây chỉ là câu giải thích, không đổi quy trình, nên plan không coi là điểm chặn 7.
 3. Đóng FB-20261031-01 (`fixed`) khi ba tệp đạt ở `device-session` sau merge, không chờ dev kiểm tay mục 4. Đề xuất: đồng ý; kiểm tay là để bắt lỗi của app mà kịch bản có thể che, không phải điều kiện của phản hồi.
+4. Tiêu chí C chấm 1 (tổng 4, mức Thấp). Rà soát độc lập nêu C có thể là 2 (tổng 5, mức Trung bình) vì lần chạm thật chỉ thấy sau merge. Đề xuất: giữ 1, vì `device-session` trên emulator CI tự kiểm phần đó, không cần người. Mức chỉ ảnh hưởng tới ai duyệt và việc có đi đường làm nhanh được không.
 
 ## 9. Quyết định duyệt
 

@@ -8,7 +8,7 @@ owner: Tuấn
 status: backlog
 risk: high
 size: M
-depends_on: []               # T-074, T-079 đã lên staging
+depends_on: [T-089]          # T-089 sửa trước ba kịch bản emulator mà combo bật sẵn làm lỗi; T-074, T-079 đã lên staging
 sprint:
 plan:
 auto_run:
@@ -24,7 +24,9 @@ Sau mỗi interstitial của một màn (`review_interstitial` khi rời màn xe
 ## Phạm vi
 
 - **Chỗ vẽ:** đặt `FullScreenAdHost()` một lần trong `MainActivity`, trong theme và trong `AdsHost`, sau `AppNavHost` (luật HD-05 của khung).
+  - **Câu hỏi cho plan:** đặt trong hay ngoài `NetworkDialogHost`? Lượt combo giữ cờ `fullScreenAdShowing` nên popup mất mạng chờ tới khi combo đóng (ADR-0024, spec network KB-2), và quảng cáo trong màn tạm dừng.
 - **`resume_inter` không nối combo:** `ResumeAdTurns` hiện gọi `showInterstitial(..., combo = true)` (A-12). Đổi để `resume_inter` không nối combo. Interstitial lúc mở app đã không nối combo; plan kiểm lại cả `open_app_inter` khi `open_ad_type` là interstitial ở lần mở sau.
+  - Sửa cả KDoc của `AdsController` (câu "the interstitial of `resume_inter` with the combo").
   - **Câu hỏi cho plan:** sửa thẳng trong `:core:ads` của app, hay thêm một công tắc của khung (giữ mặc định như mẫu) để dự án mẫu nhận lại được? Ghi đề xuất `from-app` vào mô tả PR (`docs/ops/from-app.md`).
 - **Bản staging:** `StagingRemoteValuesModule` bật `is_show_native_after_inter`; sửa test của module theo ADR-0029, ADR-0031 (câu khẳng định cũ "không bật" trái câu 18).
 - **Tài liệu đi cùng PR:**
@@ -33,8 +35,11 @@ Sau mỗi interstitial của một màn (`review_interstitial` khi rời màn xe
   - `docs/ops/manual-test.md`: thêm mục kiểm combo trên máy thật (sau `review_interstitial`, sau `inter_pose_detail`, không có sau quảng cáo quay lại app dạng interstitial, nút Back trong lúc đếm ngược); sửa danh sách kiểm Firebase staging của mục 11, bỏ dòng "`is_show_native_after_inter` không đặt `true`".
 - **Test, viết trước:**
   - Test Robolectric của vỏ app: lượt combo mở thì lớp phủ có trong cây giao diện; đóng thì về màn cũ, `Native combo closed` được ghi. Có test dựng lại activity trong lúc đếm ngược (L-061, L-091 của mẫu).
-  - Unit test: `resume_inter` hoàn tất mà không gọi combo, kể cả khi khóa bật; `review_interstitial` và `inter_pose_detail` vẫn nối combo.
+  - Unit test: `resume_inter` hoàn tất mà không gọi combo, kể cả khi khóa bật; `review_interstitial` và `inter_pose_detail` vẫn nối combo, và lệnh chạy sau interstitial (điều hướng) chỉ chạy khi combo đóng.
+  - Test mất mạng trong lúc combo: popup chờ, đóng combo thì popup hiện.
+  - Câu khẳng định cũ phải viết lại theo ADR-0031: `ResumeAdTurnsTest.kt` dòng 115 và 360 (`Triple(activity, AdPlacement.RESUME_INTER, true)`); plan kiểm thêm `AdsControllerResumeTest` và test của `StagingRemoteValuesModule`.
   - Kịch bản emulator nếu chạy được (emulator không có quảng cáo native thử: chỉ kiểm được lượt nạp lỗi tự đóng sau đếm ngược, K-04).
+- **Kịch bản emulator có sẵn:** combo bật sẵn ở staging làm `feature/camera/src/deviceScenarios/T-058-chup-tu-chi-tiet.txt`, `feature/poses/src/deviceScenarios/T-022-chi-tiet-sang-camera.txt` và `feature/poses/src/deviceScenarios/T-024-thu-vien-mo-gap.txt` lỗi ở bước chờ camera sau interstitial (plan T-089, mục 3.4, "Ngoài phạm vi"). Plan thêm bước đóng lớp phủ (`ads_close_full_screen`) khi nó hiện, tính cả trường hợp emulator nạp lỗi rồi tự đóng sau đếm ngược (K-04). Ba tệp đó T-089 sửa trước.
 
 **Không bao gồm:**
 

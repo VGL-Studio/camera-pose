@@ -815,5 +815,5 @@ Phiên bản 4:
 ### Kiểm tay trên máy thật 2026-11-02 (TS-20261102-01)
 
 - **Bản:** `0.1.0-staging.22`, Xiaomi, Android 15. Báo cáo: `docs/test-sessions/TS-20261102-01.md`.
-- **`manual-test.md` 11.7, theo log và lời Nhật:** bước 1 đạt (nút giữ 1,1 giây và 2,2 giây rồi `Intro ad wait ended: ad`); bước 2 đạt (mỗi trang lấy quảng cáo mới); bước 4 đạt; bước 5 đạt (chọn Không đồng ý vẫn có thẻ); bước 8 đạt (khóa `is_show_native_onboarding` tắt: không có thẻ, không có `Intro ad wait`).
+- **`manual-test.md` 11.7, theo log và lời Nhật:** bước 1 đạt (nút giữ 1,1 giây rồi `Intro ad wait ended: ad`); bước 2 đạt (mỗi trang lấy quảng cáo mới); bước 4 đạt; bước 5 đạt (chọn Không đồng ý vẫn có thẻ, nút giữ 2,2 giây); bước 8 đạt (khóa `is_show_native_onboarding` tắt: không có thẻ, không có `Intro ad wait`).
 - **Chưa thử:** bước 3, 6, 7. Phần nhìn của thẻ (cao khoảng 250 dp, nhãn "Ad", vị trí nút) log không kiểm được, chờ người xác nhận.

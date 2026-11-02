@@ -5,9 +5,10 @@ owner: Tuấn
 product_owner: Nhật
 requests:
   - requests/2026-10-31-thanh-day-native-thu-gon.md
+  - requests/2026-11-02-bat-combo-native-toan-man-hinh.md
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed: 2026-11-01
+confirmed: 2026-11-02
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
@@ -38,10 +39,12 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
   - `native_onboarding`: thẻ native ở mọi trang của luồng giới thiệu, bật lúc phát hành (spec onboarding, KB-6, câu 6, 8).
   - `rw_premium_pose`: quảng cáo có thưởng mở khóa tư thế premium; không có quảng cáo thì chặn (spec poses, KB-8, câu 8, 10).
   - Lớp banner và lớp native thu gọn của thanh đáy có mã quảng cáo ở production (khóa chung theo khe `banner`, `native_collap`; câu 14), chọn lớp bằng hai khóa có sẵn `is_show_native_bottom`, `is_show_native_collap` (câu 13 tới 15).
+- Combo native toàn màn hình (`native_combo`) sau mỗi interstitial của màn (`review_interstitial`, `inter_pose_detail`), đếm ngược theo `time_close_native`; bật ở staging và production (câu 18, thay phần combo của câu 6 và câu 9). Ticket T-090.
 
 **Ngoài phạm vi:**
 
-- Vị trí quảng cáo khác các vị trí ở trên. Combo native sau interstitial (`native_combo`) giữ tắt (câu 6, câu 9). Mỗi vị trí mới cần spec được duyệt và ticket riêng.
+- Vị trí quảng cáo khác các vị trí ở trên. Mỗi vị trí mới cần spec được duyệt và ticket riêng.
+- Combo native sau interstitial dùng thay quảng cáo mở app hay quảng cáo khi quay lại app (`open_app_inter`, `resume_inter`; câu 18).
 - Lớp native thu gọn 250 dp nổi trên thanh đáy: có trong khung nhưng tắt lúc phát hành (câu 10). Từ yêu cầu 2026-10-31, lớp có mã ở production và bật được từ xa (câu 13 tới 15).
 - AppsFlyer (câu 3), màn xem thử quảng cáo `AdGalleryActivity` và `SAMPLE_BOTTOM_BANNER` (câu 4).
 
@@ -204,6 +207,15 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
     - Đề xuất của AI: nhận như dự án mẫu. Đây là chuẩn nghiệp vụ chung của khung (ADR-0038); muốn khác thì đặt giá trị trên Remote Config, trừ `CACHED_EARLY` không còn công tắc. Không cần sửa spec màn nào.
     - Trả lời: nhận như dự án mẫu, theo đề xuất. Nhật, 2026-11-01.
 
+18. **Bật combo native toàn màn hình sau interstitial** (yêu cầu `requests/2026-11-02-bat-combo-native-toan-man-hinh.md`, phiên thử TS-20261102-01). Câu 6 và câu 9 giữ combo tắt, nên app không đặt `FullScreenAdHost` (plan T-074, câu 7; ADR-1007). Phiên thử cho thấy khi khóa bị bật trên Firebase, lượt combo vẫn mở mà không hiện gì và không đóng được.
+    - Combo hiện sau interstitial nào? Khung chỉ có một khóa chung `is_show_native_after_inter` (K-01); interstitial lúc mở app không bao giờ nối combo, còn `resume_inter` (quảng cáo khi quay lại app dạng interstitial, A-12) có nối.
+      - Trả lời: sau mọi interstitial, trừ khi interstitial dùng thay quảng cáo mở app hay quảng cáo khi quay lại app (`open_app_inter`, `resume_inter`). Hôm nay là `review_interstitial` và `inter_pose_detail`. Lời của Nhật: "Khung native fullscreen sẽ hiển thị ở mọi interstitial, ngoại trừ khi inter được sử dụng thay thế cho aoa/resume ads." Nhật, 2026-11-02.
+      - Hệ quả: `resume_inter` không nối combo, khác luật A-12 của khung; ticket T-090 sửa `:core:ads` và đề xuất về dự án mẫu.
+    - Bản staging: `StagingRemoteValuesModule` bật `is_show_native_after_inter`, thay phần "không bật `is_show_native_after_inter`" của câu 6. Firebase staging vẫn tắt được. Chọn "Bật sẵn ở staging". Nhật, 2026-11-02.
+    - Production: bật ngay khi phát hành, không bật dần như câu 9. Chọn "Bật ngay khi phát hành". Nhật, 2026-11-02.
+      - Cần mã quảng cáo thật của `native_combo` trong cấu hình phát hành (T-075). Đặt khóa trên Firebase production là việc của người (ADR-0007, ADR-0009).
+    - Đếm ngược, nút đóng, nút Back theo khung (K-02 tới K-08, `time_close_native` mặc định 5 giây). Màn camera và thư viện, chi tiết chép câu này vào mục 5 của spec camera và spec poses trong PR của T-090.
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -228,3 +240,5 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-01 | AI | Theo rà soát độc lập PR #279: câu 17 mới, liệt kê các đổi hành vi khác của khung trong đợt đồng bộ. Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-11-01 | Nhật | Trả lời câu 17 (AI ghi) và xác nhận spec. Lời của Nhật: chọn "Nhận như mẫu, xác nhận spec" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-01 | AI | Câu 17, theo rà soát lại PR #279: sửa chữ cho đúng code (`gallery_banner_mrec` có trong danh sách vị trí ở mọi bản, mặc định tắt). Không đổi câu trả lời, spec giữ `confirmed` |
+| 2026-11-02 | AI | Yêu cầu bật combo native toàn màn hình (`requests/2026-11-02-bat-combo-native-toan-man-hinh.md`); Nhật trả lời câu 18 trong phiên (AI ghi): sau mọi interstitial trừ `open_app_inter`, `resume_inter`; bật ở staging; production bật khi phát hành. Sửa mục 2. Chuyển `changed`, chờ xác nhận. Ticket T-090 |
+| 2026-11-02 | Nhật | Xác nhận câu 18 và phần sửa mục 2. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |

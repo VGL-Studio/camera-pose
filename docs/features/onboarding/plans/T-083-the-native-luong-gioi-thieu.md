@@ -811,3 +811,9 @@ Phiên bản 4:
   - Không câu khẳng định cũ nào viết lại; không thay đổi file test Kotlin sau commit test.
 - **Việc còn lại:** mở issue `from-app` về dự án mẫu trong vòng một tuần (bộ lọc `enabled=true`, `rememberNativeStepAdAllowed`, `firstOpenOnly`); T-089 sửa ba kịch bản bị interstitial che.
 - **Cần người xem:** 12 ảnh chuẩn mới; `manual-test.md` 11.7 trên máy thật (gồm lượt chọn "Không đồng ý"); bộ lọc `enabled=true` chạy thật lần đầu ở `device-session` của phiên này.
+
+### Kiểm tay trên máy thật 2026-11-02 (TS-20261102-01)
+
+- **Bản:** `0.1.0-staging.22`, Xiaomi, Android 15. Báo cáo: `docs/test-sessions/TS-20261102-01.md`.
+- **`manual-test.md` 11.7, theo log và lời Nhật:** bước 1 đạt (nút giữ 1,1 giây rồi `Intro ad wait ended: ad`); bước 2 đạt (mỗi trang lấy quảng cáo mới); bước 4 đạt; bước 5 đạt (chọn Không đồng ý vẫn có thẻ, nút giữ 2,2 giây); bước 8 đạt (khóa `is_show_native_onboarding` tắt: không có thẻ, không có `Intro ad wait`).
+- **Chưa thử:** bước 3, 6, 7. Phần nhìn của thẻ (cao khoảng 250 dp, nhãn "Ad", vị trí nút) log không kiểm được, chờ người xác nhận.

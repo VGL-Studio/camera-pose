@@ -5,12 +5,12 @@ feature: poses
 spec: features/poses/spec.md
 scenarios: []                # không đổi hành vi của app; sửa kịch bản emulator theo FB-20261031-01
 owner: Nhật
-status: backlog              # backlog | ready | planned | approved | on-staging | accepted | released | stopped | cancelled
+status: planned              # backlog | ready | planned | approved | on-staging | accepted | released | stopped | cancelled
 risk: low                    # đánh giá sơ bộ: low | medium | high
 size: S                      # S | M | L, xem giải thích ở cuối
 depends_on: [T-083]          # các ticket phải xong trước, ví dụ [T-010]
 sprint:                      # điền khi được chọn vào sprint
-plan:                        # đường dẫn plan khi đã có
+plan: features/poses/plans/T-089-kich-ban-emulator-qua-interstitial.md
 auto_run:                    # để trống; ghi false khi ticket do người làm (ví dụ chạm scripts/release.sh): plan-queue.py không soạn plan, run-check.py từ chối đưa vào danh sách chạy
 created: 2026-11-01
 ---

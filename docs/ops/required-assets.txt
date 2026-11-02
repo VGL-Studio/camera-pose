@@ -3,3 +3,11 @@
 # docs/ops/setup-new-app.md, every morning in env-canary.yml and before every session in start-run.yml.
 # A plan that makes the app need a new file on R2 adds its path here.
 poses/catalog/v3/catalog-512aa695.json
+poses/catalog/v3/catalog-1482c90b.json
+poses/catalog/v3/catalog-9b2642a1.json
+poses/catalog/v3/catalog-e222f5d2.json
+poses/catalog/v3/catalog-d024aec8.json
+poses/catalog/v3/catalog-40c97474.json
+poses/catalog/v3/catalog-fe967525.json
+poses/catalog/v3/catalog-045c0bb1.json
+poses/catalog/v3/catalog-abe38607.json

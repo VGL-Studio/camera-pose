@@ -43,8 +43,9 @@ ADR liên quan: ADR-0013 (quảng cáo qua `:core:ads`), ADR-0019 (log), ADR-002
 
 ```kotlin
 // NativeAdPool
-/** Free ads a claim could hand out now: not impressed, not expired. Only reads, never loads or drops anything. */
+/** Free ads a claim could hand out now: not impressed, not expired. Never loads or drops anything. */
 fun claimableAdCount(): Int {
+    if (!canShowNow()) return 0
     val now = clock.nowMillis()
     return free.count { !it.ad.impressionRecorded && now - it.loadedAtMillis < NativeAdPolicy.MAX_AGE_MILLIS }
 }
@@ -53,8 +54,8 @@ fun claimableAdCount(): Int {
 internal fun poolClaimableAdCount(placement: AdPlacement): Int = nativePools.pool(placement)?.claimableAdCount() ?: 0
 
 // NativeFlowStep.kt
-/** One free ad is for the card of the current step while that card has none yet. */
-internal fun nextStepAdReady(claimable: Int, currentStepHasAd: Boolean): Boolean =
+/** Whether [claimable] free ads leave one for the next step: one is for the current card while it has none yet. */
+fun nextStepAdReady(claimable: Int, currentStepHasAd: Boolean): Boolean =
     claimable >= if (currentStepHasAd) 1 else 2
 
 /**
@@ -63,10 +64,29 @@ internal fun nextStepAdReady(claimable: Int, currentStepHasAd: Boolean): Boolean
  * that step. False with no ads controller. An app that holds its Next button until the next step has an ad uses this.
  */
 @Composable
-fun rememberNativeStepNextAdReady(placement: AdPlacement, step: Any, currentStepHasAd: Boolean): Boolean
+fun rememberNativeStepNextAdReady(placement: AdPlacement, step: Any, currentStepHasAd: Boolean): Boolean {
+    requireStepFormat(placement.format)
+    val ads = LocalAdsController.current ?: return false
+    return rememberNextStepAdReady(step, currentStepHasAd) { ads.poolClaimableAdCount(placement) }
+}
+
+/** [rememberNativeStepNextAdReady] without an ads controller, so tests set the count (like [rememberStepReady]). */
+@Composable
+internal fun rememberNextStepAdReady(step: Any, currentStepHasAd: Boolean, claimable: () -> Int): Boolean {
+    val hasAd by rememberUpdatedState(currentStepHasAd)
+    val count by rememberUpdatedState(claimable)
+    var ready by remember(step) { mutableStateOf(nextStepAdReady(claimable(), currentStepHasAd)) }
+    LaunchedEffect(step) {
+        while (!ready) {
+            ready = nextStepAdReady(count(), hasAd)
+            delay(NEXT_AD_POLL_MILLIS)
+        }
+    }
+    return ready
+}
 ```
 
-Hàm composable kiểm định dạng bằng `requireStepFormat`. Giá trị đầu đọc ngay trong `remember(ads, placement, step)`, nên khung đầu của trang 3 đã đúng: nút không sáng rồi mới mờ. `LaunchedEffect(ads, placement, step)` đọc lại mỗi 200 ms, mỗi lần đọc **cùng lúc** số quảng cáo mới nhất và `currentStepHasAd` mới nhất (`rememberUpdatedState`), nên không ghép số cũ với cờ mới. Đọc được đúng một lần thì giữ đúng cho bước đó và thôi đọc: giữa lúc thẻ vừa lấy quảng cáo và lúc thẻ báo về, số đã giảm mà cờ chưa đổi, nên không được cho tín hiệu quay về sai. Đọc định kỳ để chỉ có một đường đọc, không phải thêm thông báo vào mọi đường đổi pool, cùng cách làm của ô chờ pool (P-06). `claimableAdCount` đếm đúng những gì `claim` cấp được, không gọi `pruneExpired` để việc đọc không có tác dụng phụ.
+Hàm composable kiểm định dạng bằng `requireStepFormat`. Giá trị đầu đọc ngay trong `remember(ads, placement, step)`, nên khung đầu của trang 3 đã đúng: nút không sáng rồi mới mờ. `LaunchedEffect(ads, placement, step)` đọc lại mỗi 200 ms, mỗi lần đọc **cùng lúc** số quảng cáo mới nhất và `currentStepHasAd` mới nhất (`rememberUpdatedState`), nên không ghép số cũ với cờ mới. Đọc được đúng một lần thì giữ đúng cho bước đó và thôi đọc: giữa lúc thẻ vừa lấy quảng cáo và lúc thẻ báo về, số đã giảm mà cờ chưa đổi, nên không được cho tín hiệu quay về sai. Đọc định kỳ để chỉ có một đường đọc, không phải thêm thông báo vào mọi đường đổi pool, cùng cách làm của ô chờ pool (P-06). `claimableAdCount` đếm đúng những gì `claim` cấp được, kể cả điều kiện `canShowNow()`, không gọi `pruneExpired` để việc đọc không nạp hay hủy quảng cáo. `NativeAdPools.pool()` có thể tạo đối tượng pool ở lần gọi đầu; việc này không gửi yêu cầu nào. `nextStepAdReady` để công khai vì `OnboardingAdContentTest` ở module khác dùng đúng luật này.
 
 **Cơ chế chờ** (`IntroAdWait.kt`). Tách thân hàm thành `rememberPageAdWait(onPage, allowed, hasAd, maxMillis, usedUpBeforeFirstVisit, onStarted, onEnded)`. `rememberIntroAdWait` giữ nguyên chữ ký, gọi hàm mới với `usedUpBeforeFirstVisit = true`, nên `IntroAdWaitTest` không đổi. Điểm khác: cơ chế cũ coi đã dùng hết ngay khi màn không ở trang đó, nên trang 3 sẽ không bao giờ chờ, vì luồng bắt đầu ở trang 1:
 
@@ -75,6 +95,8 @@ var visited by rememberSaveable { mutableStateOf(false) }
 LaunchedEffect(onPage) {
     if (onPage) visited = true else if (visited || usedUpBeforeFirstVisit) begun = true
 }
+// Ready from the first frame also uses the wait up: after a rotation the new card has no ad yet (spec: "first shown").
+LaunchedEffect(onPage, hasAd) { if (onPage && hasAd) begun = true }
 ```
 
 Thêm `internal const val GUIDE_AD_WAIT_MILLIS = 3_000L`.
@@ -133,17 +155,17 @@ Từ `scripts/existing-tests.py` (2026-11-09). Plan chỉ thêm tham số có gi
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
-| Pool đếm đúng quảng cáo cấp được | Unit test | `NativeAdPoolTest.claimableAdCount_followsLoadAndClaim`, `claimableAdCount_skipsImpressedAndExpired` (khớp với `claim`) |
+| Pool đếm đúng quảng cáo cấp được | Unit test | `NativeAdPoolTest.claimableAdCount_followsLoadAndClaim`, `claimableAdCount_skipsImpressedAndExpired`, `claimableAdCount_zeroWhenCannotShow` (khớp với `claim`) |
 | Hàm chỉ đọc, không nạp, không hủy | Unit test | `NativeAdPoolTest.claimableAdCount_hasNoSideEffect` |
 | Luật chừa quảng cáo cho thẻ hiện tại | Unit test | `NativeFlowStepTest.nextStepAdReady_needsTwoUntilCardHasAd`: `(0,false)` sai, `(1,false)` sai, `(2,false)` đúng, `(0,true)` sai, `(1,true)` đúng |
-| Tín hiệu cho app | Compose UI test | `NativeFlowStepTest.nextAdReady_noController_false`, `nextAdReady_wrongFormat_throws`, `nextAdReady_firstFrame_readsPool`, `nextAdReady_followsPool`, `nextAdReady_cardWaiting_oneAdArrives_staysFalse`, `nextAdReady_cardClaims_countFallsBeforeReport_staysTrue` (đã đúng thì giữ), `nextAdReady_newStep_readsAgain` |
+| Tín hiệu cho app | Compose UI test | `NativeFlowStepTest.nextAdReady_noController_false`, `nextAdReady_wrongFormat_throws`, `nextAdReady_firstFrame_readsPool`, `nextAdReady_followsPool`, `nextAdReady_cardWaiting_oneAdArrives_staysFalse`, `nextAdReady_cardClaims_countFallsBeforeReport_staysTrue` (đã đúng thì giữ), `nextAdReady_cardReportsAd_thenOneFree_becomesTrue` (đọc cờ mới nhất), `nextAdReady_newStep_readsAgain`; các test này dùng `rememberNextStepAdReady` với số giả |
 | KB-6, trang 3 giữ tối đa 3 giây | Compose UI test | `IntroAdWaitTest.pageWait_notUsedUpOnEarlierPages_heldThreeSeconds`, đồng hồ dừng: tại 2999 ms nút mờ, 3001 ms nút dùng được |
 | KB-6, có quảng cáo thì dùng được ngay | Compose UI test | `IntroAdWaitTest.pageWait_nextAdComes_releasedAtOnce` |
 | KB-6, đã có sẵn thì không chờ | Compose UI test | `IntroAdWaitTest.pageWait_readyOnArrival_neverHeld` (cơ chế chờ, tín hiệu giả); thứ tự thật ở dòng dưới |
 | KB-6, thứ tự thật của pool ở trang 3 | Compose UI test | `OnboardingAdContentTest` dùng `nextAdReady` tính bằng `nextStepAdReady(số giả, cờ)`: `guide_oneFreeAd_heldFromFirstFrame` (khung đầu nút đã mờ), `guide_cardWaiting_oneAdArrives_stillHeld` (quảng cáo về lúc thẻ chưa có thì vẫn mờ), `guide_cardGotAd_nextAdArrives_released`, `guide_cardHasAdOnPageTwo_notCountedForPageThree` |
 | KB-6, rời trang rồi quay lại không chờ | Compose UI test | `IntroAdWaitTest.pageWait_leftAndBack_notHeldAgain` |
 | KB-6, ra nền hết chờ (L-091) | Compose UI test | `IntroAdWaitTest.pageWait_backgroundMidway_releasedOnReturn` |
-| Dựng lại activity không chờ lại (L-061) | Compose UI test | `IntroAdWaitTest.pageWait_recreatedActivity_notHeldAgain` |
+| Dựng lại activity không chờ lại (L-061) | Compose UI test | `IntroAdWaitTest.pageWait_recreatedActivity_notHeldAgain`, `pageWait_readyOnArrival_recreated_notHeld` |
 | Trang 3 giữ nút, các trang khác không | Compose UI test | `OnboardingAdContentTest.guide_allowedNoNextAd_nextHeld_threeSeconds`, `guide_nextAdReady_notHeld`, `guide_notAllowed_notHeld`, `camera_neverHeld` |
 | Log | Unit test | `OnboardingViewModelTest.guideAdWait_logsStartAndEnd` |
 | Đúng thiết kế | Screenshot test cùng tên với từng ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh onboarding`, rà soát độc lập theo mục 7 của mẫu thiết kế; đồng hồ dừng vì không có hiệu ứng lặp | `OnboardingScreen_guide-ad-wait_light.png`, `OnboardingScreen_guide-ad-wait_dark.png` |

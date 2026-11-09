@@ -1,7 +1,7 @@
 ---
 ticket: T-091
 title: Luồng giới thiệu luôn 4 trang, có ảnh minh họa và chữ mới
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -274,3 +274,14 @@ Ghi ảnh chuẩn: `./gradlew :feature:onboarding:recordRoborazziDebug :feature:
 - **Ghi chú:** Mục 8: câu 1 Nhật duyệt bản dịch; câu 2 trang 3 giữ nút, làm ở T-092; câu 3 đồng ý bỏ 4 test và đổi tên hay thay thế 11 test; câu 4 chữ bong bóng để trình đọc màn hình đọc bình thường.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261109-01, phiên bản plan 2
+
+- **Kết quả:** đã merge.
+- **Nhánh, PR:** `claude/T-091-luong-gioi-thieu-4-trang`, PR #306, merge 15:57 UTC (commit `5b8dfb2`, sau `--update` theo nhánh chính có T-089).
+- **Đã làm:** luồng luôn 4 trang (`GUIDE` thay `PREMIUM`), ViewModel bỏ cờ premium, bố cục chung ảnh, tiêu đề, lời; 4 ảnh WebP trong `drawable-nodpi`, xóa 5 drawable cũ; chữ bong bóng trang 3 co theo ảnh; chữ mới ở 7 ngôn ngữ; kịch bản T-082, T-083, T-086 đổi sang `onboarding_page_guide`; ghi lại 20 ảnh chuẩn, thêm 4 `guide`, bỏ 4 `premium`; `design/review/` và README mục 8. Phiên con làm bước 3 tới 5 trong worktree.
+- **Test viết trước:** commit `a38db37`, 54 test đỏ đúng lý do (thiếu trang guide, ảnh, bong bóng, chữ cũ, 3 trang); 2 test viết chặt thêm theo L-055 (`introAd_layoutMatchesDesign` thêm kiểm ảnh có vẽ; đối chứng `noText_mentionsPremium`). File test không đổi sau commit test.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú (một chỗ ktlint ngắt dòng khó đọc; tiêu đề trang 3 tiếng Indonesia hơi gượng; một dòng KDoc dài).
+- **Kết quả CI:** `scripts/check.sh` trên máy QUA (2874 test JVM, 0 lỗi); `pr-check` xanh trên Linux ở cả hai commit (`1937842`, `5b8dfb2`), kể cả ảnh chuẩn `intro*`.
+- **Lệch so với plan:** không có. Phương án dự phòng mục 3.4 không cần dùng: tiêu đề trang 1 một dòng trên cả macOS và CI.
+- **Việc còn lại:** Nhật duyệt bản dịch 5 ngôn ngữ (mục 8 câu 1); kiểm khai báo đối tượng trên Play Console (spec câu 11); trang 4 có thẻ khi bấm nhịp thường (máy thật); T-092 làm phần chờ ở trang 3.

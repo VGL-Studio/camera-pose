@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="onboarding_title">बढ़िया पोज़, बिना अंदाज़े के</string>
-    <string name="onboarding_body">एक पोज़ चुनें, आउटलाइन में खड़े हों और फ़ोटो लें। फ़ोटो आउटलाइन के बिना आपकी गैलरी में सेव होती है।</string>
-    <string name="onboarding_point_poses">200 से ज़्यादा पोज़: अकेले, कपल, दोस्तों के साथ</string>
-    <string name="onboarding_point_adjust">आउटलाइन की पारदर्शिता, आकार और जगह बदलें</string>
-    <string name="onboarding_point_saved">पसंदीदा पोज़ सेव करें और बाद में फिर से फ़ोटो लें</string>
+    <string name="onboarding_body">पोज़ समझ नहीं आ रहा? ऐप पोज़ सुझाता है और बताता है कि कहाँ खड़े हों।</string>
+    <string name="onboarding_poses_title">200+ पोज़ तैयार</string>
+    <string name="onboarding_poses_body">अकेले, कपल या दोस्तों के साथ, सब यहाँ है। पसंदीदा पोज़ सेव करें और बाद में फिर से फ़ोटो लें।</string>
+    <string name="onboarding_guide_title">आउटलाइन से मिलाएँ, फ़ोटो लें</string>
+    <string name="onboarding_guide_body">फ़्रेम में फ़िट करने के लिए आउटलाइन की पारदर्शिता, आकार और जगह बदलें। सेव की गई फ़ोटो में आउटलाइन नहीं होती।</string>
+    <string name="onboarding_guide_bubble">यहाँ खड़े हों!</string>
+    <string name="onboarding_camera_title">फ़ोटो लेने के लिए तैयार!</string>
+    <string name="onboarding_camera_body">एक पोज़ चुनें, आउटलाइन में खड़े हों और अपनी पहली फ़ोटो लें।</string>
     <string name="onboarding_enable_camera">कैमरा चालू करें</string>
     <string name="onboarding_note">प्रीव्यू दिखाने के लिए ऐप को कैमरे की अनुमति चाहिए। फ़ोटो सिर्फ़ आपके डिवाइस पर सेव होती हैं।</string>
     <string name="onboarding_next">अगला</string>
-    <string name="onboarding_poses_title">हर फ़ोटो के लिए एक पोज़</string>
-    <string name="onboarding_premium_title">प्रीमियम पोज़</string>
-    <string name="onboarding_premium_body">एक विज्ञापन देखकर प्रीमियम पोज़ अनलॉक करें, फिर उसे हमेशा इस्तेमाल करें।</string>
-    <string name="onboarding_camera_title">फ़ोटो लेने के लिए तैयार</string>
     <string name="onboarding_page_indicator">पेज %1$d / %2$d</string>
 </resources>

@@ -15,7 +15,7 @@ expect id=onboarding_next enabled=true
 tap id=onboarding_next enabled=true
 wait id=onboarding_page_poses 10
 tap id=onboarding_next enabled=true
-wait id=onboarding_page_premium 10
+wait id=onboarding_page_guide 10
 tap id=onboarding_next enabled=true
 wait id=onboarding_page_camera 10
 expect id=onboarding_enable_camera

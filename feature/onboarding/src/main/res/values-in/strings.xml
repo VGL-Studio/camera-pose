@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="onboarding_title">Pose keren, tanpa menebak</string>
-    <string name="onboarding_body">Pilih pose, berdiri di dalam garis pose, lalu ketuk untuk memotret. Foto tersimpan di galeri tanpa garis pose.</string>
-    <string name="onboarding_point_poses">Lebih dari 200 pose: sendiri, pasangan, bersama teman</string>
-    <string name="onboarding_point_adjust">Atur transparansi, ukuran, dan posisi garis pose</string>
-    <string name="onboarding_point_saved">Simpan pose favorit untuk dipakai lagi nanti</string>
+    <string name="onboarding_body">Bingung mau pose apa? Aplikasi menyarankan pose dan menunjukkan tempat berdiri.</string>
+    <string name="onboarding_poses_title">200+ pose siap pakai</string>
+    <string name="onboarding_poses_body">Sendiri, berpasangan, atau bersama teman, semua ada. Simpan favorit untuk dipakai lagi nanti.</string>
+    <string name="onboarding_guide_title">Pas di garis, lalu foto</string>
+    <string name="onboarding_guide_body">Atur transparansi, ukuran, dan posisi garis pose agar pas dengan bingkai. Foto tersimpan tanpa garis pose.</string>
+    <string name="onboarding_guide_bubble">Berdiri di sini!</string>
+    <string name="onboarding_camera_title">Siap memotret!</string>
+    <string name="onboarding_camera_body">Pilih pose, berdiri di dalam garis pose, dan ambil foto pertama Anda.</string>
     <string name="onboarding_enable_camera">Aktifkan kamera</string>
     <string name="onboarding_note">Aplikasi perlu akses kamera untuk menampilkan pratinjau. Foto hanya tersimpan di perangkat Anda.</string>
     <string name="onboarding_next">Berikutnya</string>
-    <string name="onboarding_poses_title">Pose untuk setiap foto</string>
-    <string name="onboarding_premium_title">Pose premium</string>
-    <string name="onboarding_premium_body">Tonton satu iklan untuk membuka pose premium, lalu pakai selamanya.</string>
-    <string name="onboarding_camera_title">Siap memotret</string>
     <string name="onboarding_page_indicator">Halaman %1$d dari %2$d</string>
 </resources>

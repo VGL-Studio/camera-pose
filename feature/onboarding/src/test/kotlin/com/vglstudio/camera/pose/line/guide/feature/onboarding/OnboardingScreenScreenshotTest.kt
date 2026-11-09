@@ -59,15 +59,15 @@ class OnboardingScreenScreenshotTest {
     }
 
     @Test
-    fun premium_light() {
-        captureRoboImage("src/test/screenshots/OnboardingScreen_premium_light.png") {
+    fun guide_light() {
+        captureRoboImage("src/test/screenshots/OnboardingScreen_guide_light.png") {
             Page(index = 2, darkTheme = false)
         }
     }
 
     @Test
-    fun premium_dark() {
-        captureRoboImage("src/test/screenshots/OnboardingScreen_premium_dark.png") {
+    fun guide_dark() {
+        captureRoboImage("src/test/screenshots/OnboardingScreen_guide_dark.png") {
             Page(index = 2, darkTheme = true)
         }
     }
@@ -153,15 +153,15 @@ class OnboardingScreenScreenshotTest {
     }
 
     @Test
-    fun premiumAd_light() {
-        captureRoboImage("src/test/screenshots/OnboardingScreen_premium-ad_light.png") {
+    fun guideAd_light() {
+        captureRoboImage("src/test/screenshots/OnboardingScreen_guide-ad_light.png") {
             Page(index = 2, darkTheme = false, adSlot = FAKE_CARD)
         }
     }
 
     @Test
-    fun premiumAd_dark() {
-        captureRoboImage("src/test/screenshots/OnboardingScreen_premium-ad_dark.png") {
+    fun guideAd_dark() {
+        captureRoboImage("src/test/screenshots/OnboardingScreen_guide-ad_dark.png") {
             Page(index = 2, darkTheme = true, adSlot = FAKE_CARD)
         }
     }
@@ -239,7 +239,7 @@ class OnboardingScreenScreenshotTest {
     }
 
     private companion object {
-        val PAGES_4 = listOf(OnboardingPage.INTRO, OnboardingPage.POSES, OnboardingPage.PREMIUM, OnboardingPage.CAMERA)
+        val PAGES_4 = listOf(OnboardingPage.INTRO, OnboardingPage.POSES, OnboardingPage.GUIDE, OnboardingPage.CAMERA)
 
         /** One pulse of the placeholder (800 ms up, 800 ms down): fully opaque again. */
         const val WAIT_PULSE_CYCLE_MS = 1_600L

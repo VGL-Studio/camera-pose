@@ -125,7 +125,38 @@ Màn loading xong ở lần mở đầu: trang 1 `intro`; bấm "Tiếp" sang tr
 
 ## 8. Kết quả đối chiếu
 
-Các bảng dưới là kết quả của bản trước (T-082, T-083), giữ để tham khảo. Bản 4 trang có ảnh được đối chiếu khi code xong.
+Đối chiếu bản 4 trang có ảnh (T-091) bằng `scripts/design-compare.sh onboarding` ngày 2026-11-09 (RUN-20261109-01, macOS): ảnh chuẩn chụp bằng tiếng Việt, luồng 4 trang, frame `-ad` dùng thẻ giả `NativeAdCard(NativeAdSize.STEP)` như T-083. Hai frame `guide-ad-wait` còn "thiếu ảnh chuẩn screenshot" tới T-092. Bốn frame `premium` đã bỏ cùng ảnh chuẩn cùng tên (plan T-091, mục 3.2).
+
+| Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |
+| --- | --- | --- |
+| OnboardingScreen_intro_light | 2.3% | `OnboardingScreen_intro_light_compare.png` |
+| OnboardingScreen_intro_dark | 2.3% | `OnboardingScreen_intro_dark_compare.png` |
+| OnboardingScreen_intro_light_unfolded | 1.5% | `OnboardingScreen_intro_light_unfolded_compare.png` |
+| OnboardingScreen_poses_light | 1.6% | `OnboardingScreen_poses_light_compare.png` |
+| OnboardingScreen_poses_dark | 1.6% | `OnboardingScreen_poses_dark_compare.png` |
+| OnboardingScreen_guide_light | 2.2% | `OnboardingScreen_guide_light_compare.png` |
+| OnboardingScreen_guide_dark | 2.1% | `OnboardingScreen_guide_dark_compare.png` |
+| OnboardingScreen_camera_light | 2.3% | `OnboardingScreen_camera_light_compare.png` |
+| OnboardingScreen_camera_dark | 2.3% | `OnboardingScreen_camera_dark_compare.png` |
+| OnboardingScreen_camera_light_unfolded | 1.7% | `OnboardingScreen_camera_light_unfolded_compare.png` |
+| OnboardingScreen_intro-ad_light | 6.8% | `OnboardingScreen_intro-ad_light_compare.png` |
+| OnboardingScreen_intro-ad_dark | 7.8% | `OnboardingScreen_intro-ad_dark_compare.png` |
+| OnboardingScreen_poses-ad_light | 5.9% | `OnboardingScreen_poses-ad_light_compare.png` |
+| OnboardingScreen_poses-ad_dark | 6.8% | `OnboardingScreen_poses-ad_dark_compare.png` |
+| OnboardingScreen_guide-ad_light | 6.3% | `OnboardingScreen_guide-ad_light_compare.png` |
+| OnboardingScreen_guide-ad_dark | 7.0% | `OnboardingScreen_guide-ad_dark_compare.png` |
+| OnboardingScreen_camera-ad_light | 5.2% | `OnboardingScreen_camera-ad_light_compare.png` |
+| OnboardingScreen_camera-ad_dark | 6.0% | `OnboardingScreen_camera-ad_dark_compare.png` |
+| OnboardingScreen_intro-ad-wait_light | 5.6% | `OnboardingScreen_intro-ad-wait_light_compare.png` |
+| OnboardingScreen_intro-ad-wait_dark | 5.9% | `OnboardingScreen_intro-ad-wait_dark_compare.png` |
+
+Nhận xét của phiên viết code (T-091; rà soát độc lập bổ sung ở bước 6):
+
+- Mọi trang: ảnh, tiêu đề, lời đúng thứ tự, chữ đúng bảng chữ (mục 2); trên macOS cả 4 tiêu đề tiếng Việt vừa một dòng ở rộng 363. Không thẻ: ảnh y 88 cao 360, tiêu đề 472, lời 532, nút 811 (test `*_layoutMatchesDesign`). Mở gập: ảnh cao 360, căn giữa trong khung 625.
+- Có thẻ: thẻ ở 537 (trang 1 tới 3) và 481 (trang cuối), thấp hơn thiết kế 4 dp vì nút 56 thay 60 (mục 6), nên ảnh cao 293 thay 289 (237 thay 233 ở trang cuối), tiêu đề và lời dời theo. Phần khác của các frame `-ad` là ảnh co giãn lệch 4 dp ấy, dải 4 dp của thẻ và nút, và chữ giả "Advertiser" của thẻ thay "Advertiser or short body" của Figma (chữ của nhà quảng cáo, mục 2).
+- Bong bóng trang 3: chữ `onCategory` đè lên ảnh, tâm ở 76,8% và 15,2% của ảnh, cỡ chữ theo ảnh (15 ở ảnh 360, 12 ở ảnh 289), không theo cỡ chữ của máy; vừa 41% rộng ảnh ở 7 ngôn ngữ (test `guideBubble_fits_*`).
+
+Các bảng dưới là kết quả của bản trước (T-082, T-083), giữ để tham khảo.
 
 Đối chiếu bằng `scripts/design-compare.sh onboarding` ngày 2026-11-01 (T-082, RUN-20261031-02), ảnh chuẩn chụp bằng tiếng Việt, trạng thái `Browsing` của luồng 4 trang, khe quảng cáo rỗng. Hai frame `default` của màn chào một trang đã bỏ cùng ảnh chuẩn cùng tên (plan T-082, mục 3.2). 10 frame `-ad`, `-ad-wait` còn "thiếu ảnh chuẩn screenshot" tới T-083 (`review/summary.md`).
 

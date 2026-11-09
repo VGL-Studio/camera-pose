@@ -3,14 +3,14 @@ criterion: Tư thế premium chưa mở khóa mở được chi tiết, nút ch�
 timeout: 240
 fresh
 consent decline 30
-# Onboarding of T-082 (3 or 4 pages): Next on each page, then Enable camera; a camera already granted skips it.
+# Onboarding of T-091 (always 4 pages): Next on each page, then Enable camera; a camera already granted skips it.
 wait id=onboarding_page_intro | id=camera_screen 60
 wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
 tap_if id=onboarding_next enabled=true
 wait id=onboarding_page_poses | id=camera_screen 10
 wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
 tap_if id=onboarding_next enabled=true
-wait id=onboarding_page_premium | id=onboarding_page_camera | id=camera_screen 10
+wait id=onboarding_page_guide | id=camera_screen 10
 wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
 tap_if id=onboarding_next enabled=true
 wait id=onboarding_page_camera | id=camera_screen 10

@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="onboarding_title">Chụp dáng đẹp, không cần đoán</string>
-    <string name="onboarding_body">Chọn một tư thế, đứng vào nét viền rồi bấm chụp. Ảnh lưu vào thư viện máy, không kèm nét viền.</string>
-    <string name="onboarding_point_poses">Hơn 200 tư thế: một người, cặp đôi, nhóm bạn</string>
-    <string name="onboarding_point_adjust">Chỉnh độ mờ, cỡ và vị trí nét viền</string>
-    <string name="onboarding_point_saved">Lưu tư thế yêu thích để chụp lại sau</string>
+    <string name="onboarding_title">Dáng đẹp, không cần đoán</string>
+    <string name="onboarding_body">Chưa biết tạo dáng thế nào? App gợi ý dáng và chỉ bạn đứng ra sao.</string>
+    <string name="onboarding_poses_title">Hơn 200 tư thế có sẵn</string>
+    <string name="onboarding_poses_body">Một người, cặp đôi hay nhóm bạn đều có. Lưu dáng yêu thích để chụp lại sau.</string>
+    <string name="onboarding_guide_title">Khớp nét viền, bấm chụp</string>
+    <string name="onboarding_guide_body">Chỉnh độ mờ, cỡ và vị trí nét viền cho vừa khung hình. Ảnh lưu ra không kèm nét viền.</string>
+    <string name="onboarding_guide_bubble">Đứng vào đây!</string>
+    <string name="onboarding_camera_title">Sẵn sàng chụp rồi!</string>
+    <string name="onboarding_camera_body">Chọn một dáng, đứng vào nét viền và chụp tấm ảnh đầu tiên của bạn.</string>
     <string name="onboarding_enable_camera">Bật camera</string>
     <string name="onboarding_note">App cần quyền camera để hiện khung xem trước. Ảnh chỉ lưu trên máy của bạn.</string>
     <string name="onboarding_next">Tiếp</string>
-    <string name="onboarding_poses_title">Tư thế cho mọi kiểu ảnh</string>
-    <string name="onboarding_premium_title">Tư thế premium</string>
-    <string name="onboarding_premium_body">Xem một quảng cáo để mở một tư thế premium, rồi dùng mãi về sau.</string>
-    <string name="onboarding_camera_title">Sẵn sàng chụp</string>
     <string name="onboarding_page_indicator">Trang %1$d trên %2$d</string>
 </resources>

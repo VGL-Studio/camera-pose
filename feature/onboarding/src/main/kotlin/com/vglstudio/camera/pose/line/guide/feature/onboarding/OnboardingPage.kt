@@ -1,21 +1,16 @@
 package com.vglstudio.camera.pose.line.guide.feature.onboarding
 
-/** A page of the onboarding flow, in display order (spec onboarding, question 4). */
+/** A page of the onboarding flow, in display order (spec onboarding, questions 4 and 10). */
 enum class OnboardingPage(val logName: String) {
     INTRO("intro"),
     POSES("poses"),
 
-    /** Only while feature_premium_poses_enabled is on (spec onboarding, KB-5). */
-    PREMIUM("premium"),
+    /** How to use the outline: match it, adjust it, shoot (spec onboarding, question 10). */
+    GUIDE("guide"),
 
     /** The last page: "Turn on camera" and the permission note. */
     CAMERA("camera"),
 }
 
-/** The pages of the flow: three, or four with the premium page while [premium] is on. */
-internal fun onboardingPages(premium: Boolean): List<OnboardingPage> = listOfNotNull(
-    OnboardingPage.INTRO,
-    OnboardingPage.POSES,
-    OnboardingPage.PREMIUM.takeIf { premium },
-    OnboardingPage.CAMERA,
-)
+/** The pages of the flow, always four (spec onboarding, question 10). */
+internal val OnboardingPages: List<OnboardingPage> = OnboardingPage.entries

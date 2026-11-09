@@ -2,7 +2,7 @@
 ticket: T-091
 title: Luồng giới thiệu luôn 4 trang, có ảnh minh họa và chữ mới
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 10.9M        # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-11-09); không nâng tay
@@ -19,6 +19,12 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 ## 1. Tóm tắt
 
 Luồng giới thiệu của `:feature:onboarding` thành danh sách cố định 4 trang (`intro`, `poses`, `guide`, `camera`), bỏ theo dõi cờ premium trong ViewModel. Mọi trang dùng chung một bố cục: ảnh WebP đóng gói trong `res/drawable-nodpi`, tiêu đề, lời; ảnh co trước khi thiếu chỗ. Kiểm chứng bằng unit test ViewModel, test giao diện Robolectric theo số đo của `design/context/`, screenshot test cùng tên với 20 ảnh thiết kế, và kịch bản emulator.
+
+**Phiên bản 2 (2026-11-09).** Phiên bản 1 duyệt cùng ngày (Nhật, duyệt chéo Tuấn). Rà soát trước phiên (RUN-20261109-01) thấy tiêu đề trang 1 vừa khít một dòng (362,8 trên 363 dp, đo trên macOS); CI chạy Linux có thể vẽ thành hai dòng, làm đỏ test vị trí dù giao diện vẫn đúng. Nhật chọn sửa test. Thay đổi so với phiên bản 1:
+
+- Mục 4, hai dòng bố cục: vị trí tiêu đề và lời đo theo phần tử đứng trên nó (đáy ảnh + 24, đáy tiêu đề + 24), giữ các mốc cố định (đỉnh ảnh, đỉnh thẻ, đỉnh nút); số cứng của phiên bản 1 thành đối chứng khi tiêu đề một dòng.
+- Mục 3.4: phương án dự phòng cho ảnh chuẩn `intro*` khi tiêu đề xuống dòng trên CI.
+- Code, chữ, thiết kế, danh sách file và các phần khác không đổi.
 
 ## 2. Hiểu yêu cầu
 
@@ -158,7 +164,9 @@ Bốn tệp WebP chép nguyên từ `docs/features/onboarding/design/handoff/onb
 
 ### 3.4. Phương án dự phòng
 
-Không có. WebP đã chạy thử dưới Robolectric (mục 4.1).
+- **Điểm chưa chắc:** tiêu đề trang 1 "Dáng đẹp, không cần đoán" rộng 362,8 trên 363 dp (đo trên macOS, mục 4.1); CI chạy Linux có thể vẽ nó thành hai dòng.
+- **Điều kiện chuyển:** `pr-check` báo ảnh chuẩn `OnboardingScreen_intro*` lệch, và `_compare.png` cho thấy chỗ khác chỉ là tiêu đề xuống dòng cùng phần dời theo nó (ảnh, lời, thẻ trong khung trang 1).
+- **Cách làm thay:** lấy ảnh do CI vẽ theo quy trình L-145 (`CLAUDE.md`, mục Lệnh), chép về `src/test/screenshots/`, ghi vào mục Quyết định AI đã tự làm. Test số đo ở mục 4 đã tính theo tiêu đề nên không phải đổi. WebP đã chạy thử dưới Robolectric (mục 4.1).
 
 ### 3.5. Hành vi đã có bị đổi
 
@@ -197,8 +205,8 @@ Từ `scripts/existing-tests.py` (2026-11-09): 6 test ở nhóm "Cần xem trư�
 | KB-1, số chạm | Unit test | `OnboardingViewModelTest.taps_equalPagesPlusOne` (đổi dữ liệu: 4 trang) |
 | KB-5, `step` từ 1 tới 4 | Unit test | `OnboardingViewModelTest.stepViewed_loggedOncePerStep` |
 | KB-5, chữ mỗi trang, không có chữ "premium" | Compose UI test | `OnboardingScreenTest.eachPage_showsItsTexts`, `noPage_mentionsPremium` |
-| Bố cục không thẻ: ảnh y 88, cao 360; tiêu đề y 472; lời y 532; đỉnh nút 811 (mọi trang trừ ghi chú trang cuối) | Compose UI test | `OnboardingScreenTest.<intro\|poses\|guide\|camera>_layoutMatchesDesign`, sai số 4 dp |
-| Bố cục có thẻ: trang 1 tới 3 ảnh cao 293, tiêu đề y 405, lời y 465, đỉnh thẻ 537; trang cuối ảnh cao 237, tiêu đề y 349, lời y 409, đỉnh thẻ 481 | Compose UI test | `OnboardingScreenTest.<intro\|poses\|guide\|camera>Ad_layoutMatchesDesign`, sai số 4 dp. Số cao hơn Figma 4 dp vì nút 56 thay 60 |
+| Bố cục không thẻ: ảnh y 88, cao 360; tiêu đề y 472; lời bắt đầu ở đáy tiêu đề + 24; đỉnh nút 811 (mọi trang trừ ghi chú trang cuối). Đối chứng số cứng ở khung chuẩn: khi tiêu đề một dòng thì lời ở y 532 | Compose UI test | `OnboardingScreenTest.<intro\|poses\|guide\|camera>_layoutMatchesDesign`, sai số 4 dp. Lời đo theo `bounds(TITLE).bottom + 24`, không theo y cố định, để tiêu đề xuống dòng trên máy khác không làm test đỏ; câu `title.height` bằng 36 hay 72 (một hay hai dòng) đứng trước, ghi rõ số dòng trong thông báo lỗi |
+| Bố cục có thẻ: đỉnh thẻ 537 ở trang 1 tới 3, 481 ở trang cuối (cố định); ảnh y 88, lấp chỗ còn lại theo `ShrinkFirstLayout`; tiêu đề ở đáy ảnh + 24; lời ở đáy tiêu đề + 24; đáy lời không quá đỉnh thẻ trừ 24. Đối chứng số cứng khi tiêu đề một dòng: trang 1 tới 3 ảnh cao 293, tiêu đề y 405, lời y 465; trang cuối ảnh 237, tiêu đề 349, lời 409 | Compose UI test | `OnboardingScreenTest.<intro\|poses\|guide\|camera>Ad_layoutMatchesDesign`, sai số 4 dp. Số cao hơn Figma 4 dp vì nút 56 thay 60 |
 | Khi mở gập: ảnh cao 360, căn giữa | Compose UI test | `OnboardingScreenTest.unfolded_layoutMatchesDesign` |
 | Ảnh có vẽ ra ở mọi trang | Compose UI test | `OnboardingScreenTest.eachPage_drawsItsArt`: vẽ `decorView` ra `Bitmap`, đếm điểm màu cam trong khung ảnh của từng trang |
 | Chữ bong bóng đúng màu, vừa bong bóng ở mọi ngôn ngữ | Compose UI test | `OnboardingScreenTest.guideBubble_text_dark` đo màu chữ tối ở chế độ tối; `guideBubble_fits_<ngôn ngữ>` cho 7 ngôn ngữ: rộng không quá 41% rộng ảnh; `guideBubble_fits_fontScale2`: cỡ chữ hệ thống 2,0 không làm chữ rộng hơn |
@@ -262,6 +270,7 @@ Ghi ảnh chuẩn: `./gradlew :feature:onboarding:recordRoborazziDebug :feature:
 
 - **Quyết định:** Duyệt (Nhật, 2026-11-09, trong phiên có người theo dõi). Tuấn duyệt chéo bằng lời ngày 2026-11-09; Nhật báo lại trong phiên, AI ghi.
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (duyệt bằng lời, 2026-11-09)
+- **Phiên bản 2:** Nhật duyệt trong phiên ngày 2026-11-09; Tuấn duyệt chéo bằng lời, Nhật báo lại trong phiên, AI ghi.
 - **Ghi chú:** Mục 8: câu 1 Nhật duyệt bản dịch; câu 2 trang 3 giữ nút, làm ở T-092; câu 3 đồng ý bỏ 4 test và đổi tên hay thay thế 11 test; câu 4 chữ bong bóng để trình đọc màn hình đọc bình thường.
 
 ## 10. Nhật ký thực hiện

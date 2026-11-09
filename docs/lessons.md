@@ -942,7 +942,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** danh sách chạy RUN-20261031-02, mục 2 (13:46 UTC): `LỖI: ảnh thiết kế của ticket khác OnboardingScreen_default_dark không có trong docs/features/onboarding/design/screens/.` (và `_light`).
 - **Đề xuất sửa:** `scripts/run-check.py` thêm quy tắc: plan nào trong danh sách Xóa một file ở mục 3.2 mà plan chạy sau dẫn tên file đó (nhất là ảnh thiết kế ở mục 4) thì báo lỗi, để sửa plan trước khi duyệt. Hoặc quy tắc ảnh thiết kế của `plan-check.py` bỏ qua tên mà plan tự ghi là bỏ ở ticket khác. `docs/CLAUDE.md`, mục Khi viết plan: không liệt kê ảnh mà plan khác trong cùng danh sách sẽ xóa.
 - **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
-- **Kiểm chứng:**
+- **Kiểm chứng:** lặp lại ở RUN-20261109-01 (2026-11-09): plan T-092 liệt kê bốn ảnh `OnboardingScreen_premium*` trong "ảnh thiết kế của ticket khác" (để qua `plan-check.py` lúc viết plan, khi ảnh còn đó), T-091 chạy trước xóa chúng theo plan, phiên bỏ qua T-092. Cả `run-check.py` lẫn ba vòng rà soát plan và một vòng rà soát danh sách không bắt được. Nên ưu tiên áp dụng đề xuất sửa.
 
 ### L-102: save-branch.sh của phiên chính báo "CHƯA ĐẨY" khi push-on-commit.sh vừa đẩy cùng commit
 

@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="onboarding_title">Poses perfeitas, sem adivinhar</string>
-    <string name="onboarding_body">Escolha uma pose, encaixe-se no contorno e toque para fotografar. As fotos vão para a galeria sem o contorno.</string>
-    <string name="onboarding_point_poses">Mais de 200 poses: sozinho, casal, amigos</string>
-    <string name="onboarding_point_adjust">Ajuste a transparência, o tamanho e a posição do contorno</string>
-    <string name="onboarding_point_saved">Salve suas poses favoritas para fotografar depois</string>
+    <string name="onboarding_body">Não sabe como posar? O app sugere uma pose e mostra onde ficar.</string>
+    <string name="onboarding_poses_title">Mais de 200 poses prontas</string>
+    <string name="onboarding_poses_body">Sozinho, em casal ou com amigos, tem de tudo. Salve suas favoritas para fotografar depois.</string>
+    <string name="onboarding_guide_title">Encaixe no contorno e clique</string>
+    <string name="onboarding_guide_body">Ajuste a transparência, o tamanho e a posição do contorno para caber no quadro. As fotos salvas não incluem o contorno.</string>
+    <string name="onboarding_guide_bubble">Fique aqui!</string>
+    <string name="onboarding_camera_title">Pronto para fotografar!</string>
+    <string name="onboarding_camera_body">Escolha uma pose, encaixe-se no contorno e tire sua primeira foto.</string>
     <string name="onboarding_enable_camera">Ativar câmera</string>
     <string name="onboarding_note">O app precisa acessar a câmera para mostrar a visualização. As fotos ficam só no seu aparelho.</string>
     <string name="onboarding_next">Próximo</string>
-    <string name="onboarding_poses_title">Uma pose para cada foto</string>
-    <string name="onboarding_premium_title">Poses premium</string>
-    <string name="onboarding_premium_body">Assista a um anúncio para desbloquear uma pose premium e fique com ela para sempre.</string>
-    <string name="onboarding_camera_title">Pronto para fotografar</string>
     <string name="onboarding_page_indicator">Página %1$d de %2$d</string>
 </resources>

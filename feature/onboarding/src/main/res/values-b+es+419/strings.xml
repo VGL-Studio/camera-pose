@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="onboarding_title">Poses perfectas, sin adivinar</string>
-    <string name="onboarding_body">Elige una pose, colócate dentro del contorno y toca para tomar la foto. Las fotos se guardan en tu galería sin el contorno.</string>
-    <string name="onboarding_point_poses">Más de 200 poses: solo, en pareja, con amigos</string>
-    <string name="onboarding_point_adjust">Ajusta la transparencia, el tamaño y la posición del contorno</string>
-    <string name="onboarding_point_saved">Guarda tus poses favoritas para volver a usarlas</string>
+    <string name="onboarding_body">¿No sabes cómo posar? La app te sugiere una pose y te muestra dónde pararte.</string>
+    <string name="onboarding_poses_title">Más de 200 poses listas</string>
+    <string name="onboarding_poses_body">Solo, en pareja o con amigos, aquí está todo. Guarda tus favoritas para volver a usarlas.</string>
+    <string name="onboarding_guide_title">Ajústate al contorno y dispara</string>
+    <string name="onboarding_guide_body">Ajusta la transparencia, el tamaño y la posición del contorno para que encaje en el cuadro. Las fotos guardadas no incluyen el contorno.</string>
+    <string name="onboarding_guide_bubble">¡Párate aquí!</string>
+    <string name="onboarding_camera_title">¡Listo para tomar fotos!</string>
+    <string name="onboarding_camera_body">Elige una pose, colócate dentro del contorno y toma tu primera foto.</string>
     <string name="onboarding_enable_camera">Activar cámara</string>
     <string name="onboarding_note">La app necesita acceso a la cámara para mostrar la vista previa. Las fotos solo se guardan en tu dispositivo.</string>
     <string name="onboarding_next">Siguiente</string>
-    <string name="onboarding_poses_title">Una pose para cada foto</string>
-    <string name="onboarding_premium_title">Poses premium</string>
-    <string name="onboarding_premium_body">Mira un anuncio para desbloquear una pose premium y quédatela para siempre.</string>
-    <string name="onboarding_camera_title">Listo para tomar fotos</string>
     <string name="onboarding_page_indicator">Página %1$d de %2$d</string>
 </resources>

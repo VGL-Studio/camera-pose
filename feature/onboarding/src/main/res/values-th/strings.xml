@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="onboarding_title">โพสสวยได้ ไม่ต้องเดา</string>
-    <string name="onboarding_body">เลือกท่าโพส ยืนให้ตรงเส้นโครง แล้วแตะเพื่อถ่าย รูปจะบันทึกลงคลังภาพโดยไม่มีเส้นโครง</string>
-    <string name="onboarding_point_poses">ท่าโพสกว่า 200 ท่า: คนเดียว คู่รัก กลุ่มเพื่อน</string>
-    <string name="onboarding_point_adjust">ปรับความโปร่งใส ขนาด และตำแหน่งของเส้นโครง</string>
-    <string name="onboarding_point_saved">บันทึกท่าโพสที่ชอบไว้ถ่ายอีกครั้งภายหลัง</string>
+    <string name="onboarding_body">ไม่รู้จะโพสยังไง? แอปจะแนะนำท่าและบอกว่าควรยืนตรงไหน</string>
+    <string name="onboarding_poses_title">ท่าโพสกว่า 200 ท่า พร้อมใช้</string>
+    <string name="onboarding_poses_body">คนเดียว คู่รัก หรือกลุ่มเพื่อน มีครบ บันทึกท่าที่ชอบไว้ถ่ายอีกครั้งภายหลัง</string>
+    <string name="onboarding_guide_title">ยืนให้ตรงเส้น แล้วถ่าย</string>
+    <string name="onboarding_guide_body">ปรับความโปร่งใส ขนาด และตำแหน่งของเส้นโครงให้พอดีกับเฟรม รูปที่บันทึกจะไม่มีเส้นโครง</string>
+    <string name="onboarding_guide_bubble">ยืนตรงนี้!</string>
+    <string name="onboarding_camera_title">พร้อมถ่ายแล้ว!</string>
+    <string name="onboarding_camera_body">เลือกท่าโพส ยืนให้ตรงเส้นโครง แล้วถ่ายรูปแรกของคุณ</string>
     <string name="onboarding_enable_camera">เปิดกล้อง</string>
     <string name="onboarding_note">แอปต้องใช้สิทธิ์กล้องเพื่อแสดงภาพตัวอย่าง รูปภาพจะเก็บไว้ในเครื่องของคุณเท่านั้น</string>
     <string name="onboarding_next">ถัดไป</string>
-    <string name="onboarding_poses_title">ท่าโพสสำหรับทุกภาพ</string>
-    <string name="onboarding_premium_title">ท่าโพสพรีเมียม</string>
-    <string name="onboarding_premium_body">ดูโฆษณาหนึ่งครั้งเพื่อปลดล็อกท่าโพสพรีเมียม แล้วใช้ได้ตลอดไป</string>
-    <string name="onboarding_camera_title">พร้อมถ่ายแล้ว</string>
     <string name="onboarding_page_indicator">หน้า %1$d จาก %2$d</string>
 </resources>

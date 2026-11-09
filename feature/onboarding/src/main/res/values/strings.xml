@@ -1,24 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- English is the default language; translations live in values-<language> (plan T-008, plan T-012). -->
 <resources>
-    <string name="onboarding_title">Strike a great pose, no guesswork</string>
-    <string name="onboarding_body">Pick a pose, step into the outline, then tap to shoot. Photos save to your gallery without the outline.</string>
-    <string name="onboarding_point_poses">200+ poses: solo, couples, friends</string>
-    <string name="onboarding_point_adjust">Adjust outline opacity, size and position</string>
-    <string name="onboarding_point_saved">Save favorite poses to shoot again later</string>
+    <string name="onboarding_title">Great poses, no guessing</string>
+    <string name="onboarding_body">Not sure how to pose? The app suggests a pose and shows you where to stand.</string>
+    <string name="onboarding_poses_title">200+ poses ready to go</string>
+    <string name="onboarding_poses_body">Solo, couples or friends, it\'s all here. Save your favorites to shoot again later.</string>
+    <string name="onboarding_guide_title">Match the outline, shoot</string>
+    <string name="onboarding_guide_body">Adjust the outline\'s opacity, size and position to fit the frame. Saved photos don\'t include the outline.</string>
+    <!-- The text in the speech bubble of the page 3 art: one short line, at most 41% of the art wide. -->
+    <string name="onboarding_guide_bubble">Stand here!</string>
+    <string name="onboarding_camera_title">Ready to shoot!</string>
+    <string name="onboarding_camera_body">Pick a pose, step into the outline and take your first photo.</string>
     <string name="onboarding_enable_camera">Turn on camera</string>
     <string name="onboarding_note">The app needs camera access to show the preview. Photos are stored only on your device.</string>
     <string name="onboarding_next">Next</string>
-    <string name="onboarding_poses_title">A pose for every shot</string>
-    <string name="onboarding_premium_title">Premium poses</string>
-    <string name="onboarding_premium_body">Watch one ad to unlock a premium pose, then keep it for good.</string>
-    <string name="onboarding_camera_title">Ready to shoot</string>
-    <!-- Skeleton of plan T-091: placeholder texts until the code step. -->
-    <string name="onboarding_poses_body">TODO</string>
-    <string name="onboarding_guide_title">TODO</string>
-    <string name="onboarding_guide_body">TODO</string>
-    <string name="onboarding_guide_bubble">TODO</string>
-    <string name="onboarding_camera_body">TODO</string>
-    <!-- %1$d is the current page (from 1), %2$d the number of pages (3 or 4). Read by screen readers only. -->
+    <!-- %1$d is the current page (from 1), %2$d the number of pages (4). Read by screen readers only. -->
     <string name="onboarding_page_indicator">Page %1$d of %2$d</string>
 </resources>

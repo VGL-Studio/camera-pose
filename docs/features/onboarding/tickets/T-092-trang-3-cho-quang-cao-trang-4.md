@@ -5,7 +5,7 @@ feature: onboarding
 spec: features/onboarding/spec.md   # confirmed 2026-11-09, câu 12
 scenarios: [KB-6]
 owner: Nhật
-status: backlog
+status: approved
 risk: high
 size: M
 depends_on: [T-091]          # dùng trang GUIDE, chữ và bố cục mà T-091 làm

@@ -1,7 +1,7 @@
 ---
 ticket: T-092
 title: Trang 3 của luồng giới thiệu chờ quảng cáo cho trang 4, tối đa 3 giây
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -9,8 +9,8 @@ token_estimate: 10.9M        # cỡ M theo số gợi ý của scripts/token-usa
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
 reviewer: Nhật               # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-11-09
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -211,8 +211,8 @@ Không cần (E dưới 2).
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt (Nhật, 2026-11-09, trong phiên có người theo dõi). Chờ duyệt chéo; plan giữ `draft` tới khi có người duyệt chéo.
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (chưa duyệt)
+- **Quyết định:** Duyệt (Nhật, 2026-11-09, trong phiên có người theo dõi). Tuấn duyệt chéo bằng lời ngày 2026-11-09; Nhật báo lại trong phiên, AI ghi.
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (duyệt bằng lời, 2026-11-09)
 - **Ghi chú:** Mục 8: câu 1 theo đề xuất của AI; câu 2 Nhật chấp nhận rủi ro chính sách quảng cáo. Plan chạm `:core:ads`: người duyệt chéo xem kỹ mục 3.1 và đề xuất về dự án mẫu.
 
 ## 10. Nhật ký thực hiện

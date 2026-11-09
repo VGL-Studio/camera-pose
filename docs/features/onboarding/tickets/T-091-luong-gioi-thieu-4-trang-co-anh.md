@@ -5,7 +5,7 @@ feature: onboarding
 spec: features/onboarding/spec.md   # confirmed 2026-11-09, câu 10, 11
 scenarios: [KB-1, KB-5, KB-6]
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: M
 depends_on: []

@@ -23,6 +23,9 @@ wait id=poses_grid 20
 tap idp=poses_card_ in=poses_grid index=1
 wait id=pose_detail_screen 15
 tap str=poses_detail_shoot
+# T-089: inter_pose_detail may show before the camera (spec poses KB-4, T-079); close it when it does
+wait text="Close" | id=camera_screen 20
+tap_if text="Close"
 wait id=camera_screen 15
 wait id=camera_grid_button 15
 shot camera-from-detail

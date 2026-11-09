@@ -8,7 +8,7 @@ risk_level: high             # low | medium | high
 token_estimate: 10.9M        # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-11-09); không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
+reviewer: Nhật               # người duyệt
 cross_reviewer:              # bắt buộc khi risk_level là high
 approved_at:
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
@@ -207,11 +207,12 @@ Không cần (E dưới 2).
 ## 8. Câu hỏi cho người duyệt
 
 1. **Pool không thể nạp thêm (lỗi mạng, hết quảng cáo) thì trang 3 vẫn chờ đủ 3 giây.** Đề xuất của AI: giữ đúng spec câu 12 cho đơn giản, vì chỉ chờ một lần và tối đa 3 giây. Trả lời: theo đề xuất của AI (Nhật, 2026-11-09).
+2. **Giữ nút "Tiếp" để chờ quảng cáo chưa được đối chiếu với chính sách AdMob và Google Play;** repo không có quy tắc cấm, ADR-0022 đặt chính sách trước doanh thu. Trả lời: chấp nhận rủi ro, không tra thêm (Nhật, 2026-11-09).
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt (Nhật, 2026-11-09, trong phiên có người theo dõi). Chờ duyệt chéo; plan giữ `draft` tới khi có người duyệt chéo.
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (chưa duyệt)
+- **Ghi chú:** Mục 8: câu 1 theo đề xuất của AI; câu 2 Nhật chấp nhận rủi ro chính sách quảng cáo. Plan chạm `:core:ads`: người duyệt chéo xem kỹ mục 3.1 và đề xuất về dự án mẫu.
 
 ## 10. Nhật ký thực hiện

@@ -8,7 +8,7 @@ risk_level: high             # low | medium | high
 token_estimate: 10.9M        # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-11-09); không nâng tay
 blocking_points: [ads]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
+reviewer: Nhật               # người duyệt
 cross_reviewer:              # bắt buộc khi risk_level là high
 approved_at:
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
@@ -255,12 +255,13 @@ Ghi ảnh chuẩn: `./gradlew :feature:onboarding:recordRoborazziDebug :feature:
 1. **Ai đọc bản dịch của 5 ngôn ngữ?** Đề xuất của AI: AI dịch trong task, một người biết tiếng duyệt trước khi phát hành, như spec, câu 1. Trả lời: Nhật phụ trách duyệt bản dịch (Nhật, 2026-11-09).
 2. Đã trả lời: trang 3 giữ nút "Tiếp" tối đa 3 giây (Nhật, 2026-11-09; spec, câu 12). Phần này làm ở T-092, chạy sau ticket này.
 
-3. **Plan bỏ hẳn 4 test vì hành vi hay phần tử chúng kiểm không còn tồn tại:** `premiumTurnsOn_onFirstOrSecondPage_listFollows`, `premiumChanges_afterThirdPage_listStays`, `poses_iconCircleColor_light`, `premium_badgeColor_light`. **Và đổi tên hay thay thế 11 test** (mục 3.5): `premiumOff_threePages_withoutPremium`, `premiumOn_fourPages_thirdIsPremium` thành `fourPages_inOrder`; `restoredOnPremiumPage_keepsFourPages_evenIfFlagOff` thành `restoredOnThirdPage_isGuide`; `premium_layoutMatchesDesign`, `premiumAd_layoutMatchesDesign` thành `guide*`; `intro_illustrationColors_light` thành `eachPage_drawsItsArt`; `threePages_noPremiumText_anywhere` thành `noPage_mentionsPremium`; screenshot `premium_light`, `premium_dark`, `premiumAd_light`, `premiumAd_dark` thành `guide*`. ADR-0029 không cho phiên tự xóa test, và bước 6 coi hàm `@Test` không còn là test bị xóa, nên người duyệt cần đồng ý rõ ở đây. Đề xuất của AI: đồng ý, vì spec câu 10 bỏ hành vi và thiết kế bỏ phần tử.
+3. **Plan bỏ hẳn 4 test vì hành vi hay phần tử chúng kiểm không còn tồn tại:** `premiumTurnsOn_onFirstOrSecondPage_listFollows`, `premiumChanges_afterThirdPage_listStays`, `poses_iconCircleColor_light`, `premium_badgeColor_light`. **Và đổi tên hay thay thế 11 test** (mục 3.5): `premiumOff_threePages_withoutPremium`, `premiumOn_fourPages_thirdIsPremium` thành `fourPages_inOrder`; `restoredOnPremiumPage_keepsFourPages_evenIfFlagOff` thành `restoredOnThirdPage_isGuide`; `premium_layoutMatchesDesign`, `premiumAd_layoutMatchesDesign` thành `guide*`; `intro_illustrationColors_light` thành `eachPage_drawsItsArt`; `threePages_noPremiumText_anywhere` thành `noPage_mentionsPremium`; screenshot `premium_light`, `premium_dark`, `premiumAd_light`, `premiumAd_dark` thành `guide*`. ADR-0029 không cho phiên tự xóa test, và bước 6 coi hàm `@Test` không còn là test bị xóa, nên người duyệt cần đồng ý rõ ở đây. Đề xuất của AI: đồng ý, vì spec câu 10 bỏ hành vi và thiết kế bỏ phần tử. Trả lời: đồng ý (Nhật, 2026-11-09).
+4. **Chữ trong bong bóng của trang 3 được trình đọc màn hình đọc, trong khi ảnh ẩn.** Trả lời: để đọc bình thường, không thêm việc (Nhật, 2026-11-09).
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt (Nhật, 2026-11-09, trong phiên có người theo dõi). Chờ duyệt chéo; plan giữ `draft` tới khi có người duyệt chéo.
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (chưa duyệt)
+- **Ghi chú:** Mục 8: câu 1 Nhật duyệt bản dịch; câu 2 trang 3 giữ nút, làm ở T-092; câu 3 đồng ý bỏ 4 test và đổi tên hay thay thế 11 test; câu 4 chữ bong bóng để trình đọc màn hình đọc bình thường.
 
 ## 10. Nhật ký thực hiện

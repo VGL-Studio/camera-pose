@@ -24,7 +24,7 @@ confirmed: 2026-11-09
 
 **Trong phạm vi:**
 
-- Luồng giới thiệu hiện sau màn loading ở lần mở đầu tiên, thay màn chào một trang (yêu cầu 2026-10-31, KB-5, câu 4):
+- Luồng giới thiệu hiện sau màn loading ở lần mở đầu tiên, thay màn chào một trang (yêu cầu 2026-10-31, 2026-11-09, KB-5, câu 10):
   - Luôn 4 trang, mỗi trang một ảnh minh họa, không phụ thuộc cờ `feature_premium_poses_enabled`. Luồng không có trang và không có chữ về tư thế premium (câu 10).
   - Người dùng đi qua các trang bằng nút "Tiếp". Không có nút "Bỏ qua" (câu 5).
   - Trang cuối có nút "Bật camera" và dòng ghi chú về quyền camera và nơi lưu ảnh.
@@ -103,7 +103,7 @@ Tiêu chí chấp nhận:
 
 ### KB-6. Quảng cáo native ở luồng giới thiệu (yêu cầu 2026-10-31)
 
-Thẻ ở mọi trang, kể cả trang cuối; không có trang quảng cáo toàn trang; vị trí bật lúc phát hành (câu 6). Trang 1 chờ quảng cáo có giới hạn (câu 8).
+Thẻ ở mọi trang, kể cả trang cuối; không có trang quảng cáo toàn trang; vị trí bật lúc phát hành (câu 6). Trang 1 chờ quảng cáo có giới hạn (câu 8); trang 3 chờ quảng cáo cho trang 4 có giới hạn (câu 12).
 
 Tiêu chí chấp nhận:
 
@@ -128,7 +128,7 @@ Tiêu chí chấp nhận:
 | Chào mừng | Giới thiệu app trong một màn, mở đường xin quyền camera | KB-1, KB-2, KB-3 |
 | Luồng giới thiệu (yêu cầu 2026-10-31, 2026-11-09) | 4 trang thay màn chào; trang cuối là trang xin quyền camera; thẻ native ở đáy vùng trang, mọi trang | KB-1, KB-5, KB-6 |
 
-Luồng giới thiệu dựng trên Figma theo hướng Sticker, section "Onboarding flow v2" (câu 10): mỗi trang có frame sáng, tối, trạng thái `ad` (có thẻ quảng cáo), trang 1 lúc chờ quảng cáo (nút "Tiếp" mờ), và khi mở gập. Chữ của luồng:
+Luồng giới thiệu dựng trên Figma theo hướng Sticker, section "Onboarding flow v2" (câu 10): mỗi trang có frame sáng, tối, trạng thái `ad` (có thẻ quảng cáo), trang 1 lúc chờ quảng cáo và trang 3 lúc chờ quảng cáo cho trang 4 (`guide-ad-wait`, nút "Tiếp" mờ), và khi mở gập ở trang 1 và trang cuối (bố cục các trang khác giống trang 1). Chữ của luồng:
 
 | Trang | Ảnh | Tiêu đề | Lời giới thiệu |
 | --- | --- | --- | --- |
@@ -248,3 +248,4 @@ Không có. Bốn ảnh minh họa đóng gói trong app, không tải từ R2, 
 | 2026-11-09 | Nhật | Xác nhận spec: chọn "Xác nhận" khi được hỏi trong phiên (AI ghi). Chuyển lại `confirmed` |
 | 2026-11-09 | AI | Quyết định của Nhật: trang 3 chờ quảng cáo cho trang 4 tối đa 3 giây (KB-6, mục 5, câu 12). Chuyển `changed` |
 | 2026-11-09 | Nhật | Xác nhận spec và thiết kế: chọn "Xác nhận" khi được hỏi trong phiên (AI ghi). Chuyển lại `confirmed` |
+| 2026-11-09 | Nhật | Sửa lời theo rà soát độc lập, không đổi hành vi: mục 2 dẫn câu 10, câu mở đầu KB-6 nhắc câu 12, mục 4 thêm trạng thái `guide-ad-wait` và nói rõ khung mở gập. Nhật chọn "Sửa và xác nhận" trong phiên (AI ghi). Giữ `confirmed` |

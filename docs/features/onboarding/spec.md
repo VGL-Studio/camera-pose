@@ -6,16 +6,17 @@ product_owner: Nhật
 requests:
   - requests/2026-10-21-man-chao-xin-quyen-camera.md
   - requests/2026-10-31-luong-gioi-thieu-nhieu-trang.md
+  - requests/2026-11-09-luong-gioi-thieu-4-trang-co-anh.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-01
+confirmed: 2026-11-09
 ---
 
 # SPEC: MÀN CHÀO VÀ XIN QUYỀN CAMERA
 
 ## 1. Mục tiêu
 
-- **Người dùng được gì:** lần đầu mở app, người dùng hiểu app làm gì qua luồng giới thiệu ngắn (3 hoặc 4 trang, câu 4) rồi vào camera, không gặp quảng cáo toàn màn hình. Từ 2026-10-31, luồng giới thiệu có thẻ quảng cáo native (câu 5, 6); trước đó màn chào là một trang, không quảng cáo.
+- **Người dùng được gì:** lần đầu mở app, người dùng hiểu app làm gì qua luồng giới thiệu ngắn (4 trang, câu 10) rồi vào camera, không gặp quảng cáo toàn màn hình. Từ 2026-10-31, luồng giới thiệu có thẻ quảng cáo native (câu 5, 6); trước đó màn chào là một trang, không quảng cáo.
 - **Vì sao làm bây giờ:** phàn nàn số một về app mẫu là chuỗi quảng cáo và màn hình trước khi tới camera (bản đề xuất, bài học 1, 2). Giải thích trước khi xin quyền giúp người dùng ít từ chối quyền camera hơn (bài học 16).
 - **Đo kết quả bằng gì:** tỷ lệ người dùng mới cho phép camera (`camera_permission_result` có kết quả cho phép, trên số `onboarding_complete`), mong đợi ít nhất 80%. Số chạm từ lúc màn loading xong tới camera có tư thế: số trang + 1 ("Tiếp" ở mỗi trang trước trang cuối, "Bật camera", "Cho phép"; câu 5). Số quảng cáo toàn màn hình trước ảnh đầu tiên: 0. Theo dõi thêm tỷ lệ cho phép camera và tỷ lệ giữ chân ngày 1 trước và sau bản có luồng giới thiệu.
 
@@ -23,8 +24,8 @@ confirmed: 2026-11-01
 
 **Trong phạm vi:**
 
-- Luồng giới thiệu hiện sau màn loading ở lần mở đầu tiên, thay màn chào một trang (yêu cầu 2026-10-31, KB-5, câu 4):
-  - 4 trang. Trang về tư thế premium chỉ hiện khi cờ `feature_premium_poses_enabled` bật (spec poses, câu 10); cờ tắt thì 3 trang.
+- Luồng giới thiệu hiện sau màn loading ở lần mở đầu tiên, thay màn chào một trang (yêu cầu 2026-10-31, 2026-11-09, KB-5, câu 10):
+  - Luôn 4 trang, mỗi trang một ảnh minh họa, không phụ thuộc cờ `feature_premium_poses_enabled`. Luồng không có trang và không có chữ về tư thế premium (câu 10).
   - Người dùng đi qua các trang bằng nút "Tiếp". Không có nút "Bỏ qua" (câu 5).
   - Trang cuối có nút "Bật camera" và dòng ghi chú về quyền camera và nơi lưu ảnh.
 - Thẻ quảng cáo native ở mọi trang của luồng giới thiệu, kể cả trang cuối (KB-6, mục 5, câu 6, 8).
@@ -87,14 +88,14 @@ Tiêu chí chấp nhận:
 
 ### KB-5. Đi qua luồng giới thiệu (yêu cầu 2026-10-31)
 
-Người dùng vừa cài app, mở lần đầu; màn loading xong. Số trang và nội dung từng trang theo câu 4; không có nút "Bỏ qua" (câu 5).
+Người dùng vừa cài app, mở lần đầu; màn loading xong. Số trang và nội dung từng trang theo câu 10; không có nút "Bỏ qua" (câu 5).
 
 Tiêu chí chấp nhận:
 
 - [ ] Khi màn loading xong ở lần mở đầu tiên thì trang 1 của luồng giới thiệu hiện, đúng thiết kế.
 - [ ] Khi bấm "Tiếp" thì trang kế tiếp hiện; nút "Tiếp" nằm cùng một chỗ trên mọi trang, không nhảy khi thẻ quảng cáo hiện hay ẩn.
 - [ ] Khi tới trang cuối thì nút "Bật camera" thay nút "Tiếp"; bấm nút thì theo KB-1 và KB-2 như hiện nay.
-- [ ] Khi cờ `feature_premium_poses_enabled` bật thì luồng có 4 trang, trang 3 giới thiệu tư thế premium; cờ tắt thì 3 trang, không nhắc tới premium (câu 4).
+- [ ] Khi cờ `feature_premium_poses_enabled` bật hay tắt thì luồng đều có 4 trang, hàng chấm có 4 chấm và không trang nào nhắc tới premium (câu 10).
 - [ ] Khi một trang hiện lần đầu trong luồng thì app ghi `onboarding_step_viewed` với số thứ tự trang (câu 7).
 - [ ] Khi bấm nút quay lại của máy ở trang 2 trở đi thì về trang trước; ở trang 1 thì app đóng.
 - [ ] Khi xoay máy hay mở gập thì trang đang xem giữ nguyên, chữ và nút không bị cắt; trang dài hơn màn hình thấp thì cuộn được.
@@ -102,7 +103,7 @@ Tiêu chí chấp nhận:
 
 ### KB-6. Quảng cáo native ở luồng giới thiệu (yêu cầu 2026-10-31)
 
-Thẻ ở mọi trang, kể cả trang cuối; không có trang quảng cáo toàn trang; vị trí bật lúc phát hành (câu 6). Trang 1 chờ quảng cáo có giới hạn (câu 8).
+Thẻ ở mọi trang, kể cả trang cuối; không có trang quảng cáo toàn trang; vị trí bật lúc phát hành (câu 6). Trang 1 chờ quảng cáo có giới hạn (câu 8); trang 3 chờ quảng cáo cho trang 4 có giới hạn (câu 12).
 
 Tiêu chí chấp nhận:
 
@@ -112,6 +113,8 @@ Tiêu chí chấp nhận:
 - [ ] Khi ở trang cuối thì thẻ không che nút "Bật camera" và dòng ghi chú về quyền; ở khung thấp `w360dp-h640dp` trang cuộn được để thấy đủ nội dung, nút luôn thấy được.
 - [ ] Khi chuyển trang thì thẻ đổi sang quảng cáo khác nếu pool còn quảng cáo.
 - [ ] Khi chưa có quảng cáo, không có quảng cáo hay hộp thoại đồng ý chưa cho nạp quảng cáo thì chỗ của thẻ không làm nút "Tiếp" nhảy, và luồng đi tiếp bình thường.
+- [ ] Khi trang 3 hiện lần đầu trong luồng mà quảng cáo được phép và pool chưa có sẵn quảng cáo cho trang 4 thì nút "Tiếp" mờ đi, không bấm được, tối đa 3 giây; có quảng cáo thì nút dùng được ngay; hết 3 giây mà chưa có thì nút dùng được, luồng đi tiếp và trang 4 có thể chưa có thẻ (câu 12).
+- [ ] Khi đã chờ ở trang 3 một lần, hay đã rời trang 3, thì quay lại trang 3 không chờ nữa; khi app ra nền trong lúc chờ thì hết chờ (câu 12).
 - [ ] Khi chạm vào thẻ thì chỉ mở quảng cáo; vùng chạm của nút "Tiếp" không chồng lên thẻ.
 - [ ] Khi vị trí tắt (`is_show_native_onboarding` tắt) thì luồng không có thẻ, không có chỗ trống của thẻ.
 
@@ -123,38 +126,34 @@ Tiêu chí chấp nhận:
 | Màn hình | Mục đích | Kịch bản liên quan |
 | --- | --- | --- |
 | Chào mừng | Giới thiệu app trong một màn, mở đường xin quyền camera | KB-1, KB-2, KB-3 |
-| Luồng giới thiệu (yêu cầu 2026-10-31) | 3 hoặc 4 trang thay màn chào; trang cuối là trang xin quyền camera; thẻ native ở đáy vùng trang, mọi trang | KB-1, KB-5, KB-6 |
+| Luồng giới thiệu (yêu cầu 2026-10-31, 2026-11-09) | 4 trang thay màn chào; trang cuối là trang xin quyền camera; thẻ native ở đáy vùng trang, mọi trang | KB-1, KB-5, KB-6 |
 
-Luồng giới thiệu cần thiết kế mới trên Figma theo hướng Sticker: mỗi trang có frame sáng, tối, trạng thái `ad` (có thẻ quảng cáo), trang 1 lúc chờ quảng cáo (nút "Tiếp" mờ), khung thấp `w360dp-h640dp` và khi mở gập. Bảng chữ của màn chào ở trên là của bản một trang. Chữ của luồng theo nội dung câu 4, chốt trong gói bàn giao thiết kế:
+Luồng giới thiệu dựng trên Figma theo hướng Sticker, section "Onboarding flow v2" (câu 10): mỗi trang có frame sáng, tối, trạng thái `ad` (có thẻ quảng cáo), trang 1 lúc chờ quảng cáo và trang 3 lúc chờ quảng cáo cho trang 4 (`guide-ad-wait`, nút "Tiếp" mờ), và khi mở gập ở trang 1 và trang cuối (bố cục các trang khác giống trang 1). Chữ của luồng:
 
-| Trang | Nội dung |
-| --- | --- |
-| 1 | Tiêu đề "Chụp dáng đẹp, không cần đoán"; chọn một tư thế, đứng vào nét viền rồi bấm chụp |
-| 2 | Hơn 200 tư thế: một người, cặp đôi, nhóm bạn; lưu tư thế yêu thích để chụp lại sau |
-| 3 (khi cờ premium bật) | Tư thế premium: xem một quảng cáo để mở, dùng mãi về sau (spec poses, KB-8) |
-| Cuối | Chỉnh độ mờ, cỡ và vị trí nét viền; nút "Bật camera"; ghi chú về quyền camera và nơi lưu ảnh |
+| Trang | Ảnh | Tiêu đề | Lời giới thiệu |
+| --- | --- | --- | --- |
+| 1 `intro` | Chân dung chụp selfie, xung quanh là các ảnh đã chụp | Dáng đẹp, không cần đoán | Chưa biết tạo dáng thế nào? App gợi ý dáng và chỉ bạn đứng ra sao. |
+| 2 `poses` | Nhân vật chỉ vào lưới tư thế | Hơn 200 tư thế có sẵn | Một người, cặp đôi hay nhóm bạn đều có. Lưu dáng yêu thích để chụp lại sau. |
+| 3 `guide` | Điện thoại có nét viền trên camera, robot, bong bóng "Đứng vào đây!" | Khớp nét viền, bấm chụp | Chỉnh độ mờ, cỡ và vị trí nét viền cho vừa khung hình. Ảnh lưu ra không kèm nét viền. |
+| 4 `camera` | Nhân vật giơ điện thoại chụp selfie | Sẵn sàng chụp rồi! | Chọn một dáng, đứng vào nét viền và chụp tấm ảnh đầu tiên của bạn. |
 
-Chữ trên thiết kế (tiếng Việt):
+Chữ khác trên thiết kế (tiếng Việt):
 
 | Vị trí | Chữ |
 | --- | --- |
-| Tiêu đề | Chụp dáng đẹp, không cần đoán |
-| Giới thiệu | Chọn một tư thế, đứng vào nét viền rồi bấm chụp. Ảnh lưu vào thư viện máy, không kèm nét viền. |
-| Điểm 1 | Hơn 200 tư thế: một người, cặp đôi, nhóm bạn |
-| Điểm 2 | Chỉnh độ mờ, cỡ và vị trí nét viền |
-| Điểm 3 | Lưu tư thế yêu thích để chụp lại sau |
-| Nút | Bật camera |
+| Nút trang cuối | Bật camera |
+| Nút các trang trước | Tiếp |
 | Ghi chú | App cần quyền camera để hiện khung xem trước. Ảnh chỉ lưu trên máy của bạn. |
 
 ## 5. Quảng cáo
 
 Trước yêu cầu 2026-10-31: không có. Màn chào không hiện quảng cáo (bài học 1, câu 9.1).
 
-Từ yêu cầu 2026-10-31 (câu 6, 8):
+Từ yêu cầu 2026-10-31 (câu 6, 8, 12):
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
-| `native_onboarding` | native_step (thẻ 250 dp ở đáy vùng trang) | Mọi trang của luồng giới thiệu, kể cả trang cuối, chỉ ở lần mở đầu tiên; trang 1 chờ quảng cáo tối đa 5 giây | Đổi quảng cáo mỗi khi chuyển trang, theo pool của khung; bật lúc phát hành | `is_show_native_onboarding` |
+| `native_onboarding` | native_step (thẻ 250 dp ở đáy vùng trang) | Mọi trang của luồng giới thiệu, kể cả trang cuối, chỉ ở lần mở đầu tiên; trang 1 chờ quảng cáo tối đa 5 giây; trang 3 chờ quảng cáo cho trang 4 tối đa 3 giây | Đổi quảng cáo mỗi khi chuyển trang, theo pool của khung; bật lúc phát hành | `is_show_native_onboarding` |
 
 ## 6. Dữ liệu và phân tích
 
@@ -174,7 +173,7 @@ Từ yêu cầu 2026-10-31 (câu 6, 8):
 
 ## 7. File tĩnh trên R2
 
-Không có. Hình minh họa vẽ bằng thành phần của hệ thống thiết kế, không tải file.
+Không có. Bốn ảnh minh họa đóng gói trong app, không tải từ R2, để trang 1 không phải chờ tải ảnh (câu 10).
 
 ## 8. Cờ tính năng
 
@@ -226,6 +225,15 @@ Không có. Hình minh họa vẽ bằng thành phần của hệ thống thiế
 9. **"Không đồng ý" trên hộp thoại đồng ý có phải là không được phép không?** (mới, sau RUN-20261031-02.) Bộ đồng ý UMP của Google coi "Do not consent" là đã trả lời: vẫn cho nạp quảng cáo không cá nhân hóa. Emulator của `device-session` cho thấy điều này (log `Consent path: GRANTED` sau khi chạm "Do not consent", interstitial vẫn hiện).
    - Đề xuất của AI: hiểu "được phép" theo UMP, không đổi khung `:core:ads`. "Không được phép" chỉ khi vị trí tắt, đã mua gói bỏ quảng cáo, hay UMP chưa cho nạp (chưa trả lời, lỗi).
    - Trả lời: theo đề xuất của AI. Nhật, 2026-11-01 (KB-6 tiêu chí 2, 3, 6 sửa lời).
+10. **Luồng giới thiệu có mấy trang, mỗi trang nói gì? (xét lại câu 4, yêu cầu 2026-11-09.)** Mỗi trang là một chỗ đặt thẻ native. Pool `native_step` có 3 quảng cáo, nạp bù lần lượt nên trang thứ 5 dễ không kịp; mỗi trang thêm làm một phần người dùng rời luồng.
+   - Đề xuất của AI: luôn 4 trang (`intro`, `poses`, `guide`, `camera`), không phụ thuộc cờ premium; bỏ trang tư thế premium riêng; mỗi trang một ảnh minh họa của Nhật, tiêu đề một dòng, lời hai dòng (bảng ở mục 4); ảnh đóng gói trong app. Không dùng ảnh có logo Instagram, Facebook. Trang thứ 5 chỉ thử khi đã có số liệu `onboarding_step_viewed`.
+   - Trả lời: theo đề xuất. Nhật, 2026-11-09 ("Duyệt."). Câu trả lời này thay câu trả lời của câu 4.
+11. **Ảnh nhân vật chibi 3D và robot có làm giao diện thu hút chủ yếu trẻ em không?** Tiêu chí ở mục 7 của README thiết kế cấm điều đó. App có đối tượng là người lớn, nhưng phong cách ảnh nằm gần ranh giới.
+   - Đề xuất của AI: giữ 4 ảnh; kiểm khai báo đối tượng trên Play Console trước khi phát hành.
+   - Trả lời: giữ ảnh, ghi nhận rủi ro. Nhật, 2026-11-09.
+12. **Trang 4 có thể chưa có thẻ khi người dùng bấm nhanh, vì pool có 3 quảng cáo và nạp bù lần lượt. Có giữ nút "Tiếp" ở trang 3 không?**
+   - Đề xuất của AI: không giữ, xem tỷ lệ có thẻ ở trang 4 trên staging.
+   - Trả lời: giữ nút "Tiếp" ở trang 3, tối đa 3 giây, để chờ quảng cáo cho trang 4. Nhật, 2026-11-09 (KB-6).
 
 ## 10. Lịch sử
 
@@ -236,3 +244,8 @@ Không có. Hình minh họa vẽ bằng thành phần của hệ thống thiế
 | 2026-10-31 | AI | Yêu cầu của Nhật (`requests/2026-10-31-luong-gioi-thieu-nhieu-trang.md`): luồng giới thiệu 3 đến 5 trang có thẻ native `native_onboarding` (mục 2, KB-5, KB-6, mục 4, 5, 6, 8; câu 4 tới 8). Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-10-31 | Nhật | Trả lời câu 4 tới 8 (AI ghi, cùng phiên). Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-01 | Nhật | Sau RUN-20261031-02 (AI ghi, cùng phiên): emulator cho thấy chọn "Do not consent" trên hộp thoại UMP vẫn cho nạp quảng cáo không cá nhân hóa (`canRequestAds` đúng, log `Consent path: GRANTED`, interstitial vẫn hiện). Nhật chọn hiểu "được phép" theo UMP: KB-6 tiêu chí 2, 3, 6 sửa lời; "Không đồng ý" vẫn có thẻ và trang 1 vẫn chờ. Giữ `confirmed` |
+| 2026-11-09 | AI | Yêu cầu của Nhật (`requests/2026-11-09-luong-gioi-thieu-4-trang-co-anh.md`): luôn 4 trang có ảnh minh họa, bỏ trang tư thế premium, chữ mới (mục 1, 2, KB-5, mục 4, 7; câu 10, 11). Chuyển `changed` |
+| 2026-11-09 | Nhật | Xác nhận spec: chọn "Xác nhận" khi được hỏi trong phiên (AI ghi). Chuyển lại `confirmed` |
+| 2026-11-09 | AI | Quyết định của Nhật: trang 3 chờ quảng cáo cho trang 4 tối đa 3 giây (KB-6, mục 5, câu 12). Chuyển `changed` |
+| 2026-11-09 | Nhật | Xác nhận spec và thiết kế: chọn "Xác nhận" khi được hỏi trong phiên (AI ghi). Chuyển lại `confirmed` |
+| 2026-11-09 | Nhật | Sửa lời theo rà soát độc lập, không đổi hành vi: mục 2 dẫn câu 10, câu mở đầu KB-6 nhắc câu 12, mục 4 thêm trạng thái `guide-ad-wait` và nói rõ khung mở gập. Nhật chọn "Sửa và xác nhận" trong phiên (AI ghi). Giữ `confirmed` |

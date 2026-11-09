@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -59,40 +60,58 @@ class OnboardingStringsTest {
         }
     }
 
+    @Test
+    fun noText_mentionsPremium() {
+        // Control: the check below finds the word, in any case, inside a text.
+        assertTrue(mentionsPremium("Unlock a Premium pose"))
+        listOf("en", "hi", "pt-BR", "es-419", "id", "th", "vi").forEach { tag ->
+            val context = context(tag)
+            (ENGLISH.keys + VIETNAMESE.keys).forEach { id ->
+                val name = context.resources.getResourceEntryName(id)
+                assertFalse("$tag $name mentions premium", mentionsPremium(context.getString(id)))
+            }
+        }
+    }
+
+    private fun mentionsPremium(text: String) = text.contains("premium", ignoreCase = true)
+
     private companion object {
         val ENGLISH = mapOf(
-            R.string.onboarding_title to "Strike a great pose, no guesswork",
-            R.string.onboarding_body to "Pick a pose, step into the outline, then tap to shoot. " +
-                "Photos save to your gallery without the outline.",
-            R.string.onboarding_point_poses to "200+ poses: solo, couples, friends",
-            R.string.onboarding_point_adjust to "Adjust outline opacity, size and position",
-            R.string.onboarding_point_saved to "Save favorite poses to shoot again later",
+            R.string.onboarding_title to "Great poses, no guessing",
+            R.string.onboarding_body to
+                "Not sure how to pose? The app suggests a pose and shows you where to stand.",
+            R.string.onboarding_poses_title to "200+ poses ready to go",
+            R.string.onboarding_poses_body to
+                "Solo, couples or friends, it's all here. Save your favorites to shoot again later.",
+            R.string.onboarding_guide_title to "Match the outline, shoot",
+            R.string.onboarding_guide_body to "Adjust the outline's opacity, size and position to fit the frame. " +
+                "Saved photos don't include the outline.",
+            R.string.onboarding_guide_bubble to "Stand here!",
+            R.string.onboarding_camera_title to "Ready to shoot!",
+            R.string.onboarding_camera_body to "Pick a pose, step into the outline and take your first photo.",
             R.string.onboarding_enable_camera to "Turn on camera",
             R.string.onboarding_note to
                 "The app needs camera access to show the preview. Photos are stored only on your device.",
             R.string.onboarding_next to "Next",
-            R.string.onboarding_poses_title to "A pose for every shot",
-            R.string.onboarding_premium_title to "Premium poses",
-            R.string.onboarding_premium_body to "Watch one ad to unlock a premium pose, then keep it for good.",
-            R.string.onboarding_camera_title to "Ready to shoot",
             R.string.onboarding_page_indicator to "Page %1\$d of %2\$d",
         )
 
         val VIETNAMESE = mapOf(
-            R.string.onboarding_title to "Chụp dáng đẹp, không cần đoán",
-            R.string.onboarding_body to
-                "Chọn một tư thế, đứng vào nét viền rồi bấm chụp. Ảnh lưu vào thư viện máy, không kèm nét viền.",
-            R.string.onboarding_point_poses to "Hơn 200 tư thế: một người, cặp đôi, nhóm bạn",
-            R.string.onboarding_point_adjust to "Chỉnh độ mờ, cỡ và vị trí nét viền",
-            R.string.onboarding_point_saved to "Lưu tư thế yêu thích để chụp lại sau",
+            R.string.onboarding_title to "Dáng đẹp, không cần đoán",
+            R.string.onboarding_body to "Chưa biết tạo dáng thế nào? App gợi ý dáng và chỉ bạn đứng ra sao.",
+            R.string.onboarding_poses_title to "Hơn 200 tư thế có sẵn",
+            R.string.onboarding_poses_body to
+                "Một người, cặp đôi hay nhóm bạn đều có. Lưu dáng yêu thích để chụp lại sau.",
+            R.string.onboarding_guide_title to "Khớp nét viền, bấm chụp",
+            R.string.onboarding_guide_body to
+                "Chỉnh độ mờ, cỡ và vị trí nét viền cho vừa khung hình. Ảnh lưu ra không kèm nét viền.",
+            R.string.onboarding_guide_bubble to "Đứng vào đây!",
+            R.string.onboarding_camera_title to "Sẵn sàng chụp rồi!",
+            R.string.onboarding_camera_body to "Chọn một dáng, đứng vào nét viền và chụp tấm ảnh đầu tiên của bạn.",
             R.string.onboarding_enable_camera to "Bật camera",
             R.string.onboarding_note to
                 "App cần quyền camera để hiện khung xem trước. Ảnh chỉ lưu trên máy của bạn.",
             R.string.onboarding_next to "Tiếp",
-            R.string.onboarding_poses_title to "Tư thế cho mọi kiểu ảnh",
-            R.string.onboarding_premium_title to "Tư thế premium",
-            R.string.onboarding_premium_body to "Xem một quảng cáo để mở một tư thế premium, rồi dùng mãi về sau.",
-            R.string.onboarding_camera_title to "Sẵn sàng chụp",
             R.string.onboarding_page_indicator to "Trang %1\$d trên %2\$d",
         )
     }

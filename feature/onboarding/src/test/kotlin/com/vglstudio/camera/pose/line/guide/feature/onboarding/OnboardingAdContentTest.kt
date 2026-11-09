@@ -17,9 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.OnboardingPage.CAMERA
+import com.vglstudio.camera.pose.line.guide.feature.onboarding.OnboardingPage.GUIDE
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.OnboardingPage.INTRO
 import com.vglstudio.camera.pose.line.guide.feature.onboarding.OnboardingPage.POSES
-import com.vglstudio.camera.pose.line.guide.feature.onboarding.OnboardingPage.PREMIUM
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -133,6 +133,6 @@ class OnboardingAdContentTest {
     }
 
     private companion object {
-        val PAGES_4 = listOf(INTRO, POSES, PREMIUM, CAMERA)
+        val PAGES_4 = listOf(INTRO, POSES, GUIDE, CAMERA)
     }
 }

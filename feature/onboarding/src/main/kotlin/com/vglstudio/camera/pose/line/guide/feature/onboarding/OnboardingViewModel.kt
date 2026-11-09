@@ -2,11 +2,8 @@ package com.vglstudio.camera.pose.line.guide.feature.onboarding
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.vglstudio.camera.pose.line.guide.core.analytics.Analytics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AnalyticsEvent
-import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
-import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlags
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,9 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.launch
 
 /**
  * The onboarding flow (spec onboarding, KB-1, KB-2 and KB-5): "Next" goes through the pages, Back goes to the page
@@ -31,7 +26,6 @@ import kotlinx.coroutines.launch
 class OnboardingViewModel @Inject constructor(
     private val analytics: Analytics,
     private val logger: AppLogger,
-    featureFlags: FeatureFlags,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private var premium = savedStateHandle.get<Boolean>(KEY_PREMIUM) ?: false
@@ -50,15 +44,6 @@ class OnboardingViewModel @Inject constructor(
         logger.info(LOG_TAG, "Onboarding shown")
         // Page 1 is the same with or without the premium page, so its step does not wait for the flag.
         onPageShown()
-        viewModelScope.launch {
-            featureFlags.enabled(FeatureFlag.PREMIUM_POSES).distinctUntilChanged().collect { on ->
-                if (frozen || on == premium) return@collect
-                val current = state.value as? OnboardingUiState.Browsing ?: return@collect
-                premium = on
-                state.value = current.copy(pages = onboardingPages(on))
-                logger.info(LOG_TAG, "Premium page ${if (on) "on" else "off"}")
-            }
-        }
     }
 
     private fun initialState(): OnboardingUiState {

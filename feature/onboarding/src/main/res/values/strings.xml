@@ -13,6 +13,12 @@
     <string name="onboarding_premium_title">Premium poses</string>
     <string name="onboarding_premium_body">Watch one ad to unlock a premium pose, then keep it for good.</string>
     <string name="onboarding_camera_title">Ready to shoot</string>
+    <!-- Skeleton of plan T-091: placeholder texts until the code step. -->
+    <string name="onboarding_poses_body">TODO</string>
+    <string name="onboarding_guide_title">TODO</string>
+    <string name="onboarding_guide_body">TODO</string>
+    <string name="onboarding_guide_bubble">TODO</string>
+    <string name="onboarding_camera_body">TODO</string>
     <!-- %1$d is the current page (from 1), %2$d the number of pages (3 or 4). Read by screen readers only. -->
     <string name="onboarding_page_indicator">Page %1$d of %2$d</string>
 </resources>

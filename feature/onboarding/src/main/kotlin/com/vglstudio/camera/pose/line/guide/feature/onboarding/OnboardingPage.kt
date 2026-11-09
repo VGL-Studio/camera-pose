@@ -5,8 +5,8 @@ enum class OnboardingPage(val logName: String) {
     INTRO("intro"),
     POSES("poses"),
 
-    /** Only while feature_premium_poses_enabled is on (spec onboarding, KB-5). */
-    PREMIUM("premium"),
+    /** Skeleton of plan T-091: how to use the outline. */
+    GUIDE("guide"),
 
     /** The last page: "Turn on camera" and the permission note. */
     CAMERA("camera"),
@@ -16,6 +16,6 @@ enum class OnboardingPage(val logName: String) {
 internal fun onboardingPages(premium: Boolean): List<OnboardingPage> = listOfNotNull(
     OnboardingPage.INTRO,
     OnboardingPage.POSES,
-    OnboardingPage.PREMIUM.takeIf { premium },
+    OnboardingPage.GUIDE.takeIf { premium },
     OnboardingPage.CAMERA,
 )

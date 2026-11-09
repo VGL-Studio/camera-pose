@@ -307,7 +307,7 @@ private fun OnboardingPageContent(page: OnboardingPage, viewportHeight: Dp) {
                     )
                 }
             }
-            OnboardingPage.PREMIUM -> {
+            OnboardingPage.GUIDE -> {
                 IconBadge(R.drawable.ic_onboarding_workspace_premium)
                 PageTitle(R.string.onboarding_premium_title)
                 PageBody(R.string.onboarding_premium_body)
@@ -330,7 +330,7 @@ private fun OnboardingPageContent(page: OnboardingPage, viewportHeight: Dp) {
 private fun OnboardingPage.testTag(): String = when (this) {
     OnboardingPage.INTRO -> OnboardingTestTags.PAGE_INTRO
     OnboardingPage.POSES -> OnboardingTestTags.PAGE_POSES
-    OnboardingPage.PREMIUM -> OnboardingTestTags.PAGE_PREMIUM
+    OnboardingPage.GUIDE -> OnboardingTestTags.PAGE_GUIDE
     OnboardingPage.CAMERA -> OnboardingTestTags.PAGE_CAMERA
 }
 
@@ -459,9 +459,10 @@ internal object OnboardingTestTags {
     const val AD_SLOT = "onboarding_ad_slot"
     const val AD_CARD = "onboarding_ad_card"
     const val BADGE = "onboarding_badge"
+    const val BUBBLE = "onboarding_bubble"
     const val PAGE_INTRO = "onboarding_page_intro"
     const val PAGE_POSES = "onboarding_page_poses"
-    const val PAGE_PREMIUM = "onboarding_page_premium"
+    const val PAGE_GUIDE = "onboarding_page_guide"
     const val PAGE_CAMERA = "onboarding_page_camera"
 
     /** The dot of page [number], counted from 1. */

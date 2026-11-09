@@ -1,7 +1,7 @@
 ---
 ticket: T-089
 title: Kịch bản emulator đóng interstitial `inter_pose_detail` trước khi chờ camera; ghi đúng nghĩa `consent decline`
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 4                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: low              # low | medium | high
@@ -194,3 +194,14 @@ Không có: plan không sửa code Kotlin; chỉ đổi tệp kịch bản emula
 - **Ghi chú:** Nhật trả lời mục 8 trong phiên ngày 2026-11-02 và chọn duyệt luôn. Câu 1: chấp nhận tìm nút theo chữ `Close`. Câu 2: đồng ý sửa `docs/ops/test-sessions.md` ở app rồi mở issue `from-app`. Câu 3: đóng FB-20261031-01 khi ba tệp đạt ở `device-session` sau merge, không chờ kiểm tay. Câu 4: giữ tiêu chí C ở 1 điểm, mức Thấp. Câu 5: không chạy thử trên máy trước khi duyệt; chấp nhận rằng nếu chạm `Close` không đóng được quảng cáo thì chỉ biết sau merge và sửa ở plan phiên bản sau (mục 3.4). Rà soát độc lập: vòng đầu 4 nên sửa, rà lại vòng 1 có 1 nên sửa, vòng 2 có 1 chặn; đã sửa hết.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261109-01, phiên bản plan 1
+
+- **Kết quả:** đã merge.
+- **Nhánh, PR:** `claude/T-089-kich-ban-interstitial`, PR #305, merge 15:17 UTC (commit `68110c1`).
+- **Đã làm:** ba kịch bản T-058, T-022, T-024 thêm `wait text="Close" | id=camera_screen 20` và `tap_if text="Close"` ngay sau `tap str=poses_detail_shoot`; `docs/ops/test-sessions.md` mục 5 thêm câu về quảng cáo sau `consent decline`. Đúng mục 3.1, 3.2.
+- **Test viết trước:** không có, theo ngoại lệ đã duyệt (tệp kịch bản chạy ở `device-session`). `scripts/device-scenario.py check` ba tệp: mã 0.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 2 ghi chú (`timeout: 120` của T-058 vẫn đủ; ticket và FB cập nhật ở bước 10 và sau `device-session`).
+- **Kết quả CI:** `scripts/check.sh` trên máy QUA (2887 test JVM, 0 lỗi); `pr-check` xanh (lần chạy 42639869511).
+- **Lệch so với plan:** không có.
+- **Việc còn lại:** FB-20261031-01 chuyển `fixed` khi ba tệp đạt ở `device-session` cuối phiên; mở issue `from-app` cho câu mới ở `docs/ops/test-sessions.md` (người).

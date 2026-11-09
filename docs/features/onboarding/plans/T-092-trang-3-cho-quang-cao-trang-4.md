@@ -18,7 +18,7 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 
 ## 1. Tóm tắt
 
-`:core:ads` thêm một hàm đọc: pool `native_step` có sẵn quảng cáo rảnh cho bước kế tiếp không. `:feature:onboarding` dùng lại cơ chế chờ của trang 1 để giữ nút "Tiếp" ở trang 3 tối đa 3 giây, một lần mỗi luồng. Kiểm chứng bằng unit test pool, test giao diện của cơ chế chờ theo đồng hồ, 2 screenshot test cùng tên với ảnh thiết kế `guide-ad-wait`, và kịch bản emulator.
+`:core:ads` thêm một hàm đọc: pool `native_step` có sẵn quảng cáo cho bước kế tiếp không, sau khi đã trừ quảng cáo mà thẻ của bước hiện tại sắp lấy. `:feature:onboarding` dùng lại cơ chế chờ của trang 1 để giữ nút "Tiếp" ở trang 3 tối đa 3 giây, một lần mỗi luồng. Kiểm chứng bằng unit test pool, test giao diện của cơ chế chờ theo đồng hồ, 2 screenshot test cùng tên với ảnh thiết kế `guide-ad-wait`, và kịch bản emulator.
 
 ## 2. Hiểu yêu cầu
 
@@ -26,7 +26,7 @@ Ticket xử lý các kịch bản sau trong `features/onboarding/spec.md` (confi
 
 | Kịch bản | Tiêu chí chấp nhận | Cách hiểu của AI |
 | --- | --- | --- |
-| KB-6 | Trang 3 hiện lần đầu, quảng cáo được phép, pool chưa có sẵn quảng cáo cho trang 4 thì "Tiếp" mờ tối đa 3 giây | "Được phép" là `rememberNativeStepAdAllowed`, như trang 1. "Có sẵn" là pool còn ít nhất một quảng cáo rảnh; quảng cáo đang hiện ở thẻ trang 3 không tính |
+| KB-6 | Trang 3 hiện lần đầu, quảng cáo được phép, pool chưa có sẵn quảng cáo cho trang 4 thì "Tiếp" mờ tối đa 3 giây | "Được phép" là `rememberNativeStepAdAllowed`, như trang 1. "Có sẵn" là số quảng cáo cấp được của pool, trừ phần của thẻ trang 3: thẻ đã có quảng cáo thì cần ít nhất 1, thẻ chưa có thì cần ít nhất 2 |
 | KB-6 | Có quảng cáo thì nút dùng được ngay; hết 3 giây thì nút dùng được, trang 4 có thể chưa có thẻ | Cơ chế chờ kết thúc khi tín hiệu đúng hoặc hết giờ |
 | KB-6 | Đã chờ hay đã rời trang 3 thì quay lại không chờ; ra nền thì hết chờ | Giống trang 1: chờ một lần, `begun` lưu qua dựng lại activity |
 | KB-6 | Nút "Tiếp" cùng một chỗ, thẻ không che nút | Không đổi; chỉ đổi `enabled` |
@@ -43,22 +43,30 @@ ADR liên quan: ADR-0013 (quảng cáo qua `:core:ads`), ADR-0019 (log), ADR-002
 
 ```kotlin
 // NativeAdPool
-/** A free ad is waiting, ready for the next cell. Only reads the state, never loads. */
-fun hasFreeAd(): Boolean = free.isNotEmpty()
+/** Free ads a claim could hand out now: not impressed, not expired. Only reads, never loads or drops anything. */
+fun claimableAdCount(): Int {
+    val now = clock.nowMillis()
+    return free.count { !it.ad.impressionRecorded && now - it.loadedAtMillis < NativeAdPolicy.MAX_AGE_MILLIS }
+}
 
 // AdsController
-internal fun poolHasFreeAd(placement: AdPlacement): Boolean = nativePools.pool(placement)?.hasFreeAd() ?: false
+internal fun poolClaimableAdCount(placement: AdPlacement): Int = nativePools.pool(placement)?.claimableAdCount() ?: 0
 
 // NativeFlowStep.kt
+/** One free ad is for the card of the current step while that card has none yet. */
+internal fun nextStepAdReady(claimable: Int, currentStepHasAd: Boolean): Boolean =
+    claimable >= if (currentStepHasAd) 1 else 2
+
 /**
- * Whether the pool of [placement] holds a free ad for the next step of the flow, read every [NEXT_AD_POLL_MILLIS].
- * False with no ads controller. An app that holds its Next button until the next step has an ad uses this.
+ * Whether the pool of [placement] already holds an ad for the step after [step], leaving one for the card of [step]
+ * while [currentStepHasAd] is false. Read in the first frame of a step and every 200 ms; once true it stays true for
+ * that step. False with no ads controller. An app that holds its Next button until the next step has an ad uses this.
  */
 @Composable
-fun rememberNativeStepNextAdReady(placement: AdPlacement): Boolean
+fun rememberNativeStepNextAdReady(placement: AdPlacement, step: Any, currentStepHasAd: Boolean): Boolean
 ```
 
-Hàm composable kiểm định dạng bằng `requireStepFormat`, và trong `LaunchedEffect(ads, placement)` đọc `ads.poolHasFreeAd(placement)` mỗi 200 ms vào một state. Đọc định kỳ để chỉ có một đường đọc, không phải thêm thông báo vào mọi đường đổi pool (lấy, trả, nạp xong, hết hạn), cùng cách làm của ô chờ pool (P-06).
+Hàm composable kiểm định dạng bằng `requireStepFormat`. Giá trị đầu đọc ngay trong `remember(ads, placement, step)`, nên khung đầu của trang 3 đã đúng: nút không sáng rồi mới mờ. `LaunchedEffect(ads, placement, step)` đọc lại mỗi 200 ms, mỗi lần đọc **cùng lúc** số quảng cáo mới nhất và `currentStepHasAd` mới nhất (`rememberUpdatedState`), nên không ghép số cũ với cờ mới. Đọc được đúng một lần thì giữ đúng cho bước đó và thôi đọc: giữa lúc thẻ vừa lấy quảng cáo và lúc thẻ báo về, số đã giảm mà cờ chưa đổi, nên không được cho tín hiệu quay về sai. Đọc định kỳ để chỉ có một đường đọc, không phải thêm thông báo vào mọi đường đổi pool, cùng cách làm của ô chờ pool (P-06). `claimableAdCount` đếm đúng những gì `claim` cấp được, không gọi `pruneExpired` để việc đọc không có tác dụng phụ.
 
 **Cơ chế chờ** (`IntroAdWait.kt`). Tách thân hàm thành `rememberPageAdWait(onPage, allowed, hasAd, maxMillis, usedUpBeforeFirstVisit, onStarted, onEnded)`. `rememberIntroAdWait` giữ nguyên chữ ký, gọi hàm mới với `usedUpBeforeFirstVisit = true`, nên `IntroAdWaitTest` không đổi. Điểm khác: cơ chế cũ coi đã dùng hết ngay khi màn không ở trang đó, nên trang 3 sẽ không bao giờ chờ, vì luồng bắt đầu ở trang 1:
 
@@ -71,7 +79,7 @@ LaunchedEffect(onPage) {
 
 Thêm `internal const val GUIDE_AD_WAIT_MILLIS = 3_000L`.
 
-**Màn hình** (`OnboardingScreen.kt`). `OnboardingAdContent` nhận thêm `nextAdReady: Boolean = false`, `onGuideAdWaitStarted`, `onGuideAdWaitEnded`; gọi `rememberPageAdWait(onPage = trang là GUIDE và trạng thái Browsing, allowed = adsAllowed, hasAd = nextAdReady, maxMillis = GUIDE_AD_WAIT_MILLIS, usedUpBeforeFirstVisit = false, ...)`; `nextEnabled = !introHeld && !guideHeld`. `OnboardingRoute` truyền `rememberNativeStepNextAdReady(AdPlacement.NATIVE_ONBOARDING)` và hai hàm log của ViewModel.
+**Màn hình** (`OnboardingScreen.kt`). `OnboardingAdContent` nhận thêm `nextAdReady: @Composable (page: OnboardingPage, currentStepHasAd: Boolean) -> Boolean = { _, _ -> false }`, `onGuideAdWaitStarted`, `onGuideAdWaitEnded`. Giữ thêm `var cardAdPage: OnboardingPage?`, đặt trong callback của khe: có quảng cáo thì bằng trang đang vẽ, không có thì `null`. Không dùng lại `cardHasAd`: khe coi `Loading` là không báo gì, nên giá trị `true` của trang 2 còn nguyên khi sang trang 3 (`cardHasAd` vẫn dùng cho trang 1 như cũ). Gọi `nextAdReady(page, cardAdPage == page)` rồi `rememberPageAdWait(onPage = trang là GUIDE và trạng thái Browsing, allowed = adsAllowed, hasAd = kết quả đó, maxMillis = GUIDE_AD_WAIT_MILLIS, usedUpBeforeFirstVisit = false, ...)`; `nextEnabled = !introHeld && !guideHeld`. `OnboardingRoute` truyền `{ page, hasAd -> rememberNativeStepNextAdReady(AdPlacement.NATIVE_ONBOARDING, page, hasAd) }` và hai hàm log của ViewModel.
 
 **ViewModel.** Thêm `onGuideAdWaitStarted()`, `onGuideAdWaitEnded(reason)`, log thẻ `Onboarding`: `Guide ad wait started`, `Guide ad wait ended: <lý do>`. Nút "Bật camera" không bao giờ bị giữ.
 
@@ -79,10 +87,10 @@ Thêm `internal const val GUIDE_AD_WAIT_MILLIS = 3_000L`.
 
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
-| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/NativeAdPool.kt` | `hasFreeAd()` |
-| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdsController.kt` | `poolHasFreeAd()` |
-| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/NativeFlowStep.kt` | `rememberNativeStepNextAdReady` |
-| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/NativeAdPoolTest.kt` | Test `hasFreeAd` |
+| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/NativeAdPool.kt` | `claimableAdCount()` |
+| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdsController.kt` | `poolClaimableAdCount()` |
+| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/NativeFlowStep.kt` | `nextStepAdReady`, `rememberNativeStepNextAdReady` |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/NativeAdPoolTest.kt` | Test `claimableAdCount` |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/NativeFlowStepTest.kt` | Test hàm mới |
 | Sửa | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/IntroAdWait.kt` | `rememberPageAdWait` |
 | Sửa | `feature/onboarding/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreen.kt` | Giữ nút ở trang 3 |
@@ -125,12 +133,14 @@ Từ `scripts/existing-tests.py` (2026-11-09). Plan chỉ thêm tham số có gi
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
-| Pool báo có quảng cáo rảnh | Unit test | `NativeAdPoolTest.hasFreeAd_falseWhenEmpty_trueAfterLoad_falseAfterClaim` |
-| Hàm chỉ đọc, không nạp | Unit test | `NativeAdPoolTest.hasFreeAd_doesNotStartLoad` |
-| Tín hiệu cho app | Compose UI test | `NativeFlowStepTest.nextAdReady_noController_false`, `nextAdReady_followsPool`, `nextAdReady_wrongFormat_throws` |
+| Pool đếm đúng quảng cáo cấp được | Unit test | `NativeAdPoolTest.claimableAdCount_followsLoadAndClaim`, `claimableAdCount_skipsImpressedAndExpired` (khớp với `claim`) |
+| Hàm chỉ đọc, không nạp, không hủy | Unit test | `NativeAdPoolTest.claimableAdCount_hasNoSideEffect` |
+| Luật chừa quảng cáo cho thẻ hiện tại | Unit test | `NativeFlowStepTest.nextStepAdReady_needsTwoUntilCardHasAd`: `(0,false)` sai, `(1,false)` sai, `(2,false)` đúng, `(0,true)` sai, `(1,true)` đúng |
+| Tín hiệu cho app | Compose UI test | `NativeFlowStepTest.nextAdReady_noController_false`, `nextAdReady_wrongFormat_throws`, `nextAdReady_firstFrame_readsPool`, `nextAdReady_followsPool`, `nextAdReady_cardWaiting_oneAdArrives_staysFalse`, `nextAdReady_cardClaims_countFallsBeforeReport_staysTrue` (đã đúng thì giữ), `nextAdReady_newStep_readsAgain` |
 | KB-6, trang 3 giữ tối đa 3 giây | Compose UI test | `IntroAdWaitTest.pageWait_notUsedUpOnEarlierPages_heldThreeSeconds`, đồng hồ dừng: tại 2999 ms nút mờ, 3001 ms nút dùng được |
 | KB-6, có quảng cáo thì dùng được ngay | Compose UI test | `IntroAdWaitTest.pageWait_nextAdComes_releasedAtOnce` |
-| KB-6, đã có sẵn thì không chờ | Compose UI test | `IntroAdWaitTest.pageWait_readyOnArrival_neverHeld` |
+| KB-6, đã có sẵn thì không chờ | Compose UI test | `IntroAdWaitTest.pageWait_readyOnArrival_neverHeld` (cơ chế chờ, tín hiệu giả); thứ tự thật ở dòng dưới |
+| KB-6, thứ tự thật của pool ở trang 3 | Compose UI test | `OnboardingAdContentTest` dùng `nextAdReady` tính bằng `nextStepAdReady(số giả, cờ)`: `guide_oneFreeAd_heldFromFirstFrame` (khung đầu nút đã mờ), `guide_cardWaiting_oneAdArrives_stillHeld` (quảng cáo về lúc thẻ chưa có thì vẫn mờ), `guide_cardGotAd_nextAdArrives_released`, `guide_cardHasAdOnPageTwo_notCountedForPageThree` |
 | KB-6, rời trang rồi quay lại không chờ | Compose UI test | `IntroAdWaitTest.pageWait_leftAndBack_notHeldAgain` |
 | KB-6, ra nền hết chờ (L-091) | Compose UI test | `IntroAdWaitTest.pageWait_backgroundMidway_releasedOnReturn` |
 | Dựng lại activity không chờ lại (L-061) | Compose UI test | `IntroAdWaitTest.pageWait_recreatedActivity_notHeldAgain` |
@@ -156,14 +166,14 @@ Không cần (E dưới 2).
 | A. Phạm vi thay đổi | 3 | Hai module, thêm một hàm công khai của `:core:ads` |
 | B. Độ rõ của yêu cầu | 0 | Spec đã xác nhận, thiết kế đã duyệt |
 | C. Khả năng kiểm chứng tự động | 1 | Cơ chế chờ có test theo đồng hồ; tỷ lệ có thẻ thật phải xem trên máy |
-| D. Ảnh hưởng chéo | 1 | Chỉ thêm code trong `:core:ads`, không đổi hành vi có sẵn |
+| D. Ảnh hưởng chéo | 2 | Cùng sửa `OnboardingScreen.kt`, `OnboardingViewModel.kt`, test và kịch bản với T-091; thêm code vào `:core:ads` dùng chung |
 | E. Độ mới của kỹ thuật | 1 | Biến thể của cơ chế chờ trang 1 và cách đọc định kỳ của P-06 |
-| **Tổng** | 6 | **Mức: Cao (chạm điểm chặn)** |
+| **Tổng** | 7 | **Mức: Cao (chạm điểm chặn)** |
 
 ## 6. Ảnh hưởng chéo
 
 - File hoặc thành phần dùng chung bị chạm: `:core:ads`. Thay đổi có ích cho mọi app dùng thẻ bước: ghi đề xuất về dự án mẫu vào mô tả PR (`docs/ops/from-app.md`).
-- Task khác trong sprint có thể xung đột: T-090 cùng sửa `AdsController.kt`, khác vùng; T-091 sửa các file của `:feature:onboarding`, nên phải chạy trước.
+- Task khác trong sprint có thể xung đột: T-090 chưa có plan, phạm vi ticket có chạm `:core:ads` và KDoc của `AdsController`, nên khi lập danh sách chạy cần kiểm lại; T-091 sửa các file của `:feature:onboarding`, nên phải chạy trước.
 - Đề xuất thứ tự chạy: sau T-091.
 
 ## 7. Điều kiện dừng riêng

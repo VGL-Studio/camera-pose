@@ -68,7 +68,7 @@ ShrinkFirstLayout(
 
 `page.title`, `page.body` là hai hàm mở rộng `private` ánh xạ trang sang `@StringRes`. Bỏ `IconBadge`, `FeatureRows`, `FeatureRow`, các kích thước và tag của chúng (`BADGE`, `FEATURES`, `FEATURE_*`); `PAGE_PREMIUM` đổi thành `PAGE_GUIDE` với giá trị `onboarding_page_guide`; thêm `BUBBLE = "onboarding_bubble"`. `MaxIllustrationHeight` đổi từ 280 sang 360; `MinIllustrationHeight` giữ 160.
 
-**Ảnh** (`OnboardingIllustration.kt`, viết lại). `OnboardingIllustration(page, modifier)` vẽ `Image(painterResource(page.art), contentDescription = null, contentScale = ContentScale.Fit)` trong `BoxWithConstraints`. Riêng `GUIDE`, tính khung ảnh sau khi `Fit` theo tỉ lệ 951 : 1080, rồi đặt `Text` chữ bong bóng có tâm ở x 76,8% và y 15,2% của khung ảnh, `softWrap = false`, `maxLines = 1`, màu `MaterialTheme.appColors.onCategory`, kiểu `labelMedium` nhân với `chiều cao ảnh / 289.dp` (cỡ chữ và chiều cao dòng). `onCategory` giống nhau ở hai chế độ vì bong bóng luôn trắng.
+**Ảnh** (`OnboardingIllustration.kt`, viết lại). `OnboardingIllustration(page, modifier)` vẽ `Image(painterResource(page.art), contentDescription = null, contentScale = ContentScale.Fit)` trong `BoxWithConstraints`. Riêng `GUIDE`, tính khung ảnh sau khi `Fit` theo tỉ lệ 951 : 1080, rồi đặt `Text` chữ bong bóng có tâm ở x 76,8% và y 15,2% của khung ảnh, `softWrap = false`, `maxLines = 1`, màu `MaterialTheme.appColors.onCategory`, kiểu cỡ chữ và chiều cao dòng lấy từ `labelMedium` nhưng tính bằng dp của ảnh rồi đổi sang sp (`with(density) { (12.dp * chiều cao ảnh / 289.dp).toSp() }`), để chữ trong bong bóng co theo ảnh, không theo cỡ chữ của máy. `onCategory` giống nhau ở hai chế độ vì bong bóng luôn trắng.
 
 Bốn tệp WebP chép nguyên từ `docs/features/onboarding/design/handoff/onboarding_art_<intro|poses|guide|camera>.webp` sang `feature/onboarding/src/main/res/drawable-nodpi/`. `nodpi` để hệ thống không co giãn thêm; ảnh cao 1080 đủ cho khung 360 dp ở mật độ 3x.
 
@@ -105,9 +105,9 @@ Bốn tệp WebP chép nguyên từ `docs/features/onboarding/design/handoff/onb
 | Sửa | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingScreenScreenshotTest.kt` | `premium` thành `guide` |
 | Sửa | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingStringsTest.kt` | Bảng chữ mới |
 | Sửa | `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingAdContentTest.kt` | `PREMIUM` thành `GUIDE` |
-| Sửa | `feature/onboarding/src/deviceScenarios/T-082-luong-gioi-thieu.txt` | `onboarding_page_guide` |
+| Sửa | `feature/onboarding/src/deviceScenarios/T-082-luong-gioi-thieu.txt` | `onboarding_page_guide`, `shot guide` |
 | Sửa | `feature/onboarding/src/deviceScenarios/T-083-gioi-thieu-cho-trang-1.txt` | `onboarding_page_guide` |
-| Sửa | `feature/poses/src/deviceScenarios/T-086-mo-khoa-chi-tiet.txt` | Dòng chờ trang 3 đổi sang `onboarding_page_guide` |
+| Sửa | `feature/poses/src/deviceScenarios/T-086-mo-khoa-chi-tiet.txt` | Dòng chờ trang 3 đổi sang `onboarding_page_guide`, sửa chú thích "3 or 4 pages" |
 | Xóa | `feature/onboarding/src/test/screenshots/OnboardingScreen_premium_light.png` | Trạng thái đã bỏ |
 | Xóa | `feature/onboarding/src/test/screenshots/OnboardingScreen_premium_dark.png` | Trạng thái đã bỏ |
 | Xóa | `feature/onboarding/src/test/screenshots/OnboardingScreen_premium-ad_light.png` | Trạng thái đã bỏ |
@@ -169,11 +169,18 @@ Từ `scripts/existing-tests.py` (2026-11-09): 6 test ở nhóm "Cần xem trư�
 | Số trang theo cờ premium: 3 hoặc 4, trang 3 là premium | Luôn 4 trang, trang 3 là `guide` | `OnboardingViewModelTest.premiumOff_threePages_withoutPremium`, `premiumOn_fourPages_thirdIsPremium` | Câu mới, thay hai test: `fourPages_inOrder`: `pages` bằng `[INTRO, POSES, GUIDE, CAMERA]` |
 | Danh sách trang đổi theo cờ khi ở trang 1, 2; đứng yên từ trang 3 | Không còn theo cờ | `OnboardingViewModelTest.premiumTurnsOn_onFirstOrSecondPage_listFollows`, `premiumChanges_afterThirdPage_listStays` | Bỏ hai test: hành vi không còn tồn tại, spec câu 10 nói rõ. `fourPages_inOrder` giữ ý định "danh sách trang đúng" |
 | Khôi phục ở trang premium giữ 4 trang dù cờ tắt | Khôi phục ở trang 3 là `guide` | `OnboardingViewModelTest.restoredOnPremiumPage_keepsFourPages_evenIfFlagOff` | Câu mới: `restoredOnThirdPage_isGuide`: `KEY_PAGE_INDEX = 2` thì `page` là `GUIDE`, không ghi lại `step` 3 |
-| ViewModel nhận `FeatureFlags` | Không nhận | Hàm dựng trong `OnboardingViewModelTest.viewModel`, lớp giả ở cuối tệp | Bỏ tham số và lớp giả: phần dựng của test, không đổi câu khẳng định nào |
+| ViewModel nhận `FeatureFlags` | Không nhận | Hàm dựng trong `OnboardingViewModelTest.viewModel`, lớp giả ở cuối tệp | Bỏ tham số và lớp giả. Các câu khẳng định dùng cờ xem bốn dòng dưới |
+| Đi tới trang cuối sau 2 lần "Tiếp" | Sau 3 lần | `OnboardingViewModelTest.toLastPage` (khoảng 12 test gọi) | Đổi dữ liệu (ADR-0029): `repeat(3)`; câu "on the last page" giữ nguyên |
+| Log "Premium page on/off" khi cờ đổi | Không còn log này | `OnboardingViewModelTest.logs_pageAndBack` | Bỏ `flags.premium.value = true` và hai câu `Premium page`. Câu mới: `assertFalse(messages.any { it.startsWith("Premium page") })`. Hai câu về `Page shown` và `Back to page 1` giữ nguyên |
+| Log ở trang thứ 3 là camera | Trang 3 là guide, trang 4 là camera | `OnboardingViewModelTest.logs_useOnboardingTag` | Đổi dữ liệu: thay `"Page shown: 3 camera"` bằng `"Page shown: 3 guide"`, `"Page shown: 4 camera"` |
+| Bước ghi 1 tới 3, đối chứng 4 trang bằng cờ | Luôn 1 tới 4 | `OnboardingViewModelTest.stepViewed_loggedOncePerStep` | Câu mới: sau đi tới, lùi về, đi tới lại thì `analytics.events` đúng bằng `[step(1), step(2), step(3), step(4)]`. Bỏ nhánh `flags`; phần đi lại trong cùng test giữ vai đối chứng "không ghi lần hai" |
+| Số chạm theo hai giá trị cờ | Một luồng 4 trang | `OnboardingViewModelTest.taps_equalPagesPlusOne` | Bỏ vòng lặp cờ. Câu mới: `assertEquals(4, state.pages.size)`, `assertEquals(state.pages.size + 1, taps)`; câu `Finished` giữ |
+| Danh sách `PAGES_3` | Mọi test dùng `PAGES_4`, trang cuối là chỉ số 3 | Các test dùng `PAGES_3` trong `OnboardingViewModelTest` và `OnboardingScreenTest` (dòng 296, 325, 610, 654 và các test `premium*`) | Đổi dữ liệu (ADR-0029); câu khẳng định giữ |
+| Phần tử cuối của trang theo từng trang, gồm hàng điểm | Mọi trang là lời giới thiệu | `OnboardingScreenTest.LAST_ELEMENT`, `small_withCard_fontScale2_buttonAndNoteInWindow`, `assertShortWithCard`, `assertShortScreen`, `assertLandscape` | `LAST_ELEMENT` đổi thành `BODY` cho cả 4 trang, khóa `PREMIUM` thành `GUIDE`; hai dòng dùng `FEATURE_ADJUST` đổi sang `BODY`. Câu "cuộn tới được phần tử cuối" giữ |
 | Trang 2, 3, cuối có huy hiệu; trang 2, cuối có hàng điểm; trang 3 có huy hiệu premium | Mọi trang là ảnh, tiêu đề, lời | `OnboardingScreenTest.poses_layoutMatchesDesign`, `premium_layoutMatchesDesign`, `camera_layoutMatchesDesign`, `posesAd_layoutMatchesDesign`, `premiumAd_layoutMatchesDesign` | Câu mới theo số đo ở mục 4, giữ ý định "đúng số đo của `context/`"; `premium*` đổi tên thành `guide*`. `cameraAd_layoutMatchesDesign`, `intro*` cũng đổi số đo |
-| Ảnh minh họa cao 280, nhiều màu do thành phần vẽ | Ảnh WebP cao tới 360 | `OnboardingScreenTest.intro_layoutMatchesDesign`, `unfolded_layoutMatchesDesign`, `intro_illustrationColors_light`, `assertIllustrationRule` | Số đo theo mục 4. `intro_illustrationColors_light` thay bằng `eachPage_drawsItsArt`, giữ ý định "hình có vẽ ra". `assertIllustrationRule` giữ luật co về 160 |
-| Màu huy hiệu và vòng icon | Không còn phần tử này | `OnboardingScreenTest.poses_iconCircleColor_light`, `premium_badgeColor_light`, `camera_colors_dark` | Bỏ hai test đầu vì phần tử không còn. `camera_colors_dark` giữ phần màu nền, chữ, nút; bỏ phần huy hiệu |
-| Cờ tắt: 3 trang, không có chữ premium | Không trang nào có chữ premium | `OnboardingScreenTest.threePages_noPremiumText_anywhere` | Câu mới: `noPage_mentionsPremium`, chạy trên 4 trang, giữ ý định |
+| Ảnh minh họa cao 280, nhiều màu do thành phần vẽ | Ảnh WebP cao tới 360 | `OnboardingScreenTest.intro_layoutMatchesDesign`, `unfolded_layoutMatchesDesign`, `intro_illustrationColors_light`, `assertIllustrationRule` | Số đo theo mục 4. `intro_illustrationColors_light` thay bằng `eachPage_drawsItsArt`, giữ ý định "hình có vẽ ra". `assertIllustrationRule` viết lại với trần 360: `coerceIn(160.dp, 360.dp)`, `height <= 360.dp`, `shrinks` là `height < 360.dp`. `introAd_layoutMatchesDesign` đổi đối chứng `< 280.dp` thành `< 360.dp`. Bỏ điều kiện `if (state.page == INTRO)` để luật co kiểm trên mọi trang |
+| Màu huy hiệu và vòng icon | Không còn phần tử này | `OnboardingScreenTest.poses_iconCircleColor_light`, `premium_badgeColor_light`, `camera_colors_dark` | Bỏ hai test đầu vì phần tử không còn. `camera_colors_dark` giữ nguyên: test này không có câu nào về huy hiệu |
+| Cờ tắt: 3 trang, không có chữ premium | Không trang nào có chữ premium | `OnboardingScreenTest.threePages_noPremiumText_anywhere` | Câu mới: `noPage_mentionsPremium`: trên cả 4 trang, `onAllNodes(hasText("premium", substring = true, ignoreCase = true)).assertCountEquals(0)` và `pageDot(4)` tồn tại. Đối chứng: `OnboardingStringsTest` khẳng định không chuỗi nào của `ENGLISH`, `VIETNAMESE` chứa "premium", và tạm đặt một chuỗi có chữ này thì test đỏ |
 | Chữ mỗi trang theo bảng cũ | Theo bảng mới | `OnboardingScreenTest.eachPage_showsItsTexts`, `OnboardingStringsTest` | Đổi dữ liệu theo README, mục 2 (ADR-0029) |
 | Danh sách trang của test có `PREMIUM` | `GUIDE` | `OnboardingAdContentTest.PAGES_4`, các test `OnboardingScreenTest` dùng `PAGES`, `OnboardingScreenScreenshotTest.premium*` | Đổi dữ liệu và tên ảnh (ADR-0029); câu khẳng định giữ nguyên |
 
@@ -189,7 +196,7 @@ Từ `scripts/existing-tests.py` (2026-11-09): 6 test ở nhóm "Cần xem trư�
 | Bố cục có thẻ: trang 1 tới 3 ảnh cao 293, tiêu đề y 405, lời y 465, đỉnh thẻ 537; trang cuối ảnh cao 237, tiêu đề y 349, lời y 409, đỉnh thẻ 481 | Compose UI test | `OnboardingScreenTest.<intro\|poses\|guide\|camera>Ad_layoutMatchesDesign`, sai số 4 dp. Số cao hơn Figma 4 dp vì nút 56 thay 60 |
 | Khi mở gập: ảnh cao 360, căn giữa | Compose UI test | `OnboardingScreenTest.unfolded_layoutMatchesDesign` |
 | Ảnh có vẽ ra ở mọi trang | Compose UI test | `OnboardingScreenTest.eachPage_drawsItsArt`: vẽ `decorView` ra `Bitmap`, đếm điểm màu cam trong khung ảnh của từng trang |
-| Chữ bong bóng đúng màu, vừa bong bóng ở mọi ngôn ngữ | Compose UI test | `OnboardingScreenTest.guideBubble_text_dark` đo màu chữ tối ở chế độ tối; `guideBubble_fits_<ngôn ngữ>` cho 7 ngôn ngữ: rộng không quá 41% rộng ảnh |
+| Chữ bong bóng đúng màu, vừa bong bóng ở mọi ngôn ngữ | Compose UI test | `OnboardingScreenTest.guideBubble_text_dark` đo màu chữ tối ở chế độ tối; `guideBubble_fits_<ngôn ngữ>` cho 7 ngôn ngữ: rộng không quá 41% rộng ảnh; `guideBubble_fits_fontScale2`: cỡ chữ hệ thống 2,0 không làm chữ rộng hơn |
 | KB-1, màn thấp, nút luôn thấy, cuộn được ở 7 ngôn ngữ; ảnh co trước | Compose UI test | `OnboardingScreenTest.small_everyPage_buttonVisible_contentScrolls_<ngôn ngữ>`, `small_withCard_buttonInWindow_pageScrolls` |
 | KB-6, thẻ, chờ 5 giây, không che nút | Compose UI test | Giữ nguyên `IntroAdWaitTest`, `OnboardingAdContentTest`, `adSlot_*`, `nextButton_touchArea_notOverCard_*` |
 | Chữ đúng bảng chữ của thiết kế, đủ 7 ngôn ngữ | Compose UI test | `OnboardingStringsTest` (bảng mới) |
@@ -212,6 +219,7 @@ Ghi ảnh chuẩn: `./gradlew :feature:onboarding:recordRoborazziDebug :feature:
 - **Đã chạy thử:** ảnh WebP trong `res/drawable-nodpi` vẽ bằng `painterResource` dưới Robolectric `NATIVE` (lần đầu dự án có ảnh bitmap trong `res/`). Test tạm `TmpWebpArtTest`, không commit, trong worktree tạm từ `c697a41`, ngày 2026-11-09: vẽ `onboarding_art_poses.webp` vào khung 360 dp, vẽ `decorView` ra `Bitmap`, đếm điểm màu cam của áo.
 - **Lệnh:** `scripts/check.sh`
 - **Kết quả:** cổng chất lượng QUA, 2870 test JVM, 0 lỗi; test tạm qua, bitmap 1233 x 2673, 12176 điểm màu cam trên lưới lấy mẫu mỗi 4 điểm ảnh, tức ảnh giải mã và vẽ đúng. Không cần phương án dự phòng ở mục 3.4.
+- **Đo thêm số dòng của tiêu đề** (test tạm `TmpTitleLinesTest`, không commit, `./gradlew :feature:onboarding:testDebugUnitTest`, Robolectric `NATIVE`, 2026-11-09): ở rộng 363 cả 4 tiêu đề tiếng Việt và 4 tiếng Anh đều một dòng, nên số đo ở mục 4 đúng. "Dáng đẹp, không cần đoán" rộng 362,8 trên 363, vừa khít: máy thật hay ngôn ngữ khác có thể xuống dòng, khi đó ảnh co thêm 36 theo `ShrinkFirstLayout`, không vỡ bố cục. Ở rộng 312 (khung 360) ba tiêu đề tiếng Việt và ba tiếng Anh xuống hai dòng; các test `small_*` kiểm theo luật co, không theo số cứng.
 
 ## 5. Chấm rủi ro
 
@@ -222,9 +230,9 @@ Ghi ảnh chuẩn: `./gradlew :feature:onboarding:recordRoborazziDebug :feature:
 | A. Phạm vi thay đổi | 2 | Nhiều phần trong một module, đổi hàm dựng của ViewModel |
 | B. Độ rõ của yêu cầu | 0 | Spec đã xác nhận, thiết kế đã duyệt, có số đo |
 | C. Khả năng kiểm chứng tự động | 1 | Phần lớn có test; trang 4 có quảng cáo thật hay không phải kiểm trên máy |
-| D. Ảnh hưởng chéo | 1 | Chỉ thêm một dòng trong kịch bản của `:feature:poses` |
+| D. Ảnh hưởng chéo | 2 | T-092 cùng sửa `OnboardingScreen.kt`, `OnboardingViewModel.kt`, test và kịch bản; thêm một dòng trong kịch bản của `:feature:poses` |
 | E. Độ mới của kỹ thuật | 2 | Ảnh bitmap đầu tiên trong `res/` của dự án |
-| **Tổng** | 6 | **Mức: Cao (chạm điểm chặn)** |
+| **Tổng** | 7 | **Mức: Cao (chạm điểm chặn)** |
 
 ## 6. Ảnh hưởng chéo
 
@@ -241,6 +249,8 @@ Ghi ảnh chuẩn: `./gradlew :feature:onboarding:recordRoborazziDebug :feature:
 
 1. **Ai đọc bản dịch của 5 ngôn ngữ?** Đề xuất của AI: AI dịch trong task, một người biết tiếng duyệt trước khi phát hành, như spec, câu 1. Trả lời: Nhật phụ trách duyệt bản dịch (Nhật, 2026-11-09).
 2. Đã trả lời: trang 3 giữ nút "Tiếp" tối đa 3 giây (Nhật, 2026-11-09; spec, câu 12). Phần này làm ở T-092, chạy sau ticket này.
+
+3. **Plan bỏ hẳn 4 test vì hành vi hay phần tử chúng kiểm không còn tồn tại:** `premiumTurnsOn_onFirstOrSecondPage_listFollows`, `premiumChanges_afterThirdPage_listStays`, `poses_iconCircleColor_light`, `premium_badgeColor_light`. ADR-0029 không cho phiên tự xóa test, nên người duyệt cần đồng ý rõ ở đây. Đề xuất của AI: đồng ý, vì spec câu 10 bỏ hành vi và thiết kế bỏ phần tử.
 
 ## 9. Quyết định duyệt
 

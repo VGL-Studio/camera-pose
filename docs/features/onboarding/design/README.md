@@ -25,15 +25,15 @@ Luồng luôn có 4 trang, không phụ thuộc cờ `feature_premium_poses_enab
 
 | Màn hình (composable) | Trạng thái | Ảnh trong `screens/`, số liệu trong `context/` | Ticket | Kịch bản |
 | --- | --- | --- | --- | --- |
-| `OnboardingScreen` | Trang 1, giới thiệu | `OnboardingScreen_intro_light`, `OnboardingScreen_intro_dark`, `OnboardingScreen_intro_light_unfolded` | T-082 | KB-1, KB-5 |
-| `OnboardingScreen` | Trang 2, tư thế | `OnboardingScreen_poses_light`, `OnboardingScreen_poses_dark` | T-082 | KB-5 |
+| `OnboardingScreen` | Trang 1, giới thiệu | `OnboardingScreen_intro_light`, `OnboardingScreen_intro_dark`, `OnboardingScreen_intro_light_unfolded` | T-091 | KB-1, KB-5 |
+| `OnboardingScreen` | Trang 2, tư thế | `OnboardingScreen_poses_light`, `OnboardingScreen_poses_dark` | T-091 | KB-5 |
 | `OnboardingScreen` | Trang 3, cách dùng nét viền | `OnboardingScreen_guide_light`, `OnboardingScreen_guide_dark` | T-091 | KB-5 |
-| `OnboardingScreen` | Trang cuối, bật camera | `OnboardingScreen_camera_light`, `OnboardingScreen_camera_dark`, `OnboardingScreen_camera_light_unfolded` | T-082 | KB-1, KB-2, KB-5 |
-| `OnboardingScreen` | Trang 1 có thẻ native | `OnboardingScreen_intro-ad_light`, `OnboardingScreen_intro-ad_dark` | T-083 | KB-6 |
-| `OnboardingScreen` | Trang 2 có thẻ native | `OnboardingScreen_poses-ad_light`, `OnboardingScreen_poses-ad_dark` | T-083 | KB-6 |
+| `OnboardingScreen` | Trang cuối, bật camera | `OnboardingScreen_camera_light`, `OnboardingScreen_camera_dark`, `OnboardingScreen_camera_light_unfolded` | T-091 | KB-1, KB-2, KB-5 |
+| `OnboardingScreen` | Trang 1 có thẻ native | `OnboardingScreen_intro-ad_light`, `OnboardingScreen_intro-ad_dark` | T-091 | KB-6 |
+| `OnboardingScreen` | Trang 2 có thẻ native | `OnboardingScreen_poses-ad_light`, `OnboardingScreen_poses-ad_dark` | T-091 | KB-6 |
 | `OnboardingScreen` | Trang 3 có thẻ native | `OnboardingScreen_guide-ad_light`, `OnboardingScreen_guide-ad_dark` | T-091 | KB-6 |
-| `OnboardingScreen` | Trang cuối có thẻ native | `OnboardingScreen_camera-ad_light`, `OnboardingScreen_camera-ad_dark` | T-083 | KB-6 |
-| `OnboardingScreen` | Trang 1 chờ quảng cáo: thẻ là khung chờ, nút "Tiếp" mờ | `OnboardingScreen_intro-ad-wait_light`, `OnboardingScreen_intro-ad-wait_dark` | T-083 | KB-6 (câu 8) |
+| `OnboardingScreen` | Trang cuối có thẻ native | `OnboardingScreen_camera-ad_light`, `OnboardingScreen_camera-ad_dark` | T-091 | KB-6 |
+| `OnboardingScreen` | Trang 1 chờ quảng cáo: thẻ là khung chờ, nút "Tiếp" mờ | `OnboardingScreen_intro-ad-wait_light`, `OnboardingScreen_intro-ad-wait_dark` | T-091 | KB-6 (câu 8) |
 | `OnboardingScreen` | Trang 3 chờ quảng cáo cho trang 4: thẻ của trang 3 vẫn hiện, nút "Tiếp" mờ | `OnboardingScreen_guide-ad-wait_light`, `OnboardingScreen_guide-ad-wait_dark` | T-092 | KB-6 (câu 12) |
 
 Tên trạng thái `intro`, `poses`, `guide`, `camera`. Trạng thái `premium` của bản cũ thay bằng `guide`; ảnh `premium` trong `screens/` và ảnh chuẩn cùng tên được bỏ trong plan của ticket làm bản này (như plan T-082, mục 3.2).
@@ -81,7 +81,6 @@ Giá trị `context/` đánh dấu "ngoài hệ thống":
 
 - Khoảng cách 56: lề trên của màn, `Spacing.xl + Spacing.lg` như màn chào cũ.
 - Khoảng cách 12 và 2, bo 12, chữ 13: số của khung `:core:ads` (`NativeAdDimens.InnerPadding`, `Step*`, khung chờ), không phải số của app.
-- Kiểu chữ 23/23 (frame `intro-ad`, `intro-ad-wait`): icon camera của hình minh họa sau khi hình co, không phải kiểu chữ riêng.
 - Độ mờ của nút tắt nằm ở lớp (`độ mờ của lớp 0.12` cho khối nền "container", `0.38` cho chữ), không ở lớp tô, vì Figma bỏ độ mờ của lớp tô gắn biến trên instance (L-023). Trong code là màu tắt của `PrimaryButton`, không đổi.
 - Nút trên Figma cao 60, trong code 56 (T-007 đã chốt 56): giữ 56.
 
@@ -99,15 +98,15 @@ Màn loading xong ở lần mở đầu: trang 1 `intro`; bấm "Tiếp" sang tr
 
 - **Phải giống bản mẫu:** bố cục, thứ tự thành phần, chữ (mục 2), vai trò màu và kiểu chữ (mục 3); nút cùng một chỗ trên mọi trang.
 - **Được phép khác:** cách vẽ chữ và bóng của hệ thống, chênh lệch nhỏ theo lưới 4 dp, nút cao 56 thay vì 60, chữ trong thẻ quảng cáo (của nhà quảng cáo).
-- **Phần ghim và phần cuộn:** hàng chấm ghim trên cùng; vùng trang cuộn và co theo chỗ còn lại; khe thẻ, ghi chú quyền (trang cuối) và nút ghim ở đáy, không cuộn. Thẻ không bao giờ che ghi chú hay nút. Ở trang 1, hình minh họa co trước (`ShrinkFirstLayout`), sau đó vùng trang cuộn.
-- **Màn hình thấp (360 x 640), tính từ số đo của bản trước** (chưa dựng frame; screenshot test `_small` kiểm; giả định tiêu đề một dòng, lời hai dòng):
+- **Phần ghim và phần cuộn:** hàng chấm ghim trên cùng; vùng trang cuộn và co theo chỗ còn lại; khe thẻ, ghi chú quyền (trang cuối) và nút ghim ở đáy, không cuộn. Thẻ không bao giờ che ghi chú hay nút. Ở mọi trang, ảnh minh họa co trước (`ShrinkFirstLayout`), sau đó vùng trang cuộn.
+- **Màn hình thấp (360 x 640), tính từ số đo của bản trước** (chưa dựng frame; screenshot test `_small` kiểm; giả định tiêu đề một dòng, lời hai dòng; ở rộng 312 các tiêu đề dài xuống hai dòng, khi đó nội dung cần thêm 36 và ảnh ở dòng không thẻ thấp đi 36):
 
 | Trang ở 360 x 640 | Vùng trang (cuộn) | Trừ lề trong 24 trên, 24 dưới | Nội dung cần khi ảnh thấp nhất 160 (không kể lề) | Kết quả |
 | --- | --- | --- | --- | --- |
 | Trang 1 tới 3, có thẻ | 218 | 170 | 292 | Ảnh 160, vùng trang cuộn |
 | Trang cuối `camera`, có thẻ | 162 | 114 | 292 | Ảnh 160, vùng trang cuộn |
-| Trang 1 tới 3, không thẻ | 468 | 420 | 292 | Ảnh co còn khoảng 312, không cuộn |
-| Trang cuối `camera`, không thẻ | 412 | 364 | 292 | Ảnh co còn khoảng 256, không cuộn |
+| Trang 1 tới 3, không thẻ | 468 | 420 | 292 | Ảnh co còn khoảng 288, không cuộn |
+| Trang cuối `camera`, không thẻ | 412 | 364 | 292 | Ảnh co còn khoảng 232, không cuộn |
 
   Không ẩn thẻ, không giảm lề ở khung thấp (plan T-083, mục 8, câu 7): vùng trang còn ít nhưng cuộn được, nút và ghi chú luôn thấy.
 - **Khi mở gập (673 x 841):** cùng bố cục một cột, rộng hết; khung ảnh cao 360, ảnh căn giữa.

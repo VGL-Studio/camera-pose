@@ -22,7 +22,8 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 
 **Phiên bản 2 (2026-11-10).** Phiên bản 1 (duyệt 2026-11-09, Nhật, duyệt chéo Tuấn) bị bỏ qua ở RUN-20261109-01: `plan-check.py` ngay trước task báo `LỖI: ảnh thiết kế của ticket khác OnboardingScreen_premium_light không có trong docs/features/onboarding/design/screens/.` Mục 4 liệt kê bốn ảnh `OnboardingScreen_premium*` mà T-091 (chạy trước, đã merge) xóa đúng theo plan của nó (lặp lại L-101). Vì sao plan chưa đủ tốt: tên ảnh được thêm để qua `plan-check.py` lúc viết plan, khi ảnh còn đó, mà không tính tới việc T-091 xóa chúng. Thay đổi so với phiên bản 1:
 
-- Mục 4: bỏ bốn tên ảnh đã xóa khỏi dòng khai báo ảnh do T-091 vẽ. Các phần khác không đổi.
+- Mục 4: bỏ bốn tên ảnh đã xóa khỏi dòng khai báo ảnh do T-091 vẽ.
+- Theo rà soát lại (2026-11-10): mục 3.1 chỉ đọc pool ở trang 3; mục 5, 6 cập nhật theo việc T-091 đã merge và plan T-090 đang soạn. Hành vi, test và tiêu chí khác không đổi. Các kịch bản và test khác đi qua luồng giới thiệu (T-056, T-076, T-020, T-058, T-022, T-024, T-086, `AppLaunchTest`, `SettingsNavigationTest`) đã chờ "Tiếp" bật (15 giây hay `waitUntil` 10 giây), nên chịu được 3 giây chờ ở trang 3.
 - Cách tiếp tục: làm lại từ đầu trên nhánh mới từ nhánh chính (phiên bản 1 chưa tạo nhánh hay commit nào). T-091 đã merge (PR #306), nên phần "chạy sau T-091" ở mục 6 đã thỏa.
 
 ## 2. Hiểu yêu cầu
@@ -108,7 +109,7 @@ LaunchedEffect(onPage, hasAd) { if (onPage && hasAd) begun = true }
 
 Thêm `internal const val GUIDE_AD_WAIT_MILLIS = 3_000L`.
 
-**Màn hình** (`OnboardingScreen.kt`). `OnboardingAdContent` nhận thêm `nextAdReady: @Composable (page: OnboardingPage, currentStepHasAd: Boolean) -> Boolean = { _, _ -> false }`, `onGuideAdWaitStarted`, `onGuideAdWaitEnded`. Giữ thêm `var cardAdPage: OnboardingPage?`, đặt trong callback của khe: có quảng cáo thì bằng trang đang vẽ, không có thì `null`. Không dùng lại `cardHasAd`: khe coi `Loading` là không báo gì, nên giá trị `true` của trang 2 còn nguyên khi sang trang 3 (`cardHasAd` vẫn dùng cho trang 1 như cũ). Gọi `nextAdReady(page, cardAdPage == page)` rồi `rememberPageAdWait(onPage = trang là GUIDE và trạng thái Browsing, allowed = adsAllowed, hasAd = kết quả đó, maxMillis = GUIDE_AD_WAIT_MILLIS, usedUpBeforeFirstVisit = false, ...)`; `nextEnabled = !introHeld && !guideHeld`. `OnboardingRoute` truyền `{ page, hasAd -> rememberNativeStepNextAdReady(AdPlacement.NATIVE_ONBOARDING, page, hasAd) }` và hai hàm log của ViewModel.
+**Màn hình** (`OnboardingScreen.kt`). `OnboardingAdContent` nhận thêm `nextAdReady: @Composable (page: OnboardingPage, currentStepHasAd: Boolean) -> Boolean = { _, _ -> false }`, `onGuideAdWaitStarted`, `onGuideAdWaitEnded`. Giữ thêm `var cardAdPage: OnboardingPage?`, đặt trong callback của khe: có quảng cáo thì bằng trang đang vẽ, không có thì `null`. Không dùng lại `cardHasAd`: khe coi `Loading` là không báo gì, nên giá trị `true` của trang 2 còn nguyên khi sang trang 3 (`cardHasAd` vẫn dùng cho trang 1 như cũ). Chỉ gọi `nextAdReady(page, cardAdPage == page)` khi trạng thái là `Browsing` và trang là `GUIDE` (nhánh `if` trong composable); trang khác coi như `false`, để vòng đọc pool 200 ms chỉ chạy ở trang 3, không chạy suốt luồng khi pool không bao giờ có quảng cáo. Kết quả đó đưa vào `rememberPageAdWait(onPage = trang là GUIDE và trạng thái Browsing, allowed = adsAllowed, hasAd = kết quả đó, maxMillis = GUIDE_AD_WAIT_MILLIS, usedUpBeforeFirstVisit = false, ...)`; `nextEnabled = !introHeld && !guideHeld`. `OnboardingRoute` truyền `{ page, hasAd -> rememberNativeStepNextAdReady(AdPlacement.NATIVE_ONBOARDING, page, hasAd) }` và hai hàm log của ViewModel.
 
 **ViewModel.** Thêm `onGuideAdWaitStarted()`, `onGuideAdWaitEnded(reason)`, log thẻ `Onboarding`: `Guide ad wait started`, `Guide ad wait ended: <lý do>`. Nút "Bật camera" không bao giờ bị giữ.
 
@@ -150,7 +151,7 @@ Không có.
 
 ### 3.5. Hành vi đã có bị đổi
 
-Từ `scripts/existing-tests.py` (2026-11-09; chạy lại 2026-11-10 sau khi T-091 merge: 3 test ở nhóm "Cần xem trước" là `BannerAdSizeTest.admobOrder_withMaxKey_noMaxPlatform_heightIsAdmob`, `InListAdsTest.grid_inCollection_adTakesOneCell_everyNItems`, `RewardedActionTest.realController_adFreeWhileDialogOpen_watchRunsAction`, chỉ dựng `AdsController` thật; plan chỉ thêm hàm đọc vào lớp này, không đổi hàm có sẵn, nên giữ nguyên). Plan chỉ thêm tham số có giá trị mặc định và thêm hàm; `rememberIntroAdWait` giữ nguyên chữ ký. Hành vi trang 1 chỉ khác ở một trường hợp hiếm mà test có sẵn không chạm: `hasAd` đúng trước khi lượt chờ bắt đầu rồi sai, trước đây sẽ chờ, nay không chờ. Bốn test ở nhóm "Nên xem" (`NativeFlowStepTest.nativeStepAdAllowed_noController_false`, `nativeStepAdAllowed_otherFormat_throws`, `nativeStepAdAllowed_withController_followsConsentSwitchAndAdFree`, `requireStepFormat_rejectsOtherFormats`) kiểm hai hàm mà plan chỉ gọi, không sửa, nên giữ nguyên. `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingStringsTest.kt` chỉ nhắc `docs/features/onboarding/design/README.md` trong chú thích, không đọc tệp này, nên không bị ảnh hưởng khi plan thêm kết quả đối chiếu vào README.
+Từ `scripts/existing-tests.py` (2026-11-09; chạy lại 2026-11-10 sau khi T-091 merge: 3 test ở nhóm "Cần xem trước" là `BannerAdSizeTest.admobOrder_withMaxKey_noMaxPlatform_heightIsAdmob`, `InListAdsTest.grid_inCollection_adTakesOneCell_everyNItems`, `RewardedActionTest.realController_adFreeWhileDialogOpen_watchRunsAction`, chỉ dựng `AdsController` thật; plan chỉ thêm hàm đọc vào lớp này, không đổi hàm có sẵn, nên giữ nguyên). Plan chỉ thêm tham số có giá trị mặc định và thêm hàm; `rememberIntroAdWait` giữ nguyên chữ ký. Hành vi trang 1 chỉ khác ở một trường hợp hiếm mà test có sẵn không chạm: `hasAd` đúng trước khi lượt chờ bắt đầu rồi sai, trước đây sẽ chờ, nay không chờ. Bốn test ở nhóm "Nên xem" (`NativeFlowStepTest.nativeStepAdAllowed_noController_false`, `nativeStepAdAllowed_otherFormat_throws`, `nativeStepAdAllowed_withController_followsConsentSwitchAndAdFree`, `requireStepFormat_rejectsOtherFormats`) kiểm hai hàm mà plan chỉ gọi, không sửa, nên giữ nguyên. `OnboardingStringsTest.kt` không đọc `docs/features/onboarding/design/README.md`, nên không bị ảnh hưởng khi plan thêm kết quả đối chiếu vào README.
 
 | Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
 | --- | --- | --- | --- |
@@ -195,15 +196,15 @@ Không cần (E dưới 2).
 | A. Phạm vi thay đổi | 3 | Hai module, thêm một hàm công khai của `:core:ads` |
 | B. Độ rõ của yêu cầu | 0 | Spec đã xác nhận, thiết kế đã duyệt |
 | C. Khả năng kiểm chứng tự động | 1 | Cơ chế chờ có test theo đồng hồ; tỷ lệ có thẻ thật phải xem trên máy |
-| D. Ảnh hưởng chéo | 2 | Cùng sửa `OnboardingScreen.kt`, `OnboardingViewModel.kt`, test và kịch bản với T-091; thêm code vào `:core:ads` dùng chung |
+| D. Ảnh hưởng chéo | 2 | Thêm code vào `:core:ads` dùng chung; plan T-090 (đang soạn) cũng sửa `AdsController.kt`. T-091 đã merge nên không còn xung đột với nó |
 | E. Độ mới của kỹ thuật | 1 | Biến thể của cơ chế chờ trang 1 và cách đọc định kỳ của P-06 |
 | **Tổng** | 7 | **Mức: Cao (chạm điểm chặn)** |
 
 ## 6. Ảnh hưởng chéo
 
 - File hoặc thành phần dùng chung bị chạm: `:core:ads`. Thay đổi có ích cho mọi app dùng thẻ bước: ghi đề xuất về dự án mẫu vào mô tả PR (`docs/ops/from-app.md`).
-- Task khác trong sprint có thể xung đột: T-090 chưa có plan, phạm vi ticket có chạm `:core:ads` và KDoc của `AdsController`, nên khi lập danh sách chạy cần kiểm lại; T-091 sửa các file của `:feature:onboarding`, nên phải chạy trước.
-- Đề xuất thứ tự chạy: sau T-091.
+- Task khác trong sprint có thể xung đột: T-090 (plan đang soạn, nhánh `claude/plan-T-090-combo-native`) sửa `:core:ads`, kể cả `AdsController.kt`; khi lập danh sách chạy có cả hai thì `run-check.py` báo hai plan cùng sửa một file, xếp thứ tự hay nối phụ thuộc lúc đó. T-091 đã merge.
+- Đề xuất thứ tự chạy: không phụ thuộc thứ tự với task khác (T-091 đã merge).
 
 ## 7. Điều kiện dừng riêng
 

@@ -1044,7 +1044,9 @@ class NativeFlowStepTest {
         val cardScope = CoroutineScope(Dispatchers.Main)
         try {
             val states = mutableListOf<NativeAdState>()
-            cardScope.launch { controller.stepAd(placement, flowOf(1)).collect { states += it } }
+            // The steps of the card never complete (NativeStepAdHost keeps them in a StateFlow): a completed flow
+            // would end the card and give its ad back to the pool.
+            cardScope.launch { controller.stepAd(placement, MutableStateFlow<Any>(1)).collect { states += it } }
             looper.idle()
             assertEquals("the claim of the card sent the first request", 1, loader.requests.size)
             loader.deliver(FakeLoadedNativeAd())

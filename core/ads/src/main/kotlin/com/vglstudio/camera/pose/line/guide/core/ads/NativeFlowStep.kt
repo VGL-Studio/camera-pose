@@ -12,9 +12,11 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -169,20 +171,48 @@ fun rememberNativeStepAdAllowed(placement: AdPlacement): Boolean {
     return rememberStepAllowed(placement, ads.canRequestAds, ads::isEnabled) { ads.unitId(it) }
 }
 
-/** Whether [claimable] free ads leave one for the next step: one is for the current card while it has none yet. */
-fun nextStepAdReady(claimable: Int, currentStepHasAd: Boolean): Boolean = false
+/**
+ * Whether [claimable] free ads of the pool leave one for the next step (plan T-092): one is for the card of the
+ * current step while it has none yet ([currentStepHasAd] false), so two are needed then, one once the card has its
+ * own. Public because an app tests its wiring with this rule on a fake count.
+ */
+fun nextStepAdReady(claimable: Int, currentStepHasAd: Boolean): Boolean = claimable >= if (currentStepHasAd) 1 else 2
 
 /**
- * Whether the pool of [placement] already holds an ad for the step after [step], leaving one for the card of [step]
- * while [currentStepHasAd] is false. Read in the first frame of a step and every 200 ms; once true it stays true for
- * that step. False with no ads controller. An app that holds its Next button until the next step has an ad uses this.
+ * Whether the pool of [placement] already holds an ad for the step after [step] (plan T-092), leaving one for the
+ * card of [step] while [currentStepHasAd] is false ([nextStepAdReady]). Read in the first frame of a step (so a
+ * button held on it never shows enabled for one frame first) and every 200 ms after; once true it stays true for
+ * that step, so the moment between the card claiming an ad and reporting it, when the count fell and the flag did
+ * not move yet, never turns it back to false. Each read takes the latest count and the latest [currentStepHasAd]
+ * together. Reads only: nothing is loaded or dropped by it. False with no ads controller. An app that holds its Next
+ * button until the next step has an ad uses this; pass the same [step] as to [NativeStepAd] and the availability it
+ * reports as [currentStepHasAd]. Placements of another format are an [IllegalArgumentException].
  */
 @Composable
-fun rememberNativeStepNextAdReady(placement: AdPlacement, step: Any, currentStepHasAd: Boolean): Boolean = false
+fun rememberNativeStepNextAdReady(placement: AdPlacement, step: Any, currentStepHasAd: Boolean): Boolean {
+    requireStepFormat(placement.format)
+    val ads = LocalAdsController.current ?: return false
+    return rememberNextStepAdReady(step, currentStepHasAd) { ads.poolClaimableAdCount(placement) }
+}
+
+/** How often [rememberNativeStepNextAdReady] reads the pool while the next step has no ad yet. */
+private const val NEXT_AD_POLL_MILLIS = 200L
 
 /** [rememberNativeStepNextAdReady] without an ads controller, so tests set the count (like [rememberStepReady]). */
 @Composable
-internal fun rememberNextStepAdReady(step: Any, currentStepHasAd: Boolean, claimable: () -> Int): Boolean = false
+internal fun rememberNextStepAdReady(step: Any, currentStepHasAd: Boolean, claimable: () -> Int): Boolean {
+    val hasAd by rememberUpdatedState(currentStepHasAd)
+    val count by rememberUpdatedState(claimable)
+    // Read in the composition itself, so the first frame of the step already carries the answer.
+    var ready by remember(step) { mutableStateOf(nextStepAdReady(claimable(), currentStepHasAd)) }
+    LaunchedEffect(step) {
+        while (!ready) {
+            ready = nextStepAdReady(count(), hasAd)
+            delay(NEXT_AD_POLL_MILLIS)
+        }
+    }
+    return ready
+}
 
 /**
  * [NativeStepAd] without an ads controller: [step] goes into one stream of steps, read by the states [newStates]

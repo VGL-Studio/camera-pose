@@ -53,6 +53,7 @@ import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.NativeStepAd
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberAdHoldingLauncher
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberNativeStepAdAllowed
+import com.vglstudio.camera.pose.line.guide.core.ads.rememberNativeStepNextAdReady
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Radius
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
@@ -107,6 +108,9 @@ internal fun OnboardingRoute(
         },
         onIntroAdWaitStarted = viewModel::onIntroAdWaitStarted,
         onIntroAdWaitEnded = viewModel::onIntroAdWaitEnded,
+        nextAdReady = { page, hasAd -> rememberNativeStepNextAdReady(AdPlacement.NATIVE_ONBOARDING, page, hasAd) },
+        onGuideAdWaitStarted = viewModel::onGuideAdWaitStarted,
+        onGuideAdWaitEnded = viewModel::onGuideAdWaitEnded,
     )
 }
 
@@ -118,7 +122,8 @@ internal fun OnboardingRoute(
  * [MinIllustrationHeight]), then the page scrolls (design README, section 6). Back goes to the page before, from the
  * second page; on the first page it closes the app.
  * [adSlot] draws the card of T-083 between the page and the bottom; nothing by default, with no padding of its own.
- * [nextEnabled] false holds "Next" while the card of page 1 waits for an ad (plan T-083); "Turn on camera" never.
+ * [nextEnabled] false holds "Next" while the card of page 1 waits for an ad (plan T-083) or while page 3 waits for
+ * the ad of page 4 (plan T-092); "Turn on camera" never.
  */
 @Composable
 internal fun OnboardingScreen(
@@ -189,9 +194,12 @@ internal fun OnboardingScreen(
 }
 
 /**
- * The onboarding screen with the ad card of plan T-083: holds Next on page one while the card waits for an ad
- * (spec onboarding, KB-6). [adsAllowed] is the gate of the card; [adSlot] draws the card and reports whether it has
- * an ad (the real card by default, a fake in tests).
+ * The onboarding screen with the ad card of plan T-083: holds Next on page one while the card waits for an ad, and
+ * on page three while the pool has no ad for page four, at most [GUIDE_AD_WAIT_MILLIS] (spec onboarding, KB-6,
+ * question 12; plan T-092). [adsAllowed] is the gate of the card; [adSlot] draws the card and reports whether it has
+ * an ad (the real card by default, a fake in tests); [nextAdReady] says whether the pool has an ad for the next page,
+ * given the page on screen and whether its card has an ad ([rememberNativeStepNextAdReady] by default, a rule on a
+ * fake count in tests). It is asked on page three only, so its reads of the pool run on that page alone.
  */
 @Composable
 internal fun OnboardingAdContent(
@@ -210,12 +218,28 @@ internal fun OnboardingAdContent(
         { page, onChange -> OnboardingAdCard(page, onChange) },
 ) {
     var cardHasAd by remember { mutableStateOf(false) }
-    val nextHeld = rememberIntroAdWait(
-        onIntro = uiState is OnboardingUiState.Browsing && uiState.page == OnboardingPage.INTRO,
+    // The page whose card has an ad, or null: the slot reports nothing while it loads, so the true of page two
+    // would still read as true on page three (plan T-092).
+    var cardAdPage by remember { mutableStateOf<OnboardingPage?>(null) }
+    val browsing = uiState is OnboardingUiState.Browsing
+    val introHeld = rememberIntroAdWait(
+        onIntro = browsing && uiState.page == OnboardingPage.INTRO,
         allowed = adsAllowed,
         hasAd = cardHasAd,
         onStarted = onIntroAdWaitStarted,
         onEnded = onIntroAdWaitEnded,
+    )
+    val onGuide = browsing && uiState.page == OnboardingPage.GUIDE
+    // Asked on page three only: other pages count as no signal, and the pool is not read on them.
+    val guideAdReady = if (onGuide) nextAdReady(uiState.page, cardAdPage == uiState.page) else false
+    val guideHeld = rememberPageAdWait(
+        onPage = onGuide,
+        allowed = adsAllowed,
+        hasAd = guideAdReady,
+        maxMillis = GUIDE_AD_WAIT_MILLIS,
+        usedUpBeforeFirstVisit = false,
+        onStarted = onGuideAdWaitStarted,
+        onEnded = onGuideAdWaitEnded,
     )
     OnboardingScreen(
         uiState = uiState,
@@ -223,8 +247,13 @@ internal fun OnboardingAdContent(
         onBack = onBack,
         onEnableCamera = onEnableCamera,
         modifier = modifier,
-        nextEnabled = !nextHeld,
-        adSlot = { page -> adSlot(page) { cardHasAd = it } },
+        nextEnabled = !introHeld && !guideHeld,
+        adSlot = { page ->
+            adSlot(page) { available ->
+                cardHasAd = available
+                cardAdPage = if (available) page else null
+            }
+        },
     )
 }
 

@@ -26,6 +26,8 @@ wait id=onboarding_page_poses 10
 tap id=onboarding_next
 wait id=onboarding_page_guide 10
 shot guide
+# T-092: page 3 may hold Next up to 3 s while the pool has no ad for page 4; wait until it is enabled
+wait id=onboarding_next enabled=true 15
 tap id=onboarding_next
 wait id=onboarding_page_camera 10
 expect id=onboarding_enable_camera

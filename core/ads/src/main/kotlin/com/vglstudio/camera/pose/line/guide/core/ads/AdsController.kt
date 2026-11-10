@@ -1650,6 +1650,13 @@ class AdsController @Inject internal constructor(
     internal fun poolExhausted(placement: AdPlacement): Boolean = nativePools.pool(placement)?.exhausted ?: true
 
     /**
+     * The free ads the pool of [placement] could hand out now ([NativeAdPool.claimableAdCount], plan T-092); 0 with
+     * no pool (no ad unit). Only reads: the pool is made on the first call, which sends no request.
+     */
+    internal fun poolClaimableAdCount(placement: AdPlacement): Int =
+        nativePools.pool(placement)?.claimableAdCount() ?: 0
+
+    /**
      * The states of the card of a flow step of [placement] on its pool ([stepAdStates], plan T-032); Unavailable when
      * the placement has no pool (no ad unit). The caller checks consent and [isEnabled] first, like [NativeStepAd].
      */

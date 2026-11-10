@@ -125,6 +125,17 @@ Màn loading xong ở lần mở đầu: trang 1 `intro`; bấm "Tiếp" sang tr
 
 ## 8. Kết quả đối chiếu
 
+Đối chiếu hai frame `guide-ad-wait` (T-092) bằng `scripts/design-compare.sh onboarding` ngày 2026-11-10 (RUN-20261110-01, macOS): ảnh chuẩn chụp bằng tiếng Việt, trang 3 với thẻ giả `NativeAdCard(NativeAdSize.STEP)` như các frame `-ad` của T-091 và nút "Tiếp" `PrimaryButton(enabled = false)`; thẻ tĩnh nên không cần dừng đồng hồ. 20 frame còn lại giữ nguyên số của T-091 (ảnh chuẩn không đổi).
+
+| Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |
+| --- | --- | --- |
+| OnboardingScreen_guide-ad-wait_light | 6.1% | `OnboardingScreen_guide-ad-wait_light_compare.png` |
+| OnboardingScreen_guide-ad-wait_dark | 6.8% | `OnboardingScreen_guide-ad-wait_dark_compare.png` |
+
+Nhận xét của phiên viết code (T-092; rà soát độc lập bổ sung ở bước 6):
+
+- Thẻ của trang 3 giữ nguyên như frame `guide-ad` (đỉnh 537, cao 250), nút "Tiếp" cùng chỗ, cùng cỡ với nút thường và đúng màu của nút tắt (nền `onSurface` 0.12, chữ 0.38, viền `outlineVariant`, không bóng). Phần khác so với thiết kế giống `guide-ad` (6.3%, 7.0%): dải 4 dp vì nút cao 56 thay 60 (mục 6), ảnh co giãn lệch 4 dp theo, và chữ giả "Advertiser" thay "Advertiser or short body" của Figma (chữ của nhà quảng cáo, mục 2).
+
 Đối chiếu bản 4 trang có ảnh (T-091) bằng `scripts/design-compare.sh onboarding` ngày 2026-11-09 (RUN-20261109-01, macOS): ảnh chuẩn chụp bằng tiếng Việt, luồng 4 trang, frame `-ad` dùng thẻ giả `NativeAdCard(NativeAdSize.STEP)` như T-083. Hai frame `guide-ad-wait` còn "thiếu ảnh chuẩn screenshot" tới T-092. Bốn frame `premium` đã bỏ cùng ảnh chuẩn cùng tên (plan T-091, mục 3.2).
 
 | Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |

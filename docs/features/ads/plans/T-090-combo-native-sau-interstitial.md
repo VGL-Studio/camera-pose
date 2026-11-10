@@ -1,7 +1,7 @@
 ---
 ticket: T-090
 title: Bật combo native toàn màn hình sau interstitial của màn; `resume_inter` không nối combo
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -294,3 +294,14 @@ Chạy lại sau khi sửa plan theo rà soát độc lập: `python3 scripts/ex
   - Còn lại (`AdNetworkLogWiringTest`, `AdsSdkStartTest`, `FullScreenAdGuardTest`, `FullScreenAdsTest`, `FullScreenPreloadSlotTest`, `RemovedPacingRulesTest`, `RewardedActionTest`, `RewardedTurnsTest`, `NetworkDialogControllerTest`, `PhotoStoreTest`, `LoadingRouteTest`): chỉ trùng tên lớp hay `onCreate`. Giữ.
 - Hai test của `ResumeAdTurnsTest` và `StagingRemoteValuesModuleTest.firstOpenAndCombo_areNotSet` có câu khẳng định đổi: mục 3.5.
 - 106 test chỉ dùng tên mà không thuộc hai nhóm trên: không xem từng test; `scripts/check.sh` ở mục 4.1 chạy cả bộ với thay đổi của mục 3.1.
+
+### RUN-20261110-01, phiên bản plan 1
+
+- **Kết quả:** đã merge.
+- **Nhánh, PR:** `claude/T-090-combo-native-sau-inter`, PR #313, merge 05:09 UTC (commit `308161e`).
+- **Đã làm:** `MainActivity` đặt `FullScreenAdHost()` ngoài `NetworkDialogHost`, trong `AppTheme`; `ResumeAdTurns` `combo = false`; KDoc `AdsController`; staging bật `is_show_native_after_inter`; ba kịch bản thêm bước đóng combo, kịch bản mới `T-090-combo-sau-chi-tiet.txt`; ADR-1009 `accepted`, `foundation.md` sinh lại; spec camera, poses `changed`; `manual-test.md` 11.1, 11.8. Phiên con làm bước 3 tới 5 trong worktree.
+- **Test viết trước:** commit `7da7068`, 11 test mới hay sửa, 6 đỏ đúng lý do; 7 test về hành vi khung qua ngay như plan ghi. Đối chứng `publishAfter`: tạm bỏ thì `noGapUntilComboCloses` đỏ. File test không đổi sau commit test.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 6 ghi chú; 7 đột biến trên bản sao đều bị test bắt.
+- **Kết quả CI:** `scripts/check.sh` trên máy QUA (2916 test JVM, 0 lỗi); `pr-check` xanh (lần chạy 42759036119).
+- **Lệch so với plan:** `startupInterstitial_shownAndClosed_noCombo` dựng mốc lần mở đầu để là "lần mở sau" (chi tiết dựng trong commit test); ADR-1009 thêm hai vế rút từ plan mục 3.1, 7. Câu khẳng định cũ viết lại (ADR-0031): đúng ba câu của mục 3.5 (PR #313, mục Test cũ viết lại).
+- **Việc còn lại:** Nhật xóa khóa `is_show_native_after_inter` trên Firebase staging; Nhật xác nhận lại spec camera và poses; kiểm tay `manual-test.md` 11.8; mở issue `from-app` (công tắc `resume_inter` nối combo; khung không mở lượt combo khi không có host vẽ); FB-20261102-01 chuyển `fixed` sau kiểm tay.

@@ -7,7 +7,7 @@ build: nhánh chính sau PR #257 (device-session lần chạy 41210750330, phiê
 feature: poses
 ticket: T-089                # nguồn: T-079 (PR #257)
 severity: nang
-status: planned
+status: fixed
 created: 2026-10-31
 ---
 
@@ -57,3 +57,5 @@ Kịch bản kiểm đúng luồng KB-4: sau lần bấm, chờ interstitial (n�
 - **Xử lý:** sửa trong sprint này: ticket T-089, phiên tự chạy kế tiếp. Nhật chọn ngày 2026-11-02 (`/triage-feedback`). Vẫn lỗi ở `device-session` lần chạy 41334189241 (TS-20261101-02, sau RUN-20261101-01), cả ba tệp, cùng bước.
 - **Lý do:** log `VGL.Poses: Shoot with pose` rồi `VGL.Ads: Interstitial shown: inter_pose_detail` cách nhau 5 ms; `fail.xml` là quảng cáo thử, nút đóng là `android.widget.Button` chữ `Close`; không crash, ANR hay log lỗi `E VGL.*`.
 - **Liên kết:** ticket và plan T-089 (`docs/features/poses/plans/T-089-kich-ban-emulator-qua-interstitial.md`).
+
+- Kết quả (RUN-20261109-01, 2026-11-09): T-089 merge (PR #305); `device-session` 42650802537 trên nhánh chính: T-058, T-022, T-024 `đạt`, cả ba chạm `Close` của `inter_pose_detail` rồi tới camera. Chuyển `fixed`.

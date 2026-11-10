@@ -42,8 +42,9 @@ object StagingRemoteValuesModule {
 
     /**
      * The app open ad from the second open and the resume ad on every screen, the ad lifecycle logs for testers (spec
-     * ads, question 6; plan T-074, pass 2), and the native slot of the bottom bars (spec ads, question 11; plan T-079).
-     * Not set, so off as their default: show_open_ads_first_open, is_show_native_after_inter.
+     * ads, question 6; plan T-074, pass 2), the native slot of the bottom bars (spec ads, question 11; plan T-079), and
+     * the native combo after the interstitials of the screens (spec ads, question 18; plan T-090).
+     * Not set, so off as its default: show_open_ads_first_open.
      */
     @Provides
     @ElementsIntoSet
@@ -52,6 +53,7 @@ object StagingRemoteValuesModule {
         AdsSettings.SHOW_OPEN_ADS,
         AdsSettings.SHOW_RESUM_ADS,
         AdsSettings.IS_SHOW_NATIVE_BOTTOM,
+        AdsSettings.IS_SHOW_NATIVE_AFTER_INTER,
         AdsSettings.IS_LOG_AD_FULLSCREEN_EVENTS,
         AdsSettings.IS_LOG_AD_SLOT_EVENTS,
     ).map { LocalRemoteValue.of(it, true) }.toSet()

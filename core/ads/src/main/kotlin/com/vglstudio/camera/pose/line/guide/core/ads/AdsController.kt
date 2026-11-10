@@ -103,7 +103,8 @@ import kotlinx.coroutines.withContext
  * full-screen ad of `native_combo` follows it with a countdown of `time_close_native`, 5 s by default
  * ([NativeFullScreenTurns]), drawn by
  * [FullScreenAdHost]; the completion of the interstitial then runs when that ad closes. The startup interstitial never
- * opens the combo. Every interstitial shown is counted since install ([InterDisplayCounter], N-05).
+ * opens the combo, nor does the resume interstitial. Every interstitial shown is counted since install
+ * ([InterDisplayCounter], N-05).
  *
  * A rewarded placement holds an action of the user (plan T-031, MC-05, R-01 to R-06): [rememberRewardedAction] asks
  * with its dialog and calls [showRewarded]; every rule of the turn and of its loads is in [RewardedTurns], which this
@@ -113,9 +114,10 @@ import kotlinx.coroutines.withContext
  * The resume ad (plan T-025, KB-14, A-10 to A-15) is decided each time the whole process comes to foreground
  * ([AdsActivityTracker], all activities of the process, a rotation is not a return), except the first time, by the
  * gates of [decideResumeAd], and shown on the next resume of an app activity ([ResumeAdTurns], [ActivityResumeSteps]):
- * app open of `resume` through the app open slot, or the interstitial of `resume_inter` with the combo, which skips
- * the `ads_interval` gate. It stays silent until the startup ad turn of the loading screen is over. A click on any ad
- * ([AdTelemetry.clicked]) skips the next return (A-14).
+ * app open of `resume` through the app open slot, or the interstitial of `resume_inter`, which skips the
+ * `ads_interval` gate and, in this app, never opens the combo (spec ads, question 18). It stays silent until the
+ * startup ad turn of the loading screen is over. A click on any ad ([AdTelemetry.clicked]) skips the next return
+ * (A-14).
  *
  * AppsFlyer (plan T-033, ADR-0027) is started through [AppsFlyerStartup] at the first of: the SDK started, an answer of
  * the consent round, or 10 s after [start] with no consent form open ([awaitAttributionStart]). Its funnel goes through

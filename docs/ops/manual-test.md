@@ -344,7 +344,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 **Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
 
 - [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080), `is_show_rw_premium_pose` đặt `false` (T-086), `is_show_native_onboarding` đặt `false` (T-083).
-- [ ] Không có `show_open_ads_first_open`, `is_show_native_after_inter`, `is_show_native_collap` đặt `true`.
+- [ ] Không có `show_open_ads_first_open`, `is_show_native_collap` đặt `true`; không có `is_show_native_after_inter` đặt `false` (T-090).
 - [ ] Hai khóa cũ `is_show_poses_banner`, `is_show_poses_detail_banner` không còn ai đọc từ T-079; để nguyên trên Firebase.
 - [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
 - [ ] Không nhập `docs/remote-config-template.json` vào project staging (`remote-config.md`, mục 5, bước 7).
@@ -364,14 +364,14 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 3. Đóng hẳn app (vuốt khỏi danh sách app gần đây) rồi mở lại, để bắt đầu phiên mới. Chụp, lưu ảnh 1, rời màn xem lại.
    - [ ] Không có quảng cáo toàn màn hình; về camera.
 4. Chụp, lưu ảnh 2, rời màn xem lại.
-   - [ ] Có quảng cáo toàn màn hình (log `VGL.Ads`); đóng quảng cáo thì về camera.
+   - [ ] Có quảng cáo toàn màn hình (log `VGL.Ads`); đóng interstitial, rồi combo nếu có (mục 11.8), thì về camera.
 5. Lưu ảnh 3 và ảnh 4, mỗi lần rời màn xem lại.
    - [ ] Không có quảng cáo.
 6. Lưu ảnh 5, rời màn xem lại.
    - [ ] Có quảng cáo nếu đã qua 45 giây từ lần trước (nhịp `ads_interval`); chưa qua thì không.
 7. Đợi ít nhất 45 giây từ quảng cáo toàn màn hình gần nhất. Mở chi tiết một tư thế, bấm "Chụp với tư thế này" (T-079).
    - [ ] Quảng cáo toàn màn hình thử hiện; log `VGL.Ads` có `inter_pose_detail`.
-   - [ ] Đóng quảng cáo thì camera mở với đúng tư thế vừa chọn.
+   - [ ] Đóng interstitial, rồi combo nếu có (mục 11.8), thì camera mở với đúng tư thế vừa chọn.
 8. Quay lại chi tiết, trong vòng 45 giây bấm "Chụp với tư thế này" lần nữa.
    - [ ] Không có quảng cáo (chưa qua nhịp `ads_interval`); camera mở ngay với đúng tư thế.
 
@@ -471,6 +471,26 @@ Màn loading tắt thì không có quảng cáo mở app. Bản staging bật s�
 8. Trên Firebase staging đặt `is_show_native_onboarding` thành `false`, `reset`, mở app, đồng ý.
    - [ ] Không có thẻ, không có khoảng trống của thẻ; nút "Tiếp" ở trang 1 bấm được ngay, không có dòng `Intro ad wait`. Đặt lại khóa như cũ.
 - [ ] Ghi kết quả vào nhật ký của plan T-083.
+
+### 11.8 Combo native sau interstitial (T-090)
+
+Điều kiện: bản staging có T-090; đã đồng ý quảng cáo ở hộp thoại đồng ý; Firebase staging không đặt `is_show_native_after_inter = false`. Thử trên máy thật: emulator không có quảng cáo native thử ổn định. Log: `adb logcat -v threadtime | grep ' VGL\.Ads'`; `Native combo opened (inter gone: true|false)` ghi khi khóa bật lúc interstitial hoàn tất, `Native combo closed (shown: true|false)` ghi khi lớp phủ đóng (nút, Back, tự đóng khi nạp lỗi). **Không bấm vào quảng cáo.**
+
+1. Đồng ý quảng cáo, mở thư viện, chạm thẻ, bấm "Chụp với tư thế này".
+   - [ ] Interstitial thử hiện; đóng nó thì có quảng cáo native toàn màn hình với vòng 5, 4, 3, 2, 1 ở góc trên trái; camera chưa mở. Log `Native combo opened`.
+   - [ ] Trong lúc đếm, Back không làm gì. Hết đếm có nút X ("Close ad"); bấm X (hay Back) thì camera mở với đúng tư thế vừa chọn; log `Native combo closed (shown: true)`.
+   - [ ] Quảng cáo native chưa về: khung chờ toàn màn hình, vẫn đóng được sau 5 giây; nạp lỗi thì tự đóng khi hết đếm (`Native combo closed (shown: false)`). Không lần nào kẹt ở màn trống.
+2. Ở camera, chụp và lưu ảnh thứ 2 của phiên rồi rời màn xem lại (luật `review_interstitial`; cách nhịp `ads_interval` 45 giây từ quảng cáo trước).
+   - [ ] Interstitial rồi combo; đóng combo thì về camera như rời màn xem lại thường.
+3. Firebase staging đặt `resume_ad_type = inter` (nhớ trả lại `aoa` sau bước này). Ở camera, bấm Home rồi mở lại app (sau trần 45 giây của lượt khởi động).
+   - [ ] Có interstitial `resume_inter` (`Resume ad SHOW: resume_inter`); đóng nó thì về đúng màn cũ, **không** có combo, không có dòng `Native combo opened` sau `Interstitial shown: resume_inter`. Bấm Home rồi mở lại lần nữa (sau 45 giây): lại có quảng cáo quay lại app, không có `Resume ads held: full_screen_page` kẹt từ lần trước.
+4. Đóng app hẳn, mở lại (lần mở thứ hai trở đi) khi Firebase staging đặt `open_ad_type` dạng interstitial.
+   - [ ] Interstitial lúc mở app hiện; đóng thì vào app, không có combo.
+5. Trong lúc combo đang đếm, tắt Wi-Fi và dữ liệu.
+   - [ ] Popup mất mạng chưa hiện khi combo còn trên màn; đóng combo thì popup hiện (`features/network/spec.md`, mục 5). Bật mạng, "Thử lại": popup đóng, camera mở.
+6. Firebase staging đặt `is_show_native_after_inter = false` rồi mở lại app hai lần (để giá trị mới được nạp).
+   - [ ] Interstitial `inter_pose_detail` đóng là camera mở ngay, không có combo (Firebase thắng giá trị cục bộ của staging, ADR-1007). Trả khóa về như cũ (xóa giá trị trên Firebase staging).
+- [ ] Ghi kết quả vào nhật ký của plan T-090.
 
 ## 12. Không kiểm được trên staging
 

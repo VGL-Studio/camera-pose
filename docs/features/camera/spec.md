@@ -1,6 +1,6 @@
 ---
 feature: camera
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -171,7 +171,7 @@ Tiêu chí chấp nhận:
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi người dùng rời màn xem lại (bằng Chụp lại, Tư thế tiếp hay nút quay lại) sau khi đã lưu ảnh, và đủ điều kiện ở mục 5, thì một quảng cáo toàn màn hình hiện trước khi về camera.
+- [ ] Khi người dùng rời màn xem lại (bằng Chụp lại, Tư thế tiếp hay nút quay lại) sau khi đã lưu ảnh, và đủ điều kiện ở mục 5, thì một quảng cáo toàn màn hình hiện trước khi về camera; combo native toàn màn hình có thể hiện ngay sau nó, về camera khi combo đóng (mục 5).
 - [ ] Khi chưa lưu ảnh nào trong lần xem lại đó thì không hiện quảng cáo.
 - [ ] Khi khóa `is_show_review_interstitial` tắt hoặc người dùng chưa đồng ý quảng cáo theo hộp thoại đồng ý thì không hiện quảng cáo (ADR-0013, ADR-0014).
 - [ ] Khi ở camera và trong lúc xem lại thì không có vị trí quảng cáo nào của màn camera hay màn xem lại. Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6).
@@ -210,6 +210,8 @@ Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
 | `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình), khóa `ads_review_interstitial_first_break`; tối đa 1 lần mỗi 3 ảnh lưu, khóa `ads_review_interstitial_breaks_between`; nhịp chung của mọi quảng cáo toàn màn hình `ads_interval` (mặc định 45 giây). Không còn luật 120 giây riêng (`features/ads/spec.md`, câu 1, 2). | `is_show_review_interstitial` |
+
+Sau `review_interstitial` có thể có quảng cáo native toàn màn hình (combo, `native_combo`, khóa `is_show_native_after_inter`), đếm ngược `time_close_native` giây rồi đóng được; rời màn xem lại khi combo đóng (`features/ads/spec.md`, câu 18).
 
 Màn camera và màn xem lại không có vị trí quảng cáo nào của màn (bài học 3).
 
@@ -349,3 +351,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-29 | Nhật | Xác nhận phần đổi sau T-074 lượt 3 (lời của Nhật: chọn "Xác nhận cả ba" khi trả lời câu hỏi cuối phiên RUN-20261029-01). Chuyển lại `confirmed` |
 | 2026-10-31 | AI | Chép phần dải tư thế của tư thế premium vào KB-1 (spec poses, KB-8, câu 12; Nhật chọn chép trong PR xác nhận spec poses). Nhật xác nhận cùng spec poses: chọn "Ghi và chuyển confirmed" |
 | 2026-10-31 | Nhật | Mục 8: cờ `feature_camera_enabled` không còn tác dụng từ T-081 (app luôn mở camera; plan T-081 câu 1), bỏ ở T-088 (rà soát độc lập plan T-081; AI ghi). Lời của Nhật: chọn "Sửa spec + ticket bỏ cờ", phương án ghi rõ Nhật xác nhận spec lại ngay. Chuyển `changed` rồi lại `confirmed` |
+| 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `review_interstitial` (mục 5, KB-9 tiêu chí 1). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |

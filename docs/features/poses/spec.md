@@ -1,6 +1,6 @@
 ---
 feature: poses
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -8,7 +8,7 @@ requests:
   - requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-31
+confirmed: 2026-11-10
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -301,3 +301,4 @@ Tư thế premium (yêu cầu 2026-10-31, câu 6): catalog có thêm trường `
 | 2026-10-31 | AI | Yêu cầu của Nhật (`requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md`): tư thế premium mở khóa bằng quảng cáo có thưởng `rw_premium_pose` (mục 2, KB-8, mục 4 tới 8; câu 6 tới 12). Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-10-31 | Nhật | Trả lời câu 6 tới 12 (AI ghi, cùng phiên). Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `inter_pose_detail` (mục 5, KB-4 tiêu chí 4). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |
+| 2026-11-10 | Nhật | Xác nhận lại spec sau T-090 (AI ghi theo lời Nhật trong phiên). Chuyển lại `confirmed` |

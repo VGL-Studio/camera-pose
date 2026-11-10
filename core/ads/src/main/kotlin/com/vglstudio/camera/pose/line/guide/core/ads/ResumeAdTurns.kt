@@ -84,7 +84,8 @@ internal class ResumeAdTurns(private val port: ResumeAdPort, private val logger:
         logger.info(TAG, "Resume ad shown on resume: ${placement.key}")
         when (placement.format) {
             AdFormat.APP_OPEN -> port.showAppOpen(activity, placement)
-            AdFormat.INTERSTITIAL -> port.showInterstitial(activity, placement, combo = true)
+            // No combo after the resume interstitial (spec ads, question 18; ADR-1009): app deviation from A-12.
+            AdFormat.INTERSTITIAL -> port.showInterstitial(activity, placement, combo = false)
             else -> logger.warn(TAG, "Resume ad ${placement.key}: format not shown")
         }
     }

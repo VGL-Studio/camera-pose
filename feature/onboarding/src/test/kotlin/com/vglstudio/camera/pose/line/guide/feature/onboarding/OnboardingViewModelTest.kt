@@ -428,6 +428,23 @@ class OnboardingViewModelTest {
         )
     }
 
+    @Test
+    fun guideAdWait_logsStartAndEnd() {
+        val viewModel = viewModel()
+        // Control: nothing about the hold before it is reported.
+        assertFalse(logger.entries.any { it.message.startsWith("Guide ad wait") })
+        viewModel.onGuideAdWaitStarted()
+        viewModel.onGuideAdWaitEnded(IntroAdWaitEnd.AD)
+        val hold = logger.entries.filter { it.message.startsWith("Guide ad wait") }
+        assertEquals(
+            listOf(
+                onboardingLog(LogLevel.INFO, "Guide ad wait started"),
+                onboardingLog(LogLevel.INFO, "Guide ad wait ended: ad"),
+            ),
+            hold,
+        )
+    }
+
     private companion object {
         const val STEP = "onboarding_step_viewed"
         const val MAX_TAPS = 10

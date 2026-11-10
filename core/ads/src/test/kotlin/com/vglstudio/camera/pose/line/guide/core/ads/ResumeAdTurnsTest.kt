@@ -106,13 +106,14 @@ class ResumeAdTurnsTest {
     }
 
     @Test
-    fun interResume_showsInterstitialWithCombo() {
+    fun interResume_showsInterstitialWithoutCombo() {
         port.gate = ALL_PASS.copy(placement = AdPlacement.RESUME_INTER)
         port.placementNow = AdPlacement.RESUME_INTER
         launched()
         returnToApp()
         turns.onAppActivityResumed(activity)
-        assertEquals(listOf(Triple(activity, AdPlacement.RESUME_INTER, true)), port.interShows)
+        // No combo after the resume interstitial in this app (spec ads, question 18; ADR-1009; plan T-090).
+        assertEquals(listOf(Triple(activity, AdPlacement.RESUME_INTER, false)), port.interShows)
         assertTrue(port.appOpenShows.isEmpty())
     }
 
@@ -353,11 +354,11 @@ class ResumeAdTurnsTest {
         turns.onAppActivityResumed(activity)
         assertTrue(port.appOpenShows.isEmpty())
         assertTrue(port.interShows.isEmpty())
-        // Control: the next turn with the new type shows the interstitial once.
+        // Control: the next turn with the new type shows the interstitial once, with no combo (spec ads, question 18).
         port.gate = ALL_PASS.copy(placement = AdPlacement.RESUME_INTER)
         returnToApp()
         turns.onAppActivityResumed(activity)
-        assertEquals(listOf(Triple(activity, AdPlacement.RESUME_INTER, true)), port.interShows)
+        assertEquals(listOf(Triple(activity, AdPlacement.RESUME_INTER, false)), port.interShows)
         assertTrue(port.appOpenShows.isEmpty())
     }
 

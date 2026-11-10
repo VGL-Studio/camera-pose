@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsController
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsHost
+import com.vglstudio.camera.pose.line.guide.core.ads.FullScreenAdHost
 import com.vglstudio.camera.pose.line.guide.core.ads.InterstitialBreakGate
 import com.vglstudio.camera.pose.line.guide.core.ads.LocalInterstitialBreakGate
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
@@ -147,6 +148,10 @@ class MainActivity : ComponentActivity() {
                                 settingsEnabled = settingsEnabled,
                             )
                         }
+                        // The native combo after an interstitial of a screen, drawn over the current screen (HD-05;
+                        // spec ads, question 18; ADR-1009). Its own dialog window, so it stays outside
+                        // NetworkDialogHost; the network dialog waits for it through fullScreenAdShowing.
+                        FullScreenAdHost()
                     }
                 }
             }

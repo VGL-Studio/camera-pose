@@ -200,6 +200,22 @@ class OnboardingScreenScreenshotTest {
         onRoot().captureRoboImage("src/test/screenshots/OnboardingScreen_intro-ad-wait_dark.png")
     }
 
+    // Page three while the pool has no ad for page four (plan T-092): the card of page three stays, Next is held.
+    // The fake card is static, so no clock is stopped.
+    @Test
+    fun guideAdWait_light() {
+        captureRoboImage("src/test/screenshots/OnboardingScreen_guide-ad-wait_light.png") {
+            Page(index = 2, darkTheme = false, adSlot = FAKE_CARD, nextEnabled = false)
+        }
+    }
+
+    @Test
+    fun guideAdWait_dark() {
+        captureRoboImage("src/test/screenshots/OnboardingScreen_guide-ad-wait_dark.png") {
+            Page(index = 2, darkTheme = true, adSlot = FAKE_CARD, nextEnabled = false)
+        }
+    }
+
     // Short phone frame (L-028), page one with the card: the illustration shrinks to 160, the page scrolls.
     @Test
     @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")

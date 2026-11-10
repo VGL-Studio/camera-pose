@@ -1,5 +1,6 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
+import android.os.Looper
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,11 +33,16 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryB
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
+import java.time.Duration
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -44,6 +50,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -842,12 +849,235 @@ class NativeFlowStepTest {
         assertEquals(false, ready)
     }
 
+    // Whether the pool already holds an ad for the next step (plan T-092).
+
+    /** State changed by the test reaches the next frame only after [Snapshot.sendApplyNotifications]. */
+    private fun frame() {
+        Snapshot.sendApplyNotifications()
+        composeRule.mainClock.advanceTimeByFrame()
+    }
+
+    /** One read of the pool (every 200 ms) and the frame that draws it. */
+    private fun poll() {
+        Snapshot.sendApplyNotifications()
+        composeRule.mainClock.advanceTimeBy(NEXT_AD_POLL_MILLIS + FRAME_MILLIS)
+    }
+
+    @Test
+    fun nextStepAdReady_needsTwoUntilCardHasAd() {
+        assertFalse(nextStepAdReady(claimable = 0, currentStepHasAd = false))
+        assertFalse(nextStepAdReady(claimable = 1, currentStepHasAd = false))
+        assertTrue(nextStepAdReady(claimable = 2, currentStepHasAd = false))
+        assertFalse(nextStepAdReady(claimable = 0, currentStepHasAd = true))
+        assertTrue(nextStepAdReady(claimable = 1, currentStepHasAd = true))
+    }
+
+    @Test
+    fun nextAdReady_noController_false() {
+        composeRule.mainClock.autoAdvance = false
+        var ready: Boolean? = null
+        var control: Boolean? = null
+        composeRule.setContent {
+            ready = rememberNativeStepNextAdReady(AdPlacement.GALLERY_NATIVE_STEP, step = 1, currentStepHasAd = true)
+            // Control (L-055): the same rule with a count of its own says true.
+            control = rememberNextStepAdReady(step = 1, currentStepHasAd = true) { 1 }
+        }
+        frame()
+        assertEquals(false, ready)
+        assertEquals(true, control)
+    }
+
+    @Test
+    fun nextAdReady_wrongFormat_throws() {
+        assertThrows(IllegalArgumentException::class.java) {
+            composeRule.setContent {
+                rememberNativeStepNextAdReady(AdPlacement.GALLERY_NATIVE_MEDIUM, step = 1, currentStepHasAd = false)
+            }
+            composeRule.waitForIdle()
+        }
+    }
+
+    @Test
+    fun nextAdReady_firstFrame_readsPool() {
+        composeRule.mainClock.autoAdvance = false
+        var reads = 0
+        val results = mutableListOf<Boolean>()
+        composeRule.setContent {
+            results += rememberNextStepAdReady(step = 1, currentStepHasAd = false) {
+                reads++
+                2
+            }
+        }
+        frame()
+        // The first composition already read the pool: the button never shows enabled for one frame first.
+        assertEquals(true, results.first())
+        assertTrue("read before the first frame", reads >= 1)
+    }
+
+    @Test
+    fun nextAdReady_followsPool() {
+        composeRule.mainClock.autoAdvance = false
+        var count = 0
+        var ready: Boolean? = null
+        composeRule.setContent { ready = rememberNextStepAdReady(step = 1, currentStepHasAd = false) { count } }
+        frame()
+        assertEquals(false, ready)
+        poll()
+        assertEquals(false, ready)
+
+        count = 2
+        poll()
+        assertEquals(true, ready)
+    }
+
+    @Test
+    fun nextAdReady_cardWaiting_oneAdArrives_staysFalse() {
+        composeRule.mainClock.autoAdvance = false
+        var count = 0
+        var ready: Boolean? = null
+        composeRule.setContent { ready = rememberNextStepAdReady(step = 1, currentStepHasAd = false) { count } }
+        frame()
+        assertEquals(false, ready)
+
+        // The one ad that comes is for the card of this step, not for the next one.
+        count = 1
+        poll()
+        assertEquals(false, ready)
+        poll()
+        poll()
+        assertEquals(false, ready)
+
+        // Control: a second ad is for the next step.
+        count = 2
+        poll()
+        assertEquals(true, ready)
+    }
+
+    @Test
+    fun nextAdReady_cardClaims_countFallsBeforeReport_staysTrue() {
+        composeRule.mainClock.autoAdvance = false
+        var count = 2
+        var hasAd by mutableStateOf(false)
+        var ready: Boolean? = null
+        composeRule.setContent { ready = rememberNextStepAdReady(step = 1, currentStepHasAd = hasAd) { count } }
+        frame()
+        assertEquals(true, ready)
+
+        // The card claimed one: the count fell before the card reported its ad.
+        count = 1
+        poll()
+        assertEquals(true, ready)
+        count = 0
+        poll()
+        assertEquals(true, ready)
+        hasAd = true
+        poll()
+        assertEquals(true, ready)
+    }
+
+    @Test
+    fun nextAdReady_cardReportsAd_thenOneFree_becomesTrue() {
+        composeRule.mainClock.autoAdvance = false
+        var count = 1
+        var hasAd by mutableStateOf(false)
+        var ready: Boolean? = null
+        composeRule.setContent { ready = rememberNextStepAdReady(step = 1, currentStepHasAd = hasAd) { count } }
+        frame()
+        assertEquals(false, ready)
+        poll()
+        assertEquals(false, ready)
+
+        // The card reports its ad while the count is still 1: the latest flag goes with the latest count.
+        hasAd = true
+        poll()
+        assertEquals(true, ready)
+    }
+
+    @Test
+    fun nextAdReady_newStep_readsAgain() {
+        composeRule.mainClock.autoAdvance = false
+        var count = 2
+        var step by mutableStateOf(1)
+        var ready: Boolean? = null
+        composeRule.setContent { ready = rememberNextStepAdReady(step = step, currentStepHasAd = false) { count } }
+        frame()
+        assertEquals(true, ready)
+
+        // A new step reads the pool again in its first frame: the true of the step before does not carry over.
+        count = 0
+        step = 2
+        frame()
+        assertEquals(false, ready)
+
+        count = 2
+        poll()
+        assertEquals(true, ready)
+    }
+
+    @Test
+    fun nextAdReady_withController_readsPoolOfPlacement() {
+        val placement = AdPlacement.GALLERY_NATIVE_STEP
+        val settings = FakeRemoteSettings()
+        val loader = FakeNativeAdLoader()
+        val controller = testAdsController(flags = DefaultAdsFlags(settings), logger = logger)
+        controller.nativeLoaderForTest = loader
+        settings.set(AdsSettings.placementEnabled(placement), true)
+        composeRule.runOnUiThread {
+            controller.openConsentGateForTest()
+            controller.setAppForegroundForTest(true)
+            controller.markSdkReadyForTest()
+        }
+        val looper = shadowOf(Looper.getMainLooper())
+        looper.idle()
+        composeRule.mainClock.autoAdvance = false
+        var hasAd by mutableStateOf(false)
+        var ready: Boolean? = null
+        composeRule.setContent {
+            CompositionLocalProvider(LocalAdsController provides controller) {
+                ready = rememberNativeStepNextAdReady(placement, step = 1, currentStepHasAd = hasAd)
+            }
+        }
+        frame()
+        assertEquals("empty pool", false, ready)
+
+        // The card of this step takes the first ad of the pool; the pool refills and the second one stays free.
+        val cardScope = CoroutineScope(Dispatchers.Main)
+        try {
+            val states = mutableListOf<NativeAdState>()
+            // The steps of the card never complete (NativeStepAdHost keeps them in a StateFlow): a completed flow
+            // would end the card and give its ad back to the pool.
+            cardScope.launch { controller.stepAd(placement, MutableStateFlow<Any>(1)).collect { states += it } }
+            looper.idle()
+            assertEquals("the claim of the card sent the first request", 1, loader.requests.size)
+            loader.deliver(FakeLoadedNativeAd())
+            looper.idle()
+            looper.idleFor(Duration.ofMillis(PoolCellPolicy.RETRY_MILLIS))
+            assertTrue("the card got the first ad: $states", states.last() is NativeAdState.Loaded)
+            assertEquals("the pool refills after the claim", 2, loader.requests.size)
+            poll()
+            assertEquals("one ad in use, none free", false, ready)
+
+            loader.deliver(FakeLoadedNativeAd())
+            looper.idle()
+            poll()
+            assertEquals("one free ad, the card not reported yet: it is for this card", false, ready)
+
+            hasAd = true
+            poll()
+            assertEquals("one free ad and the card has its own: ready for the next step", true, ready)
+        } finally {
+            cardScope.cancel()
+            looper.idle()
+        }
+    }
+
     private companion object {
         const val SLOT = "slot"
         const val BELOW = "below"
         const val STEP_AREA = "stepArea"
         const val NEXT = "next"
         const val FRAME_MILLIS = 32L
+        const val NEXT_AD_POLL_MILLIS = 200L
         val CARD_WIDTH = 379.dp
     }
 }

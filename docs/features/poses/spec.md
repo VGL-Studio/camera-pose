@@ -1,6 +1,6 @@
 ---
 feature: poses
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -93,7 +93,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi chạm một thẻ thì màn chi tiết mở, có tên tư thế ở thanh trên, ảnh lớn, dòng loại, nhóm, khung hình, số bước, các bước đánh số, khối "Lỗi hay gặp", nút "Chụp với tư thế này" ghim ở đáy; app ghi `pose_detail_opened`.
 - [ ] Khi nội dung dài hơn màn hình thì nội dung cuộn được, nút "Chụp với tư thế này" luôn thấy được, không che chữ cuối.
 - [ ] Khi bấm "Chụp với tư thế này" thì camera mở với đúng tư thế đó (spec `camera`, KB-1); app ghi `pose_selected` với `source` là `detail`.
-- [ ] Khi khóa `is_show_inter_pose_detail` bật và có quảng cáo toàn màn hình sẵn sàng, qua nhịp chung `ads_interval`, thì quảng cáo hiện sau khi bấm "Chụp với tư thế này"; đóng quảng cáo thì camera mở với đúng tư thế đó. Không có quảng cáo, chưa đủ nhịp hay khóa tắt thì camera mở ngay, không chờ (`features/ads/spec.md` câu 9).
+- [ ] Khi khóa `is_show_inter_pose_detail` bật và có quảng cáo toàn màn hình sẵn sàng, qua nhịp chung `ads_interval`, thì quảng cáo hiện sau khi bấm "Chụp với tư thế này"; đóng quảng cáo, gồm cả combo nếu có, thì camera mở với đúng tư thế đó. Không có quảng cáo, chưa đủ nhịp hay khóa tắt thì camera mở ngay, không chờ (`features/ads/spec.md` câu 9).
 - [ ] Khi bấm quay lại ở chi tiết thì về thư viện.
 
 ### KB-5. Tải nội dung và khi tải lỗi
@@ -174,6 +174,8 @@ Tư thế premium (KB-8) cần thiết kế mới trên Figma:
 | `poses_in_collection` | native_in_collection | Ô xen trong lưới thư viện, sau mỗi 8 tư thế; không ở đầu, không ở cuối | Pool 5 quảng cáo, hết hạn 55 phút; tắt lúc phát hành | `is_show_poses_in_collection`, `native_every_poses_in_collection` |
 | `inter_pose_detail` | interstitial | Sau khi bấm "Chụp với tư thế này", trước khi camera mở | Nhịp chung `ads_interval` (mặc định 45 giây), cùng nhóm với `review_interstitial`; tắt lúc phát hành | `is_show_inter_pose_detail` |
 | `rw_premium_pose` (yêu cầu 2026-10-31) | rewarded | Khi người dùng bấm "Xem quảng cáo" ở hộp thoại mở khóa tư thế premium (KB-8) | Không qua `ads_interval`, không đẩy mốc (khung); chỉ khi người dùng chọn. Không có quảng cáo thì chặn, tư thế vẫn khóa (câu 8). Bật lúc phát hành khi catalog có tư thế premium (câu 10) | `is_show_rw_premium_pose` |
+
+Sau `inter_pose_detail` có thể có quảng cáo native toàn màn hình (combo, `native_combo`, khóa `is_show_native_after_inter`), đếm ngược `time_close_native` giây rồi đóng được; camera mở khi combo đóng (`features/ads/spec.md`, câu 18).
 
 `poses_banner`, `poses_detail_banner` (banner, T-074) bỏ khỏi app ở T-079 (`features/ads/spec.md` câu 8); khóa cũ giữ trên Firebase tới khi bản cũ không còn người dùng.
 
@@ -298,3 +300,4 @@ Tư thế premium (yêu cầu 2026-10-31, câu 6): catalog có thêm trường `
 | 2026-10-30 | Nhật | Trả lời câu hỏi 5 (AI vẽ lại trạng thái `ad` trên Figma; AI ghi). Xác nhận spec. Lời xác nhận của Nhật: chọn "Chuyển confirmed" khi được hỏi, sau khi trả lời câu cuối. Chuyển lại `confirmed` |
 | 2026-10-31 | AI | Yêu cầu của Nhật (`requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md`): tư thế premium mở khóa bằng quảng cáo có thưởng `rw_premium_pose` (mục 2, KB-8, mục 4 tới 8; câu 6 tới 12). Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-10-31 | Nhật | Trả lời câu 6 tới 12 (AI ghi, cùng phiên). Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `inter_pose_detail` (mục 5, KB-4 tiêu chí 4). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |

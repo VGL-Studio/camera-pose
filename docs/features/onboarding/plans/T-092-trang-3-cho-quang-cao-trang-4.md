@@ -1,7 +1,7 @@
 ---
 ticket: T-092
 title: Trang 3 của luồng giới thiệu chờ quảng cáo cho trang 4, tối đa 3 giây
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -228,3 +228,14 @@ Không cần (E dưới 2).
 - **Ghi chú:** Rà soát độc lập phiên bản 2: 0 chặn, 1 nên sửa (đã sửa: vòng đọc pool chỉ ở trang 3), 4 ghi chú (đã cập nhật câu cũ). Cùng sửa `AdsController.kt` với plan T-090: chạy sau T-092 hay ở danh sách khác.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261110-01, phiên bản plan 2
+
+- **Kết quả:** đã merge.
+- **Nhánh, PR:** `claude/T-092-trang-3-cho-quang-cao`, PR #312, merge 04:17 UTC (commit `3c1eb86`).
+- **Đã làm:** `:core:ads` thêm `claimableAdCount()`, `poolClaimableAdCount()`, `nextStepAdReady()`, `rememberNativeStepNextAdReady()` (đọc ở khung đầu và mỗi 200 ms, giữ đúng khi đã đúng); `:feature:onboarding` tách `rememberPageAdWait` từ `rememberIntroAdWait` (chữ ký cũ giữ nguyên), `OnboardingAdContent` giữ `cardAdPage` và chỉ đọc pool ở trang `GUIDE`, hai hàm log của ViewModel; hai ảnh chuẩn `guide-ad-wait`; kịch bản T-082, T-083 chờ nút bật ở trang 3; `design/review/` và README mục 8. Phiên con làm bước 3 tới 5 trong worktree.
+- **Test viết trước:** commit `ce0c626`, 32 test, 30 đỏ đúng lý do trên khung rỗng; 5 test chặn viết chặt thêm (L-055). Thay đổi test sau commit test: một chỗ dựng ở `NativeFlowStepTest.nextAdReady_withController_readsPoolOfPlacement` (`flowOf(1)` thành `MutableStateFlow<Any>(1)`), không đổi điều test kiểm (ADR-0032/L4).
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 4 ghi chú; 6 đột biến trên bản sao đều bị test bắt.
+- **Kết quả CI:** `scripts/check.sh` trên máy QUA (2906 test JVM, 0 lỗi); `pr-check` xanh (lần chạy 42753157902).
+- **Lệch so với plan:** ADR-0032/L4: một chi tiết dựng của test đổi sau commit test (trên). Không dùng phương án dự phòng.
+- **Việc còn lại:** mở issue `from-app` cho bốn hàm mới của `:core:ads` (người); kiểm trên máy thật tỷ lệ trang 4 có thẻ khi bấm nhanh; `device-session` cuối phiên chạy T-082, T-083.

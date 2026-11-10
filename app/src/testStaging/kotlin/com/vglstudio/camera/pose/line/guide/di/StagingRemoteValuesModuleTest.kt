@@ -17,8 +17,8 @@ import org.junit.Test
 /**
  * Local values of staging builds for the ad keys (spec ads, questions 6 and 11; plan T-074, section 8, question 2; plan
  * T-079): the placements of the app are shown, the app open and resume ads are on, the two ad logs are on, the bottom
- * bars draw the native slot without the collapsible layer; no other placement of the framework is switched on, and the
- * first open and the combo stay off.
+ * bars draw the native slot without the collapsible layer; no other placement of the framework is switched on, the
+ * first open stays off and the combo is on (spec ads, question 18; plan T-090).
  */
 class StagingRemoteValuesModuleTest {
     private val values = StagingRemoteValuesModule.appPlacementsShown() +
@@ -50,6 +50,8 @@ class StagingRemoteValuesModuleTest {
             "show_resum_ads" to true,
             "is_show_native_bottom" to true,
             "is_show_native_collap" to false,
+            // The native combo after the interstitials of the screens (spec ads, question 18; plan T-090).
+            "is_show_native_after_inter" to true,
             "is_log_ad_fullscreen_events" to true,
             "is_log_ad_slot_events" to true,
         )
@@ -74,14 +76,13 @@ class StagingRemoteValuesModuleTest {
     }
 
     @Test
-    fun firstOpenAndCombo_areNotSet() {
+    fun firstOpen_isNotSet() {
         val off = listOf(
             AdsSettings.SHOW_OPEN_ADS_FIRST_OPEN,
-            AdsSettings.IS_SHOW_NATIVE_AFTER_INTER,
         )
         // Control: the names are the keys of the spec, and the global switches of this module are set.
         assertEquals(
-            listOf("show_open_ads_first_open", "is_show_native_after_inter"),
+            listOf("show_open_ads_first_open"),
             off.map { it.name },
         )
         assertTrue(byName.toString(), "show_open_ads" in byName)
@@ -90,6 +91,17 @@ class StagingRemoteValuesModuleTest {
             // Off by default too, so staging leaves them off.
             assertEquals(false, key.default)
         }
+    }
+
+    @Test
+    fun combo_isOnAtStaging() = runBlocking {
+        // The native combo after the interstitials of the screens is on at staging (spec ads, question 18; plan T-090);
+        // a value on the staging Firebase project still wins (ADR-1007).
+        assertEquals("is_show_native_after_inter", AdsSettings.IS_SHOW_NATIVE_AFTER_INTER.name)
+        assertEquals(true, byName["is_show_native_after_inter"])
+        assertEquals(true, localOnly.value(AdsSettings.IS_SHOW_NATIVE_AFTER_INTER).first())
+        // Control: the combo is off by default in code, so staging has to set it on (L-035).
+        assertEquals(false, AdsSettings.IS_SHOW_NATIVE_AFTER_INTER.default)
     }
 
     @Test

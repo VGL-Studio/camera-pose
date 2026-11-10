@@ -1,0 +1,33 @@
+ticket: T-090
+criterion: Sau inter_pose_detail có combo native toàn màn hình; đóng được hay tự đóng khi nạp lỗi (K-03, K-04), rồi camera mở (spec ads, câu 18)
+timeout: 240
+fresh
+consent decline 30
+wait id=onboarding_screen | id=camera_screen 60
+# T-083: page 1 may hold Next up to 5 s while its ad card waits; four rounds for at most four pages and one spare
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+wait id=onboarding_next enabled=true | id=onboarding_enable_camera | id=camera_screen 15
+tap_if id=onboarding_next enabled=true
+tap_if id=onboarding_enable_camera
+wait id=camera_screen 15
+need id=camera_poses 15
+tap id=camera_poses
+wait id=poses_grid 20
+tap idp=poses_card_ in=poses_grid index=1
+wait id=pose_detail_screen 15
+tap str=poses_detail_shoot
+# The combo follows only an interstitial that showed (K-01): no interstitial on this emulator is the environment
+need text="Close" 20
+tap text="Close"
+# Close button at once when the combo load fails (K-03), else after time_close_native (5 s); a failed load closes by itself (K-04)
+wait str=ads_close_full_screen | id=camera_screen 20
+shot combo
+tap_if str=ads_close_full_screen
+wait id=camera_screen 15
+expect_no str=ads_close_full_screen
+shot camera-after-combo

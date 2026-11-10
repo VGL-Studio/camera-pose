@@ -344,6 +344,15 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - đồng bộ từ dự án mẫu thì bỏ `feature/sample` và dòng `SAMPLE_NATIVE_SMALL`, đổi test mới của mẫu dùng vị trí đó sang `POSES_BOTTOM`
 - vị trí `gallery_*` giữ theo ADR-1007
 
+### [ADR-1009](adr/1009-combo-native-sau-interstitial-cua-man.md): Combo native toàn màn hình hiện sau interstitial của màn, không sau `open_app_inter` và `resume_inter`; `MainActivity` đặt `FullScreenAdHost`
+
+- giữ đúng một lời gọi `FullScreenAdHost()` trong `MainActivity`, trong `AppTheme`, ngay sau `NetworkDialogHost`
+- giữ dòng `combo = false` của `ResumeAdTurns` khi đồng bộ từ dự án mẫu, không nối combo sau `resume_inter` hay `open_app_inter`
+- interstitial của màn (vị trí không toàn app) luôn đi qua `showInterstitial` của `:core:ads` để combo nối theo khóa `is_show_native_after_inter`
+- không sửa `docs/ops/ads-business-rules.md` hay `docs/ops/ads-guide.md` vì lệch này, luật A-12 và dòng "inter của resume nối combo" của `ads-guide.md` không áp dụng cho app
+- kịch bản emulator đi qua interstitial của màn thêm bước `wait str=ads_close_full_screen | <màn đích>` rồi `tap_if str=ads_close_full_screen` sau bước đóng interstitial
+- không đổi luật K-01 tới K-08 của khung ở app
+
 ## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
 
 ### [ADR-0020](adr/0020-design-handoff-and-conformance.md): Thiết kế trên Claude Design hoặc Figma, bàn giao bằng ảnh khung chuẩn trong repo, đối chiếu bằng ảnh so sánh

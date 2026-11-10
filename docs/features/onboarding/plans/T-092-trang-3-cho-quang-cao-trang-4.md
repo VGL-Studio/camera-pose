@@ -1,16 +1,16 @@
 ---
 ticket: T-092
 title: Trang 3 của luồng giới thiệu chờ quảng cáo cho trang 4, tối đa 3 giây
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 10.9M        # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-11-09); không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-11-10
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -223,8 +223,8 @@ Không cần (E dưới 2).
 
 ### Phiên bản 2
 
-- **Quyết định:** <Duyệt / Dừng / Duyệt có điều kiện>
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên>
-- **Ghi chú:**
+- **Quyết định:** Duyệt (Nhật, 2026-11-10, trong phiên có người theo dõi).
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (duyệt bằng lời, Nhật báo lại trong phiên, AI ghi).
+- **Ghi chú:** Rà soát độc lập phiên bản 2: 0 chặn, 1 nên sửa (đã sửa: vòng đọc pool chỉ ở trang 3), 4 ghi chú (đã cập nhật câu cũ). Cùng sửa `AdsController.kt` với plan T-090: chạy sau T-092 hay ở danh sách khác.
 
 ## 10. Nhật ký thực hiện

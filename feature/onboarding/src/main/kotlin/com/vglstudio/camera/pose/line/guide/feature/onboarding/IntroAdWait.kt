@@ -17,6 +17,24 @@ import kotlinx.coroutines.delay
 /** The longest page one holds Next while the step card waits for an ad (spec onboarding, KB-6). */
 internal const val INTRO_AD_WAIT_MILLIS = 5_000L
 
+/** The longest page three holds Next while the pool has no ad for page four (spec onboarding, KB-6, question 12). */
+internal const val GUIDE_AD_WAIT_MILLIS = 3_000L
+
+/**
+ * The hold of Next on one page of the flow (plan T-092): [rememberIntroAdWait] with the page given by [onPage], and
+ * the hold used up before the first visit of the page only when [usedUpBeforeFirstVisit].
+ */
+@Composable
+internal fun rememberPageAdWait(
+    onPage: Boolean,
+    allowed: Boolean,
+    hasAd: Boolean,
+    maxMillis: Long,
+    usedUpBeforeFirstVisit: Boolean,
+    onStarted: () -> Unit = {},
+    onEnded: (IntroAdWaitEnd) -> Unit = {},
+): Boolean = false
+
 /** Why the hold of page one ended, as logged (plan T-083). */
 internal enum class IntroAdWaitEnd(val logName: String) {
     AD("ad"),

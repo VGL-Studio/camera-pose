@@ -674,6 +674,98 @@ class NativeAdPoolTest {
         assertFalse(text, text.contains("Pool ad 1"))
     }
 
+    // What a claim could hand out now, read by the app without touching the pool (plan T-092).
+
+    @Test
+    fun claimableAdCount_followsLoadAndClaim() = runTest {
+        val pool = newPool()
+        assertEquals(0, pool.claimableAdCount())
+        pool.refill()
+        runCurrent()
+        // A request in flight is not an ad yet.
+        assertEquals(0, pool.claimableAdCount())
+        val a = deliver()
+        assertEquals(1, pool.claimableAdCount())
+        deliver()
+        deliver()
+        assertEquals(3, pool.claimableAdCount())
+
+        val holder = AdPlacement.GALLERY_NATIVE_MEDIUM
+        assertSame(a, pool.claim(holder))
+        assertEquals(2, pool.claimableAdCount())
+        pool.claim(holder)
+        pool.claim(holder)
+        assertEquals(0, pool.claimableAdCount())
+        // Matches claim: nothing free, nothing handed out.
+        assertNull(pool.claim(holder))
+
+        // Given back without an impression: free again.
+        pool.release(a)
+        assertEquals(1, pool.claimableAdCount())
+        assertSame(a, pool.claim(holder))
+        assertEquals(0, pool.claimableAdCount())
+    }
+
+    @Test
+    fun claimableAdCount_skipsImpressedAndExpired() = runTest {
+        val pool = newPool()
+        val (a, b) = fill(pool, 3)
+        assertEquals(3, pool.claimableAdCount())
+
+        // The SDK reported the impression of a free ad (P-01a): a claim would destroy it, so it is not counted.
+        a.impressionRecorded = true
+        assertEquals(2, pool.claimableAdCount())
+
+        // Control: one millisecond before 55 minutes the two others still count, and claim agrees.
+        at(MAX_AGE - 1)
+        assertEquals(2, pool.claimableAdCount())
+        at(MAX_AGE)
+        assertEquals(0, pool.claimableAdCount())
+        assertNull(pool.claim(AdPlacement.GALLERY_NATIVE_MEDIUM))
+        assertEquals(1, b.destroyCount)
+    }
+
+    @Test
+    fun claimableAdCount_zeroWhenCannotShow() = runTest {
+        val pool = newPool(capacity = 1)
+        val (ad) = fill(pool, 1)
+        canShow = false
+        assertEquals(0, pool.claimableAdCount())
+        // Matches claim (S-11): nothing while consent is withdrawn, the ad kept.
+        assertNull(pool.claim(AdPlacement.GALLERY_NATIVE_MEDIUM))
+        assertEquals(0, ad.destroyCount)
+
+        // Control: consent back, the same ad counts and is handed out.
+        canShow = true
+        assertEquals(1, pool.claimableAdCount())
+        assertSame(ad, pool.claim(AdPlacement.GALLERY_NATIVE_MEDIUM))
+    }
+
+    @Test
+    fun claimableAdCount_hasNoSideEffect() = runTest {
+        val pool = newPool()
+        val ads = fill(pool, 3)
+        // Control (L-055): the read sees the ads before they go stale.
+        assertEquals(3, pool.claimableAdCount())
+        ads[0].impressionRecorded = true
+        at(MAX_AGE)
+        val logsBefore = logger.entries.size
+
+        repeat(3) { assertEquals(0, pool.claimableAdCount()) }
+        runCurrent()
+
+        // Nothing destroyed, no request sent, nothing logged: the read is a read.
+        assertEquals(listOf(0, 0, 0), ads.map { it.destroyCount })
+        assertEquals(3, loads.times.size)
+        assertEquals(logsBefore, logger.entries.size)
+
+        // Control (L-055): the claim of the same pool prunes and refills.
+        assertNull(pool.claim(AdPlacement.GALLERY_NATIVE_MEDIUM))
+        runCurrent()
+        assertEquals(listOf(1, 1, 1), ads.map { it.destroyCount })
+        assertEquals(4, loads.times.size)
+    }
+
     private companion object {
         const val MAX_AGE = 55 * 60 * 1_000L
     }

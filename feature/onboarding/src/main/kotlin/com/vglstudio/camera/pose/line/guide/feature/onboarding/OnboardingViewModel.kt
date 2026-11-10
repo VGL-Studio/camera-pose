@@ -57,6 +57,12 @@ class OnboardingViewModel @Inject constructor(
     internal fun onIntroAdWaitEnded(reason: IntroAdWaitEnd) =
         logger.info(LOG_TAG, "Intro ad wait ended: ${reason.logName}")
 
+    /** Page 3 holds "Next" while the pool has no ad for page 4 (spec onboarding, KB-6, question 12; plan T-092). */
+    internal fun onGuideAdWaitStarted() = Unit
+
+    /** The hold of page 3 ended, and why (plan T-092). */
+    internal fun onGuideAdWaitEnded(reason: IntroAdWaitEnd) = Unit
+
     fun onNextClick() {
         val current = state.value as? OnboardingUiState.Browsing ?: return
         if (current.isLastPage) return

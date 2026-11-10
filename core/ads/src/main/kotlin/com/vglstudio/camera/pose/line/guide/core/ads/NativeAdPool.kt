@@ -173,6 +173,9 @@ internal class NativeAdPool(
         started.start()
     }
 
+    /** Free ads a claim could hand out now: not impressed, not expired. Never loads or drops anything. */
+    fun claimableAdCount(): Int = 0
+
     /** Has a free ad, waits for a retry, is closed or cannot send now: the preload group may move on (S-22). */
     fun settled(): Boolean = free.isNotEmpty() || waitingRetry || closed || !canLoadNow()
 

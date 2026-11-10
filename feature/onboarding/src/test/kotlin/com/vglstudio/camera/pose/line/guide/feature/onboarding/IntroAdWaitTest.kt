@@ -244,8 +244,177 @@ class IntroAdWaitTest {
         assertEquals(listOf(START), events)
     }
 
+    // ---- The hold of page three for the ad of page four (plan T-092, section 4): rememberPageAdWait, not used up
+    // on the pages before, at most 3 seconds ----
+
+    private var onPage by mutableStateOf(false)
+
+    /**
+     * One lambda for every setContent of a page test (like [content]), the flow starting on an earlier page. A second
+     * hold that never gets an ad is the control of the tests where the first one is never held (L-055).
+     */
+    private val pageContent: @Composable () -> Unit = {
+        val held = rememberPageAdWait(
+            onPage = onPage,
+            allowed = allowed,
+            hasAd = hasAd,
+            maxMillis = GUIDE_AD_WAIT_MILLIS,
+            usedUpBeforeFirstVisit = false,
+            onStarted = { events += START },
+            onEnded = { events += it.logName },
+        )
+        Button(onClick = {}, enabled = !held, modifier = Modifier.testTag(BUTTON)) { Text("Next") }
+        val controlHeld = rememberPageAdWait(
+            onPage = onPage,
+            allowed = allowed,
+            hasAd = false,
+            maxMillis = GUIDE_AD_WAIT_MILLIS,
+            usedUpBeforeFirstVisit = false,
+        )
+        Button(onClick = {}, enabled = !controlHeld, modifier = Modifier.testTag(CONTROL)) { Text("Control") }
+    }
+
+    /** The control hold, with no ad, is held on arrival: the page mechanism is live (L-055). */
+    private fun assertControlHeld() = composeRule.onNodeWithTag(CONTROL).assertIsNotEnabled()
+
+    private fun startPage() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent(pageContent)
+    }
+
+    /** The flow arrives on the page after a while on the pages before it. */
+    private fun arriveOnPage() {
+        frame()
+        advance(1_000)
+        assertReady()
+        onPage = true
+        frame()
+    }
+
+    @Test
+    fun pageWait_notUsedUpOnEarlierPages_heldThreeSeconds() {
+        startPage()
+        assertEquals("nothing on the pages before", emptyList<String>(), events)
+        arriveOnPage()
+        // Held from the first frame on the page, even though the flow began elsewhere.
+        assertHeld()
+        assertEquals(listOf(START), events)
+        advance(2_900)
+        assertHeld()
+        advance(200)
+        frame()
+        assertReady()
+        assertEquals(listOf(START, "timeout"), events)
+    }
+
+    @Test
+    fun pageWait_nextAdComes_releasedAtOnce() {
+        startPage()
+        arriveOnPage()
+        advance(1_000)
+        assertHeld()
+        hasAd = true
+        frame()
+        assertReady()
+        // The ad goes away: the hold is used up.
+        hasAd = false
+        frame()
+        assertReady()
+        advance(4_000)
+        assertReady()
+        assertEquals(listOf(START, "ad"), events)
+    }
+
+    @Test
+    fun pageWait_readyOnArrival_neverHeld() {
+        startPage()
+        hasAd = true
+        arriveOnPage()
+        assertReady()
+        assertControlHeld()
+        // Ready in the first frame uses the hold up too: the signal going away later holds nothing.
+        hasAd = false
+        frame()
+        assertReady()
+        advance(4_000)
+        assertReady()
+        assertEquals(emptyList<String>(), events)
+    }
+
+    @Test
+    fun pageWait_leftAndBack_notHeldAgain() {
+        startPage()
+        arriveOnPage()
+        advance(1_000)
+        assertHeld()
+        onPage = false
+        frame()
+        assertReady()
+        onPage = true
+        frame()
+        assertReady()
+        advance(4_000)
+        assertReady()
+        assertEquals(listOf(START, "left page"), events)
+    }
+
+    @Test
+    fun pageWait_backgroundMidway_releasedOnReturn() {
+        startPage()
+        arriveOnPage()
+        advance(1_000)
+        assertHeld()
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        assertEquals(listOf(START, "background"), events)
+        composeRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        frame()
+        assertReady()
+        advance(4_000)
+        assertReady()
+        assertEquals(listOf(START, "background"), events)
+    }
+
+    @Test
+    fun pageWait_recreatedActivity_notHeldAgain() {
+        startPage()
+        arriveOnPage()
+        advance(1_000)
+        assertHeld()
+        composeRule.mainClock.autoAdvance = true
+        composeRule.activityRule.scenario.recreate()
+        composeRule.activityRule.scenario.onActivity { it.setContent(content = pageContent) }
+        composeRule.mainClock.autoAdvance = false
+        assertEquals(listOf(START, "background"), events)
+        assertReady()
+        advance(4_000)
+        assertReady()
+        assertEquals(listOf(START, "background"), events)
+    }
+
+    @Test
+    fun pageWait_readyOnArrival_recreated_notHeld() {
+        startPage()
+        hasAd = true
+        arriveOnPage()
+        assertReady()
+        assertControlHeld()
+        // Built again on the page: the new card has no ad yet, and the hold was used up on arrival.
+        hasAd = false
+        composeRule.mainClock.autoAdvance = true
+        composeRule.activityRule.scenario.recreate()
+        composeRule.activityRule.scenario.onActivity { it.setContent(content = pageContent) }
+        composeRule.mainClock.autoAdvance = false
+        assertReady()
+        frame()
+        assertReady()
+        advance(4_000)
+        assertReady()
+        assertEquals(emptyList<String>(), events)
+    }
+
     private companion object {
         const val BUTTON = "intro_ad_wait_button"
+        const val CONTROL = "page_ad_wait_control"
         const val START = "start"
     }
 }

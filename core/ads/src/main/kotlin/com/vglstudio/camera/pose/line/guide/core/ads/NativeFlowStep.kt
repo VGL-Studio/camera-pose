@@ -169,6 +169,21 @@ fun rememberNativeStepAdAllowed(placement: AdPlacement): Boolean {
     return rememberStepAllowed(placement, ads.canRequestAds, ads::isEnabled) { ads.unitId(it) }
 }
 
+/** Whether [claimable] free ads leave one for the next step: one is for the current card while it has none yet. */
+fun nextStepAdReady(claimable: Int, currentStepHasAd: Boolean): Boolean = false
+
+/**
+ * Whether the pool of [placement] already holds an ad for the step after [step], leaving one for the card of [step]
+ * while [currentStepHasAd] is false. Read in the first frame of a step and every 200 ms; once true it stays true for
+ * that step. False with no ads controller. An app that holds its Next button until the next step has an ad uses this.
+ */
+@Composable
+fun rememberNativeStepNextAdReady(placement: AdPlacement, step: Any, currentStepHasAd: Boolean): Boolean = false
+
+/** [rememberNativeStepNextAdReady] without an ads controller, so tests set the count (like [rememberStepReady]). */
+@Composable
+internal fun rememberNextStepAdReady(step: Any, currentStepHasAd: Boolean, claimable: () -> Int): Boolean = false
+
 /**
  * [NativeStepAd] without an ads controller: [step] goes into one stream of steps, read by the states [newStates]
  * builds once ([stepAdStates] in the app); drawn by the gate of every native slot at the size of the step card.

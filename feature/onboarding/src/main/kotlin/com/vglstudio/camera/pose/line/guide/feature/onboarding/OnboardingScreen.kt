@@ -203,6 +203,9 @@ internal fun OnboardingAdContent(
     modifier: Modifier = Modifier,
     onIntroAdWaitStarted: () -> Unit = {},
     onIntroAdWaitEnded: (IntroAdWaitEnd) -> Unit = {},
+    nextAdReady: @Composable (page: OnboardingPage, currentStepHasAd: Boolean) -> Boolean = { _, _ -> false },
+    onGuideAdWaitStarted: () -> Unit = {},
+    onGuideAdWaitEnded: (IntroAdWaitEnd) -> Unit = {},
     adSlot: @Composable (page: OnboardingPage, onAdAvailabilityChange: (Boolean) -> Unit) -> Unit =
         { page, onChange -> OnboardingAdCard(page, onChange) },
 ) {

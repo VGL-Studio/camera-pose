@@ -5,12 +5,12 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-11-02; câu 18
 scenarios: []                # spec ads không có kịch bản riêng (mục 3); tiêu chí theo câu 18 và luật K-01 tới K-08 của docs/ops/ads-business-rules.md
 owner: Tuấn
-status: backlog
+status: planned
 risk: high
 size: M
 depends_on: [T-089]          # T-089 sửa trước ba kịch bản emulator mà combo bật sẵn làm lỗi; T-074, T-079 đã lên staging
 sprint:
-plan:
+plan: features/ads/plans/T-090-combo-native-sau-interstitial.md
 auto_run:
 created: 2026-11-02
 ---

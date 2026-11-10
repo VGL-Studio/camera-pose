@@ -7,7 +7,7 @@ build: 0.1.0-staging.22
 feature: ads
 ticket: T-090
 severity: nang
-status: new
+status: planned
 created: 2026-11-02
 ---
 
@@ -45,3 +45,4 @@ Không có. Bằng chứng là log, trích trong báo cáo TS-20261102-01.
 - **Xử lý:** đề xuất: tắt khóa trên Firebase staging ngay (việc của người); T-090 làm combo chạy đúng; đề xuất `from-app` về dự án mẫu: khung không mở lượt combo khi không có host nào vẽ.
 - **Lý do:** chủ feature quyết.
 - **Liên kết:** T-090
+- **Kết quả phân loại:** thay đổi yêu cầu, xử lý ở T-090 (plan `features/ads/plans/T-090-combo-native-sau-interstitial.md`, duyệt 2026-11-10). Khóa đã tắt trên Firebase staging ngày 2026-11-09. Chuyển `planned` (Nhật, 2026-11-10).

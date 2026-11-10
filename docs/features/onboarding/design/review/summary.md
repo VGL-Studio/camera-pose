@@ -5,8 +5,8 @@
 | OnboardingScreen_camera_dark | 2.3% | `OnboardingScreen_camera_dark_compare.png` |
 | OnboardingScreen_camera_light | 2.3% | `OnboardingScreen_camera_light_compare.png` |
 | OnboardingScreen_camera_light_unfolded | 1.7% | `OnboardingScreen_camera_light_unfolded_compare.png` |
-| OnboardingScreen_guide-ad-wait_dark | thiếu ảnh chuẩn screenshot | |
-| OnboardingScreen_guide-ad-wait_light | thiếu ảnh chuẩn screenshot | |
+| OnboardingScreen_guide-ad-wait_dark | 6.8% | `OnboardingScreen_guide-ad-wait_dark_compare.png` |
+| OnboardingScreen_guide-ad-wait_light | 6.1% | `OnboardingScreen_guide-ad-wait_light_compare.png` |
 | OnboardingScreen_guide-ad_dark | 7.0% | `OnboardingScreen_guide-ad_dark_compare.png` |
 | OnboardingScreen_guide-ad_light | 6.3% | `OnboardingScreen_guide-ad_light_compare.png` |
 | OnboardingScreen_guide_dark | 2.1% | `OnboardingScreen_guide_dark_compare.png` |

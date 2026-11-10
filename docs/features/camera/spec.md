@@ -1,13 +1,13 @@
 ---
 feature: camera
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-31
+confirmed: 2026-11-10
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -16,7 +16,7 @@ confirmed: 2026-10-31
 
 - **Người dùng được gì:** mở app là chụp được theo tư thế: nét viền rõ, chỉnh được theo ý, có hướng dẫn từng bước, có điểm khớp cho biết đã đứng đúng chưa, chụp xong xem lại và lưu ngay.
 - **Vì sao làm bây giờ:** đây là chức năng chính, lý do người dùng cài app. Các app mẫu bị chê vì quảng cáo che camera (bài học 3), nét viền khó nhìn (bài học 5), không có màn xem lại (bài học 6), tư thế không kèm hướng dẫn (bài học 10). Dev chốt làm nhận dạng dáng ngay từ bản đầu (bản đề xuất, câu 12.5).
-- **Đo kết quả bằng gì:** tỷ lệ ảnh được lưu trên ảnh đã chụp (`photo_saved` trên `photo_captured`), mong đợi ít nhất 50%; số ảnh lưu trung bình mỗi người dùng mỗi ngày; số quảng cáo toàn màn hình mỗi 10 phút dùng, tối đa 3 (câu 9.1).
+- **Đo kết quả bằng gì:** tỷ lệ ảnh được lưu trên ảnh đã chụp (`photo_saved` trên `photo_captured`), mong đợi ít nhất 50%; số ảnh lưu trung bình mỗi người dùng mỗi ngày; số quảng cáo toàn màn hình mỗi 10 phút dùng, tối đa 3 (câu 9.1); một interstitial cùng combo native theo sau nó tính là một lần (plan T-090, mục 8, câu 7).
 
 ## 2. Phạm vi
 
@@ -352,3 +352,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-31 | AI | Chép phần dải tư thế của tư thế premium vào KB-1 (spec poses, KB-8, câu 12; Nhật chọn chép trong PR xác nhận spec poses). Nhật xác nhận cùng spec poses: chọn "Ghi và chuyển confirmed" |
 | 2026-10-31 | Nhật | Mục 8: cờ `feature_camera_enabled` không còn tác dụng từ T-081 (app luôn mở camera; plan T-081 câu 1), bỏ ở T-088 (rà soát độc lập plan T-081; AI ghi). Lời của Nhật: chọn "Sửa spec + ticket bỏ cờ", phương án ghi rõ Nhật xác nhận spec lại ngay. Chuyển `changed` rồi lại `confirmed` |
 | 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `review_interstitial` (mục 5, KB-9 tiêu chí 1). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |
+| 2026-11-10 | Nhật | Xác nhận lại spec sau T-090 (AI ghi theo lời Nhật trong phiên). Mục 1 thêm cách đếm: một interstitial cùng combo theo sau tính là một lần (plan T-090, mục 8, câu 7). Chuyển lại `confirmed` |

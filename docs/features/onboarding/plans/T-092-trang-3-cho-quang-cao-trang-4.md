@@ -1,16 +1,16 @@
 ---
 ticket: T-092
 title: Trang 3 của luồng giới thiệu chờ quảng cáo cho trang 4, tối đa 3 giây
-status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+status: draft                # draft | approved | stopped | done
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 10.9M        # cỡ M theo số gợi ý của scripts/token-usage.py estimate (2026-11-09); không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer: Nhật               # người duyệt
-cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at: 2026-11-09
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -19,6 +19,11 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 ## 1. Tóm tắt
 
 `:core:ads` thêm một hàm đọc: pool `native_step` có sẵn quảng cáo cho bước kế tiếp không, sau khi đã trừ quảng cáo mà thẻ của bước hiện tại sắp lấy. `:feature:onboarding` dùng lại cơ chế chờ của trang 1 để giữ nút "Tiếp" ở trang 3 tối đa 3 giây, một lần mỗi luồng. Kiểm chứng bằng unit test pool, test giao diện của cơ chế chờ theo đồng hồ, 2 screenshot test cùng tên với ảnh thiết kế `guide-ad-wait`, và kịch bản emulator.
+
+**Phiên bản 2 (2026-11-10).** Phiên bản 1 (duyệt 2026-11-09, Nhật, duyệt chéo Tuấn) bị bỏ qua ở RUN-20261109-01: `plan-check.py` ngay trước task báo `LỖI: ảnh thiết kế của ticket khác OnboardingScreen_premium_light không có trong docs/features/onboarding/design/screens/.` Mục 4 liệt kê bốn ảnh `OnboardingScreen_premium*` mà T-091 (chạy trước, đã merge) xóa đúng theo plan của nó (lặp lại L-101). Vì sao plan chưa đủ tốt: tên ảnh được thêm để qua `plan-check.py` lúc viết plan, khi ảnh còn đó, mà không tính tới việc T-091 xóa chúng. Thay đổi so với phiên bản 1:
+
+- Mục 4: bỏ bốn tên ảnh đã xóa khỏi dòng khai báo ảnh do T-091 vẽ. Các phần khác không đổi.
+- Cách tiếp tục: làm lại từ đầu trên nhánh mới từ nhánh chính (phiên bản 1 chưa tạo nhánh hay commit nào). T-091 đã merge (PR #306), nên phần "chạy sau T-091" ở mục 6 đã thỏa.
 
 ## 2. Hiểu yêu cầu
 
@@ -145,7 +150,7 @@ Không có.
 
 ### 3.5. Hành vi đã có bị đổi
 
-Từ `scripts/existing-tests.py` (2026-11-09). Plan chỉ thêm tham số có giá trị mặc định và thêm hàm; `rememberIntroAdWait` giữ nguyên chữ ký. Hành vi trang 1 chỉ khác ở một trường hợp hiếm mà test có sẵn không chạm: `hasAd` đúng trước khi lượt chờ bắt đầu rồi sai, trước đây sẽ chờ, nay không chờ. Bốn test ở nhóm "Nên xem" (`NativeFlowStepTest.nativeStepAdAllowed_noController_false`, `nativeStepAdAllowed_otherFormat_throws`, `nativeStepAdAllowed_withController_followsConsentSwitchAndAdFree`, `requireStepFormat_rejectsOtherFormats`) kiểm hai hàm mà plan chỉ gọi, không sửa, nên giữ nguyên. `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingStringsTest.kt` chỉ nhắc `docs/features/onboarding/design/README.md` trong chú thích, không đọc tệp này, nên không bị ảnh hưởng khi plan thêm kết quả đối chiếu vào README.
+Từ `scripts/existing-tests.py` (2026-11-09; chạy lại 2026-11-10 sau khi T-091 merge: 3 test ở nhóm "Cần xem trước" là `BannerAdSizeTest.admobOrder_withMaxKey_noMaxPlatform_heightIsAdmob`, `InListAdsTest.grid_inCollection_adTakesOneCell_everyNItems`, `RewardedActionTest.realController_adFreeWhileDialogOpen_watchRunsAction`, chỉ dựng `AdsController` thật; plan chỉ thêm hàm đọc vào lớp này, không đổi hàm có sẵn, nên giữ nguyên). Plan chỉ thêm tham số có giá trị mặc định và thêm hàm; `rememberIntroAdWait` giữ nguyên chữ ký. Hành vi trang 1 chỉ khác ở một trường hợp hiếm mà test có sẵn không chạm: `hasAd` đúng trước khi lượt chờ bắt đầu rồi sai, trước đây sẽ chờ, nay không chờ. Bốn test ở nhóm "Nên xem" (`NativeFlowStepTest.nativeStepAdAllowed_noController_false`, `nativeStepAdAllowed_otherFormat_throws`, `nativeStepAdAllowed_withController_followsConsentSwitchAndAdFree`, `requireStepFormat_rejectsOtherFormats`) kiểm hai hàm mà plan chỉ gọi, không sửa, nên giữ nguyên. `feature/onboarding/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/onboarding/OnboardingStringsTest.kt` chỉ nhắc `docs/features/onboarding/design/README.md` trong chú thích, không đọc tệp này, nên không bị ảnh hưởng khi plan thêm kết quả đối chiếu vào README.
 
 | Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
 | --- | --- | --- | --- |
@@ -171,7 +176,7 @@ Từ `scripts/existing-tests.py` (2026-11-09). Plan chỉ thêm tham số có gi
 | Trang 3 giữ nút, các trang khác không | Compose UI test | `OnboardingAdContentTest.guide_allowedNoNextAd_nextHeld_threeSeconds`, `guide_nextAdReady_notHeld`, `guide_notAllowed_notHeld`, `camera_neverHeld` |
 | Log | Unit test | `OnboardingViewModelTest.guideAdWait_logsStartAndEnd` |
 | Đúng thiết kế | Screenshot test cùng tên với từng ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh onboarding`, rà soát độc lập theo mục 7 của mẫu thiết kế; đồng hồ dừng vì không có hiệu ứng lặp | `OnboardingScreen_guide-ad-wait_light.png`, `OnboardingScreen_guide-ad-wait_dark.png` |
-| Ảnh thiết kế của ticket khác | Ảnh thiết kế của ticket khác (T-091): `OnboardingScreen_intro_light`, `OnboardingScreen_intro_dark`, `OnboardingScreen_intro_light_unfolded`, `OnboardingScreen_intro-ad_light`, `OnboardingScreen_intro-ad_dark`, `OnboardingScreen_intro-ad-wait_light`, `OnboardingScreen_intro-ad-wait_dark`, `OnboardingScreen_poses_light`, `OnboardingScreen_poses_dark`, `OnboardingScreen_poses-ad_light`, `OnboardingScreen_poses-ad_dark`, `OnboardingScreen_guide_light`, `OnboardingScreen_guide_dark`, `OnboardingScreen_guide-ad_light`, `OnboardingScreen_guide-ad_dark`, `OnboardingScreen_camera_light`, `OnboardingScreen_camera_dark`, `OnboardingScreen_camera_light_unfolded`, `OnboardingScreen_camera-ad_light`, `OnboardingScreen_camera-ad_dark`, `OnboardingScreen_premium_light`, `OnboardingScreen_premium_dark`, `OnboardingScreen_premium-ad_light`, `OnboardingScreen_premium-ad_dark` | Vẽ ở T-091; bốn ảnh premium do T-091 xóa |
+| Ảnh thiết kế của ticket khác | Ảnh thiết kế của ticket khác (T-091): `OnboardingScreen_intro_light`, `OnboardingScreen_intro_dark`, `OnboardingScreen_intro_light_unfolded`, `OnboardingScreen_intro-ad_light`, `OnboardingScreen_intro-ad_dark`, `OnboardingScreen_intro-ad-wait_light`, `OnboardingScreen_intro-ad-wait_dark`, `OnboardingScreen_poses_light`, `OnboardingScreen_poses_dark`, `OnboardingScreen_poses-ad_light`, `OnboardingScreen_poses-ad_dark`, `OnboardingScreen_guide_light`, `OnboardingScreen_guide_dark`, `OnboardingScreen_guide-ad_light`, `OnboardingScreen_guide-ad_dark`, `OnboardingScreen_camera_light`, `OnboardingScreen_camera_dark`, `OnboardingScreen_camera_light_unfolded`, `OnboardingScreen_camera-ad_light`, `OnboardingScreen_camera-ad_dark` | Vẽ ở T-091 |
 | Luồng qua đủ 4 trang khi trang 3 có thể chờ | Kiểm tra thủ công (emulator: `feature/onboarding/src/deviceScenarios/T-082-luong-gioi-thieu.txt`) | Tệp kịch bản |
 | Tỷ lệ trang 4 có thẻ khi bấm nhanh | Kiểm tra thủ công (máy thật: quảng cáo thật) | Trên bản staging, cài mới, bấm "Tiếp" nhanh qua 4 trang vài lần, đọc log `VGL.Onboarding` và xem trang 4 có thẻ không |
 
@@ -214,5 +219,11 @@ Không cần (E dưới 2).
 - **Quyết định:** Duyệt (Nhật, 2026-11-09, trong phiên có người theo dõi). Tuấn duyệt chéo bằng lời ngày 2026-11-09; Nhật báo lại trong phiên, AI ghi.
 - **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (duyệt bằng lời, 2026-11-09)
 - **Ghi chú:** Mục 8: câu 1 theo đề xuất của AI; câu 2 Nhật chấp nhận rủi ro chính sách quảng cáo. Plan chạm `:core:ads`: người duyệt chéo xem kỹ mục 3.1 và đề xuất về dự án mẫu.
+
+### Phiên bản 2
+
+- **Quyết định:** <Duyệt / Dừng / Duyệt có điều kiện>
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên>
+- **Ghi chú:**
 
 ## 10. Nhật ký thực hiện

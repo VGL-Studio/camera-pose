@@ -45,6 +45,14 @@ class AdsDebugOptionsTest {
     }
 
     @Test
+    fun loadErrorMessages_stagingOnly() {
+        // Plan T-093, KB-28: the SDK message of a load error is logged at staging only.
+        assertTrue(AdsDebugOptions.staging("").logLoadErrorMessages)
+        assertTrue(AdsDebugOptions.staging("A,B").logLoadErrorMessages)
+        assertFalse(AdsDebugOptions.NONE.logLoadErrorMessages)
+    }
+
+    @Test
     fun requestConfiguration_hasTestDevices_keepsOtherFields() {
         val base = RequestConfiguration.Builder()
             .setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_G)

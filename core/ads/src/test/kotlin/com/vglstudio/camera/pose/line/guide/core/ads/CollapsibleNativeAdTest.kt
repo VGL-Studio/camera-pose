@@ -47,7 +47,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAdView
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
@@ -100,7 +99,7 @@ class CollapsibleNativeAdTest {
 
     @Composable
     private fun Host(expandAfterSeconds: Long, renderAd: (@Composable (LoadedNativeAd, () -> Unit) -> Unit)? = null) {
-        AppTheme(darkTheme = false) {
+        AdsTestTheme(darkTheme = false) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                 key(attempt) {
                     state = rememberCollapsibleAdState()
@@ -286,7 +285,7 @@ class CollapsibleNativeAdTest {
     fun collapseButton_colorsBlack40AndWhite() {
         var scheme: ColorScheme? = null
         composeRule.setContent {
-            AppTheme(darkTheme = false) { scheme = MaterialTheme.colorScheme }
+            AdsTestTheme(darkTheme = false) { scheme = MaterialTheme.colorScheme }
             Host(expandAfterSeconds = 0)
         }
         composeRule.waitForIdle()
@@ -353,7 +352,7 @@ class CollapsibleNativeAdTest {
     @Test
     fun loading_drawsNothing_slotVisible() {
         composeRule.setContent {
-            AppTheme(darkTheme = false) {
+            AdsTestTheme(darkTheme = false) {
                 BottomAdBarLayout(
                     reservation = BottomAdBarDefaults.nativeReservation,
                     slot = { NativeAdCard(sampleNativeAdAssets, NativeAdSize.SMALL, it.testTag(SLOT)) },

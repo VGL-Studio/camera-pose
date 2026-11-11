@@ -16,7 +16,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 
 /** One banner of the SDK, as the slot sees it ([BannerSlotHost], [runBannerLoads]). */
 internal interface BannerAdView {
-    /** Results of the loads, sent by the app or refreshed by the SDK; no old result is replayed. */
+    /**
+     * Results of the loads, sent by the app (or refreshed by an AdMob ad unit that still refreshes by itself); no old
+     * result is replayed.
+     */
     val results: Flow<BannerLoadResult>
 
     /** Sends one request now. */
@@ -34,19 +37,18 @@ internal interface BannerAdView {
 }
 
 /**
- * The request of a banner. A collapsible banner ([BannerRefresh.MANUAL]) asks AdMob to collapse at the bottom with a
- * new [requestId] each time, so every reload opens as a new expanded banner (B-03); the same id would count as the
- * same expansion.
+ * The request of a banner. A [collapsible] banner ([bannerRequestIsCollapsible]) asks AdMob to collapse at the bottom
+ * with a new [requestId] each time, so every reload opens as a new expanded banner (B-03); the same id would count as
+ * the same expansion. A fixed banner and an MREC send a plain request, at each reload too.
  */
-internal fun bannerAdRequest(refresh: BannerRefresh, requestId: () -> String): AdRequest = when (refresh) {
-    BannerRefresh.BY_AD_UNIT -> AdRequest.Builder().build()
-    BannerRefresh.MANUAL -> {
-        val extras = Bundle().apply {
-            putString(COLLAPSIBLE_KEY, COLLAPSIBLE_BOTTOM)
-            putString(COLLAPSIBLE_REQUEST_ID_KEY, requestId())
-        }
-        AdRequest.Builder().addNetworkExtrasBundle(AdMobAdapter::class.java, extras).build()
+internal fun bannerAdRequest(collapsible: Boolean, requestId: () -> String): AdRequest = if (collapsible) {
+    val extras = Bundle().apply {
+        putString(COLLAPSIBLE_KEY, COLLAPSIBLE_BOTTOM)
+        putString(COLLAPSIBLE_REQUEST_ID_KEY, requestId())
     }
+    AdRequest.Builder().addNetworkExtrasBundle(AdMobAdapter::class.java, extras).build()
+} else {
+    AdRequest.Builder().build()
 }
 
 private const val COLLAPSIBLE_KEY = "collapsible"
@@ -56,13 +58,14 @@ private const val COLLAPSIBLE_REQUEST_ID_KEY = "collapsible_request_id"
 /**
  * A real [AdView] of [placement], drawn as [format]: the placement's own, or the banner layer of a bottom bar, reported
  * under the bar's placement (plan T-030, D-05). Its paid events, load results and clicks go to the ad metrics (plan
- * T-023): no zero-value fallback for banners (T-02); only the first result after a send has a latency, the refreshes
- * of the SDK have none (A 06:157). Load results also go to [results] for [runBannerLoads], and their networks to
- * [networkLog] at staging (plan T-058).
+ * T-023): no zero-value fallback for banners (T-02); only the first result after a send has a latency, so every
+ * reload by :core:ads has one and only a refresh of an ad unit that still refreshes by itself has none (A 06:157). Load results also go to [results] for [runBannerLoads], and their networks to
+ * [networkLog] at staging (plan T-058). A failure carries the SDK message through [loadErrorLog] (masked, staging
+ * only, plan T-093), for the retry line.
  */
 internal class SdkBannerAdView(
     private val adView: AdView,
-    private val refresh: BannerRefresh,
+    private val collapsible: Boolean,
     private val placement: AdPlacement,
     private val unitId: String,
     private val telemetry: AdTelemetry,
@@ -71,6 +74,7 @@ internal class SdkBannerAdView(
     private val newRequestId: () -> String = { UUID.randomUUID().toString() },
     private val format: AdFormat = placement.format,
     private val networkLog: AdNetworkLog = AdNetworkLog.OFF,
+    private val loadErrorLog: LoadErrorLog = LoadErrorLog.CODE_ONLY,
 ) : BannerAdView {
     // Callbacks come one at a time; the buffer keeps tryEmit from dropping a result the loop has not read yet.
     private val emitted = MutableSharedFlow<BannerLoadResult>(extraBufferCapacity = RESULT_BUFFER)
@@ -86,7 +90,7 @@ internal class SdkBannerAdView(
 
     override fun send() {
         telemetry.requestSent(slotKey, now())
-        load(bannerAdRequest(refresh, newRequestId))
+        load(bannerAdRequest(collapsible, newRequestId))
     }
 
     override fun pause() = adView.pause()
@@ -129,7 +133,7 @@ internal class SdkBannerAdView(
             override fun onAdFailedToLoad(error: LoadAdError) {
                 networkLog.failed(slot, error)
                 telemetry.loadFailed(format, slot, loadPlacement, error.code, error.message, now())
-                emitted.tryEmit(BannerLoadResult.Failed(error.code))
+                emitted.tryEmit(BannerLoadResult.Failed(error.code, loadErrorLog.messageOf(error.message)))
             }
 
             override fun onAdClicked() = telemetry.clicked(format, placement)

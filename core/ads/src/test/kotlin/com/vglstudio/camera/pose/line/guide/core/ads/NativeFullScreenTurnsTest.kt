@@ -2,6 +2,8 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.currentTime
@@ -711,6 +713,255 @@ class NativeFullScreenTurnsTest {
         assertFalse(port.calls.contains("beginPresence"))
         assertEquals(0, standaloneFinishes)
     }
+
+    // K-09 (plan T-102, KB-16 criteria 9 and 10): the combo opens only with a FullScreenAdHost; an open turn whose
+    // host is gone for 2 s while the app is in foreground closes by the normal close.
+
+    @Test
+    fun combo_noHost_slotHasAd_skipsAfterHostWait_releases() = runTest {
+        val port = newPort().apply {
+            slot = FakeLoadedNativeAd()
+            hostFlow.value = false
+            interGoneAt = 0L
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(999)
+        assertEquals(0, finishes)
+        assertNull(turns.view.value)
+        at(1_000)
+        assertEquals(1, finishes)
+        assertNull(turns.view.value)
+        assertEquals(0, port.takeCount)
+        assertEquals(0, port.ensureCount)
+        assertTrue(port.marks.isEmpty())
+        assertTrue(port.opportunities.isEmpty())
+        assertTrue(port.reloads.isEmpty())
+        assertFalse(port.presence.showing.value)
+        assertFalse(port.suppressor.suppressed.value)
+        val finishedAt = port.calls.indexOf("onFinished")
+        assertTrue(port.calls.toString(), port.calls.indexOf("releaseResumeAds") in 0 until finishedAt)
+        assertTrue(port.calls.toString(), port.calls.indexOf("endPresence") in 0 until finishedAt)
+        assertTrue(logger.entries.any { it.message == "Native combo skipped: no host" })
+        at(60_000)
+        assertEquals(1, finishes)
+    }
+
+    @Test
+    fun combo_noHost_adWouldArriveLater_noLoad_finishes() = runTest {
+        val port = newPort().apply { hostFlow.value = false }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(1_500)
+        port.deliver(AdPlacement.NATIVE_AFTER_INTER, FakeLoadedNativeAd())
+        runCurrent()
+        at(61_500)
+        assertEquals(1, finishes)
+        assertNull(turns.view.value)
+        assertFalse(turns.busy)
+        assertEquals(0, port.ensureCount)
+        assertFalse(port.presence.showing.value)
+    }
+
+    @Test
+    fun combo_backgroundDuringHostWait_skipsAtWaitEnd_noLateShow() = runTest {
+        val port = newPort().apply {
+            slot = FakeLoadedNativeAd()
+            hostFlow.value = false
+            // The user leaves the app as the interstitial closes.
+            foregroundFlow.value = false
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        // The wait is bounded in background too.
+        at(1_000)
+        assertEquals(1, finishes)
+        assertNull(turns.view.value)
+        assertEquals(0, port.takeCount)
+        // The user comes back much later: no native ad shows late.
+        at(30_000)
+        port.hostFlow.value = true
+        port.foregroundFlow.value = true
+        runCurrent()
+        at(60_000)
+        assertNull(turns.view.value)
+        assertEquals(1, finishes)
+    }
+
+    @Test
+    fun combo_hostAttachesWithinWait_opensThen_deadlineFromThen() = runTest {
+        val port = newPort().apply {
+            slot = FakeLoadedNativeAd()
+            hostFlow.value = false
+            countdownSeconds = 3L
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(299)
+        assertNull(turns.view.value)
+        at(300)
+        port.hostFlow.value = true
+        runCurrent()
+        assertNotNull(turns.view.value!!.ad)
+        at(3_299)
+        assertFalse(turns.view.value!!.closeEnabled)
+        at(3_300)
+        assertTrue(turns.view.value!!.closeEnabled)
+    }
+
+    @Test
+    fun combo_hostAttachesAfterWait_skips() = runTest {
+        val port = newPort().apply {
+            slot = FakeLoadedNativeAd()
+            hostFlow.value = false
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(1_000)
+        assertEquals(1, finishes)
+        at(1_200)
+        port.hostFlow.value = true
+        runCurrent()
+        assertNull(turns.view.value)
+        assertEquals(0, port.takeCount)
+        at(10_000)
+        assertNull(turns.view.value)
+        assertEquals(0, port.takeCount)
+    }
+
+    @Test
+    fun open_hostGoneInForeground_closesAfterGrace() = runTest {
+        val ad = FakeLoadedNativeAd()
+        val port = newPort().apply { slot = ad }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        runCurrent()
+        assertSame(ad, turns.view.value!!.ad)
+        at(1_000)
+        port.hostFlow.value = false
+        runCurrent()
+        at(2_999)
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+        at(3_000)
+        assertNull(turns.view.value)
+        assertEquals(1, finishes)
+        assertEquals(listOf(AdPlacement.GALLERY_INTERSTITIAL to 3_000L), port.marks)
+        assertEquals(listOf("shown" to "ready"), port.opportunities)
+        assertEquals(listOf(AdPlacement.NATIVE_AFTER_INTER), port.reloads)
+        assertEquals(1, ad.destroyCount)
+        assertFalse(port.presence.showing.value)
+        assertFalse(port.suppressor.suppressed.value)
+        assertTrue(logger.entries.any { it.message == "Native full-screen closed: host gone" })
+    }
+
+    @Test
+    fun open_hostGoneDuringCountdown_closesAnyway() = runTest {
+        val port = newPort().apply {
+            slot = FakeLoadedNativeAd()
+            countdownSeconds = 30L
+        }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(500)
+        port.hostFlow.value = false
+        runCurrent()
+        // Control: the close button does not work yet during the countdown.
+        at(1_000)
+        turns.close()
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+        at(2_500)
+        assertEquals(1, finishes)
+        assertNull(turns.view.value)
+    }
+
+    @Test
+    fun open_hostGoneInBackground_notCounted_hostBackOnReturn_keepsTurn() = runTest {
+        val port = newPort().apply { slot = FakeLoadedNativeAd() }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(500)
+        port.foregroundFlow.value = false
+        runCurrent()
+        at(1_000)
+        port.hostFlow.value = false
+        runCurrent()
+        at(60_000)
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+        // The activity is built again on return: the host comes back, then the app is in foreground.
+        port.hostFlow.value = true
+        runCurrent()
+        at(60_010)
+        port.foregroundFlow.value = true
+        runCurrent()
+        at(70_000)
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+    }
+
+    @Test
+    fun open_hostGoneInBackground_foregroundWithoutHost_closes() = runTest {
+        val port = newPort().apply { slot = FakeLoadedNativeAd() }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(500)
+        port.foregroundFlow.value = false
+        runCurrent()
+        at(1_000)
+        port.hostFlow.value = false
+        runCurrent()
+        at(60_000)
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+        // Back in foreground with no host: the grace counts from now.
+        port.foregroundFlow.value = true
+        runCurrent()
+        at(61_999)
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+        at(62_000)
+        assertNull(turns.view.value)
+        assertEquals(1, finishes)
+    }
+
+    @Test
+    fun open_hostGoneAndBackWithinGrace_keepsTurn() = runTest {
+        val port = newPort().apply { slot = FakeLoadedNativeAd() }
+        val turns = turnsOf(port)
+        turns.afterInter(port)
+        at(1_000)
+        port.hostFlow.value = false
+        runCurrent()
+        at(1_050)
+        port.hostFlow.value = true
+        runCurrent()
+        at(20_000)
+        assertNotNull(turns.view.value)
+        assertEquals(0, finishes)
+        turns.close()
+        assertEquals(1, finishes)
+    }
+
+    @Test
+    fun standalone_hostGone_closesAfterGrace_marksOwnPlacement() = runTest {
+        val port = newPort()
+        // The controller took the showing flag at its gate.
+        assertTrue(port.presence.tryBegin(AdPlacement.GALLERY_NATIVE_FULL_SCREEN, 0, 0L))
+        val turns = turnsOf(port)
+        turns.showStandalone(AdPlacement.GALLERY_NATIVE_FULL_SCREEN, FakeLoadedNativeAd(), onFinished)
+        at(1_000)
+        port.hostFlow.value = false
+        runCurrent()
+        at(2_999)
+        assertEquals(0, finishes)
+        at(3_000)
+        assertEquals(1, finishes)
+        assertEquals(listOf(AdPlacement.GALLERY_NATIVE_FULL_SCREEN to 3_000L), port.marks)
+        assertTrue(port.opportunities.isEmpty())
+        assertEquals(listOf(AdPlacement.GALLERY_NATIVE_FULL_SCREEN), port.reloads)
+    }
 }
 
 /** A loaded ad that writes its destroy into the call list of the port. */
@@ -755,6 +1006,16 @@ internal class FakeNativeFullScreenPort(private val now: () -> Long) : NativeFul
         private set
     var ensureCount = 0
         private set
+
+    /** A FullScreenAdHost is in a composition (HD-05); on by default, so the older tests run as before. */
+    val hostFlow = MutableStateFlow(true)
+
+    /** The app is in foreground; on by default. */
+    val foregroundFlow = MutableStateFlow(true)
+
+    override val hostAttached: StateFlow<Boolean> get() = hostFlow
+
+    override val foreground: StateFlow<Boolean> get() = foregroundFlow
 
     override suspend fun comboEnabled(): Boolean = comboOn
 

@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import kotlinx.coroutines.flow.Flow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -66,7 +65,7 @@ class NativeFlowStepLayoutTest {
     private fun setPage() {
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme {
+                AdsTestTheme {
                     val density = LocalDensity.current
                     val typography = MaterialTheme.typography
                     metrics = flowStepMetrics(density, typography)
@@ -222,7 +221,7 @@ class NativeFlowStepLayoutTest {
     @Test
     fun unboundedHeight_media120() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     NativeFullScreenStepContent(
                         assets = FakeNativeAdAssets.Design,
@@ -356,7 +355,7 @@ class NativeFlowStepLayoutTest {
     @Config(qualifiers = "w873dp-h393dp-440dpi")
     fun compactRow_placeholder_phoneLandscape() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Box(Modifier.fillMaxWidth().height(186.5.dp)) {
                     FlowStepPagePlaceholder(Modifier.testTag(NativeFlowStepTestTags.FULL_PAGE_PLACEHOLDER))
                 }
@@ -383,7 +382,7 @@ class NativeFlowStepLayoutTest {
         var fromMetrics = 0.dp
         composeRule.setContent {
             WithFontScale(scale) {
-                AppTheme {
+                AdsTestTheme {
                     fromDefaults = NativeFullScreenStepDefaults.minHeight()
                     fromMetrics = flowStepMetrics(LocalDensity.current, MaterialTheme.typography).minHeight
                 }

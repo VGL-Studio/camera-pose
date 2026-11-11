@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -11,11 +12,17 @@ import androidx.compose.ui.window.DialogProperties
  * Draws the native full-screen turn of the running app over the current screen, in a full-screen dialog: the combo
  * after an interstitial and the standalone turn (HD-05, plan T-026), with the countdown of `time_close_native`; the screen below keeps
  * its state, and closing the ad returns to it (KB-5, KB-16). :app places it once, inside its theme, after the
- * navigation host. It draws nothing in tests and previews (no [LocalAdsController]).
+ * navigation host, at the root of the UI of every activity that may call a full-screen ad. It registers with the
+ * controller while it is in a composition: with no host the combo does not open and a standalone native full-screen
+ * turn is skipped (K-09). It draws nothing in tests and previews (no [LocalAdsController]).
  */
 @Composable
 fun FullScreenAdHost() {
     val ads = LocalAdsController.current ?: return
+    DisposableEffect(ads) {
+        val detach = ads.attachFullScreenHost()
+        onDispose { detach() }
+    }
     NativeFullScreenOverlayHost(ads.nativeFullScreenView, ads::closeNativeFullScreen, ads::onNativeFullScreenBack)
 }
 

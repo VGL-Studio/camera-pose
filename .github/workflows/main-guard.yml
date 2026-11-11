@@ -15,6 +15,8 @@
 #   (output ui) whether the commit changes app code; ui-test then runs after guard. It runs the tests at most twice
 #   (scripts/ui-test-on-emulator.sh) and scripts/ui-test-verdict.sh concludes green, flaky, infra or red. Only red opens
 #   main-broken, with the marker <!-- check:ui-test -->; each job comments on and closes only its own issue.
+# - Jobs guard and ui-test run on the runner the repository variable HEAVY_RUNNER names, else on ubuntu-latest;
+#   steps that use sudo run only on GitHub runners (ADR-0042).
 # Changing this file is a high-risk plan; cross-review required.
 name: main-guard
 
@@ -43,7 +45,7 @@ jobs:
   guard:
     # A run by hand on another branch would open main-broken, push a revert or close an issue for that branch.
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.HEAVY_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 90
     outputs:
       ui: ${{ steps.ui.outputs.ui }}
@@ -51,6 +53,13 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 50
+
+      # Even in mode skip, so that a broken self-hosted runner shows at once (ADR-0042).
+      - name: Kiểm runner tự host (scripts/runner-check.sh)
+        if: runner.environment == 'self-hosted'
+        env:
+          REPO_VISIBILITY: ${{ github.event.repository.visibility }}
+        run: scripts/runner-check.sh
 
       - name: Chọn cách kiểm (scripts/main-guard-verified.sh)
         id: mode
@@ -217,13 +226,19 @@ jobs:
     needs: guard
     # An empty output (the step ui could not write it) still runs the emulator.
     if: needs.guard.outputs.ui != 'no'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.HEAVY_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
         with:
           # ui-test-verdict.sh compares the commit with its parent; find-breaking-commit.sh walks back from it.
           fetch-depth: 50
+
+      - name: Kiểm runner tự host (scripts/runner-check.sh)
+        if: runner.environment == 'self-hosted'
+        env:
+          REPO_VISIBILITY: ${{ github.event.repository.visibility }}
+        run: scripts/runner-check.sh --emulator
 
       - uses: actions/setup-java@v5
         with:
@@ -236,12 +251,14 @@ jobs:
       # Gradle caches of main are restored, the runner has only ~5.5-6.4 GB left. Remove preinstalled
       # toolchains this job never uses.
       - name: Giải phóng đĩa cho emulator
+        if: runner.environment == 'github-hosted'
         run: |
           df -h /
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /opt/hostedtoolcache/CodeQL
           df -h /
 
       - name: Bật KVM cho emulator
+        if: runner.environment == 'github-hosted'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules

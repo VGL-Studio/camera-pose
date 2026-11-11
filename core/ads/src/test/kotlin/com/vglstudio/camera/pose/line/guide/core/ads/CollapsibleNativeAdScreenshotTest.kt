@@ -9,7 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode
 class CollapsibleNativeAdScreenshotTest {
     @Composable
     private fun AtBottom(darkTheme: Boolean) {
-        AppTheme(darkTheme = darkTheme) {
+        AdsTestTheme(darkTheme = darkTheme) {
             Surface {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                     CollapsibleNativeAdCard(

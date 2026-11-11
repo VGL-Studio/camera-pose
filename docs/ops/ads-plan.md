@@ -72,15 +72,15 @@ Từng sheet:
   - Khóa bật tắt, khóa tham số riêng, cách gọi trong code, kích thước tự hiện. Chọn mã trùng tên AdsKit thì khóa trùng luôn: mã `rw_get_item` cho khóa `is_show_rw_get_item`.
 - **Remote Config.** Mọi khóa của app, chia theo nhóm (mở app, quay lại app, interstitial, thanh đáy, số liệu...). Chỉ điền cột **Giá trị phát hành**: giá trị dự định đặt trên Firebase production. Cột Mặc định trong code là giá trị khi app chưa tải được cấu hình. Khóa riêng của app chưa có trong code thì thêm ở nhóm Khóa của app. Cuối sheet là các khóa theo vị trí, tự sinh từ sheet Vị trí QC.
 - **Sự kiện.** Phần đầu là sự kiện quảng cáo mà `:core:ads` và `:core:analytics` tự gửi cho mọi vị trí: dev không làm thêm gì, chỉ cần biết tên và tham số để đọc số liệu. Phần cuối là sự kiện của app: dòng xanh lá đọc từ hằng `EVENT_` trong code; sự kiện mới thêm vào dòng vàng, ghi khi nào gửi, tham số, và câu hỏi kinh doanh mà nó trả lời.
-- **Định dạng.** Danh sách đóng các định dạng của `:core:ads`, kích thước, cách làm mới, mã `ad_format` trong số liệu. Cần định dạng không có ở đây thì đề xuất về dự án mẫu ([from-app.md](from-app.md)), không tự thêm.
-- **Hằng số.** Giá trị cố định trong code (thời gian chờ, hạn dùng, nhịp làm mới). Không đổi được qua Remote Config; muốn đổi phải sửa dự án mẫu.
+- **Định dạng.** Danh sách đóng các định dạng của `:core:ads`, kích thước, cách làm mới, mã `ad_format` trong số liệu. Banner cố định, MREC và banner thu gọn do `:core:ads` nạp lại tay theo khóa của chúng (`time_reload_banner`, `time_reload_banner_mrec`, `time_reload_banner_collap`); đơn vị của chúng trên AdMob và MAX tắt tự làm mới. Cần định dạng không có ở đây thì đề xuất về dự án mẫu ([from-app.md](from-app.md)), không tự thêm.
+- **Hằng số.** Giá trị cố định trong code (thời gian chờ, hạn dùng, mức sàn của nhịp làm mới). Không đổi được qua Remote Config; muốn đổi phải sửa dự án mẫu. Nhịp làm mới của native nhỏ, lớp thu gọn, banner thu gọn, banner cố định và MREC là khóa Remote Config, nằm ở sheet Remote Config.
 
 Không ghi vào file: mã đơn vị quảng cáo thật, khóa SDK (AppLovin...), khóa AppsFlyer, dữ liệu người dùng.
 
 ## 5. Một vòng làm việc
 
 1. **Hoạch định.** Nhóm kinh doanh điền vị trí, khóa, sự kiện mới trên file, trạng thái `Đề xuất`. Sửa hết ô đỏ của cột Kiểm tra.
-2. **Vào spec.** Dev hay AI chép các dòng đã chốt vào spec của feature: vị trí vào mục 5 (Quảng cáo), sự kiện vào mục 6. Người phụ trách sản phẩm duyệt spec. Đổi trạng thái trên file thành `Đã duyệt trong spec`. Chưa có trong spec đã duyệt thì không code (ADR-0004).
+2. **Vào spec.** Dev hay AI chép các dòng đã chốt vào spec của feature: vị trí vào mục 5 (Quảng cáo), sự kiện vào mục 6. Người phụ trách sản phẩm duyệt spec. Đổi trạng thái trên file thành `Đã duyệt trong spec`. Chưa có trong spec đã duyệt thì không code (ADR-0045, mục 4.6).
 3. **Code.** Theo [ads-guide.md](ads-guide.md), mục 5: mỗi vị trí một dòng trong `AdPlacement`, sinh lại bảng khóa. Sau khi merge, sinh lại file (bước 4).
 4. **Sinh lại file**, giữ phần đã điền:
 

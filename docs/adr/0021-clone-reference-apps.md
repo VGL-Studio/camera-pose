@@ -1,7 +1,7 @@
 ---
 id: ADR-0021
 title: App mới có thể bắt đầu bằng việc AI khảo sát các app mẫu trên Play, đề xuất app tốt hơn, rồi thiết kế trên Figma cùng dev
-status: proposed
+status: accepted
 origin: template           # template: quy tắc từ dự án mẫu, app không sửa | app: quyết định riêng của app
 date: 2026-10-21
 deciders: [Nhóm phát triển, Người phụ trách sản phẩm]

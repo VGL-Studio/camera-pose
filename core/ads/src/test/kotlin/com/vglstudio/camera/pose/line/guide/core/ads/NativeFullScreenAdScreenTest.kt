@@ -36,7 +36,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -62,7 +61,7 @@ class NativeFullScreenAdScreenTest {
 
     private fun setScreen(assets: NativeAdAssets = FakeNativeAdAssets.Design) {
         composeRule.setContent {
-            AppTheme(darkTheme = false) {
+            AdsTestTheme(darkTheme = false) {
                 NativeFullScreenAdScreen(
                     assets = assets,
                     onClose = { closes++ },
@@ -187,7 +186,7 @@ class NativeFullScreenAdScreenTest {
     fun flowStep_hasNoCloseButton_noCountdown() {
         var flowStep by mutableStateOf(true)
         composeRule.setContent {
-            AppTheme(darkTheme = false) {
+            AdsTestTheme(darkTheme = false) {
                 NativeFullScreenAdLayout(
                     assets = FakeNativeAdAssets.Design,
                     onClose = if (flowStep) null else ({ closes++ }),
@@ -212,7 +211,7 @@ class NativeFullScreenAdScreenTest {
     @Test
     fun flowStep_publicContent_hasNoCloseButton() {
         composeRule.setContent {
-            AppTheme(darkTheme = false) {
+            AdsTestTheme(darkTheme = false) {
                 NativeFullScreenStepContent(
                     assets = FakeNativeAdAssets.Design,
                     media = { FakeMedia() },
@@ -230,7 +229,7 @@ class NativeFullScreenAdScreenTest {
     fun flowStep_mediaStartsLikeAfterInter() {
         var flowStep by mutableStateOf(true)
         composeRule.setContent {
-            AppTheme(darkTheme = false) {
+            AdsTestTheme(darkTheme = false) {
                 if (flowStep) {
                     NativeFullScreenStepContent(FakeNativeAdAssets.Design, media = { FakeMedia() })
                 } else {
@@ -255,7 +254,7 @@ class NativeFullScreenAdScreenTest {
         var view: View? = null
         composeRule.setContent {
             view = LocalView.current
-            AppTheme(darkTheme = false) {
+            AdsTestTheme(darkTheme = false) {
                 Box(Modifier.size(360.dp, 556.dp).testTag(AREA)) {
                     if (flowStep) {
                         NativeFullScreenStepContent(FakeNativeAdAssets.Design, media = { FakeMedia() })

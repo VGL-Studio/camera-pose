@@ -36,7 +36,8 @@ internal interface NativeAdEvents {
  * Loads native ads with the Google Mobile Ads SDK. Main thread only, like the SDK. [events] gets the callbacks the
  * ad metrics read; one loader loads one ad. [options] are the request options, those of the size by default (the
  * collapsible layer passes its own, plan T-030). [networkLog] logs the networks of each result under [logKey], the key
- * the load logs under (plan T-058); off by default.
+ * the load logs under (plan T-058); off by default. [loadErrorLog] hands the masked SDK message of a failure to
+ * `onFailed` at staging (plan T-093); none by default.
  */
 internal class SdkNativeAdLoader(
     private val context: Context,
@@ -45,17 +46,19 @@ internal class SdkNativeAdLoader(
     private val options: NativeRequestOptions? = null,
     private val networkLog: AdNetworkLog = AdNetworkLog.OFF,
     private val logKey: String = "",
+    private val loadErrorLog: LoadErrorLog = LoadErrorLog.CODE_ONLY,
 ) : NativeAdLoader {
     override fun load(
         unitId: String,
         size: NativeAdSize,
         onLoaded: (LoadedNativeAd) -> Unit,
-        onFailed: (code: Int) -> Unit,
+        onFailed: (code: Int, logMessage: String?) -> Unit,
     ) {
         val options = (options ?: nativeRequestOptions(size)).toNativeAdOptions()
         val listener = NativeAdLoadListener(
             events,
             onLoadFailedResponse = { networkLog.failed(logKey, it) },
+            loadErrorLog = loadErrorLog,
             onFailed = onFailed,
         )
         val loader = AdLoader.Builder(context, unitId)
@@ -81,12 +84,14 @@ internal class SdkNativeAdLoader(
 /**
  * The SDK listener of one native load: hands the load error, impression and click to [events], and marks the
  * impression on the [loaded] ad, so a pool destroys it instead of showing it again (P-01a, plan T-028). The whole
- * error goes first to [onLoadFailedResponse], for the per-network log (plan T-058).
+ * error goes first to [onLoadFailedResponse], for the per-network log (plan T-058). The metrics get the SDK message as
+ * it is; [onFailed] gets it through [loadErrorLog] only, masked or null (plan T-093).
  */
 internal class NativeAdLoadListener(
     private val events: NativeAdEvents?,
     private val onLoadFailedResponse: (LoadAdError) -> Unit = {},
-    private val onFailed: (Int) -> Unit,
+    private val loadErrorLog: LoadErrorLog = LoadErrorLog.CODE_ONLY,
+    private val onFailed: (code: Int, logMessage: String?) -> Unit,
 ) : AdListener() {
     /** The ad of this load, set as soon as the SDK returns it. */
     var loaded: SdkLoadedNativeAd? = null
@@ -94,7 +99,7 @@ internal class NativeAdLoadListener(
     override fun onAdFailedToLoad(error: LoadAdError) {
         onLoadFailedResponse(error)
         events?.onFailed(error.code, error.message)
-        onFailed(error.code)
+        onFailed(error.code, loadErrorLog.messageOf(error.message))
     }
 
     override fun onAdImpression() {

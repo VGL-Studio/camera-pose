@@ -24,7 +24,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -75,7 +74,7 @@ class NativeAdCellTest {
         ).also { it.refill() }
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column {
                     listOf("cell_a" to shared, "cell_b" to shared, "cell_c" to single, "cell_d" to single)
                         .forEach { (tag, pool) ->
@@ -113,7 +112,7 @@ class NativeAdCellTest {
     fun exhausted_takesNoSpace() {
         val states = MutableStateFlow<NativeAdState>(NativeAdState.Loading)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdCellHost(
                     states = states,
                     size = NativeAdSize.MEDIUM,
@@ -137,7 +136,7 @@ class NativeAdCellTest {
     fun exhausted_keepSpaceDeclared_showsStaticPlaceholder() {
         val seen = mutableListOf<NativeAdState>()
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdCellHost(
                     states = remember { flowOf(NativeAdState.Loading, NativeAdState.Unavailable) },
                     size = NativeAdSize.MEDIUM,
@@ -161,13 +160,53 @@ class NativeAdCellTest {
     }
 
     @Test
+    fun gate_card_cardHeight_placeholderAdAndKeptSpace() {
+        val states = MutableStateFlow<NativeAdState>(NativeAdState.Loading)
+        composeRule.setContent {
+            AdsTestTheme {
+                NativeAdSlotGate(
+                    allowed = true,
+                    states = states,
+                    size = NativeAdSize.CARD,
+                    keepSpaceWhenEmpty = true,
+                    onAdAvailabilityChange = {},
+                    modifier = Modifier.width(CARD_WIDTH).testTag(CELL),
+                    onPoolOpportunity = {},
+                    cardHeight = APP_CARD_HEIGHT,
+                    adContent = { BoundNativeAd(it, NativeAdSize.CARD, cardHeight = APP_CARD_HEIGHT) },
+                )
+            }
+        }
+        composeRule.waitForIdle()
+        placeholderInCell().assertCountEquals(1)
+        placeholderInCell()[0].assertHeightIsEqualTo(APP_CARD_HEIGHT)
+
+        states.value = NativeAdState.Loaded(FakeLoadedNativeAd())
+        composeRule.waitForIdle()
+        composeRule.onNode(hasTestTag(NativeAdTestTags.CARD) and hasAnyAncestor(hasTestTag(CELL)))
+            .assertHeightIsEqualTo(APP_CARD_HEIGHT)
+
+        // The pool is exhausted: the cell keeps a static placeholder of the same height.
+        states.value = NativeAdState.Unavailable
+        composeRule.waitForIdle()
+        placeholderInCell().assertCountEquals(1)
+        placeholderInCell()[0].assertHeightIsEqualTo(APP_CARD_HEIGHT)
+        composeRule.onNodeWithTag(CELL).assertHeightIsEqualTo(APP_CARD_HEIGHT)
+    }
+
+    private fun placeholderInCell() = composeRule.onAllNodes(
+        hasTestTag(NativeAdTestTags.PLACEHOLDER) and hasAnyAncestor(hasTestTag(CELL)),
+        useUnmergedTree = true,
+    )
+
+    @Test
     fun inCollection_drawsCard_medium_drawsMedium() {
         val card = requireCellFormat(AdFormat.NATIVE_IN_COLLECTION)
         val medium = requireCellFormat(AdFormat.NATIVE_MEDIUM)
         assertEquals(NativeAdSize.CARD, card)
         assertEquals(NativeAdSize.MEDIUM, medium)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column {
                     listOf(
                         Triple("card", card, 180.dp),
@@ -197,7 +236,7 @@ class NativeAdCellTest {
         assertThrows(IllegalArgumentException::class.java) { requireCellFormat(AdFormat.NATIVE_SMALL) }
         assertThrows(IllegalArgumentException::class.java) { requireCellFormat(AdFormat.BANNER) }
         val error = runCatching {
-            composeRule.setContent { AppTheme { NativeAdCell(AdPlacement.POSES_BOTTOM) } }
+            composeRule.setContent { AdsTestTheme { NativeAdCell(AdPlacement.POSES_BOTTOM) } }
             composeRule.waitForIdle()
         }.exceptionOrNull()
         assertTrue("expected IllegalArgumentException, got $error", error is IllegalArgumentException)
@@ -212,7 +251,7 @@ class NativeAdCellTest {
     ) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 val state = rememberPagerState(pageCount = { pages })
                 val scope = rememberCoroutineScope()
                 onPager(state, scope)
@@ -288,7 +327,7 @@ class NativeAdCellTest {
         val viewed = mutableMapOf<Int, Boolean>()
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 val state = rememberPagerState(pageCount = { 3 })
                 pager = state
                 scope = rememberCoroutineScope()
@@ -318,7 +357,7 @@ class NativeAdCellTest {
         val loading = mutableListOf<String>()
         var shown by mutableStateOf(true)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 if (shown) {
                     Column {
                         listOf(
@@ -353,6 +392,9 @@ class NativeAdCellTest {
 
     private companion object {
         val CARD_WIDTH = 379.dp
+
+        /** The height of the app's card next to an ad card, other than the 300 dp default. */
+        val APP_CARD_HEIGHT = 420.dp
         const val CELL = "cell"
         val PLACEMENT = AdPlacement.GALLERY_NATIVE_MEDIUM
         const val FRAME = 100L

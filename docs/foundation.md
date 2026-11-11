@@ -22,12 +22,6 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - mỗi feature mới có cờ riêng khai báo trong `:core:config`, tên theo dạng `feature_<ten>_enabled`
 - không đọc Remote Config trực tiếp từ module feature
 
-### [ADR-0004](adr/0004-ads-admob-mediation.md): Dùng AdMob làm nền tảng điều phối mediation, quảng cáo qua một lớp trung gian
-
-- không tự thêm vị trí quảng cáo ngoài spec
-- không đưa mã quảng cáo thật vào code hay tài liệu
-- khởi tạo SDK quảng cáo theo luật đồng ý của `docs/ops/ads-business-rules.md`, mục 1 (ADR-0026)
-
 ### [ADR-0005](adr/0005-no-child-audience.md): Không nhắm tới trẻ em
 
 - khi sinh spec hoặc nội dung, không định hướng giao diện, hình ảnh, nội dung chữ theo hướng dành cho trẻ em
@@ -64,30 +58,11 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không sửa script này, các workflow trong `.github/` hay nội dung kiểm tra của cổng chất lượng, trừ khi đó chính là plan rủi ro cao đã được duyệt chéo
 - thấy nhãn `main-broken` thì dừng phiên, trừ trường hợp phiên tự revert commit merge của chính phiên theo ADR-0025
 
-### [ADR-0011](adr/0011-toolchain-and-code-checks.md): Bộ công cụ build và kiểm tra code của dự án mẫu
-
-- chạy `scripts/check.sh` trước khi đẩy code
-- chạy `./gradlew ktlintFormat` khi ktlint báo lỗi, không tắt quy tắc
-- không cập nhật ảnh chuẩn screenshot ngoài plan
-
 ### [ADR-0012](adr/0012-firebase-wiring.md): Nối Firebase vào các module core, bản staging build bằng file cấu hình giả khi không có file thật
 
 - không gọi Firebase từ module feature
 - không sửa hay xóa file `google-services.json` giả, trừ khi đổi `applicationId` theo plan đã duyệt
 - không tạo, đọc hay chép file `google-services.json` thật vào bất kỳ đâu
-
-### [ADR-0013](adr/0013-ads-consent-and-guardrails.md): Quảng cáo AdMob chỉ khởi động sau hộp thoại đồng ý UMP, mã quảng cáo production đưa vào lúc build phát hành
-
-- feature chỉ dùng composable và hàm của `:core:ads` và `PrivacyOptionsButton`
-- không gọi `AdsController` hay SDK quảng cáo từ feature
-- không viết mã quảng cáo thật vào code, tài liệu hay tham số build trong repo
-- feature chỉ gọi quảng cáo toàn màn hình ở hành động của người dùng
-- quảng cáo lúc mở app và khi quay lại app do `:core:ads` và vỏ app làm theo `docs/ops/ads-business-rules.md` (ADR-0026)
-
-### [ADR-0014](adr/0014-ads-default-values.md): Giá trị mặc định của tham số quảng cáo, thay bảng mặc định trong ADR-0013
-
-- vị trí mới mặc định tắt
-- giá trị mặc định của khóa quảng cáo theo bảng khóa của `docs/ops/ads-business-rules.md`, mục 10 (ADR-0026), chỉ đổi khi người phụ trách sản phẩm quyết
 
 ### [ADR-0015](adr/0015-r2-assets-module.md): Module `:core:assets` tải file tĩnh từ R2 một lần, giữ trên máy, đường dẫn bắt buộc có phiên bản
 
@@ -117,13 +92,21 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không gọi `android.util.Log` trong feature
 - khi test emulator đỏ, đọc bước "Chi tiết test trên emulator" trước khi sửa
 
-### [ADR-0023](adr/0023-remote-config-conventions.md): Khóa Remote Config phẳng, có kiểu, khai báo một chỗ trong code, sinh bảng khóa và file mẫu; staging có giá trị cục bộ
+### [ADR-0020](adr/0020-design-handoff-and-conformance.md): Thiết kế trên Claude Design hoặc Figma, bàn giao bằng ảnh khung chuẩn trong repo, đối chiếu bằng ảnh so sánh
 
-- đặt tên khóa theo quy ước của ADR này (khóa quảng cáo theo ADR-0026 nếu ADR đó được duyệt)
-- không dùng khối JSON làm cấu hình
-- khai báo khóa mới kèm kiểu, mặc định an toàn và mô tả ở module sở hữu, rồi sinh lại bảng khóa trong cùng PR
-- không đổi tên hay đổi kiểu một khóa đã phát hành
-- không đổi giá trị trên Firebase (việc của người)
+- chỉ dùng gói trong `design/`
+- đặt tên screenshot test đúng tên ảnh trong `screens/`
+- ảnh `_unfolded` có screenshot test ở khung `w673dp-h841dp-xxhdpi`
+- chạy `scripts/design-compare.sh` và đưa `design/review/` vào PR khi feature có thiết kế
+- không đổi giao diện để giảm tỷ lệ khác biệt bằng cách viết cứng giá trị
+
+### [ADR-0021](adr/0021-clone-reference-apps.md): App mới có thể bắt đầu bằng việc AI khảo sát các app mẫu trên Play, đề xuất app tốt hơn, rồi thiết kế trên Figma cùng dev
+
+- làm theo `docs/CLAUDE.md`, mục Khi khảo sát app mẫu và mục Khi thiết kế trên Figma
+- chỉ điều khiển máy qua `scripts/app-explore/ax.sh`
+- không vượt bộ chặn
+- không tự chuyển trạng thái bản đề xuất hay thiết kế
+- ghi mọi tài sản mượn vào `docs/borrowed-assets.md` trong cùng PR với file mượn
 
 ### [ADR-0024](adr/0024-network-required.md): App chỉ dùng được khi có Internet; mất mạng thì app chặn bằng một popup chung có nút thử lại
 
@@ -141,17 +124,6 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - AI vẫn không đóng, sửa hay bình luận để gỡ issue `main-broken`
 - chép issue `flaky` đang mở vào báo cáo phiên
 - các quy tắc khác của ADR-0010 vẫn áp dụng
-
-### [ADR-0026](adr/0026-ads-follow-adskit-partner.md): Hành vi kinh doanh của quảng cáo theo bộ PARTNER của AdsKit, cách làm kỹ thuật theo cấu trúc của dự án mẫu
-
-- hành vi quảng cáo theo `docs/ops/ads-business-rules.md` (bộ PARTNER của AdsKit), không theo trí nhớ về AdsKit hay về ADR-0022
-- không chép code AdsKit và không chép khóa nào từ AdsKit
-- luật thuần của quảng cáo tách thành hàm có unit test với đồng hồ giả, đo thời gian bằng đồng hồ đơn điệu
-- khóa Remote Config quảng cáo dùng đúng tên trong bảng khóa của `ads-business-rules.md`, khóa mới cùng kiểu đặt tên và ghi rõ là tên do ta đặt
-- vị trí mới khai báo theo mô hình chung (mã, định dạng, nhóm giãn cách) với khóa suy ra theo mẫu, không thêm cờ, hàm hay composable mang tên tính năng của một app vào `:core:ads`
-- không ghi `ad_impression` từ app, doanh thu theo vị trí ghi bằng `ad_impression_placement`
-- giữ các quy tắc ở mục 10 của ADR-0026 kể cả khi spec yêu cầu khác, gặp yêu cầu như vậy thì ghi thành câu hỏi
-- không thêm vị trí, định dạng hay sự kiện ngoài spec đã duyệt
 
 ### [ADR-0027](adr/0027-appsflyer.md): Dùng AppsFlyer trong :core:analytics cho doanh thu quảng cáo và phễu quảng cáo, khóa dev đưa vào lúc build, staging không gửi
 
@@ -245,46 +217,12 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - - đột biến theo hướng điểm chặn làm test thất bại, ghi vào nhật ký plan
 - - test nằm trong file được phép và vào commit của task. - Không áp dụng cho điểm chặn về lệch plan, file ngoài phạm vi, test bị đổi hay xóa, ADR-0031, cấu hình production, bí mật, mã quảng cáo thật, thiết kế hay hiểu spec khác nhau. - Test và lần đột biến đi qua vòng rà soát lại, tính vào giới hạn 2 vòng. Rà soát lại không đồng ý thì điểm là Chặn như cũ. - Mỗi điểm chỉ ghi "không tái hiện" một lần. - Ghi vào mục "Quyết định AI đã tự làm", thêm một dòng `- [ ]` ở "Cần người kiểm tra", và ghi trong mô tả PR
 
-### [ADR-0036](adr/0036-ads-lech-partner-tu-jbase.md): Quảng cáo lệch có chủ đích khỏi PARTNER ở bốn điểm học từ JBase, ghi rõ trong luật nghiệp vụ
-
-- quảng cáo trong màn hình không gửi yêu cầu và không làm mới khi quảng cáo toàn màn hình vẽ trong app đang hiện
-- thanh đáy chừa chỗ đúng chiều cao của khe từ lúc khe đang tải, nạp lỗi thì co về 0
-- `banner_mrec` là một định dạng của danh sách đóng, chỉ dùng khi spec của app khai báo
-- cổng không hiện quảng cáo bật thì mọi định dạng như công tắc tổng tắt và hành động có điều kiện làm thẳng
-- ghi mỗi điểm lệch PARTNER vào `ads-business-rules.md` mục 12 kèm mã ADR
-
-### [ADR-0037](adr/0037-ads-them-max-va-aps.md): Thêm AppLovin MAX làm nền tảng quảng cáo thứ hai bên cạnh AdMob; Amazon APS đi kèm MAX khi có tài khoản
-
-- SDK MAX và APS chỉ nằm trong `:core:ads`
-- MAX và APS khởi tạo sau cổng đồng ý của `:core:ads`, không bao giờ trước, không viết cứng trạng thái đồng ý
-- khóa SDK MAX, mã đơn vị MAX và mã APS không vào repo, tài liệu hay resource của module
-- mọi luồng của MAX đi qua cùng cổng hiện toàn màn hình và cùng mốc `ads_interval` với AdMob
-- native không đi qua MAX
-- adapter của MAX ghi phiên bản cụ thể trong `gradle/libs.versions.toml`, không dùng `+`
-- không tách ticket APS khi chưa có tài khoản Amazon Publisher Services
-
-### [ADR-0038](adr/0038-ads-chuan-nghiep-vu-jbase.md): Nghiệp vụ quảng cáo lấy JBase làm chuẩn; chỗ JBase không có thì giữ PARTNER, chỗ JBase sai thì không theo
-
-- phân xử nghiệp vụ quảng cáo theo thứ tự quyết định của người phụ trách sản phẩm trong spec `ads`, rồi JBase, rồi luật PARTNER đang có
-- không theo JBase ở chỗ trái luật, chính sách hay là lỗi, ghi lý do
-- dẫn chứng JBase bằng đường dẫn và dòng, hoặc lớp và hằng số của bytecode, không theo trí nhớ
-- không chép code hay khóa của JBase
-- ghi mỗi luật đổi theo JBase vào `ads-business-rules.md` kèm mã ADR-0038 và nguồn JBase
-
 ### [ADR-0039](adr/0039-main-guard-tin-lan-kiem-cua-pr.md): main-guard không chạy lại cổng chất lượng cho commit có nội dung đã được pr-check kiểm đầy đủ, chỉ chạy test của script khi phần khác chỉ là tài liệu
 
 - `main-guard.yml` chỉ bỏ qua `check.sh` qua `scripts/main-guard-verified.sh`, bằng một bước bên trong job `guard`, không bằng `if:` ở cấp job
 - script không chắc thì chọn `full`
 - commit đổi một file mà job `guard` gọi hay dựa vào, lần chạy tay và lần chạy lại luôn dùng `full`
 - đổi tên bước cổng chất lượng hay tên job `build-and-test` của `pr-check.yml`, hay thêm file trong `docs/` mà Gradle đọc, thì sửa `main-guard-verified.sh` và test của nó cùng PR
-
-### [ADR-0040](adr/0040-bo-build-agp-9.md): Dự án mẫu build bằng Gradle 9.3.1 và AGP 9.1.0 với Kotlin dựng sẵn, compileSdk 37, targetSdk 36
-
-- không áp dụng plugin `org.jetbrains.kotlin.android`
-- trong `build-logic`, cấu hình module Android qua thuộc tính của `CommonExtension` của AGP 9
-- không đặt `android.newDsl=false` ngoài ngoại lệ của plan T-080, plugin cần DSL cũ thì nâng plugin đó
-- giữ `compileSdk = "<số>"` trên một dòng của `gradle/libs.versions.toml`
-- nâng Gradle thì thêm giới hạn Java của bản đó vào `scripts/java-check.sh` kèm test
 
 ### [ADR-0041](adr/0041-merge-khong-cap-nhat-khi-main-chi-doi-tai-lieu.md): merge-if-green.sh merge PR code mà không cập nhật nhánh khi nhánh chính chỉ đổi tài liệu từ điểm tách, và PR nháp không chạy pr-check
 
@@ -320,6 +258,72 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - emulator đỏ vì hạ tầng sau merge thì chạy lại riêng job đỏ theo `docs/ops/failure-playbook.md`, không mở `main-broken`, không đẩy commit rỗng lên nhánh chính
 - thêm đường dẫn code app hay script mà job `ui-test` gọi thì sửa danh sách của `scripts/ui-test-needed.sh` và test của nó cùng PR
 
+### [ADR-0044](adr/0044-tai-lieu-quy-tac-chi-noi-hien-tai.md): Tài liệu quy tắc chỉ nói quy tắc hiện tại; lịch sử nằm ở những chỗ dành riêng và không sang app
+
+- tài liệu quy tắc viết quy tắc ở thì hiện tại, lý do cần thiết viết thành một vế câu, không kể lại cách làm cũ
+- không ghi mã bài học, mã ticket hay mã phiên (`L-` hay `T-` cộng ba chữ số, `RUN-` cộng tám chữ số) trong tài liệu quy tắc, các mã đó chỉ ghi ở chỗ dành cho lịch sử của mục 1 của ADR-0044
+- chữ giữ chỗ, mã `PB-NN` của bảng tra lỗi và mã luật quảng cáo hai chữ số vẫn được dùng
+- PR áp dụng bài học sửa quy tắc theo cách này và ghi mã bài học trong mô tả PR
+- ADR mới sửa một phần ADR chưa `superseded` thì hợp nhất, chép lại quy tắc còn đúng và cho ADR cũ `superseded`
+- tài liệu quy tắc không dẫn tới hay nhắc mã ADR `superseded`
+- không thêm dòng vào `scripts/tests/history-refs-allow.txt`
+- PR dọn tài liệu giữ đủ mọi quy tắc của bản cũ, không nới quy tắc nào, và ghi trong mô tả PR các mã đã gỡ khỏi mỗi quy tắc
+
+### [ADR-0045](adr/0045-quang-cao.md): Quảng cáo theo luật nghiệp vụ một bộ (quyết định của người phụ trách sản phẩm, rồi JBase, rồi AdsKit PARTNER), qua một lớp trung gian `:core:ads`, AdMob và AppLovin MAX
+
+- hành vi quảng cáo theo `docs/ops/ads-business-rules.md`, không theo trí nhớ về AdsKit hay JBase
+- phân xử nghiệp vụ quảng cáo theo thứ tự quyết định của người phụ trách sản phẩm trong spec `ads`, rồi JBase, rồi luật PARTNER đang có
+- không theo JBase ở chỗ trái luật, chính sách hay là lỗi, ghi lý do
+- dẫn chứng JBase bằng đường dẫn và dòng, hoặc lớp và hằng số của bytecode, không theo trí nhớ
+- ghi mỗi luật đổi theo JBase vào `ads-business-rules.md` kèm mã ADR và nguồn JBase
+- ghi mỗi điểm lệch PARTNER vào `ads-business-rules.md` mục 12 kèm mã ADR
+- không chép code hay khóa của AdsKit hay JBase
+- luật thuần của quảng cáo tách thành hàm có unit test với đồng hồ giả, đo thời gian bằng đồng hồ đơn điệu
+- feature chỉ dùng composable và hàm của `:core:ads` và `PrivacyOptionsButton`
+- không gọi `AdsController` hay SDK quảng cáo từ feature
+- feature chỉ gọi quảng cáo toàn màn hình ở hành động của người dùng
+- quảng cáo lúc mở app và khi quay lại app do `:core:ads` và vỏ app làm theo `docs/ops/ads-business-rules.md`
+- khởi tạo SDK quảng cáo theo luật đồng ý của `docs/ops/ads-business-rules.md`, mục 1
+- SDK MAX và APS chỉ nằm trong `:core:ads`
+- MAX và APS khởi tạo sau cổng đồng ý của `:core:ads`, không bao giờ trước, không viết cứng trạng thái đồng ý
+- mọi luồng của MAX đi qua cùng cổng hiện toàn màn hình và cùng mốc `ads_interval` với AdMob
+- native không đi qua MAX
+- adapter của MAX ghi phiên bản cụ thể trong `gradle/libs.versions.toml`, không dùng `+`
+- không tách ticket APS khi chưa có tài khoản Amazon Publisher Services
+- không viết mã quảng cáo thật vào code, tài liệu hay tham số build trong repo
+- khóa SDK MAX, mã đơn vị MAX và mã APS không vào repo, tài liệu hay resource của module
+- không tự thêm vị trí, định dạng hay sự kiện ngoài spec đã duyệt
+- vị trí mới mặc định tắt
+- vị trí mới khai báo theo mô hình chung (mã, định dạng, nhóm giãn cách) với khóa suy ra theo mẫu, không thêm cờ, hàm hay composable mang tên tính năng của một app vào `:core:ads`
+- khóa Remote Config quảng cáo dùng đúng tên trong bảng khóa của `ads-business-rules.md`, khóa mới cùng kiểu đặt tên và ghi rõ là tên do ta đặt
+- giá trị mặc định của khóa quảng cáo theo bảng khóa của `docs/ops/ads-business-rules.md`, mục 10, chỉ đổi khi người phụ trách sản phẩm quyết
+- không ghi `ad_impression` từ app, doanh thu theo vị trí ghi bằng `ad_impression_placement`
+- quảng cáo trong màn hình không gửi yêu cầu và không làm mới khi quảng cáo toàn màn hình vẽ trong app đang hiện
+- thanh đáy chừa chỗ đúng chiều cao của khe từ lúc khe đang tải, nạp lỗi thì co về 0
+- `banner_mrec` là một định dạng của danh sách đóng, chỉ dùng khi spec của app khai báo
+- cổng không hiện quảng cáo bật thì mọi định dạng như công tắc tổng tắt và hành động có điều kiện làm thẳng
+- giữ các quy tắc ở mục 11 của ADR-0045 kể cả khi spec yêu cầu khác, gặp yêu cầu như vậy thì ghi thành câu hỏi
+- code lệch luật của `ads-business-rules.md` chỉ sửa bằng ticket có plan đã duyệt, không sửa ngoài phạm vi plan
+
+### [ADR-0046](adr/0046-remote-config.md): Khóa Remote Config phẳng, có kiểu, khai báo một chỗ trong code, sinh bảng khóa và file mẫu; staging có giá trị cục bộ
+
+- đặt tên khóa theo quy ước của ADR-0046, khóa quảng cáo theo ADR-0045, mục 6
+- không dùng khối JSON làm cấu hình
+- khai báo khóa mới kèm kiểu, mặc định an toàn và mô tả ở module sở hữu, rồi sinh lại bảng khóa trong cùng PR
+- không đổi tên hay đổi kiểu một khóa đã phát hành
+- không đổi giá trị trên Firebase (việc của người)
+
+### [ADR-0047](adr/0047-bo-build-va-kiem-tra-code.md): Dự án mẫu build bằng Gradle 9.3.1 và AGP 9.1.0 với Kotlin dựng sẵn, và kiểm code bằng một cổng chất lượng `scripts/check.sh` mà AI và CI chạy như nhau
+
+- chạy `scripts/check.sh` trước khi đẩy code
+- chạy `./gradlew ktlintFormat` khi ktlint báo lỗi, không tắt quy tắc
+- không cập nhật ảnh chuẩn screenshot ngoài plan
+- không áp dụng plugin `org.jetbrains.kotlin.android`
+- trong `build-logic`, cấu hình module Android qua thuộc tính của `CommonExtension` của AGP 9
+- không đặt `android.newDsl=false`, plugin cần DSL cũ thì nâng plugin đó
+- giữ `compileSdk = "<số>"` trên một dòng của `gradle/libs.versions.toml`
+- nâng Gradle thì thêm giới hạn Java của bản đó vào `scripts/java-check.sh` kèm test
+
 ## Quyết định riêng của app
 
 ### [ADR-1001](adr/1001-loading-timeout-15s.md): Màn loading của Camera Pose chờ tối đa 15 giây cho mỗi thứ cần tải, kể cả Remote Config
@@ -352,21 +356,3 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không sửa `docs/ops/ads-business-rules.md` hay `docs/ops/ads-guide.md` vì lệch này, luật A-12 và dòng "inter của resume nối combo" của `ads-guide.md` không áp dụng cho app
 - kịch bản emulator đi qua interstitial của màn thêm bước `wait str=ads_close_full_screen | <màn đích>` rồi `tap_if str=ads_close_full_screen` sau bước đóng interstitial
 - không đổi luật K-01 tới K-08 của khung ở app
-
-## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
-
-### [ADR-0020](adr/0020-design-handoff-and-conformance.md): Thiết kế trên Claude Design hoặc Figma, bàn giao bằng ảnh khung chuẩn trong repo, đối chiếu bằng ảnh so sánh
-
-- chỉ dùng gói trong `design/`
-- đặt tên screenshot test đúng tên ảnh trong `screens/`
-- ảnh `_unfolded` có screenshot test ở khung `w673dp-h841dp-xxhdpi`
-- chạy `scripts/design-compare.sh` và đưa `design/review/` vào PR khi feature có thiết kế
-- không đổi giao diện để giảm tỷ lệ khác biệt bằng cách viết cứng giá trị
-
-### [ADR-0021](adr/0021-clone-reference-apps.md): App mới có thể bắt đầu bằng việc AI khảo sát các app mẫu trên Play, đề xuất app tốt hơn, rồi thiết kế trên Figma cùng dev
-
-- làm theo `docs/CLAUDE.md`, mục Khi khảo sát app mẫu và mục Khi thiết kế trên Figma
-- chỉ điều khiển máy qua `scripts/app-explore/ax.sh`
-- không vượt bộ chặn
-- không tự chuyển trạng thái bản đề xuất hay thiết kế
-- ghi mọi tài sản mượn vào `docs/borrowed-assets.md` trong cùng PR với file mượn

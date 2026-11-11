@@ -72,7 +72,7 @@ internal fun nativeSlotAllowed(canRequestAds: Boolean, enabled: Boolean, unitId:
  * Draws the slot while [allowed], nothing otherwise, and reports availability to the app: true on an ad, false on
  * no ad, never while loading; and false when [allowed] turns false after true was reported (L-061). With
  * [onPoolOpportunity] the slot is a cell of a pool ([NativeAdCellHost]): it records the opportunity of P-07, seen
- * while [viewed].
+ * while [viewed]; [cardHeight] is the height of its card placeholders (the caller passes it to the card it draws).
  */
 @Composable
 internal fun NativeAdSlotGate(
@@ -87,6 +87,7 @@ internal fun NativeAdSlotGate(
     ctaLarge: Boolean = false,
     placeholderWhenEmpty: Boolean = true,
     onScreen: Boolean = true,
+    cardHeight: Dp? = null,
     adContent: @Composable (LoadedNativeAd) -> Unit,
 ) {
     // `af_native_ad_eligible` once each time the slot comes on screen allowed (plan T-033): a page of a pager kept in
@@ -127,6 +128,7 @@ internal fun NativeAdSlotGate(
             placeholderWhenEmpty = placeholderWhenEmpty,
             onStateChange = onStateChange,
             onScreen = onScreen,
+            cardHeight = cardHeight,
             adContent = adContent,
         )
         return
@@ -177,8 +179,8 @@ internal fun NativeAdSlotHost(
 
 /**
  * What the slot draws for [state]; [ctaLarge] sizes the placeholder and the kept space of a medium ad with the large
- * call to action, [cardHeight] those of a card. [contentModifier] wraps the placeholder and the ad, never the empty
- * state.
+ * call to action. [contentModifier] wraps the placeholder and the ad, never the empty state. [cardHeight] is the height
+ * of the loading placeholder of a card.
  */
 @Composable
 internal fun NativeAdSlotContent(
@@ -203,7 +205,6 @@ internal fun NativeAdSlotContent(
                     // The step card's height follows the font scale, like the card and its placeholder (plan T-045).
                     val height = when (size) {
                         NativeAdSize.STEP -> NativeStepAdDefaults.height()
-                        NativeAdSize.CARD -> cardHeight ?: NativeAdDimens.heightOf(size, ctaLarge)
                         else -> NativeAdDimens.heightOf(size, ctaLarge)
                     }
                     Spacer(Modifier.fillMaxWidth().height(height))
@@ -214,14 +215,14 @@ internal fun NativeAdSlotContent(
 
 /**
  * The native slot of a bottom bar ([BottomAdBarScaffold], D-02): like [NativeAdSlot] for native small (gate, 80 dp
- * placeholder, nothing with no ad, availability reported), with its first refresh [firstRefreshDelayMillis] after
- * the first ad (section 5.7). The stream is built once per placement: a new delay (the layer turned on or off) applies
- * from the next slot, without destroying the ad or loading again.
+ * placeholder, nothing with no ad, availability reported), with its first refresh [firstRefreshExtraMillis] later
+ * than the interval of `time_reload_native_small` (section 5.7). The stream is built once per placement: a new extra
+ * (the layer turned on or off) applies from the next slot, without destroying the ad or loading again.
  */
 @Composable
 internal fun BottomNativeSlot(
     placement: AdPlacement,
-    firstRefreshDelayMillis: Long,
+    firstRefreshExtraMillis: Long,
     onAdAvailabilityChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -236,26 +237,26 @@ internal fun BottomNativeSlot(
     key(placement) {
         BottomNativeSlotHost(
             allowed = nativeSlotAllowed(canRequestAds, enabled, unitId),
-            newStates = { delay -> ads.nativeAd(placement, AdFormat.NATIVE_SMALL, delay) },
-            firstRefreshDelayMillis = firstRefreshDelayMillis,
+            newStates = { extra -> ads.nativeAd(placement, AdFormat.NATIVE_SMALL, extra) },
+            firstRefreshExtraMillis = firstRefreshExtraMillis,
             onAdAvailabilityChange = onAdAvailabilityChange,
             modifier = modifier,
         )
     }
 }
 
-/** [BottomNativeSlot] without an ads controller: [newStates] builds the stream once, with the delay given then. */
+/** [BottomNativeSlot] without an ads controller: [newStates] builds the stream once, with the extra given then. */
 @Composable
 internal fun BottomNativeSlotHost(
     allowed: Boolean,
-    newStates: (firstRefreshDelayMillis: Long) -> Flow<NativeAdState>,
-    firstRefreshDelayMillis: Long,
+    newStates: (firstRefreshExtraMillis: Long) -> Flow<NativeAdState>,
+    firstRefreshExtraMillis: Long,
     onAdAvailabilityChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     adContent: @Composable (LoadedNativeAd) -> Unit = { BoundNativeAd(it, NativeAdSize.SMALL) },
 ) {
     // A cold flow: nothing loads until the gate opens and the host collects it.
-    val states = remember { newStates(firstRefreshDelayMillis) }
+    val states = remember { newStates(firstRefreshExtraMillis) }
     NativeAdSlotGate(
         allowed = allowed,
         states = states,

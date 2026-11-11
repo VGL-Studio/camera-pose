@@ -11,6 +11,8 @@ superseded_by:
 
 # ADR-0039: MAIN-GUARD KHÔNG CHẠY LẠI CỔNG CHẤT LƯỢNG CHO COMMIT CÓ NỘI DUNG ĐÃ ĐƯỢC PR-CHECK KIỂM ĐẦY ĐỦ, CHỈ CHẠY TEST CỦA SCRIPT KHI PHẦN KHÁC CHỈ LÀ TÀI LIỆU
 
+> Ghi chú 2026-11-08: [ADR-0041](0041-merge-khong-cap-nhat-khi-main-chi-doi-tai-lieu.md) bỏ giả định ở mục Hệ quả rằng nhánh của PR không bao giờ chậm hơn nhánh chính lúc merge; cách `tests` thành đường thường cho PR code merge không cập nhật.
+
 Nguồn: yêu cầu giảm chi phí GitHub Actions (`docs/features/quy-trinh/requests/2026-10-29-giam-phut-actions.md`), ticket T-074.
 
 ## Bối cảnh

@@ -37,7 +37,7 @@ class NativeAdSourceTest {
     private fun TestScope.newSource(gate: StateFlow<Boolean> = foreground): NativeAdSource {
         loads = FakeNativeLoads(loader, { testScheduler.currentTime }, logger)
         return NativeAdSource(
-            load = { use -> loads.load(use) },
+            load = { use, placement -> loads.load(use, placement) },
             sendGate = { awaitSendAllowed(gate) { mayRequest } },
             clock = { testScheduler.currentTime },
             // A supervisor like the scope of AdsController; an uncaught error fails the test.
@@ -51,7 +51,8 @@ class NativeAdSourceTest {
     private fun TestScope.claim(
         source: NativeAdSource,
         use: NativeLoadUse = NativeLoadUse.SINGLE_AD,
-    ): Deferred<NativeClaim> = backgroundScope.async { source.claim(use) }.also { runCurrent() }
+        placement: AdPlacement = PLACEMENT,
+    ): Deferred<NativeClaim> = backgroundScope.async { source.claim(use, placement) }.also { runCurrent() }
 
     private fun TestScope.deliver(ad: FakeLoadedNativeAd = FakeLoadedNativeAd()): FakeLoadedNativeAd {
         loader.deliver(ad)
@@ -103,7 +104,7 @@ class NativeAdSourceTest {
 
         assertSame(ad2, second.ad())
         assertNull(source.pending)
-        assertEquals(listOf(NativeLoadUse.SINGLE_AD, NativeLoadUse.REFRESH, NativeLoadUse.REFRESH), loads.uses)
+        assertEquals(listOf(NativeLoadUse.SINGLE_AD, NativeLoadUse.PRELOAD, NativeLoadUse.PRELOAD), loads.uses)
         assertTrue(source.isLoading)
     }
 
@@ -200,7 +201,7 @@ class NativeAdSourceTest {
 
         assertEquals(1, loader.maxOpen)
         assertEquals(
-            listOf(NativeLoadUse.SINGLE_AD, NativeLoadUse.SINGLE_AD, NativeLoadUse.SINGLE_AD, NativeLoadUse.REFRESH),
+            listOf(NativeLoadUse.SINGLE_AD, NativeLoadUse.SINGLE_AD, NativeLoadUse.SINGLE_AD, NativeLoadUse.PRELOAD),
             loads.uses,
         )
     }
@@ -264,7 +265,7 @@ class NativeAdSourceTest {
         window.onCovered(false)
         runCurrent()
         assertEquals(listOf(0L, 30_000L), loads.times)
-        assertEquals(NativeLoadUse.REFRESH, loads.uses.last())
+        assertEquals(NativeLoadUse.PRELOAD, loads.uses.last())
     }
 
     @Test
@@ -319,7 +320,7 @@ class NativeAdSourceTest {
         foreground.value = true
         runCurrent()
         assertEquals(listOf(0L, 30_000L), loads.times)
-        assertEquals(NativeLoadUse.REFRESH, loads.uses.last())
+        assertEquals(NativeLoadUse.PRELOAD, loads.uses.last())
     }
 
     @Test
@@ -411,26 +412,40 @@ class NativeAdSourceTest {
     }
 
     @Test
-    fun lastSlotDetached_whileLoading_lateAdDestroyed_sourceNotLoading() = runTest {
+    fun lastSlotDetached_whileLoading_lateAdKeptAsPending() = runTest {
         val source = newSource()
         source.attach()
         val a = claim(source)
         assertTrue(source.isLoading)
 
+        // The slot leaves the screen: its coroutine is cancelled, then it detaches.
+        a.cancel()
+        runCurrent()
         source.detach()
         runCurrent()
 
-        assertEquals(NativeClaim.NoAd, a.result())
-        assertFalse(source.isLoading)
+        assertTrue(source.isLoading)
         val late = deliver()
-        assertEquals(1, late.destroyCount)
-        assertNull(source.pending)
+        assertSame(late, source.pending)
+        assertEquals(0, late.destroyCount)
         at(60_000)
         assertEquals(1, loads.sent.size)
+
+        // Control (L-055): a source shut down instead destroys the ad that comes late.
+        val other = newSource()
+        other.attach()
+        val b = claim(other)
+        b.cancel()
+        runCurrent()
+        other.shutDown()
+        runCurrent()
+        val lateOther = deliver()
+        assertEquals(1, lateOther.destroyCount)
+        assertNull(other.pending)
     }
 
     @Test
-    fun lastSlotDetached_destroysPendingAd() = runTest {
+    fun lastSlotDetached_keepsPendingAd() = runTest {
         val source = newSource()
         source.attach()
         val (ad1, ad2) = withPendingAd(source)
@@ -438,31 +453,31 @@ class NativeAdSourceTest {
         source.detach()
         runCurrent()
 
-        assertEquals(1, ad2.destroyCount)
-        assertNull(source.pending)
+        assertEquals(0, ad2.destroyCount)
+        assertSame(ad2, source.pending)
         // The ad of the slot is destroyed by the slot itself, not by the source.
         assertEquals(0, ad1.destroyCount)
-        assertTrue(logger.entries.any { it.message == "Native $KEY source closed" })
+        assertFalse(logger.entries.any { it.message == "Native $KEY source closed" })
+        assertTrue(logger.entries.any { it.message == "Native $KEY kept after last slot left" })
     }
 
     @Test
-    fun detachAll_thenAttach_reopensWithFreshLoad() = runTest {
+    fun detachAll_thenAttach_claimsKeptAd() = runTest {
         val source = newSource()
         source.attach()
         val (_, ad2) = withPendingAd(source)
         source.detach()
         runCurrent()
-        assertEquals(1, ad2.destroyCount)
+        assertEquals(0, ad2.destroyCount)
 
         // The activity is built again: the slot comes back.
         at(1_000)
         source.attach()
         val c = claim(source)
 
+        assertSame(ad2, c.ad())
         assertEquals(listOf(0L, 0L, 1_000L), loads.times)
-        assertEquals(NativeLoadUse.SINGLE_AD, loads.uses.last())
-        val ad3 = deliver()
-        assertSame(ad3, c.ad())
+        assertEquals(NativeLoadUse.PRELOAD, loads.uses.last())
     }
 
     @Test
@@ -471,7 +486,7 @@ class NativeAdSourceTest {
         source.attach()
         val a = claim(source)
         assertEquals(1, loads.sent.size)
-        source.detach()
+        source.shutDown()
         runCurrent()
 
         fail()
@@ -479,6 +494,25 @@ class NativeAdSourceTest {
         assertEquals(NativeClaim.NoAd, a.result())
         at(60_000)
         assertEquals(1, loads.sent.size)
+        assertFalse(source.isLoading)
+    }
+
+    @Test
+    fun failureAfterLastSlotLeft_noRetry_stockEmpty() = runTest {
+        val source = newSource()
+        source.attach()
+        val a = claim(source)
+        a.cancel()
+        runCurrent()
+        source.detach()
+        runCurrent()
+        assertTrue("the load of the stock goes on", source.isLoading)
+
+        fail()
+
+        at(60_000)
+        assertEquals(1, loads.sent.size)
+        assertNull(source.pending)
         assertFalse(source.isLoading)
     }
 
@@ -525,13 +559,16 @@ class NativeAdSourceTest {
         assertSame(ad2, source.pending)
 
         at(NativeAdPolicy.MAX_AGE_MILLIS)
-        val c = claim(source)
 
+        // The stock drops the ad at 55 minutes by itself, before any claim, and sends a load of its own at once.
         assertEquals(1, ad2.destroyCount)
-        assertFalse(c.isCompleted)
         assertEquals(NativeAdPolicy.MAX_AGE_MILLIS, loads.times.last())
-        assertEquals(NativeLoadUse.SINGLE_AD, loads.uses.last())
+        assertEquals(NativeLoadUse.PRELOAD, loads.uses.last())
         assertTrue(logger.entries.any { it.message == "Native $KEY expired" })
+        val sent = loads.sent.size
+        val c = claim(source)
+        assertFalse(c.isCompleted)
+        assertEquals("the claim waits on the load of the stock", sent, loads.sent.size)
         val ad3 = deliver()
         assertSame(ad3, c.ad())
     }
@@ -546,17 +583,147 @@ class NativeAdSourceTest {
         deliver()
         source.detach()
         runCurrent()
+        source.shutDown()
+        runCurrent()
 
         val messages = logger.entries.filter { it.tag == "Ads" }.map { it.message }
         assertTrue(messages.toString(), messages.contains("Native $KEY claimed"))
         assertTrue(messages.toString(), messages.contains("Native $KEY expired"))
+        assertTrue(messages.toString(), messages.contains("Native $KEY kept after last slot left"))
         assertTrue(messages.toString(), messages.contains("Native $KEY source closed"))
         assertTrue(messages.toString(), messages.contains("Native $KEY next load"))
         assertFalse(messages.any { it.contains(FakeNativeLoads.FAKE_UNIT_ID) })
         assertFalse(messages.any { it.contains(sampleNativeAdAssets.headline) })
     }
 
+    @Test
+    fun claimFromStock_startsNextPreloadLoad() = runTest {
+        val source = newSource()
+        // The preload of the stock, with no slot on screen yet (KB-33).
+        source.fill()
+        runCurrent()
+        assertEquals(listOf(NativeLoadUse.PRELOAD), loads.uses)
+        assertEquals(listOf<AdPlacement?>(null), loads.placements)
+        val ad1 = deliver()
+        assertSame(ad1, source.pending)
+        assertTrue(source.settled())
+
+        source.attach()
+        val c = claim(source)
+
+        assertSame(ad1, c.ad())
+        assertEquals(listOf(NativeLoadUse.PRELOAD, NativeLoadUse.PRELOAD), loads.uses)
+        assertTrue(source.isLoading)
+        assertFalse(source.settled())
+    }
+
+    @Test
+    fun twoPlacementsShareStock_neverSameAd() = runTest {
+        val source = newSource()
+        source.fill()
+        runCurrent()
+        assertEquals(1, loads.sent.size)
+        val ad1 = deliver()
+        repeat(2) { source.attach() }
+
+        val a = claim(source, placement = AdPlacement.POSES_BOTTOM)
+        val ad2 = deliver()
+        val b = claim(source, placement = AdPlacement.GALLERY_NATIVE_SMALL)
+
+        assertSame(ad1, a.ad())
+        assertSame(ad2, b.ad())
+        assertNotSame(a.ad(), b.ad())
+        // Each ad is shown for the screen that took it (O-01, PL-03).
+        assertEquals(AdPlacement.POSES_BOTTOM, loads.holders[0].value)
+        assertEquals(AdPlacement.GALLERY_NATIVE_SMALL, loads.holders[1].value)
+    }
+
+    @Test
+    fun claim_setsHolderToClaimer() = runTest {
+        val source = newSource()
+        source.fill()
+        runCurrent()
+        assertEquals(1, loads.holders.size)
+        // A load of the stock itself is for no screen yet.
+        assertNull(loads.holders[0].value)
+        deliver()
+        source.attach()
+
+        claim(source, placement = AdPlacement.POSES_BOTTOM).ad()
+        assertEquals(AdPlacement.POSES_BOTTOM, loads.holders[0].value)
+        assertNull("the next load is the stock's", loads.holders[1].value)
+        deliver()
+        claim(source, placement = AdPlacement.GALLERY_NATIVE_SMALL).ad()
+
+        assertEquals(AdPlacement.GALLERY_NATIVE_SMALL, loads.holders[1].value)
+        // Control (L-055): the first ad keeps the placement of the screen that took it.
+        assertEquals(AdPlacement.POSES_BOTTOM, loads.holders[0].value)
+    }
+
+    @Test
+    fun stockAdAt55m_noSlot_destroyedAndReloaded() = runTest {
+        val source = newSource()
+        source.fill()
+        runCurrent()
+        assertEquals(1, loads.sent.size)
+        val ad = deliver()
+
+        at(NativeAdPolicy.MAX_AGE_MILLIS - 1)
+        assertEquals(0, ad.destroyCount)
+        assertSame(ad, source.pending)
+        assertEquals(1, loads.sent.size)
+
+        at(NativeAdPolicy.MAX_AGE_MILLIS)
+        assertEquals(1, ad.destroyCount)
+        assertNull(source.pending)
+        assertEquals(listOf(NativeLoadUse.PRELOAD, NativeLoadUse.PRELOAD), loads.uses)
+        assertEquals(NativeAdPolicy.MAX_AGE_MILLIS, loads.times.last())
+        assertTrue(logger.entries.any { it.message == "Native $KEY expired" })
+    }
+
+    @Test
+    fun stockAdClaimedBefore55m_noExpiryLater() = runTest {
+        val source = newSource()
+        source.fill()
+        runCurrent()
+        assertEquals(1, loads.sent.size)
+        val ad = deliver()
+
+        at(54 * 60_000L)
+        source.attach()
+        assertSame(ad, claim(source).ad())
+        at(56 * 60_000L)
+
+        assertEquals(0, ad.destroyCount)
+        assertFalse(logger.entries.any { it.message == "Native $KEY expired" })
+    }
+
+    @Test
+    fun stockLogs_holdNoUnitId() = runTest {
+        val source = newSource()
+        source.fill()
+        runCurrent()
+        deliver()
+        source.attach()
+        claim(source)
+        deliver()
+        source.detach()
+        runCurrent()
+        at(NativeAdPolicy.MAX_AGE_MILLIS)
+        source.shutDown()
+        runCurrent()
+
+        val messages = logger.entries.filter { it.tag == "Ads" }.map { it.message }
+        // Control (L-055): the stock did log its preload, its claim, the slot leaving and the expiry.
+        assertTrue(messages.toString(), messages.contains("Native $KEY preload"))
+        assertTrue(messages.toString(), messages.contains("Native $KEY claimed"))
+        assertTrue(messages.toString(), messages.contains("Native $KEY kept after last slot left"))
+        assertTrue(messages.toString(), messages.contains("Native $KEY expired"))
+        assertFalse(messages.any { it.contains(FakeNativeLoads.FAKE_UNIT_ID) })
+    }
+
     private companion object {
         const val KEY = "poses_bottom"
+        val PLACEMENT = AdPlacement.POSES_BOTTOM
     }
 }

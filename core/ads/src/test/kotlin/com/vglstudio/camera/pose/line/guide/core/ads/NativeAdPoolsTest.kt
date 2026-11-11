@@ -36,6 +36,7 @@ class NativeAdPoolsTest {
     )
     private val switches = mutableMapOf<AdPlacement, MutableStateFlow<Boolean>>()
     private val loads = mutableListOf<FakePoolLoads>()
+    private var unitIdCalls = 0
 
     private fun switchOf(placement: AdPlacement) = switches.getOrPut(placement) { MutableStateFlow(true) }
 
@@ -44,7 +45,10 @@ class NativeAdPoolsTest {
         enabled: (AdPlacement) -> Flow<Boolean> = { switchOf(it) },
     ): NativeAdPools = NativeAdPools(
         placements = placements,
-        unitId = { units[it] },
+        unitId = {
+            unitIdCalls++
+            units[it]
+        },
         enabled = enabled,
         canRequestAds = consent,
         newPool = { key, _ ->
@@ -177,6 +181,38 @@ class NativeAdPoolsTest {
     }
 
     @Test
+    fun switchNotKnownYet_preloadWaits_thenFollowsSwitches() = runTest {
+        units[AdPlacement.GALLERY_INLIST_MEDIUM] = UNIT_B
+        // The switch of a first-open-only placement before the first-open mark is read: no value yet.
+        val unknown = MutableSharedFlow<Boolean>()
+        val pools = newPools(enabled = { if (it == AdPlacement.GALLERY_NATIVE_MEDIUM) unknown else switchOf(it) })
+
+        pools.slot().loadIfNeeded()
+        runCurrent()
+        assertTrue(sentTimes().isEmpty())
+
+        unknown.emit(false)
+        runCurrent()
+        pools.slot().loadIfNeeded()
+        runCurrent()
+        // Only the pool of the placement switched on loads, once the switches are known.
+        assertEquals(1, loads.size)
+        assertEquals(listOf(0L), sentTimes())
+    }
+
+    @Test
+    fun switchNotKnownYet_poolTakenBySlot_stillOpen() = runTest {
+        units[AdPlacement.GALLERY_INLIST_MEDIUM] = UNIT_B
+        val unknown = MutableSharedFlow<Boolean>()
+        val pools = newPools(enabled = { if (it == AdPlacement.GALLERY_NATIVE_MEDIUM) unknown else switchOf(it) })
+
+        // A cell on screen takes from its pool: a switch not known yet does not close it.
+        assertPool(pools.pool(AdPlacement.GALLERY_INLIST_MEDIUM)).refill()
+        runCurrent()
+        assertEquals(1, sentTimes().size)
+    }
+
+    @Test
     fun preloadSlot_refillsEnabledPlacementsOnly() = runTest {
         units[AdPlacement.GALLERY_INLIST_MEDIUM] = UNIT_B
         switchOf(AdPlacement.GALLERY_INLIST_MEDIUM).value = false
@@ -194,44 +230,6 @@ class NativeAdPoolsTest {
         withoutUnit.slot().loadIfNeeded()
         runCurrent()
         assertEquals(1, loads.size)
-    }
-
-    /**
-     * A switch not known yet (the first-open mark of a first-open-only placement not read, plan T-083): the preload
-     * waits for every switch, then follows them.
-     */
-    @Test
-    fun switchNotKnownYet_preloadWaits_thenFollowsSwitches() = runTest {
-        units[AdPlacement.GALLERY_INLIST_MEDIUM] = UNIT_B
-        val notKnownYet = MutableSharedFlow<Boolean>()
-        val pools = newPools(
-            enabled = { if (it == AdPlacement.GALLERY_NATIVE_MEDIUM) notKnownYet else switchOf(it) },
-        )
-
-        pools.slot().loadIfNeeded()
-        runCurrent()
-        assertTrue("sent ${sentTimes()}", sentTimes().isEmpty())
-
-        notKnownYet.emit(false)
-        runCurrent()
-        pools.slot().loadIfNeeded()
-        runCurrent()
-        // Control: once known, the placement switched on preloads its pool.
-        assertEquals(listOf(0L), sentTimes())
-    }
-
-    /** A pool taken by a slot on screen opens while a switch is not known yet (plan T-083, section 3.5). */
-    @Test
-    fun switchNotKnownYet_poolTakenBySlot_stillOpen() = runTest {
-        units[AdPlacement.GALLERY_INLIST_MEDIUM] = UNIT_B
-        val notKnownYet = MutableSharedFlow<Boolean>()
-        val pools = newPools(
-            enabled = { if (it == AdPlacement.GALLERY_NATIVE_MEDIUM) notKnownYet else switchOf(it) },
-        )
-
-        assertPool(pools.pool(AdPlacement.GALLERY_INLIST_MEDIUM)).refill()
-        runCurrent()
-        assertEquals(listOf(0L), sentTimes())
     }
 
     @Test
@@ -338,6 +336,28 @@ class NativeAdPoolsTest {
         runCurrent()
 
         assertEquals(sentTimes().size + 1, gateCalls)
+    }
+
+    @Test
+    fun existingPool_neverCreates_noUnitLookup() = runTest {
+        val pools = newPools()
+        val callsBefore = unitIdCalls
+
+        assertNull(pools.existingPool(AdPlacement.GALLERY_NATIVE_MEDIUM))
+        assertEquals(callsBefore, unitIdCalls)
+        assertTrue(loads.isEmpty())
+
+        val pool = assertPool(pools.pool(AdPlacement.GALLERY_NATIVE_MEDIUM))
+        assertSame(pool, pools.existingPool(AdPlacement.GALLERY_NATIVE_MEDIUM))
+
+        // A second placement of the same format and ad unit: no pool of its own until it asks for one.
+        assertNull(pools.existingPool(AdPlacement.GALLERY_INLIST_MEDIUM))
+        assertSame(pool, pools.pool(AdPlacement.GALLERY_INLIST_MEDIUM))
+        val callsAfterPools = unitIdCalls
+        assertSame(pool, pools.existingPool(AdPlacement.GALLERY_INLIST_MEDIUM))
+        assertSame(pool, pools.existingPool(AdPlacement.GALLERY_NATIVE_MEDIUM))
+        assertEquals(callsAfterPools, unitIdCalls)
+        assertEquals(1, loads.size)
     }
 
     private companion object {

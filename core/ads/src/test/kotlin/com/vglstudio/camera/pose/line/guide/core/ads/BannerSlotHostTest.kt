@@ -58,6 +58,12 @@ class BannerSlotHostTest {
     /** A full-screen ad drawn over the app (KB-27, plan T-054). */
     private val covered = MutableStateFlow(false)
     private val retryResets = MutableStateFlow(0)
+
+    /**
+     * The reload interval of the slot (plan T-088): 0 (no reload) by default, as every test before T-088 of a banner
+     * refreshed by its ad unit; a collapsible banner sets 30 s (time_reload_banner_collap, plan T-087).
+     */
+    private val reloadMillis = MutableStateFlow(0L)
     private val logger = RecordingAppLogger()
 
     private var gateOpen by mutableStateOf(true)
@@ -65,7 +71,6 @@ class BannerSlotHostTest {
     private var unitId by mutableStateOf<String?>("u")
     private var shown by mutableStateOf(true)
     private var placementKey by mutableStateOf(KEY)
-    private var refresh by mutableStateOf(BannerRefresh.BY_AD_UNIT)
     private val availability = mutableListOf<Boolean>()
 
     // The size of the slot under test (plan T-062): a fixed banner by default, as every test before MREC.
@@ -76,6 +81,9 @@ class BannerSlotHostTest {
     /** A second slot of the same placement under [SLOT_2], drawn below the first one when [setHost] asks for it. */
     private val secondViews = FakeBannerAdViews()
     private var secondKind by mutableStateOf(BannerSizeKind.ANCHORED)
+
+    /** Whether the second slot of [setHost] is in the composition (plan T-088: a frame built later). */
+    private var secondShown by mutableStateOf(true)
 
     private val totalSends: Int get() = views.created.sumOf { it.sendCount }
 
@@ -92,11 +100,11 @@ class BannerSlotHostTest {
                         enabled = enabled,
                         unitId = unitId,
                         heightDp = heightDp,
-                        refresh = refresh,
                         visible = visible,
                         covered = covered,
                         mayRequestNow = { gateOpen },
                         retryResets = retryResets,
+                        reloadMillis = reloadMillis,
                         logger = logger,
                         placementKey = placementKey,
                         newView = newViewOverride ?: views::newView,
@@ -105,17 +113,17 @@ class BannerSlotHostTest {
                         kind = kind,
                         fits = fits,
                     )
-                    if (withSecond) {
+                    if (withSecond && secondShown) {
                         BannerSlotHost(
                             gateOpen = gateOpen,
                             enabled = enabled,
                             unitId = unitId,
                             heightDp = heightDp,
-                            refresh = refresh,
                             visible = visible,
                             covered = covered,
                             mayRequestNow = { gateOpen },
                             retryResets = retryResets,
+                            reloadMillis = reloadMillis,
                             logger = logger,
                             placementKey = placementKey,
                             newView = secondNewViewOverride ?: secondViews::newView,
@@ -188,9 +196,16 @@ class BannerSlotHostTest {
         assertEquals(1, first.destroyCount)
         val second = views.last
 
-        update { refresh = BannerRefresh.MANUAL }
+        // Plan T-088, section 3.5: the same placement drawn as another layer (its format is in the key) is another banner.
+        update { placementKey = "other_banner/banner_collapsible" }
         assertEquals(3, views.createdCount)
         assertEquals(1, second.destroyCount)
+        val third = views.last
+
+        // The other half of the key: another ad unit.
+        update { unitId = "other-unit" }
+        assertEquals(4, views.createdCount)
+        assertEquals(1, third.destroyCount)
     }
 
     @Test
@@ -401,7 +416,7 @@ class BannerSlotHostTest {
 
     @Test
     fun manualReloadDueWhileCovered_sendsOnceWhenUncovered() {
-        refresh = BannerRefresh.MANUAL
+        reloadMillis.value = 30_000
         setTimedHost()
         val start = composeRule.mainClock.currentTime
         val view = views.last
@@ -420,6 +435,32 @@ class BannerSlotHostTest {
         assertEquals(2, view.sendCount)
         advanceTo(start + 101_000)
         assertEquals(2, view.sendCount)
+    }
+
+    @Test
+    fun collapsible_reloadMillisChangedOnScreen_reachesLoop() {
+        reloadMillis.value = 30_000
+        setTimedHost()
+        val start = composeRule.mainClock.currentTime
+        val view = views.last
+        assertEquals(1, view.sendCount)
+        timedUpdate { view.emitLoaded() }
+        // Control (L-055): the first reload by hand is 30 s after the load.
+        advanceTo(start + 29_000)
+        assertEquals(1, view.sendCount)
+        advanceTo(start + 30_000)
+        assertEquals(2, view.sendCount)
+
+        // The key changes on screen after the first reload: the loop of the frame reads it from its next count.
+        timedUpdate { reloadMillis.value = 90_000 }
+        val reloaded = composeRule.mainClock.currentTime
+        timedUpdate { view.emitLoaded() }
+        advanceTo(reloaded + 60_000)
+        assertEquals(2, view.sendCount)
+        advanceTo(reloaded + 89_000)
+        assertEquals(2, view.sendCount)
+        advanceTo(reloaded + 91_000)
+        assertEquals(3, view.sendCount)
     }
 
     @Test
@@ -791,7 +832,7 @@ class BannerSlotHostTest {
     }
 
     @Test
-    fun covered_maxShown_stopsAutoRefresh_uncovered_starts() {
+    fun covered_maxShown_noRefresh_uncovered_noAutoRefresh() {
         newViewOverride = withMaxSdk()
         setHost()
         val sdk = sdkViews.single()
@@ -803,8 +844,9 @@ class BannerSlotHostTest {
         assertEquals(stops + 1, sdk.stopCount)
         assertEquals(1, sdk.loadCount)
 
+        // Plan T-088, section 3.5: the cover goes, MAX does not start refreshing by itself.
         update { covered.value = false }
-        assertEquals(1, sdk.startCount)
+        assertEquals(0, sdk.startCount)
         assertEquals(1, sdk.loadCount)
     }
 
@@ -840,7 +882,9 @@ class BannerSlotHostTest {
         update { visible.value = true }
         val sdk = sdkViews.single()
         assertEquals(1, sdk.loadCount)
-        assertEquals(0, sdk.stopCount)
+        // Plan T-088, section 3.5: the new MAX view stops its auto refresh around its first load.
+        assertEquals(2, sdk.stopCount)
+        assertEquals(0, sdk.startCount)
     }
 
     @Test
@@ -934,6 +978,259 @@ class BannerSlotHostTest {
         assertEquals(ADMOB_HEIGHT_DP.dp, ad.bottom - ad.top)
         assertEquals(slot.left, ad.left)
         assertEquals(slot.right, ad.right)
+    }
+
+    // Reloads by hand of the fixed banner and the MREC (plan T-088, KB-34, KB-18, KB-29).
+
+    @Test
+    fun mrec_reloadsAtMrecKey() {
+        kind = BannerSizeKind.MEDIUM_RECTANGLE
+        heightDp = MREC_HEIGHT_DP
+        reloadMillis.value = 90_000
+        setTimedHost()
+        val start = composeRule.mainClock.currentTime
+        val view = views.last
+        assertEquals(1, view.sendCount)
+        timedUpdate { view.emitLoaded() }
+
+        advanceTo(start + 89_000)
+        assertEquals(1, view.sendCount)
+        advanceTo(start + 91_000)
+        assertEquals(2, view.sendCount)
+        // The frame keeps 250 dp and the ad it had while the reload runs.
+        assertSlotHeight(MREC_HEIGHT_DP)
+        adsIn(SLOT).assertCountEquals(1)
+    }
+
+    @Test
+    fun fixed_keyChangedOnScreen_nextReloadUsesNew() {
+        reloadMillis.value = 60_000
+        setTimedHost()
+        val start = composeRule.mainClock.currentTime
+        val view = views.last
+        timedUpdate { view.emitLoaded() }
+
+        advanceTo(start + 20_000)
+        timedUpdate { reloadMillis.value = 120_000 }
+        // The count under way keeps its 60 s.
+        advanceTo(start + 59_000)
+        assertEquals(1, view.sendCount)
+        advanceTo(start + 61_000)
+        assertEquals(2, view.sendCount)
+        timedUpdate { view.emitLoaded() }
+        val reloaded = composeRule.mainClock.currentTime
+
+        // The next count reads 120 s: the reload at 180 s, not at 120 s.
+        advanceTo(reloaded + 119_000)
+        assertEquals(2, view.sendCount)
+        advanceTo(reloaded + 121_000)
+        assertEquals(3, view.sendCount)
+    }
+
+    @Test
+    fun fixed_keyPositiveToZero_dropsCount_zeroToPositive_countsFromReceipt() {
+        reloadMillis.value = 60_000
+        setTimedHost()
+        val start = composeRule.mainClock.currentTime
+        val view = views.last
+        timedUpdate { view.emitLoaded() }
+
+        advanceTo(start + 30_000)
+        timedUpdate { reloadMillis.value = 0 }
+        advanceTo(start + 200_000)
+        assertEquals(1, view.sendCount)
+
+        timedUpdate { reloadMillis.value = 60_000 }
+        val received = composeRule.mainClock.currentTime
+        advanceTo(received + 59_000)
+        assertEquals(1, view.sendCount)
+        advanceTo(received + 61_000)
+        assertEquals(2, view.sendCount)
+    }
+
+    @Test
+    fun fixed_reloadDueWhileHidden_sentOnceWhenVisible() {
+        reloadMillis.value = 60_000
+        setTimedHost()
+        val start = composeRule.mainClock.currentTime
+        val view = views.last
+        timedUpdate { view.emitLoaded() }
+
+        advanceTo(start + 30_000)
+        timedUpdate { visible.value = false }
+        // The reload due at 60 s (and the ones after) is not sent while the app is in background (B-05).
+        advanceTo(start + 200_000)
+        assertEquals(1, view.sendCount)
+
+        timedUpdate { visible.value = true }
+        assertEquals(2, view.sendCount)
+        advanceTo(start + 201_000)
+        assertEquals(2, view.sendCount)
+    }
+
+    @Test
+    fun fixed_reloadDueWhileCovered_sendsOnceWhenUncovered() {
+        reloadMillis.value = 60_000
+        assertReloadDueWhileCoveredSentOnce()
+    }
+
+    @Test
+    fun mrec_reloadDueWhileCovered_sendsOnceWhenUncovered() {
+        kind = BannerSizeKind.MEDIUM_RECTANGLE
+        heightDp = MREC_HEIGHT_DP
+        reloadMillis.value = 60_000
+        assertReloadDueWhileCoveredSentOnce()
+        assertSlotHeight(MREC_HEIGHT_DP)
+    }
+
+    /** Loaded, covered from 10 s to 200 s (three reloads of 60 s due): one send when the cover goes (B-07). */
+    private fun assertReloadDueWhileCoveredSentOnce() {
+        setTimedHost()
+        val start = composeRule.mainClock.currentTime
+        val view = views.last
+        assertEquals(1, view.sendCount)
+        timedUpdate { view.emitLoaded() }
+
+        advanceTo(start + 10_000)
+        timedUpdate { covered.value = true }
+        advanceTo(start + 200_000)
+        assertEquals(1, view.sendCount)
+
+        timedUpdate { covered.value = false }
+        assertEquals(2, view.sendCount)
+        advanceTo(start + 201_000)
+        assertEquals(2, view.sendCount)
+    }
+
+    /** Frames of MAX only (order `max`) whose MAX is the real wrapper on a fake SDK view, kept in [sdkViews]. */
+    private fun maxOnly(): () -> BannerAdView = {
+        val max = MaxBannerAdView(
+            newSdkView = { FakeMaxBannerSdkView().also { sdkViews += it } },
+            placement = AdPlacement.GALLERY_BANNER,
+            format = AdFormat.BANNER,
+            telemetry = telemetry,
+            now = { 0L },
+            logger = logger,
+        )
+        OrderedBannerAdView(listOf(MAX to max), { maxReady }, logger, KEY)
+    }
+
+    @Test
+    fun maxShown_reloadsByHand_neverStartsAutoRefresh() {
+        reloadMillis.value = 60_000
+        newViewOverride = maxOnly()
+        setTimedHost()
+        val start = composeRule.mainClock.currentTime
+        val sdk = sdkViews.single()
+        assertEquals(1, sdk.loadCount)
+        var loadedAt = 0L
+        fun loadNow() {
+            timedUpdate { sdk.emitLoaded() }
+            loadedAt = composeRule.mainClock.currentTime
+        }
+        loadNow()
+
+        // Reloads by hand at 60, 120 and 180 s, each answered at once.
+        repeat(3) { round ->
+            advanceTo(loadedAt + 59_000)
+            assertEquals(round + 1, sdk.loadCount)
+            advanceTo(loadedAt + 60_000)
+            assertEquals(round + 2, sdk.loadCount)
+            loadNow()
+        }
+
+        // Covered from 190 s to 250 s: the reload due at 240 s goes once, when the cover goes.
+        advanceTo(start + 190_000)
+        timedUpdate { covered.value = true }
+        advanceTo(start + 250_000)
+        assertEquals(4, sdk.loadCount)
+        timedUpdate { covered.value = false }
+        assertEquals(5, sdk.loadCount)
+        loadNow()
+
+        // Hidden from 260 s to 400 s: the reload due at 310 s goes once, when the screen shows again.
+        advanceTo(start + 260_000)
+        timedUpdate { visible.value = false }
+        advanceTo(start + 400_000)
+        assertEquals(5, sdk.loadCount)
+        timedUpdate { visible.value = true }
+        assertEquals(6, sdk.loadCount)
+        advanceTo(start + 401_000)
+
+        assertEquals(6, sdk.loadCount)
+        assertEquals(0, sdk.startCount)
+    }
+
+    @Test
+    fun covered_maxShown_dueReloadSentOnceWhenUncovered() {
+        reloadMillis.value = 60_000
+        newViewOverride = maxOnly()
+        setTimedHost()
+        val start = composeRule.mainClock.currentTime
+        val sdk = sdkViews.single()
+        timedUpdate { sdk.emitLoaded() }
+        val stops = sdk.stopCount
+
+        advanceTo(start + 10_000)
+        timedUpdate { covered.value = true }
+        assertEquals(stops + 1, sdk.stopCount)
+        advanceTo(start + 200_000)
+        assertEquals(1, sdk.loadCount)
+
+        timedUpdate { covered.value = false }
+        assertEquals(2, sdk.loadCount)
+        advanceTo(start + 201_000)
+        assertEquals(2, sdk.loadCount)
+        assertEquals(0, sdk.startCount)
+    }
+
+    @Test
+    fun twoFixedFramesSamePlacement_reloadsApart_countsApart() {
+        reloadMillis.value = 60_000
+        secondShown = false
+        setTimedHost(withSecond = true)
+        val start = composeRule.mainClock.currentTime
+        val first = views.last
+        timedUpdate { first.emitLoaded() }
+        // Frame 1 answers its third send with a failure, every other one with an ad.
+        first.onSend = { if (first.sendCount == 3) first.emitFailed(3) else first.emitLoaded() }
+
+        advanceTo(start + 10_000)
+        timedUpdate { secondShown = true }
+        // With the clock stopped, a value written from the test is composed one frame later.
+        frame()
+        val second = secondViews.last
+        assertEquals(1, second.sendCount)
+        timedUpdate { second.emitLoaded() }
+        second.onSend = { second.emitLoaded() }
+
+        advanceTo(start + 59_000)
+        assertEquals(1, first.sendCount)
+        advanceTo(start + 61_000)
+        assertEquals(2, first.sendCount)
+        assertEquals(1, second.sendCount)
+        advanceTo(start + 69_000)
+        assertEquals(1, second.sendCount)
+        advanceTo(start + 71_000)
+        assertEquals(2, second.sendCount)
+
+        // Frame 1 fails at 120 s and retries 2 s later (B-02); frame 2 keeps its own tick.
+        advanceTo(start + 119_000)
+        assertEquals(2, first.sendCount)
+        advanceTo(start + 121_000)
+        assertEquals(3, first.sendCount)
+        advanceTo(start + 121_900)
+        assertEquals(3, first.sendCount)
+        advanceTo(start + 123_000)
+        assertEquals(4, first.sendCount)
+        assertEquals(2, second.sendCount)
+        advanceTo(start + 129_000)
+        assertEquals(2, second.sendCount)
+        advanceTo(start + 131_000)
+        assertEquals(3, second.sendCount)
+        advanceTo(start + 181_000)
+        assertEquals(4, first.sendCount)
+        assertEquals(3, second.sendCount)
     }
 
     private companion object {

@@ -66,6 +66,34 @@ class NativeAdLoadingTest {
     }
 
     @Test
+    fun loadFailure_withMessage_lineHasCodeAndMessage() = runTest {
+        // Plan T-093, KB-28: the message the loader hands over (masked at staging) is in the load error line.
+        val (states, _) = collectStates()
+
+        at(1_000)
+        loader.fail(0, NATIVE_MESSAGE)
+        runCurrent()
+
+        assertEquals(listOf(NativeAdState.Loading, NativeAdState.Unavailable), states)
+        val entry = logger.entries.single()
+        assertEquals("Ads", entry.tag)
+        assertEquals(LogLevel.INFO, entry.level)
+        assertEquals("Native $KEY failed: 0 \"$NATIVE_MESSAGE\"", entry.message)
+    }
+
+    @Test
+    fun loadFailure_noMessage_lineIsCodeOnly() = runTest {
+        // Plan T-093, KB-28: no message (production, or a loader without LoadErrorLog) keeps today's line.
+        collectStates()
+
+        at(1_000)
+        loader.fail(3)
+        runCurrent()
+
+        assertEquals("Native $KEY failed: 3", logger.entries.single().message)
+    }
+
+    @Test
     fun adBeforeTimeout_isLoaded() = runTest {
         val (states, _) = collectStates()
         val ad = FakeLoadedNativeAd()

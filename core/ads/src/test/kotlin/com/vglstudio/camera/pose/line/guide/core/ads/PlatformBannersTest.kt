@@ -278,11 +278,13 @@ class PlatformBannersTest {
         runCurrent()
         assertEquals(listOf(TryNext, Loaded, Failed(3), Loaded), got)
         assertEquals(1, sdk.loadCount)
-        assertEquals(0, sdk.stopCount)
+        // Plan T-088, section 3.5: a new MAX view stops its auto refresh around its first load.
+        assertEquals(2, sdk.stopCount)
 
         view.pause()
-        assertEquals(1, sdk.stopCount)
+        assertEquals(3, sdk.stopCount)
         assertEquals(FakeMaxBannerSdkView.STOP, sdk.calls.last())
+        assertEquals(0, sdk.startCount)
     }
 
     @Test
@@ -312,6 +314,95 @@ class PlatformBannersTest {
         view2.send()
         assertEquals(2, max2.sendCount)
         assertEquals(0, admob2.sendCount)
+    }
+
+    @Test
+    fun lastPlatformFailed_keepsMessage() = runTest {
+        // Plan T-093, KB-28: the Failed of the last platform reaches the send loop with its message.
+        val view = ordered(ADMOB to admob)
+        val got = collect(view)
+        view.send()
+        admob.emitFailed(3, "No fill.")
+        runCurrent()
+        assertEquals(listOf<BannerLoadResult>(Failed(3, "No fill.")), got)
+
+        // Control: of two platforms, the result is the one of the last platform, with its own message.
+        val max2 = FakeBannerAdView(tag = "max")
+        val admob2 = FakeBannerAdView(tag = "admob")
+        val view2 = ordered(MAX to max2, ADMOB to admob2)
+        val got2 = collect(view2)
+        view2.send()
+        max2.emitFailed(204, "x")
+        runCurrent()
+        view2.send()
+        admob2.emitFailed(3, "No fill.")
+        runCurrent()
+        assertEquals(listOf(TryNext, Failed(3, "No fill.")), got2)
+    }
+
+    @Test
+    fun notLastFailed_staging_tryingLineHasCodeAndMessage() = runTest {
+        // Plan T-093, KB-28, answer (b) of question 3: the failure of a platform that is not the last has its line.
+        val view = ordered(ADMOB to admob, MAX to max)
+        val got = collect(view)
+        view.send()
+        admob.emitFailed(3, "No fill.")
+        runCurrent()
+        assertEquals(listOf<BannerLoadResult>(TryNext), got)
+        val messages = logger.entries.map { it.message }
+        assertTrue(messages.toString(), "Banner $KEY ADMOB no ad, trying MAX (code 3 \"No fill.\")" in messages)
+
+        // Control: without a message (production) the line is today's.
+        val quiet = RecordingAppLogger()
+        val admob2 = FakeBannerAdView(tag = "admob")
+        val view2 =
+            OrderedBannerAdView(listOf(ADMOB to admob2, MAX to FakeBannerAdView(tag = "max")), { ready }, quiet, KEY)
+        collect(view2)
+        view2.send()
+        admob2.emitFailed(3)
+        runCurrent()
+        assertEquals(listOf("Banner $KEY ADMOB no ad, trying MAX"), quiet.entries.map { it.message })
+    }
+
+    @Test
+    fun pausedMidSend_staging_lineHasCodeAndMessage() = runTest {
+        // Plan T-093, KB-28, answer (b) of question 3: a failure just after a pause of the frame has its line.
+        val view = ordered(ADMOB to admob, MAX to max)
+        val got = collect(view)
+        view.send()
+        view.pause()
+        admob.emitFailed(3, "No fill.")
+        runCurrent()
+        assertEquals(listOf<BannerLoadResult>(TryNext), got)
+        val messages = logger.entries.map { it.message }
+        assertTrue(messages.toString(), "Banner $KEY ADMOB no ad (code 3 \"No fill.\"), from first" in messages)
+
+        // Control: without a message (production) the frame stays silent, as today.
+        val quiet = RecordingAppLogger()
+        val admob2 = FakeBannerAdView(tag = "admob")
+        val view2 =
+            OrderedBannerAdView(listOf(ADMOB to admob2, MAX to FakeBannerAdView(tag = "max")), { ready }, quiet, KEY)
+        val got2 = collect(view2)
+        view2.send()
+        view2.pause()
+        admob2.emitFailed(3)
+        runCurrent()
+        assertEquals(listOf<BannerLoadResult>(TryNext), got2)
+        assertTrue(quiet.entries.toString(), quiet.entries.none { "no ad (code" in it.message })
+    }
+
+    @Test
+    fun heldRefreshFailure_staging_lineHasCodeAndMessage() = runTest {
+        // Plan T-093, KB-28, answer (b) of question 3: a failed refresh held while MAX is asked has its line.
+        val got = showAdmobThenAskMax(ordered(MAX to max, ADMOB to admob), max, admob)
+        admob.emitFailed(3, "No fill.")
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded, Failed(3)), got)
+        val messages = logger.entries.map { it.message }
+        assertTrue(
+            messages.toString(),
+            "Banner $KEY ADMOB refresh failed, waiting for MAX (code 3 \"No fill.\")" in messages,
+        )
     }
 
     @Test
@@ -404,14 +495,14 @@ class PlatformBannersTest {
     private var loads = 0
     private var failures = 0
 
-    private fun TestScope.runLoads(view: BannerAdView) {
+    private fun TestScope.runLoads(view: BannerAdView, reloadMillis: Long = 0L) {
         backgroundScope.launch {
             runBannerLoads(
-                refresh = BannerRefresh.BY_AD_UNIT,
                 view = view,
                 visible = MutableStateFlow(true),
                 mayRequestNow = { true },
                 retryResets = MutableStateFlow(0),
+                reloadMillis = MutableStateFlow(reloadMillis),
                 onLoaded = { loads++ },
                 logger = logger,
                 placementKey = KEY,
@@ -510,6 +601,248 @@ class PlatformBannersTest {
         view.destroy()
         assertEquals(1, admob.destroyCount)
         assertEquals(1, max.destroyCount)
+    }
+
+    // The five tests below are of plan T-085 (notes 1, 2 and 3 of the review of T-071).
+
+    @Test
+    fun staleSkippedTurn_isNotAnswerOfNextSend() = runTest {
+        val view = ordered(MAX to max, ADMOB to admob)
+        val got = mutableListOf<BannerLoadResult>()
+        // Standard dispatcher, so the result given for the skipped turn stays in the inbox until runCurrent.
+        backgroundScope.launch { view.results.collect { got += it } }
+        runCurrent()
+        ready = false
+        view.send()
+        ready = true
+        view.send()
+        runCurrent()
+        assertEquals(emptyList<BannerLoadResult>(), got)
+        assertEquals(1, max.sendCount)
+        assertEquals(0, max.pauseCount)
+
+        max.emitLoaded()
+        runCurrent()
+        assertEquals(listOf<BannerLoadResult>(Loaded), got)
+
+        // Control: the result given for the skipped turn of the same send is heard.
+        val max2 = FakeBannerAdView(tag = "max")
+        val admob2 = FakeBannerAdView(tag = "admob")
+        val view2 = ordered(MAX to max2, ADMOB to admob2)
+        val got2 = mutableListOf<BannerLoadResult>()
+        backgroundScope.launch { view2.results.collect { got2 += it } }
+        runCurrent()
+        ready = false
+        view2.send()
+        runCurrent()
+        assertEquals(listOf<BannerLoadResult>(TryNext), got2)
+        assertEquals(0, max2.sendCount)
+    }
+
+    @Test
+    fun sendWhilePaused_loadedBeforeResume_maxStaysPausedUntilResume() = runTest {
+        val view = ordered(MAX to max, ADMOB to admob)
+        val got = collect(view)
+        view.pause()
+        // The send step can run before the visibility step resumes the frame: MAX runs again to send.
+        view.send()
+        max.emitLoaded()
+        runCurrent()
+        assertEquals(listOf<BannerLoadResult>(Loaded), got)
+        assertFalse("MAX stays paused while the frame is paused", max.isRunning)
+        assertEquals(2, max.pauseCount)
+
+        view.resume()
+        assertTrue("MAX runs once the frame resumes", max.isRunning)
+    }
+
+    /** Shows AdMob after MAX had no ad, lets one refresh of AdMob fail, and sends again: MAX is asked and waits. */
+    private fun TestScope.showAdmobThenAskMax(
+        view: BannerAdView,
+        max: FakeBannerAdView,
+        admob: FakeBannerAdView,
+    ): MutableList<BannerLoadResult> {
+        val got = collect(view)
+        view.send()
+        max.emitFailed(204)
+        view.send()
+        admob.emitLoaded()
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded), got)
+        admob.emitFailed(3)
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded, Failed(3)), got)
+        view.send()
+        assertEquals(2, max.sendCount)
+        return got
+    }
+
+    @Test
+    fun shownRefreshFails_whileOtherPending_waitsForPending() = runTest {
+        val got = showAdmobThenAskMax(ordered(MAX to max, ADMOB to admob), max, admob)
+        admob.emitFailed(3)
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded, Failed(3)), got)
+        assertTrue(logger.entries.any { it.message == "Banner $KEY ADMOB refresh failed, waiting for MAX" })
+
+        max.emitLoaded()
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded, Failed(3), Loaded), got)
+        assertTrue(max.isRunning)
+
+        // Control (escape): a second failed refresh of the same send passes; the answer of MAX still decides.
+        val max2 = FakeBannerAdView(tag = "max")
+        val admob2 = FakeBannerAdView(tag = "admob")
+        val got2 = showAdmobThenAskMax(ordered(MAX to max2, ADMOB to admob2), max2, admob2)
+        admob2.emitFailed(3)
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded, Failed(3)), got2)
+        admob2.emitFailed(5)
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded, Failed(3), Failed(5)), got2)
+        max2.emitLoaded()
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded, Failed(3), Failed(5), Loaded), got2)
+
+        // Control: a load of the child shown while another one waits still passes.
+        val max3 = FakeBannerAdView(tag = "max")
+        val admob3 = FakeBannerAdView(tag = "admob")
+        val got3 = showAdmobThenAskMax(ordered(MAX to max3, ADMOB to admob3), max3, admob3)
+        admob3.emitLoaded()
+        runCurrent()
+        assertEquals(listOf(TryNext, Loaded, Failed(3), Loaded), got3)
+    }
+
+    /** Through the real send loop: MAX had no ad, AdMob shows, one refresh of AdMob fails and the retry asks MAX. */
+    private fun TestScope.loadsUntilMaxAskedAgain() {
+        runLoads(ordered(MAX to max, ADMOB to admob))
+        runCurrent()
+        max.emitFailed(204)
+        runCurrent()
+        admob.emitLoaded()
+        runCurrent()
+        assertEquals(1, loads)
+        admob.emitFailed(3)
+        runCurrent()
+        advanceTimeBy(2_001)
+        runCurrent()
+        assertEquals(2, max.sendCount)
+    }
+
+    @Test
+    fun shownRefreshFails_whileMaxPending_throughRunBannerLoads_maxLoadHeard() = runTest {
+        loadsUntilMaxAskedAgain()
+        admob.emitFailed(3)
+        runCurrent()
+        assertEquals("second AdMob failure while MAX loads", 1, failures)
+
+        max.emitLoaded()
+        runCurrent()
+        assertEquals(2, loads)
+        advanceTimeBy(10_001)
+        runCurrent()
+        assertEquals("no extra send to MAX", 2, max.sendCount)
+        assertEquals(1, admob.sendCount)
+    }
+
+    @Test
+    fun shownRefreshFailsTwice_whileMaxPendingSilent_throughRunBannerLoads_retriesGoOn() = runTest {
+        loadsUntilMaxAskedAgain()
+        admob.emitFailed(3)
+        runCurrent()
+        assertEquals(1, failures)
+
+        // Control: one failure is held, the send loop waits for MAX.
+        advanceTimeBy(30_000)
+        runCurrent()
+        assertEquals(1, failures)
+        assertEquals(2, max.sendCount)
+
+        admob.emitFailed(3)
+        runCurrent()
+        assertEquals(2, failures)
+        advanceTimeBy(4_001)
+        runCurrent()
+        assertEquals(3, max.sendCount)
+
+        // The new send resets the count: its first failed refresh is held again.
+        admob.emitFailed(3)
+        runCurrent()
+        assertEquals(2, failures)
+        assertEquals(2, logger.entries.count { it.message == "Banner $KEY ADMOB refresh failed, waiting for MAX" })
+    }
+
+    /** Through the real send loop with the key at 60 s: MAX had no ad and AdMob shows, loaded at 0. */
+    private fun TestScope.admobShownAfterMaxFailed(view: BannerAdView) {
+        runLoads(view, reloadMillis = 60_000L)
+        runCurrent()
+        assertEquals(1, max.sendCount)
+        max.emitFailed(204)
+        runCurrent()
+        assertEquals(1, admob.sendCount)
+        admob.emitLoaded()
+        runCurrent()
+        assertEquals(1, loads)
+    }
+
+    @Test
+    fun reload_bothFail_shownChildKept_oneFailure() = runTest {
+        // Plan T-088, KB-34 criterion 6: a reload that fails on both platforms is one failure; AdMob keeps showing.
+        val view = ordered(MAX to max, ADMOB to admob)
+        admobShownAfterMaxFailed(view)
+
+        advanceTimeBy(59_999)
+        runCurrent()
+        assertEquals(1, max.sendCount)
+        advanceTimeBy(1)
+        runCurrent()
+        assertEquals("the reload asks MAX first", 2, max.sendCount)
+        max.emitFailed(204)
+        runCurrent()
+        assertEquals(2, admob.sendCount)
+        admob.emitFailed(3)
+        runCurrent()
+        assertEquals(1, failures)
+        assertEquals(0, admob.destroyCount)
+
+        // The ad shown is still the one of AdMob: a resume of the frame runs AdMob only.
+        view.pause()
+        view.resume()
+        assertTrue("AdMob is shown", admob.isRunning)
+        assertFalse("MAX is not shown", max.isRunning)
+
+        // The retry of B-02, 2 s later, starts again from MAX.
+        advanceTimeBy(2_001)
+        runCurrent()
+        assertEquals(3, max.sendCount)
+        assertEquals(2, admob.sendCount)
+    }
+
+    @Test
+    fun reload_asksFirstPlatformAgain() = runTest {
+        // Plan T-088, KB-34 criterion 5, KB-31: each reload asks the platforms in the order of ads_mediation_order.
+        val view = ordered(MAX to max, ADMOB to admob)
+        admobShownAfterMaxFailed(view)
+
+        advanceTimeBy(60_001)
+        runCurrent()
+        assertEquals(2, max.sendCount)
+        assertEquals(1, admob.sendCount)
+        max.emitLoaded()
+        runCurrent()
+        assertEquals(2, loads)
+        assertEquals("AdMob is paused once MAX shows", 1, admob.pauseCount)
+        assertEquals(0, failures)
+
+        // Control: the order admob asks AdMob only, at each reload.
+        val admob2 = FakeBannerAdView(tag = "admob")
+        runLoads(ordered(ADMOB to admob2), reloadMillis = 60_000L)
+        runCurrent()
+        admob2.emitLoaded()
+        runCurrent()
+        advanceTimeBy(60_001)
+        runCurrent()
+        assertEquals(2, admob2.sendCount)
     }
 
     @Test

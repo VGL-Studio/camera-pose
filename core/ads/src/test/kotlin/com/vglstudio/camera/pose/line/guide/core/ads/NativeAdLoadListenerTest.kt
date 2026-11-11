@@ -18,7 +18,7 @@ class NativeAdLoadListenerTest {
 
     @Test
     fun onAdImpression_marksLoadedAd_andForwardsEvent() {
-        val listener = NativeAdLoadListener(events) {}
+        val listener = NativeAdLoadListener(events) { _, _ -> }
         val ad = SdkLoadedNativeAd(mockk<NativeAd>(relaxed = true), events)
         listener.loaded = ad
         assertFalse(ad.impressionRecorded)
@@ -40,7 +40,7 @@ class NativeAdLoadListenerTest {
         val order = mutableListOf<String>()
         val listener = NativeAdLoadListener(
             events,
-            onFailed = { order += "failed:$it" },
+            onFailed = { code, _ -> order += "failed:$code" },
             onLoadFailedResponse = { order += "response:${it.code}" },
         )
 
@@ -51,8 +51,32 @@ class NativeAdLoadListenerTest {
     }
 
     @Test
+    fun onAdFailedToLoad_staging_handsMaskedMessage() {
+        // Plan T-093, KB-28: the loader gets the masked message; the metrics still get the SDK message as it is.
+        val got = mutableListOf<Pair<Int, String?>>()
+        val listener = NativeAdLoadListener(events, loadErrorLog = LoadErrorLog(true)) { code, message ->
+            got += code to message
+        }
+
+        listener.onAdFailedToLoad(LoadAdError(3, ADMOB_UNIT_MESSAGE, "com.google.android.gms.ads", null, null))
+
+        assertEquals(listOf(3 to "No ad for <ad unit>."), got)
+        verify(exactly = 1) { events.onFailed(3, ADMOB_UNIT_MESSAGE) }
+    }
+
+    @Test
+    fun onAdFailedToLoad_default_handsNoMessage() {
+        val got = mutableListOf<Pair<Int, String?>>()
+        val listener = NativeAdLoadListener(events) { code, message -> got += code to message }
+
+        listener.onAdFailedToLoad(LoadAdError(3, ADMOB_UNIT_MESSAGE, "com.google.android.gms.ads", null, null))
+
+        assertEquals(listOf(3 to null), got)
+    }
+
+    @Test
     fun impressionBeforeLoaded_doesNotCrash() {
-        val listener = NativeAdLoadListener(events) {}
+        val listener = NativeAdLoadListener(events) { _, _ -> }
 
         listener.onAdImpression()
 

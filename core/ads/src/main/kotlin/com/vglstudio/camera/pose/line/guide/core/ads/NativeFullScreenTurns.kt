@@ -7,6 +7,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 /**
@@ -59,12 +62,19 @@ internal interface NativeFullScreenPort {
 
     /** `time_close_native` read now, already in 1..30 (K-02). */
     fun closeCountdownSeconds(): Long
+
+    /** True while at least one FullScreenAdHost is in a composition (HD-05). */
+    val hostAttached: StateFlow<Boolean>
+
+    /** True while an activity of the app is started ([AdsActivityTracker.foreground]). */
+    val foreground: StateFlow<Boolean>
 }
 
 /**
  * The turns of the native full-screen ad drawn by the overlay of [FullScreenAdHost] (HD-05): the combo after an
  * interstitial ([afterInterstitial], KB-16, K-01 to K-08) and the standalone turn ([showStandalone], KB-5). One turn
- * at a time for the whole process. The deadline of the countdown is kept here, on the monotonic [clock], so a
+ * at a time for the whole process. The combo opens only while a host is in a composition, and an open turn whose
+ * host is gone for [HOST_GONE_GRACE_MILLIS] while the app is in foreground closes by the normal close (K-09). The deadline of the countdown is kept here, on the monotonic [clock], so a
  * recreated activity does not restart it (K-02). Main thread only: [scope] dispatches on the main thread.
  */
 internal class NativeFullScreenTurns(
@@ -104,7 +114,8 @@ internal class NativeFullScreenTurns(
      * The completion of an interstitial turn that passed the gate (KB-16). The showing flag and the resume block are
      * taken here, on the calling stack, so no full-screen ad (F-01) and no resume ad (K-05) slips in between the
      * interstitial and the native ad. Then the key is read (K-01): off finishes at once; on waits for the
-     * interstitial to leave (K-02) and opens the native ad. [onFinished] runs when the native ad closes.
+     * interstitial to leave (K-02), then at most [HOST_WAIT_MILLIS] for a host (K-09): none finishes as with the key
+     * off, else the native ad opens. [onFinished] runs when the native ad closes.
      */
     fun afterInterstitial(source: AdPlacement, onFinished: () -> Unit) {
         if (turn != null || !port.beginPresence()) {
@@ -116,17 +127,29 @@ internal class NativeFullScreenTurns(
         turn = current
         current.jobs += scope.launch {
             if (!port.comboEnabled()) {
-                logger.info(TAG, "Native combo skipped: off")
-                turn = null
-                port.releaseResumeAds(current.hold)
-                port.endPresence()
-                onFinished()
+                skip(current, "off")
                 return@launch
             }
             val gone = awaitInterGone(port::interGone)
+            if (!awaitHost(port.hostAttached)) {
+                skip(current, "no host")
+                return@launch
+            }
             logger.info(TAG, "Native combo opened (inter gone: $gone)")
             open(current)
         }
+    }
+
+    /**
+     * A combo that does not open (key off, or no host, K-09): no ad taken, no opportunity, no mark, no load; the
+     * resume block and the showing flag go back before [Turn.onFinished] runs.
+     */
+    private fun skip(current: Turn, reason: String) {
+        turn = null
+        port.releaseResumeAds(current.hold)
+        port.endPresence()
+        logger.info(TAG, "Native combo skipped: $reason")
+        current.onFinished()
     }
 
     /**
@@ -161,6 +184,22 @@ internal class NativeFullScreenTurns(
         }
         publish(current)
         current.jobs += scope.launch { countDown(current) }
+        current.jobs += scope.launch { watchHost(current) }
+    }
+
+    /**
+     * K-09: closes [current] by the normal close once no host has been in a composition for [HOST_GONE_GRACE_MILLIS]
+     * while the app is in foreground; time in background does not count, so a rebuilt activity keeps the turn.
+     */
+    private suspend fun watchHost(current: Turn) {
+        combine(port.hostAttached, port.foreground) { attached, foreground -> !attached && foreground }
+            .distinctUntilChanged()
+            .collectLatest { lost ->
+                if (!lost) return@collectLatest
+                delay(HOST_GONE_GRACE_MILLIS)
+                logger.info(TAG, "Native full-screen closed: host gone")
+                closeTurn(current)
+            }
     }
 
     /** K-04: an ad in the slot, else a load and a wait for its result; nothing to send fails at once. */

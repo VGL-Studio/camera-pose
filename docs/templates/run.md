@@ -32,7 +32,7 @@ staging_build:               # phiên bản bản staging được phát cuối 
 - **`scripts/run-check.py`:** <qua, hoặc các lỗi đã sửa>; chú ý: <từng dòng và kết luận>
 - **Rà soát độc lập:** <ngày, số điểm chặn, nên sửa, ghi chú>
 - **Cách mở phiên:** <open_with và lý do>; khả năng mà plan cần (quy tắc 8 của `run-check.py`, `docs/ops/session-capabilities.md`): <từng dòng và cách xử lý, hoặc "Không có">
-- **Hạn mức Actions:** <số phút CI ước tính của danh sách, số phút còn lại dev đã xem, ngày> (`auto-run.md` mục 1, L-094)
+- **Hạn mức Actions:** <số phút CI ước tính của danh sách, số phút còn lại dev đã xem, ngày> (`auto-run.md` mục 1)
 
 | Mức | Ticket | Vấn đề | Xử lý |
 | --- | --- | --- | --- |

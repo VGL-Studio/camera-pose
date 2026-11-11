@@ -325,8 +325,10 @@ internal fun CollapsibleNativeAdLayerHost(
 
 /**
  * The collapsible layer of the bottom bar of [placement] (D-01: it exists only there), drawn by [BottomAdBarScaffold]
- * over the bottom slot. Its ads are format [AdFormat.NATIVE_COLLAPSIBLE] of the bar's placement, from their own
- * single-ad source refreshed every 60 s (CL-02); the bar checks consent and the placement first.
+ * over the bottom slot. Its ads are format [AdFormat.NATIVE_COLLAPSIBLE] of the bar's placement, from the
+ * `native_collap` stock shared by every bottom bar with the same ad unit (KB-33): its first ad shows at once when the
+ * stock holds one, then it refreshes at the interval of `time_reload_collap_ad`, staying collapsed (CL-02, KB-34);
+ * the bar checks consent and the placement first.
  */
 @Composable
 internal fun CollapsibleNativeAdLayer(placement: AdPlacement, expandAfterSeconds: Long, modifier: Modifier = Modifier) {

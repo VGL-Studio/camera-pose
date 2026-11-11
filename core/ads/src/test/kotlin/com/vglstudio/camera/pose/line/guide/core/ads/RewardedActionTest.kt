@@ -8,9 +8,11 @@ import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -37,7 +39,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetricEvent
 import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdMetrics
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import java.time.Duration
@@ -87,7 +88,7 @@ class RewardedActionTest {
 
     @Composable
     private fun Subject(dark: Boolean = false, lines: Int = 1, flow: Flow<Boolean> = enabled) {
-        AppTheme(darkTheme = dark) {
+        AdsTestTheme(darkTheme = dark) {
             scheme = MaterialTheme.colorScheme
             val current = rememberRewardedActionWith(
                 placement = AdPlacement.GALLERY_RW_ACTION,
@@ -189,6 +190,43 @@ class RewardedActionTest {
         val card = composeRule.onNodeWithTag(RewardedAdDialogTestTags.CARD).getUnclippedBoundsInRoot()
         assertEquals(56f, watch.height.value, 0.5f)
         assertEquals((card.width - Spacing.lg * 2).value, watch.width.value, 0.5f)
+    }
+
+    /** The space that "No, thanks" takes below "Watch ad", up to the bottom padding of the card. */
+    private fun noThanksSlot(): Dp {
+        val watch = composeRule.onNodeWithTag(RewardedAdDialogTestTags.WATCH).getUnclippedBoundsInRoot()
+        val card = composeRule.onNodeWithTag(RewardedAdDialogTestTags.CARD).getUnclippedBoundsInRoot()
+        return card.bottom - Spacing.lg - (watch.bottom + Spacing.sm)
+    }
+
+    @Test
+    fun noThanksButton_drawn40dp_takes48dpOfCard() {
+        composeRule.setContent {
+            AdsTestTheme {
+                RewardedAdDialogCard(title = "Unlock export", onWatch = {}, onNoThanks = {}) {
+                    Text("Feature content")
+                }
+            }
+        }
+
+        val noThanks = composeRule.onNodeWithTag(RewardedAdDialogTestTags.NO_THANKS).getUnclippedBoundsInRoot()
+        assertEquals(48f, noThanksSlot().value, 0.5f)
+        assertEquals(40f, noThanks.height.value, 0.5f)
+    }
+
+    @Test
+    fun noThanksSlot_withoutMinimumTouchSize_is40dp() {
+        composeRule.setContent {
+            AdsTestTheme {
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                    RewardedAdDialogCard(title = "Unlock export", onWatch = {}, onNoThanks = {}) {
+                        Text("Feature content")
+                    }
+                }
+            }
+        }
+
+        assertEquals(40f, noThanksSlot().value, 0.5f)
     }
 
     @Test
@@ -340,7 +378,7 @@ class RewardedActionTest {
     @Test
     fun noController_start_runsActionAtOnce() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 val current = rememberRewardedAction(AdPlacement.GALLERY_RW_ACTION, onGranted = { granted++ })
                 action = current
                 RewardedAdDialog(current, title = TITLE)
@@ -390,7 +428,7 @@ class RewardedActionTest {
     fun policyOverride_galleryPlacement_isAccepted() {
         // Control of the test above: the gallery placement takes an override through the public entry.
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 val current = rememberRewardedAction(
                     AdPlacement.GALLERY_RW_ACTION,
                     onGranted = { granted++ },
@@ -526,7 +564,7 @@ class RewardedActionTest {
         val second = mutableListOf<(RewardedOutcome) -> Unit>()
         val actions = mutableListOf<RewardedAction>()
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 listOf(first, second).forEach { calls ->
                     val current = rememberRewardedActionWith(
                         placement = AdPlacement.GALLERY_RW_ACTION,
@@ -885,7 +923,7 @@ class RewardedActionTest {
     private fun setRealContent(controller: AdsController, override: RewardedNoAdPolicy? = null) {
         composeRule.setContent {
             AdsHost(controller) {
-                AppTheme {
+                AdsTestTheme {
                     val current = rememberRewardedAction(
                         AdPlacement.GALLERY_RW_ACTION,
                         onGranted = { granted++ },

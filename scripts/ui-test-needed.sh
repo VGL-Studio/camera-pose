@@ -20,7 +20,8 @@ set -euo pipefail
 # A directory ends with "/" (every file below it); "*.gradle.kts" is a build file at the root only; anything else is
 # one exact path.
 UI_PATHS=(app/ core/ feature/ build-logic/ gradle/ '*.gradle.kts' gradle.properties gradlew scripts/test-summary.sh
-  scripts/ui-test-on-emulator.sh scripts/ui-test-verdict.sh scripts/ui-test-needed.sh .github/workflows/main-guard.yml)
+  scripts/ui-test-on-emulator.sh scripts/ui-test-verdict.sh scripts/ui-test-needed.sh scripts/runner-check.sh
+  .github/workflows/main-guard.yml)
 
 answer() { # <yes|no> <reason>
   echo "$2" >&2

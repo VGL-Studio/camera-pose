@@ -13,8 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Test
@@ -33,11 +31,11 @@ import org.robolectric.annotation.GraphicsMode
 class NativeFlowStepScreenshotTest {
     @Composable
     private fun Step(darkTheme: Boolean, content: @Composable ColumnScope.() -> Unit) {
-        AppTheme(darkTheme = darkTheme) {
+        AdsTestTheme(darkTheme = darkTheme) {
             Surface(color = MaterialTheme.colorScheme.background) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     content()
-                    PrimaryButton(text = NEXT, onClick = {}, modifier = Modifier.padding(Spacing.md).fillMaxWidth())
+                    AdsTestNextButton(text = NEXT, onClick = {}, modifier = Modifier.padding(Spacing.md).fillMaxWidth())
                 }
             }
         }

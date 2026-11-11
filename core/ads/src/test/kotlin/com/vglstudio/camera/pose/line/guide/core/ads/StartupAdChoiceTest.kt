@@ -128,42 +128,56 @@ class StartupAdChoiceTest {
 
     @Test
     fun placementSwitch_firstOpenOnly_followsKeyAndFirstOpen() = runTest {
-        // Spec onboarding, section 5: the step card of the flow shows only in the first open (plan T-083).
-        val placement = AdPlacement.NATIVE_ONBOARDING
-        settings.set(AdsSettings.placementEnabled(placement), true)
-        assertEquals(true, placementSwitch(placement, flags, flowOf(true)).first())
-        assertEquals(false, placementSwitch(placement, flags, flowOf(false)).first())
-        // Control (L-055): a placement that is not first open only stays on in a later open.
-        settings.set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true)
-        assertEquals(true, placementSwitch(AdPlacement.POSES_BOTTOM, flags, flowOf(false)).first())
-        settings.set(AdsSettings.placementEnabled(placement), false)
-        assertEquals(false, placementSwitch(placement, flags, flowOf(true)).first())
+        val step = AdPlacement.GALLERY_NATIVE_STEP
+        settings.set("is_show_gallery_native_step", true)
+        assertEquals(true, placementSwitch(step, flags, flowOf(true), firstOpenOnly = true).first())
+        assertEquals(false, placementSwitch(step, flags, flowOf(false), firstOpenOnly = true).first())
+        // Control (L-055): a placement that is not first-open-only stays on at a later open.
+        assertEquals(true, placementSwitch(step, flags, flowOf(false), firstOpenOnly = false).first())
+        settings.set("is_show_gallery_native_step", false)
+        assertEquals(false, placementSwitch(step, flags, flowOf(true), firstOpenOnly = true).first())
+
+        // The first open: the gates open, close and open again (KB-7).
+        settings.set("is_show_gallery_native_step", true)
+        placementSwitch(step, flags, flowOf(true), firstOpenOnly = true).test {
+            assertEquals(true, awaitItem())
+            settings.set("is_show_gallery_native_step", false)
+            assertEquals(false, awaitItem())
+            settings.set("is_show_gallery_native_step", true)
+            assertEquals(true, awaitItem())
+            settings.set("is_show_ads", false)
+            assertEquals(false, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
     fun placementSwitch_firstOpenOnly_waitsForFirstOpen() = runTest {
-        settings.set(AdsSettings.placementEnabled(AdPlacement.NATIVE_ONBOARDING), true)
-        placementSwitch(AdPlacement.NATIVE_ONBOARDING, flags, neverRead).test {
+        val step = AdPlacement.GALLERY_NATIVE_STEP
+        settings.set("is_show_gallery_native_step", true)
+        // Control: a placement that is not first-open-only does not wait for the mark.
+        assertEquals(true, placementSwitch(step, flags, neverRead, firstOpenOnly = false).first())
+        placementSwitch(step, flags, neverRead, firstOpenOnly = true).test {
             advanceTimeBy(1_000)
             expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
-        // Control: once the mark is read, the switch has a value.
-        assertEquals(true, placementSwitch(AdPlacement.NATIVE_ONBOARDING, flags, flowOf(true)).first())
     }
 
     @Test
-    fun placementSwitch_firstOpenOnly_adFree_false() = runTest {
-        // KB-30: ad removal turns the first-open-only placement off too.
-        settings.set(AdsSettings.placementEnabled(AdPlacement.NATIVE_ONBOARDING), true)
+    fun placementSwitch_firstOpenOnly_adFree_turnsOff() = runTest {
+        val step = AdPlacement.GALLERY_NATIVE_STEP
         val adFree = MutableStateFlow(false)
         val adFreeFlags = DefaultAdsFlags(settings, adFreeStatus(adFree))
-        // Control (L-055): the switch read is the first-open-only one, off in a later open.
-        assertEquals(false, placementSwitch(AdPlacement.NATIVE_ONBOARDING, adFreeFlags, flowOf(false)).first())
-        placementSwitch(AdPlacement.NATIVE_ONBOARDING, adFreeFlags, flowOf(true)).test {
+        settings.set("is_show_gallery_native_step", true)
+        // Control: at a later open it is off, though not ad-free.
+        assertEquals(false, placementSwitch(step, adFreeFlags, flowOf(false), firstOpenOnly = true).first())
+        placementSwitch(step, adFreeFlags, flowOf(true), firstOpenOnly = true).test {
             assertEquals(true, awaitItem())
             adFree.value = true
             assertEquals(false, awaitItem())
+            adFree.value = false
+            assertEquals(true, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }

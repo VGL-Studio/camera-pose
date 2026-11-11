@@ -16,6 +16,8 @@ amends: ADR-0002
 
 > Ghi chú 2026-10-30: [ADR-0043](0043-test-emulator-sau-merge.md) thay ý emulator của mục 1 và mục 4: test trên emulator không chạy ở `pr-check` mà chạy sau merge, ở job `ui-test` của `main-guard.yml`, một lần cho mỗi commit đổi code app; `merge-if-green.sh` không đòi hay chờ `ui-test`.
 
+> Ghi chú 2026-11-08: [ADR-0041](0041-merge-khong-cap-nhat-khi-main-chi-doi-tai-lieu.md) thay một phần mục 1: PR code được merge mà không cập nhật nhánh khi nhánh chính từ điểm tách chỉ đổi tài liệu; và thêm vào mục 4: PR nháp không chạy `pr-check`.
+
 ## Bối cảnh
 
 ADR-0002 quyết định chỉ merge vào nhánh chính khi qua cổng chất lượng, và nhánh chính được bảo vệ. Tổ chức đang dùng gói GitHub Free, với repo private thì GitHub không cho bật bảo vệ nhánh, ruleset hay kiểm tra bắt buộc. Nhóm quyết định giữ gói Free. Vì vậy phải bảo đảm nguyên tắc của ADR-0002 bằng cách khác. Gói Free cũng giới hạn số phút GitHub Actions cho repo private, nên CI phải tiết kiệm.

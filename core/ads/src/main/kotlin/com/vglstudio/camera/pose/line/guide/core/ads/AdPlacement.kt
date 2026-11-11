@@ -7,8 +7,9 @@ package com.vglstudio.camera.pose.line.guide.core.ads
  */
 enum class AdFormat(val code: String) {
     /**
-     * Fixed banner shown inside a screen with [AdSlot]. The SDK refreshes it at the rate set on its ad unit in AdMob
-     * (auto refresh on); the app only retries after a failure (B-02).
+     * Fixed banner shown inside a screen with [AdSlot]. :core:ads loads it again after each load every
+     * `time_reload_banner` seconds (60 s by default), retries after a failure (B-02); its ad unit has auto refresh off
+     * on AdMob and MAX.
      */
     BANNER("banner"),
 
@@ -54,8 +55,9 @@ enum class AdFormat(val code: String) {
     REWARDED("rewarded"),
 
     /**
-     * Banner that the user collapses, shown at the bottom of a screen with [AdSlot]. :core:ads loads it again 30 s after
-     * each load, each time as a new expanded banner (B-03); its ad unit has auto refresh off.
+     * Banner that the user collapses, shown at the bottom of a screen with [AdSlot]. :core:ads loads it again after each
+     * load at the interval of `time_reload_banner_collap` (30 s by default), each time as a new expanded banner (B-03);
+     * its ad unit has auto refresh off.
      */
     BANNER_COLLAPSIBLE("banner_collapsible"),
 
@@ -72,8 +74,9 @@ enum class AdFormat(val code: String) {
     NATIVE_IN_COLLECTION("native_in_collection"),
 
     /**
-     * Banner of 300 x 250 dp placed in the content of a screen with [AdSlot], refreshed by its ad unit in AdMob like
-     * [BANNER] (B-08); never in the bottom bar, never a list row.
+     * Banner of 300 x 250 dp placed in the content of a screen with [AdSlot], loaded again by :core:ads every
+     * `time_reload_banner_mrec` seconds (60 s by default) like [BANNER] (B-08); never in the bottom bar, never a list
+     * row.
      */
     BANNER_MREC("banner_mrec"),
 }
@@ -165,10 +168,12 @@ enum class AdPlacement(
      */
     val noAdPolicy: RewardedNoAdPolicy? = null,
     /**
-     * Shown only in the first open since install (A-01): `is_show_<code>` and the first-open mark; a later open reads
-     * it as off, so its pool is not filled (plan T-083). Not for an [appWide] placement, which reads the mark its own way.
+     * On only in the first open since install or since the data was cleared (A-01, OB-03): the switch is
+     * `is_show_<code>` and the first-open mark, so later opens neither load nor take space. Flow step formats only
+     * (`native_step`, `native_fullscreen`), never an [appWide] placement. Passed to [declaration] only: read
+     * `declaration.firstOpenOnly`.
      */
-    val firstOpenOnly: Boolean = false,
+    firstOpenOnly: Boolean = false,
 ) {
     OPEN_APP("open_app", AdFormat.APP_OPEN, appWide = true),
     OPEN_APP_INTER("open_app_inter", AdFormat.INTERSTITIAL, ignoreInterval = true, appWide = true),
@@ -266,7 +271,7 @@ internal data class AdPlacementDeclaration(
     val keepSpaceWhenPoolEmpty: Boolean = false,
     /** What the action does when no ad can be shown (MC-05); rewarded only. */
     val noAdPolicy: RewardedNoAdPolicy? = null,
-    /** Shown only in the first open since install (A-01, plan T-083); not for an app-wide placement. */
+    /** On only in the first open since install (A-01, OB-03); flow step formats only, never app-wide. */
     val firstOpenOnly: Boolean = false,
 ) {
     /** The policy of this placement: [noAdPolicy], or [RewardedNoAdPolicy.Block] (MC-05). */
@@ -291,6 +296,9 @@ internal data class AdPlacementDeclaration(
         }
         require(noAdPolicy == null || format == AdFormat.REWARDED) {
             "Placement $code: noAdPolicy is for rewarded only"
+        }
+        require(!firstOpenOnly || format == AdFormat.NATIVE_STEP || format == AdFormat.NATIVE_FULL_SCREEN) {
+            "Placement $code: firstOpenOnly is for flow step formats only"
         }
         require(!firstOpenOnly || !appWide) { "Placement $code: firstOpenOnly is not for an app-wide placement" }
         if (nativeEvery != null) {

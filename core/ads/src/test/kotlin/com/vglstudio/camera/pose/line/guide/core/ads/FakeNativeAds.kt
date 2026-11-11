@@ -42,7 +42,7 @@ internal class FakeNativeAdLoader : NativeAdLoader {
         val unitId: String,
         val size: NativeAdSize,
         val onLoaded: (LoadedNativeAd) -> Unit,
-        val onFailed: (Int) -> Unit,
+        val onFailed: (Int, String?) -> Unit,
     )
 
     val requests = mutableListOf<Request>()
@@ -57,11 +57,17 @@ internal class FakeNativeAdLoader : NativeAdLoader {
         unitId: String,
         size: NativeAdSize,
         onLoaded: (LoadedNativeAd) -> Unit,
-        onFailed: (code: Int) -> Unit,
+        onFailed: (code: Int, logMessage: String?) -> Unit,
     ) {
         requests += Request(unitId, size, onLoaded, onFailed)
         open++
         maxOpen = maxOf(maxOpen, open)
+    }
+
+    /** Answers request [index] (in the order they were made) with [ad]; for loads of two stocks at once. */
+    fun deliverAt(index: Int, ad: LoadedNativeAd) {
+        open--
+        requests[index].onLoaded(ad)
     }
 
     /** Answers the last request with [ad]. */
@@ -70,17 +76,18 @@ internal class FakeNativeAdLoader : NativeAdLoader {
         requests.last().onLoaded(ad)
     }
 
-    /** Answers the last request with an SDK error [code]. */
-    fun fail(code: Int) {
+    /** Answers the last request with an SDK error [code] and the [logMessage] the loader hands over (plan T-093). */
+    fun fail(code: Int, logMessage: String? = null) {
         open--
-        requests.last().onFailed(code)
+        requests.last().onFailed(code, logMessage)
     }
 }
 
 /**
- * Native loads by [NativeLoadUse] through [loader] ([loadOneNativeAd]), recording the use and the send time of each
- * (plan T-040). [throwNext] makes the next load throw before anything is sent, like a request that cannot be built
- * (O-09).
+ * Native loads by [NativeLoadUse] through [loader] ([loadOneNativeAd]), recording the use, the send time and the
+ * placement of the waiting slot (null for a load of the stock itself) of each (plans T-040, T-086), and the
+ * [PlacementCell] each load hands over in [holders], holding that placement until a slot claims the ad. [throwNext]
+ * makes the next load throw before anything is sent, like a request that cannot be built (O-09).
  */
 internal class FakeNativeLoads(
     private val loader: FakeNativeAdLoader,
@@ -88,21 +95,28 @@ internal class FakeNativeLoads(
     private val logger: AppLogger,
     private val timeoutMillis: Long = 30_000L,
 ) {
-    class Sent(val use: NativeLoadUse, val atMillis: Long)
+    class Sent(val use: NativeLoadUse, val atMillis: Long, val placement: AdPlacement? = null)
 
     val sent = mutableListOf<Sent>()
+    val holders = mutableListOf<PlacementCell>()
     var throwNext: Exception? = null
 
     val uses: List<NativeLoadUse> get() = sent.map { it.use }
     val times: List<Long> get() = sent.map { it.atMillis }
+    val placements: List<AdPlacement?> get() = sent.map { it.placement }
 
-    suspend fun load(use: NativeLoadUse): NativeAdState {
+    suspend fun load(use: NativeLoadUse, placement: AdPlacement? = null): NativeSourceLoad {
         throwNext?.let {
             throwNext = null
             throw it
         }
-        sent += Sent(use, now())
-        return loadOneNativeAd(loader, FAKE_UNIT_ID, NativeAdSize.SMALL, timeoutMillis, logger, FAKE_KEY)
+        sent += Sent(use, now(), placement)
+        val holder = PlacementCell().apply { value = placement }
+        holders += holder
+        return NativeSourceLoad(
+            loadOneNativeAd(loader, FAKE_UNIT_ID, NativeAdSize.SMALL, timeoutMillis, logger, FAKE_KEY),
+            holder,
+        )
     }
 
     companion object {

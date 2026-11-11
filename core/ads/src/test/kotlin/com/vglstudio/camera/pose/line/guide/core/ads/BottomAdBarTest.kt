@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,7 +113,7 @@ class BottomAdBarTest {
         enabledFlow: Flow<Boolean>? = null,
         content: @Composable (PaddingValues) -> Unit = { DefaultContent(it) },
     ) {
-        AppTheme(darkTheme = false) {
+        AdsTestTheme(darkTheme = false) {
             val enabledFromFlow = enabledFlow?.let { remember(it) { it }.collectAsState(initial = false).value }
             val barEnabled = enabledFromFlow ?: enabled
             val nativeAllowed = enabledFromFlow?.let { nativeSlotAllowed(canRequest, it, "unit") } ?: slotAllowed
@@ -140,11 +139,11 @@ class BottomAdBarTest {
                         enabled = barEnabled,
                         unitId = layerUnitIds.of(placement, AdFormat.BANNER),
                         heightDp = BANNER_HEIGHT_DP,
-                        refresh = BannerRefresh.BY_AD_UNIT,
                         visible = MutableStateFlow(true),
                         covered = MutableStateFlow(false),
                         mayRequestNow = { canRequest },
                         retryResets = MutableStateFlow(0),
+                        reloadMillis = MutableStateFlow(0L),
                         logger = RecordingAppLogger(),
                         placementKey = placement.key,
                         newView = banners::newView,
@@ -559,7 +558,7 @@ class BottomAdBarTest {
     @Test
     fun withoutAdsController_drawsContentOnly_noPadding() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 BottomAdBarScaffold(placement) { padding ->
                     Box(Modifier.fillMaxSize().padding(padding).testTag(CONTENT))
                 }

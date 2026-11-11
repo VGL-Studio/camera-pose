@@ -42,7 +42,7 @@ ADR liên quan: <ADR-NNNN, ...>
 
 ### 3.2. Danh sách file
 
-<!-- Đây là ranh giới trong phiên tự chạy. AI chỉ được chạm vào các file trong bảng này. -->
+<!-- Đây là ranh giới trong phiên tự chạy. AI chỉ được chạm vào các file trong bảng này. Task của phiên tự chạy không ghi `docs/lessons.md`, file plan này hay ticket vào bảng: phiên ghi bài học `applied`, nhật ký plan và trạng thái plan, ticket qua PR báo cáo, không qua PR của task (auto-run.md, bước 7, bước 10 và mục 4). Task làm có người (`auto_run: false` ở ticket) hay đường làm nhanh (`lane: quick`) gộp vào một PR thì ghi các file đó vào bảng. -->
 
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
@@ -96,10 +96,10 @@ Ghi "Không có" kèm một câu lý do nếu plan không đổi hành vi nào m
 Test được viết TRƯỚC code và phải thất bại đúng lý do trước khi viết code (xem auto-run.md).
 Mỗi dòng dưới đây phải đủ cụ thể để viết được test ngay từ plan.
 Plan sửa lỗi: ghi số đo thật trên code hiện tại (chạy test tạm, không commit) và lý do thất bại đã thấy, không đoán.
-Khung test tái hiện được lỗi gốc: cùng chiều rộng, chiều cao như nơi phát hiện (L-029).
-Test kiểm giá trị mặc định thường qua trên khung rỗng: ghi sẵn bước đối chứng (ghi rồi đọc lại, dữ liệu đúng cạnh dữ liệu sai) (L-055).
-Nút chữ trên nền khác màu: có test đo màu chữ của nút trên ảnh vẽ ra, không chỉ dựa vào ảnh chuẩn (L-053).
-Ghi lại ảnh chuẩn đã có (plan cho phép, mục 3.2): lệnh ghi ảnh kèm `--rerun` của task test như `CLAUDE.md`, mục Lệnh, rồi `git status --short -- '*/src/test/screenshots/*'` chỉ được đổi các ảnh của mục 3.2 (L-114, L-136).
+Khung test tái hiện được lỗi gốc: cùng chiều rộng, chiều cao như nơi phát hiện.
+Test kiểm giá trị mặc định thường qua trên khung rỗng: ghi sẵn bước đối chứng (ghi rồi đọc lại, dữ liệu đúng cạnh dữ liệu sai).
+Nút chữ trên nền khác màu: có test đo màu chữ của nút trên ảnh vẽ ra, không chỉ dựa vào ảnh chuẩn.
+Ghi lại ảnh chuẩn đã có (plan cho phép, mục 3.2): lệnh ghi ảnh kèm `--rerun` của task test như `CLAUDE.md`, mục Lệnh, rồi `git status --short -- '*/src/test/screenshots/*'` chỉ được đổi các ảnh của mục 3.2.
 Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ có giới hạn, không khẳng định màn hình thoáng qua (CLAUDE.md, bước 10).
 -->
 
@@ -108,14 +108,14 @@ Test trên emulator chỉ kiểm tra trạng thái ổn định sau khi chờ c�
 | KB-1, tiêu chí 1 | Unit test | `XxxViewModelTest.whenXxx_thenYyy` |
 | KB-1, tiêu chí 2 | Compose UI test | <...> |
 | Giao diện màn hình X | Screenshot test | <...> |
-| Màn hình thấp (L-028) | Screenshot test khung `w360dp-h640dp-xxhdpi`, trạng thái nhiều nội dung nhất | `<Ten>Screen_<trạng thái>_small.png` |
+| Màn hình thấp | Screenshot test khung `w360dp-h640dp-xxhdpi`, trạng thái nhiều nội dung nhất | `<Ten>Screen_<trạng thái>_small.png` |
 | Đúng thiết kế (khi có `design/screens/`) | Screenshot test cùng tên với từng ảnh thiết kế, ảnh so sánh `scripts/design-compare.sh <feature>`, rà soát độc lập theo mục 7 của mẫu thiết kế. Ticket chỉ làm một phần feature thì ghi một dòng `Ảnh thiết kế của ticket khác (T-NNN): \`<Tên>\`, ...` cho các ảnh ticket khác vẽ; `scripts/plan-check.py` bỏ qua các ảnh đó | `<Ten>Screen_<trạng thái>_<light\|dark>.png` |
 | Chữ đúng bảng chữ của thiết kế | Compose UI test | <...> |
 | <tiêu chí chạy được trên emulator> | Kiểm tra thủ công (emulator: `<module>/src/deviceScenarios/<T-NNN>-<tên>.txt`) | <tệp kịch bản; `device-session` cuối phiên chạy tệp này> |
 | <tiêu chí cần máy thật> | Kiểm tra thủ công (máy thật: <lý do>) | <các bước dev làm khi kiểm tra bản staging> |
 | <tiêu chí cần người xem hay đọc> | Kiểm tra thủ công (người: <lý do>) | <việc người làm> |
 
-Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-check.py` báo lỗi dòng thiếu khi plan còn `draft` (quy tắc 11).
+Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy; `scripts/plan-check.py` báo lỗi dòng thiếu khi plan còn `draft` (quy tắc 11).
 - `emulator`: tiêu chí chạy được trên emulator thành tệp kịch bản trong `src/deviceScenarios/` của module (`app/` cho luồng của vỏ app). Đưa tệp vào mục 3.2 và chạy `scripts/device-scenario.py check <tệp>` (cú pháp: `docs/ops/test-sessions.md`, mục 5).
 - `máy thật`: lý do thuộc một nhóm sau, hoặc "khác" kèm lời giải thích: camera thật; FPS, khung hình; Play (cài từ Play, In-App Review); Remote Config; quảng cáo thật; gập có bản lề; cử chỉ nhiều ngón; TalkBack.
 - `người`: việc không phải chạy app, như đọc tài liệu hay xem ảnh chuẩn.
@@ -125,7 +125,7 @@ Mỗi dòng "Kiểm tra thủ công" ghi nơi chạy (L-085); `scripts/plan-chec
 ### 4.1. Chạy thử
 
 <!--
-Bắt buộc khi tiêu chí E ở mục 5 từ 2 trở lên: kỹ thuật hay thư viện lần đầu dùng trong dự án (L-042).
+Bắt buộc khi tiêu chí E ở mục 5 từ 2 trở lên: kỹ thuật hay thư viện lần đầu dùng trong dự án.
 Chạy thử bằng một test tạm không commit, bằng đúng lệnh phiên dùng (`scripts/check.sh`) trên nhánh có code liên quan, trước khi duyệt.
 Robolectric không mô phỏng cửa sổ chồng nhau: phần trợ năng và chạm qua cửa sổ thêm bước kiểm tra thủ công.
 Ghi "Không cần (E dưới 2)" nếu không áp dụng. scripts/plan-check.py báo lỗi khi plan draft có E từ 2 mà thiếu mục này.

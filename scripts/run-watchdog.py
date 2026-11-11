@@ -14,13 +14,18 @@ WATCHDOG_STALL_MINUTES (60). While a workflow run of the repository is queued or
 last commit on one of the session's branches (or on main, by push or by hand: device-session, staging), the
 session may be waiting for it, so the issue waits until WATCHDOG_HARD_MINUTES (90). A quiet run gets one open
 issue "session-stalled: RUN-..." whose body has the prompt to paste (docs/ops/staging-and-runs.md, 2.7); the body
-is refreshed on later runs. The issue is closed when the run has a new commit or is no longer "running". A run file
-left "running" on an old report branch keeps its issue open until a person sets it to "finished".
+is refreshed on later runs. When a job of the repository has waited for a self-hosted runner for
+WATCHDOG_RUNNER_QUEUE_MINUTES (75, the wait of scripts/wait-run.sh code 7) with nothing of its run going, the body
+names it first: a person fixes the runner before pasting the prompt (ADR-0042). Those jobs are read only when an
+issue is about to be opened or updated. The issue is closed when the run has a new commit or is no longer
+"running". A run file left "running" on an old report branch keeps its issue open until a person sets it to
+"finished".
 
 Exit 0 when the check ran, 1 when GitHub could not be read (any error but a 404 on a file, a branch or the
 label): then no issue is changed. Prints what it did, and the issue body, on stdout.
 Uses only `gh api` (REST); GITHUB_REPOSITORY or the origin remote gives the repository.
-WATCHDOG_STALL_MINUTES, WATCHDOG_HARD_MINUTES and WATCHDOG_NOW (ISO time, tests) override the defaults.
+WATCHDOG_STALL_MINUTES, WATCHDOG_HARD_MINUTES, WATCHDOG_RUNNER_QUEUE_MINUTES and WATCHDOG_NOW (ISO time, tests)
+override the defaults.
 Messages are in Vietnamese for the team; comments are in English.
 """
 
@@ -34,6 +39,8 @@ from datetime import datetime, timedelta, timezone
 
 STALL_MINUTES = int(os.environ.get("WATCHDOG_STALL_MINUTES", "60"))
 HARD_MINUTES = int(os.environ.get("WATCHDOG_HARD_MINUTES", "90"))
+RUNNER_QUEUE_MINUTES = int(os.environ.get("WATCHDOG_RUNNER_QUEUE_MINUTES", "75"))
+GITHUB_LABEL = re.compile(r"^(ubuntu|windows|macos)-")
 LABEL = "session-stalled"
 REPORT_BRANCH = re.compile(r"^claude/(RUN-\d{8}-\d{2})-report$")
 TITLE = re.compile(r"^session-stalled: (RUN-\d{8}-\d{2})\b")
@@ -128,7 +135,41 @@ def busy_workflows(since, own):
     return sorted(set(names))
 
 
-def body_for(run_id, run_file, latest, quiet, note):
+def runner_waits(now):
+    """(job name, Actions run id, since) of every job that waits for a self-hosted runner as scripts/wait-run.sh
+    code 7 sees it: queued, no runner, a label of no GitHub runner, no job of its run in progress, and waiting since
+    the latest finished job of the run (else since it was created) for RUNNER_QUEUE_MINUTES or more. Every run of the
+    repository counts, not only the session's: the runner machine is shared. An answer of another shape is a failed
+    read."""
+    waits = []
+    for status in ("queued", "in_progress"):
+        path = f"actions/runs?status={status}&per_page=100"
+        runs = api(path)
+        if not isinstance(runs, dict) or not isinstance(runs.get("workflow_runs"), list):
+            raise LookupError(path)
+        for run in runs["workflow_runs"]:
+            jobs_path = f"actions/runs/{run.get('id')}/jobs?per_page=50"
+            jobs = api(jobs_path)
+            if not isinstance(jobs, dict) or not isinstance(jobs.get("jobs"), list):
+                raise LookupError(jobs_path)
+            jobs = jobs["jobs"]
+            if any(job.get("status") == "in_progress" for job in jobs):
+                continue
+            done = [moment(job.get("completed_at")) for job in jobs if job.get("status") == "completed"]
+            done = [d for d in done if d]
+            for job in jobs:
+                labels = job.get("labels") or []
+                if job.get("status") != "queued" or job.get("runner_name"):
+                    continue
+                if not any(not GITHUB_LABEL.match(str(label)) for label in labels):
+                    continue
+                since = max(done) if done else moment(job.get("created_at"))
+                if since and now - since >= timedelta(minutes=RUNNER_QUEUE_MINUTES):
+                    waits.append((job.get("name") or "?", run.get("id"), since))
+    return waits
+
+
+def body_for(run_id, run_file, latest, quiet, note, waits=()):
     # The prompt of docs/ops/staging-and-runs.md, section 2.7, plus its "phiên tiếp tục" line ("Khi phiên bị ngắt").
     resume = (
         "Bạn đang chạy một phiên tự chạy của repo này, mở bằng claude --cloud, không qua routine hay start-run.yml. "
@@ -147,6 +188,21 @@ def body_for(run_id, run_file, latest, quiet, note):
         f"Phiên `{run_id}` vẫn `running` trên nhánh `claude/{run_id}-report`, nhưng không có commit nào "
         f"trong {quiet} phút (commit gần nhất: {last}).",
         "",
+    ]
+    if waits:
+        for name, number, since in waits:
+            lines.append(f"**Job chờ runner tự host:** job `{name}` (lần chạy {number}) chờ runner tự host từ "
+                         f"{since.strftime('%Y-%m-%d %H:%M UTC')}, quá {RUNNER_QUEUE_MINUTES} phút, "
+                         "không còn job nào của lần chạy đó đang chạy.")
+        lines += [
+            "",
+            "Phiên dừng vì máy runner, không vì code (`scripts/wait-run.sh` mã 7): người phụ trách hạ tầng xem máy "
+            "runner hay biến `HEAVY_RUNNER` trước (docs/ops/self-hosted-runner.md, mục 8). Job còn chờ thì chưa dán "
+            "đoạn dưới: phiên mới cũng dừng ở đó. Job đã chạy thì phiên routine được `resume-run.yml` tự tiếp tục; "
+            "phiên `claude --cloud` thì dán đoạn dưới.",
+            "",
+        ]
+    lines += [
         "Người làm: xem phiên còn chạy không (claude.ai/code hoặc terminal đã mở `claude --cloud`). "
         "Phiên mở bằng routine (`start-run.yml`) thì `resume-run.yml` tự tiếp tục sau 90 phút không có commit: "
         "không mở thêm phiên tay, kẻo hai phiên cùng chạy. Phiên `claude --cloud` đã dừng thì mở lại bằng "
@@ -185,6 +241,7 @@ def main():
         if match and "pull_request" not in issue:
             open_issues[match.group(1)] = issue["number"]
     running = set()
+    waits = None  # read once, only when an issue is about to be opened or updated
     # Everything is read first and written after, so a read that fails changes no issue.
     writes = []
     for branch in sorted(branches):
@@ -201,6 +258,8 @@ def main():
         if fields.get("status") != "running":
             continue
         running.add(run_id)
+        # scripts/merge-if-green.sh reads the run table and the branch name with the same two patterns:
+        # change all three together.
         tickets = set(re.findall(r"^\|\s*\d+\s*\|\s*(T-\d+)\s*\|", text, re.M))
         own = [branch] + [b for b in branches
                           if (m := re.match(r"^claude/(?:fix-)?(T-\d+)-", b)) and m.group(1) in tickets]
@@ -222,7 +281,9 @@ def main():
         started = moment(fields.get("started_at"))
         if started and now - started > timedelta(hours=24):
             note = "Phiên bắt đầu hơn 24 giờ trước: `resume-run.yml` không tự tiếp tục; người quyết định."
-        body = body_for(run_id, run_file, latest, quiet, note)
+        if waits is None:
+            waits = runner_waits(now)
+        body = body_for(run_id, run_file, latest, quiet, note, waits)
         writes.append(lambda n=number, b=body, q=quiet, r=run_id: report(n, b, q, r))
     for run_id, number in sorted(open_issues.items()):
         if run_id not in running:

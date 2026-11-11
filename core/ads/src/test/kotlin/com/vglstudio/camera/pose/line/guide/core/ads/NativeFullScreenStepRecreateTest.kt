@@ -10,7 +10,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -52,7 +51,7 @@ class NativeFullScreenStepRecreateTest {
     @Composable
     private fun Page() {
         CompositionLocalProvider(LocalAdsController provides controller) {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     NativeFullScreenStep(
                         AdPlacement.GALLERY_NATIVE_STEP_FULL,

@@ -23,7 +23,8 @@ import kotlinx.coroutines.flow.Flow
  * [viewed] = `pagerState.isPageSettled(page)`: the cell counts as seen only once its page settled (P-07), and
  * [onScreen] = `pagerState.isPageVisible(page)`: a pager keeps the pages it built, so a page that scrolled away gives
  * its ad back only through it (P-01); coming back, it claims again.
- * [onAdAvailabilityChange] works as for [NativeAdSlot]. Other formats are an [IllegalArgumentException].
+ * [onAdAvailabilityChange] works as for [NativeAdSlot]. [cardHeight] makes a card as high as the app's card next to
+ * it, its placeholders too (300 dp when null; medium ignores it). Other formats are an [IllegalArgumentException].
  */
 @Composable
 fun NativeAdCell(
@@ -32,6 +33,7 @@ fun NativeAdCell(
     viewed: Boolean = true,
     onAdAvailabilityChange: (Boolean) -> Unit = {},
     onScreen: Boolean = true,
+    cardHeight: Dp? = null,
 ) {
     val size = requireCellFormat(placement.format)
     val ads = LocalAdsController.current
@@ -50,11 +52,12 @@ fun NativeAdCell(
         keepSpaceWhenEmpty = placement.keepSpaceWhenPoolEmpty,
         onAdAvailabilityChange = onAdAvailabilityChange,
         modifier = modifier,
-        adContent = { BoundNativeAd(it, size, ctaLarge = placement.ctaLarge) },
+        adContent = { BoundNativeAd(it, size, ctaLarge = placement.ctaLarge, cardHeight = cardHeight) },
         onPoolOpportunity = { ads.recordPoolCellOpportunity(placement, it) },
         viewed = viewed,
         ctaLarge = placement.ctaLarge,
         onScreen = onScreen,
+        cardHeight = cardHeight,
     )
 }
 
@@ -75,8 +78,7 @@ internal fun requireCellFormat(format: AdFormat): NativeAdSize = when (format) {
  * `pagerState.isPageVisible(page)`; a lazy list or grid disposes its rows, and other cells keep the default.
  * With [keepSpaceWhenEmpty], no ad keeps the cell's height: a static placeholder when [placeholderWhenEmpty] (a cell
  * of a collection), an empty space otherwise (a slot next to an app button). [contentModifier] wraps the placeholder
- * and the ad only, so a cell with no ad takes no space at all. [cardHeight] is the height of a card's placeholder
- * ([NativeAdPlaceholder]); [adContent] sizes the ad itself.
+ * and the ad only, so a cell with no ad takes no space at all. [cardHeight] is the height of the card placeholders.
  */
 @Composable
 internal fun NativeAdCellHost(

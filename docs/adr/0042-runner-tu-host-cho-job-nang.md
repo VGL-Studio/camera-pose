@@ -11,6 +11,8 @@ superseded_by:
 
 # ADR-0042: JOB NẶNG KHÔNG ĐỌC BÍ MẬT CHẠY ĐƯỢC TRÊN RUNNER TỰ HOST CHẠY MỘT LẦN, CHỌN BẰNG BIẾN HEAVY_RUNNER CỦA REPO PRIVATE; XÓA BIẾN THÌ QUAY VỀ RUNNER CỦA GITHUB
 
+> Ghi chú 2026-11-08: đăng ký runner ở cấp repo cần token có quyền "Administration: write" của repo, rộng hơn câu "Token chỉ có quyền quản lý runner" ở mục Hệ quả; cách giới hạn và đánh đổi ở `docs/ops/self-hosted-runner.md`, mục 4.
+
 Nguồn: yêu cầu giảm chi phí GitHub Actions (`docs/features/quy-trinh/requests/2026-10-29-giam-phut-actions.md`, cách 1), ticket T-078, plan `docs/features/quy-trinh/plans/T-078-runner-tu-host.md`.
 
 ## Bối cảnh

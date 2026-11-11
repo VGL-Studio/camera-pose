@@ -1,6 +1,6 @@
 # THANG ĐIỂM RỦI RO VÀ ĐIỀU KIỆN DỪNG
 
-Mỗi plan được AI chấm điểm rủi ro trước khi đưa vào họp đánh giá. Điểm rủi ro quyết định ai phải duyệt plan và mức độ thận trọng trong phiên tự chạy. Thang điểm này được điều chỉnh qua các buổi retro; mỗi lần điều chỉnh ghi lý do vào mục Lịch sử thay đổi ở cuối tài liệu.
+Mỗi plan được AI chấm điểm rủi ro trước khi đưa vào họp đánh giá. Điểm rủi ro quyết định ai phải duyệt plan và mức độ thận trọng trong phiên tự chạy. Thang điểm này được điều chỉnh qua các buổi retro; lý do của mỗi lần điều chỉnh ghi trong mô tả PR, tra lại bằng git log (ADR-0044).
 
 ## 1. Điểm chặn: tự động xếp rủi ro cao
 
@@ -90,18 +90,3 @@ Khi dừng, AI làm ba việc:
 - Chuyển trạng thái plan và ticket sang `stopped`.
 
 Khi bắt đầu làm việc lại, nhóm trả lời câu hỏi "vì sao plan chưa đủ tốt" và ghi bài học vào plan sửa lại. Nếu bài học mang tính chung, ghi vào sổ bài học [lessons.md](lessons.md); retro quyết định cập nhật thang điểm này, `CLAUDE.md` hay tài liệu khác (auto-run.md, mục 6), để lần sau AI tự tránh.
-
-## 5. Lịch sử thay đổi
-
-| Ngày | Thay đổi | Lý do |
-| --- | --- | --- |
-| 2026-10-14 | Phiên bản đầu tiên | Thiết lập quy trình |
-| 2026-10-15 | Mục 4: bài học chung ghi vào sổ bài học, retro quyết định sửa gì | Có vòng cải tiến khép kín sau mỗi phiên |
-| 2026-10-17 | Mục 3: ngoại lệ duyệt chéo khi nhóm chỉ có một dev | Retro RUN-20261016-02: nhóm hiện có một dev, plan rủi ro cao không có người duyệt chéo khác |
-| 2026-10-22 | Mục 4, điều kiện 2: quyền và thư viện quyết lúc lập plan | Tránh dừng task vì quyền hay thư viện chỉ lộ ra trong phiên, từ app camera-pose (L-046) |
-| 2026-10-22 | Mục 4: chuyển sang phương án dự phòng đã duyệt không phải dừng | Ở app camera-pose, ba lần dừng task đều vì kỹ thuật của plan không chạy, trong khi cách thay đã rõ từ lúc viết plan (L-041) |
-| 2026-10-24 | Mục 4, điều kiện 1: nối chỗ gọi mà task khác cùng danh sách đổi không phải dừng, trong giới hạn của ADR-0028 (đếm 3 file và 40 dòng bằng `git diff --numstat`, không tính test; "cùng danh sách" tính cả task đã merge ở danh sách trước khi task được chuyển sang) | Ở app camera-pose, một task phải nối chỗ gọi trong file mà task khác cùng danh sách vừa tạo, ngoài mục 3.2 (L-077) |
-| 2026-10-25 | Mục 4, điều kiện 1 và 5, đoạn "Không phải dừng": phần ngoài mục 3.2 cần cho task thì sửa tiếp, merge, báo sau, không giới hạn số file hay module; chỉ file "Không được làm" của `CLAUDE.md` còn làm dừng theo điều kiện 1; test cũ được cập nhật dữ liệu theo phần plan thêm (ADR-0029, thay ADR-0028) | 3 trên 4 lần dừng gần nhất vì mục 3.2 thiếu file hay test (T-014, T-024 hai lần); người quyết không dựng thử lúc soạn plan |
-| 2026-10-28 | Mục 4, đoạn "Không phải dừng: lệch nhỏ đã liệt kê": mười lệch nhỏ L1 tới L10 phiên tự làm rồi báo sau, kể cả bỏ qua loại task mà môi trường không làm được (ADR-0032) | Ở app camera-pose, phiên phải hỏi người, soạn plan phiên bản mới hay đoán vì những lệch người sẽ đồng ý ngay (camera-pose ADR-1005, T-067, L-112) |
-| 2026-10-28 | Mục 4, đoạn "Không phải dừng: lệch nhỏ đã liệt kê": thêm L11 (phần dựng của test chỉ đỏ vì máy thiếu cấu hình chung) và L12 (điểm nên sửa chỉ về chú thích hay định dạng) (ADR-0033) | App camera-pose sửa test chỉ đỏ trên runner mà không có mục nào cho phép (issue #243); rà soát T-049 xếp nên sửa một dòng KDoc mà luật Nên sửa không cho sửa (L-115) |
-| 2026-10-29 | Mục 3: đường làm nhanh có người theo dõi chỉ nhận plan mức Thấp không chạm điểm chặn, dev nào ngồi cùng cũng duyệt được trong phiên (ADR-0034) | Việc nhỏ ban ngày phải chờ phiên tự chạy và nhiều PR duyệt |

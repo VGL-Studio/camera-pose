@@ -29,8 +29,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryButton
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import java.time.Duration
@@ -130,7 +128,7 @@ class NativeFlowStepTest {
     fun fullScreenStep_withoutAdsController_drawsNothing_notReady() {
         var ready = true
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeFullScreenStep(AdPlacement.GALLERY_NATIVE_FULL_SCREEN, Modifier.size(200.dp).testTag(SLOT))
                 ready = rememberNativeFullScreenStepReady(AdPlacement.GALLERY_NATIVE_FULL_SCREEN)
             }
@@ -147,7 +145,7 @@ class NativeFlowStepTest {
         val states = CountingStates(FakeLoadedNativeAd())
         var allowed by mutableStateOf(false)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column {
                     NativeStepAdHost(
                         allowed = allowed,
@@ -175,7 +173,7 @@ class NativeFlowStepTest {
         val pool = RecordingPool(immediatePool(numberedAds(3), logger = logger).also { it.refill() })
         var step by mutableStateOf(0)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeStepAdHost(
                     allowed = true,
                     step = step,
@@ -200,7 +198,7 @@ class NativeFlowStepTest {
     @Test
     fun stepAd_unavailable_takesNoSpace() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column {
                     NativeStepAdHost(
                         allowed = true,
@@ -222,7 +220,7 @@ class NativeFlowStepTest {
         // Control of the test above: while loading, the placeholder keeps the 250 dp of the card.
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeStepAdHost(
                     allowed = true,
                     step = 1,
@@ -242,7 +240,7 @@ class NativeFlowStepTest {
         val reports = mutableListOf<Boolean>()
         var allowed by mutableStateOf(true)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeStepAdHost(
                     allowed = allowed,
                     step = 1,
@@ -268,7 +266,7 @@ class NativeFlowStepTest {
     @Test
     fun stepCard_doesNotSuppress() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     NativeStepAdHost(
                         allowed = true,
@@ -300,7 +298,7 @@ class NativeFlowStepTest {
         val takes = mutableListOf<LoadedNativeAd?>()
         var allowed by mutableStateOf(false)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeFullScreenStepGate(
                     allowed = allowed,
                     states = fullPageStates(FakeLoadedNativeAd(FakeNativeAdAssets.Design), takes),
@@ -322,7 +320,7 @@ class NativeFlowStepTest {
     @Test
     fun fullScreenStep_hasNoControls() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeFullScreenStepGate(
                     allowed = true,
                     states = fullPageStates(FakeLoadedNativeAd(FakeNativeAdAssets.Design)),
@@ -339,7 +337,7 @@ class NativeFlowStepTest {
     fun fullScreenStep_unavailable_drawsNothing() {
         val reports = mutableListOf<Boolean>()
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeFullScreenStepGate(
                     allowed = true,
                     states = flowOf(NativeAdState.Unavailable),
@@ -361,7 +359,7 @@ class NativeFlowStepTest {
     fun fullScreenStep_reportsTrueOnAd() {
         val reports = mutableListOf<Boolean>()
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeFullScreenStepGate(
                     allowed = true,
                     states = fullPageStates(FakeLoadedNativeAd(FakeNativeAdAssets.Design)),
@@ -380,7 +378,7 @@ class NativeFlowStepTest {
             MutableStateFlow<NativeAdState>(NativeAdState.Loaded(FakeLoadedNativeAd(FakeNativeAdAssets.Design)))
         var present by mutableStateOf(true)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     if (present) {
                         NativeFullScreenStepGate(
@@ -414,7 +412,7 @@ class NativeFlowStepTest {
         val takes = mutableListOf<LoadedNativeAd?>()
         var shown by mutableStateOf(false)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     NativeFullScreenStepGate(
                         allowed = true,
@@ -443,7 +441,7 @@ class NativeFlowStepTest {
         val reports = mutableListOf<Boolean>()
         var allowed by mutableStateOf(true)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     NativeFullScreenStepGate(
                         allowed = allowed,
@@ -475,7 +473,7 @@ class NativeFlowStepTest {
         val takes = mutableListOf<LoadedNativeAd?>()
         var height by mutableStateOf(151.dp)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     Box(Modifier.fillMaxWidth().height(height)) {
                         NativeFullScreenStepGate(
@@ -507,7 +505,7 @@ class NativeFlowStepTest {
         val reports = mutableListOf<Boolean>()
         var height by mutableStateOf(484.dp)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     Box(Modifier.fillMaxWidth().height(height)) {
                         NativeFullScreenStepGate(
@@ -551,7 +549,7 @@ class NativeFlowStepTest {
         val reports = mutableListOf<Boolean>()
         var height by mutableStateOf(151.dp)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     Box(Modifier.fillMaxWidth().height(height)) {
                         NativeFullScreenStepGate(
@@ -583,7 +581,7 @@ class NativeFlowStepTest {
     fun fullScreenStep_waiting_drawsStaticPlaceholder_noSuppress() {
         var allowed by mutableStateOf(true)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 AdsHostContent(suppression, suppressor) {
                     NativeFullScreenStepGate(
                         allowed = allowed,
@@ -612,7 +610,7 @@ class NativeFlowStepTest {
         var hasAd by mutableStateOf(true)
         var nexts = 0
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f).fillMaxWidth().testTag(STEP_AREA)) {
                         if (hasAd) {
@@ -625,7 +623,7 @@ class NativeFlowStepTest {
                             Text("Step content")
                         }
                     }
-                    PrimaryButton(
+                    AdsTestNextButton(
                         text = "Next",
                         onClick = { nexts++ },
                         modifier = Modifier.padding(Spacing.md).fillMaxWidth().testTag(NEXT),
@@ -659,7 +657,7 @@ class NativeFlowStepTest {
         val states = MutableStateFlow<NativeAdState>(NativeAdState.Loaded(FakeLoadedNativeAd(longFullNativeAdAssets)))
         var nexts = 0
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f).fillMaxWidth().testTag(STEP_AREA)) { Text("Step content") }
                     NativeStepAdHost(
@@ -668,7 +666,7 @@ class NativeFlowStepTest {
                         newStates = { states },
                         modifier = Modifier.padding(horizontal = Spacing.md).fillMaxWidth(),
                     )
-                    PrimaryButton(
+                    AdsTestNextButton(
                         text = "Next",
                         onClick = { nexts++ },
                         modifier = Modifier.padding(Spacing.md).fillMaxWidth().testTag(NEXT),

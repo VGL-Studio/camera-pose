@@ -119,19 +119,24 @@ FORMATS = [
      "Hết hạn 1 giờ sau khi nạp; không hiện trong 1 giây sau lần trước", "APP_OPEN", "Toàn màn hình", "Không có",
      "show_open_ads, show_open_ads_first_open, open_ad_type, show_resum_ads, resume_ad_type"),
     ("banner", "Banner cố định", "Đáy màn hình", "AdSlot(placement)",
-     "Thích ứng theo chiều rộng màn hình, neo ở đáy, cao theo nội dung", "Tự làm mới theo đơn vị trên AdMob",
-     "BANNER", "Khe", "Không có", "is_show_<mã>"),
+     "Thích ứng theo chiều rộng màn hình, neo ở đáy, cao theo nội dung",
+     "Nạp lại tay theo time_reload_banner, mặc định 60 giây; đơn vị tắt tự làm mới trên AdMob và MAX",
+     "BANNER", "Khe", "Không có", "is_show_<mã>, time_reload_banner"),
     ("banner_collapsible", "Banner thu gọn", "Đáy màn hình, bung từ đáy", "AdSlot(placement)",
-     "Bung lên rồi thu gọn được; không nằm trong thanh đáy", "Nạp lại tay mỗi 30 giây", "BANNER", "Khe", "Không có",
-     "is_show_<mã>"),
+     "Bung lên rồi thu gọn được; không nằm trong thanh đáy",
+     "Nạp lại tay theo time_reload_banner_collap (mặc định 30 giây; 0 là giữ banner)", "BANNER", "Khe", "Không có",
+     "is_show_<mã>, time_reload_banner_collap"),
     ("banner_mrec", "Banner MREC", "Trong nội dung của màn, không ở đáy, không trong danh sách", "AdSlot(placement)",
      "300 x 250 dp căn giữa; giữ 250 dp lúc tải, nạp lỗi thì co về 0; chỗ hẹp hơn 300 dp thì không hiện",
-     "Tự làm mới theo đơn vị trên AdMob", "BANNER_MREC", "Khe", "Không có", "is_show_<mã>"),
+     "Nạp lại tay theo time_reload_banner_mrec, mặc định 60 giây; đơn vị tắt tự làm mới trên AdMob và MAX",
+     "BANNER_MREC", "Khe", "Không có", "is_show_<mã>, time_reload_banner_mrec"),
     ("native_small", "Native nhỏ / thanh đáy", "Trong nội dung, hoặc thanh đáy của một màn",
      "NativeAdSlot(placement); thanh đáy: BottomAdBarScaffold",
      "Cao 80 dp, không có media. Thanh đáy: khe đáy 80 dp (native hoặc banner) + lớp native thu gọn 250 dp nổi trên",
-     "Thay nội dung tại chỗ mỗi 60 giây, chỉ khi app ở foreground", "NATIVE_SMALL", "Khe", "af_native_*",
-     "is_show_<mã>; thanh đáy: is_show_native_bottom, is_show_native_collap, time_expand_collap_ad"),
+     "Thay nội dung tại chỗ theo time_reload_native_small (mặc định 60 giây; 0 là không thay), chỉ khi app ở "
+     "foreground; hàng trong danh sách không thay", "NATIVE_SMALL", "Khe", "af_native_*",
+     "is_show_<mã>, time_reload_native_small; thanh đáy: is_show_native_bottom, is_show_native_collap, "
+     "time_expand_collap_ad"),
     ("native_medium", "Native medium", "Trong nội dung, hàng trong danh sách",
      "NativeAdSlot(placement), NativeAdCell, itemsWithInListAds",
      "Có media, hàng sao, CTA 44 dp; biến thể cta_large: CTA 56 dp, chữ 17 sp",
@@ -152,8 +157,9 @@ FORMATS = [
     ("native_collap", "Lớp native thu gọn (không phải vị trí)", "Chỉ nổi trên thanh đáy, đi theo vị trí của thanh đáy",
      "Tự có trong BottomAdBarScaffold",
      "Cao 250 dp, nút thu gọn 32 dp góc trên phải; tự bung lại sau time_expand_collap_ad giây",
-     "Thay nội dung mỗi 60 giây, giữ trạng thái thu gọn", "NATIVE_COLLAP", "Khe", "af_native_*",
-     "is_show_native_bottom, is_show_native_collap, time_expand_collap_ad"),
+     "Thay nội dung theo time_reload_collap_ad (mặc định 60 giây; 0 là không thay), giữ trạng thái thu gọn",
+     "NATIVE_COLLAP", "Khe", "af_native_*",
+     "is_show_native_bottom, is_show_native_collap, time_expand_collap_ad, time_reload_collap_ad"),
 ]
 PLACEMENT_FORMATS = [f[0] for f in FORMATS if f[0] != "native_collap"]
 LIST_FORMATS = ("native_small", "native_medium", "native_in_collection")
@@ -165,9 +171,10 @@ APP_WIDE_TEXT = {
                        "mốc. Không nối native combo", "Khóa chung: open_ad_type = inter"),
     "resume": ("Mọi màn", "App quay lại foreground (từ màn hình chính, app khác, mở khóa máy), trừ lần đầu của "
                "process. Bấm quảng cáo thì bỏ lượt resume kế tiếp", "Khóa chung: show_resum_ads, resume_ad_type khác inter"),
-    "resume_inter": ("Mọi màn", "Như resume khi resume_ad_type = inter. Không bị ads_interval chặn, vẫn đẩy mốc; nối "
-                     "native combo nếu bật", "Khóa chung: show_resum_ads, resume_ad_type = inter"),
-    "native_combo": ("Sau inter", "Ngay sau mọi inter của feature đã qua cổng (kể cả khi inter không lên màn). Đếm "
+    "resume_inter": ("Mọi màn", "Như resume khi resume_ad_type = inter. Không bị ads_interval chặn, vẫn đẩy mốc; không "
+                     "nối native combo", "Khóa chung: show_resum_ads, resume_ad_type = inter"),
+    "native_combo": ("Sau inter", "Ngay sau mọi inter của feature đã qua cổng (kể cả khi inter không lên màn); không sau "
+                     "inter lúc mở app hay khi quay lại app. Đếm "
                      "ngược time_close_native giây (mặc định 5) rồi mới đóng được", "Khóa chung: is_show_native_after_inter"),
 }
 # camera-pose has no sample screen (ADR-1008), so none.
@@ -205,14 +212,15 @@ KNOWN_KEYS = {
                        "Hiện quảng cáo khi người dùng quay lại app (trừ lần đầu của process).",
                        "Giữ đúng lỗi chính tả của AdsKit. Không có cổng thời gian, không bị ads_interval chặn.", "AdsKit"),
     "resume_ad_type": ("Quay lại app", "aoa", "aoa / inter", "Chỉ đúng inter mới là interstitial; mọi giá trị khác là app open.",
-                       "inter thì nối native combo khi is_show_native_after_inter bật.", "AdsKit"),
+                       "Inter khi quay lại app không nối native combo.", "AdsKit"),
     "ads_interval": ("Interstitial", "45", "giây, từ 0",
                      "Khoảng tối thiểu từ lúc inter gần nhất (nhóm mặc định) rời màn tới inter sau.",
                      "Inter đầu tiên của process không bị chặn. App open và rewarded không đẩy mốc.", "AdsKit"),
     "is_show_native_after_inter": ("Interstitial", "false", "true / false",
                                    "Combo: native toàn màn hình (vị trí native_combo) ngay sau inter, đếm ngược theo "
                                    "time_close_native.",
-                                   "Đọc lúc inter kết thúc. Áp cho mọi inter của feature và resume_inter.", "AdsKit"),
+                                   "Đọc lúc inter kết thúc. Chỉ áp cho inter của vị trí trong app; inter lúc mở app và "
+                                   "resume_inter không nối.", "AdsKit"),
     "time_close_native": ("Interstitial", "5", "giây, 1 tới 30; giá trị khác dùng 5",
                           "Đếm ngược trước khi đóng được native toàn màn hình (combo và lượt độc lập).",
                           "Đọc lúc màn native mở. Chỉ đặt quá 5 giây khi đã kiểm chính sách của AdMob.", "JBase"),
@@ -223,7 +231,27 @@ KNOWN_KEYS = {
                               "Chỉ có tác dụng khi is_show_native_bottom = true. Tắt lớp này không mất khe đáy.", "ta đặt"),
     "time_expand_collap_ad": ("Thanh đáy", "10", "giây; 0 = không bung lại",
                               "Thời gian từ lúc người dùng thu gọn tới lúc lớp native thu gọn tự bung lại.",
-                              "Làm mới nội dung (60 giây, hằng số) không đặt lại hẹn giờ này.", "ta đặt"),
+                              "Làm mới nội dung không đặt lại hẹn giờ này.", "ta đặt"),
+    "time_reload_native_small": ("Thanh đáy", "60", "giây; 0 = không thay; 1 tới 29 dùng 30; âm dùng mặc định",
+                                 "Nhịp thay nội dung tại chỗ của native nhỏ một quảng cáo: khe đáy và khe đứng riêng.",
+                                 "Hàng native trong danh sách không làm mới. Giá trị mới áp từ nhịp sau; khi có lớp "
+                                 "thu gọn, nhịp đầu của khe đáy trễ thêm 500 ms.", "ta đặt"),
+    "time_reload_collap_ad": ("Thanh đáy", "60", "giây; 0 = không thay; 1 tới 29 dùng 30; âm dùng mặc định",
+                              "Nhịp thay nội dung của lớp native thu gọn; giữ trạng thái thu gọn.",
+                              "Khóa của AdsKit: app đã đặt giá trị trên Firebase thì giá trị đó có hiệu lực, kiểm lại "
+                              "trước khi phát hành. Giá trị mới áp từ nhịp sau.", "AdsKit"),
+    "time_reload_banner_collap": ("Banner", "30", "giây; 0 = giữ banner khi đã có; 1 tới 29 dùng 30; âm dùng mặc định",
+                                  "Nhịp nạp lại tay của banner thu gọn, tính từ lúc nạp xong.",
+                                  "0: chưa có quảng cáo thì vẫn thử lại sau lỗi tới khi có, có rồi thì giữ. Giá trị "
+                                  "mới áp từ nhịp sau.", "ta đặt"),
+    "time_reload_banner": ("Banner", "60", "giây; 0 = giữ banner khi đã có; 1 tới 29 dùng 30; âm dùng mặc định",
+                           "Nhịp nạp lại tay của banner cố định (cả lớp banner của thanh đáy), tính từ lúc nạp xong.",
+                           "Đơn vị banner trên AdMob và MAX phải tắt tự làm mới. 0: chưa có quảng cáo thì vẫn thử lại "
+                           "sau lỗi tới khi có, có rồi thì giữ. Giá trị mới áp từ nhịp sau.", "ta đặt"),
+    "time_reload_banner_mrec": ("Banner", "60", "giây; 0 = giữ banner khi đã có; 1 tới 29 dùng 30; âm dùng mặc định",
+                                "Nhịp nạp lại tay của banner MREC, tính từ lúc nạp xong.",
+                                "Đơn vị MREC trên AdMob và MAX phải tắt tự làm mới. 0: như time_reload_banner. Giá "
+                                "trị mới áp từ nhịp sau.", "ta đặt"),
     "is_enable_consent_shortcut": ("Đồng ý quảng cáo", "false", "true / false",
                                    "Công tắc từ xa của nhánh đồng ý rút gọn (CACHED_EARLY, ERROR_ALLOWED).",
                                    "Cần cả cấu hình lúc build của :app. false thu hồi ngay ERROR_ALLOWED.", "ta đặt"),
@@ -242,11 +270,10 @@ KNOWN_KEYS = {
                                 "Hiện màn loading chuẩn bị app trước màn bắt đầu.",
                                 "Màn loading cũng là nơi hiện quảng cáo mở app.", "ta đặt"),
 }
-GROUP_ORDER = ["Công tắc tổng", "Mở app", "Quay lại app", "Interstitial", "Thanh đáy", "Đồng ý quảng cáo",
-               "Số liệu Firebase", "Số liệu AppsFlyer", "Ngoài quảng cáo", "Khóa của app"]
+GROUP_ORDER = ["Công tắc tổng", "Mở app", "Quay lại app", "Interstitial", "Thanh đáy", "Banner",
+               "Đồng ý quảng cáo", "Số liệu Firebase", "Số liệu AppsFlyer", "Ngoài quảng cáo", "Khóa của app"]
 
 UNUSED_ADSKIT_KEYS = [
-    ("time_reload_collap_ad", "Không còn hiệu lực ở AdsKit; native làm mới cố định 60 giây."),
     ("resume_ads_interval", "Không phải khóa của AdsKit; bộ PARTNER không có cổng thời gian ở resume."),
     ("time_reload_bottom_ad", "Không phải khóa của AdsKit; không thành phần nào đọc."),
     ("is_show_inter_<màn>, inter_choose_<...>", "Kiểu khóa riêng từng app cũ; dự án mẫu dùng is_show_<mã vị trí>."),
@@ -337,8 +364,8 @@ CONSTANTS = [
     ("Thử lại toàn màn hình, banner sau lỗi", "min(n x 2 giây, 10 giây), không giới hạn số lần"),
     ("Thử lại native sau lỗi", "2 giây nhân đôi tới 60 giây; 5 giây khi chưa có quảng cáo nào"),
     ("Hạn dùng native", "55 phút"),
-    ("Làm mới native ở thanh đáy và lớp thu gọn", "60 giây, chỉ khi app ở foreground"),
-    ("Nạp lại banner thu gọn", "30 giây"),
+    ("Mức sàn của nhịp làm mới", "30 giây"),
+    ("Trễ nhịp đầu của khe đáy native khi có lớp thu gọn", "500 ms"),
     ("Đếm ngược native sau inter", "3 giây"),
     ("Chiều cao: lớp native thu gọn / thẻ native_step / khe đáy native", "250 dp / 250 dp / 80 dp"),
     ("Cỡ pool: native_in_collection / native_step / native_medium", "5 / 3 / 3 quảng cáo"),
@@ -403,7 +430,7 @@ def read_placements(with_staging):
         policy_code = None
         if policy:
             policy_code = "allow_after_" + policy.group(2) if policy.group(2) else policy.group(1).lower()
-        extras = [name for name in ("ignoreInterval", "ctaLarge", "keepSpaceWhenPoolEmpty")
+        extras = [name for name in ("ignoreInterval", "ctaLarge", "keepSpaceWhenPoolEmpty", "firstOpenOnly")
                   if re.search(name + r"\s*=\s*true", attrs)]
         if re.search(r"recordInterval\s*=\s*false", attrs):
             extras.append("recordInterval = false")

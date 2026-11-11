@@ -117,6 +117,12 @@ internal class NativeAdPool(
     /** Moves at every close, so a send of an earlier opening changes nothing. */
     private var session = 0L
 
+    /**
+     * The pool holds a free ad now. Unlike [exhausted], a request in flight does not count: a grid puts a cell that
+     * left back only for an ad that is there (P-06).
+     */
+    val hasFreeAd: Boolean get() = free.isNotEmpty()
+
     /** A send is in progress (gate, load or retry wait). */
     val isLoading: Boolean get() = job != null
 
@@ -174,9 +180,9 @@ internal class NativeAdPool(
     }
 
     /**
-     * Free ads a claim could hand out now (plan T-092): none while consent is withdrawn (S-11, like [claim]), else
-     * the free ads with no impression and under 55 minutes old (O-04, P-01a). Never loads or drops anything: an app
-     * reads it every 200 ms ([rememberNativeStepNextAdReady]), and the read must not prune or refill.
+     * The free ads a claim could hand out now: none while consent is withdrawn (S-11, like [claim]), else the free ads
+     * with no impression and under 55 minutes old (P-01a, O-04). A request in flight is not an ad yet. Never loads or
+     * drops anything (no [pruneExpired], no [refill], no log): the next-step read of a flow calls it every 200 ms.
      */
     fun claimableAdCount(): Int {
         if (!canShowNow()) return 0

@@ -14,9 +14,9 @@ Tham số: `$ARGUMENTS` (mã ticket). Không có thì chạy `python3 scripts/pl
 4. Viết plan:
    - Mục 3.2 đủ và cụ thể: đó là ranh giới file của phiên.
    - Sửa code Kotlin ngoài test: chạy `python3 scripts/existing-tests.py <plan>` và viết mục 3.5.
-   - Sửa lỗi giao diện hay lỗi đo được: chạy test tạm trên code hiện tại, khung tái hiện được lỗi gốc, ghi số đo thật vào mục 4 (L-029).
-   - Kỹ thuật hay thư viện lần đầu dùng (E từ 2): chạy thử bằng `scripts/check.sh` trên nhánh có code liên quan, ghi vào mục 4.1 (L-042).
-   - Thêm thư viện hay module: thêm `./gradlew :app:assembleStagingRelease`, ghi vào mục 4.1 (L-083).
+   - Sửa lỗi giao diện hay lỗi đo được: chạy test tạm trên code hiện tại, khung tái hiện được lỗi gốc, ghi số đo thật vào mục 4.
+   - Kỹ thuật hay thư viện lần đầu dùng (E từ 2): chạy thử bằng `scripts/check.sh` trên nhánh có code liên quan, ghi vào mục 4.1.
+   - Thêm thư viện hay module: thêm `./gradlew :app:assembleStagingRelease`, ghi vào mục 4.1.
    - Rủi ro theo `docs/risk-scoring.md`, lý do cho từng tiêu chí, không hạ điểm.
    - `token_estimate` từ `python3 scripts/token-usage.py estimate`.
    - Điều chưa chắc ghi ở mục câu hỏi cho người duyệt.

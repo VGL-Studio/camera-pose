@@ -40,6 +40,9 @@ class AdsControllerInListRowTest {
         logger = logger,
     ).also { it.nativeLoaderForTest = loader }
 
+    // A FullScreenAdHost is in a composition, as with the shell of the app (HD-05, plan T-102).
+    private val detachHost = controller.attachFullScreenHost()
+
     @After
     fun tearDown() {
         scope.cancel()
@@ -165,7 +168,7 @@ class AdsControllerInListRowTest {
             unitId: String,
             size: NativeAdSize,
             onLoaded: (LoadedNativeAd) -> Unit,
-            onFailed: (code: Int) -> Unit,
+            onFailed: (code: Int, logMessage: String?) -> Unit,
         ) {
             calls++
             throw IllegalStateException("request not built")

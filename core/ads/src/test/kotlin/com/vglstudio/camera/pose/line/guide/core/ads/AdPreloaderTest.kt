@@ -716,6 +716,24 @@ class AdPreloaderTest {
     }
 
     @Test
+    fun activityResumed_refillsStocks() = runTest {
+        // The two native stocks of KB-33 are refilled when an activity comes back (S-25).
+        val small = slot(AdFormat.NATIVE_SMALL)
+        val collapsible = slot(AdFormat.NATIVE_COLLAPSIBLE)
+        val preloader = preloader(listOf(small, collapsible))
+        preloader.setPlan(AdPreloadPlan(listOf(setOf(AdFormat.NATIVE_SMALL, AdFormat.NATIVE_COLLAPSIBLE))))
+        preloader.request(PreloadReason.SDK_READY)
+        runCurrent()
+        assertEquals(1, collapsible.loadCalls.size)
+
+        preloader.onActivityResumed(fullScreenShowing = false)
+        runCurrent()
+
+        assertEquals(2, small.loadCalls.size)
+        assertEquals(2, collapsible.loadCalls.size)
+    }
+
+    @Test
     fun activityResumed_skipsWhenNeverFinishedRunningOrFullScreenShowing() = runTest {
         val small = slot(AdFormat.NATIVE_SMALL)
         val preloader = preloader(listOf(small))

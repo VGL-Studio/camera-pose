@@ -299,28 +299,35 @@ internal interface LoadReport {
 }
 
 /**
- * How a native placement is loaded: one ad in its slot, one row of a list (plan T-023, question 6), a refresh of a
- * single-ad slot, which also covers the next load after a claim (plan T-040, section 8.2), or one load of a pool
- * (plan T-028, P-04, PL-02).
+ * How a native placement is loaded: one ad for a slot waiting on its stock, one row of a list (plan T-023, question
+ * 6), a refresh of a single-ad slot whose stock was empty (plan T-040, section 8.2), one load of a pool (plan T-028,
+ * P-04, PL-02), or a load of a native stock itself: its preload slot, the next load after a claim, the reload after
+ * 55 minutes (plan T-086, KB-33).
  */
-internal enum class NativeLoadUse { SINGLE_AD, LIST_ROW, REFRESH, POOL }
+internal enum class NativeLoadUse { SINGLE_AD, LIST_ROW, REFRESH, POOL, PRELOAD }
 
 /**
  * The load report of a native [placement] drawn as [format] and used as [use]; the choice of [AdsController],
  * testable without the SDK. A single ad counts `load_attempt` per placement and format ([nativeSlotKey]), so two
- * formats of one placement never share a counter (L-068). A list row, a refresh and a load of a pool get a new report
- * per request: no `load_attempt`, latency from the send of that request, and the counter is not touched.
+ * formats of one placement never share a counter (L-068). A list row, a refresh, a load of a pool and a load of a
+ * native stock itself (`PRELOAD`, no placement, plan T-086) get a new report per request: no `load_attempt`, latency
+ * from the send of that request, and the counter is not touched.
  */
 internal fun AdTelemetry.nativeLoadReport(
-    placement: AdPlacement,
+    placement: AdPlacement?,
     use: NativeLoadUse,
-    format: AdFormat = placement.format,
+    format: AdFormat = requireNotNull(placement) { "A native load with no placement names its format" }.format,
 ): LoadReport {
-    // A list row keeps the placement key of its screen (question 7); a load of a pool logs `pool` (PL-02).
-    val loadPlacement = loadPlacementOf(format, placement)
+    // A list row keeps the placement key of its screen (question 7); a load of a pool logs `pool`, a load of a stock
+    // itself `preload` (PL-02).
+    val loadPlacement = loadPlacementOf(format, placement.takeUnless { use == NativeLoadUse.PRELOAD })
     return when (use) {
-        NativeLoadUse.SINGLE_AD -> countedLoad(format, nativeSlotKey(placement, format), loadPlacement)
-        NativeLoadUse.LIST_ROW, NativeLoadUse.REFRESH, NativeLoadUse.POOL -> perRequestLoad(format, loadPlacement)
+        NativeLoadUse.SINGLE_AD -> {
+            val slot = requireNotNull(placement) { "A load of a slot has its placement" }
+            countedLoad(format, nativeSlotKey(slot, format), loadPlacement)
+        }
+        NativeLoadUse.LIST_ROW, NativeLoadUse.REFRESH, NativeLoadUse.POOL, NativeLoadUse.PRELOAD ->
+            perRequestLoad(format, loadPlacement)
     }
 }
 

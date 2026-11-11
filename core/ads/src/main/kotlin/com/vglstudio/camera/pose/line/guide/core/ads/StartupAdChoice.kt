@@ -1,10 +1,8 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
-import com.vglstudio.camera.pose.line.guide.core.config.RemoteSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -19,24 +17,20 @@ internal fun startupAdPlacement(flags: AdsGlobalFlags, firstOpen: Boolean): AdPl
 }
 
 /**
- * [startupAdPlacement] with the current values of [settings], read as :core:ads reads them (`is_show_ads` applied).
- * Public only so :app can check the local values of its builds against the framework's own choice (plan T-074,
- * section 4, `firstOpen_choosesNoStartupAd`); nothing else calls it.
- */
-suspend fun startupAdPlacementFor(settings: RemoteSettings, firstOpen: Boolean): AdPlacement? =
-    startupAdPlacement(DefaultAdsFlags(settings).global.first(), firstOpen)
-
-/**
  * The switch of [placement]: for `native_combo`, `is_show_native_after_inter` (plan T-026); for `resume` and
  * `resume_inter`, whether [resumeAdPlacement] chooses it (plan T-025); for another app-wide placement, whether
- * [startupAdPlacement] chooses it (waits for [firstOpen]); for a [AdPlacement.firstOpenOnly] placement,
- * `is_show_ads && is_show_<code>` in the first open only (waits for [firstOpen], plan T-083); for any other placement,
- * `is_show_ads && is_show_<code>` as before. Every load and show path reads it through AdsController.isEnabled (L-072).
+ * [startupAdPlacement] chooses it (waits for [firstOpen]); for a placement declared [firstOpenOnly] (OB-03),
+ * `is_show_ads && is_show_<code>` and the first open (waits for [firstOpen]); for any other placement,
+ * `is_show_ads && is_show_<code>` as before, with no wait. Every load and show path reads it through AdsController.isEnabled (L-072).
  */
-internal fun placementSwitch(placement: AdPlacement, flags: AdsFlags, firstOpen: Flow<Boolean>): Flow<Boolean> {
+internal fun placementSwitch(
+    placement: AdPlacement,
+    flags: AdsFlags,
+    firstOpen: Flow<Boolean>,
+    firstOpenOnly: Boolean = placement.declaration.firstOpenOnly,
+): Flow<Boolean> {
     if (!placement.appWide) {
-        if (!placement.firstOpenOnly) return flags.placementEnabled(placement)
-        // Shown only in the first open (plan T-083): `is_show_<code>` and the first-open mark.
+        if (!firstOpenOnly) return flags.placementEnabled(placement)
         return combine(flags.placementEnabled(placement), firstOpen) { on, first -> on && first }.distinctUntilChanged()
     }
     // The combo (plan T-026): `is_show_native_after_inter`, with `is_show_ads` applied; no first-open mark.

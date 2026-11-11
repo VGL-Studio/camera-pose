@@ -28,9 +28,9 @@ Toàn bộ chạy trong phiên Claude Code có người theo dõi, không chạy
 **Máy:** một máy thật dành riêng cho khảo sát (nhiều app mẫu chặn emulator). Emulator dùng được nếu có Google Play.
 
 1. Bật tùy chọn nhà phát triển và Gỡ lỗi USB (`docs/ops/test-sessions.md`, mục 1).
-2. **Xiaomi, Redmi, POCO:** bật thêm **Tùy chọn nhà phát triển > Gỡ lỗi USB (Cài đặt bảo mật)**. Thiếu nó, máy từ chối mọi thao tác chạm và xóa dữ liệu app qua adb (L-032).
+2. **Xiaomi, Redmi, POCO:** bật thêm **Tùy chọn nhà phát triển > Gỡ lỗi USB (Cài đặt bảo mật)**. Thiếu nó, máy từ chối mọi thao tác chạm và xóa dữ liệu app qua adb.
 3. Bật **Không khóa màn hình khi sạc** (Stay awake), để máy không tự khóa giữa phiên.
-4. Kết nối Wi-Fi. Không có mạng thì quảng cáo, hộp thoại đồng ý và nội dung tải về không hiện, báo cáo sẽ thiếu (L-035).
+4. Kết nối Wi-Fi. Không có mạng thì quảng cáo, hộp thoại đồng ý và nội dung tải về không hiện, báo cáo sẽ thiếu.
 5. Cài các app mẫu từ Play. Dùng thử trước: đăng nhập bằng tài khoản thử nếu app bắt buộc, qua các bước cần người. Không dùng tài khoản cá nhân.
 
 **Máy dev:** Android SDK (adb, build-tools có `aapt2`), Python 3 có Pillow, `jadx` để đọc APK.
@@ -60,7 +60,7 @@ Kéo APK: `adb shell pm path <package>` rồi `adb pull` từng file. Đọc tê
 
 Thư mục `research/` có đúng cấu trúc của `docs/research/` trong repo: báo cáo và bản đề xuất nằm cạnh nhau, link giữa chúng là link tới file bên cạnh. Sau khi có repo app (bước 7), chép nguyên `research/*.md` vào `docs/research/`, không phải sửa link. Ảnh chụp (`captures/`), APK và kết quả giải nén không vào git: chúng là tài sản của bên khác và ảnh camera có thể chụp vào phòng. Tên ảnh `NN-ten` trong báo cáo chỉ để người tra lại trong thư mục làm việc.
 
-Trước khi commit, chạy `scripts/secret-scan.py`: báo cáo không được chứa mã quảng cáo, khóa hay token của app mẫu (L-036). Test của script quét cả repo nên cổng chất lượng cũng chặn.
+Trước khi commit, chạy `scripts/secret-scan.py`: báo cáo không được chứa mã quảng cáo, khóa hay token của app mẫu. Test của script quét cả repo nên cổng chất lượng cũng chặn.
 
 ## 3. Lời nhắn mở đầu phiên
 
@@ -106,10 +106,10 @@ Mọi lệnh chạm đi qua bộ chặn (`guard.py`): chạm vào phần tử qu
 
 1. Bắt đầu mỗi app bằng `adb shell pm clear <package>` để thấy lần mở đầu. Chỉ làm với app trong danh sách. Đi theo `captures/<package>/screens.md`, đánh dấu màn hình đã xem kèm tên ảnh.
 2. Quyền camera, ảnh: cho phép khi dùng app. Thông báo: từ chối. Hộp thoại đồng ý quảng cáo: đồng ý, để thấy hành vi quảng cáo bình thường.
-3. Không bấm quảng cáo. Quảng cáo toàn màn hình: chờ nút đóng, ghi thời gian chờ, đóng bằng `adclose`. Sau một interstitial thường còn một native toàn màn hình; banner thu gọn có thể tự bung lại sau khoảng 20 giây (L-033).
+3. Không bấm quảng cáo. Quảng cáo toàn màn hình: chờ nút đóng, ghi thời gian chờ, đóng bằng `adclose`. Sau một interstitial thường còn một native toàn màn hình; banner thu gọn có thể tự bung lại sau khoảng 20 giây.
 4. Không mua, không bắt đầu dùng thử, không đăng ký gói. Màn hình trả phí: chụp, ghi giá và quyền lợi, đóng.
 5. Không đăng nhập, không chia sẻ, không gửi gì. Bỏ qua Rate app, Contact us, Feedback, Share, More apps; chỉ ghi là có.
-6. Không chạm liên tục trong vòng lặp mà không xem lại màn hình: app có thể bật màn hình trả phí hay quảng cáo giữa chừng (L-034).
+6. Không chạm liên tục trong vòng lặp mà không xem lại màn hình: app có thể bật màn hình trả phí hay quảng cáo giữa chừng.
 7. Không gọi thẳng `adb shell input`, không vượt bộ chặn, không đổi cài đặt hệ thống, không gỡ app.
 8. Chụp thử trong app thì được; cuối phiên chạy `ax.sh newfiles` và chép danh sách file mới vào mục 10 của báo cáo để người dọn. Công cụ không xóa gì trên máy.
 9. Trần khoảng 50 ảnh mỗi app. Dùng `tree` để định hướng, chỉ `shot` khi gặp màn hình hay trạng thái mới. Màn hình canvas, camera, WebView, Flutter có thể ít thông tin trong cây giao diện: dựa vào ảnh (preview có cạnh dài 1000 px; nhân tọa độ theo tỷ lệ với ảnh full).

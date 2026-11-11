@@ -129,9 +129,10 @@ private const val LINE_SAMPLE = "Ad"
  * each other never show the same ad (OB-02). Until the new ad comes it shows the placeholder of the same height (for
  * about one frame when the pool has an ad ready; the height stays, so the Next button does not move), or nothing
  * while the pool is exhausted (P-06), and keeps asking. Like [NativeAdSlot], it takes no space until ads are allowed
- * (consent given, `is_show_<placement>` on, an ad unit), and gives its ad back when it leaves the screen or the
+ * (consent given, `is_show_<placement>` on, an ad unit; [rememberNativeStepAdAllowed] tells the app), and gives its ad back when it leaves the screen or the
  * placement turns off (L-061). [onAdAvailabilityChange] works as for [NativeAdSlot]. It records no `ad_opportunity`
- * (P-07). Placements of another format are an [IllegalArgumentException].
+ * (P-07). An app that needs to know whether the next step already has an ad reads [rememberNativeStepNextAdReady].
+ * Placements of another format are an [IllegalArgumentException].
  */
 @Composable
 fun NativeStepAd(
@@ -148,7 +149,7 @@ fun NativeStepAd(
     }
     key(placement) {
         NativeStepAdHost(
-            allowed = rememberStepAllowed(placement, ads.canRequestAds, ads::isEnabled) { ads.unitId(it) },
+            allowed = ads.rememberStepAllowed(placement),
             step = step,
             newStates = { steps -> ads.stepAd(placement, steps) },
             modifier = modifier,
@@ -158,57 +159,86 @@ fun NativeStepAd(
 }
 
 /**
- * Whether the step card of [placement] may take an ad now: consent given, `is_show_<placement>` on (the master switch
- * applied, off too while ad-free, [AdFreeStatus]), an ad unit (the gate [NativeStepAd] reads before it takes any
- * space). False with no ads controller, and false as soon as ads stop being allowed (L-061). An app that holds its
- * Next button while the card of the first step waits for an ad (plan T-083) waits only while this is true. Placements
- * of another format are an [IllegalArgumentException].
+ * Whether the card of a flow step of [placement] may take an ad now: true through the same gate [NativeStepAd] reads
+ * before it takes space (consent, `is_show_<placement>` with the master switch and ad-free, an ad unit, and the
+ * first-open mark for a `firstOpenOnly` placement, OB-03, OB-04). False with no ads controller (tests, previews), in
+ * the first frames while the switch is not known yet, and as soon as ads stop being allowed: follow the value, do not
+ * read it once in the first frame. Whether an ad is there still comes from `onAdAvailabilityChange` of
+ * [NativeStepAd]. Records nothing and takes no ad. Placements of another format than `native_step` are an
+ * [IllegalArgumentException].
  */
 @Composable
 fun rememberNativeStepAdAllowed(placement: AdPlacement): Boolean {
     requireStepFormat(placement.format)
     val ads = LocalAdsController.current ?: return false
-    return rememberStepAllowed(placement, ads.canRequestAds, ads::isEnabled) { ads.unitId(it) }
+    return ads.rememberStepAllowed(placement)
 }
 
 /**
- * Whether [claimable] free ads of the pool leave one for the next step (plan T-092): one is for the card of the
- * current step while it has none yet ([currentStepHasAd] false), so two are needed then, one once the card has its
- * own. Public because an app tests its wiring with this rule on a fake count.
+ * Whether [claimable] ads of the pool leave one for the next step (OB-05): while the card of the current step has no
+ * ad yet ([currentStepHasAd] false) the first one is for it, so two are needed; once it has its own, one. Public so
+ * an app can test its wiring with this rule on a fake count.
  */
 fun nextStepAdReady(claimable: Int, currentStepHasAd: Boolean): Boolean = claimable >= if (currentStepHasAd) 1 else 2
 
 /**
- * Whether the pool of [placement] already holds an ad for the step after [step] (plan T-092), leaving one for the
- * card of [step] while [currentStepHasAd] is false ([nextStepAdReady]). Read in the first frame of a step (so a
- * button held on it never shows enabled for one frame first) and every 200 ms after; once true it stays true for
- * that step, so the moment between the card claiming an ad and reporting it, when the count fell and the flag did
- * not move yet, never turns it back to false. Each read takes the latest count and the latest [currentStepHasAd]
- * together. Reads only: nothing is loaded or dropped by it. False with no ads controller. An app that holds its Next
- * button until the next step has an ad uses this; pass the same [step] as to [NativeStepAd] and the availability it
- * reports as [currentStepHasAd]. Placements of another format are an [IllegalArgumentException].
+ * Whether the pool of [placement] already holds an ad for the step after [step] (OB-05): true once the ads a card
+ * could take now leave one for the card of [step] when [currentStepHasAd] is false ([nextStepAdReady]).
+ *
+ * Read in the first frame of the step, so a Next button the app holds does not light for one frame and then dim, and
+ * every 200 ms after that; each read takes the latest count with the latest flag. Once true it stays true for that
+ * step: between the moment the card takes an ad and the moment it reports it, the count has fallen while the flag has
+ * not moved yet.
+ *
+ * False with no ads controller, and as soon as the card stops being allowed (the same gate as [NativeStepAd] and
+ * [rememberNativeStepAdAllowed]: consent, the master switch and ad-free, `is_show_<placement>`, an ad unit, and the
+ * first open for a `firstOpenOnly` placement); when the gate opens again it reads again from the start. False while
+ * the gate is closed does not mean waiting: an app waits only while [rememberNativeStepAdAllowed] is true.
+ *
+ * [currentStepHasAd] is whether the card of this very step has an ad: the card reports nothing while it waits for a
+ * new ad, so a true reported on the step before is still there on this one; the app sets the flag per step (for
+ * example it keeps the step on which `onAdAvailabilityChange` reported true and compares it with [step]). On a step
+ * with no card ([NativeStepAd] not in the tree on that step) there is nothing to keep: pass `currentStepHasAd = true`,
+ * one ad is enough. Pass the same [step] as to [NativeStepAd].
+ *
+ * Read only: loads nothing, drops nothing, takes no ad, records nothing. Placements of another format than
+ * `native_step` are an [IllegalArgumentException].
  */
 @Composable
 fun rememberNativeStepNextAdReady(placement: AdPlacement, step: Any, currentStepHasAd: Boolean): Boolean {
     requireStepFormat(placement.format)
     val ads = LocalAdsController.current ?: return false
-    return rememberNextStepAdReady(step, currentStepHasAd) { ads.poolClaimableAdCount(placement) }
+    val stepAllowed = ads.rememberStepAllowed(placement)
+    val ready = rememberNextStepAdReady(stepAllowed, step, currentStepHasAd) { ads.poolClaimableAdCount(placement) }
+    LaunchedEffect(step, ready) {
+        if (ready) ads.logger.info(TAG, "Step ${placement.key}: next step ad ready")
+    }
+    return ready
 }
 
 /** How often [rememberNativeStepNextAdReady] reads the pool while the next step has no ad yet. */
-private const val NEXT_AD_POLL_MILLIS = 200L
+internal const val NEXT_STEP_AD_READ_MILLIS = 200L
 
-/** [rememberNativeStepNextAdReady] without an ads controller, so tests set the count (like [rememberStepReady]). */
+/** [rememberNativeStepNextAdReady] without an ads controller: [allowed] and [claimable] come from the caller. */
 @Composable
-internal fun rememberNextStepAdReady(step: Any, currentStepHasAd: Boolean, claimable: () -> Int): Boolean {
+internal fun rememberNextStepAdReady(
+    allowed: Boolean,
+    step: Any,
+    currentStepHasAd: Boolean,
+    claimable: () -> Int,
+): Boolean {
     val hasAd by rememberUpdatedState(currentStepHasAd)
     val count by rememberUpdatedState(claimable)
-    // Read in the composition itself, so the first frame of the step already carries the answer.
-    var ready by remember(step) { mutableStateOf(nextStepAdReady(claimable(), currentStepHasAd)) }
-    LaunchedEffect(step) {
+    // Read in the composition itself, so the first frame of the step already carries the answer; nothing is read
+    // while the gate is closed. Keyed on the gate too: a gate that closes starts a new false state, and one that
+    // opens again reads again instead of keeping the true of before.
+    var ready by remember(step, allowed) { mutableStateOf(allowed && nextStepAdReady(claimable(), currentStepHasAd)) }
+    LaunchedEffect(step, allowed) {
+        if (!allowed) return@LaunchedEffect
         while (!ready) {
+            delay(NEXT_STEP_AD_READ_MILLIS)
+            // The latest count and the latest flag together.
             ready = nextStepAdReady(count(), hasAd)
-            delay(NEXT_AD_POLL_MILLIS)
         }
     }
     return ready
@@ -335,7 +365,7 @@ fun NativeFullScreenStep(
     }
     key(placement) {
         NativeFullScreenStepGate(
-            allowed = rememberStepAllowed(placement, ads.canRequestAds, ads::isEnabled) { ads.unitId(it) },
+            allowed = ads.rememberStepAllowed(placement),
             // A cold flow: nothing is taken until the gate opens and the page collects it.
             states = remember { ads.fullScreenStep(placement) },
             modifier = modifier,
@@ -480,7 +510,7 @@ internal fun stepFullScreenTake(canRequestAds: Boolean, take: () -> LoadedNative
 fun rememberNativeFullScreenStepReady(placement: AdPlacement): Boolean {
     requireFullScreenStepFormat(placement.format)
     val ads = LocalAdsController.current ?: return false
-    val allowed = rememberStepAllowed(placement, ads.canRequestAds, ads::isEnabled) { ads.unitId(it) }
+    val allowed = ads.rememberStepAllowed(placement)
     return rememberStepReady(allowed) { ads.stepFullScreenReady(placement) }
 }
 
@@ -517,6 +547,11 @@ internal fun rememberStepAllowed(
     val unit = remember(placement) { unitId(placement) }
     return nativeSlotAllowed(canRequest, on, unit)
 }
+
+/** The gate of the ads of a flow step of [placement] through this controller: [rememberStepAllowed] above. */
+@Composable
+internal fun AdsController.rememberStepAllowed(placement: AdPlacement): Boolean =
+    rememberStepAllowed(placement, canRequestAds, ::isEnabled) { unitId(it) }
 
 /** The step card draws `native_step` placements only. */
 internal fun requireStepFormat(format: AdFormat) {

@@ -70,6 +70,14 @@ if [ "${bundle_only}" = "no" ]; then
   done
 fi
 
+# A push that failed may still have reached its goal: another push of the same branch (push-on-commit.sh running
+# at the same time) put the very same head commit on origin first. Then the branch is saved; nothing to bundle.
+if [ "${bundle_only}" = "no" ] \
+  && [ "$(git ls-remote origin "refs/heads/${branch}" 2> /dev/null | cut -f1)" = "${head_sha}" ]; then
+  echo "ĐÃ ĐẨY: ${branch} (${short_sha}); lệnh đẩy này lỗi nhưng origin đã có đúng commit này (một lần đẩy khác cùng lúc)."
+  exit 0
+fi
+
 # Not pushed: keep the commits beyond origin/main in one file outside the worktree.
 count="$(git rev-list --count "${branch}" --not origin/main 2> /dev/null || echo 0)"
 if [ "${count}" -eq 0 ]; then

@@ -13,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,7 +29,7 @@ import org.robolectric.annotation.GraphicsMode
 class RewardedAdDialogScreenshotTest {
     @Composable
     private fun Card(darkTheme: Boolean, lines: List<String> = listOf(SHORT_LINE)) {
-        AppTheme(darkTheme = darkTheme) {
+        AdsTestTheme(darkTheme = darkTheme) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

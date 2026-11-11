@@ -24,7 +24,7 @@ private const val TAG = "Ads"
 internal interface MaxBannerSdkView {
     val view: View
 
-    fun setCallbacks(onLoaded: () -> Unit, onFailed: (code: Int) -> Unit, onClicked: () -> Unit)
+    fun setCallbacks(onLoaded: () -> Unit, onFailed: (code: Int, message: String?) -> Unit, onClicked: () -> Unit)
 
     fun loadAd()
 
@@ -57,12 +57,16 @@ internal class AppLovinMaxBannerView(unitId: String, kind: BannerSizeKind, width
 
     override val view: View get() = adView
 
-    override fun setCallbacks(onLoaded: () -> Unit, onFailed: (code: Int) -> Unit, onClicked: () -> Unit) {
+    override fun setCallbacks(
+        onLoaded: () -> Unit,
+        onFailed: (code: Int, message: String?) -> Unit,
+        onClicked: () -> Unit,
+    ) {
         adView.setListener(
             object : MaxAdViewAdListener {
                 override fun onAdLoaded(ad: MaxAd) = onLoaded()
 
-                override fun onAdLoadFailed(adUnitId: String, error: MaxError) = onFailed(error.code)
+                override fun onAdLoadFailed(adUnitId: String, error: MaxError) = onFailed(error.code, error.message)
 
                 override fun onAdClicked(ad: MaxAd) = onClicked()
 
@@ -103,9 +107,11 @@ internal fun maxBannerHeightDp(context: Context, kind: BannerSizeKind, widthDp: 
  *
  * - The SDK view is built by [newSdkView] on the first [send] only (question 6 of the plan, G2): the frame sends to
  *   MAX only once MAX is ready and the send passed the screen and consent checks, so no `MaxAdView` exists before.
- *   The wrapper never gets the ad unit: it lives in [newSdkView] only, so no log line can hold it.
- * - [pause] stops the auto refresh of MAX, [resume] starts it (B-06, B-07, KB-27); a pause before the view exists is
- *   kept, and the view built later stops its auto refresh right after its first load.
+ *   The wrapper never gets the ad unit: it lives in [newSdkView] only, so no log line can hold it; the error message
+ *   of MAX reaches a log line only through [loadErrorLog], masked, at staging (plan T-093).
+ * - MAX never refreshes by itself: a new view stops its auto refresh around its first load; [pause] stops it again,
+ *   [resume] calls nothing (B-06, B-07, B-09, KB-27, KB-34). Each reload by :core:ads ([runBannerLoads]) is one more
+ *   [send], one `loadAd` on the same view.
  * - Loads and clicks go to [telemetry] like those of AdMob: the load counter of MAX is `<slot key>/max`, apart from
  *   AdMob in the same frame (L-068); a failure is labelled by [maxLoadStateAfterError]; a click skips the next resume
  *   ad (A-14). Revenue of MAX is T-072.
@@ -117,6 +123,7 @@ internal class MaxBannerAdView(
     private val telemetry: AdTelemetry,
     private val now: () -> Long,
     private val logger: AppLogger,
+    private val loadErrorLog: LoadErrorLog = LoadErrorLog.CODE_ONLY,
 ) : BannerAdView {
     // Callbacks come one at a time; the buffer keeps tryEmit from dropping a result the loop has not read yet.
     private val emitted = MutableSharedFlow<BannerLoadResult>(extraBufferCapacity = RESULT_BUFFER)
@@ -129,9 +136,6 @@ internal class MaxBannerAdView(
 
     private var sdk by mutableStateOf<MaxBannerSdkView?>(null)
 
-    /** The last of [pause] and [resume] was a pause. */
-    private var wantPaused = false
-
     override fun send() {
         val existing = sdk
         val view = existing ?: newSdkView().also { built ->
@@ -140,19 +144,19 @@ internal class MaxBannerAdView(
             logger.info(TAG, "Banner $placementKey MAX view created")
         }
         telemetry.requestSent(maxSlot, now())
+        // Loading by hand (question 1 of plan T-088): stopped before the first load, and again right after it in case
+        // the SDK starts the refresh with that load.
+        if (existing == null) view.stopAutoRefresh()
         view.loadAd()
-        if (existing == null && wantPaused) view.stopAutoRefresh()
+        if (existing == null) view.stopAutoRefresh()
     }
 
     override fun pause() {
-        wantPaused = true
         sdk?.stopAutoRefresh()
     }
 
-    override fun resume() {
-        wantPaused = false
-        sdk?.startAutoRefresh()
-    }
+    /** Nothing: MAX never refreshes by itself; the next reload is a [send]. */
+    override fun resume() = Unit
 
     override fun destroy() {
         sdk?.destroy()
@@ -176,9 +180,10 @@ internal class MaxBannerAdView(
         emitted.tryEmit(BannerLoadResult.Loaded)
     }
 
-    private fun onFailed(code: Int) {
-        logger.info(TAG, "Banner $placementKey MAX failed (code $code)")
+    private fun onFailed(code: Int, message: String?) {
+        logger.info(TAG, "Banner $placementKey MAX failed (code ${loadErrorLog.text(code, message)})")
         telemetry.maxLoadFailed(format, maxSlot, loadPlacement, code, now())
+        // No message: it is in the line above, the retry line does not repeat it (question 4 of plan T-093).
         emitted.tryEmit(BannerLoadResult.Failed(code))
     }
 

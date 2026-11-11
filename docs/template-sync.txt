@@ -22,7 +22,6 @@ hold=core/network 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # release.sh and release.md stay at the old template commit: the new version needs AppsFlyer and AdsKit test units,
 # which the app does not have yet (ADR-1007). Take them in T-075, through an approved plan.
-hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # feature/sample, FeatureFlag.SAMPLE and AdPlacement.SAMPLE_NATIVE_SMALL are gone (T-081, ADR-1008): a sync drops them,
 # template tests of core/ads and core/analytics that use SAMPLE_NATIVE_SMALL take POSES_BOTTOM (a duplicate entry is
 # dropped), the sample_native_small example in the KDoc of AdUnitIds.kt reads poses_bottom, and docs/ops/ads-guide.md

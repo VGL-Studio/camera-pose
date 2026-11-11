@@ -20,8 +20,6 @@ hold=core/network 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # core/analytics/build.gradle.kts has no libs.appsflyer (ADR-1007). gradle/libs.versions.toml has no appsflyer
 # entry either: a later sync that brings the appsflyer line or AppsFlyerLibSink back drops it.
 hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
-# release.sh and release.md stay at the old template commit: the new version needs AppsFlyer and AdsKit test units,
-# which the app does not have yet (ADR-1007). Take them in T-075, through an approved plan.
 # feature/sample, FeatureFlag.SAMPLE and AdPlacement.SAMPLE_NATIVE_SMALL are gone (T-081, ADR-1008): a sync drops them,
 # template tests of core/ads and core/analytics that use SAMPLE_NATIVE_SMALL take POSES_BOTTOM (a duplicate entry is
 # dropped), the sample_native_small example in the KDoc of AdUnitIds.kt reads poses_bottom, and docs/ops/ads-guide.md
@@ -29,9 +27,13 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6
 # (scenario budget 1800, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
 # and start-run.yml, the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
-# docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md, and the
-# release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh. Also the default
+# docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md. Also the default
 # DEVICE_SCENARIOS_BUDGET of 1800 in scripts/device-scenario.py (the template takes 600).
+# The release.sh test block of scripts/tests/run.sh is the template's (T-075), adapted to an app without the AppsFlyer
+# SDK (ADR-1007): repo_has_appsflyer, read like release.sh reads it, runs the two "AppsFlyer dev key" refusals only with
+# the SDK (without it, a copy of this repo's build files passes the folder check without a key), skips appsFlyerDevKey
+# in the "build reads every exported property" contract, and expects 3 required properties instead of 4. A sync that
+# takes the template block puts this back, until the template branches on the SDK the same way (issue from-app).
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
 # core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:
 # AdSlot separator (spec poses, KB-6; AdSlotTest) and PrivacyOptionsButton(content) (feature/settings), the public

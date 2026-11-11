@@ -42,4 +42,8 @@ hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # (native_onboarding is firstOpenOnly), and in app tests AdSlotTest (reloadMillis = 0), NativeFlowStepTest
 # (allowed = true), AdsControllerComboScopeTest (attachFullScreenHost). The core/ads screenshots are the template's
 # (AdsTestTheme), never recorded with the app theme.
+# Template T-082 (default strings in English in values/, Vietnamese in values-vi/) is in held app/, core/designsystem and
+# feature/ and not taken: the strings of this app already follow it (English in values/, Vietnamese in values-vi/, plus
+# es-419, hi, in, pt-BR, th), and the template network-lost dialog strings are not in this app. When a hold of these
+# paths is lifted, keep the strings and translations of the app; the T-082 screenshots are of template screens.
 # App-only files a sync never touches: scripts/setup-check-app.sh, scripts/tests/app.sh, docs/ops/manual-test.md.

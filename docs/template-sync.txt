@@ -26,13 +26,13 @@ hold=scripts/release.sh 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # feature/sample, FeatureFlag.SAMPLE and AdPlacement.SAMPLE_NATIVE_SMALL are gone (T-081, ADR-1008): a sync drops them,
 # template tests of core/ads and core/analytics that use SAMPLE_NATIVE_SMALL take POSES_BOTTOM (a duplicate entry is
-# dropped), and the sample_native_small example in the KDoc of AdUnitIds.kt reads poses_bottom.
+# dropped), the sample_native_small example in the KDoc of AdUnitIds.kt reads poses_bottom, and docs/ops/ads-guide.md
+# names PosesScreenScreenshotTest and poses_bottom where the template names the sample screen.
 # App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6
 # (scenario budget 1800, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
 # and start-run.yml, the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md, and the
-# release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh.
+# release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh. Also the default
+# DEVICE_SCENARIOS_BUDGET of 1800 in scripts/device-scenario.py (the template takes 600).
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
-# core/ads RewardedAction.kt: RewardedAdDialogCard is public (plan T-086, screenshot of the unlock dialog); keep it.
-# T-083 (spec onboarding KB-6): keep the enabled=true filter of scripts/device-scenario.py with its tests in scripts/tests/run.sh and fixtures next-held.xml, next-ready.xml, the waits for an enabled Next in docs/ops/test-sessions.md section 5, core/ads rememberNativeStepAdAllowed (NativeFlowStep.kt) and AdPlacement.firstOpenOnly (AdPlacement.kt, StartupAdChoice.kt), and native_onboarding in docs/ops/ads-guide.md, until the template takes them (from-app).
 # App-only files a sync never touches: scripts/setup-check-app.sh, scripts/tests/app.sh, docs/ops/manual-test.md.

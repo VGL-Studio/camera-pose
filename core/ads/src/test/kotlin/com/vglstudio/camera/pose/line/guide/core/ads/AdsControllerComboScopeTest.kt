@@ -56,7 +56,10 @@ class AdsControllerComboScopeTest {
         flags = DefaultAdsFlags(settings),
         logger = logger,
         firstOpenMark = firstOpenMark,
-    )
+    ).also {
+        // A FullScreenAdHost is in a composition, as with the shell of the app (K-09 of the template, HD-05).
+        it.attachFullScreenHost()
+    }
 
     private fun idle() = shadowOf(Looper.getMainLooper()).idle()
 

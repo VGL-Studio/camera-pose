@@ -635,8 +635,7 @@ class NativeFlowStepTest {
         val area = bounds(STEP_AREA)
         val page = bounds(NativeFlowStepTestTags.FULL_PAGE)
         val cta = bounds(NativeFullScreenAdTestTags.CTA)
-        // The PrimaryButton of this app is 56 dp high (core/designsystem), the template's 52 dp (plan T-074, ADR-0029).
-        assertEquals(56f, (withAd.bottom - withAd.top).value, 0.5f)
+        assertEquals(52f, (withAd.bottom - withAd.top).value, 0.5f)
         assertEquals("the page fills the area of the step", area, page)
         assertFalse("CTA $cta covers Next $withAd", overlaps(cta, withAd))
         assertFalse("page $page covers Next $withAd", overlaps(page, withAd))
@@ -878,7 +877,7 @@ class NativeFlowStepTest {
         composeRule.setContent {
             ready = rememberNativeStepNextAdReady(AdPlacement.GALLERY_NATIVE_STEP, step = 1, currentStepHasAd = true)
             // Control (L-055): the same rule with a count of its own says true.
-            control = rememberNextStepAdReady(step = 1, currentStepHasAd = true) { 1 }
+            control = rememberNextStepAdReady(allowed = true, step = 1, currentStepHasAd = true) { 1 }
         }
         frame()
         assertEquals(false, ready)
@@ -901,7 +900,7 @@ class NativeFlowStepTest {
         var reads = 0
         val results = mutableListOf<Boolean>()
         composeRule.setContent {
-            results += rememberNextStepAdReady(step = 1, currentStepHasAd = false) {
+            results += rememberNextStepAdReady(allowed = true, step = 1, currentStepHasAd = false) {
                 reads++
                 2
             }
@@ -917,7 +916,10 @@ class NativeFlowStepTest {
         composeRule.mainClock.autoAdvance = false
         var count = 0
         var ready: Boolean? = null
-        composeRule.setContent { ready = rememberNextStepAdReady(step = 1, currentStepHasAd = false) { count } }
+        composeRule.setContent {
+            ready =
+                rememberNextStepAdReady(allowed = true, step = 1, currentStepHasAd = false) { count }
+        }
         frame()
         assertEquals(false, ready)
         poll()
@@ -933,7 +935,10 @@ class NativeFlowStepTest {
         composeRule.mainClock.autoAdvance = false
         var count = 0
         var ready: Boolean? = null
-        composeRule.setContent { ready = rememberNextStepAdReady(step = 1, currentStepHasAd = false) { count } }
+        composeRule.setContent {
+            ready =
+                rememberNextStepAdReady(allowed = true, step = 1, currentStepHasAd = false) { count }
+        }
         frame()
         assertEquals(false, ready)
 
@@ -957,7 +962,10 @@ class NativeFlowStepTest {
         var count = 2
         var hasAd by mutableStateOf(false)
         var ready: Boolean? = null
-        composeRule.setContent { ready = rememberNextStepAdReady(step = 1, currentStepHasAd = hasAd) { count } }
+        composeRule.setContent {
+            ready =
+                rememberNextStepAdReady(allowed = true, step = 1, currentStepHasAd = hasAd) { count }
+        }
         frame()
         assertEquals(true, ready)
 
@@ -979,7 +987,10 @@ class NativeFlowStepTest {
         var count = 1
         var hasAd by mutableStateOf(false)
         var ready: Boolean? = null
-        composeRule.setContent { ready = rememberNextStepAdReady(step = 1, currentStepHasAd = hasAd) { count } }
+        composeRule.setContent {
+            ready =
+                rememberNextStepAdReady(allowed = true, step = 1, currentStepHasAd = hasAd) { count }
+        }
         frame()
         assertEquals(false, ready)
         poll()
@@ -997,7 +1008,10 @@ class NativeFlowStepTest {
         var count = 2
         var step by mutableStateOf(1)
         var ready: Boolean? = null
-        composeRule.setContent { ready = rememberNextStepAdReady(step = step, currentStepHasAd = false) { count } }
+        composeRule.setContent {
+            ready =
+                rememberNextStepAdReady(allowed = true, step = step, currentStepHasAd = false) { count }
+        }
         frame()
         assertEquals(true, ready)
 

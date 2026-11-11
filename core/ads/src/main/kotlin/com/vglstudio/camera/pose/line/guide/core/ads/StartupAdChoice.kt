@@ -1,8 +1,10 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
+import com.vglstudio.camera.pose.line.guide.core.config.RemoteSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -15,6 +17,14 @@ internal fun startupAdPlacement(flags: AdsGlobalFlags, firstOpen: Boolean): AdPl
     if (!on) return null
     return if (flags.openAdType == OpenAdType.INTERSTITIAL) AdPlacement.OPEN_APP_INTER else AdPlacement.OPEN_APP
 }
+
+/**
+ * [startupAdPlacement] with the current values of [settings], read as :core:ads reads them (`is_show_ads` applied).
+ * Public only so :app can check the local values of its builds against the framework's own choice (plan T-074,
+ * section 4, `firstOpen_choosesNoStartupAd`); nothing else calls it.
+ */
+suspend fun startupAdPlacementFor(settings: RemoteSettings, firstOpen: Boolean): AdPlacement? =
+    startupAdPlacement(DefaultAdsFlags(settings).global.first(), firstOpen)
 
 /**
  * The switch of [placement]: for `native_combo`, `is_show_native_after_inter` (plan T-026); for `resume` and

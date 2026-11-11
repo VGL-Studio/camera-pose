@@ -205,6 +205,7 @@ internal fun NativeAdSlotContent(
                     // The step card's height follows the font scale, like the card and its placeholder (plan T-045).
                     val height = when (size) {
                         NativeAdSize.STEP -> NativeStepAdDefaults.height()
+                        NativeAdSize.CARD -> cardHeight ?: NativeAdDimens.heightOf(size, ctaLarge)
                         else -> NativeAdDimens.heightOf(size, ctaLarge)
                     }
                     Spacer(Modifier.fillMaxWidth().height(height))

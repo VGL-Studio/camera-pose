@@ -240,9 +240,13 @@ class AdsSettingsTest {
         // Control: the same declaration without firstOpenOnly does not say so.
         val plain = AdPlacementDeclaration("x_step", AdFormat.NATIVE_STEP)
         assertFalse(AdsSettings.placementEnabled(plain).description.contains(note))
-        // No placement of the template declares it, so the key table does not change.
+        // Only the placements that declare it say so (this app: native_onboarding, plan T-083).
         AdPlacement.entries.filterNot { it.appWide }.forEach {
-            assertFalse("$it", AdsSettings.placementEnabled(it).description.contains(note))
+            assertEquals(
+                "$it",
+                it.declaration.firstOpenOnly,
+                AdsSettings.placementEnabled(it).description.contains(note),
+            )
         }
     }
 

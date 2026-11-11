@@ -698,6 +698,110 @@ class InListAdsTest {
         awaitCancellation()
     }
 
+    @Test
+    fun grid_inCollection_everyBackAfterNull_cellsReturn() {
+        var every by mutableStateOf<Int?>(3)
+        var exhausted by mutableStateOf(true)
+        val pool = ScriptedCells { call -> if (call < 2) flowOf(NativeAdState.Unavailable) else loadingCell() }
+        composeRule.mainClock.autoAdvance = false
+        setPooledGrid(itemCount = 7, every = { every }, cell = pool::cell, exhausted = { exhausted })
+        composeRule.mainClock.advanceTimeBy(500)
+        // The pool is exhausted: the cells are out.
+        composeRule.onNodeWithTag("inlist_ad_0").assertDoesNotExist()
+
+        // The clock is stopped, so the writes of the test are sent to the screen's observers by hand.
+        every = null
+        Snapshot.sendApplyNotifications()
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+        every = 3
+        exhausted = false
+        Snapshot.sendApplyNotifications()
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+
+        // Back at once, a few frames later, not at the 2 s tick: switching off reset the exhausted pool.
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+    }
+
+    @Test
+    fun grid_inCollection_everyNull_noCell() {
+        var every by mutableStateOf<Int?>(null)
+        val pool = FakePooledCells()
+        setPooledGrid(itemCount = 20, every = { every }, cell = pool::cell, exhausted = { false })
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodes(adRows()).assertCountEquals(0)
+        // The items keep their order, two by two.
+        assertDpEquals("item 4 beside item 3", bounds("item_3").top, bounds("item_4").top)
+        assertDpEquals("item 10 beside item 9", bounds("item_9").top, bounds("item_10").top)
+
+        // Control: switched on, a cell comes after item 8.
+        every = 8
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag("inlist_ad_0").assertCountEquals(1)
+        assertDpEquals("cell beside item 9", bounds("item_9").top, bounds("inlist_ad_0").top)
+    }
+
+    @Test
+    fun grid_inCollection_seventeenItems_twoCellsAt8And17() {
+        assertEquals(listOf(8, 17), gridInListPositions(AdFormat.NATIVE_IN_COLLECTION, 17, 8, 2))
+        assertEquals(listOf(8), gridInListPositions(AdFormat.NATIVE_IN_COLLECTION, 16, 8, 2))
+        // Never last: eight items, no cell.
+        assertEquals(emptyList<Int>(), gridInListPositions(AdFormat.NATIVE_IN_COLLECTION, 8, 8, 2))
+    }
+
+    @Test
+    fun fixedAds_sameCellsAsLive() {
+        var columns by mutableStateOf(2)
+        composeRule.setContent {
+            AdsTestTheme {
+                LazyVerticalGrid(columns = GridCells.Fixed(columns), modifier = Modifier.fillMaxSize().testTag(GRID)) {
+                    itemsWithFixedAds(
+                        items = (1..12).toList(),
+                        format = AdFormat.NATIVE_IN_COLLECTION,
+                        every = 8,
+                        columns = columns,
+                        adContent = { slot -> Text("Fixed ad $slot", Modifier.testTag("fixed_ad_$slot")) },
+                    ) {
+                        Text("List item $it", Modifier.testTag("item_$it"))
+                    }
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodes(adRows("fixed_ad_")).assertCountEquals(1)
+        val grid = bounds(GRID)
+        val twoColumns = bounds("fixed_ad_0")
+        assertDpEquals("ad beside item 9", bounds("item_9").top, twoColumns.top)
+        assertDpEquals("ad in the left column", grid.left, twoColumns.left)
+        // One cell of two, not a full-width row.
+        assertDpEquals("ad in one cell", grid.width / 2, twoColumns.width)
+
+        columns = 3
+        composeRule.waitForIdle()
+        val threeColumns = bounds("fixed_ad_0")
+        assertDpEquals("ad in the row of item 7", bounds("item_7").top, threeColumns.top)
+        assertDpEquals("ad in the row of item 8", bounds("item_8").top, threeColumns.top)
+        assertTrue("ad in the third column", threeColumns.left >= grid.left + grid.width * 2 / 3 - TOLERANCE_DP.dp)
+        assertTrue("item 9 starts the next row", bounds("item_9").top >= threeColumns.bottom)
+        assertDpEquals("item 9 in the first column", grid.left, bounds("item_9").left)
+    }
+
+    @Test
+    fun grid_inCollection_noHeight_keeps300() {
+        val released = mutableListOf<FakeLoadedNativeAd>()
+        val pool = ScriptedCells { call -> loadedCell(call, released) }
+        setPooledGrid(itemCount = 7, every = { 3 }, cell = pool::cell, exhausted = { false })
+        composeRule.waitForIdle()
+
+        val card = composeRule
+            .onNode(hasTestTag(NativeAdTestTags.CARD) and hasAnyAncestor(hasTestTag("inlist_ad_0")))
+            .getBoundsInRoot()
+        assertDpEquals("card height", 300.dp, card.height)
+    }
+
     /**
      * [itemCount] items of 120 dp in a grid of [columns] columns through the public grid function, with the pooled
      * cells of [cell] for [placement] every [every]. Without [controller] no `af_native_ad_eligible` is recorded.

@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -65,13 +66,17 @@ val LocalAdsController = staticCompositionLocalOf<AdsController?> { null }
  *   again (B-05, AR-03). The banner is paused, not destroyed, while hidden or covered.
  * - Consent withdrawn after the banner had an ad: the frame keeps its height, the ad is hidden and paused; consent
  *   given again loads a new ad in the same frame (B-06).
+ * - With a [separator] (a line above the banner, for example; spec poses, KB-6 of this app): the separator is drawn
+ *   above the frame while the frame takes room. When the last load failed, the frame shrinks to 0 dp and the
+ *   separator goes, so no empty strip stays; the view stays in the tree, so the retry of B-02 still runs and a load
+ *   that succeeds brings both back. Without a separator the frame keeps its height after a failure (B-02).
  * - [AdFormat.BANNER] and [AdFormat.BANNER_MREC] load from AppLovin MAX and AdMob in the order of
  *   `ads_mediation_order` (KB-31, ADR-0037, plan T-071): the first platform without an ad hands the turn to the
  *   second one in the same frame, as tall as the tallest of them; a collapsible banner is AdMob only.
  */
 @Composable
-fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier) {
-    BannerSlot(placement, placement.format, modifier)
+fun AdSlot(placement: AdPlacement, modifier: Modifier = Modifier, separator: (@Composable () -> Unit)? = null) {
+    BannerSlot(placement, placement.format, modifier, separator = separator)
 }
 
 /**
@@ -86,6 +91,7 @@ private fun BannerSlot(
     modifier: Modifier,
     onAdAvailabilityChange: (Boolean) -> Unit = {},
     onHeight: (Dp) -> Unit = {},
+    separator: (@Composable () -> Unit)? = null,
 ) {
     val collapsible = bannerRequestIsCollapsible(format)
     val ads = LocalAdsController.current
@@ -187,6 +193,7 @@ private fun BannerSlot(
                     )
                 },
                 onAdAvailabilityChange = onAdAvailabilityChange,
+                separator = separator,
                 kind = kind,
                 fits = bannerFitsWidth(kind, widthDp),
             )
@@ -200,6 +207,7 @@ private fun BannerSlot(
  * window of the slot: [visible] and not [covered] by a full-screen ad ([inScreenAdWindowOf], KB-27, plan T-054).
  * [onAdAvailabilityChange] gets true on the first ad of a frame, and false once when the frame goes after that; a
  * frame kept with its height (B-06) reports nothing, so a bottom bar keeps the space.
+ * [separator]: see [AdSlot]; [onLoadResult] gets the result of every send (true loaded, false failed).
  *
  * [kind] sets the frame's width ([bannerFrameWidthDp], centred) and height ([bannerSlotHeightDp]): an MREC that failed
  * before its first ad takes no space (B-08). A banner that does not [fits] its place has no frame: no ad view, no
@@ -221,6 +229,8 @@ internal fun BannerSlotHost(
     newView: () -> BannerAdView,
     modifier: Modifier = Modifier,
     onAdAvailabilityChange: (Boolean) -> Unit = {},
+    separator: (@Composable () -> Unit)? = null,
+    onLoadResult: (loaded: Boolean) -> Unit = {},
     kind: BannerSizeKind = BannerSizeKind.ANCHORED,
     fits: Boolean = true,
 ) {
@@ -243,7 +253,10 @@ internal fun BannerSlotHost(
         return
     }
     val slotHeightDp = bannerSlotHeightDp(frame, kind, heightDp, failedBeforeAd)
-    Box(modifier = modifier.height(slotHeightDp.dp), contentAlignment = Alignment.TopCenter) {
+    // With a separator of this app the content sets the height: the separator above the frame, both gone after a
+    // failed load (see [AdSlot]).
+    val slotModifier = if (separator == null) modifier.height(slotHeightDp.dp) else modifier
+    Box(modifier = slotModifier, contentAlignment = Alignment.TopCenter) {
         // One ad view per placement key (placement and format of the layer) and ad unit: two placements may share a
         // unit (staging test ids).
         key(placementKey, unitId) {
@@ -265,6 +278,8 @@ internal fun BannerSlotHost(
                         currentOnAvailability(true)
                     }
                 },
+                separator = separator,
+                onLoadResult = onLoadResult,
                 onFailed = { if (!hadAd) failedBeforeAd = true },
             )
         }
@@ -284,6 +299,8 @@ private fun BannerFrameContent(
     newView: () -> BannerAdView,
     widthDp: Int?,
     onLoaded: () -> Unit,
+    separator: (@Composable () -> Unit)?,
+    onLoadResult: (loaded: Boolean) -> Unit,
     onFailed: () -> Unit,
 ) {
     val view = remember { newView() }
@@ -307,6 +324,11 @@ private fun BannerFrameContent(
     val active = frame == BannerFrame.ACTIVE
     val currentMayRequestNow by rememberUpdatedState(mayRequestNow)
     val currentOnLoaded by rememberUpdatedState(onLoaded)
+    // The result of the last load, for the separator of this app (AdSlot), from the callbacks of runBannerLoads: a
+    // banner of two platforms (OrderedBannerAdView) allows a single collection of view.results, and a platform handing
+    // the turn to the next one is not a failed load.
+    var lastLoadFailed by remember(view) { mutableStateOf(false) }
+    val currentOnLoadResult by rememberUpdatedState(onLoadResult)
     val currentOnFailed by rememberUpdatedState(onFailed)
     LaunchedEffect(view, active) {
         if (active) {
@@ -316,15 +338,33 @@ private fun BannerFrameContent(
                 mayRequestNow = { currentMayRequestNow() },
                 retryResets = retryResets,
                 reloadMillis = reloadMillis,
-                onLoaded = { currentOnLoaded() },
+                onLoaded = {
+                    lastLoadFailed = false
+                    currentOnLoadResult(true)
+                    currentOnLoaded()
+                },
                 logger = logger,
                 placementKey = placementKey,
-                onFailed = { currentOnFailed() },
+                onFailed = {
+                    lastLoadFailed = true
+                    currentOnLoadResult(false)
+                    currentOnFailed()
+                },
             )
         }
     }
     val width = if (widthDp != null) Modifier.width(widthDp.dp) else Modifier.fillMaxWidth()
-    view.Content(showAd = active, modifier = width.height(heightDp.dp))
+    if (separator == null) {
+        view.Content(showAd = active, modifier = width.height(heightDp.dp))
+    } else {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (!lastLoadFailed) separator()
+            view.Content(
+                showAd = active,
+                modifier = width.height(if (lastLoadFailed) 0.dp else heightDp.dp),
+            )
+        }
+    }
 }
 
 /**
@@ -365,12 +405,22 @@ fun rememberShowInterstitial(placement: AdPlacement): () -> Unit {
  */
 @Composable
 fun PrivacyOptionsButton(modifier: Modifier = Modifier) {
-    val ads = LocalAdsController.current ?: return
-    val activity = LocalActivity.current ?: return
-    val required by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
-    if (required) {
-        TextButton(onClick = { ads.showPrivacyOptionsForm(activity) }, modifier = modifier) {
+    PrivacyOptionsButton(modifier = modifier) { onClick ->
+        TextButton(onClick = onClick) {
             Text(text = stringResource(R.string.ads_privacy_options))
         }
     }
+}
+
+/**
+ * The same entry point drawn by the caller, for example as a settings row (plan T-025): [content] receives the action
+ * that shows the consent form again. As the button, it decides alone whether to show: nothing is drawn where consent
+ * options are not required, nor without an ads controller (tests, previews).
+ */
+@Composable
+fun PrivacyOptionsButton(modifier: Modifier = Modifier, content: @Composable (onClick: () -> Unit) -> Unit) {
+    val ads = LocalAdsController.current ?: return
+    val activity = LocalActivity.current ?: return
+    val required by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
+    if (required) Box(modifier) { content { ads.showPrivacyOptionsForm(activity) } }
 }

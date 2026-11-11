@@ -30,10 +30,11 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md. Also the default
 # DEVICE_SCENARIOS_BUDGET of 1800 in scripts/device-scenario.py (the template takes 600).
 # The release.sh test block of scripts/tests/run.sh is the template's (T-075), adapted to an app without the AppsFlyer
-# SDK (ADR-1007): repo_has_appsflyer, read like release.sh reads it, runs the two "AppsFlyer dev key" refusals only with
-# the SDK (without it, a copy of this repo's build files passes the folder check without a key), skips appsFlyerDevKey
-# in the "build reads every exported property" contract, and expects 3 required properties instead of 4. A sync that
-# takes the template block puts this back, until the template branches on the SDK the same way (issue from-app).
+# SDK (ADR-1007): repo_has_appsflyer, read like release.sh reads it, runs the two "AppsFlyer dev key" refusals on this
+# repo only with the SDK (without it, a copy of this repo's build files passes the folder check without a key, and the
+# two refusals run on that copy with a module declaring libs.appsflyer), skips appsFlyerDevKey in the "build reads
+# every exported property" contract, and expects 3 required properties instead of 4. A sync that takes the template
+# block puts this back, until the template branches on the SDK the same way (VGL-Studio/app-project-template#470).
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
 # core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:
 # AdSlot separator (spec poses, KB-6; AdSlotTest) and PrivacyOptionsButton(content) (feature/settings), the public

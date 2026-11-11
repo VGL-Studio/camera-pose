@@ -3807,6 +3807,16 @@ else
   own_af_out="$("$own_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
   expect "release.sh: this repo has no AppsFlyer SDK, so its build files pass the folder check without a key" "0 1" \
     "$(grep -c 'appsFlyerDevKey' <<< "$own_af_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$own_af_out" || true)"
+  # The two refusals of the template still run, on the same copy with a module that declares the SDK through the
+  # version catalog (libs.appsflyer), the way an app with the SDK declares it.
+  mkdir -p "$own_af/core/appsflyer-probe"
+  printf '%s\n' 'dependencies {' '    implementation(libs.appsflyer)' '}' > "$own_af/core/appsflyer-probe/build.gradle.kts"
+  write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
+  expect "release.sh refuses: missing AppsFlyer dev key (a copy with libs.appsflyer)" 1 \
+    "$("$own_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null | grep -c 'thiếu appsFlyerDevKey' || true)"
+  write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "key with spaces"
+  expect "release.sh refuses: AppsFlyer dev key with odd characters (a copy with libs.appsflyer)" 1 \
+    "$("$own_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null | grep -c 'thiếu appsFlyerDevKey' || true)"
 fi
 # An app without the AppsFlyer SDK (no module declares libs.appsflyer or com.appsflyer) releases without the key
 # (issue #261). The script runs from a copy in a repo without the SDK; passing the folder check means it reaches the

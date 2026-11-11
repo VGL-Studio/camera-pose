@@ -40,7 +40,7 @@ Chạm `scripts/release.sh` và quy trình phát hành production (ADR-0009, ADR
 
 ## Định nghĩa hoàn thành
 
-- [x] `scripts/release.sh`, `docs/ops/release.md` và khối test của chúng giống bản dự án mẫu ở base của app; không còn `hold=` cho hai file.
+- [x] `scripts/release.sh`, `docs/ops/release.md` và khối test của chúng giống bản dự án mẫu ở base của app; không còn `hold=` cho hai file. Khối test lệch mẫu ở ba câu về khóa AppsFlyer, rẽ theo SDK (app không có SDK, ADR-1007), ghi ở `docs/template-sync.txt`; hai câu từ chối khóa vẫn chạy trên bản sao có `libs.appsflyer`.
 - [ ] `scripts/tests/run.sh` qua.
 - [ ] `release.sh` chạy thử khô (không phát hành) với thư mục phát hành không có `appsFlyerDevKey` không dừng ở bước 1; người làm, ngoài repo.
 - [x] Danh sách tên mã quảng cáo thật cần chuẩn bị (mọi vị trí của `AdPlacement`, kể cả `open_app`, `open_app_inter`, `resume`, `resume_inter`, `native_combo` dù vị trí đó tắt, theo `docs/ops/ads-guide.md`) nằm trong mô tả PR, không có giá trị nào.
@@ -50,6 +50,6 @@ Chạm `scripts/release.sh` và quy trình phát hành production (ADR-0009, ADR
 
 - 2026-11-11, làm có người theo dõi (Nhật chạy hai lệnh `template-sync.sh --take`, AI làm phần còn lại):
   - `scripts/release.sh` và `docs/ops/release.md` lấy bản dự án mẫu ở `e16632e`, không xung đột; hai dòng `hold=` đã bỏ.
-  - Khối test `release.sh` của `scripts/tests/run.sh` lấy bản mẫu cùng `scripts/tests/fixtures/release/AdPlacement.kt`. Ba câu của mẫu mặc định repo có SDK AppsFlyer; theo quyết định của Nhật, chúng rẽ theo SDK bằng đúng biểu thức của `release.sh` (ghi ở `docs/template-sync.txt`), đề xuất cùng cách sửa về dự án mẫu qua issue `from-app`.
+  - Khối test `release.sh` của `scripts/tests/run.sh` lấy bản mẫu cùng `scripts/tests/fixtures/release/AdPlacement.kt`. Ba câu của mẫu mặc định repo có SDK AppsFlyer; theo quyết định của Nhật, chúng rẽ theo SDK bằng đúng biểu thức của `release.sh` (ghi ở `docs/template-sync.txt`), đề xuất cùng cách sửa về dự án mẫu: VGL-Studio/app-project-template#470.
   - Còn lại cho người, ngoài repo: chạy thử khô `release.sh` với thư mục phát hành không có `appsFlyerDevKey` (mục 3 của Định nghĩa hoàn thành).
 

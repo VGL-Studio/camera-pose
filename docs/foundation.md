@@ -351,8 +351,7 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 ### [ADR-1009](adr/1009-combo-native-sau-interstitial-cua-man.md): Combo native toàn màn hình hiện sau interstitial của màn, không sau `open_app_inter` và `resume_inter`; `MainActivity` đặt `FullScreenAdHost`
 
 - giữ đúng một lời gọi `FullScreenAdHost()` trong `MainActivity`, trong `AppTheme`, ngay sau `NetworkDialogHost`
-- giữ dòng `combo = false` của `ResumeAdTurns` khi đồng bộ từ dự án mẫu, không nối combo sau `resume_inter` hay `open_app_inter`
+- không nối combo sau `resume_inter` hay `open_app_inter` (luật A-12 của khung)
 - interstitial của màn (vị trí không toàn app) luôn đi qua `showInterstitial` của `:core:ads` để combo nối theo khóa `is_show_native_after_inter`
-- không sửa `docs/ops/ads-business-rules.md` hay `docs/ops/ads-guide.md` vì lệch này, luật A-12 và dòng "inter của resume nối combo" của `ads-guide.md` không áp dụng cho app
 - kịch bản emulator đi qua interstitial của màn thêm bước `wait str=ads_close_full_screen | <màn đích>` rồi `tap_if str=ads_close_full_screen` sau bước đóng interstitial
 - không đổi luật K-01 tới K-08 của khung ở app

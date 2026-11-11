@@ -338,7 +338,7 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - giữ luật đếm của `review_interstitial` trong `InterstitialBreakGate` trước cổng của khung
 - màn cần banner thu về 0 dp khi lỗi tải thì truyền `separator` cho `AdSlot`
 - test chỉ kiểm giá trị cục bộ, điều Firebase staging trả là kiểm thủ công
-- không đổi tên khóa Remote Config đã phát hành, khóa mới theo ADR-0023
+- không đổi tên khóa Remote Config đã phát hành, khóa mới theo ADR-0046
 - không phát bản production trước khi T-075 lấy `scripts/release.sh` mới
 
 ### [ADR-1008](adr/1008-khong-co-man-mau.md): App không có màn mẫu `:feature:sample` và vị trí quảng cáo `sample_native_small`; test của khung quảng cáo dùng vị trí `poses_bottom`

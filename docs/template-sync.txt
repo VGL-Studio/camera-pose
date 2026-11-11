@@ -35,4 +35,11 @@ hold=docs/ops/release.md 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # release.sh test block of scripts/tests/run.sh, which matches the held scripts/release.sh. Also the default
 # DEVICE_SCENARIOS_BUDGET of 1800 in scripts/device-scenario.py (the template takes 600).
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
+# core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:
+# AdSlot separator (spec poses, KB-6; AdSlotTest) and PrivacyOptionsButton(content) (feature/settings), the public
+# startupAdPlacementFor of StartupAdChoice.kt (app/src/testStaging StagingRemoteValuesModuleTest), the CARD height when
+# space is kept in NativeAdSlot.kt, five T-080 tests of InListAdsTest. Template tests adapted to the app: AdsSettingsTest
+# (native_onboarding is firstOpenOnly), and in app tests AdSlotTest (reloadMillis = 0), NativeFlowStepTest
+# (allowed = true), AdsControllerComboScopeTest (attachFullScreenHost). The core/ads screenshots are the template's
+# (AdsTestTheme), never recorded with the app theme.
 # App-only files a sync never touches: scripts/setup-check-app.sh, scripts/tests/app.sh, docs/ops/manual-test.md.

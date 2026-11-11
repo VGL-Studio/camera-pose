@@ -15,7 +15,7 @@ design_direction:              # tên hướng thiết kế dev đã chọn (m�
 Bản đề xuất app clone (ADR-0021, docs/ops/clone-study.md). AI viết từ báo cáo khảo sát; dev duyệt trước khi sang Figma.
 Mỗi cải tiến dẫn về bài học có bằng chứng. Quảng cáo và dữ liệu thu thập chỉ ghi thành câu hỏi.
 File này nằm cạnh các báo cáo (research/ của thư mục làm việc, sau là docs/research/): link tới báo cáo là link tới file bên cạnh,
-ví dụ [PoseMate](com.example.posemate.md). Tên ảnh NN-ten là ảnh trong captures/<package>/ ngoài repo.
+ví dụ PoseMate trong `com.example.posemate.md`. Tên ảnh NN-ten là ảnh trong captures/<package>/ ngoài repo.
 -->
 
 ## 1. Thông tin dev cung cấp

@@ -9,8 +9,10 @@ Exit 0 when the check ran (with or without a session to continue), 1 when GitHub
 A session has stopped when its run file on its report branch is still "running" and none of its branches
 (the report branch, claude/T-NNN-... and claude/fix-T-NNN-... of the tickets in its run list) got a commit
 for STALE_MINUTES. A session that is alive pushes at every step (docs/auto-run.md, section 3), and its longest
-wait (CI, emulator) is shorter than that. It is not continued when it started more than MAX_HOURS ago: people
-decide then. Nor while main is red (main-broken) or the cloud environment is broken (env-broken).
+wait (CI, emulator) is shorter than that, except a job waiting for a self-hosted runner, which this script checks on
+its own. It is not continued when it started more than MAX_HOURS ago: people decide then. Nor while main is red
+(main-broken) or the cloud environment is broken (env-broken), or while a job of the repository waits for a
+self-hosted runner (ADR-0042; scripts/wait-run.sh exit 7).
 
 The workflow runs it every hour while its schedule is on; it turns itself off when idle (scripts/schedule-idle.py).
 
@@ -90,6 +92,29 @@ def last_commit(branch):
         return None
 
 
+GITHUB_LABEL = re.compile(r"^(ubuntu|windows|macos)-")
+
+
+def waiting_job():
+    """(job name, Actions run id) of the first queued job that carries a label of no GitHub runner, in the runs
+    queued or in progress (ADR-0042); None when there is none. An answer of another shape is a failed read."""
+    for status in ("queued", "in_progress"):
+        path = f"actions/runs?status={status}&per_page=20"
+        runs = api(path)
+        if not isinstance(runs, dict) or not isinstance(runs.get("workflow_runs"), list):
+            raise LookupError(path)
+        for run in runs["workflow_runs"]:
+            jobs_path = f"actions/runs/{run.get('id')}/jobs?per_page=50"
+            jobs = api(jobs_path)
+            if not isinstance(jobs, dict) or not isinstance(jobs.get("jobs"), list):
+                raise LookupError(jobs_path)
+            for job in jobs["jobs"]:
+                labels = job.get("labels") or []
+                if job.get("status") == "queued" and any(not GITHUB_LABEL.match(str(label)) for label in labels):
+                    return job.get("name"), run.get("id")
+    return None
+
+
 def main():
     now = moment(os.environ["RESUME_NOW"]) if os.environ.get("RESUME_NOW") else datetime.now(timezone.utc)
     branches = [b["name"] for b in api_all("branches?per_page=100")]
@@ -110,6 +135,8 @@ def main():
         if started and now - started > timedelta(hours=MAX_HOURS):
             say(f"{run_id} vẫn running nhưng đã bắt đầu hơn {MAX_HOURS} giờ trước: không tự tiếp tục, người quyết định.")
             continue
+        # scripts/merge-if-green.sh reads the run table and the branch name with the same two patterns:
+        # change all three together.
         tickets = set(re.findall(r"^\|\s*\d+\s*\|\s*(T-\d+)\s*\|", text, re.M))
         own = [branch] + [b for b in branches
                           if (m := re.match(r"^claude/(?:fix-)?(T-\d+)-", b)) and m.group(1) in tickets]
@@ -123,6 +150,11 @@ def main():
             continue
         if api("issues?state=open&labels=env-broken&per_page=10"):
             say(f"{run_id} đã dừng giữa chừng, nhưng môi trường cloud đang lỗi (env-broken): không tiếp tục.")
+            continue
+        waiting = waiting_job()
+        if waiting:
+            job_name, actions_run = waiting
+            say(f"Không tiếp tục: job {job_name} (lần chạy {actions_run}) đang chờ runner tự host (ADR-0042).")
             continue
         since = f"{int((now - latest).total_seconds() // 60)} phút" if latest else "không rõ bao lâu"
         say(f"{run_id} đã dừng giữa chừng: không có commit nào trong {since}. Tiếp tục phiên.")

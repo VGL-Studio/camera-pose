@@ -19,4 +19,5 @@ Tham số: `$ARGUMENTS`. Bắt đầu bằng `apply` thì làm bài học đã n
 **apply**
 1. Lấy các bài học `accepted` (hay các mã đã nêu). Chỉ người chuyển `accepted`: bài học còn `proposed` thì hỏi dev; dev đồng ý rõ thì ghi `accepted` theo lời dev và nêu lời đồng ý trong mô tả PR.
 2. Làm thành một PR cải tiến, theo `CLAUDE.md`, mục Không được làm (file cấm sửa thì cần plan rủi ro cao đã duyệt chéo). Chạy `scripts/tests/run.sh` khi chạm `scripts/`, `scripts/check.sh` khi chạm code.
-3. Gọi `/pr-review`. Sau khi merge, ghi `applied` và số PR ở dòng Áp dụng.
+3. Sửa tài liệu quy tắc theo ADR-0044: viết quy tắc ở thì hiện tại, lý do cần thiết thành một vế câu, không ghi mã bài học vào tài liệu quy tắc và không kể lại cách làm cũ. Mã bài học và chuyện đã xảy ra ghi trong mô tả PR, để `git blame` tra ngược được. Ở dự án mẫu, chạy `scripts/history-refs.py`.
+4. Gọi `/pr-review`. Sau khi merge, ghi `applied` và số PR ở dòng Áp dụng.

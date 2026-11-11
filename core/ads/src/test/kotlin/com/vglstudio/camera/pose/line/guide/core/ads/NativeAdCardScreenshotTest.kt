@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,7 +30,7 @@ import org.robolectric.annotation.GraphicsMode
 class NativeAdCardScreenshotTest {
     @Composable
     private fun OnScreen(darkTheme: Boolean, content: @Composable () -> Unit) {
-        AppTheme(darkTheme = darkTheme) {
+        AdsTestTheme(darkTheme = darkTheme) {
             Surface {
                 Box(modifier = Modifier.fillMaxWidth().padding(Spacing.md)) { content() }
             }

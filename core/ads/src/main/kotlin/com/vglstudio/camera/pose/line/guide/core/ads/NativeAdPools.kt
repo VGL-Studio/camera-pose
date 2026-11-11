@@ -24,6 +24,9 @@ internal class NativeAdPools(
 ) {
     private val pools = mutableMapOf<NativePoolKey, NativeAdPool>()
 
+    /** The pool each placement got from [pool], so [existingPool] needs no ad unit lookup. */
+    private val byPlacement = mutableMapOf<AdPlacement, NativeAdPool>()
+
     /** Latest switch of each placement; not known yet counts as off for the preload plan. */
     private val enabledNow = mutableMapOf<AdPlacement, Boolean>()
 
@@ -45,13 +48,20 @@ internal class NativeAdPools(
     fun pool(placement: AdPlacement): NativeAdPool? {
         if (!placement.format.usesPool) return null
         val key = keyOf(placement) ?: return null
-        pools[key]?.let { return it }
+        pools[key]?.let {
+            byPlacement[placement] = it
+            return it
+        }
         val pool = newPool(key, placement)
         pools[key] = pool
+        byPlacement[placement] = pool
         logger.info(TAG, "Pool ${key.format.code} created for ${placement.key}")
         update(pool, canRequestAds.value)
         return pool
     }
+
+    /** The pool [placement] already uses, if any; never makes one and never looks up an ad unit. */
+    fun existingPool(placement: AdPlacement): NativeAdPool? = byPlacement[placement]
 
     /** One slot of the preload plan for a pooled [format], none for another format. */
     fun preloadSlots(format: AdFormat): List<PreloadSlot> =

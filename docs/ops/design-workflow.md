@@ -33,9 +33,10 @@ Khi `:core:designsystem` đổi (plan rủi ro cao, ADR-0008), test `DesignToken
 - **Điện thoại màn hình gập** (khi spec hay bản đề xuất ghi app hỗ trợ): thêm frame khung mở ra **673 x 841** cho các màn hình có bố cục đổi khi màn hình rộng (lưới thêm cột, chia hai cột, công cụ dời sang cạnh), tên `<Ten>Screen_<trạng thái>_<light|dark>_unfolded`. Khi gập lại, app dùng bố cục điện thoại nên không cần frame riêng. Máy tính bảng không thuộc khung này; app không hỗ trợ tablet thì loại tablet bằng danh mục thiết bị trên Play Console.
 - Tên trạng thái viết thường, có thể nối bằng gạch nối (`permission-denied`, `no-person`).
 - Chỉ dùng màu, chữ, khoảng cách, thành phần của hệ thống thiết kế. Cần thành phần mới thì ghi vào mục 3 của mẫu thiết kế; đó là thay đổi module core, rủi ro cao.
+- Nút Material vẽ cao dưới 48 dp (ví dụ nút chữ 40 dp như "No, thanks" của hộp thoại) chiếm 48 dp chiều cao trên frame: nút vẽ ở giữa một khoảng 48 dp. Thành phần Material luôn giữ vùng chạm tối thiểu 48 dp, nên frame vẽ khoảng của nút bằng cỡ nút thì giao diện thật cao hơn frame (8 dp với mỗi nút chữ 40 dp), và số đo lấy từ `context/` lệch với screenshot test.
 - Đủ trạng thái có trong spec: thường là bình thường, đang tải, rỗng, lỗi, và chế độ tối.
 - Chữ trên thiết kế là chữ thật, đúng như sẽ hiện trong app.
-- Bố cục phải dùng được ở màn hình thấp (360 x 640): ghi trong mục 6 của mẫu thiết kế phần nào cuộn, phần nào ghim ở đáy, khoảng trống nào co lại. Không cần dựng thêm frame ở khung thấp; app kiểm tra bằng screenshot test `<Ten>Screen_<trạng thái>_small.png` (L-028). Emulator của `device-session.yml` có màn hình 320 x 640, nên lỗi bố cục ở màn hình thấp còn lộ ra ở đó.
+- Bố cục phải dùng được ở màn hình thấp (360 x 640): ghi trong mục 6 của mẫu thiết kế phần nào cuộn, phần nào ghim ở đáy, khoảng trống nào co lại. Không cần dựng thêm frame ở khung thấp; app kiểm tra bằng screenshot test `<Ten>Screen_<trạng thái>_small.png`. Emulator của `device-session.yml` có màn hình 320 x 640, nên lỗi bố cục ở màn hình thấp còn lộ ra ở đó.
 
 ## 3. Duyệt thiết kế
 
@@ -76,7 +77,7 @@ Tên ảnh là `<Ten>Screen_<trạng thái>_<light|dark>.png`, trùng tên ảnh
 scripts/figma-export.py "<link section>" <feature>
 ```
 
-Script gọi REST API của Figma, ghi `screens/<frame>.png` ở mức 3x (kiểm tra đúng 1233 x 2673, hay 2019 x 2523 với frame `_unfolded`) và `context/<frame>.md` (bố cục, khoảng cách, màu, chữ, độ mờ, đối chiếu với `tokens.json`). Độ mờ được ghi cả của lớp tô (ví dụ `nền #1D1B20 (độ mờ 0.12, lớp tô 0.12)`) và của cả phần tử (`độ mờ của lớp 0.38`, như nút ở trạng thái tắt), để không phải ghi tay trong README (L-023 của camera-pose). Instance ghi đè màu nền, viền hay độ mờ của component gốc có dòng "CHÚ Ý: ghi đè ... của component gốc". Frame có tên khác quy tắc bị bỏ qua, nên các bản nháp để cùng section không sao; frame có tên gần đúng (chứa `Screen_` nhưng sai dạng) được in ra kèm "CHÚ Ý: bỏ qua frame", để frame bị đổi tên không lặng lẽ mất khỏi gói. REST API không bị giới hạn như Figma MCP, nên dùng được cả với gói Starter.
+Script gọi REST API của Figma, ghi `screens/<frame>.png` ở mức 3x (kiểm tra đúng 1233 x 2673, hay 2019 x 2523 với frame `_unfolded`) và `context/<frame>.md` (bố cục, khoảng cách, màu, chữ, độ mờ, đối chiếu với `tokens.json`). Độ mờ được ghi cả của lớp tô (ví dụ `nền #1D1B20 (độ mờ 0.12, lớp tô 0.12)`) và của cả phần tử (`độ mờ của lớp 0.38`, như nút ở trạng thái tắt), để không phải ghi tay trong README. Instance ghi đè màu nền, viền hay độ mờ của component gốc có dòng "CHÚ Ý: ghi đè ... của component gốc". Frame có tên khác quy tắc bị bỏ qua, nên các bản nháp để cùng section không sao; frame có tên gần đúng (chứa `Screen_` nhưng sai dạng) được in ra kèm "CHÚ Ý: bỏ qua frame", để frame bị đổi tên không lặng lẽ mất khỏi gói. REST API không bị giới hạn như Figma MCP, nên dùng được cả với gói Starter.
 
 Token: Figma > **Settings > Security > Personal access tokens > Generate new token**, chỉ chọn quyền **File content: Read-only**, hạn ngắn nhất đủ dùng. Lưu vào biến môi trường của máy, không lưu vào repo hay routine:
 
@@ -86,7 +87,7 @@ echo 'export FIGMA_TOKEN=<token>' >> ~/.zshrc   # rồi mở lại terminal và 
 
 Script đọc token từ biến môi trường và không bao giờ in ra. Lộ token thì thu hồi ở cùng trang trong Figma.
 
-PR xuất lại ảnh của feature đã có ảnh chuẩn screenshot thì chạy `scripts/design-compare.sh <feature>` sau khi xuất, và commit `design/review/` cùng PR. Không thì task sau của feature thấy ảnh so sánh đổi mà không do mình, ngoài mục 3.2 của plan (L-110).
+PR xuất lại ảnh của feature đã có ảnh chuẩn screenshot thì chạy `scripts/design-compare.sh <feature>` sau khi xuất, và commit `design/review/` cùng PR. Không thì task sau của feature thấy ảnh so sánh đổi mà không do mình, ngoài mục 3.2 của plan.
 
 **Figma MCP (gói Professional trở lên):** dùng thêm khi cần đọc sâu hơn, ví dụ tên biến của Figma (`get_variable_defs`) hay Code Connect. Gói Starter chỉ có vài lượt gọi MCP mỗi tháng; gói Professional có 200 lượt mỗi ngày. Cách tay khi không có token: chọn frame, Export setting **PNG, 3x**, **Export**.
 
@@ -157,8 +158,8 @@ AI đọc file qua MCP (chỉ đọc) và báo:
 - Màu, cỡ chữ, khoảng cách viết cứng thay vì dùng biến.
 - Frame bị đổi tên hay đổi khung khác 411 x 891 (673 x 841 với frame `_unfolded`), làm `figma-export.py` và screenshot test không khớp.
 - Phông chữ, kiểu chữ nằm ngoài hệ thống.
-- Màn hình hay trạng thái trong bản đề xuất còn thiếu, hoặc tên khác. So từng dòng: lập danh sách tên frame (màn hình, trạng thái, sáng tối, `_unfolded`) mà bản đề xuất và ADR-0020 yêu cầu, lập danh sách tên frame đang có trên Figma, rồi báo frame thiếu, frame thừa và frame tên lệch (ví dụ màn gập đặt tên khác ADR-0020; L-023 của camera-pose).
-- Instance có giá trị tô khác component gốc: màu nền, viền hay độ mờ bị ghi đè trên instance, hoặc độ mờ của lớp tô mất khi gắn biến (đã gặp 56 chỗ ở camera-pose). Với mỗi instance, so `fills`, `strokes`, `opacity` (và `opacity` của từng lớp tô) với component gốc; khác nhau thì báo tên instance, frame chứa nó và hai giá trị. `figma-export.py` cũng đánh dấu instance ghi đè trong `context/`, nhưng chỉ cho frame được xuất.
+- Màn hình hay trạng thái trong bản đề xuất còn thiếu, hoặc tên khác. So từng dòng: lập danh sách tên frame (màn hình, trạng thái, sáng tối, `_unfolded`) mà bản đề xuất và ADR-0020 yêu cầu, lập danh sách tên frame đang có trên Figma, rồi báo frame thiếu, frame thừa và frame tên lệch (ví dụ màn gập đặt tên khác ADR-0020).
+- Instance có giá trị tô khác component gốc: màu nền, viền hay độ mờ bị ghi đè trên instance, hoặc độ mờ của lớp tô mất khi gắn biến. Với mỗi instance, so `fills`, `strokes`, `opacity` (và `opacity` của từng lớp tô) với component gốc; khác nhau thì báo tên instance, frame chứa nó và hai giá trị. `figma-export.py` cũng đánh dấu instance ghi đè trong `context/`, nhưng chỉ cho frame được xuất.
 
 Giá trị mới dev muốn giữ thì AI đưa vào biến hay component, rồi áp lại cho các màn hình. Khi quét sạch và dev hài lòng, người phụ trách sản phẩm duyệt (mục 3) và đi tiếp mục 4 như mọi app.
 

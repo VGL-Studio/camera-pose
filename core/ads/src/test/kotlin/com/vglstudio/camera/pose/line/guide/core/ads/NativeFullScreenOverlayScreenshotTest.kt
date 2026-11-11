@@ -3,7 +3,6 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import androidx.compose.runtime.Composable
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -20,7 +19,7 @@ import org.robolectric.annotation.GraphicsMode
 class NativeFullScreenOverlayScreenshotTest {
     @Composable
     private fun Overlay(view: NativeFullScreenView, darkTheme: Boolean = false) {
-        AppTheme(darkTheme = darkTheme) {
+        AdsTestTheme(darkTheme = darkTheme) {
             NativeFullScreenOverlayContent(view, onClose = {}, animated = false)
         }
     }
@@ -71,7 +70,7 @@ class NativeFullScreenOverlaySmallScreenshotTest {
     @Test
     fun countdown_small() {
         captureRoboImage("src/test/screenshots/NativeFullScreenOverlay_countdown_small.png") {
-            AppTheme(darkTheme = false) {
+            AdsTestTheme(darkTheme = false) {
                 NativeFullScreenOverlayContent(
                     NativeFullScreenView(
                         ad = FakeLoadedNativeAd(FakeNativeAdAssets.Longest),

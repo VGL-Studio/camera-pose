@@ -9,7 +9,7 @@ argument-hint: "[T-NNN ...]"
 Tham số: `$ARGUMENTS` (tùy chọn: các ticket muốn đưa vào; mặc định mọi plan `approved` qua `plan-check.py`).
 
 1. Đọc `docs/CLAUDE.md`, mục Khi lập danh sách chạy; `docs/templates/run.md`; `docs/ops/pre-run-review.md`; `docs/ops/session-capabilities.md`.
-2. Kiểm không có phiên đang chạy (nhánh `claude/RUN-*-report` có `status: running`) và không có issue `main-broken`, `env-broken` đang mở. `env-broken` nói về môi trường cloud: danh sách `open_with: local` vẫn lập được, ghi issue vào mục Lý do (L-139).
+2. Kiểm không có phiên đang chạy (nhánh `claude/RUN-*-report` có `status: running`) và không có issue `main-broken`, `env-broken` đang mở. `env-broken` nói về môi trường cloud: danh sách `open_with: local` vẫn lập được, ghi issue vào mục Lý do.
 3. Gom plan `approved` chưa chạy của mọi dev, mỗi plan qua `python3 scripts/plan-check.py <plan>`. Sắp: task độc lập trước, chuỗi phụ thuộc sau cùng.
 4. Ghi `open_with:` và đối chiếu khả năng của cách mở. Plan sửa `.github/workflows/` thì nhắc `scripts/push-probe.sh` ở đầu phiên.
 5. Mục Lý do của thứ tự chạy: tổng `token_estimate` so với vài phiên gần nhất (`docs/metrics/token-usage.csv`), thời gian dự kiến, plan để phiên sau và lý do.

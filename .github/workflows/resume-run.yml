@@ -27,6 +27,8 @@ defaults:
 permissions:
   contents: read
   issues: read
+  # resume-check.py reads the queued Actions runs (ADR-0042).
+  actions: read
 
 jobs:
   resume:

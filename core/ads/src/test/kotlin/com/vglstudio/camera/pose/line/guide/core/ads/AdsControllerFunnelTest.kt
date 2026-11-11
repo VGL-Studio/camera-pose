@@ -29,11 +29,14 @@ class AdsControllerFunnelTest {
     private val activity: Activity = Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
     private val hostId get() = System.identityHashCode(activity)
 
+    // A FullScreenAdHost is in a composition, as with the shell of the app (HD-05, plan T-102).
+    private var detachHost: () -> Unit = {}
+
     private fun controller(combo: Boolean = false) = testAdsController(
         unitIds = AdUnitIds { null },
         flags = DefaultAdsFlags(FakeRemoteSettings().apply { set(AdsSettings.IS_SHOW_NATIVE_AFTER_INTER, combo) }),
         funnel = recorder,
-    )
+    ).also { detachHost = it.attachFullScreenHost() }
 
     private fun idleFor(millis: Long) = shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(millis))
 

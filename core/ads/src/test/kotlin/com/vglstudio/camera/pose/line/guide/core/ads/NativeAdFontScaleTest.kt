@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -137,7 +136,7 @@ class NativeAdFontScaleTest {
         var case by mutableStateOf(cases.first())
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme { NativeAdCard(assets, case.size, case.modifier, ctaLarge = case.ctaLarge) }
+                AdsTestTheme { NativeAdCard(assets, case.size, case.modifier, ctaLarge = case.ctaLarge) }
             }
         }
         cases.forEach { current ->
@@ -185,7 +184,7 @@ class NativeAdFontScaleTest {
         var case by mutableStateOf(cases.first())
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme {
+                AdsTestTheme {
                     Box(Modifier.fillMaxWidth().padding(16.dp)) { NativeAdCard(assets, case.size, case.modifier) }
                 }
             }
@@ -269,7 +268,9 @@ class NativeAdFontScaleTest {
         var ctaLarge by mutableStateOf(false)
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme { NativeAdCard(assets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH), ctaLarge = ctaLarge) }
+                AdsTestTheme {
+                    NativeAdCard(assets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH), ctaLarge = ctaLarge)
+                }
             }
         }
         listOf(false, true).forEach { large ->
@@ -309,7 +310,7 @@ class NativeAdFontScaleTest {
     fun medium_mediaFloor120dp_cardGrows_atFontScale3() {
         composeRule.setContent {
             WithFontScale(3f) {
-                AppTheme { NativeAdCard(longFullNativeAdAssets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH)) }
+                AdsTestTheme { NativeAdCard(longFullNativeAdAssets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH)) }
             }
         }
         val card = bounds(NativeAdTestTags.CARD)
@@ -327,7 +328,7 @@ class NativeAdFontScaleTest {
         var stepHeight = 0.dp
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme {
+                AdsTestTheme {
                     stepHeight = NativeStepAdDefaults.height()
                     Column {
                         NativeAdCard(assets, NativeAdSize.STEP, Modifier.width(CARD_WIDTH))
@@ -374,7 +375,7 @@ class NativeAdFontScaleTest {
         var assets by mutableStateOf(sampleNativeAdAssets)
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme { CollapsibleNativeAdCard(assets, onCollapse = {}, Modifier.width(CARD_WIDTH)) }
+                AdsTestTheme { CollapsibleNativeAdCard(assets, onCollapse = {}, Modifier.width(CARD_WIDTH)) }
             }
         }
         listOf(1f, 1.3f, 1.5f, 2f).forEach { scale ->
@@ -412,7 +413,7 @@ class NativeAdFontScaleTest {
         var assets by mutableStateOf(FakeNativeAdAssets.Design)
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme {
+                AdsTestTheme {
                     NativeFullScreenAdScreen(
                         assets = assets,
                         onClose = {},
@@ -463,7 +464,7 @@ class NativeAdFontScaleTest {
         var assets by mutableStateOf(FakeNativeAdAssets.Design)
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme {
+                AdsTestTheme {
                     when (form) {
                         0 -> Box(Modifier.testTag(FRAME)) {
                             NativeFullScreenAdScreen(

@@ -5,11 +5,13 @@ status: accepted             # proposed | accepted | superseded
 origin: app                  # template: ADR của dự án mẫu (mã dưới 1000) | app: ADR riêng của app (mã từ 1001)
 date: 2026-11-10
 deciders: [Nhật]
-supersedes: ADR-1007, ADR-0026   # ADR-1007: chỉ vế "`MainActivity` không đặt `FullScreenAdHost`"; ADR-0026: chỉ luật A-12 của `docs/ops/ads-business-rules.md` mà vế "hành vi quảng cáo theo ads-business-rules.md" dẫn tới, ở vế "rồi nối combo"; các vế khác của hai ADR giữ nguyên
+supersedes: ADR-1007         # chỉ vế "`MainActivity` không đặt `FullScreenAdHost`"; các vế khác của ADR-1007 giữ nguyên
 superseded_by:
 ---
 
 # ADR-1009: COMBO NATIVE TOÀN MÀN HÌNH HIỆN SAU INTERSTITIAL CỦA MÀN, KHÔNG SAU `OPEN_APP_INTER` VÀ `RESUME_INTER`; `MAINACTIVITY` ĐẶT `FULLSCREENADHOST`
+
+> **Ghi chú 2026-11-11 (đồng bộ dự án mẫu đợt 6, `151b4c2..e16632e`):** dự án mẫu đã nhận đề xuất của ADR này (issue `from-app` #445 của mẫu): luật A-12 của `docs/ops/ads-business-rules.md` nay là "`resume_inter` không nối combo", `ResumeAdTurns` của khung tự làm vậy, và ADR-0026 đã bị ADR-0045 thay. App không còn lệch luật của mẫu ở phần `resume_inter`; các vế về lệch A-12 và dòng `combo = false` riêng của app bỏ khỏi mục Quyết định và Việc AI phải tuân thủ. AI ghi theo lời anh Nhật ("Sửa ADR-1009 theo đề xuất", 2026-11-11).
 
 ## Bối cảnh
 
@@ -21,10 +23,9 @@ Lúc lấy khung (T-074, ADR-1007), spec ads giữ combo tắt, nên `MainActivi
 
 - `MainActivity` đặt `FullScreenAdHost()` một lần trong `setContent`, trong `AppTheme` và `AdsHost` (qua `AppAdsRoot`), ngay sau lời gọi `NetworkDialogHost(...) { AppNavHost(...) }`, ngoài khối nội dung của nó (HD-05; plan T-090, mục 8, câu 1). Vế "`MainActivity` không đặt `FullScreenAdHost`" của ADR-1007 không còn áp dụng; các vế khác của ADR-1007 giữ nguyên.
 - Combo hiện sau mọi interstitial của màn (`review_interstitial`, `inter_pose_detail`, và vị trí interstitial của màn thêm sau này), theo khóa `is_show_native_after_inter` và luật K-01 tới K-08 của khung. Combo không hiện sau `open_app_inter` (khung đã vậy) và không hiện sau `resume_inter` (spec ads, câu 18).
-- App không theo vế "rồi nối combo nếu `is_show_native_after_inter` bật" của luật A-12 trong `docs/ops/ads-business-rules.md` mà ADR-0026 dựa vào: lệch có chủ đích, làm bằng đúng một dòng `combo = false` trong `ResumeAdTurns.onAppActivityResumed` của `:core:ads`, giữ chữ ký `ResumeAdPort.showInterstitial` của khung. Đợt đồng bộ với dự án mẫu (`docs/ops/to-app.md`) phải giữ dòng này.
-- `docs/ops/ads-guide.md` dòng "inter của resume nối combo khi `is_show_native_after_inter` bật" (mục quảng cáo khi quay lại app) và dòng "Đặt `resume_ad_type = inter` (Firebase staging): quay lại thì có inter rồi combo" không đúng với app này; hai file `docs/ops/ads-business-rules.md` và `docs/ops/ads-guide.md` là của dự án mẫu, không sửa. Lệch ghi ở ADR này và `docs/foundation.md`.
+- `resume_inter` không nối combo theo luật A-12 của khung (ADR-0045, `docs/ops/ads-business-rules.md`); app không có code riêng cho việc này.
 - Bản staging bật sẵn `is_show_native_after_inter` trong `StagingRemoteValuesModule`; Firebase staging vẫn tắt được vì giá trị Firebase thắng giá trị cục bộ (ADR-1007). Production bật khi phát hành, bằng khóa trên Firebase production (việc của người, ADR-0007, ADR-0009), cần mã quảng cáo thật của `native_combo` (T-075).
-- Đề xuất về dự án mẫu (`docs/ops/from-app.md`): (a) khung có công tắc cho `resume_inter` nối combo hay không, mặc định như mẫu; (b) khung không mở lượt combo khi không có host nào vẽ (TS-20261102-01, P-1, việc 3).
+- Đề xuất về dự án mẫu (`docs/ops/from-app.md`) đã được nhận: `resume_inter` không nối combo (A-12), và khung không mở lượt combo khi không có host nào vẽ (K-09) (issue #445 của mẫu).
 
 ## Các phương án đã cân nhắc
 
@@ -37,6 +38,6 @@ Lúc lấy khung (T-074, ADR-1007), spec ads giữ combo tắt, nên `MainActivi
 
 ## Hệ quả
 
-- **Tích cực:** combo thật sự hiện, đếm ngược và đóng được sau interstitial của màn; không còn lượt combo vô hình giữ chặn quảng cáo quay lại app; `resume_inter` đóng là về màn cũ ngay; `foundation.md` ghi rõ lệch so với luật A-12 và `ads-guide.md`.
-- **Phải chấp nhận:** mỗi interstitial của màn dài thêm một lượt combo (theo dõi giữ chân ngày 1 sau khi phát hành, ticket T-090); popup mất mạng chờ lâu hơn khi mất mạng trong lúc combo (`features/network/spec.md`, mục 5); đợt đồng bộ phải giữ dòng `combo = false`; `docs/ops/ads-business-rules.md` (A-12) và `docs/ops/ads-guide.md` còn ghi hành vi của mẫu; mọi kịch bản emulator đi qua interstitial của màn phải có bước đóng lớp phủ combo khi nó hiện (`wait str=ads_close_full_screen | ...`, `tap_if str=ads_close_full_screen`).
-- **Việc AI phải tuân thủ:** giữ đúng một lời gọi `FullScreenAdHost()` trong `MainActivity`, trong `AppTheme`, ngay sau `NetworkDialogHost`; giữ dòng `combo = false` của `ResumeAdTurns` khi đồng bộ từ dự án mẫu, không nối combo sau `resume_inter` hay `open_app_inter`; interstitial của màn (vị trí không toàn app) luôn đi qua `showInterstitial` của `:core:ads` để combo nối theo khóa `is_show_native_after_inter`; không sửa `docs/ops/ads-business-rules.md` hay `docs/ops/ads-guide.md` vì lệch này, luật A-12 và dòng "inter của resume nối combo" của `ads-guide.md` không áp dụng cho app; kịch bản emulator đi qua interstitial của màn thêm bước `wait str=ads_close_full_screen | <màn đích>` rồi `tap_if str=ads_close_full_screen` sau bước đóng interstitial; không đổi luật K-01 tới K-08 của khung ở app.
+- **Tích cực:** combo thật sự hiện, đếm ngược và đóng được sau interstitial của màn; không còn lượt combo vô hình giữ chặn quảng cáo quay lại app; `resume_inter` đóng là về màn cũ ngay.
+- **Phải chấp nhận:** mỗi interstitial của màn dài thêm một lượt combo (theo dõi giữ chân ngày 1 sau khi phát hành, ticket T-090); popup mất mạng chờ lâu hơn khi mất mạng trong lúc combo (`features/network/spec.md`, mục 5); mọi kịch bản emulator đi qua interstitial của màn phải có bước đóng lớp phủ combo khi nó hiện (`wait str=ads_close_full_screen | ...`, `tap_if str=ads_close_full_screen`).
+- **Việc AI phải tuân thủ:** giữ đúng một lời gọi `FullScreenAdHost()` trong `MainActivity`, trong `AppTheme`, ngay sau `NetworkDialogHost`; không nối combo sau `resume_inter` hay `open_app_inter` (luật A-12 của khung); interstitial của màn (vị trí không toàn app) luôn đi qua `showInterstitial` của `:core:ads` để combo nối theo khóa `is_show_native_after_inter`; kịch bản emulator đi qua interstitial của màn thêm bước `wait str=ads_close_full_screen | <màn đích>` rồi `tap_if str=ads_close_full_screen` sau bước đóng interstitial; không đổi luật K-01 tới K-08 của khung ở app.

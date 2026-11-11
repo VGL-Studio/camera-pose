@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -66,7 +65,7 @@ class NativeAdCardTest {
 
     private fun setCard(size: NativeAdSize, assets: NativeAdAssets = sampleNativeAdAssets) {
         composeRule.setContent {
-            AppTheme { NativeAdCard(assets = assets, size = size, modifier = Modifier.width(CARD_WIDTH)) }
+            AdsTestTheme { NativeAdCard(assets = assets, size = size, modifier = Modifier.width(CARD_WIDTH)) }
         }
     }
 
@@ -159,7 +158,7 @@ class NativeAdCardTest {
     fun medium_ctaIs44dp_labelLarge14sp() {
         var labelLarge: TextStyle? = null
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 labelLarge = MaterialTheme.typography.labelLarge
                 NativeAdCard(sampleNativeAdAssets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH))
             }
@@ -174,7 +173,7 @@ class NativeAdCardTest {
     fun medium_starRow16dp_belowBadgeLine_hiddenStarsKeepHeight() {
         var assets by mutableStateOf(sampleNativeAdAssets.copy(starRating = 4.0))
         composeRule.setContent {
-            AppTheme { NativeAdCard(assets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH)) }
+            AdsTestTheme { NativeAdCard(assets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH)) }
         }
         composeRule.onAllNodesWithTag(NativeAdTestTags.STAR, useUnmergedTree = true).assertCountEquals(4)
         val row = bounds(NativeAdTestTags.STAR_ROW)
@@ -194,7 +193,7 @@ class NativeAdCardTest {
     fun medium_ctaLarge_56dp_17sp_cardIs422dp() {
         var large by mutableStateOf(true)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdCard(sampleNativeAdAssets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH), ctaLarge = large)
             }
         }
@@ -214,7 +213,7 @@ class NativeAdCardTest {
     @Test
     fun card_iconIs32dp_headline13sp_mediaFillsTop_ctaIs36dp() {
         composeRule.setContent {
-            AppTheme { NativeAdCard(sampleNativeAdAssets, NativeAdSize.CARD, Modifier.size(180.dp, 300.dp)) }
+            AdsTestTheme { NativeAdCard(sampleNativeAdAssets, NativeAdSize.CARD, Modifier.size(180.dp, 300.dp)) }
         }
         val card = bounds(NativeAdTestTags.CARD)
         assertEquals(180f, (card.right - card.left).value, 0.5f)
@@ -238,7 +237,7 @@ class NativeAdCardTest {
     @Test
     fun card_showsAdBadge_leavesAdChoicesCornerFree() {
         composeRule.setContent {
-            AppTheme { NativeAdCard(sampleNativeAdAssets, NativeAdSize.CARD, Modifier.size(180.dp, 300.dp)) }
+            AdsTestTheme { NativeAdCard(sampleNativeAdAssets, NativeAdSize.CARD, Modifier.size(180.dp, 300.dp)) }
         }
         composeRule.onNodeWithText(badge, useUnmergedTree = true).assertExists()
         val card = bounds(NativeAdTestTags.CARD)
@@ -258,7 +257,7 @@ class NativeAdCardTest {
     @Test
     fun card_inFixedCell_takesCellSize() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Box(Modifier.size(160.dp, 240.dp)) { NativeAdCard(sampleNativeAdAssets, NativeAdSize.CARD) }
             }
         }
@@ -268,10 +267,37 @@ class NativeAdCardTest {
     }
 
     @Test
+    fun card_cardHeight_setsCardAndPlaceholderHeight() {
+        var size by mutableStateOf(NativeAdSize.CARD)
+        composeRule.setContent {
+            AdsTestTheme {
+                Column {
+                    NativeAdCard(sampleNativeAdAssets, size, Modifier.width(CARD_WIDTH), cardHeight = APP_CARD_HEIGHT)
+                    NativeAdPlaceholder(
+                        size,
+                        Modifier.width(CARD_WIDTH),
+                        animated = false,
+                        cardHeight = APP_CARD_HEIGHT,
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(APP_CARD_HEIGHT)
+        composeRule.onNodeWithTag(NativeAdTestTags.PLACEHOLDER).assertHeightIsEqualTo(APP_CARD_HEIGHT)
+
+        // Control: another size keeps its own height, whatever cardHeight says.
+        size = NativeAdSize.MEDIUM
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(410.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.PLACEHOLDER).assertHeightIsEqualTo(410.dp)
+    }
+
+    @Test
     fun placeholder_matchesCardHeight_forEachSize() {
         var size by mutableStateOf(NativeAdSize.SMALL)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column {
                     NativeAdCard(sampleNativeAdAssets, size, Modifier.width(CARD_WIDTH))
                     NativeAdPlaceholder(size, Modifier.width(CARD_WIDTH), animated = false)
@@ -355,7 +381,7 @@ class NativeAdCardTest {
     @Test
     fun stepPlaceholder_ctaIs36dp() {
         composeRule.setContent {
-            AppTheme { NativeAdPlaceholder(NativeAdSize.STEP, Modifier.width(CARD_WIDTH), animated = false) }
+            AdsTestTheme { NativeAdPlaceholder(NativeAdSize.STEP, Modifier.width(CARD_WIDTH), animated = false) }
         }
         composeRule.onNodeWithTag(NativeAdTestTags.PLACEHOLDER).assertHeightIsEqualTo(250.dp)
         composeRule.onNodeWithTag(NativeAdTestTags.PLACEHOLDER_CTA, useUnmergedTree = true)
@@ -367,7 +393,7 @@ class NativeAdCardTest {
         val long = sampleNativeAdAssets.copy(headline = "H".repeat(40) + " " + "e".repeat(39), body = "b ".repeat(150))
         var size by mutableStateOf(NativeAdSize.SMALL)
         composeRule.setContent {
-            AppTheme { NativeAdCard(long.copy(advertiser = null), size, Modifier.width(CARD_WIDTH)) }
+            AdsTestTheme { NativeAdCard(long.copy(advertiser = null), size, Modifier.width(CARD_WIDTH)) }
         }
         composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(80.dp)
         composeRule.onNodeWithTag(NativeAdTestTags.HEADLINE, useUnmergedTree = true).assertHeightIsEqualTo(20.dp)
@@ -386,7 +412,7 @@ class NativeAdCardTest {
     fun small_ctaAtMost120dpWide_shortCtaKeepsWidth() {
         var assets by mutableStateOf(longFullNativeAdAssets)
         composeRule.setContent {
-            AppTheme { NativeAdCard(assets, NativeAdSize.SMALL, Modifier.width(CARD_WIDTH)) }
+            AdsTestTheme { NativeAdCard(assets, NativeAdSize.SMALL, Modifier.width(CARD_WIDTH)) }
         }
         val cta = bounds(NativeAdTestTags.CTA)
         val headline = bounds(NativeAdTestTags.HEADLINE)
@@ -426,7 +452,7 @@ class NativeAdCardTest {
         var text = ""
         var labelSmall: TextStyle? = null
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 text = stringResource(R.string.ads_native_badge)
                 labelSmall = MaterialTheme.typography.labelSmall
                 NativeAdCard(sampleNativeAdAssets, NativeAdSize.SMALL, Modifier.width(CARD_WIDTH))
@@ -487,7 +513,7 @@ class NativeAdCardTest {
     fun full_placeholderHeight_equalsCardHeight_shortAndLongTexts() {
         var assets by mutableStateOf(sampleNativeAdAssets)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 Column {
                     NativeAdCard(assets, NativeAdSize.FULL, Modifier.width(CARD_WIDTH))
                     NativeAdPlaceholder(NativeAdSize.FULL, Modifier.width(CARD_WIDTH), animated = false)
@@ -530,7 +556,7 @@ class NativeAdCardTest {
         var assets by mutableStateOf(sampleNativeAdAssets)
         composeRule.setContent {
             WithFontScale(fontScale) {
-                AppTheme { NativeAdCard(assets, NativeAdSize.FULL, Modifier.width(CARD_WIDTH)) }
+                AdsTestTheme { NativeAdCard(assets, NativeAdSize.FULL, Modifier.width(CARD_WIDTH)) }
             }
         }
         listOf(1f, 1.3f, 2f).forEach { scale ->
@@ -579,7 +605,7 @@ class NativeAdCardTest {
     fun full_mediaFloor120dp_cardGrows_atFontScale3() {
         composeRule.setContent {
             WithFontScale(3f) {
-                AppTheme { NativeAdCard(longFullNativeAdAssets, NativeAdSize.FULL, Modifier.width(CARD_WIDTH)) }
+                AdsTestTheme { NativeAdCard(longFullNativeAdAssets, NativeAdSize.FULL, Modifier.width(CARD_WIDTH)) }
             }
         }
         val card = bounds(NativeAdTestTags.CARD)
@@ -599,7 +625,7 @@ class NativeAdCardTest {
     fun full_starRow_hiddenWhenZero_shownFilledWhenFour() {
         var assets by mutableStateOf(sampleNativeAdAssets.copy(starRating = 0.0))
         composeRule.setContent {
-            AppTheme { NativeAdCard(assets, NativeAdSize.FULL, Modifier.width(CARD_WIDTH)) }
+            AdsTestTheme { NativeAdCard(assets, NativeAdSize.FULL, Modifier.width(CARD_WIDTH)) }
         }
         composeRule.onAllNodesWithTag(NativeAdTestTags.STAR_ROW, useUnmergedTree = true).assertCountEquals(0)
         composeRule.onAllNodesWithTag(NativeAdTestTags.STAR, useUnmergedTree = true).assertCountEquals(0)
@@ -626,7 +652,7 @@ class NativeAdCardTest {
     fun mediumPlaceholder_ctaIs44dp() {
         var ctaLarge by mutableStateOf(false)
         composeRule.setContent {
-            AppTheme { NativeAdPlaceholder(NativeAdSize.MEDIUM, animated = false, ctaLarge = ctaLarge) }
+            AdsTestTheme { NativeAdPlaceholder(NativeAdSize.MEDIUM, animated = false, ctaLarge = ctaLarge) }
         }
         composeRule.waitForIdle()
         // The CTA block of the medium placeholder has the 44 dp CTA of the medium ad (plan T-028; kept from the
@@ -647,7 +673,7 @@ class NativeAdCardTest {
         var dark by mutableStateOf(false)
         var scheme: ColorScheme? = null
         composeRule.setContent {
-            AppTheme(darkTheme = dark) {
+            AdsTestTheme(darkTheme = dark) {
                 scheme = MaterialTheme.colorScheme
                 NativeAdCard(sampleNativeAdAssets, size, Modifier.width(CARD_WIDTH))
             }
@@ -733,6 +759,9 @@ class NativeAdCardTest {
 
     private companion object {
         val CARD_WIDTH = 379.dp
+
+        /** The height of the app's card next to an ad card, other than the 300 dp default. */
+        val APP_CARD_HEIGHT = 420.dp
 
         /**
          * The full native ad, fixed so the placeholder matches it: 1 + 24 top, head 40, media 200, body 40 (two

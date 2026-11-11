@@ -7,6 +7,7 @@ import org.gradle.kotlin.dsl.dependencies
 /**
  * Convention for every :feature:* module (ADR-0001).
  * A feature depends on core modules only. Screenshot tests are stored in src/test/screenshots.
+ * Features declare activity-compose directly so `LocalActivity` resolves; do not rely on it arriving transitively.
  */
 class AndroidFeatureConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -29,6 +30,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 add("implementation", project(":core:assets"))
                 add("implementation", project(":core:logging"))
 
+                add("implementation", libs.lib("androidx-activity-compose"))
                 add("implementation", libs.lib("androidx-lifecycle-runtime-compose"))
                 add("implementation", libs.lib("androidx-lifecycle-viewmodel-compose"))
                 add("implementation", libs.lib("androidx-navigation-compose"))

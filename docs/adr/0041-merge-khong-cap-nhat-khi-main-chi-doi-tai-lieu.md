@@ -11,6 +11,8 @@ superseded_by:
 
 # ADR-0041: MERGE-IF-GREEN.SH MERGE PR CODE MÀ KHÔNG CẬP NHẬT NHÁNH KHI NHÁNH CHÍNH CHỈ ĐỔI TÀI LIỆU TỪ ĐIỂM TÁCH, VÀ PR NHÁP KHÔNG CHẠY PR-CHECK
 
+> Ghi chú 2026-11-09: với danh sách file của PR, `scripts/merge-if-green.sh` hỏi thêm `scripts/main-guard-verified.sh --guard-ignores` (mọi file đều nằm trong `paths-ignore` của `main-guard.yml` không), thay cho `--docs-only`, vì việc `main-guard` có chạy trên commit merge hay không do `paths-ignore` quyết: PR chỉ gồm file mà `paths-ignore` bỏ qua, kể cả file `docs/` mà Gradle đọc, luôn được cập nhật nhánh. Danh sách file nhánh chính đổi từ điểm tách vẫn hỏi `--docs-only`. Quyết định của ADR này giữ nguyên.
+
 Nguồn: yêu cầu giảm chi phí GitHub Actions (`docs/features/quy-trinh/requests/2026-10-29-giam-phut-actions.md`, cách 5), ticket T-077.
 
 ## Bối cảnh

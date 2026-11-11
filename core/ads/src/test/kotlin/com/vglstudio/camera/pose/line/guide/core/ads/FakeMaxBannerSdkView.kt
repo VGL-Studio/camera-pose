@@ -11,7 +11,7 @@ import androidx.test.core.app.ApplicationProvider
  */
 internal class FakeMaxBannerSdkView(val calls: MutableList<String> = mutableListOf()) : MaxBannerSdkView {
     private var onLoaded: () -> Unit = {}
-    private var onFailed: (Int) -> Unit = {}
+    private var onFailed: (Int, String?) -> Unit = { _, _ -> }
     private var onClicked: () -> Unit = {}
 
     override val view: View by lazy { View(ApplicationProvider.getApplicationContext<Context>()) }
@@ -21,7 +21,11 @@ internal class FakeMaxBannerSdkView(val calls: MutableList<String> = mutableList
     val stopCount: Int get() = calls.count { it == STOP }
     val destroyCount: Int get() = calls.count { it == DESTROY }
 
-    override fun setCallbacks(onLoaded: () -> Unit, onFailed: (code: Int) -> Unit, onClicked: () -> Unit) {
+    override fun setCallbacks(
+        onLoaded: () -> Unit,
+        onFailed: (code: Int, message: String?) -> Unit,
+        onClicked: () -> Unit,
+    ) {
         calls += CALLBACKS
         this.onLoaded = onLoaded
         this.onFailed = onFailed
@@ -46,7 +50,7 @@ internal class FakeMaxBannerSdkView(val calls: MutableList<String> = mutableList
 
     fun emitLoaded() = onLoaded()
 
-    fun emitFailed(code: Int) = onFailed(code)
+    fun emitFailed(code: Int, message: String? = null) = onFailed(code, message)
 
     fun emitClicked() = onClicked()
 

@@ -24,6 +24,7 @@ internal interface ResumeAdPort {
 
     fun showAppOpen(activity: Activity, placement: AdPlacement)
 
+    /** The resume interstitial never opens the combo (K-01, A-12). */
     fun showInterstitial(activity: Activity, placement: AdPlacement, combo: Boolean)
 }
 
@@ -84,7 +85,6 @@ internal class ResumeAdTurns(private val port: ResumeAdPort, private val logger:
         logger.info(TAG, "Resume ad shown on resume: ${placement.key}")
         when (placement.format) {
             AdFormat.APP_OPEN -> port.showAppOpen(activity, placement)
-            // No combo after the resume interstitial (spec ads, question 18; ADR-1009): app deviation from A-12.
             AdFormat.INTERSTITIAL -> port.showInterstitial(activity, placement, combo = false)
             else -> logger.warn(TAG, "Resume ad ${placement.key}: format not shown")
         }

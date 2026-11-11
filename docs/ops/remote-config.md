@@ -1,6 +1,6 @@
 # HƯỚNG DẪN REMOTE CONFIG
 
-Tài liệu này dành cho dev, AI và người vận hành. Nó nói cách đặt tên, khai báo, thử và đổi các giá trị cấu hình từ xa qua Firebase Remote Config. Quyết định nằm ở ADR-0003 (cờ tính năng và tham số kinh doanh), ADR-0012 (nối Firebase), ADR-0014 (giá trị mặc định của quảng cáo), ADR-0018 (chờ cấu hình ở màn hình loading), ADR-0023 (quy ước khóa) và ADR-0026 (khóa quảng cáo theo tên AdsKit).
+Tài liệu này dành cho dev, AI và người vận hành. Nó nói cách đặt tên, khai báo, thử và đổi các giá trị cấu hình từ xa qua Firebase Remote Config. Quyết định nằm ở ADR-0003 (cờ tính năng và tham số kinh doanh), ADR-0012 (nối Firebase), ADR-0018 (chờ cấu hình ở màn hình loading), ADR-0046 (quy ước khóa) và ADR-0045, mục 6 (khóa quảng cáo theo tên AdsKit, giá trị mặc định của quảng cáo).
 
 ## 1. Khóa dùng để làm gì
 
@@ -16,12 +16,12 @@ Feature không đọc Remote Config trực tiếp (ADR-0003); nó đọc cờ qu
 
 - Chữ thường, nối bằng gạch dưới.
 - Cờ tính năng: `feature_<ten>_enabled`. Tham số của module: `<module>_<tham số>`, đơn vị ở cuối (`_seconds`, `_count`, `_percent`).
-- **Quảng cáo** (ADR-0026, thay mục 1 của ADR-0023 cho khóa quảng cáo): khái niệm có trong AdsKit dùng **đúng tên của AdsKit**, kể cả lỗi chính tả `show_resum_ads`. Bảng khóa ở [ads-business-rules.md](ads-business-rules.md), mục 10. Khóa mới đặt cùng kiểu với AdsKit:
+- **Quảng cáo** (ADR-0045, mục 6): khái niệm có trong AdsKit dùng **đúng tên của AdsKit**, kể cả lỗi chính tả `show_resum_ads`. Bảng khóa ở [ads-business-rules.md](ads-business-rules.md), mục 10. Khóa mới đặt cùng kiểu với AdsKit:
   - Khóa của vị trí **suy ra từ khai báo vị trí**, không đặt tay (mục Mô hình chung của `ads-business-rules.md`): bật tắt `is_show_<mã vị trí>` (ví dụ `is_show_inter_save`); nhóm giãn cách riêng `ads_interval_<nhóm>`; tham số riêng `<tham số>_<mã vị trí>` (câu hỏi 28 của spec ads). Mã vị trí trùng tên AdsKit thì khóa trùng đúng chuỗi AdsKit (`rw_get_item`, `native_onboarding`, nhóm `sounds`).
   - Khóa chung khác: `show_<thứ>_ads` cho loại quảng cáo theo thời điểm; loại `<thứ>_type` (giá trị chuỗi, ví dụ `aoa`, `inter`); thời gian `time_<việc>_<thứ>`; công tắc số liệu `is_log_<thứ>`.
-  - Khóa không có trong bảng khóa chính thức của AdsKit ghi rõ "tên do ta đặt" trong bảng khóa (mục 10 của `ads-business-rules.md`). Khóa mang tên của JBase (ADR-0038, ví dụ `time_close_native`) ghi nguồn tên "JBase".
+  - Khóa không có trong bảng khóa chính thức của AdsKit ghi rõ "tên do ta đặt" trong bảng khóa (mục 10 của `ads-business-rules.md`). Khóa mang tên của JBase (ADR-0045, ví dụ `time_close_native`) ghi nguồn tên "JBase".
   - Đơn vị ghi trong mô tả khóa (giây, lần), không ghi ở cuối tên.
-- Kiểu: boolean, long, double, string. Không dùng khối JSON làm cấu hình (ADR-0023). Danh sách ngắn thì dùng string, ghi định dạng trong mô tả (ví dụ `"vi,en,hi"`).
+- Kiểu: boolean, long, double, string. Không dùng khối JSON làm cấu hình (ADR-0046). Danh sách ngắn thì dùng string, ghi định dạng trong mô tả (ví dụ `"vi,en,hi"`).
 - Khóa đã phát hành không đổi tên, không đổi kiểu. Cần khác thì tạo khóa mới; khóa cũ giữ tới khi không còn bản app nào đọc.
 
 ## 3. Thêm một khóa
@@ -29,7 +29,7 @@ Feature không đọc Remote Config trực tiếp (ADR-0003); nó đọc cờ qu
 1. **Có trong spec hay plan:** cờ tính năng mới đi cùng feature; tham số kinh doanh (quảng cáo, giới hạn, ngưỡng) phải có trong spec đã duyệt.
 2. **Khai báo một chỗ** ở module sở hữu, bằng `RemoteKey` của `:core:config` (`RemoteKey.boolean`, `long`, `double`, `string`): tên, kiểu, giá trị mặc định, mô tả một câu viết tiếng Anh (hiện trên Firebase, tối đa 256 ký tự). Mặc định là giá trị an toàn khi chưa tải được cấu hình: cờ và vị trí quảng cáo tắt; giới hạn tần suất nghiêng về ít quảng cáo.
    - Cờ tính năng: một mục trong `FeatureFlag` (`:core:config`), có mô tả; khóa có kiểu là `FeatureFlag.remoteKey`.
-   - Khóa quảng cáo chung: một `RemoteKey` trong `AdsSettings` (`:core:ads`), thêm vào `AdsSettings.all()` (test báo lỗi nếu quên), tên theo bảng khóa của `ads-business-rules.md`. Tên không có trong bảng khóa chính thức của AdsKit thì mô tả tự kết thúc bằng câu `Name set by the template, not an AdsKit key.`; tên lấy từ JBase (`AdsSettings.JBASE_KEY_NAMES`, ADR-0038) thì kết thúc bằng `Name from JBase, not an AdsKit key.` `:core:ads` chỉ đọc khóa qua `AdsFlags`.
+   - Khóa quảng cáo chung: một `RemoteKey` trong `AdsSettings` (`:core:ads`), thêm vào `AdsSettings.all()` (test báo lỗi nếu quên), tên theo bảng khóa của `ads-business-rules.md`. Tên không có trong bảng khóa chính thức của AdsKit thì mô tả tự kết thúc bằng câu `Name set by the template, not an AdsKit key.`; tên lấy từ JBase (`AdsSettings.JBASE_KEY_NAMES`, ADR-0045) thì kết thúc bằng `Name from JBase, not an AdsKit key.` `:core:ads` chỉ đọc khóa qua `AdsFlags`.
    - Khóa của vị trí quảng cáo không khai báo tay: suy ra từ dòng của vị trí trong `AdPlacement` và tự có trong `AdsSettings.all()`: `AdsSettings.placementEnabled` (`is_show_<mã vị trí>`), `AdsSettings.interval` (`ads_interval_<nhóm>` của nhóm giãn cách riêng), `AdsSettings.nativeEvery` (`native_every_<mã vị trí>` khi vị trí khai báo `nativeEvery`). Mô tả của khóa suy ra kết thúc bằng `Derived key of ...`.
    - Công tắc sự kiện AppsFlyer `is_log_af_*`: trong `AppsFlyerSettings` (`:core:analytics`).
    - Tham số khác: một `RemoteKey` trong module core sở hữu, đọc qua `RemoteSettings.value(key)`. Module core mới có khóa thì thêm vào `AppRemoteKeys` (`:app`).
@@ -43,11 +43,11 @@ Feature không đọc Remote Config trực tiếp (ADR-0003); nó đọc cờ qu
 - Chỉ màn hình loading chờ tải cấu hình lần đầu, có giới hạn thời gian (ADR-0018).
 - Thứ tự ưu tiên khác nhau giữa cờ và tham số:
   - Cờ tính năng: cờ bật riêng cho bản build (`StagingFeatureFlagsModule`) luôn bật, Firebase không tắt được; cờ khác theo giá trị từ Firebase, rồi mặc định trong code (tắt).
-  - Tham số (`RemoteSettings`, kể cả khóa quảng cáo): giá trị từ Firebase > giá trị cục bộ của bản build (`StagingRemoteValuesModule`, chỉ staging) > mặc định trong code (ADR-0023, mục 5). Firebase staging vì vậy vẫn đổi được tham số và tắt được từng vị trí quảng cáo trên staging.
+  - Tham số (`RemoteSettings`, kể cả khóa quảng cáo): giá trị từ Firebase > giá trị cục bộ của bản build (`StagingRemoteValuesModule`, chỉ staging) > mặc định trong code (ADR-0046, mục 5). Firebase staging vì vậy vẫn đổi được tham số và tắt được từng vị trí quảng cáo trên staging.
 
 ## 5. Đổi giá trị trên Firebase
 
-Đổi giá trị là đổi hành vi của app đang chạy ở máy người dùng: làm như một lần phát hành nhỏ (ADR-0023).
+Đổi giá trị là đổi hành vi của app đang chạy ở máy người dùng: làm như một lần phát hành nhỏ (ADR-0046).
 
 1. **Ghi trước:** khóa, giá trị cũ, giá trị mới (giá trị dự định nằm ở cột Giá trị phát hành của file kế hoạch, [ads-plan.md](ads-plan.md)), điều kiện, lý do, người đổi, vào sổ đổi cấu hình của app (`docs/ops/` của app, mỗi lần một dòng).
 2. **Dùng điều kiện để bật dần:** theo phiên bản app (chỉ bản đã có code đọc khóa), quốc gia, hay phần trăm người dùng. Vị trí quảng cáo mới: bật cho phần nhỏ người dùng trước, xem giữ chân và điểm Play rồi mới mở rộng.

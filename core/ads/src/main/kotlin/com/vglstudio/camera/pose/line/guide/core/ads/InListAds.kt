@@ -47,7 +47,9 @@ private const val TAG = "Ads"
  * row that failed tries again 5 s later while it is drawn, only while the in-screen window is open (foreground, no
  * full-screen ad over the app, KB-27) and the consent gate is open right at the send (O-05, plan T-059). A row of a
  * pooled format (medium, card: plan T-028) is a cell of the pool ([pooledCell]): it takes an ad when it comes on
- * screen and gives it back when it leaves (P-01, P-01a), so a row scrolled back may show another ad.
+ * screen and gives it back when it leaves (P-01, P-01a), so a row scrolled back may show another ad. A one-cell card of
+ * a grid that gets no ad while the pool is exhausted leaves the grid ([cellShown]); every 2 s the grid asks the pool,
+ * and each time it has a free ad one cell that left comes back (P-06).
  */
 @Stable
 class InListAds internal constructor(
@@ -60,8 +62,12 @@ class InListAds internal constructor(
     internal val pooledCell: (() -> Flow<NativeAdState>)? = null,
     /** Records the opportunity of a pooled row (P-07). */
     internal val onPoolOpportunity: (result: String) -> Unit = {},
-    /** Whether the pool of [placement] is exhausted now (P-05); null without a pool. */
+    /** The pool of [placement] is exhausted now (P-05): a one-cell card with no ad leaves the grid. Null: never. */
     internal val poolExhausted: (() -> Boolean)? = null,
+    /** The pool of [placement] has a free ad now: one cell that left comes back. Null: only when ads come back on. */
+    internal val poolHasFreeAd: (() -> Boolean)? = null,
+    /** A one-cell card of a grid keeps a static placeholder when the pool is exhausted, instead of leaving. */
+    internal val keepSpaceWhenPoolEmpty: Boolean = placement.keepSpaceWhenPoolEmpty,
 ) {
     private val everyState = every
 
@@ -77,42 +83,21 @@ class InListAds internal constructor(
     private val shown = mutableMapOf<Int, MutableStateFlow<Boolean>>()
     private var destroyed = false
 
-    // Grid cells of a card (KB-6, criterion 5; plan T-080): no empty cell while the pool is exhausted. Declared before
-    // `init`, which may call release() at once.
+    // One-cell cards of a grid while the pool is exhausted (P-06). State: the grid reads it while it lists its items.
     private val poolEmpty = mutableStateOf(false)
+
+    /** Cells that show an ad: they stay in the grid while the pool is exhausted. */
     private val holding = mutableStateMapOf<Int, Boolean>()
+
+    /** Cells put back while the pool is still exhausted, one per free ad. */
+    private val admitted = mutableStateMapOf<Int, Boolean>()
+
+    /** Cells that left the grid and were not put back yet, lowest first. */
+    private val outSlots = sortedSetOf<Int>()
     private var poolWatch: Job? = null
 
     /** Current N, or null while no ad row may be added. */
     val every: Int? get() = everyState.value
-
-    /** A one-cell grid ad of [slot] is laid out: the pool may still give an ad, or the cell holds one. */
-    internal fun cellShown(slot: Int): Boolean = !poolEmpty.value || holding[slot] == true
-
-    /**
-     * A pooled cell of [slot] has a new state. A cell with no ad while the pool is exhausted marks the pool empty: the
-     * cells that hold no ad leave the grid, and the pool is asked again every [PoolCellPolicy.EXHAUSTED_RETRY_MILLIS]
-     * until it may give an ad again (P-05).
-     */
-    internal fun onCellState(slot: Int, state: NativeAdState) {
-        if (state is NativeAdState.Loaded) holding[slot] = true else holding.remove(slot)
-        if (state == NativeAdState.Unavailable && poolExhausted?.invoke() == true) {
-            poolEmpty.value = true
-            if (poolWatch?.isActive != true) {
-                poolWatch = scope.launch {
-                    while (poolEmpty.value) {
-                        delay(PoolCellPolicy.EXHAUSTED_RETRY_MILLIS)
-                        if (poolExhausted.invoke() != true) poolEmpty.value = false
-                    }
-                }
-            }
-        }
-    }
-
-    /** The pooled cell of [slot] left the composition: its ad went back to the pool. */
-    internal fun onCellLeft(slot: Int) {
-        holding.remove(slot)
-    }
 
     init {
         // Consent withdrawn or placement switched off while the screen is open: the rows go away, so do their ads.
@@ -156,6 +141,57 @@ class InListAds internal constructor(
         shown[index]?.value = isShown
     }
 
+    /**
+     * Whether the one-cell card of [slot] is in the grid now: always, except while the pool is exhausted, when only
+     * the cells that show an ad and the cells put back are.
+     */
+    internal fun cellShown(slot: Int): Boolean = !poolEmpty.value || holding[slot] == true || admitted[slot] == true
+
+    /**
+     * The pooled cell of [slot] drew [state]. With no ad while the pool is exhausted, and no space kept, the cell
+     * leaves the grid and the watch of the pool starts (P-06).
+     */
+    internal fun onCellState(slot: Int, state: NativeAdState) {
+        if (state is NativeAdState.Loaded) {
+            holding[slot] = true
+            admitted.remove(slot)
+            outSlots.remove(slot)
+            return
+        }
+        holding.remove(slot)
+        if (state != NativeAdState.Unavailable || poolExhausted?.invoke() != true || keepSpaceWhenPoolEmpty) return
+        poolEmpty.value = true
+        admitted.remove(slot)
+        outSlots.add(slot)
+        logger?.info(TAG, "in-list ${placement.key} cell $slot: out of the grid (pool exhausted)")
+        if (poolWatch?.isActive != true) poolWatch = scope.launch { watchPool() }
+    }
+
+    /** The pooled cell of [slot] left the composition (scrolled away); built again when it is shown. */
+    internal fun onCellLeft(slot: Int) {
+        holding.remove(slot)
+    }
+
+    /**
+     * Every 2 s while the pool is exhausted: when the pool has a free ad, puts back one cell that left, the lowest;
+     * with none left, every cell is in the grid again and the watch ends. Takes no ad: a cell put back claims its own.
+     */
+    private suspend fun watchPool() {
+        while (poolEmpty.value) {
+            delay(PoolCellPolicy.EXHAUSTED_RETRY_MILLIS)
+            if (poolHasFreeAd?.invoke() != true) continue
+            val next = outSlots.firstOrNull()
+            if (next != null) {
+                outSlots.remove(next)
+                admitted[next] = true
+                logger?.info(TAG, "in-list ${placement.key} cell $next: back in the grid (free ad in the pool)")
+            } else {
+                poolEmpty.value = false
+            }
+        }
+        poolWatch = null
+    }
+
     /** Destroys every loaded ad and cancels the loads still running. Called when the screen is left. */
     internal fun destroyAll() {
         destroyed = true
@@ -172,10 +208,13 @@ class InListAds internal constructor(
         slots.values.forEach { it.value = NativeAdState.Unavailable }
         slots.clear()
         shown.clear()
+        // Ads off or the screen left: the cells of a grid are all there when ads come back, with no 2 s wait.
         poolWatch?.cancel()
         poolWatch = null
         poolEmpty.value = false
         holding.clear()
+        admitted.clear()
+        outSlots.clear()
     }
 }
 
@@ -245,6 +284,7 @@ fun rememberInListAds(placement: AdPlacement): InListAds {
             .collectAsStateWithLifecycle(initialValue = null)
     }
     val scope = rememberCoroutineScope()
+    val pooled = controller?.takeIf { placement.format.usesPool }
     val ads = remember(placement, controller, every, scope) {
         InListAds(
             placement = placement,
@@ -254,10 +294,10 @@ fun rememberInListAds(placement: AdPlacement): InListAds {
             },
             scope = scope,
             logger = controller?.logger,
-            pooledCell = controller?.takeIf { placement.format.usesPool }?.let { ads -> { ads.pooledCell(placement) } },
+            pooledCell = pooled?.let { ads -> { ads.pooledCell(placement) } },
+            poolExhausted = pooled?.let { ads -> { ads.poolExhausted(placement) } },
+            poolHasFreeAd = pooled?.let { ads -> { ads.poolHasFreeAd(placement) } },
             onPoolOpportunity = { result -> controller?.recordPoolCellOpportunity(placement, result) },
-            poolExhausted = controller?.takeIf { placement.format.usesPool }
-                ?.let { ads -> { ads.poolExhausted(placement) } },
         )
     }
     DisposableEffect(ads) {
@@ -376,10 +416,12 @@ internal fun <T> LazyListScope.itemsWithInListAds(
  * Adds [items] to a LazyVerticalGrid (vertical grids only) of [columns] columns, with an ad after every N items of
  * [ads]: a card ([AdFormat.NATIVE_IN_COLLECTION]) takes one cell, N counted in items; any other format is a
  * full-width row, N rounded up to whole rows ([gridAdEvery]). The grid does not tell its column count while the list
- * is built, so the caller passes it. A card has no space of its own above or below (the grid spaces its rows) and is
- * [adCellHeight] high for the width of its cell, so it matches the cards of the app (300 dp without it). While the
- * pool is exhausted, a card cell that holds no ad leaves the grid and the items after it move up: the grid has no
- * empty cell (plan T-080); it comes back once the pool may give an ad again. A full-width row stays, 0 dp high.
+ * is built, so the caller passes it.
+ *
+ * A card has no top or bottom margin of its own (the grid spaces its rows); it is as high as [adCellHeight] gives for
+ * the cell width, its placeholder too, or 300 dp without it. While the pool is exhausted, a card with no ad leaves the
+ * grid and the items after it move up; it comes back when the pool has a free ad (P-06). A placement that declares
+ * [AdPlacement.keepSpaceWhenPoolEmpty] keeps a static placeholder instead. A full-width row stays, 0 dp high.
  */
 fun <T> LazyGridScope.itemsWithInListAds(
     items: List<T>,
@@ -400,7 +442,7 @@ fun <T> LazyGridScope.itemsWithInListAds(
         key = key,
         contentType = contentType,
         adSpansOneCell = oneCell,
-        adShown = if (oneCell) ads::cellShown else { _ -> true },
+        adShown = if (oneCell && !ads.keepSpaceWhenPoolEmpty) ads::cellShown else { _ -> true },
         adContent = { slot ->
             if (oneCell) {
                 BoxWithConstraints {
@@ -409,6 +451,8 @@ fun <T> LazyGridScope.itemsWithInListAds(
                         slot,
                         contentPadding = PaddingValues(),
                         cardHeight = adCellHeight?.invoke(maxWidth),
+                        keepSpaceWhenEmpty = ads.keepSpaceWhenPoolEmpty,
+                        leavesGridWhenEmpty = !ads.keepSpaceWhenPoolEmpty,
                     )
                 }
             } else {
@@ -420,9 +464,10 @@ fun <T> LazyGridScope.itemsWithInListAds(
 }
 
 /**
- * Like the grid [itemsWithInListAds], with a fixed ad for screenshots and previews ([NativeAdCard]): an ad after every
- * [every] items of [items] (never first, never last), one cell for [AdFormat.NATIVE_IN_COLLECTION], else a full-width
- * row. The app shows real ads with [itemsWithInListAds].
+ * Adds [items] to a LazyVerticalGrid of [columns] columns with a fixed ad drawn by [adContent] (often a [NativeAdCard])
+ * at each place where [itemsWithInListAds] puts an ad of [format] every [every] items: one cell for a card, a
+ * full-width row otherwise. For screenshots and previews, which have no ads controller; the app shows real ads with
+ * [itemsWithInListAds].
  */
 fun <T> LazyGridScope.itemsWithFixedAds(
     items: List<T>,
@@ -433,19 +478,21 @@ fun <T> LazyGridScope.itemsWithFixedAds(
     contentType: (item: T) -> Any? = { null },
     adContent: @Composable (slot: Int) -> Unit,
     itemContent: @Composable LazyGridItemScope.(item: T) -> Unit,
-) = itemsWithInListAds(
-    items = items,
-    positions = gridInListPositions(format, items.size, every, columns),
-    placementKey = FIXED_ADS_KEY,
-    key = key,
-    contentType = contentType,
-    adSpansOneCell = gridAdSpansOneCell(format),
-    adContent = adContent,
-    itemContent = itemContent,
-)
+) {
+    itemsWithInListAds(
+        items = items,
+        positions = gridInListPositions(format, items.size, every, columns),
+        placementKey = FIXED_AD_KEY,
+        key = key,
+        contentType = contentType,
+        adSpansOneCell = gridAdSpansOneCell(format),
+        adContent = adContent,
+        itemContent = itemContent,
+    )
+}
 
-/** Placement key of the ads of [itemsWithFixedAds]: they belong to no placement. */
-private const val FIXED_ADS_KEY = "fixed"
+/** The placement key of the ads of [itemsWithFixedAds]. */
+private const val FIXED_AD_KEY = "fixed"
 
 /** A card of a collection takes one cell of a grid (MC-07); other formats span the whole grid width. */
 internal fun gridAdSpansOneCell(format: AdFormat): Boolean = format == AdFormat.NATIVE_IN_COLLECTION
@@ -460,7 +507,7 @@ internal fun gridInListPositions(format: AdFormat, itemCount: Int, every: Int, c
 
 /**
  * Grid version of the list function above: each ad spans the whole grid width, or one cell with [adSpansOneCell]. An
- * ad whose [adShown] is false is not laid out; the items after it keep their order.
+ * ad whose [adShown] is false is left out; the items keep their order.
  */
 internal fun <T> LazyGridScope.itemsWithInListAds(
     items: List<T>,
@@ -541,10 +588,12 @@ private object InListAdContentType
 internal fun inListAdTag(slot: Int): String = "inlist_ad_$slot"
 
 /**
- * One ad row, the "In-list ad slot" of the design: [contentPadding] (16 dp above and below) while loading or loaded,
- * nothing (0 dp) when no ad came. A pooled row is a cell of the pool ([NativeAdCellHost]): it takes an ad while in
- * composition, gives it back when it leaves, and records its opportunity (P-07); its states go to
- * [InListAds.onCellState]. [cardHeight] sizes a card ([NativeAdSize.CARD]); other sizes ignore it.
+ * One ad row, the "In-list ad slot" of the design: [contentPadding] (16 dp above and below by default) while loading
+ * or loaded, nothing (0 dp) when no ad came. A pooled row is a cell of the pool ([NativeAdCellHost]): it takes an ad
+ * while in composition, gives it back when it leaves and records its opportunity (P-07). With [leavesGridWhenEmpty]
+ * (only the one-cell card of a grid) it tells [ads] its state, so the card can leave the grid (P-06); a list row or a
+ * full-width row never leaves and starts no watch of the pool. With [keepSpaceWhenEmpty] it keeps a static
+ * placeholder instead of 0 dp. [cardHeight] is the height of a card and of its placeholders (300 dp when null).
  */
 @Composable
 internal fun InListAdRow(
@@ -553,6 +602,8 @@ internal fun InListAdRow(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(vertical = Spacing.md),
     cardHeight: Dp? = null,
+    keepSpaceWhenEmpty: Boolean = false,
+    leavesGridWhenEmpty: Boolean = false,
 ) {
     // `af_native_ad_eligible` once each time the row comes into the list (plan T-033): rows exist only when allowed.
     ReportNativeEligible(true)
@@ -560,22 +611,26 @@ internal fun InListAdRow(
     val ctaLarge = ads.placement.ctaLarge
     val pooledCell = ads.pooledCell
     if (pooledCell != null) {
+        DisposableEffect(ads, slot) {
+            onDispose { ads.onCellLeft(slot) }
+        }
         NativeAdCellHost(
             states = remember(ads, slot) { pooledCell() },
             size = size,
             viewed = true,
-            keepSpaceWhenEmpty = false,
+            keepSpaceWhenEmpty = keepSpaceWhenEmpty,
             onOpportunity = ads.onPoolOpportunity,
             modifier = modifier.fillMaxWidth().testTag(inListAdTag(slot)),
             ctaLarge = ctaLarge,
             contentModifier = Modifier.padding(contentPadding),
-            onStateChange = { ads.onCellState(slot, it) },
+            onStateChange = if (leavesGridWhenEmpty) {
+                { ads.onCellState(slot, it) }
+            } else {
+                {}
+            },
             cardHeight = cardHeight,
             adContent = { BoundNativeAd(it, size, ctaLarge = ctaLarge, cardHeight = cardHeight) },
         )
-        DisposableEffect(ads, slot) {
-            onDispose { ads.onCellLeft(slot) }
-        }
         return
     }
     val state by remember(ads, slot) { ads.slot(slot) }

@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAdView
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
@@ -58,7 +57,7 @@ class NativeAdViewBindingTest {
 
     private fun setHostedLayout(size: NativeAdSize, assets: NativeAdAssets = sampleNativeAdAssets) {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
                     NativeAdLayout(assets, size, binder, showAdChoicesMarker = false)
                 }
@@ -70,7 +69,7 @@ class NativeAdViewBindingTest {
     @Test
     fun customLayout_withFakeAd_drawsContentWithPreviewBinder() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 BoundNativeAd(FakeLoadedNativeAd(sampleNativeAdAssets)) { binder ->
                     Column {
                         binder.Asset(NativeAdAsset.HEADLINE, Modifier.testTag("h")) { Text("Custom headline") }
@@ -102,7 +101,7 @@ class NativeAdViewBindingTest {
     fun registersStarRatingView_medium_whenRated() {
         var assets by mutableStateOf(sampleNativeAdAssets.copy(starRating = 4.0))
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
                     NativeAdLayout(assets, NativeAdSize.MEDIUM, binder, showAdChoicesMarker = false)
                 }
@@ -134,7 +133,7 @@ class NativeAdViewBindingTest {
     fun registersStarRatingView_full() {
         var assets by mutableStateOf(sampleNativeAdAssets.copy(starRating = 4.0))
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
                     NativeAdLayout(assets, NativeAdSize.FULL, binder, showAdChoicesMarker = false)
                 }
@@ -157,7 +156,7 @@ class NativeAdViewBindingTest {
     fun sdkLayout_small_longCta_ctaAtMost120dp_headlineVisible() {
         var assets by mutableStateOf(longFullNativeAdAssets)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
                     NativeAdLayout(assets, NativeAdSize.SMALL, binder, showAdChoicesMarker = false)
                 }
@@ -195,7 +194,7 @@ class NativeAdViewBindingTest {
     fun sdkLayout_keepsCardHeights() {
         var size by mutableStateOf(NativeAdSize.SMALL)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
                     NativeAdLayout(sampleNativeAdAssets, size, binder, showAdChoicesMarker = false)
                 }
@@ -224,7 +223,7 @@ class NativeAdViewBindingTest {
     fun removingMedia_unregistersAndBindsAgain() {
         var collapsed by mutableStateOf(false)
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
                     Column {
                         binder.Asset(NativeAdAsset.HEADLINE, Modifier) { Text("Headline") }
@@ -249,7 +248,7 @@ class NativeAdViewBindingTest {
     @Test
     fun assetContent_seesCompositionLocals() {
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 CompositionLocalProvider(LocalProbe provides "Seen through the nested view") {
                     NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
                         binder.Asset(NativeAdAsset.HEADLINE, Modifier) { Text(LocalProbe.current) }
@@ -265,7 +264,7 @@ class NativeAdViewBindingTest {
         // O-07: the image scale type is set before the ad is bound to the views, so the image is not cropped.
         val calls = mutableListOf<String>()
         composeRule.setContent {
-            AppTheme {
+            AdsTestTheme {
                 NativeAdViewHost(
                     bind = { calls += "setNativeAd" },
                     modifier = Modifier.width(CARD_WIDTH),

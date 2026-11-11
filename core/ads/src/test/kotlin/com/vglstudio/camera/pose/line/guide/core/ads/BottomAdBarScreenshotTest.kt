@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode
 class BottomAdBarScreenshotTest {
     @Composable
     private fun Bar(layerShown: Boolean) {
-        AppTheme(darkTheme = false) {
+        AdsTestTheme(darkTheme = false) {
             Surface {
                 BottomAdBarLayout(
                     reservation = BottomAdBarDefaults.nativeReservation,

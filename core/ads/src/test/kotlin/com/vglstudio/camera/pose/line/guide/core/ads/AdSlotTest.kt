@@ -45,7 +45,7 @@ class AdSlotTest {
                     enabled = true,
                     unitId = "u",
                     heightDp = BANNER_HEIGHT,
-                    refresh = BannerRefresh.BY_AD_UNIT,
+                    reloadMillis = MutableStateFlow(0L),
                     visible = MutableStateFlow(true),
                     covered = MutableStateFlow(false),
                     mayRequestNow = { true },

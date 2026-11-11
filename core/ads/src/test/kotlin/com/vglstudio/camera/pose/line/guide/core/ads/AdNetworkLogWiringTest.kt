@@ -2,6 +2,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -9,6 +10,7 @@ import org.junit.Test
  * The per-network log reaches every load of the SDK, and the test devices are set before the SDK starts (plan T-058,
  * KB-28, L-072). Scans the main sources of :core:ads by the types of AdMob, not by function names (L-062): listeners
  * of other SDKs (MAX) have functions of the same names. The working directory of a unit test is the module directory.
+ * The load error line reaches every load failure of the SDK in the same way, through [LoadErrorLog] (plan T-093, KB-28).
  */
 class AdNetworkLogWiringTest {
     private val sources: List<File> by lazy {
@@ -79,6 +81,100 @@ class AdNetworkLogWiringTest {
             assertTrue("$call", call.arguments.any { it.startsWith("networkLog =") })
         }
     }
+
+    @Test
+    fun everyAdMobLoadFailure_logsThroughLoadErrorLog() {
+        // Controls: the bodies of today's callbacks are found, and a body without the log, or with the text of the
+        // log beside a line that does not use it, is reported.
+        assertEquals(4, loadFailureBodies(code(source("AdsController.kt"))).size)
+        assertEquals(1, loadFailureBodies(code(source("BannerAdView.kt"))).size)
+        assertEquals(1, loadFailureBodies(code(source("SdkNativeAdLoader.kt"))).size)
+        val plain = "override fun onAdFailedToLoad(error: LoadAdError) { logger.warn(TAG, \"x \${error.code}\") }"
+        assertEquals(1, loadFailureProblems(plain).size)
+        val beside = "override fun onAdFailedToLoad(error: LoadAdError) { " +
+            "val t = loadErrorLog.text(error.code, error.message); " +
+            "logger.warn(TAG, \"x failed to load: \${error.code}\") }"
+        assertEquals(1, loadFailureProblems(beside).size)
+
+        val problems = sources.flatMap { file -> loadFailureProblems(code(file)).map { "${file.name}: $it" } }
+        assertTrue("Load failures without the load error log:\n${problems.joinToString("\n")}", problems.isEmpty())
+    }
+
+    @Test
+    fun everyLoaderInMain_getsTheLoadErrorLog() {
+        // Controls (L-055): a native loader without the log, or with another one, is reported.
+        val noLog = "SdkNativeAdLoader(context, adRequest(), events, networkLog = networkLog, logKey = logKey)"
+        assertEquals(1, nativeLoaderLogProblems(noLog).size)
+        val other = "SdkNativeAdLoader(context, adRequest(), events, logKey = logKey, " +
+            "loadErrorLog = LoadErrorLog.CODE_ONLY)"
+        assertEquals(1, nativeLoaderLogProblems(other).size)
+
+        val natives = sources.flatMap { file -> callsOf(code(file), SDK_LOADER) }
+        assertTrue("No SdkNativeAdLoader is made in src/main", natives.isNotEmpty())
+        val problems = sources.flatMap { file -> nativeLoaderLogProblems(code(file)).map { "${file.name}: $it" } }
+        assertTrue("Native loaders without the load error log:\n${problems.joinToString("\n")}", problems.isEmpty())
+
+        val slot = code(source("AdSlot.kt"))
+        listOf("SdkBannerAdView", "MaxBannerAdView").forEach { name ->
+            val calls = callsOf(slot, name)
+            assertTrue("AdSlot.kt makes no $name", calls.isNotEmpty())
+            calls.forEach { call -> assertTrue("$call", "loadErrorLog = ads.loadErrorLog" in call.arguments) }
+        }
+    }
+
+    @Test
+    fun everyNativeListener_getsTheLoadErrorLog() {
+        // Control (L-055): a listener without the log is reported.
+        val noLog = "NativeAdLoadListener(events, onLoadFailedResponse = { networkLog.failed(logKey, it) }, " +
+            "onFailed = onFailed)"
+        assertEquals(1, nativeListenerLogProblems(noLog).size)
+
+        val calls = sources.flatMap { file -> callsOf(code(file), LISTENER).map { file.name to it } }
+        assertTrue("No NativeAdLoadListener is made in src/main", calls.isNotEmpty())
+        assertTrue("$calls", calls.any { (file, _) -> file == "SdkNativeAdLoader.kt" })
+        val problems = sources.flatMap { file -> nativeListenerLogProblems(code(file)).map { "${file.name}: $it" } }
+        assertTrue("Native listeners without the load error log:\n${problems.joinToString("\n")}", problems.isEmpty())
+    }
+
+    @Test
+    fun maxLoadFailure_passesMessage() {
+        // Control: a callback that drops the message does not match.
+        assertFalse(
+            MAX_FAILED.containsMatchIn(
+                "onAdLoadFailed(adUnitId: String, error: MaxError) = onFailed(error.code, null)",
+            ),
+        )
+
+        val text = code(source("MaxBannerAdView.kt"))
+        assertEquals(1, text.occurrences("onAdLoadFailed("))
+        assertTrue(text, MAX_FAILED.containsMatchIn(text))
+    }
+
+    /** The bodies of the AdMob load failure callbacks of [text], each with the name of its error. */
+    private fun loadFailureBodies(text: String): List<Pair<String, String>> =
+        Regex("""override fun onAdFailedToLoad\(\s*(\w+)\s*:\s*LoadAdError\s*\)""").findAll(text).map { match ->
+            val open = text.indexOf('{', match.range.last)
+            match.groupValues[1] to text.substring(open, closingBracket(text, open) + 1)
+        }.toList()
+
+    /**
+     * The AdMob load failures of [text] whose body neither hands the message through [LoadErrorLog.messageOf] nor
+     * logs the line `failed to load:` with [LoadErrorLog.text] of that error.
+     */
+    private fun loadFailureProblems(text: String): List<String> = loadFailureBodies(text).mapNotNull { (error, body) ->
+        val handed = "loadErrorLog.messageOf($error.message)" in body
+        val line = "failed to load: \${loadErrorLog.text($error.code, $error.message)}"
+        val logged = callsOf(body, "logger.warn").any { call -> call.arguments.any { line in it } }
+        body.takeUnless { handed || logged }
+    }
+
+    private fun nativeLoaderLogProblems(text: String): List<String> = callsOf(text, SDK_LOADER)
+        .filterNot { "loadErrorLog = loadErrorLog" in it.arguments }
+        .map { "$it: no loadErrorLog = loadErrorLog" }
+
+    private fun nativeListenerLogProblems(text: String): List<String> = callsOf(text, LISTENER)
+        .filterNot { "loadErrorLog = loadErrorLog" in it.arguments }
+        .map { "$it: no loadErrorLog = loadErrorLog" }
 
     /** One call of [name] in a source: its position and its arguments, split at the top level of brackets. */
     private data class Call(val name: String, val start: Int, val end: Int, val arguments: List<String>)
@@ -210,6 +306,11 @@ class AdNetworkLogWiringTest {
     private companion object {
         const val SDK_LOADER = "SdkNativeAdLoader"
         const val NEW_LOADER = "newNativeLoader"
+        const val LISTENER = "NativeAdLoadListener"
+        val MAX_FAILED =
+            Regex(
+                """onAdLoadFailed\(\s*\w+\s*:\s*String\s*,\s*(\w+)\s*:\s*MaxError\s*\)\s*=\s*onFailed\(\1\.code,\s*\1\.message\)""",
+            )
         val FUNCTION = Regex("""\bfun\s+(?:<[^>]*>\s*)?(?:[\w.]+\.)?(\w+)\s*\(""")
     }
 }

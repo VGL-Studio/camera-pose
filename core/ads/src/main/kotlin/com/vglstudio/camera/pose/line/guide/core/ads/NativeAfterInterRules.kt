@@ -2,12 +2,20 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** K-02: how long the combo waits for the interstitial to leave the screen, and how often it looks. */
 internal const val INTER_GONE_WAIT_MILLIS = 2_000L
 internal const val INTER_GONE_POLL_MILLIS = 200L
+
+/** K-09: how long the combo waits for a FullScreenAdHost once the interstitial left the screen. */
+internal const val HOST_WAIT_MILLIS = 1_000L
+
+/** K-09: how long an open turn stays without a FullScreenAdHost while the app is in foreground before it closes. */
+internal const val HOST_GONE_GRACE_MILLIS = 2_000L
 
 private const val MILLIS_PER_SECOND = 1_000L
 
@@ -46,6 +54,10 @@ internal suspend fun awaitInterGone(isGone: () -> Boolean): Boolean {
     }
     return false
 }
+
+/** K-09: waits at most [HOST_WAIT_MILLIS] for a FullScreenAdHost; true when one is there. Uses the time of the coroutine. */
+internal suspend fun awaitHost(attached: StateFlow<Boolean>): Boolean =
+    attached.value || withTimeoutOrNull(HOST_WAIT_MILLIS) { attached.first { it } } != null
 
 /**
  * What the overlay of a native full-screen turn draws: the ad, or the placeholder while it loads ([ad] null); the

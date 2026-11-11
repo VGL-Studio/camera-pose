@@ -36,11 +36,14 @@ if route in fx.get("errors", {}):
 if route in fx.get("routes", {}):
     answer = fx["routes"][route]
     # {"__sequence__": [a, b, ...]} answers a, then b, ... one per query, then keeps the last (a run that finishes).
+    # An item {"__error__": "<message>"} makes that read fail: the message on stderr and exit 1.
     if isinstance(answer, dict) and "__sequence__" in answer:
         seen_file = os.environ["FIXTURE"] + ".seen"
         seen = json.load(open(seen_file)) if os.path.exists(seen_file) else {}
         n = seen.get(route, 0); seen[route] = n + 1; json.dump(seen, open(seen_file, "w"))
         answer = answer["__sequence__"][min(n, len(answer["__sequence__"]) - 1)]
+        if isinstance(answer, dict) and "__error__" in answer:
+            sys.stderr.write(answer["__error__"] + "\n"); sys.exit(1)
     if isinstance(answer, str):
         sys.stdout.write(answer); sys.exit(0)
     out = subprocess.run(["jq", "-r", jq], input=json.dumps(answer), capture_output=True, text=True)

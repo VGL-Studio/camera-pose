@@ -290,7 +290,12 @@ private val DialogMaxWidth = 312.dp
 private val WatchButtonHeight = 56.dp
 private val WatchButtonShape = RoundedCornerShape(28.dp)
 
-/** The card of [RewardedAdDialog], without state. Public for previews and screenshot tests; screens use [RewardedAdDialog]. */
+/**
+ * The card of [RewardedAdDialog], without state: the title, the feature's [content] (scrolls when long), then
+ * "Watch ad" and "No, thanks". Public so a feature can draw its rewarded dialog in screenshot tests and previews,
+ * where no [RewardedAction] exists. A real screen calls [RewardedAdDialog], which shows this card in a `Dialog`
+ * only while the placement allows it and wires the buttons to the ad.
+ */
 @Composable
 fun RewardedAdDialogCard(
     title: String,

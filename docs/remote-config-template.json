@@ -173,7 +173,7 @@
     },
     "is_show_native_after_inter": {
       "defaultValue": { "value": "false" },
-      "description": "Shows a full-screen native ad right after an interstitial (combo).",
+      "description": "Shows a full-screen native ad right after the interstitial of an in-app placement (combo); never after the startup or resume interstitial.",
       "valueType": "BOOLEAN"
     },
     "is_show_native_bottom": {
@@ -188,7 +188,7 @@
     },
     "is_show_native_onboarding": {
       "defaultValue": { "value": "false" },
-      "description": "Shows ads in this placement. Off by default. Derived key of placement native_onboarding (native_step).",
+      "description": "Shows ads in this placement. Off by default. First open since install only. Derived key of placement native_onboarding (native_step).",
       "valueType": "BOOLEAN"
     },
     "is_show_pose_detail_bottom": {
@@ -269,6 +269,31 @@
     "time_expand_collap_ad": {
       "defaultValue": { "value": "10" },
       "description": "Time after the user collapses the collapsible native ad before it expands again, in seconds; 0 means never. Name set by the template, not an AdsKit key.",
+      "valueType": "NUMBER"
+    },
+    "time_reload_banner": {
+      "defaultValue": { "value": "60" },
+      "description": "Time from a load of a fixed banner (also the banner of a bottom bar) to its reload, in seconds; 0 means none once it has an ad, 1 to 29 use 30, negative uses the default. Name set by the template, not an AdsKit key.",
+      "valueType": "NUMBER"
+    },
+    "time_reload_banner_collap": {
+      "defaultValue": { "value": "30" },
+      "description": "Time from a load of a collapsible banner to its reload, in seconds; 0 means none once it has an ad, 1 to 29 use 30, negative uses the default. Name set by the template, not an AdsKit key.",
+      "valueType": "NUMBER"
+    },
+    "time_reload_banner_mrec": {
+      "defaultValue": { "value": "60" },
+      "description": "Time from a load of an MREC banner to its reload, in seconds; 0 means none once it has an ad, 1 to 29 use 30, negative uses the default. Name set by the template, not an AdsKit key.",
+      "valueType": "NUMBER"
+    },
+    "time_reload_collap_ad": {
+      "defaultValue": { "value": "60" },
+      "description": "Time between two in-place refreshes of the collapsible native layer, which stays collapsed, in seconds; 0 means none, 1 to 29 use 30, negative uses the default.",
+      "valueType": "NUMBER"
+    },
+    "time_reload_native_small": {
+      "defaultValue": { "value": "60" },
+      "description": "Time between two in-place refreshes of a single-ad native small slot (bottom, standalone; not a list row), in seconds; 0 means none, 1 to 29 use 30, negative uses the default. Name set by the template, not an AdsKit key.",
       "valueType": "NUMBER"
     },
     "is_log_af_ad_revenue": {

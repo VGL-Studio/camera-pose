@@ -112,9 +112,13 @@ class ResumeAdTurnsTest {
         launched()
         returnToApp()
         turns.onAppActivityResumed(activity)
-        // No combo after the resume interstitial in this app (spec ads, question 18; ADR-1009; plan T-090).
+        // KB-14, criterion 1, A-12: the resume interstitial never opens the combo.
         assertEquals(listOf(Triple(activity, AdPlacement.RESUME_INTER, false)), port.interShows)
         assertTrue(port.appOpenShows.isEmpty())
+        // The next turn opens no combo either.
+        returnToApp()
+        turns.onAppActivityResumed(activity)
+        assertEquals(listOf(false, false), port.interShows.map { it.third })
     }
 
     @Test
@@ -354,7 +358,7 @@ class ResumeAdTurnsTest {
         turns.onAppActivityResumed(activity)
         assertTrue(port.appOpenShows.isEmpty())
         assertTrue(port.interShows.isEmpty())
-        // Control: the next turn with the new type shows the interstitial once, with no combo (spec ads, question 18).
+        // Control: the next turn with the new type shows the interstitial once.
         port.gate = ALL_PASS.copy(placement = AdPlacement.RESUME_INTER)
         returnToApp()
         turns.onAppActivityResumed(activity)

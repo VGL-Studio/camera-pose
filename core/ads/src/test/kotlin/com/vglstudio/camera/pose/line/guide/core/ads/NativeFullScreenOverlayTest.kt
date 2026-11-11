@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -63,7 +62,7 @@ class NativeFullScreenOverlayTest {
 
     private fun setOverlay(view: NativeFullScreenView) {
         composeRule.setContent {
-            AppTheme(darkTheme = false) {
+            AdsTestTheme(darkTheme = false) {
                 NativeFullScreenOverlayContent(view, onClose = { closes++ }, animated = false)
             }
         }
@@ -179,7 +178,7 @@ class NativeFullScreenOverlayTest {
 
     @Composable
     private fun Host() {
-        AppTheme(darkTheme = false) {
+        AdsTestTheme(darkTheme = false) {
             NativeFullScreenOverlayHost(turns.view, onClose = turns::close, onBack = turns::onBack)
         }
     }

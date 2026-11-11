@@ -53,7 +53,7 @@ class InListAdsStateTest {
     private var failAtOnce = false
 
     private fun loaderOf(slot: Int): NativeAdLoader = if (failAtOnce) {
-        NativeAdLoader { _, _, _, onFailed -> onFailed(3) }
+        NativeAdLoader { _, _, _, onFailed -> onFailed(3, null) }
     } else {
         loaders.getOrPut(slot) { FakeNativeAdLoader() }
     }

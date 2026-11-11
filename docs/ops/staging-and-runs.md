@@ -4,6 +4,8 @@ Tài liệu này dành cho người phụ trách. Nó liệt kê những việc 
 
 Bí mật thêm ở **Settings > Secrets and variables > Actions > Secrets** của repo. Biến thường thêm ở tab **Variables** cùng trang.
 
+Biến `HEAVY_RUNNER` (tùy chọn, chỉ repo private) chọn runner tự host cho các job nặng của CI; không đặt thì mọi job chạy trên runner của GitHub. Dựng máy và đặt biến theo `docs/ops/self-hosted-runner.md`.
+
 ## 1. Bản staging (`staging.yml`)
 
 ### 1.1. Firebase staging
@@ -70,7 +72,7 @@ Sau đó chuyển `google-services.json`, file khóa và `staging.keystore` ra k
 
    | Trường | Giá trị |
    | --- | --- |
-   | Network access | **Custom**; Allowed domains: `dl.google.com`, `maven.google.com`, `*.blob.core.windows.net`, `dl-maven-android.mintegral.com` và `artifact.bytedance.com`, mỗi dòng một tên miền; bật **Also include default list of common package managers**. `*.blob.core.windows.net` là nơi GitHub lưu artifact và log đầy đủ của Actions; thiếu nó thì phiên không đọc được kết quả `device-session.yml` (L-030). Hai tên miền cuối là kho Maven của SDK Mintegral và Pangle mà mediation của `:core:ads` cần (`settings.gradle.kts`, `docs/ops/ads-guide.md` mục 7); thiếu chúng thì proxy trả 403 và `scripts/check.sh` đỏ ngay ở bước tải thư viện của `:app` (issue #242). Thêm kho Maven ngoài mới vào `settings.gradle.kts` thì thêm tên miền của nó vào đây và vào môi trường |
+   | Network access | **Custom**; Allowed domains: `dl.google.com`, `maven.google.com`, `*.blob.core.windows.net`, `dl-maven-android.mintegral.com` và `artifact.bytedance.com`, mỗi dòng một tên miền; bật **Also include default list of common package managers**. `*.blob.core.windows.net` là nơi GitHub lưu artifact và log đầy đủ của Actions; thiếu nó thì phiên không đọc được kết quả `device-session.yml`. Hai tên miền cuối là kho SDK Mintegral và Pangle của mediation trong `:core:ads` (`settings.gradle.kts`); thiếu chúng thì proxy trả 403 và `scripts/check.sh` đỏ ngay ở bước tải thư viện. Thêm một kho `maven(...)` mới vào `settings.gradle.kts` thì thêm tên miền của nó vào dòng này và vào môi trường |
    | Environment variables | `BASH_DEFAULT_TIMEOUT_MS=600000` và `BASH_MAX_TIMEOUT_MS=1800000`, mỗi dòng một biến |
    | Setup script | Toàn bộ nội dung `scripts/cloud-setup.sh` |
 
@@ -78,7 +80,7 @@ Sau đó chuyển `google-services.json`, file khóa và `staging.keystore` ra k
 
    Mỗi khi `scripts/cloud-setup.sh` thay đổi trên nhánh chính, mở lại môi trường (biểu tượng cài đặt cạnh tên môi trường), dán lại toàn bộ nội dung mới vào Setup script và lưu. Môi trường được dựng lại từ script ở phiên kế tiếp.
 
-   Script có số phiên bản (`SETUP_VERSION`), tăng mỗi lần sửa. Đầu mỗi phiên, `scripts/cloud-env-check.sh` so số này với số mà môi trường đã chạy; khác nhau thì phiên kết thúc ngay và báo cáo ghi rõ cần dán lại, thay vì mất nửa giờ chờ lỗi tải. Script cũng kiểm Java có chạy được Gradle của dự án (`scripts/java-check.sh`), Gradle wrapper có khởi động được (`./gradlew --version`, giới hạn 300 giây) và SDK có nền tảng `compileSdk` (L-075). Kiểm tra nhanh sau khi dán: mở một phiên mới với môi trường này, chạy `scripts/cloud-env-check.sh`; kết quả là một dòng nêu phiên bản setup script, Java, Gradle wrapper và SDK chạy được.
+   Script có số phiên bản (`SETUP_VERSION`), tăng mỗi lần sửa. Đầu mỗi phiên, `scripts/cloud-env-check.sh` so số này với số mà môi trường đã chạy; khác nhau thì phiên kết thúc ngay và báo cáo ghi rõ cần dán lại, thay vì mất nửa giờ chờ lỗi tải. Script cũng kiểm Java có chạy được Gradle của dự án (`scripts/java-check.sh`), Gradle wrapper có khởi động được (`./gradlew --version`, giới hạn 300 giây) và SDK có nền tảng `compileSdk`. Kiểm tra nhanh sau khi dán: mở một phiên mới với môi trường này, chạy `scripts/cloud-env-check.sh`; kết quả là một dòng nêu phiên bản setup script, Java, Gradle wrapper và SDK chạy được.
 3. Trên https://claude.ai/code/routines, bấm **New routine**: chọn repo này, môi trường vừa tạo, trigger **API** (không đặt lịch), model **Opus 5.5** (chọn ở ô model trong khung prompt). Ở mục **Connectors**, gỡ hết các connector; phiên tự chạy không cần connector nào.
 4. Prompt của routine (chép nguyên văn):
 
@@ -111,10 +113,10 @@ Mã này chỉ kích hoạt được đúng routine đó, không đọc được
 ### 2.3. Bắt đầu một phiên
 
 1. Danh sách chạy `docs/runs/RUN-YYYYMMDD-NN.md` có trạng thái `approved` đã được merge vào nhánh chính.
-   Lịch của `resume-run` và `run-watchdog` tự tắt khi không có phiên; `status-page.yml` bật lại chúng khi danh sách `approved` lên nhánh chính (mục 2.8). GitHub có lúc không phát sự kiện push của một lần merge (L-076), nên kiểm `gh workflow list --all` thấy cả hai ở `active` (lệnh không có `--all` ẩn workflow đã tắt); không thì chạy `scripts/schedule-idle.py --enable` trên máy.
+   Lịch của `resume-run` và `run-watchdog` tự tắt khi không có phiên; `status-page.yml` bật lại chúng khi danh sách `approved` lên nhánh chính (mục 2.8). GitHub có lúc không phát sự kiện push của một lần merge, nên kiểm `gh workflow list --all` thấy cả hai ở `active` (lệnh không có `--all` ẩn workflow đã tắt); không thì chạy `scripts/schedule-idle.py --enable` trên máy.
 2. **Actions > start-run > Run workflow**, nhánh `main`, nhập đường dẫn danh sách chạy.
-3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`, L-076). Workflow cũng chạy `scripts/setup-check.sh --staging` trên máy của GitHub và từ chối khi: bí mật `STAGING_GOOGLE_SERVICES_JSON` thiếu, là file giả (`fake-staging-project`) hay không có app `<applicationId>.staging`; một nhóm trong `STAGING_TESTER_GROUPS` (mặc định `team`) chưa có trên App Distribution; một file trong `docs/ops/required-assets.txt` không trả `200`; tên miền file tĩnh không phân giải được qua 1.1.1.1 hay 8.8.8.8; kiểm tra riêng của app (`scripts/setup-check-app.sh`, nếu app có) báo lỗi; ở camera-pose: catalog tư thế mặc định của app, hay catalog mà một giá trị của khóa `poses_catalog_path` trên Remote Config staging trỏ tới, hay một file khởi đầu của các catalog đó không trả `200` (plan T-065, mục 2.4). Một lần R2 trả 429, 5xx hay không kết nối được thì script hỏi lại một lần. File trả 404 mà hỏi lại kèm tham số chống bộ nhớ đệm thì trả `200`: dòng lỗi nói CDN còn giữ câu trả lời cũ, xóa bộ nhớ đệm của URL đó (L-113). Kiểm tra xanh thì workflow đóng issue `setup-broken` đang mở trước khi kích hoạt routine, để phiên không dừng vì issue cũ. Các lỗi này trước đây chỉ lộ ra ở cuối phiên, khi phát bản staging (L-059). Nhóm người test được kiểm bằng API của App Distribution với tài khoản dịch vụ ở mục 1.1; API không trả lời (ví dụ thiếu quyền) thì chỉ báo chú ý. Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
-4. Bị từ chối vì `main-guard` chưa chạy hay chưa có kết quả (`CHƯA KIỂM`, thường vì GitHub không phát sự kiện push sau một lần merge; cũng báo khi lần chạy thất bại mà không có issue `main-broken`, tức lỗi hạ tầng): **Actions > main-guard > Run workflow** trên `main`, **Re-run all jobs** trên lần chạy thất bại, hoặc lệnh mà thông báo in ra,, chờ xanh, rồi chạy lại `start-run`. Đang chạy (`CHỜ`): chờ xong rồi chạy lại.
+3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`). Workflow cũng chạy `scripts/setup-check.sh --staging` trên máy của GitHub và từ chối khi: bí mật `STAGING_GOOGLE_SERVICES_JSON` thiếu, là file giả (`fake-staging-project`) hay không có app `<applicationId>.staging`; một nhóm trong `STAGING_TESTER_GROUPS` (mặc định `team`) chưa có trên App Distribution; một file trong `docs/ops/required-assets.txt` không trả `200`; tên miền file tĩnh không phân giải được qua 1.1.1.1 hay 8.8.8.8; kiểm tra riêng của app (`scripts/setup-check-app.sh`, nếu app có) báo lỗi; ở camera-pose: catalog tư thế mặc định của app, hay catalog mà một giá trị của khóa `poses_catalog_path` trên Remote Config staging trỏ tới, hay một file khởi đầu của các catalog đó không trả `200` (plan T-065, mục 2.4). Một lần R2 trả 429, 5xx hay không kết nối được thì script hỏi lại một lần. File trả 404 mà hỏi lại kèm tham số chống bộ nhớ đệm thì trả `200`: dòng lỗi nói CDN còn giữ câu trả lời cũ, xóa bộ nhớ đệm của URL đó. Kiểm tra xanh thì workflow đóng issue `setup-broken` đang mở trước khi kích hoạt routine, để phiên không dừng vì issue cũ. Nhờ vậy các lỗi này lộ ra trước khi phiên bắt đầu, không phải ở cuối phiên khi phát bản staging. Nhóm người test được kiểm bằng API của App Distribution với tài khoản dịch vụ ở mục 1.1; API không trả lời (ví dụ thiếu quyền) thì chỉ báo chú ý. Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
+4. Bị từ chối vì `main-guard` chưa chạy hay chưa có kết quả (`CHƯA KIỂM`, thường vì GitHub không phát sự kiện push sau một lần merge; cũng báo khi lần chạy thất bại mà không có issue `main-broken`, tức lỗi hạ tầng): **Actions > main-guard > Run workflow** trên `main`, **Re-run all jobs** trên lần chạy thất bại, hoặc lệnh mà thông báo in ra, chờ xanh, rồi chạy lại `start-run`. Đang chạy (`CHỜ`): chờ xong rồi chạy lại.
 
 Lưu ý:
 
@@ -124,7 +126,7 @@ Lưu ý:
 
 ### 2.4. Kiểm tra môi trường hằng ngày (`env-canary.yml`)
 
-Lỗi môi trường (setup script cũ, kho thư viện chặn) từng làm hai phiên qua đêm kết thúc mà không làm được gì. Mỗi sáng 08:00 (giờ Việt Nam), workflow `env-canary` kích hoạt một routine nhỏ chạy `scripts/env-canary.sh` trên nhánh chính trong cùng môi trường cloud: `scripts/cloud-env-check.sh`, rồi `scripts/check.sh` (đỏ thì thử lại một lần, tải lại thư viện). Đỏ thì mở issue `env-broken` kèm 80 dòng log cuối; `start-run.yml` không bắt đầu phiên khi issue này còn mở. Xanh thì tự đóng issue. Workflow bỏ qua ngày có phiên tự chạy đang chạy.
+Lỗi môi trường (setup script cũ, kho thư viện chặn) làm phiên qua đêm kết thúc mà không làm được gì, nên cần thấy trước phiên. Mỗi sáng 08:00 (giờ Việt Nam), workflow `env-canary` kích hoạt một routine nhỏ chạy `scripts/env-canary.sh` trên nhánh chính trong cùng môi trường cloud: `scripts/cloud-env-check.sh`, rồi `scripts/check.sh` (đỏ thì thử lại một lần, tải lại thư viện). Đỏ thì mở issue `env-broken` kèm 80 dòng log cuối; `start-run.yml` không bắt đầu phiên khi issue này còn mở. Xanh thì tự đóng issue. Workflow bỏ qua ngày có phiên tự chạy đang chạy.
 
 Thiết lập một lần:
 
@@ -145,7 +147,7 @@ Cùng workflow có job thứ hai, `setup-check`, chạy `scripts/setup-check.sh 
 - **Đổi khóa `poses_catalog_path` hay tải catalog mới:** tải catalog và mọi file của nó lên R2 trước, rồi mới thêm hay đổi giá trị của khóa, kể cả giá trị theo điều kiện chưa bật (một giá trị trỏ tới file chưa có cũng làm kiểm tra đỏ và chặn mọi phiên). Xong thì chạy lại **env-canary** với **setup_only**, vì lần chạy buổi sáng không thấy thay đổi sau đó.
 - Không đọc được Remote Config (mạng, `firebase-tools` lỗi, quá 120 giây) chỉ là chú ý: catalog mặc định vẫn được kiểm. Thiếu bí mật hay tài khoản thiếu vai trò thì là lỗi. R2 không trả lời 3 file liền thì dừng phần catalog với một dòng lỗi.
 
-Khi có issue `env-broken`: đọc log trong issue. Thường là môi trường chưa dán setup script mới (dán lại theo mục 2.1). Log có `Could not GET '<địa chỉ>' ... Received status code 403` khi Gradle tải thư viện thì proxy của môi trường chặn tên miền của kho đó: thêm tên miền vào Allowed domains của môi trường (mục 2.1), không sửa code hay file build. Lỗi khác thì sửa nguyên nhân. Sau đó chạy lại **env-canary** bằng tay; lần chạy xanh tự đóng issue.
+Khi có issue `env-broken`: đọc log trong issue. Thường là môi trường chưa dán setup script mới (dán lại theo mục 2.1). Log Gradle có `Could not GET '<địa chỉ>' ... Received status code 403` mà tên miền của địa chỉ đó chưa được cho phép (dòng Network access ở mục 2.1, hay danh sách mặc định) thì proxy của môi trường chặn kho thư viện: thêm tên miền vào Allowed domains (mục 2.1), không sửa code hay file build. Tên miền đã được cho phép thì chính máy chủ của kho trả 403, thường tự hết. Lỗi khác thì sửa nguyên nhân. Sau đó chạy lại **env-canary** bằng tay; lần chạy xanh tự đóng issue.
 
 ### 2.5. Kịch bản trên emulator trước khi phát (`device-session.yml`)
 
@@ -167,7 +169,7 @@ Không cần thiết lập thêm: workflow dùng hai bí mật `ROUTINE_FIRE_URL
 
 ### 2.7. Mở phiên bằng `claude --cloud` khi còn cloud session credits
 
-Routine không dùng được cloud session credits: phiên của routine luôn tính vào hạn mức của tài khoản. Phiên mở bằng `claude --cloud` từ terminal thì trừ vào credit trước (L-020 của camera-pose, [bài hỗ trợ của Anthropic](https://support.claude.com/en/articles/17152539-cloud-sessions-bonus-credit-promotion)). Khi tài khoản còn credit, nhất là khi hạn mức tuần sắp hết, mở phiên tự chạy theo cách này. Còn lại thì dùng `start-run.yml` (mục 2.3): chỉ phiên của routine được `resume-run.yml` tự tiếp tục (`docs/auto-run.md`, mục 1, L-044).
+Routine không dùng được cloud session credits: phiên của routine luôn tính vào hạn mức của tài khoản. Phiên mở bằng `claude --cloud` từ terminal thì trừ vào credit trước ([bài hỗ trợ của Anthropic](https://support.claude.com/en/articles/17152539-cloud-sessions-bonus-credit-promotion)). Khi tài khoản còn credit, nhất là khi hạn mức tuần sắp hết, mở phiên tự chạy theo cách này. Còn lại thì dùng `start-run.yml` (mục 2.3): chỉ phiên của routine được `resume-run.yml` tự tiếp tục (`docs/auto-run.md`, mục 1).
 
 **Trước khi mở.** Không có `start-run.yml` nên người tự làm các kiểm tra của workflow đó:
 
@@ -188,7 +190,7 @@ Nhánh: không làm việc trên nhánh mặc định của phiên này. Tạo n
 Ghi vào mục Kiểm tra đầu phiên: phiên mở bằng claude --cloud để dùng cloud session credits.
 ```
 
-Worktree riêng cho nhánh báo cáo: thư mục chính luôn ở nhánh của task đang làm, nên ghi nhật ký và báo cáo trong `../report` không đổi file dưới một bản build hay `check.sh` đang chạy (L-008 của camera-pose). `scripts/token-usage.py` chạy trong worktree đó vẫn thấy transcript của phiên: script nhận mọi worktree của repo và mọi thư mục mang tên repo, không cần đặt `TOKEN_USAGE_ROOT` (`docs/ops/token-usage.md`, mục 1).
+Worktree riêng cho nhánh báo cáo: thư mục chính luôn ở nhánh của task đang làm, nên ghi nhật ký và báo cáo trong `../report` không đổi file dưới một bản build hay `check.sh` đang chạy. `scripts/token-usage.py` chạy trong worktree đó vẫn thấy transcript của phiên: script nhận mọi worktree của repo và mọi thư mục mang tên repo, không cần đặt `TOKEN_USAGE_ROOT` (`docs/ops/token-usage.md`, mục 1).
 
 **Khi phiên bị ngắt.** Không có `resume-run.yml` cho kiểu phiên này: hết hạn mức, hết credit hay mất kết nối thì phiên dừng hẳn. Phần đã đẩy lên còn nguyên (`docs/auto-run.md`, mục 3, bước 3). Người tiếp tục như sau:
 
@@ -207,16 +209,16 @@ Lệnh chỉ sửa dòng Chung của phiên; commit file CSV trong PR báo cáo 
 
 ### 2.8. Phút Actions của các lịch định kỳ
 
-Mỗi job tính tối thiểu 1 phút Actions (L-126). Trước T-051, ba lịch chạy cả khi không có phiên nào, khoảng 2.200 phút mỗi tháng cho một app, trong khi gói GitHub Free có 2.000 phút mỗi tháng cho mọi repo private của org.
+Mỗi job tính tối thiểu 1 phút Actions. Ba lịch chạy cả khi không có phiên nào thì tốn khoảng 2.200 phút mỗi tháng cho một app, trong khi gói GitHub Free có 2.000 phút mỗi tháng cho mọi repo private của org, nên hai lịch tự tắt khi rảnh.
 
-| Workflow | Lịch | Phút mỗi tháng, trước T-051 | Sau T-051 |
+| Workflow | Lịch | Phút mỗi tháng nếu không tự tắt | Hiện nay |
 | --- | --- | --- | --- |
 | `resume-run.yml` | Mỗi giờ, phút 23 | khoảng 720 | Chỉ khi có phiên hay danh sách chờ, cộng vài lần sau đó (job `idle` tự tắt), mỗi lần khoảng 2 phút |
 | `run-watchdog.yml` | Mỗi 30 phút | khoảng 1.440 | Như `resume-run.yml` |
-| `env-canary.yml` | 01:00 UTC (08:00 giờ Việt Nam) hằng ngày, 2 job | khoảng 60 | Không đổi: vẫn kiểm môi trường và file R2 cho phiên sau |
-| `status-page.yml`, job `schedules` | Mỗi lần merge có đổi `docs/` | không có | Khoảng 1 phút mỗi lần |
+| `env-canary.yml` | 01:00 UTC (08:00 giờ Việt Nam) hằng ngày, 2 job | khoảng 60 | Không tự tắt: vẫn kiểm môi trường và file R2 cho phiên sau |
+| `status-page.yml`, job `schedules` | Mỗi lần merge có đổi `docs/` | không áp dụng | Khoảng 1 phút mỗi lần |
 
-Cách làm (`scripts/schedule-idle.py`, T-051):
+Cách làm (`scripts/schedule-idle.py`):
 
 - Sau job chính, job `idle` của `resume-run.yml` và `run-watchdog.yml` tắt chính workflow đó khi: không có danh sách `running` trên nhánh báo cáo nào; không có danh sách `approved` chưa bắt đầu, merge trong 72 giờ qua; workflow không được bật trong 3 giờ qua; `start-run` không chạy trong 3 giờ qua. Tắt xong thì đọc lại; thấy phiên hay danh sách chờ thì bật lại ngay. Job không bao giờ làm workflow đỏ.
 - Bật lại: job `schedules` của `status-page.yml` khi có danh sách chờ hay phiên đang chạy; `start-run.yml` trước khi kích hoạt routine; phiên ở đầu phiên (`docs/auto-run.md`, mục 2); dev bằng `scripts/schedule-idle.py --enable`.
@@ -229,4 +231,4 @@ Cách làm (`scripts/schedule-idle.py`, T-051):
 ## 3. Việc còn phải kiểm chứng
 
 - `resume-run.yml` kích hoạt lại được một phiên hết hạn mức, và phiên đó tiếp tục đúng task đang làm dở: chờ lần hết hạn mức thật đầu tiên. Phiên kích hoạt lại khi hạn mức chưa được làm mới có làm tốn gì không (chỉ là một phiên dừng ngay) cũng cần xem lần đó.
-- Đã kiểm chứng: `device-session.yml` chạy bản staging trên emulator API 34, chế độ máy bay, `monkey` và artifact (2026-10-17, lần chạy 39044089126, báo cáo `docs/test-sessions/TS-20261017-01.md`); phiên tự chạy khởi động được `staging.yml` qua `gh api` (RUN-20261015-03, lần chạy 38765200550); routine `env-canary` tạo và đóng được issue `env-broken` qua `gh api` (2026-10-17, issue #37).
+- Đã kiểm chứng: `device-session.yml` chạy bản staging trên emulator API 34, chế độ máy bay, `monkey` và artifact (2026-10-17, lần chạy 39044089126, báo cáo `docs/test-sessions/TS-20261017-01.md`); phiên tự chạy khởi động được `staging.yml` qua `gh api` (lần chạy 38765200550); routine `env-canary` tạo và đóng được issue `env-broken` qua `gh api` (2026-10-17, issue #37).

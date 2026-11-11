@@ -48,9 +48,9 @@ class SdkBannerAdViewTest {
     )
 
     // No banner placement is declared yet (question 1 of the plan): any placement names the slot of the metrics.
-    private fun banner(refresh: BannerRefresh) = SdkBannerAdView(
+    private fun banner(collapsible: Boolean) = SdkBannerAdView(
         adView = adView,
-        refresh = refresh,
+        collapsible = collapsible,
         placement = AdPlacement.POSES_BOTTOM,
         unitId = "unit",
         telemetry = telemetry,
@@ -65,7 +65,7 @@ class SdkBannerAdViewTest {
 
     @Test
     fun collapsibleSends_haveBottomAnchorAndNewRequestIdEachTime() {
-        val view = banner(BannerRefresh.MANUAL)
+        val view = banner(collapsible = true)
 
         view.send()
         view.send()
@@ -81,11 +81,11 @@ class SdkBannerAdViewTest {
     @Test
     fun fixedBannerRequest_hasNoCollapsibleExtras() {
         // Control (L-055): the same builder gives a collapsible request the extras, so their absence below counts.
-        val collapsibleRequest = bannerAdRequest(BannerRefresh.MANUAL, requestId = { "id" })
+        val collapsibleRequest = bannerAdRequest(collapsible = true, requestId = { "id" })
         val collapsible = collapsibleRequest.getNetworkExtrasBundle(AdMobAdapter::class.java)
         assertEquals("bottom", collapsible?.getString("collapsible"))
 
-        val view = banner(BannerRefresh.BY_AD_UNIT)
+        val view = banner(collapsible = false)
         view.send()
 
         val extras = requests.single().getNetworkExtrasBundle(AdMobAdapter::class.java)
@@ -94,8 +94,57 @@ class SdkBannerAdViewTest {
     }
 
     @Test
+    fun fixedAndMrecReloads_haveNoCollapsibleExtras() {
+        // Plan T-088, KB-18 criterion 3: the fixed banner and the MREC reload by hand, never as a collapsible request.
+        listOf(AdFormat.BANNER, AdFormat.BANNER_MREC).forEach { format ->
+            requests.clear()
+            val view = SdkBannerAdView(
+                adView = adView,
+                collapsible = bannerRequestIsCollapsible(format),
+                placement = AdPlacement.POSES_BOTTOM,
+                unitId = "unit",
+                telemetry = telemetry,
+                now = { nowMillis },
+                load = { requests += it },
+                format = format,
+            )
+            repeat(3) { view.send() }
+            assertEquals(format.name, 3, requests.size)
+            requests.forEach { request ->
+                val extras = request.getNetworkExtrasBundle(AdMobAdapter::class.java)
+                assertTrue("$format $extras", extras == null || !extras.containsKey("collapsible"))
+                assertFalse(format.name, extras?.containsKey("collapsible_request_id") == true)
+            }
+        }
+    }
+
+    @Test
+    fun reloadSends_eachHasLatency() {
+        // Plan T-088, section 8.2 of the business rules: every reload is sent by :core:ads, so each has a latency.
+        val view = SdkBannerAdView(
+            adView = adView,
+            collapsible = bannerRequestIsCollapsible(AdFormat.BANNER),
+            placement = AdPlacement.POSES_BOTTOM,
+            unitId = "unit",
+            telemetry = telemetry,
+            now = { nowMillis },
+            load = { requests += it },
+            format = AdFormat.BANNER,
+        )
+        listOf(0L to 300L, 60_000L to 500L, 120_000L to 700L).forEach { (sentAt, after) ->
+            nowMillis = sentAt
+            view.send()
+            nowMillis = sentAt + after
+            adView.adListener.onAdLoaded()
+        }
+
+        val latencies = metrics.events.filterIsInstance<AdMetricEvent.LoadSuccess>().map { it.latencyMs }
+        assertEquals(listOf<Long?>(300L, 500L, 700L), latencies)
+    }
+
+    @Test
     fun listenerResults_reachResultsAndMetrics() = runTest {
-        val view = banner(BannerRefresh.BY_AD_UNIT)
+        val view = banner(collapsible = false)
         val results = mutableListOf<BannerLoadResult>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { view.results.collect { results += it } }
 
@@ -123,7 +172,7 @@ class SdkBannerAdViewTest {
         // of the layer and the placement of the bar.
         val view = SdkBannerAdView(
             adView = adView,
-            refresh = BannerRefresh.BY_AD_UNIT,
+            collapsible = false,
             placement = AdPlacement.POSES_BOTTOM,
             unitId = "unit",
             telemetry = telemetry,
@@ -148,7 +197,7 @@ class SdkBannerAdViewTest {
         // Plan T-062, KB-29: the MREC placement reports its own format code and its placement.
         val view = SdkBannerAdView(
             adView = adView,
-            refresh = bannerRefreshOf(AdFormat.BANNER_MREC),
+            collapsible = bannerRequestIsCollapsible(AdFormat.BANNER_MREC),
             placement = AdPlacement.GALLERY_BANNER_MREC,
             unitId = "unit",
             telemetry = telemetry,
@@ -166,7 +215,7 @@ class SdkBannerAdViewTest {
         val click = metrics.events.filterIsInstance<AdMetricEvent.Clicked>().single()
         assertEquals("BANNER_MREC", click.adFormat)
         assertEquals("gallery_banner_mrec", click.adPlacement)
-        // Refreshed by its ad unit: the request has no collapsible extras.
+        // Not a collapsible banner: the request has no collapsible extras.
         val extras = requests.single().getNetworkExtrasBundle(AdMobAdapter::class.java)
         assertTrue("$extras", extras == null || !extras.containsKey("collapsible"))
     }
@@ -178,7 +227,7 @@ class SdkBannerAdViewTest {
         val logger = RecordingAppLogger()
         SdkBannerAdView(
             adView = adView,
-            refresh = BannerRefresh.BY_AD_UNIT,
+            collapsible = false,
             placement = AdPlacement.POSES_BOTTOM,
             unitId = "unit",
             telemetry = telemetry,
@@ -201,6 +250,47 @@ class SdkBannerAdViewTest {
     }
 
     @Test
+    fun loadFailed_staging_resultCarriesMaskedMessage_networkLinesDoNot() = runTest {
+        // Plan T-093, KB-28: the result carries the masked SDK message for the retry line; no other line holds it.
+        val logger = RecordingAppLogger()
+        val loggingTelemetry = AdTelemetry(
+            metrics = metrics,
+            funnel = RecordingAdFunnel(),
+            lifecycleSwitches = { DEFAULT_FLAGS.copy(logSlotEvents = true) },
+            serving = { true },
+            offline = { false },
+            counter = LoadAttemptCounter(),
+            logger = logger,
+        )
+        val view = SdkBannerAdView(
+            adView = adView,
+            collapsible = false,
+            placement = AdPlacement.POSES_BOTTOM,
+            unitId = "unit",
+            telemetry = loggingTelemetry,
+            now = { nowMillis },
+            load = { requests += it },
+            networkLog = AdNetworkLog(true, logger),
+            loadErrorLog = LoadErrorLog(true),
+        )
+        val results = mutableListOf<BannerLoadResult>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { view.results.collect { results += it } }
+
+        view.send()
+        adView.adListener.onAdFailedToLoad(
+            LoadAdError(3, ADMOB_UNIT_MESSAGE, "com.google.android.gms.ads", null, null),
+        )
+
+        assertEquals(listOf<BannerLoadResult>(BannerLoadResult.Failed(3, "No ad for <ad unit>.")), results)
+        // Control: the network log did write its line for this failure.
+        assertTrue(logger.entries.toString(), logger.entries.any { it.message.startsWith("Network ") })
+        assertTrue(
+            logger.entries.toString(),
+            logger.entries.none { "No ad for" in it.message || "ca-app-pub" in it.message },
+        )
+    }
+
+    @Test
     fun networkLog_defaultOff_logsNothing() {
         val logger = RecordingAppLogger()
         val quietTelemetry = AdTelemetry(
@@ -214,7 +304,7 @@ class SdkBannerAdViewTest {
         )
         SdkBannerAdView(
             adView = adView,
-            refresh = BannerRefresh.BY_AD_UNIT,
+            collapsible = false,
             placement = AdPlacement.POSES_BOTTOM,
             unitId = "unit",
             telemetry = quietTelemetry,
@@ -233,7 +323,7 @@ class SdkBannerAdViewTest {
         // Control (L-055): the same callbacks with the staging log on write the network lines to that logger.
         SdkBannerAdView(
             adView = adView,
-            refresh = BannerRefresh.BY_AD_UNIT,
+            collapsible = false,
             placement = AdPlacement.POSES_BOTTOM,
             unitId = "unit",
             telemetry = quietTelemetry,

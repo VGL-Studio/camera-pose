@@ -42,8 +42,8 @@ internal class FakeBannerAdView(private val clock: () -> Long = { 0L }, private 
         check(emitted.tryEmit(BannerLoadResult.Loaded))
     }
 
-    fun emitFailed(code: Int) {
-        check(emitted.tryEmit(BannerLoadResult.Failed(code)))
+    fun emitFailed(code: Int, logMessage: String? = null) {
+        check(emitted.tryEmit(BannerLoadResult.Failed(code, logMessage)))
     }
 
     /** The result of a frame of two platforms whose first platform had no ad (plan T-071). */

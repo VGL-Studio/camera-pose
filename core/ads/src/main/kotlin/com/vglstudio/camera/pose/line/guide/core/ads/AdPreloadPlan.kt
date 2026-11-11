@@ -15,9 +15,16 @@ class AdPreloadPlan(groups: List<Set<AdFormat>>) {
     }
 
     companion object {
-        /** HD-02 default: app open and the first step of a flow first, then every other format the placements use. */
-        fun fromPlacements(placements: List<AdPlacement> = AdPlacement.entries): AdPreloadPlan =
-            defaultPreloadPlan(placements.map { it.format })
+        /**
+         * HD-02 default: app open and the first step of a flow first, then every other format the placements use,
+         * with the collapsible layer when a placement has a bottom bar (its stock, KB-33). Banner layers are never
+         * preloaded.
+         */
+        fun fromPlacements(placements: List<AdPlacement> = AdPlacement.entries): AdPreloadPlan {
+            val layer = AdFormat.NATIVE_COLLAPSIBLE
+            val layers = if (placements.any { it.usesStock(layer) }) listOf(layer) else emptyList()
+            return defaultPreloadPlan(placements.map { it.format } + layers)
+        }
     }
 }
 

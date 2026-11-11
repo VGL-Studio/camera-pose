@@ -7,15 +7,27 @@ import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
  * Debug settings of the ads SDK, bound in :app per build flavor (plan T-058, KB-28), like [ConsentDebugOptions].
  * Staging uses [staging]: the developer's own phones as AdMob test devices (key `ads.testDeviceIds` of the developer's
  * local.properties, never in git) and one log line per network of each load ([AdNetworkLog]). Production uses [NONE].
+ * [logLoadErrorMessages] adds the masked SDK message to the load error line of every format ([LoadErrorLog], plan
+ * T-093): on at staging, off in production.
  */
-data class AdsDebugOptions(val testDeviceIds: List<String>, val logNetworkResponses: Boolean) {
+data class AdsDebugOptions(
+    val testDeviceIds: List<String>,
+    val logNetworkResponses: Boolean,
+    val logLoadErrorMessages: Boolean = false,
+) {
     companion object {
         /** No test device, no per-network log. */
         val NONE = AdsDebugOptions(emptyList(), false)
 
-        /** The test devices of [rawTestDeviceIds] (ids separated by commas, may be empty) and the per-network log. */
-        fun staging(rawTestDeviceIds: String) =
-            AdsDebugOptions(testDeviceIdsOf(rawTestDeviceIds), logNetworkResponses = true)
+        /**
+         * The test devices of [rawTestDeviceIds] (ids separated by commas, may be empty), the per-network log and the
+         * SDK message in the load error line.
+         */
+        fun staging(rawTestDeviceIds: String) = AdsDebugOptions(
+            testDeviceIdsOf(rawTestDeviceIds),
+            logNetworkResponses = true,
+            logLoadErrorMessages = true,
+        )
     }
 }
 

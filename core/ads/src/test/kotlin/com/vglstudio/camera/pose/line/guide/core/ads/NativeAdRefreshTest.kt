@@ -36,6 +36,9 @@ class NativeAdRefreshTest {
     private val retryResets = MutableStateFlow(0)
     private var mayRequest = true
 
+    /** The reload interval of the slot's key (time_reload_native_small, plan T-087): 60 s by default. */
+    private val interval = MutableStateFlow(60_000L)
+
     /** The window of the in-screen ads as AdsController builds it, in foreground (KB-27, plan T-054). */
     private val window = InScreenAdWindow(logger).apply { onForeground(true) }
     private lateinit var loads: FakeNativeLoads
@@ -51,7 +54,8 @@ class NativeAdRefreshTest {
     ): NativeAdSource {
         loads = FakeNativeLoads(loader, { testScheduler.currentTime }, logger)
         source = NativeAdSource(
-            load = load ?: { use -> loads.load(use) },
+            // A load given by the test answers for itself; the default one records the slot it is for (plan T-086).
+            load = { use, placement -> load?.let { NativeSourceLoad(it(use)) } ?: loads.load(use, placement) },
             sendGate = { awaitSendAllowed(gate) { mayRequest } },
             clock = { testScheduler.currentTime },
             scope = backgroundScope,
@@ -63,7 +67,7 @@ class NativeAdRefreshTest {
 
     /** The slot as AdsController wires it: attached while collected, detached when the collection ends. */
     private fun TestScope.collectRefresh(
-        firstTickDelayMillis: Long = NativeAdPolicy.REFRESH_INTERVAL_MILLIS,
+        firstTickExtraMillis: Long = 0,
         load: (suspend (NativeLoadUse) -> NativeAdState)? = null,
         gate: StateFlow<Boolean> = foreground,
     ): Pair<MutableList<NativeAdState>, Job> {
@@ -77,13 +81,17 @@ class NativeAdRefreshTest {
                         refreshingNativeAdStates(
                             NativeAdState.Loaded(ad0),
                             source,
+                            PLACEMENT,
+                            // The slot stops when the source is shut down, as when its only placement is off.
+                            source.closed,
                             gate,
                             { mayRequest },
                             retryResets,
                             { testScheduler.currentTime },
                             logger,
                             KEY,
-                            firstTickDelayMillis,
+                            intervalMillis = interval,
+                            firstTickExtraMillis = firstTickExtraMillis,
                         ),
                     )
                 } finally {
@@ -165,20 +173,139 @@ class NativeAdRefreshTest {
     }
 
     @Test
-    fun firstTickDelay_appliesToFirstTickOnly() = runTest {
-        val (states, _) = collectRefresh(firstTickDelayMillis = 30_000)
-        at(29_999)
+    fun firstTickExtra_appliesToFirstTickOnly() = runTest {
+        // Plan T-087, section 3.5: the extra is added to the first count of the key only (bottom slot, 500 ms).
+        val (states, _) = collectRefresh(firstTickExtraMillis = 500)
+        at(60_499)
         assertTrue(loads.sent.isEmpty())
-        at(30_000)
-        assertEquals(listOf(30_000L), loads.times)
+        at(60_500)
+        assertEquals(listOf(60_500L), loads.times)
         val ad1 = deliver()
         val ad2 = deliver()
 
+        at(120_499)
+        assertSame(ad1, states.lastAd())
+        at(120_500)
+        assertSame(ad2, states.lastAd())
+    }
+
+    @Test
+    fun interval90s_firstTickAt90s_notAt60s() = runTest {
+        interval.value = 90_000
+        val (states, _) = collectRefresh()
         at(60_000)
-        assertSame(ad1, states.lastAd())
+        assertTrue(loads.sent.isEmpty())
         at(89_999)
-        assertSame(ad1, states.lastAd())
+        assertTrue(loads.sent.isEmpty())
         at(90_000)
+        assertEquals(listOf(90_000L), loads.times)
+        val ad1 = deliver()
+        val ad2 = deliver()
+        assertSame(ad1, states.lastAd())
+
+        at(179_999)
+        assertSame(ad1, states.lastAd())
+        at(180_000)
+        assertSame(ad2, states.lastAd())
+    }
+
+    @Test
+    fun intervalChangedOnScreen_appliesFromNextTick() = runTest {
+        val (states, _) = collectRefresh()
+        at(30_000)
+        interval.value = 120_000
+        runCurrent()
+        at(59_999)
+        assertTrue(loads.sent.isEmpty())
+        // The count under way keeps its 60 s.
+        at(60_000)
+        assertEquals(listOf(60_000L), loads.times)
+        val ad1 = deliver()
+        val ad2 = deliver()
+        assertSame(ad1, states.lastAd())
+
+        // The next count reads the new value: 120 s after the swap.
+        at(179_999)
+        assertSame(ad1, states.lastAd())
+        at(180_000)
+        assertSame(ad2, states.lastAd())
+    }
+
+    @Test
+    fun intervalZero_keepsAd_noClaim() = runTest {
+        interval.value = 0
+        val (states, _) = collectRefresh()
+        at(600_000)
+        assertTrue(loads.sent.isEmpty())
+        assertEquals(1, states.size)
+        assertEquals(0, ad0.destroyCount)
+
+        // Control (L-055): a positive value counts from its receipt, so the slot is still alive.
+        interval.value = 60_000
+        runCurrent()
+        at(659_999)
+        assertTrue(loads.sent.isEmpty())
+        at(660_000)
+        assertEquals(listOf(660_000L), loads.times)
+    }
+
+    @Test
+    fun intervalZeroDuringRetry_stopsReplacing() = runTest {
+        // Control (L-055) of the retry at 62 s with the key kept: refreshFails_keepsOldAd_retriesAt2s4s8s.
+        val (states, _) = collectRefresh()
+        at(60_000)
+        fail()
+        assertEquals(listOf("Native $KEY refresh: failed, retry in 2000 ms (failures 1)"), failureLogs())
+        at(61_000)
+        interval.value = 0
+        runCurrent()
+
+        at(600_000)
+        assertEquals(listOf(60_000L), loads.times)
+        assertEquals(1, states.size)
+        assertEquals(0, ad0.destroyCount)
+        at(700_000)
+        assertEquals(listOf(60_000L), loads.times)
+
+        interval.value = 60_000
+        runCurrent()
+        at(759_999)
+        assertEquals(listOf(60_000L), loads.times)
+        at(760_000)
+        assertEquals(listOf(60_000L, 760_000L), loads.times)
+    }
+
+    @Test
+    fun skippedTick_nextCountReadsValueAtStart() = runTest {
+        val (states, _) = collectRefresh()
+        at(30_000)
+        foreground.value = false
+        runCurrent()
+        // The tick of 60 s is skipped; the next count starts at once with the value then, 60 s.
+        at(60_000)
+        assertTrue(loads.sent.isEmpty())
+        at(70_000)
+        interval.value = 90_000
+        runCurrent()
+        at(90_000)
+        foreground.value = true
+        runCurrent()
+        assertTrue(loads.sent.isEmpty())
+
+        at(119_999)
+        assertTrue(loads.sent.isEmpty())
+        at(120_000)
+        assertEquals(listOf(120_000L), loads.times)
+        val ad1 = deliver()
+        val ad2 = deliver()
+        assertSame(ad1, states.lastAd())
+
+        // The count after the swap reads 90 s.
+        at(180_000)
+        assertSame(ad1, states.lastAd())
+        at(209_999)
+        assertSame(ad1, states.lastAd())
+        at(210_000)
         assertSame(ad2, states.lastAd())
     }
 
@@ -466,7 +593,7 @@ class NativeAdRefreshTest {
     }
 
     @Test
-    fun cancelledBetweenClaimAndEmit_destroysNewAd() = runTest {
+    fun cancelledBetweenClaimAndEmit_newAdKeptByStock() = runTest {
         lateinit var job: Job
         val ad1 = FakeLoadedNativeAd()
         newSource(
@@ -483,7 +610,9 @@ class NativeAdRefreshTest {
 
         assertTrue(collection.isCancelled)
         assertEquals(1, states.size)
-        assertEquals(1, ad1.destroyCount)
+        // Never shown by the slot that left, never lost: the stock keeps it for the next claim (KB-33).
+        assertEquals(0, ad1.destroyCount)
+        assertSame(ad1, source.pending)
         assertEquals(1, ad0.destroyCount)
     }
 
@@ -500,8 +629,9 @@ class NativeAdRefreshTest {
 
         assertEquals(1, ad1.destroyCount)
         assertEquals(1, ad0.destroyCount)
-        // The pending ad goes with the source once the last slot is gone.
-        assertEquals(1, ad2.destroyCount)
+        // The pending ad stays in the stock once the last slot is gone (KB-33).
+        assertEquals(0, ad2.destroyCount)
+        assertSame(ad2, source.pending)
     }
 
     @Test
@@ -602,5 +732,6 @@ class NativeAdRefreshTest {
 
     private companion object {
         const val KEY = "poses_bottom"
+        val PLACEMENT = AdPlacement.POSES_BOTTOM
     }
 }

@@ -27,7 +27,7 @@ docs/
 ├── templates/               các mẫu tài liệu
 ├── borrowed-assets.md       app clone: tài sản mượn tạm từ app mẫu, phải thay hết trước khi phát hành
 ├── foundation.md            quy tắc nền tảng, sinh từ các ADR bởi scripts/foundation.py, không sửa tay
-├── remote-config-keys.md    bảng khóa Remote Config, sinh từ code bởi RemoteConfigKeysTest, không sửa tay (ADR-0023)
+├── remote-config-keys.md    bảng khóa Remote Config, sinh từ code bởi RemoteConfigKeysTest, không sửa tay (ADR-0046)
 ├── remote-config-template.json  file mẫu Remote Config cho project Firebase mới, sinh cùng bảng khóa
 ├── STATUS.md                trang tiến độ, sinh bởi scripts/status.py; không có trong git, bản đọc được trên nhánh status (status-page.yml)
 ├── auto-run.md              quy trình phiên AI tự chạy
@@ -77,11 +77,11 @@ Khi một quyết định kỹ thuật có ảnh hưởng lâu dài được đ�
 | Yêu cầu | không có | `features/<feature>/requests/YYYY-MM-DD-<tu-khoa>.md` | `.../requests/2026-10-20-nhac-nho-hang-ngay.md` |
 | Spec | tên feature | `features/<feature>/spec.md` | `features/daily-reminder/spec.md` |
 | Thiết kế | tên feature | `features/<feature>/design/README.md` | `features/daily-reminder/design/README.md` |
-| Ticket | `T-NNN` | `features/<feature>/tickets/T-NNN-<tu-khoa>.md` | `.../tickets/T-012-reminder-settings.md` |
-| Plan | trùng mã ticket | `features/<feature>/plans/T-NNN-<tu-khoa>.md` | `.../plans/T-012-reminder-settings.md` |
+| Ticket | `T-NNN` | `features/<feature>/tickets/T-NNN-<tu-khoa>.md` | `.../tickets/T-NNN-reminder-settings.md` |
+| Plan | trùng mã ticket | `features/<feature>/plans/T-NNN-<tu-khoa>.md` | `.../plans/T-NNN-reminder-settings.md` |
 | Phản hồi | `FB-YYYYMMDD-NN` | `features/<feature>/feedback/FB-YYYYMMDD-NN-<tu-khoa>.md` | `.../feedback/FB-20261021-01-reminder-time.md` |
 | ADR | `ADR-NNNN` (dự án mẫu dưới 1000, app từ 1001) | `adr/NNNN-<tu-khoa>.md` | `adr/1001-local-notifications.md` |
-| Phiên tự chạy | `RUN-YYYYMMDD-NN` | `runs/RUN-YYYYMMDD-NN.md` | `runs/RUN-20261020-01.md` |
+| Phiên tự chạy | `RUN-YYYYMMDD-NN` | `runs/RUN-YYYYMMDD-NN.md` | `runs/RUN-YYYYMMDD-01.md` |
 | Báo cáo vận hành | `OPS-YYYY-MM-DD` | `ops/OPS-YYYY-MM-DD.md` | `ops/OPS-2026-11-02.md` |
 | Khảo sát app mẫu | tên gói app mẫu | `research/<package>.md` | `research/com.example.posecamera.md` |
 | Đề xuất app | không có | `research/proposal.md` | `research/proposal.md` |
@@ -90,7 +90,7 @@ Khi một quyết định kỹ thuật có ảnh hưởng lâu dài được đ�
 - Tên feature viết thường, nối bằng dấu gạch ngang, trùng với tên module `:feature:<ten>`.
 - Từ khóa trong tên file viết không dấu, ngắn gọn.
 - Nhánh của task đặt tên theo dạng `claude/T-NNN-<tu-khoa>`.
-- **Mã ticket đánh số chung cho cả app**, không đánh lại cho từng feature, để "T-012" luôn chỉ đúng một task.
+- **Mã ticket đánh số chung cho cả app**, không đánh lại cho từng feature, để một mã ticket luôn chỉ đúng một task.
 - Mã số tăng dần, không dùng lại mã đã cấp, kể cả khi ticket bị hủy.
 - Phản hồi trong `inbox/` được chuyển vào thư mục feature khi phân loại xong. Phản hồi liên quan cả app (ví dụ tốc độ khởi động) ở lại `inbox/` và được liên kết tới ticket xử lý.
 

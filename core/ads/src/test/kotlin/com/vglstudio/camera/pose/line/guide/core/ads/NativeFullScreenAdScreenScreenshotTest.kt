@@ -3,7 +3,6 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import androidx.compose.runtime.Composable
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -19,7 +18,7 @@ import org.robolectric.annotation.GraphicsMode
 class NativeFullScreenAdScreenScreenshotTest {
     @Composable
     private fun Screen(darkTheme: Boolean, assets: NativeAdAssets = FakeNativeAdAssets.Design) {
-        AppTheme(darkTheme = darkTheme) {
+        AdsTestTheme(darkTheme = darkTheme) {
             NativeFullScreenAdScreen(
                 assets = assets,
                 onClose = {},

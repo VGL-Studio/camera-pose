@@ -11,6 +11,8 @@ superseded_by:
 
 # ADR-0043: TEST TRÊN EMULATOR CHẠY MỘT LẦN CHO MỖI COMMIT ĐỔI CODE APP CỦA NHÁNH CHÍNH, TRONG JOB UI-TEST CỦA MAIN-GUARD, KHÔNG CHẠY Ở PR
 
+> Ghi chú 2026-11-07: `pr-check.yml` không còn job `changes`. Bộ lọc đường dẫn là bước đầu của job `build-and-test`, và `scripts/merge-if-green.sh` chỉ đòi kiểm tra `build-and-test`. Mục 1 tả hai job theo trạng thái lúc quyết định; các quy tắc của ADR này giữ nguyên.
+
 Nguồn: yêu cầu giảm chi phí GitHub Actions (`docs/features/quy-trinh/requests/2026-10-29-giam-phut-actions.md`, cách 3), ticket T-075.
 
 ## Bối cảnh

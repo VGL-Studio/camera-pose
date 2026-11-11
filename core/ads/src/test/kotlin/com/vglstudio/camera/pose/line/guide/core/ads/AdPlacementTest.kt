@@ -113,6 +113,24 @@ class AdPlacementTest {
     }
 
     @Test
+    fun firstOpenOnly_flowStepFormatsOnly_notAppWide() {
+        val flowStep = listOf(AdFormat.NATIVE_STEP, AdFormat.NATIVE_FULL_SCREEN)
+        flowStep.forEach { assertTrue("$it", AdPlacementDeclaration("x", it, firstOpenOnly = true).firstOpenOnly) }
+        AdFormat.entries.filterNot { it in flowStep }.forEach {
+            // Control: the format alone is accepted, so the throw below comes from firstOpenOnly.
+            AdPlacementDeclaration("x", it)
+            assertThrows("$it", IllegalArgumentException::class.java) {
+                AdPlacementDeclaration("x", it, firstOpenOnly = true)
+            }
+        }
+        // Control: an app-wide native full screen is accepted without firstOpenOnly.
+        AdPlacementDeclaration("x", AdFormat.NATIVE_FULL_SCREEN, appWide = true)
+        assertThrows(IllegalArgumentException::class.java) {
+            AdPlacementDeclaration("x", AdFormat.NATIVE_FULL_SCREEN, appWide = true, firstOpenOnly = true)
+        }
+    }
+
+    @Test
     fun nativeEveryBelowOne_isRejected() {
         // Control: 1 is accepted.
         AdPlacementDeclaration("list_x", AdFormat.NATIVE_IN_COLLECTION, nativeEvery = 1)

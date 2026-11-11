@@ -96,7 +96,8 @@ object AdsSettings {
     val IS_SHOW_NATIVE_AFTER_INTER = booleanKey(
         name = "is_show_native_after_inter",
         default = false,
-        description = "Shows a full-screen native ad right after an interstitial (combo).",
+        description = "Shows a full-screen native ad right after the interstitial of an in-app placement (combo); " +
+            "never after the startup or resume interstitial.",
     )
 
     val TIME_CLOSE_NATIVE = longKey(
@@ -123,6 +124,42 @@ object AdsSettings {
         default = 10L,
         description = "Time after the user collapses the collapsible native ad before it expands again, in seconds; " +
             "0 means never.",
+    )
+
+    val TIME_RELOAD_NATIVE_SMALL = longKey(
+        name = "time_reload_native_small",
+        default = 60L,
+        description = "Time between two in-place refreshes of a single-ad native small slot (bottom, standalone; " +
+            "not a list row), in seconds; 0 means none, 1 to 29 use 30, negative uses the default.",
+    )
+
+    val TIME_RELOAD_COLLAP_AD = longKey(
+        name = "time_reload_collap_ad",
+        default = 60L,
+        description = "Time between two in-place refreshes of the collapsible native layer, which stays collapsed, " +
+            "in seconds; 0 means none, 1 to 29 use 30, negative uses the default.",
+    )
+
+    val TIME_RELOAD_BANNER_COLLAP = longKey(
+        name = "time_reload_banner_collap",
+        default = 30L,
+        description = "Time from a load of a collapsible banner to its reload, in seconds; 0 means none once it has " +
+            "an ad, 1 to 29 use 30, negative uses the default.",
+    )
+
+    val TIME_RELOAD_BANNER = longKey(
+        name = "time_reload_banner",
+        default = 60L,
+        description =
+        "Time from a load of a fixed banner (also the banner of a bottom bar) to its reload, in seconds; " +
+            "0 means none once it has an ad, 1 to 29 use 30, negative uses the default.",
+    )
+
+    val TIME_RELOAD_BANNER_MREC = longKey(
+        name = "time_reload_banner_mrec",
+        default = 60L,
+        description = "Time from a load of an MREC banner to its reload, in seconds; 0 means none once it has an ad, " +
+            "1 to 29 use 30, negative uses the default.",
     )
 
     val IS_ENABLE_CONSENT_SHORTCUT = booleanKey(
@@ -162,6 +199,7 @@ object AdsSettings {
         default = false,
         description = "Shows ads in this placement. Off by default." +
             (if (declaration.stagingOnly) " Staging ad gallery only." else "") +
+            (if (declaration.firstOpenOnly) " First open since install only." else "") +
             " ${derivedNote(declaration)}",
     )
 
@@ -233,6 +271,11 @@ object AdsSettings {
         IS_SHOW_NATIVE_BOTTOM,
         IS_SHOW_NATIVE_COLLAP,
         TIME_EXPAND_COLLAP_AD,
+        TIME_RELOAD_NATIVE_SMALL,
+        TIME_RELOAD_COLLAP_AD,
+        TIME_RELOAD_BANNER_COLLAP,
+        TIME_RELOAD_BANNER,
+        TIME_RELOAD_BANNER_MREC,
         IS_ENABLE_CONSENT_SHORTCUT,
         IS_LOG_AD_FULLSCREEN_EVENTS,
         IS_LOG_AD_SLOT_EVENTS,

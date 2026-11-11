@@ -260,6 +260,26 @@ class AdTelemetryTest {
     }
 
     @Test
+    fun loadFailed_sdkMessage_neverInEvents() {
+        // Plan T-093, KB-28: the SDK message goes to the staging log only, never into an event (section 8.2).
+        logFullScreen = true
+        serving = true
+
+        telemetry().loadFailed(AdFormat.INTERSTITIAL, SLOT, "preload", 3, "No fill. $ADMOB_UNIT_MESSAGE", 0)
+
+        // Control: the failure did record its event.
+        val fail = metrics.events.filterIsInstance<AdMetricEvent.LoadFail>().single()
+        assertEquals("3", fail.loadErrorCode)
+        assertEquals("no_fill", fail.loadState)
+        val recorded = metrics.events.map { it.toString() } + funnel.events.map { it.toString() }
+        recorded.forEach { event ->
+            assertFalse(event, "No fill" in event)
+            assertFalse(event, "No ad for" in event)
+            assertFalse(event, "ca-app-pub" in event)
+        }
+    }
+
+    @Test
     fun throwingMetrics_isSwallowedAndLogged() {
         val throwing = object : AdMetrics {
             override fun log(event: AdMetricEvent) = throw IllegalStateException("secret detail")
@@ -487,6 +507,57 @@ class AdTelemetryTest {
         )
         assertTrue(metrics.events.all { it.adFormat == "NATIVE_MEDIUM" })
         assertEquals(0, counter.failuresInARow("gallery_native_medium"))
+    }
+
+    @Test
+    fun preloadUse_logsPreloadPlacement_noLoadAttempt() {
+        val telemetry = telemetry()
+        logSlot = true
+        serving = true
+
+        // Loads of the native small stock itself (fail, then success), each with a new report (PL-02, KB-33).
+        listOf(false, true).forEachIndexed { i, success ->
+            val load = telemetry.nativeLoadReport(null, NativeLoadUse.PRELOAD, AdFormat.NATIVE_SMALL)
+            load.sent(i * 100L)
+            if (success) load.succeeded(i * 100L + 10) else load.failed(3, null, i * 100L + 20)
+        }
+
+        assertEquals(listOf<Int?>(null, null), metrics.events.map { it.loadAttemptOrMissing() })
+        assertEquals(
+            listOf("preload", "preload"),
+            metrics.events.map {
+                when (it) {
+                    is AdMetricEvent.LoadSuccess -> it.adPlacement
+                    is AdMetricEvent.LoadFail -> it.adPlacement
+                    else -> null
+                }
+            },
+        )
+        assertEquals(listOf(20L, 10L), metrics.events.map { it.latencyOrMissing() })
+        assertTrue(metrics.events.all { it.adFormat == "NATIVE_SMALL" })
+        assertEquals(0, counter.failuresInARow("poses_bottom"))
+        assertEquals(0, counter.failuresInARow(AdFormat.NATIVE_SMALL.code))
+    }
+
+    @Test
+    fun preloadAndSingleAdOverlap_eachOwnPlacementAndLatency() {
+        val telemetry = telemetry()
+        logSlot = true
+        serving = true
+
+        // The stock loads by itself while a slot of the sample screen waits on a load of its own.
+        val preload = telemetry.nativeLoadReport(null, NativeLoadUse.PRELOAD, AdFormat.NATIVE_SMALL)
+        val single = telemetry.nativeLoadReport(AdPlacement.POSES_BOTTOM, NativeLoadUse.SINGLE_AD)
+        preload.sent(0)
+        single.sent(300)
+        preload.succeeded(900)
+        single.succeeded(1_000)
+
+        val successes = metrics.events.filterIsInstance<AdMetricEvent.LoadSuccess>()
+        assertEquals(2, successes.size)
+        assertEquals(listOf("preload", "poses_bottom"), successes.map { it.adPlacement })
+        assertEquals(listOf(900L, 700L), successes.map { it.latencyMs })
+        assertEquals(listOf<Int?>(null, 1), successes.map { it.loadAttempt })
     }
 
     @Test
@@ -726,6 +797,12 @@ class AdTelemetryTest {
     }
 
     /** `load_attempt` of a load event; any other event is a test error. */
+    private fun AdMetricEvent.latencyOrMissing(): Long? = when (this) {
+        is AdMetricEvent.LoadSuccess -> latencyMs
+        is AdMetricEvent.LoadFail -> latencyMs
+        else -> throw AssertionError("Not a load event: $this")
+    }
+
     private fun AdMetricEvent.loadAttemptOrMissing(): Int? = when (this) {
         is AdMetricEvent.LoadSuccess -> loadAttempt
         is AdMetricEvent.LoadFail -> loadAttempt

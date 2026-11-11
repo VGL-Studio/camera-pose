@@ -28,6 +28,9 @@ documents behind it, the mistakes that stopped or slowed earlier sessions:
      like plan-check.py --touches) has a path matching a capability the method lacks ("không") is an error; one the
      session must probe at its start ("thử") is a warning. A missing or unknown `open_with` is a warning only when
      some plan needs a capability. A row of the table with a broken pattern is a warning.
+  9. A plan that deletes a file or a folder (section 3.2, "Xóa") that a plan after it in the list still changes or
+     deletes in its own section 3.2: an error, since that later plan fails plan-check.py at its start and is skipped.
+     A later plan that creates the file again, or names it elsewhere in sections 3 and 4: a warning.
 RUN_CHECK_ROOT overrides the repository root (tests). RUN_CHECK_OPEN_WITH overrides `open_with` (a session opened
 another way than the list says). Messages are in Vietnamese for the team.
 """
@@ -280,7 +283,8 @@ def check(run_path):
         return ["mục 1 không có dòng nào đúng mẫu (Thứ tự | Ticket | Feature | Plan | ...)."], []
     run_text = run_path.read_text()
     in_list = [ticket for ticket, _ in rows]
-    depends, files_of, created_by, plan_texts, hints = {}, {}, {}, {}, {}
+    depends, files_of, created_by, deleted_by, plan_texts, hints = {}, {}, {}, {}, {}, {}
+    ops_of = {}
 
     for position, (ticket, plan_ref) in enumerate(rows):
         plan = DOCS / plan_ref
@@ -301,6 +305,9 @@ def check(run_path):
         for op, path in PLAN_CHECK.file_list(plan_text):
             if op == "create" and not path.endswith("/"):
                 created_by.setdefault(path, []).append(ticket)
+            if op == "delete":
+                deleted_by.setdefault(path, []).append(ticket)
+            ops_of.setdefault(ticket, {}).setdefault(path, set()).add(op)
 
         ticket_path = ticket_file(ticket)
         if ticket_path is None:
@@ -400,6 +407,25 @@ def check(run_path):
                     warnings.append(f"{user} nhắc `{mention}` mà {creator} tạo; nếu {creator} dừng thì {user} thiếu "
                                     f"`{mention}`. Cân nhắc thêm {creator} vào depends_on của {user}, hoặc ghi phương án "
                                     "ở mục 3.4 của plan (L-078).")
+    # A file (or a folder, path ending in /) an earlier plan deletes, that a later plan of the list still uses.
+    for gone, deleters in sorted(deleted_by.items()):
+        for deleter in deleters:
+            for user in listed:
+                if user == deleter or position_of[user] < position_of[deleter]:
+                    continue
+                inside = (lambda p: p.startswith(gone)) if gone.endswith("/") else (lambda p: p == gone)
+                for path, ops in sorted(ops_of.get(user, {}).items()):
+                    if not inside(path):
+                        continue
+                    if ops - {"create"}:
+                        errors.append(f"{user} có `{path}` ở mục 3.2 mà {deleter} (đứng trước) xóa: plan-check.py báo "
+                                      f"lỗi khi {user} bắt đầu và phiên bỏ qua task. Sửa plan {user}, hoặc đổi thứ tự.")
+                    else:
+                        warnings.append(f"{user} tạo lại `{path}` mà {deleter} (đứng trước) xóa; xem hai plan có thống "
+                                        "nhất không.")
+                named = set(re.findall(r"`([^`]+)`", chapter(plan_texts[user], 3) + chapter(plan_texts[user], 4)))
+                for path in sorted(p for p in named if inside(p) and p not in ops_of.get(user, {})):
+                    warnings.append(f"{user} nhắc `{path}` mà {deleter} (đứng trước) xóa; đọc lại câu đó của {user}.")
     capability_errors, capability_warnings = capability_problems(run_text, files_of, in_list)
     errors += capability_errors
     warnings += capability_warnings

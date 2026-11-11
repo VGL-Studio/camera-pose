@@ -46,12 +46,12 @@ class AdPlacementAppTest {
     fun nativeOnboarding_firstOpenOnly() {
         // Spec onboarding, KB-6 and section 5: the step card of the flow, first open only (plan T-083).
         val placement = AdPlacement.NATIVE_ONBOARDING
-        assertTrue(placement.firstOpenOnly)
+        assertTrue(placement.declaration.firstOpenOnly)
         assertEquals("native_onboarding", placement.key)
         assertEquals(AdFormat.NATIVE_STEP, placement.format)
         assertEquals("is_show_native_onboarding", AdsSettings.placementEnabled(placement).name)
         // Control: the other placements of the app are not first open only.
-        assertFalse(AdPlacement.POSES_BOTTOM.firstOpenOnly)
+        assertFalse(AdPlacement.POSES_BOTTOM.declaration.firstOpenOnly)
     }
 
     @Test

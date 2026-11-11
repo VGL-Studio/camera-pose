@@ -24,7 +24,7 @@ Selectors (one keyword, optional filters; several selectors separated by " | " m
   A value may be quoted ("Hands in Pockets"): the quotes keep its spaces, a number after them is the seconds or count.
   An unquoted text= or desc= on a line that ends in a number is ambiguous, even one word: quote it (desc="Back" 10).
   filters: in=<testTag> (inside that element), index=<n> (nth match, from 1), selected=true, clickable=true,
-  enabled=true (the node itself is enabled: a Compose button with enabled = false stays clickable="true" in the dump)
+  enabled=true (the node itself is enabled: a Compose button that is turned off still has clickable="true")
   selected=true (or checked) looks at the node itself; for a node that is not clickable also at up to two parents,
   stopping after the first clickable one (the text of a Compose chip is a child of the selected node).
 

@@ -24,8 +24,8 @@ android {
     defaultConfig {
         // Replaced by the app's real id when a new app is created from the template.
         applicationId = "com.vglstudio.camera.pose.line.guide"
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "1.0.0"
     }
 
     // Staging builds sent to the team are signed with a fixed staging-only key, so each build installs over

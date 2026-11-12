@@ -1,4 +1,4 @@
-base=e16632eb252ca85dc1f3401422ac29c6a9d40e58
+base=698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 package=com.vglstudio.camera.pose.line.guide
 # app/ and feature/loading took parts of template T-007, T-008, T-024 by hand (plan T-074): MainActivity.kt,
 # TemplateApplication.kt, di/AnalyticsConfigModule.kt, config/AppRemoteKeys.kt, the remoteConfigKeys block of
@@ -39,8 +39,9 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:
 # AdSlot separator (spec poses, KB-6; AdSlotTest) and PrivacyOptionsButton(content) (feature/settings), the public
 # startupAdPlacementFor of StartupAdChoice.kt (app/src/testStaging StagingRemoteValuesModuleTest), the CARD height when
-# space is kept in NativeAdSlot.kt, five T-080 tests of InListAdsTest. Template tests adapted to the app: AdsSettingsTest
-# (native_onboarding is firstOpenOnly), and in app tests AdSlotTest (reloadMillis = 0), NativeFlowStepTest
+# space is kept in NativeAdSlot.kt, five T-080 tests of InListAdsTest. AdsSettingsTest follows the template apart from
+# POSES_BOTTOM (its firstOpenOnly test checks both ways, so native_onboarding needs no edit). Template tests adapted to the
+# app: AdSlotTest (reloadMillis = 0), NativeFlowStepTest
 # (allowed = true), AdsControllerComboScopeTest (attachFullScreenHost). The core/ads screenshots are the template's
 # (AdsTestTheme), never recorded with the app theme.
 # Template T-082 (default strings in English in values/, Vietnamese in values-vi/) is in held app/, core/designsystem and

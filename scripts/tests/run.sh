@@ -3767,7 +3767,8 @@ release_fails_with() {
   fi
 }
 write_release_properties() {
-  printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" > "$release_dir/release.properties"
+  printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" "appsFlyerDevKey=${4-AbCdEf0123456789XyZ}" \
+    > "$release_dir/release.properties"
 }
 mkdir -p "$release_dir"
 release_fails_with "missing files" "/release/google-services.json"
@@ -3776,13 +3777,207 @@ write_release_properties "ca-app-pub-3940256099942544~3347511713" "" "https://cd
 release_fails_with "Google test app id" "mã thử của Google"
 write_release_properties "ca-app-pub-1234567890123456/1111111111" "" "https://cdn.example.vn/"
 release_fails_with "ad unit given as app id" "admobAppId phải có dạng"
-write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "https://cdn.example.vn/"
-release_fails_with "Google test ad unit" "mã quảng cáo thử"
+# A Google test unit given by hand is accepted (2026-10-26): the folder check goes on to the next value.
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "http://cdn.example.vn/"
+release_fails_with "a Google test ad unit given by hand passes the ad unit check" "assetsBaseUrl phải"
+# Whether this repo declares the AppsFlyer SDK, read the way release.sh reads it. An app without the SDK (camera-pose,
+# ADR-1007) has no key to refuse, so this repo's own release.sh must not ask for one; with the SDK it must.
+repo_has_appsflyer=no
+if grep -rqsE --include='*.gradle.kts' --exclude-dir=build --exclude-dir=.gradle \
+  'libs\.appsflyer([^.A-Za-z0-9_]|$)|"com\.appsflyer:' .; then
+  repo_has_appsflyer=yes
+fi
+if [[ "$repo_has_appsflyer" == yes ]]; then
+  write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
+  release_fails_with "missing AppsFlyer dev key (this repo has the AppsFlyer SDK)" "thiếu appsFlyerDevKey"
+  write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "key with spaces"
+  release_fails_with "AppsFlyer dev key with odd characters" "thiếu appsFlyerDevKey"
+else
+  # Run on a copy holding this repo's real build files, in a repository without an origin, so the run stops at the
+  # commit step (as the no_af copy below) instead of reaching git and gh in this repository.
+  own_af="$work/release-own-build-files"
+  mkdir -p "$own_af/scripts"
+  cp scripts/release.sh "$own_af/scripts/"
+  while IFS= read -r build_file; do
+    mkdir -p "$own_af/$(dirname "$build_file")"
+    cp "$build_file" "$own_af/$build_file"
+  done < <(git ls-files '*.gradle.kts')
+  git -C "$own_af" init -q
+  write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
+  own_af_out="$("$own_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
+  expect "release.sh: this repo has no AppsFlyer SDK, so its build files pass the folder check without a key" "0 1" \
+    "$(grep -c 'appsFlyerDevKey' <<< "$own_af_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$own_af_out" || true)"
+  # The two refusals of the template still run, on the same copy with a module that declares the SDK through the
+  # version catalog (libs.appsflyer), the way an app with the SDK declares it.
+  mkdir -p "$own_af/core/appsflyer-probe"
+  printf '%s\n' 'dependencies {' '    implementation(libs.appsflyer)' '}' > "$own_af/core/appsflyer-probe/build.gradle.kts"
+  write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
+  expect "release.sh refuses: missing AppsFlyer dev key (a copy with libs.appsflyer)" 1 \
+    "$("$own_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null | grep -c 'thiếu appsFlyerDevKey' || true)"
+  write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "key with spaces"
+  expect "release.sh refuses: AppsFlyer dev key with odd characters (a copy with libs.appsflyer)" 1 \
+    "$("$own_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null | grep -c 'thiếu appsFlyerDevKey' || true)"
+fi
+# An app without the AppsFlyer SDK (no module declares libs.appsflyer or com.appsflyer) releases without the key
+# (issue #261). The script runs from a copy in a repo without the SDK; passing the folder check means it reaches the
+# commit step, which then stops there because the copy has no origin.
+no_af="$work/release-no-appsflyer"
+mkdir -p "$no_af/scripts" "$no_af/core/analytics"
+cp scripts/release.sh "$no_af/scripts/"
+printf '%s\n' 'dependencies {' '    implementation(libs.firebase.analytics)' '}' > "$no_af/core/analytics/build.gradle.kts"
+git -C "$no_af" init -q
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
+no_af_out="$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
+expect "release.sh: an app without the AppsFlyer SDK passes the folder check without a key" 1 \
+  "$(grep -c '^== Kiểm tra commit phát hành' <<< "$no_af_out")"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "SecretKey0123456789"
+no_af_out="$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
+expect "release.sh: an app without the AppsFlyer SDK warns that its key is not used, and goes on" "1 1" \
+  "$(grep -c '^CHÚ Ý: .*appsFlyerDevKey' <<< "$no_af_out") $(grep -c '^== Kiểm tra commit phát hành' <<< "$no_af_out")"
+expect "release.sh: the unused AppsFlyer key is never printed" 0 "$(grep -c 'SecretKey0123456789' <<< "$no_af_out" || true)"
+# The SDK declared directly by its Maven coordinates counts too.
+printf '%s\n' 'dependencies {' '    implementation("com.appsflyer:af-android-sdk:6.18.1")' '}' > "$no_af/core/analytics/build.gradle.kts"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
+expect "release.sh: the SDK given by its Maven coordinates needs the key" 1 \
+  "$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null | grep -c 'thiếu appsFlyerDevKey' || true)"
+expect "release.sh never prints the AppsFlyer dev key" 0 \
+  "$(write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/" "SecretKey0123456789"
+     scripts/release.sh --config "$release_dir" 2>&1 < /dev/null | grep -c 'SecretKey0123456789' || true)"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner" "https://cdn.example.vn/"
 release_fails_with "malformed ad unit entry" "mục adUnits"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/"
 release_fails_with "assets address without https" "assetsBaseUrl phải"
 release_fails_with "unknown argument" "tham số không hợp lệ" --upload
+expect "release.sh: native placements and placements with attributes need a production ad unit, gallery ones do not" \
+  "sample_bottom_banner sample_native_small home_full_screen inter_sounds list_native" \
+  "$(scripts/release.sh --list-placements scripts/tests/fixtures/release/AdPlacement.kt | tr '\n' ' ' | sed 's/ $//')"
+# Placements without a real unit get Google's test unit of their format, and are listed (decision 2026-10-26).
+expect "release.sh: placements without a real unit get the test unit of their format" \
+  "sample_bottom_banner=ca-app-pub-1/2;sample_native_small=ca-app-pub-3940256099942544/2247696110;home_full_screen=ca-app-pub-3940256099942544/1044960115;inter_sounds=ca-app-pub-3940256099942544/1033173712;list_native=ca-app-pub-3940256099942544/2247696110" \
+  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2> /dev/null)"
+expect "release.sh: lists the placements that got a test unit" 1 \
+  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2>&1 > /dev/null | grep -c 'không có doanh thu) cho vị trí: sample_native_small home_full_screen inter_sounds list_native.$')"
+expect "release.sh: every real placement has a test unit for its format" 0 \
+  "$(code=0; scripts/release.sh --fill-test-units core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt '' > /dev/null 2>&1 || code=$?; echo $code)"
+printf '%s\n' 'enum class AdPlacement(val key: String) {' '    WRAPPED(' '        "wrapped",' '        AdFormat.BANNER,' '    ),' '}' \
+  > "$work/WrappedAdPlacement.kt"
+expect "release.sh refuses a placement wrapped over several lines" "1 1" \
+  "$(code=0; out="$(scripts/release.sh --list-placements "$work/WrappedAdPlacement.kt" 2>&1)" || code=$?
+     echo "$code $(grep -c 'nhiều dòng (dòng 2)' <<< "$out")")"
+
+# Contract between release.sh and the build (L-125): every Gradle property that release.sh passes is read by
+# app/build.gradle.kts, or the bundle would be built without it.
+exported_props="$(grep -oE 'export ORG_GRADLE_PROJECT_[A-Za-z]+' scripts/release.sh | sed 's/.*ORG_GRADLE_PROJECT_//' | sort -u)"
+unread_props=""
+for prop in $exported_props; do
+  # Without the AppsFlyer SDK, release.sh exports the key empty and the build has nothing to read it for.
+  [[ "$prop" == appsFlyerDevKey && "$repo_has_appsflyer" == no ]] && continue
+  grep -q "gradleProperty(\"$prop\")" app/build.gradle.kts || unread_props="$unread_props $prop"
+done
+# The count guards against a grep that finds nothing and so passes: release.sh exports 8 properties today.
+expect "contract: app/build.gradle.kts reads every Gradle property that release.sh exports" "8 none" \
+  "$(wc -w <<< "$exported_props" | tr -d ' ') ${unread_props:-none}"
+# The other way: every property the production build requires is one that release.sh exports, so renaming one
+# in the build file fails here instead of on release night.
+required_props="$(sed -n '/^val missingProductionProperties = mapOf($/,/^)/p' app/build.gradle.kts | grep -oE '"[A-Za-z]+" to' | tr -d '"' | cut -d' ' -f1)"
+# The AppsFlyer key is required by the build only with the SDK (ADR-0027); without it the build has no such line.
+required_count=3
+if [[ "$repo_has_appsflyer" == yes ]]; then
+  required_props="$required_props
+$(grep -oE 'mapOf\("[A-Za-z]+" to "ADR-0027"\)' app/build.gradle.kts | grep -oE '"[A-Za-z]+"' | head -n 1 | tr -d '"')"
+  required_count=4
+fi
+unexported_props=""
+for prop in $required_props; do
+  grep -qx "$prop" <<< "$exported_props" || unexported_props="$unexported_props $prop"
+done
+expect "contract: release.sh exports every Gradle property that the production build requires" "$required_count none" \
+  "$(wc -w <<< "$required_props" | tr -d ' ') ${unexported_props:-none}"
+
+# The checks after the release folder (the commit on main and its guard, the folder against the code) need a
+# repository with an origin and gh. They run on the real release.sh with --check-only (L-125), which stops before
+# the passwords, in a temp repository with a local origin, a gh that answers green and a keytool that exists. The
+# repository holds the real app/build.gradle.kts, AdPlacement.kt and the build file that declares the AppsFlyer SDK.
+# The header of this file points every origin at a fake URL, so those variables are unset here and restored below.
+rl="$work/release-check-only"
+rl_git_config=("$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0")
+unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+rl_placement=core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt
+mkdir -p "$rl/stubs" "$rl/cfg" "$rl/src/scripts" "$rl/src/app" "$rl/src/core/analytics" "$rl/src/$(dirname "$rl_placement")"
+cp scripts/release.sh "$rl/src/scripts/"
+cp app/build.gradle.kts "$rl/src/app/"
+cp core/analytics/build.gradle.kts "$rl/src/core/analytics/"
+cp "$rl_placement" "$rl/src/$rl_placement"
+(
+  cd "$rl/src"
+  git init -q -b main
+  git add -A
+  git commit -q -m "release candidate"
+  git init -q --bare ../origin-bare
+  git remote add origin ../origin-bare
+  git push -q origin main
+) > /dev/null 2>&1
+cat > "$rl/stubs/gh" << 'SH'
+#!/bin/sh
+# main-guard of the commit answers $GH_GUARD (default success); no main-broken issue is open.
+case "$*" in *"run list"*) echo "${GH_GUARD:-success}" ;; *) echo ;; esac
+SH
+printf '#!/bin/sh\necho "  SHA256: AA:BB:CC"\n' > "$rl/stubs/keytool"
+chmod +x "$rl/stubs/gh" "$rl/stubs/keytool"
+rl_app_id="$(sed -nE 's/^[[:space:]]*applicationId = "([^"]+)"$/\1/p' app/build.gradle.kts | head -n 1)"
+rl_version="$(sed -nE 's/^[[:space:]]*versionCode = ([0-9]+)$/\1/p' app/build.gradle.kts | head -n 1)"
+# Read from the real AdPlacement.kt, so an app with other placements runs the same test: the first placement gets
+# a configured unit, the last one (when it is another) must get a test unit.
+rl_keys="$(scripts/release.sh --list-placements "$rl_placement")"
+rl_first="$(head -n 1 <<< "$rl_keys")" rl_last="$(tail -n 1 <<< "$rl_keys")"
+rl_google_services() { # <package name>
+  printf '{"project_info":{"project_id":"prod-project"},"client":[{"client_info":{"android_client_info":{"package_name":"%s"}}}]}' \
+    "$1" > "$rl/cfg/google-services.json"
+}
+rl_google_services "$rl_app_id"
+touch "$rl/cfg/upload.jks"
+release_dir="$rl/cfg"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" \
+  "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/"
+release_check_only() { # [VAR=value ...]; prints the output of release.sh --check-only run in the temp repository
+  (cd "$rl/src" && env PATH="$rl/stubs:$PATH" "$@" bash scripts/release.sh --config "$rl/cfg" --check-only 2>&1 < /dev/null) || true
+}
+rl_out="$(release_check_only)"
+# The main assertion is the "Đã kiểm xong" line: without the stop, the script reads the passwords from /dev/tty,
+# which fails on CI before any prompt is printed.
+expect "release.sh --check-only: runs every check, prints the summary and stops before the passwords" "1 1 0 0" \
+  "$(grep -c "^   App: *$rl_app_id$" <<< "$rl_out" || true) $(grep -c '^== Đã kiểm xong, chưa build (--check-only)' <<< "$rl_out" || true) \
+$(grep -c 'TỪ CHỐI' <<< "$rl_out" || true) $(grep -c 'Mật khẩu' <<< "$rl_out" || true)"
+rl_test_units="$(grep 'Mã quảng cáo thử (không có doanh thu):' <<< "$rl_out" | sed 's/.*doanh thu)://')"
+if [[ -n "$rl_first" ]]; then
+  expect "release.sh --check-only: the configured unit is not replaced by a test unit" 0 \
+    "$(grep -cE "(^| )$rl_first( |$)" <<< "$rl_test_units" || true)"
+fi
+if [[ -n "$rl_last" && "$rl_last" != "$rl_first" ]]; then
+  expect "release.sh --check-only: a placement without a unit gets a test unit" 1 \
+    "$(grep -cE "(^| )$rl_last( |$)" <<< "$rl_test_units" || true)"
+fi
+expect "release.sh --check-only: makes no tag, no worktree and no build" "0 1 0" \
+  "$(git -C "$rl/src" tag | wc -l | tr -d ' ') $(git -C "$rl/src" worktree list | wc -l | tr -d ' ') \
+$(find "$rl/src" -name '*.aab' | wc -l | tr -d ' ')"
+release_check_only_fails() { # <name> <pattern> [VAR=value ...]: the output has TỪ CHỐI and then the pattern
+  local name="$1" pattern="$2"
+  rl_out="$(release_check_only "${@:3}")"
+  if [[ "$rl_out" == *"TỪ CHỐI"*"$pattern"* ]]; then
+    expect "release.sh --check-only refuses: $name" refused refused
+  else
+    expect "release.sh --check-only refuses: $name" "TỪ CHỐI ... '$pattern'" "$rl_out"
+  fi
+}
+release_check_only_fails "a commit that main-guard did not pass" "chưa qua main-guard.yml" GH_GUARD=failure
+rl_google_services "com.example.other"
+release_check_only_fails "google-services.json of another app" "google-services.json không có app $rl_app_id"
+rl_google_services "$rl_app_id"
+git -C "$rl/src" tag "release/$rl_version" > /dev/null 2>&1
+release_check_only_fails "a versionCode already released" "versionCode $rl_version đã được phát hành"
+git -C "$rl/src" tag -d "release/$rl_version" > /dev/null 2>&1
+export GIT_CONFIG_COUNT="${rl_git_config[0]}" GIT_CONFIG_KEY_0="${rl_git_config[1]}" GIT_CONFIG_VALUE_0="${rl_git_config[2]}"
+release_dir="$work/release"
 
 # new-app.sh renames the template into a new repository and leaves out the template's own files.
 # It exists only in the template repository: an app made from it has no new-app.sh, so the app skips these tests.

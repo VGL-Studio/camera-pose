@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-cai-dat.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-21
+confirmed: 2026-11-13
 ---
 
 # SPEC: CÀI ĐẶT
@@ -26,6 +26,7 @@ confirmed: 2026-10-21
 - Nhóm "Chung": Giao diện (Theo hệ thống, Sáng, Tối), Âm khi chụp (bật tắt), Ngôn ngữ.
 - Nhóm "Quyền riêng tư": Tùy chọn quyền riêng tư (mở lại hộp thoại đồng ý quảng cáo), Chính sách quyền riêng tư (mở trang web).
 - Nhóm "Thông tin": Phiên bản app.
+- Thanh quảng cáo nhỏ ở đáy màn, tắt lúc phát hành (`features/ads/spec.md`, câu 19).
 - Giao diện sáng tối áp dụng cho mọi màn trừ camera và màn xem lại, hai màn này luôn tối.
 
 **Ngoài phạm vi lần này:**
@@ -38,7 +39,11 @@ confirmed: 2026-10-21
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi bấm nút bánh răng ở camera hoặc ở thư viện thì màn cài đặt mở, đúng thiết kế, không có quảng cáo.
+- [ ] Khi bấm nút bánh răng ở camera hoặc ở thư viện thì màn cài đặt mở, đúng thiết kế.
+- [ ] Khi khóa `is_show_settings_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (80 dp) hiện ở đáy màn cài đặt; danh sách cuộn phía trên thanh, dòng cuối không bị che (`features/ads/spec.md`, câu 19).
+- [ ] Khi `is_show_native_bottom` tắt thì khe đáy là banner ở cùng chỗ (`features/ads/spec.md`, câu 13); danh sách vẫn cuộn phía trên, dòng cuối không bị che.
+- [ ] Khi `is_show_native_collap` bật thì lớp quảng cáo nổi có thể phủ lên đáy danh sách và thu gọn được; thu gọn thì dòng cuối tới được (`features/ads/spec.md`, câu 19, ý e).
+- [ ] Khi khóa `is_show_settings_bottom` tắt hay không tải được quảng cáo thì không có thanh, danh sách dùng cả màn.
 - [ ] Khi bấm quay lại thì về màn trước đó.
 
 ### KB-2. Đổi giao diện
@@ -90,11 +95,17 @@ Tiêu chí chấp nhận:
 | Cài đặt | Các lựa chọn chung của app | KB-1 đến KB-6 |
 | Hộp chọn giao diện, hộp chọn ngôn ngữ | Chọn một trong vài lựa chọn | KB-2, KB-4 |
 
+Trạng thái có thanh quảng cáo: `SettingsScreen_ad_light`, `SettingsScreen_ad_dark`, chờ dựng và duyệt (`features/ads/spec.md`, câu 19, ý b).
+
 Hộp chọn dùng thành phần có sẵn của hệ thống thiết kế; chưa có trên Figma (câu hỏi 5).
 
 ## 5. Quảng cáo
 
-Không có.
+| Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
+| --- | --- | --- | --- | --- |
+| `settings_bottom` (yêu cầu 2026-11-13) | native_small (thanh đáy) | Đáy màn Cài đặt, khi màn đang mở; danh sách cài đặt cuộn phía trên, không bị che | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground, như `poses_bottom`; tắt lúc phát hành (`features/ads/spec.md`, câu 19) | `is_show_settings_bottom`; `is_show_native_bottom` chọn khe native hay banner |
+
+Thiết kế thêm trạng thái `ad` (`SettingsScreen_ad_light`, `SettingsScreen_ad_dark`); bản staging bật sẵn (`features/ads/spec.md`, câu 19, ý a, b). Mở trang chính sách quyền riêng tư (KB-5) là rời app có chủ đích, nên quảng cáo khi quay lại app không hiện ngay sau đó.
 
 ## 6. Dữ liệu và phân tích
 
@@ -117,6 +128,7 @@ Không có.
 | Tên cờ | Mặc định | Ý nghĩa |
 | --- | --- | --- |
 | `feature_settings_enabled` | tắt | Bật để hiện nút bánh răng và màn cài đặt. Bản staging bật sẵn |
+| `is_show_settings_bottom` | tắt | Bật thanh đáy `settings_bottom`; `is_show_native_bottom` chọn khe native hay banner (`features/ads/spec.md`, câu 13). Bản staging bật sẵn (`features/ads/spec.md`, câu 19) |
 
 ## 9. Câu hỏi còn mở
 
@@ -142,3 +154,7 @@ Không có.
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: đường dẫn chính sách quyền riêng tư mặc định; thêm frame hộp chọn giao diện |
+| 2026-11-13 | AI | Yêu cầu 2026-11-13 (`features/ads/requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`): thêm thanh đáy native nhỏ `settings_bottom`, tắt lúc phát hành (mục 5; `features/ads/spec.md`, câu 19). Chuyển `changed`, chờ trả lời câu 19 của spec ads và xác nhận |
+| 2026-11-13 | Nhật | Trả lời câu 19 của spec ads (AI ghi): staging bật sẵn `settings_bottom`, thêm trạng thái `ad` của Cài đặt trên Figma. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-11-13 | Nhật | Theo rà soát độc lập PR #323: sửa tiêu chí trái mục 5 mới (KB-1 của spec settings; KB-9, KB-11 của spec camera), thêm khóa ở mục 8, trạng thái `ad` ở mục 4; câu 19 ý e: không cho lớp native thu gọn ở `review_bottom` (AI ghi). Lời xác nhận lại của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Giữ `confirmed` |
+| 2026-11-13 | Nhật | Sửa vòng 2 theo rà soát PR #323 (AI ghi): `is_show_native_bottom` tắt thì khe đáy là banner (câu 13), thêm tiêu chí banner; spec settings thêm tiêu chí lớp nổi thu gọn; ghi thanh 80 dp theo khung hiện tại; spec camera đổi tên KB-9 thành "Quảng cáo ở màn xem lại". Chuyển `changed` rồi lại `confirmed`; lời xác nhận của Nhật: chọn "Xác nhận" khi được hỏi |

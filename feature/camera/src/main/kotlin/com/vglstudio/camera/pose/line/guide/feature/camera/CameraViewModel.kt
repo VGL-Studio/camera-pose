@@ -52,6 +52,7 @@ class CameraViewModel @Inject constructor(
     private val activePose: ActivePoseHolder,
     private val matchHolder: PoseMatchHolder,
     private val countdownInterruptions: CountdownInterruptions,
+    private val fullScreenAdCover: FullScreenAdCover,
     private val userPreferences: UserPreferences,
     private val analytics: Analytics,
     private val logger: AppLogger,
@@ -74,6 +75,23 @@ class CameraViewModel @Inject constructor(
     /** The shutter sound choice of the settings screen, followed while the camera lives; on until read. */
     private var shutterSoundEnabled = true
 
+    // The full-screen ad cover (spec camera, section 5; plan T-097, section 3.1). Kept apart from the UI state.
+    private var screenStarted = false
+    private var screenResumed = false
+    private var adShowing = false
+    private var pausedSinceAdShown = false
+
+    /** The permission is there and the screen wants the camera running. */
+    private var cameraWanted = false
+
+    /** From the start of an open to the close, or to the open failing. */
+    private var cameraActive = false
+
+    /** The camera was closed, or not opened, because of the ad: it opens again once the ad is gone. */
+    private var waitingForUncover = false
+
+    private val covered: Boolean get() = adCoversCamera(adShowing, screenResumed, pausedSinceAdShown)
+
     init {
         viewModelScope.launch {
             userPreferences.shutterSoundEnabled.collect { shutterSoundEnabled = it }
@@ -83,12 +101,17 @@ class CameraViewModel @Inject constructor(
                 if (active && countdownJob?.isActive == true) cancelCountdown(reason = "interruption")
             }
         }
+        viewModelScope.launch {
+            fullScreenAdCover.showing().collect { onFullScreenAdChanged(it) }
+        }
     }
 
     /** Called each time the screen starts (also back from the background or from the system settings). */
     fun onScreenStarted(permissionGranted: Boolean) {
+        screenStarted = true
         if (permissionGranted) {
-            openCamera()
+            cameraWanted = true
+            openCameraIfAllowed()
             return
         }
         val ask = savedStateHandle.get<Boolean>(KEY_ASK_PERMISSION) ?: true
@@ -114,7 +137,12 @@ class CameraViewModel @Inject constructor(
         val result = if (granted) "granted" else "denied"
         analytics.log(AnalyticsEvent(EVENT_PERMISSION_RESULT, mapOf("result" to result, "source" to "camera")))
         logger.info(LOG_TAG, "Camera permission $result")
-        if (granted) openCamera() else state.value = CameraUiState.PermissionDenied
+        if (granted) {
+            cameraWanted = true
+            openCameraIfAllowed()
+        } else {
+            state.value = CameraUiState.PermissionDenied
+        }
     }
 
     fun onScreenStopped() {
@@ -122,11 +150,31 @@ class CameraViewModel @Inject constructor(
         openJob?.cancel()
         controller.close()
         logger.info(LOG_TAG, "Camera closed")
+        screenStarted = false
+        screenResumed = false
+        cameraWanted = false
+        cameraActive = false
+        waitingForUncover = false
+        if (adShowing) pausedSinceAdShown = true
+    }
+
+    /** Called each time the screen reaches RESUMED. */
+    fun onScreenResumed() {
+        screenResumed = true
+        reconcile()
+    }
+
+    /** Called each time the screen leaves RESUMED. */
+    fun onScreenPaused() {
+        screenResumed = false
+        if (adShowing) pausedSinceAdShown = true
+        reconcile()
     }
 
     fun onRetry() {
         logger.info(LOG_TAG, "Retrying camera open")
-        openCamera()
+        cameraWanted = true
+        openCameraIfAllowed()
     }
 
     fun onFlashClick() {
@@ -172,7 +220,7 @@ class CameraViewModel @Inject constructor(
         updateTools { it.copy(lens = lens) }
         save { repository.setLens(lens) }
         logger.info(LOG_TAG, "Switching to the ${lens.name.lowercase()} camera")
-        openCamera(keepReady = true)
+        openCameraIfAllowed(keepReady = true)
     }
 
     fun onZoomSelect(ratio: Float) {
@@ -208,8 +256,49 @@ class CameraViewModel @Inject constructor(
         controller.release()
     }
 
+    private fun onFullScreenAdChanged(showing: Boolean) {
+        // A StateFlow sends no repeat; kept so another source cannot reset the pause seen since the ad began.
+        if (showing == adShowing) return
+        adShowing = showing
+        if (showing) pausedSinceAdShown = false
+        reconcile()
+    }
+
+    /** Closes the camera when an ad covers it, and opens it again once the ad is gone. */
+    private fun reconcile() {
+        if (!screenStarted || !cameraWanted) return
+        if (covered) {
+            if (cameraActive) {
+                cancelCountdown(reason = "full_screen_ad")
+                openJob?.cancel()
+                controller.close()
+                cameraActive = false
+                state.value = CameraUiState.Starting
+                logger.info(LOG_TAG, "Camera closed: full-screen ad")
+            }
+            // Also when the camera shows an error: it tries again after the ad, as back from the background.
+            waitingForUncover = true
+        } else if (waitingForUncover) {
+            logger.info(LOG_TAG, "Camera reopens after the full-screen ad")
+            openCamera()
+        }
+    }
+
+    /** Every open of the camera goes through here: none while the screen is stopped or an ad covers it. */
+    private fun openCameraIfAllowed(keepReady: Boolean = false) {
+        if (cameraMayOpen(screenStarted, covered)) {
+            openCamera(keepReady)
+            return
+        }
+        waitingForUncover = true
+        state.value = CameraUiState.Starting
+        logger.info(LOG_TAG, "Camera waits for the full-screen ad")
+    }
+
     private fun openCamera(keepReady: Boolean = false) {
         openJob?.cancel()
+        waitingForUncover = false
+        cameraActive = true
         if (!keepReady || state.value !is CameraUiState.Ready) state.value = CameraUiState.Starting
         openJob = viewModelScope.launch {
             val tools = loadTools()
@@ -221,6 +310,7 @@ class CameraViewModel @Inject constructor(
                 controller.open(lens, tools.flash)
             } catch (e: CameraOpenException) {
                 logger.error(LOG_TAG, "Camera could not open", e)
+                cameraActive = false
                 state.value = CameraUiState.Error
                 return@launch
             }

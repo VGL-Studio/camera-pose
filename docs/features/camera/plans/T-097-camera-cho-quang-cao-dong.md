@@ -1,7 +1,7 @@
 ---
 ticket: T-097
 title: Camera chờ quảng cáo toàn màn hình đóng rồi mới mở khi quay lại app
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 11               # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -216,3 +216,14 @@ Test viết trước dùng `FakeCameraController` (`openCalls`, `closeCount`, `p
 - **Phiên bản 2 (2026-11-13):** Chỉ thêm một dòng ở mục 4 cho KB-9 tiêu chí 4 (dẫn test có sẵn), vì `scripts/run-check.py` đòi mọi kịch bản của ticket có dòng ở mục 4; không đổi cách làm hay test viết trước. Nhật duyệt phiên bản 2 trong phiên có người theo dõi ngày 2026-11-13 (chọn "Plan bản 2, duyệt lại" khi được hỏi), giữ nguyên câu trả lời mục 8 của phiên bản 1. AI ghi thay.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261113-02, phiên bản plan 2
+
+- **Kết quả:** đã merge.
+- **Nhánh, PR:** `claude/T-097-camera-cho-quang-cao`, PR #340, commit merge `e438b48`.
+- **Đã làm:** interface `FullScreenAdCover` và `CameraResumeEffect` ở `:feature:camera`; `CameraViewModel` thu cờ trong `init`, đóng camera khi `adCoversCamera(adShowing, resumed, pausedSinceAdShown)` đúng, mở lại khi hết che, dừng đếm ngược; mọi lời mở camera qua `cameraMayOpen(screenStarted, covered)`. Module Hilt `CameraAdCoverModule` ở `:app` cấp cờ từ `AdsController.fullScreenAdShowing`. `docs/ops/manual-test.md` mục 11.3 bước 2, 11.6 bước 8. Bước 3 đến 5 do phiên con làm trong worktree riêng.
+- **Test viết trước:** 19 test (commit `f2038b5`): 15 `CameraViewModelTest`, 3 `FullScreenAdCoverTest`, 1 `CameraAdCoverModuleTest`; cả 19 đỏ đúng lý do trên khung rỗng (ví dụ `closeCount` expected 1 was 0, `captureCount` expected 0 was 1, `assertSame` của module). Test JVM mọi module trên khung: chỉ 19 test mới đỏ. Đột biến: `adCoversCamera` thành `adShowing` thì `flagStuckAfterPauseAndResume_cameraRuns` đỏ; bỏ phần "chưa PAUSED từ lúc cờ bật" thì `coverWhileResumed_closesThenReopens` và 11 test khác đỏ.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa, 5 ghi chú. Đã sửa: thêm `secondAd_afterFirstEnded_closesAgain` (commit `a1fc235`) cho dòng `if (showing) pausedSinceAdShown = false`; đột biến bỏ dòng đó: đúng test mới đỏ (`expected:<2> but was:<1>`). Rà soát lại: 0 chặn, 0 nên sửa. Ghi chú không sửa: dòng `if (adShowing) pausedSinceAdShown = true` ở `onScreenStopped` chưa có test khóa (ON_PAUSE luôn đến trước ON_STOP); log "Camera waits for the full-screen ad" cả khi lý do là màn chưa start; `cameraActive = false` trong `catch (CameraOpenException)` của lời mở cũ đã bị thay (rất hiếm).
+- **Kết quả CI:** `pr-check` xanh (lần chạy 43448095514), `main-guard` xanh (43450849885). `scripts/check.sh` trên máy qua (3148 test JVM, 0 lỗi).
+- **Lệch so với plan:** (1) `CameraViewModelTest.permissionGranted_logsEvent_andOpens` thêm `viewModel.onScreenStarted(permissionGranted = false)` vào phần dựng sau commit test, câu khẳng định không đổi; lý do: mục 3.1 bắt `onPermissionResult` qua cổng `cameraMayOpen`, hộp hỏi quyền chỉ gửi từ `onScreenStarted(false)`; trước: đỏ ở `assertTrue(uiState is Ready)`, sau: qua; mục 3.5 chỉ nói đổi phần dựng (tham số constructor). Rà soát độc lập xét theo bước 4: điều test kiểm không đổi. (2) Khung rỗng của module Hilt ở commit test trả `MutableStateFlow(false)` riêng để `CameraAdCoverModuleTest` đỏ đúng lý do. Không có file ngoài mục 3.2.
+- **Cần người xem:** thử trên máy thật mục 11.3 bước 2 (đặt `resume_ad_type` là `inter` trên Firebase staging, thử xong trả `aoa`, chờ qua trần 45 giây của lượt khởi động; thử cả app open) và 11.6 bước 8 (quảng cáo có thưởng): chấm báo camera tắt trong lúc quảng cáo hiện, không có `Camera ready` giữa `Camera closed: full-screen ad` và lúc quảng cáo đóng. Dòng gọi `CameraResumeEffect` trong `CameraRoute` không có test JVM.

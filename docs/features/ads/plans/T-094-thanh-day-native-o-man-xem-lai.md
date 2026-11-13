@@ -1,7 +1,7 @@
 ---
 ticket: T-094
 title: Thanh đáy native nhỏ ở màn xem lại ảnh (review_bottom, tắt lúc phát hành)
-status: approved             # draft | approved | stopped | done
+status: stopped              # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -367,3 +367,14 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). -->
+
+### RUN-20261113-02, phiên bản plan 2
+
+- **Kết quả:** dừng ở bước 4, điều kiện dừng 8 của `risk-scoring.md` mục 4 (muốn qua phải đổi điều một test viết trước kiểm).
+- **Nhánh, PR:** `claude/T-094-thanh-day-xem-lai` (đã đẩy, chưa có PR). Commit `d922a38` (test viết trước), `9bb26d7` (chi tiết test), `7afc6e9` (code dở, chưa chạy `check.sh`).
+- **Đã làm:** `:core:ads` theo mục 3.1 (thuộc tính `collapsibleLayer` có `require`, dòng `REVIEW_BOTTOM`, `layerFormats`, ba hàm của `BottomAdBar.kt`; mọi test `:core:ads` qua); `ReviewScreen` nhận `adBar`, hộp thoại vẽ sau thanh; `ReviewUnfolded` dùng `BoxWithConstraints` với ngưỡng của plan; staging bật `REVIEW_BOTTOM`. Chưa làm: sinh lại bảng khóa (`RemoteConfigKeysTest` còn đỏ), ba ảnh chuẩn mới, `manual-test.md`, `template-sync.txt`, `design/review/`, `check.sh`, `design-compare.sh`.
+- **Test viết trước:** 26 test (commit `d922a38`): 8 mới ở `:core:ads` (cùng dòng `R_B` của `AdPlacementSourceTest`, dữ liệu `review_bottom=unit/17`), 11 `ReviewScreenTest`, 5 `ReviewScreenUnfoldedTest`, 3 screenshot. Trên khung chỉ có API: 26 đỏ đúng lý do (bỏ qua `collapsibleLayer`, thiếu node `fake_ad_slot`, dữ liệu staging, bảng khóa). Thêm 2 test đối chứng `POSES_BOTTOM` mà plan nêu trong cùng dòng (`posesBottom_collapOn_layerAndCollapsibleRequest`, `posesBottom_collapSwitchedOnWhileShown_layerLoads`) vì một test không gọi `setContent` hai lần.
+- **Lý do dừng:** `ReviewScreenUnfoldedTest.landscape_adBar_saveError_compactColumn_portuguese` (khung `pt-rBR-w960dp-h520dp-land-xxhdpi`, `PERMISSION_BLOCKED`, có khe) mong thông báo lỗi một dòng ở 284 tới 332 (mục 4). Thật: `error top: expected 284.0 dp, got 264.0 dp`, thông báo xuống hai dòng (264 tới 332). Số của mục 4.1 (lần đo 3) đo trên bố cục `SaveErrorMessage(Modifier.fillMaxWidth(), actionOnNewLine = false)`, trong đó Snackbar một hàng của Material cho chữ cả bề rộng và vẽ nút hành động đè lên đầu chữ ("Mở cài đặt", "Thử lại" đè chữ ở x khoảng 298 dp; test bắt được bằng `action.left >= text.right`). Bỏ `fillMaxWidth` ở chế độ gọn thì vẽ đúng (nút ở bên phải như điện thoại), nhưng Snackbar giới hạn rộng 600 dp: tiếng Việt vẫn một dòng (test qua), pt-BR cần hai dòng. Nút chính vẫn 348 tới 404, cao 56, trên khe.
+- **Thay đổi ở file test sau commit test (commit `9bb26d7`):** (1) `ReviewScreenTest.adBar_savingAndSaveError_slotStays` thêm `Snapshot.sendApplyNotifications()` sau khi đặt trạng thái (đồng hồ dừng nên `SAVING` không vẽ lại); trước: không thấy "Đang lưu…", sau: qua. (2) `assertCompactColumn`: `didOverflowWidth` của `GetTextLayoutResult` đúng cả ở bố cục mở gập mặc định chưa đổi (673 x 841, không khe, `NOT_SAVED`), nên không bắt được chữ bị cắt; thay bằng "bề rộng dòng không quá bề rộng chữ, không bị cắt ba chấm", giữ kiểm một dòng và chiều cao. Thay đổi này đổi cách kiểm ý "không bị cắt", người cần xác nhận. (3) nút hành động của thông báo tìm theo chữ (`actionText`) thay `hasClickAction().onFirst()`.
+- **Lệch so với plan:** ở chế độ gọn, thông báo lỗi dùng `Modifier` thay `fillMaxWidth()` (sửa chuyện nút đè chữ). Không có file ngoài mục 3.2. Test cũ đổi theo mục 3.5: hàm `Bar` và bốn lời gọi năm đối số của `bottomAdBarLayers` trong `BottomAdBarTest` thêm `collapsibleLayer = true`.
+- **Cần người quyết (plan phiên bản 3):** (a) chấp nhận pt-BR hai dòng ở chế độ gọn, viết lại số của test pt-BR (thông báo 264 tới 332, hai dòng; nút chính giữ 348 tới 404) — đề xuất của AI, vì nút chính và bốn nút vẫn trọn, chỉ thông báo cao hơn; (b) dùng `actionOnNewLine` ở chế độ gọn cho ngôn ngữ dài (phải đo lại, có thể lại thiếu chỗ); (c) viết hàng báo lỗi riêng thay Snackbar (sửa `ReviewComponents.kt`, ngoài mục 3.2). Cùng lúc xác nhận thay đổi (2) ở trên về cách kiểm "không bị cắt". Plan phiên bản 3 tiếp tục trên nhánh `claude/T-094-thanh-day-xem-lai`, chỉ đổi mục 4 (số của test pt-BR, cách kiểm không bị cắt) và mục 3.1 (bỏ `fillMaxWidth` ở chế độ gọn); bước 3 chỉ áp cho test đổi.

@@ -102,7 +102,7 @@ Một dòng, vì `scripts/release.sh` chỉ đọc khai báo một hàng. Sửa 
    ```
 
    `BottomAdBarLayout` bọc ngoài cả cột (thanh trạng thái giả 24 dp và màn), nên khe cách đáy khung 16 như thiết kế (`y = 795`). Tài sản giả như ảnh thiết kế: "Headline of the ad", "Advertiser or short body", "Install", `icon = null`, `hasMedia = false`.
-2. Ảnh `SettingsScreen_ad_small` (khung thấp, trạng thái nhiều nội dung nhất): danh sách cuộn tới cuối bằng `listScrollState = ScrollState(Int.MAX_VALUE)` (ScrollState tự kéo giá trị về `maxValue` khi đo), để thấy dòng "Phiên bản" nằm trên khe.
+2. Ảnh `SettingsScreen_ad_small` (khung thấp, trạng thái nhiều nội dung nhất): danh sách cuộn tới cuối bằng `listScrollState = remember { ScrollState(Int.MAX_VALUE) }` (ScrollState tự kéo giá trị về `maxValue` khi đo), để thấy dòng "Phiên bản" nằm trên khe. Ở 360 x 640 danh sách chỉ dài 540 (3 tên nhóm 52, 6 dòng 64) trong vùng 576 dưới thanh trên 64, nên không có quảng cáo thì không cuộn; với lề 96 của khe native nó cuộn khoảng 60 dp, với khe banner 50 khoảng 14 dp. Ảnh `_ad_small` vì vậy chỉ lệch khoảng 60 dp so với đầu danh sách.
 3. Ghi ảnh mới:
 
    ```
@@ -182,15 +182,19 @@ Nơi khác đọc file mà plan này đổi:
 
 ## 4. Kiểm thử
 
+Số đo ở khung `vi-w360dp-h640dp-xxhdpi` (màn của test không có thanh trạng thái giả): thanh trên 64, danh sách 540, nên dòng "Phiên bản" kết thúc ở `y = 604` và danh sách không cuộn khi không có lề. Khe native giả: `slot.top = 640 - 16 - 80 = 544`; lề 96 làm nội dung dài 636 trong vùng 576, cuộn hết 60, dòng cuối về `y = 544`. Khe banner giả: `slot.top = 590`; lề 50 làm nội dung dài 590, cuộn hết 14, dòng cuối về `y = 590`. So sánh `<=` dùng sai số 0,5.
+
+`setContent` chỉ gọi được một lần trong một test, nên mỗi đối chứng đổi cách dựng bằng một `mutableStateOf` đọc trong `setContent` (ví dụ `var padded by mutableStateOf(true)`, rồi `contentPadding = if (padded) padding else PaddingValues()`; hay `var mode by mutableStateOf(Mode.REAL)` chọn giữa khung thật, khe giả và màn không bọc). Sau mỗi lần đổi: `waitForIdle()`, rồi cuộn hết lại. `listScrollState` tạo một lần ngoài nhánh (`val state = ScrollState(0)` ở đầu test), nên đổi cách dựng không tạo trạng thái cuộn mới.
+
 Mọi test vị trí mới vẽ khe giả bằng `BottomAdBarLayout(reservation, slot = { Box(it.height(h).testTag(FAKE_SLOT)) }, layer = null, slotMargin = m) { padding -> SettingsScreen(..., contentPadding = padding, listScrollState = state) }`. Khe giả dùng modifier khung truyền vào. Khung thật mang tag `"bottom_ad_bar_slot"` (đối tượng tag là `internal`, test của feature ghi thẳng chuỗi). Test chạy với `@GraphicsMode(NATIVE)` như lớp hiện có. "Cuộn hết" là `composeRule.runOnIdle { runBlocking { state.scrollTo(state.maxValue) } }` rồi `waitForIdle()`. Hàm phụ trợ dựng khung của test nằm trong commit test của bước 3; test đỏ vì `SettingsScreen` chưa có `contentPadding` và `listScrollState` (lỗi biên dịch của module test, đúng lý do).
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
 | Spec ads câu 19: vị trí `settings_bottom` là native small, khóa mặc định tắt | Unit test | `AdPlacementAppTest.appPlacements_declaredWithSpecFormats`: bảng mong đợi có `"settings_bottom" to AdFormat.NATIVE_SMALL`; vòng lặp kiểm không toàn app, không chỉ staging, khóa `is_show_settings_bottom`, mặc định `false`. Đối chứng có sẵn: các vị trí khác của bảng |
-| KB-1, tiêu chí 2: cuộn hết thì dòng cuối nằm trên khe native | Robolectric, khung `vi-w360dp-h640dp-xxhdpi` | `SettingsScreenTest.small_nativeBottomBar_lastRowScrollsAboveSlot`: `reservation = BottomAdBarDefaults.nativeReservation`, khe giả cao 80, `slotMargin` mặc định (16). Cuộn hết. Khẳng định: khe cao 80 ± 0,5; `screen.bottom - slot.bottom == 16` ± 0,5; dòng "Phiên bản" có `bottom <= slot.top`. Đối chứng trong cùng test: dựng lại với `contentPadding = PaddingValues()` (không truyền `padding`), cuộn hết, dòng "Phiên bản" có `bottom > slot.top` |
-| KB-1, tiêu chí 3: khe banner cũng không che dòng cuối | Robolectric, khung `vi-w360dp-h640dp-xxhdpi` | `SettingsScreenTest.small_bannerBottomBar_lastRowScrollsAboveSlot`: `reservation = 50.dp`, khe giả cao 50, `slotMargin = 0.dp` (khe banner không có lề). Cuộn hết. Khẳng định: `slot.bottom == screen.bottom` ± 0,5; dòng "Phiên bản" có `bottom <= slot.top` và `slot.top - row.bottom < 1` (lề đúng bằng giá trị khung truyền, không cộng thêm). Đối chứng: như dòng trên |
+| KB-1, tiêu chí 2: cuộn hết thì dòng cuối nằm trên khe native | Robolectric, khung `vi-w360dp-h640dp-xxhdpi` | `SettingsScreenTest.small_nativeBottomBar_lastRowScrollsAboveSlot`: `reservation = BottomAdBarDefaults.nativeReservation`, khe giả cao 80, `slotMargin` mặc định (16). `padded = true`, cuộn hết. Khẳng định: khe cao 80 ± 0,5; `screen.bottom - slot.bottom == 16` ± 0,5; dòng "Phiên bản" có `bottom <= slot.top + 0,5` (đo được khoảng 544 so với 544). Đối chứng trong cùng test: đặt `padded = false`, `waitForIdle()`, cuộn hết lại (lúc này `maxValue` là 0): dòng "Phiên bản" có `bottom > slot.top` (khoảng 604 so với 544) |
+| KB-1, tiêu chí 3: khe banner cũng không che dòng cuối | Robolectric, khung `vi-w360dp-h640dp-xxhdpi` | `SettingsScreenTest.small_bannerBottomBar_lastRowScrollsAboveSlot`: `reservation = 50.dp`, khe giả cao 50, `slotMargin = 0.dp` (khe banner không có lề). `padded = true`, cuộn hết. Khẳng định: `slot.bottom == screen.bottom` ± 0,5; dòng "Phiên bản" có `bottom <= slot.top + 0,5` và `slot.top - row.bottom < 1` (khoảng 590 so với 590: lề đúng bằng giá trị khung truyền, không cộng thêm). Đối chứng: `padded = false`, `waitForIdle()`, cuộn hết lại: dòng "Phiên bản" có `bottom > slot.top` (khoảng 604 so với 590) |
 | KB-1, tiêu chí 4: lớp nổi thu gọn được, thu gọn thì dòng cuối tới được | Unit test sẵn có của khung | `core/ads` `BottomAdBarTest` (các test lớp thu gọn: lớp không chừa chỗ, thu gọn còn khe native); không sửa. Sau khi thu gọn màn ở trạng thái của tiêu chí 2, đã kiểm ở dòng trên. Thử trên máy thật ở dòng cuối (bật `is_show_native_collap` trên Firebase staging) |
-| KB-1, tiêu chí 5: không có quảng cáo thì không có thanh, danh sách dùng cả màn | Robolectric, khung `vi-w360dp-h640dp-xxhdpi` | `SettingsScreenTest.small_realBottomBar_withoutAds_takesNoSpace`: `BottomAdBarScaffold(AdPlacement.SETTINGS_BOTTOM) { SettingsScreen(..., contentPadding = it, listScrollState = state) }` thật, không có `LocalAdsController`. Cuộn hết. Khẳng định: không có node `"bottom_ad_bar_slot"`; `screen.bottom - row.bottom == 0` ± 0,5 (dòng "Phiên bản" chạm đáy màn). Đối chứng: cùng màn trong `BottomAdBarLayout` có khe giả native thì khoảng đó là 96 ± 0,5 |
+| KB-1, tiêu chí 5: không có quảng cáo thì không có thanh, danh sách dùng cả màn | Robolectric, khung `vi-w360dp-h640dp-xxhdpi` | `SettingsScreenTest.small_realBottomBar_withoutAds_takesNoSpace`, một `mode` ba giá trị. (1) `BARE`: `SettingsScreen(..., listScrollState = state)` không bọc khung, cuộn hết, ghi `bareRow = ` vị trí dòng "Phiên bản" (khoảng `bottom = 604`). (2) `REAL`: `BottomAdBarScaffold(AdPlacement.SETTINGS_BOTTOM) { SettingsScreen(..., contentPadding = it, listScrollState = state) }` thật, không có `LocalAdsController`; cuộn hết. Khẳng định: không có node `"bottom_ad_bar_slot"`; node `LIST` có `bottom == screen.bottom` ± 0,5 (danh sách dùng cả màn); dòng "Phiên bản" có `top`, `bottom` bằng `bareRow` ± 0,5 (khung không chừa gì). (3) Đối chứng `FAKE`: cùng màn trong `BottomAdBarLayout` có khe giả native, cuộn hết: `screen.bottom - row.bottom == 96` ± 0,5 (khoảng 640 - 544) |
 | KB-1, tiêu chí 2: thông báo lưu lỗi không nằm dưới khe | Robolectric | `SettingsScreenTest.saveFailedSnackbar_aboveSlot`: `mainClock.autoAdvance = false`, `ready(saveFailed = true)` trong `BottomAdBarLayout` có khe giả native, `advanceTimeByFrame()` như `saveFailed_showsSnackbar_thenReports`. Khẳng định: node chữ "Không lưu được lựa chọn. Hãy thử lại." có `bottom <= slot.top` |
 | KB-1, tiêu chí 6: quay lại | Robolectric sẵn có | `SettingsScreenTest.back_callsOnBack`, không sửa |
 | Spec ads câu 19, ý a: bản staging bật `is_show_settings_bottom` | Unit test (testStaging) | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet`: tập mong đợi có `"is_show_settings_bottom" to true`, các giá trị khác như cũ (`is_show_native_bottom=true`, `is_show_native_collap=false`). Đối chứng có sẵn: `assertEquals(values.size, byName.size)` |
@@ -208,7 +212,7 @@ Mọi test vị trí mới vẽ khe giả bằng `BottomAdBarLayout(reservation,
 - Sinh lại `docs/remote-config-keys.md`, `docs/remote-config-template.json` và ảnh so sánh của `design-compare.sh`: tệp sinh tự động, sinh trong commit code.
 - Ghi ba ảnh chuẩn `ad`: ảnh chỉ ghi được khi đã có code. Screenshot test vẫn viết trước; ở commit test, module test không biên dịch vì `SettingsScreen` chưa có `contentPadding`, `listScrollState`.
 - Phần nối trong `SettingsRoute` (bọc `BottomAdBarScaffold(SETTINGS_BOTTOM)`, truyền `padding`): Route cần `hiltViewModel()`, mà test của feature không dựng Route. Bỏ phần nối thì test JVM vẫn xanh. Phần này được kiểm bằng rà soát độc lập (bước 6, đọc diff của Route) và bằng bước thử trên máy thật. Test `small_realBottomBar_withoutAds_takesNoSpace` kiểm khung thật với đúng vị trí ở cấp màn.
-- Dòng mới của `StagingRemoteValuesModule` và dữ liệu của `AdUnitIdsTest`, `AdsControllerUnitIdsTest`: test đổi trước ở commit test (tập mong đợi có khóa mới, đỏ đúng lý do vì `AdPlacement.SETTINGS_BOTTOM` chưa có), code ở commit sau.
+- Ở commit test, chỉ hai test đỏ thật vì phần mới: `AdPlacementAppTest` (lỗi biên dịch, `AdPlacement.SETTINGS_BOTTOM` chưa có) và `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` (tập mong đợi có `is_show_settings_bottom`, code chưa đặt). Dữ liệu thêm vào `AdUnitIdsTest` và `AdsControllerUnitIdsTest` (`settings_bottom=unit/16`) vẫn xanh ở commit test, vì khóa thừa trong chuỗi không làm hỏng gì; nó chỉ cần để hai test giữ xanh sau commit code (dòng "Bản production thiếu mã" ở bảng trên).
 - `docs/ops/manual-test.md`: tài liệu.
 
 ### 4.1. Chạy thử
@@ -226,12 +230,12 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
 
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
-| A. Phạm vi thay đổi | 2 | Ba module (`:core:ads` một dòng, `:feature:settings`, `:app` staging), thêm hai tham số có mặc định cho một màn |
+| A. Phạm vi thay đổi | 3 | Ba module (`:core:ads` một dòng, `:feature:settings`, `:app` staging), thêm hai tham số có mặc định cho một màn |
 | B. Độ rõ của yêu cầu | 0 | Spec settings KB-1 và spec ads câu 19 đã xác nhận, có thiết kế đã duyệt, không còn câu hỏi mở |
 | C. Khả năng kiểm chứng tự động | 1 | Vị trí, lề, giá trị staging, bảng khóa có test. Quảng cáo thật hiện, lớp nổi và phần nối của Route chỉ kiểm trên máy và bằng rà soát |
 | D. Ảnh hưởng chéo | 2 | `AdPlacement.kt`, `StagingRemoteValuesModule.kt`, bảng khóa, `manual-test.md` là file dùng chung với T-094 |
 | E. Độ mới của kỹ thuật | 0 | Lặp lại đúng mẫu thanh đáy đã chạy ở thư viện và chi tiết tư thế |
-| **Tổng** | 5 | **Mức: Cao (chạm điểm chặn)** |
+| **Tổng** | 6 | **Mức: Cao (chạm điểm chặn)** |
 
 ## 6. Ảnh hưởng chéo
 

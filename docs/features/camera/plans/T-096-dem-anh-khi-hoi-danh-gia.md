@@ -1,7 +1,7 @@
 ---
 ticket: T-096
 title: Hỏi đánh giá app tính cả ảnh vừa lưu từ hộp thoại khi rời màn xem lại
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 5                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
@@ -171,3 +171,14 @@ Không cần (E dưới 2). Lệnh đo ở mục 4: `./gradlew :feature:camera:t
   2. Không sửa ở plan này đường hiếm "bấm Lưu rồi rời màn trong vài mili giây khi việc ghi số đếm chưa xong"; lời hỏi khi đó vẫn nhận số cũ như hôm nay.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261113-02, phiên bản plan 1
+
+- **Kết quả:** đã merge.
+- **Nhánh, PR:** `claude/T-096-dem-anh-hoi-danh-gia`, PR #339, commit merge `2d28b70`.
+- **Đã làm:** `ReviewViewModel` đọc lại số ảnh đã lưu bằng `repository.savedCount.first()` ngay sau `recordSaved` (cùng khối `NonCancellable`) vào `recordedCount`; `savedCountForReview() = maxOf(savedCount.value, recordedCount)` có KDoc. `ReviewRoute` hỏi đánh giá bằng `viewModel.savedCountForReview()` lúc hỏi, bỏ `collectAsStateWithLifecycle` và `rememberUpdatedState` của số đếm. Kho giả `FakeSavedPhotosRepository.lagUpdates`. Bước 3 đến 5 do phiên con làm trong worktree riêng.
+- **Test viết trước:** 5 test (commit `0498e59`) trên khung `savedCountForReview() = savedCount.value`. Thất bại đúng lý do: `ReviewRouteTest.saveFromDiscardDialog_asksReviewWithNewCount` (`expected:<[3]> but was:<[2]>`), `ReviewViewModelTest.savedCountForReview_afterSaveFromDialog_isNewCount` (`expected:<3> but was:<2>`). Ba test đối chứng qua trên khung như plan ghi. Test JVM mọi module trên khung: chỉ 2 test đó đỏ.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 2 ghi chú (`savedCount` công khai nay chỉ đọc qua `savedCountForReview()`, plan chủ ý giữ; đường hiếm "bấm Lưu rồi rời màn khi việc ghi chưa xong" vẫn nhận số cũ, mục 8 câu 2). Đột biến của người rà (bỏ phép gán `recordedCount`): đúng 2 test trên đỏ.
+- **Kết quả CI:** `pr-check` xanh (lần chạy 43440183407), `main-guard` xanh (43442797260). `scripts/check.sh` trên máy qua (3128 test JVM, 0 lỗi).
+- **Lệch so với plan:** Không có. Không có file ngoài mục 3.2; file test không đổi sau commit test.
+- **Cần người xem:** thử trên máy thật theo mục 4 (log `Review asked` ở lần đủ 3 ảnh khi lưu từ hộp thoại; đặt `is_show_review_interstitial = false` trên Firebase staging lúc thử rồi trả lại).

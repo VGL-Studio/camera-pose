@@ -11,7 +11,7 @@ approved_at: 2026-10-31
 
 # THIẾT KẾ: CAMERA VÀ MÀN XEM LẠI
 
-Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Màn xem lại ở section Review trên Figma (node `18-23`). Camera và màn xem lại luôn dùng chế độ tối, nên chỉ có ảnh `_dark`. Tư thế premium (spec poses KB-8, plan T-086) ở section "Premium camera": https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=78-2729 (Nhật duyệt ngày 2026-10-31); dấu, hộp thoại mở khóa và chữ của chúng ở gói `poses`.
+Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Màn xem lại ở section Review trên Figma (node `18-23`). Camera và màn xem lại luôn dùng chế độ tối, nên chỉ có ảnh `_dark`. Tư thế premium (spec poses KB-8, plan T-086) ở section "Premium camera": https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=78-2729 (Nhật duyệt ngày 2026-10-31); dấu, hộp thoại mở khóa và chữ của chúng ở gói `poses`. Trạng thái `ad` của màn xem lại (`ReviewScreen_ad_*`) Nhật duyệt ngày 2026-11-13.
 
 ## 1. Các màn hình và trạng thái
 
@@ -119,7 +119,7 @@ Dấu ba chấm là một ký tự (`…`).
 
 ## 5. Vị trí quảng cáo
 
-`review_interstitial`: toàn màn hình, hiện khi rời `ReviewScreen` sau khi đã lưu ảnh, trước khi về camera (spec mục 5). `review_bottom` (spec ads, câu 19): thanh đáy native nhỏ ở đáy `ReviewScreen`, dưới mọi nút, ở mọi trạng thái của màn (ảnh `ReviewScreen_ad_*`); ảnh co lại cho vừa phần còn lại, không bị cắt hay che. Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp thoại "Bỏ ảnh này?" và thông báo lưu lỗi phủ lên như hôm nay. Chữ của thẻ là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ. Không có vùng quảng cáo nào trên `CameraScreen`.
+`review_interstitial`: toàn màn hình, hiện khi rời `ReviewScreen` sau khi đã lưu ảnh, trước khi về camera (spec mục 5). `review_bottom` (spec ads, câu 19): thanh đáy native nhỏ ở đáy `ReviewScreen`, dưới mọi nút, ở mọi trạng thái của màn (ảnh `ReviewScreen_ad_*`); ảnh co lại cho vừa phần còn lại, không bị cắt hay che. Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp thoại "Bỏ ảnh này?" và thông báo lưu lỗi phủ lên như hôm nay. `is_show_native_bottom` tắt thì khe là banner ở cùng chỗ; không có lớp quảng cáo nổi dù `is_show_native_collap` bật (spec camera, KB-9). Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 của thẻ là số của khung (`NativeAdDimens`); `context/` ghi "ngoài hệ thống", không làm tròn hay thêm token. Vị trí từng phần lấy theo `context/` của từng frame: ở điện thoại nút chính cách thanh 20, ở máy gập mở ra cách 16. Chữ của thẻ là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ. Không có vùng quảng cáo nào trên `CameraScreen`.
 
 ## 6. Chuyển sang Compose
 

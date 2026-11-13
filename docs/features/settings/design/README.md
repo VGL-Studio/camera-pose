@@ -11,7 +11,7 @@ approved_at: 2026-10-21
 
 # THIẾT KẾ: CÀI ĐẶT
 
-Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md).
+Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Trạng thái `ad` (`SettingsScreen_ad_*`) Nhật duyệt ngày 2026-11-13.
 
 ## 1. Các màn hình và trạng thái
 
@@ -67,7 +67,7 @@ Hộp chọn ngôn ngữ (máy dưới Android 13, KB-4) dùng cùng thành ph�
 
 ## 5. Vị trí quảng cáo
 
-`settings_bottom` (`features/ads/spec.md`, câu 19): thanh đáy native nhỏ ở đáy `SettingsScreen`, như `poses_bottom`; danh sách cài đặt cuộn phía trên, dòng cuối không bị che (ảnh `SettingsScreen_ad_*`). Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp chọn giao diện và ngôn ngữ phủ lên thanh như phủ lên danh sách. Nhãn "Ad" và chữ của thẻ (Headline of the ad, Advertiser or short body, Install) thuộc `:core:ads` và nhà quảng cáo, là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ.
+`settings_bottom` (`features/ads/spec.md`, câu 19): thanh đáy native nhỏ ở đáy `SettingsScreen`, như `poses_bottom`; danh sách cài đặt cuộn phía trên, dòng cuối không bị che (ảnh `SettingsScreen_ad_*`). Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp chọn giao diện và ngôn ngữ phủ lên thanh như phủ lên danh sách. `is_show_native_bottom` tắt thì khe là banner ở cùng chỗ; `is_show_native_collap` bật thì lớp quảng cáo nổi có thể phủ lên đáy danh sách và thu gọn được (spec settings, KB-1). Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 của thẻ là số của khung (`NativeAdDimens`); `context/` ghi "ngoài hệ thống", không làm tròn hay thêm token. Nhãn "Ad" và chữ của thẻ (Headline of the ad, Advertiser or short body, Install) thuộc `:core:ads` và nhà quảng cáo, là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ.
 
 ## 6. Chuyển sang Compose
 

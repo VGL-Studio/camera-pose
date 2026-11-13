@@ -43,7 +43,7 @@ Chạm điểm chặn của `risk-scoring.md`: vị trí quảng cáo mới, mod
 
 Câu 19 của `features/ads/spec.md` đã có câu trả lời; Nhật xác nhận spec ngày 2026-11-13.
 
-Việc trước khi soạn plan: AI dựng `SettingsScreen_ad_light`, `SettingsScreen_ad_dark` trên Figma bằng khối thanh đáy native nhỏ có sẵn, Nhật duyệt, xuất ảnh vào `docs/features/settings/design/screens/` và cập nhật gói bàn giao. Ticket chuyển `ready` khi thiết kế đã duyệt.
+Việc trước khi soạn plan: AI dựng `SettingsScreen_ad_light`, `SettingsScreen_ad_dark` trên Figma bằng khối thanh đáy native nhỏ có sẵn, Nhật duyệt, xuất ảnh vào `docs/features/settings/design/screens/` và cập nhật gói bàn giao. Thiết kế đã duyệt ngày 2026-11-13, ticket `ready`.
 
 ## Định nghĩa hoàn thành
 

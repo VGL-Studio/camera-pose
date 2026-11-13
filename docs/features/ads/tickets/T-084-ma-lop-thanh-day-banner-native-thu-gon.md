@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-10-31, câu 13 tới 15
 scenarios: []                # spec ads không có kịch bản riêng; thanh đáy theo KB-6 của features/poses/spec.md
 owner: Tuấn
-status: stopped
+status: cancelled           # Nhật, 2026-11-13: thay bằng khe chung của dự án mẫu (spec ads, câu 14 trả lời lại 2026-11-01)
 risk: high
 size: M
 depends_on: [T-079]          # T-079 đưa thanh đáy vào thư viện và chi tiết
@@ -58,3 +58,7 @@ Ticket chạm điểm chặn của `risk-scoring.md`: sửa module core `:core:a
 - [ ] Bản staging thấy đủ 3 cách hiện của câu 13 khi đổi hai khóa trên Firebase staging (spec ads, câu 13 sửa 2026-10-31: tổ hợp tắt, bật ra banner).
 - [ ] Tài liệu cách khai báo mã lớp đã cập nhật; T-075 có ghi chú khuôn mã lớp.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.
+
+## Hủy
+
+Nhật hủy ticket ngày 2026-11-13. Đợt đồng bộ dự án mẫu ở PR #279 đã mang vào khóa chung theo khe của cấu hình phát hành (`banner=<mã>`, `native_collap=<mã>`, một mã cho lớp đó của mọi thanh đáy) và `ConfiguredAdUnitIds.missing` báo khe còn thiếu. Câu 14 của spec ads đã trả lời lại theo hướng đó ngày 2026-11-01, và plan T-084 dừng ngày 2026-11-01 khi chưa có nhánh hay code nào. Phần bản phát hành báo thiếu mã lớp chưa có ai giữ: `release.sh` lấy về ở T-075 chưa biết khóa khe (`docs/ops/ads-guide.md`, mục 5, bước 6), nên người phát hành tự thêm `banner=<mã>;native_collap=<mã>`; thiếu khóa thì bản production chỉ ghi một dòng log `Production ad units missing...` lúc khởi động. Muốn script chặn lúc phát hành thì đề xuất về dự án mẫu (`docs/ops/from-app.md`); đề xuất "mã theo lớp" ở mục Phạm vi không còn cần, vì mẫu đã có khóa khe.

@@ -1,0 +1,260 @@
+---
+ticket: T-094
+title: Thanh đáy native nhỏ ở màn xem lại ảnh (review_bottom, tắt lúc phát hành)
+status: draft                # draft | approved | stopped | done
+version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
+risk_level: high             # low | medium | high
+token_estimate: 15.0M        # cỡ M theo scripts/token-usage.py estimate (2026-11-13), không nâng tay
+blocking_points: [ads, core]
+run_order:                   # AI điền sau họp đánh giá rủi ro
+reviewer:                    # người duyệt
+cross_reviewer:              # bắt buộc khi risk_level là high
+approved_at:
+lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
+---
+
+# PLAN T-094: THANH ĐÁY NATIVE NHỎ Ở MÀN XEM LẠI ẢNH
+
+## 1. Tóm tắt
+
+Thêm vị trí `review_bottom` (native nhỏ, thanh đáy) vào `AdPlacement`, khai báo kèm thuộc tính mới `collapsibleLayer = false` để thanh đáy của vị trí này không bao giờ có lớp native thu gọn nổi (câu 19, ý e). Màn xem lại đặt `BottomAdBarScaffold(AdPlacement.REVIEW_BOTTOM)` quanh thanh trên và phần nội dung, dưới hộp thoại "Bỏ ảnh này?", nên ảnh co lại cho vừa phần còn lại và hộp thoại phủ lên thanh. Bản staging bật sẵn `is_show_review_bottom`.
+
+Kiểm chứng bằng unit test của khung (khai báo, các lớp của thanh, mã đơn vị, kho native), test Robolectric của màn xem lại với thanh giả (vị trí, tỷ lệ ảnh, hộp thoại phủ lên thanh, màn thấp, máy gập mở ra) và ba ảnh chuẩn cùng tên thiết kế `ReviewScreen_ad_*`.
+
+## 2. Hiểu yêu cầu
+
+Ticket xử lý các kịch bản sau trong `features/camera/spec.md` và câu 19 của `features/ads/spec.md`:
+
+| Kịch bản | Tiêu chí chấp nhận | Cách hiểu của AI |
+| --- | --- | --- |
+| KB-9, tiêu chí 4 | Màn xem lại chỉ có thanh đáy `review_bottom` | Một vị trí mới; không thêm vị trí nào khác ở camera |
+| KB-9, tiêu chí 5 | Khóa bật, native bật, đã đồng ý thì thanh native nhỏ 80 dp ở đáy, dưới hàng nút; ảnh co lại, giữ tỷ lệ, không bị cắt hay che; bốn nút không bị che | Thanh của khung (`BottomAdBarScaffold`); nội dung nhận phần đệm đáy 96 khi khe có quảng cáo; ảnh đã co theo chỗ còn lại (`weight`, `aspectRatio`) |
+| KB-9, tiêu chí 6 | `is_show_native_collap` bật thì vẫn chỉ có thanh nhỏ, không có lớp nổi | Thuộc tính khai báo của vị trí, khung đọc nó khi chọn các lớp; vị trí cũng không mở kho native thu gọn |
+| KB-9, tiêu chí 7 | Đang lưu, lỗi lưu, mở từ ô ảnh vừa chụp: thanh vẫn ở đáy; hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên thanh | Thanh bọc mọi trạng thái của màn. Ô ảnh vừa chụp mở cùng `ReviewRoute`. Hộp thoại vẽ sau thanh trong cùng `Box`, nên lớp mờ và thẻ nằm trên thanh. Thông báo lỗi lưu nằm trong nội dung, phía trên nút chính, nên luôn ở trên thanh, không bị thanh che |
+| KB-9, tiêu chí 8 | `is_show_native_bottom` tắt thì khe là banner cùng chỗ; ảnh và bốn nút không bị che | Hành vi có sẵn của khung (D-01): phần đệm theo chiều cao banner |
+| KB-9, tiêu chí 9 | Khóa tắt hay không tải được thì không có thanh, ảnh và nút như khi chưa có quảng cáo | Hành vi có sẵn của khung (D-04): không có quảng cáo thì không chừa chỗ |
+| KB-11, tiêu chí 3 | Máy gập mở ra, thanh có quảng cáo: ảnh và nút hiện trọn, đúng `ReviewScreen_ad_dark_unfolded` | Thanh trải hết bề rộng đáy (thiết kế đã duyệt), ảnh giữ 450 x 600, nút chính dời lên trên thanh |
+| KB-6 | Các hành vi chụp, lưu, chia sẻ, chụp lại của màn xem lại | Không đổi; test có sẵn giữ nguyên |
+
+Thiết kế tham chiếu: `features/camera/design/README.md` (mục 1, 3, 5, 6), ảnh `design/screens/ReviewScreen_ad_dark.png`, `ReviewScreen_ad_dark_unfolded.png`, số liệu ở `design/context/ReviewScreen_ad_dark.md`, `ReviewScreen_ad_dark_unfolded.md`.
+
+ADR liên quan: ADR-0045 (khung quảng cáo AdsKit PARTNER), ADR-0020 (thiết kế và ảnh chuẩn), ADR-0029, ADR-0031 (test cũ), ADR-0007, ADR-0009 (mã thật và production là việc của người).
+
+## 3. Giải pháp
+
+### 3.1. Cách làm
+
+Plan này viết cho nhánh chính sau khi T-093 (`settings_bottom`) đã merge: T-093 thêm dòng `SETTINGS_BOTTOM` vào `AdPlacement`, khóa `is_show_settings_bottom` vào `StagingRemoteValuesModule`, test của nó và bảng khóa. Mọi file chung ở mục 3.2 ghi Sửa trên trạng thái đó.
+
+**1. Thuộc tính khai báo `collapsibleLayer` (`:core:ads`, theo mô hình chung, MC-10).**
+
+- `AdPlacement` nhận thêm tham số `collapsibleLayer: Boolean = true`, như `firstOpenOnly`: chỉ truyền vào `declaration`, đọc qua `declaration.collapsibleLayer`. KDoc: "False: the bottom bar of this placement never has the floating collapsible layer, even with `is_show_native_collap` on (D-01); native small bottom bars only."
+- `AdPlacementDeclaration` thêm trường `collapsibleLayer: Boolean = true` và kiểm `require(collapsibleLayer || (format == AdFormat.NATIVE_SMALL && nativeEvery == null))`, thông báo `"Placement $code: collapsibleLayer is for a native small bottom bar only"`.
+- `AdUnitIds.kt`, `layerFormats`: thanh đáy không có lớp thu gọn thì chỉ có `BANNER`:
+
+  ```kotlin
+  internal val AdPlacementDeclaration.layerFormats: List<AdFormat>
+      get() = when {
+          format != AdFormat.NATIVE_SMALL -> emptyList()
+          collapsibleLayer -> BOTTOM_BAR_LAYER_FORMATS
+          else -> BOTTOM_BAR_LAYER_FORMATS - AdFormat.NATIVE_COLLAPSIBLE
+      }
+  ```
+
+  Nhờ đó `usesStock(NATIVE_COLLAPSIBLE)` (`NativeAdSources.kt`) trả false cho vị trí này: bật `is_show_review_bottom` không mở hay nạp kho native thu gọn, và `missingUnitKeys` không đòi khóa khe `native_collap` chỉ vì vị trí này. Không sửa `NativeAdSources.kt`.
+- `BottomAdBar.kt`: hàm thuần `bottomAdBarLayers(canRequestAds, enabled, flags, bannerHadAd)` và `rememberBottomAdBarLayers(...)` nhận thêm `collapsibleLayer: Boolean = true`; lớp nổi chỉ có khi `collapsibleLayer` đúng (`collapsible = collapsibleLayer && slot == NATIVE && flags.showNativeCollap`). `BottomAdBarScaffold` truyền `placement.declaration.collapsibleLayer` qua `rememberBottomAdBarState`. Điều kiện nằm trong hàm thuần mà mọi lần chọn lớp đều gọi, nên khóa `is_show_native_collap` bật lúc màn đang mở cũng không thêm lớp.
+- `AdPlacement`: thêm một dòng, sau `REVIEW_INTERSTITIAL`:
+
+  ```kotlin
+  /** Bottom bar of the review screen, below the buttons; never the floating layer (spec ads, question 19). */
+  REVIEW_BOTTOM("review_bottom", AdFormat.NATIVE_SMALL, collapsibleLayer = false),
+  ```
+
+  Một dòng, thuộc tính sau định dạng: `scripts/release.sh`, `scripts/status.py`, `scripts/ads-plan.py` đọc được (mẫu `(, .*)?`).
+
+**2. Màn xem lại (`:feature:camera`).**
+
+- `ReviewScreen` nhận thêm tham số cuối:
+
+  ```kotlin
+  adBar: @Composable (Modifier, @Composable (PaddingValues) -> Unit) -> Unit = { barModifier, content ->
+      BottomAdBarScaffold(AdPlacement.REVIEW_BOTTOM, barModifier, content)
+  },
+  ```
+
+  Trong `Box` ngoài cùng (nền `cameraBackground`, tag `SCREEN`), `adBar` thay chỗ `Column` hiện nay: `adBar(barModifier) { padding -> Column(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) { ReviewTopBar(...); ... } }`. `barModifier` là `Modifier.fillMaxSize()` cộng `clearAndSetSemantics {}` khi hộp thoại mở (chuyển từ `Column` lên, để trình đọc màn hình không đọc cả khe quảng cáo sau hộp thoại). `DiscardDialog` vẫn vẽ sau, trong cùng `Box`, nên phủ lên thanh.
+- Không đổi `ReviewPhoneContent`, `ReviewUnfoldedContent`: cả hai đã co theo chỗ còn lại. Điện thoại: ảnh `weight(1f, fill = false)` và `aspectRatio(3/4)`. Gập mở: `photoHeight = min(maxHeight - 20, maxPhotoWidth / 0.75)`; ở 673 x 841 chỗ còn lại sau thanh trên và 96 vẫn đủ cho ảnh 600, nên ảnh giữ 450 x 600 như thiết kế. Nút chính cách khe 20 (lề đáy có sẵn), thiết kế mở gập ghi 16: lệch 4 dp, trong một bước lưới (mục 6 của gói thiết kế); thiết kế điện thoại cũng 20.
+- `ReviewRoute` không đổi: dùng `adBar` mặc định. Không có `AdsController` (test, preview) thì thanh chỉ vẽ nội dung, phần đệm 0, nên mọi test và ảnh chuẩn có sẵn không đổi.
+
+**3. Bản staging.** `StagingRemoteValuesModule`: thêm `AdPlacement.REVIEW_BOTTOM` vào danh sách vị trí bật sẵn (câu 19, ý a); `StagingRemoteValuesModuleTest`: thêm `"is_show_review_bottom" to true` (dữ liệu của phần plan thêm, ADR-0029). `is_show_native_collap` của staging vẫn `false`.
+
+**4. Bảng khóa.** Sinh lại `docs/remote-config-keys.md` và `docs/remote-config-template.json` bằng `./gradlew :app:testStagingDebugUnitTest -PremoteConfigKeys.update=true`; thêm `is_show_review_bottom` (khóa suy ra từ khai báo).
+
+**5. Tài liệu.** `docs/ops/manual-test.md`, mục Quảng cáo: thêm `is_show_review_bottom` vào dòng khóa không đặt `false` trên Firebase staging, và bước thanh đáy ở màn xem lại (mục 4, dòng máy thật). Cách bật dần 10% (câu 19, ý d) đã ghi ở spec ads, nơi người phát hành đọc; plan không chép lại (câu hỏi 3).
+
+**6. Đề xuất về dự án mẫu.** Thuộc tính `collapsibleLayer` có ích cho mọi app (màn có nội dung không được che). Sau khi merge, người mở issue `from-app` theo `docs/ops/from-app.md`: thuộc tính, chỗ khung đọc nó, đề xuất thêm dòng vào `ads-business-rules.md` (D-01, MC-08) và `ads-guide.md` (mục 5, các thuộc tính của dòng `AdPlacement`) của mẫu. Ghi vào mô tả PR và mục "Cần người kiểm tra" của báo cáo phiên.
+
+### 3.2. Danh sách file
+
+| Thao tác | Đường dẫn | Nội dung thay đổi |
+| --- | --- | --- |
+| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt` | Tham số và trường `collapsibleLayer`, kiểm khai báo; dòng `REVIEW_BOTTOM` |
+| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIds.kt` | `layerFormats` bỏ `NATIVE_COLLAPSIBLE` khi `collapsibleLayer` sai |
+| Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/BottomAdBar.kt` | `bottomAdBarLayers`, `rememberBottomAdBarLayers`, `rememberBottomAdBarState` nhận `collapsibleLayer`; KDoc của `BottomAdBarScaffold` |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacementTest.kt` | Test kiểm khai báo `collapsibleLayer` (mục 4) |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacementAppTest.kt` | Tập vị trí của app có `review_bottom` (dữ liệu, ADR-0029); test thuộc tính và kho của các thanh đáy (mục 4) |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/BottomAdBarTest.kt` | Test lớp của thanh khi `collapsibleLayer` sai (mục 4) |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIdsTest.kt` | Chuỗi mã đơn vị có `review_bottom` (dữ liệu, ADR-0029); test `layerFormats`, `missingUnitKeys` (mục 4) |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdsControllerUnitIdsTest.kt` | Chuỗi mã đơn vị có `review_bottom` khi test đòi đủ mã của vị trí (dữ liệu, ADR-0029) |
+| Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreen.kt` | Tham số `adBar`, thanh bọc thanh trên và nội dung, hộp thoại vẽ sau thanh |
+| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreenTest.kt` | Test thanh đáy ở điện thoại và màn thấp (mục 4); hàm `fakeAdBar` |
+| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreenUnfoldedTest.kt` | Test thanh đáy khi mở gập và nằm ngang (mục 4); lớp `ReviewScreenUnfoldedScreenshotTest` trong cùng file: ảnh `ad_dark_unfolded` |
+| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreenScreenshotTest.kt` | Ảnh `ad_dark`, `ad_small` với `BottomAdBarLayout` và `NativeAdCard` giả |
+| Tạo | `feature/camera/src/test/screenshots/ReviewScreen_ad_dark.png` | Ảnh chuẩn mới, cùng tên thiết kế |
+| Tạo | `feature/camera/src/test/screenshots/ReviewScreen_ad_dark_unfolded.png` | Ảnh chuẩn mới, cùng tên thiết kế |
+| Tạo | `feature/camera/src/test/screenshots/ReviewScreen_ad_small.png` | Ảnh chuẩn mới: khung thấp, lỗi lưu và thanh (nhiều nội dung nhất) |
+| Sửa | `app/src/staging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingRemoteValuesModule.kt` | Bật sẵn `REVIEW_BOTTOM` |
+| Sửa | `app/src/testStaging/kotlin/com/vglstudio/camera/pose/line/guide/di/StagingRemoteValuesModuleTest.kt` | `"is_show_review_bottom" to true` (dữ liệu, ADR-0029) |
+| Sửa | `docs/remote-config-keys.md` | Sinh lại, thêm `is_show_review_bottom` |
+| Sửa | `docs/remote-config-template.json` | Sinh lại cùng lệnh |
+| Sửa | `docs/features/camera/design/review/` | Ảnh so sánh và `summary.md` do `scripts/design-compare.sh camera` sinh |
+| Sửa | `docs/ops/manual-test.md` | Mục Quảng cáo: khóa `is_show_review_bottom`, bước thanh đáy ở màn xem lại |
+
+Ảnh chuẩn có sẵn của `feature/camera` không đổi: test và ảnh có sẵn dựng màn không có `AdsController`, thanh chỉ vẽ nội dung. Lệnh ghi ảnh ghi lại mọi ảnh của module; chỉ giữ ba ảnh mới, trả mọi ảnh khác bằng `git checkout -- <ảnh>` (`CLAUDE.md`, mục Lệnh).
+
+Nơi khác đọc file mà plan này đổi:
+
+- `scripts/release.sh`, `scripts/status.py` (mục 6, "Sẵn sàng phát hành"), `scripts/ads-plan.py` đọc dòng một hàng của `AdPlacement.kt`, mẫu nhận thuộc tính sau định dạng; dòng mới một hàng, không sửa script. Test của các script đọc file mẫu hay code thật, không đếm số vị trí.
+- `app/build.gradle.kts` chỉ nêu đường dẫn của `docs/remote-config-keys.md` và `docs/remote-config-template.json` cho tham số `-PremoteConfigKeys.update`; đường dẫn không đổi, không sửa.
+- `scripts/main-guard-verified.sh` coi hai bảng khóa là tài liệu Gradle đọc (`GRADLE_READ_DOCS`), nên commit merge của task được kiểm như code; đó là điều plan cần, không sửa script.
+- `scripts/tests/run.sh` nêu hai bảng khóa trong các test của `main-guard-verified.sh` và `merge-if-green.sh` bằng repo giả, không đọc nội dung; chạy `release.sh --fill-test-units` trên `AdPlacement.kt` thật (dòng mới là native nhỏ, đã có mã thử theo định dạng, nên vẫn mã 0); và chỉ ghi thêm một dòng chú thích vào `AdUnitIds.kt` của repo giả ở test `template-sync`. Không sửa.
+- `app/src/test/kotlin/com/vglstudio/camera/pose/line/guide/config/RemoteConfigKeysTest.kt` so hai bảng khóa với `AdsSettings.all()` và `AdPlacement.entries`; hai bảng sinh lại trong cùng commit code, không sửa test.
+- `scripts/check.sh`, `scripts/design-compare.sh` đọc `src/test/screenshots/` và `design/screens/`: ba ảnh mới cùng tên thiết kế (`_small` không có thiết kế).
+- `docs/ops/ads-guide.md`, `docs/ops/ads-business-rules.md` là tài liệu của dự án mẫu: không sửa ở app, đưa vào đề xuất về mẫu (mục 3.1, bước 6).
+
+### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
+
+- Cờ tính năng: Không có.
+- Quảng cáo: vị trí mới `review_bottom` (native nhỏ, thanh đáy), khóa `is_show_review_bottom` mặc định tắt, bản staging bật sẵn (spec ads câu 19; spec camera mục 5, KB-9). Không có lớp native thu gọn (câu 19, ý e). Mã thật trong cấu hình phát hành và khóa trên Firebase production là việc của người (ADR-0007, ADR-0009).
+- Sự kiện phân tích: không thêm. Số liệu quảng cáo của khung ghi theo `ad_placement = review_bottom` như mọi thanh đáy (spec ads câu 19, ý d: không thêm sự kiện mới).
+- File R2: Không chạm.
+- **Quyền truy cập:** Không thêm.
+- **Thư viện và SDK:** Không thêm. Dùng `:core:ads` mà `:feature:camera` đã phụ thuộc.
+
+### 3.4. Phương án dự phòng
+
+Không có. Thanh đáy, `BottomAdBarLayout` và cách đặt hộp thoại phủ lên đã có mẫu ở thư viện và chi tiết tư thế.
+
+### 3.5. Hành vi đã có bị đổi
+
+`scripts/existing-tests.py` (kết quả ở mục 4.1) liệt kê test của các file plan sửa. Plan đổi các hành vi sau:
+
+| Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
+| --- | --- | --- | --- |
+| Thanh đáy native nào cũng có lớp nổi khi `is_show_native_collap` bật | Vị trí khai báo `collapsibleLayer = false` không có lớp nổi | `BottomAdBarTest` (các test của `bottomAdBarLayers` với `collap = true`) | Giữ: các test đó dùng vị trí mặc định (`collapsibleLayer = true`), kết quả không đổi |
+| Vị trí native nhỏ nào cũng có hai lớp `BANNER`, `NATIVE_COLLAPSIBLE` | Vị trí `collapsibleLayer = false` chỉ có `BANNER` | `AdUnitIdsTest` (thiếu khóa khe, `layerFormats`) | Giữ: dữ liệu có sẵn chỉ có vị trí mặc định; chuỗi mã thêm `review_bottom=unit/..` (dữ liệu, ADR-0029) |
+| Tập vị trí của app | Thêm `review_bottom` | `AdPlacementAppTest` | Dữ liệu của phần plan thêm (ADR-0029), câu khẳng định giữ |
+| Giá trị cục bộ của bản staging | Thêm `is_show_review_bottom = true` | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` | Dữ liệu (ADR-0029), câu khẳng định giữ |
+| Hộp thoại mở thì `Column` của màn bị ẩn với trình đọc màn hình | Phần bị ẩn là cả thanh (nội dung và khe) | `ReviewScreenTest.discard_hidesContentFromAccessibility`, `ReviewScreenUnfoldedTest.discardDialog_isCentered_andHidesContent` | Giữ: chữ của nội dung vẫn không đọc được; test mới thêm khe |
+| Bố cục điện thoại và gập mở | Không đổi khi không có quảng cáo (phần đệm 0) | `ReviewScreenTest`, `ReviewScreenUnfoldedTest`, `ReviewScreenScreenshotTest` | Giữ, ảnh chuẩn có sẵn không đổi |
+
+`scripts/existing-tests.py` xếp 19 test vào nhóm "Cần xem trước". Các test của `:core:ads` (`AdSlotTest`, `BannerAdSizeTest`, `InListAdsTest`, `NativeAdCellTest`, `NativeAdSlotTest`, `NativeFullScreenOverlayTest`, `RewardedActionTest`) và của `:feature:poses` (`PosesScreenTest`, `PoseDetailScreenTest`) dùng vị trí khác hay thanh mặc định, không đọc `collapsibleLayer` hay `REVIEW_BOTTOM`: giữ nguyên. Ba test đo vị trí của màn xem lại (`ReviewScreenTest.smallPortuguese_saveError_primaryButtonVisible`, `ReviewScreenUnfoldedTest.photoLeft_actionsAndSaveRight`, `ReviewScreenUnfoldedTest.saveError_isInRightColumn_aboveSave_andRetries`) dựng màn không có `AdsController`, phần đệm 0: giữ nguyên câu khẳng định. Trong nhóm "Nên xem", `AdPreloadPlanTest.fromPlacements_withBottomBar_hasCollapsibleInSecondGroup` đọc `usesStock`: tập vị trí của app vẫn có `POSES_BOTTOM` dùng kho thu gọn nên giữ; test mới ở mục 4 kiểm riêng `REVIEW_BOTTOM`. Các test của `AdPlacementTest`, `RemoteConfigKeysTest`, `StagingRemoteValuesModuleTest` dùng `AdPlacement.entries` không đếm số vị trí cố định ngoài các test đã nêu ở bảng trên.
+
+## 4. Kiểm thử
+
+Test viết trước, ở commit test của bước 3. Thanh giả trong test màn hình: `BottomAdBarLayout(reservation = BottomAdBarDefaults.nativeReservation hoặc 0.dp, slot = { Box(it.height(80.dp).background(Color.Red).testTag("fake_ad_slot")) { Text("Ad") } }, layer = null, modifier = barModifier, content = content)`, truyền qua `adBar`; `withSlot` đổi được trong test (như `fakeBar` của `PoseDetailScreenTest`). Test màn hình chạy `@GraphicsMode(NATIVE)`, khung `vi-w411dp-h891dp-xxhdpi` trừ khi ghi khác. Hàm `fakeAdBar` vào commit test; tham số `adBar` chưa có nên test không biên dịch được ở bước 3, đó là lý do thất bại đúng (thiếu API); ở bước 4 thêm tham số rồi test chạy.
+
+| Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
+| --- | --- | --- |
+| Câu 19 ý e: khai báo chỉ cho thanh đáy native nhỏ | Unit test | `AdPlacementTest.collapsibleLayerOff_onlyForNativeSmallBottomBar`: `AdPlacementDeclaration("x", INTERSTITIAL, collapsibleLayer = false)` và `AdPlacementDeclaration("x", NATIVE_SMALL, nativeEvery = 8, collapsibleLayer = false)` ném `IllegalArgumentException`; đối chứng `AdPlacementDeclaration("x", NATIVE_SMALL, collapsibleLayer = false)` không ném |
+| KB-9, tiêu chí 4, 6: vị trí của app | Unit test | `AdPlacementAppTest`: tập vị trí có `"review_bottom" to NATIVE_SMALL`; `reviewBottom_hasNoCollapsibleLayer`: `REVIEW_BOTTOM.declaration.collapsibleLayer` sai, `POSES_BOTTOM`, `POSE_DETAIL_BOTTOM`, `SETTINGS_BOTTOM` đúng |
+| KB-9, tiêu chí 6: không nạp lớp nổi | Unit test | `AdPlacementAppTest.reviewBottom_usesNoCollapsibleStock`: `REVIEW_BOTTOM.usesStock(NATIVE_COLLAPSIBLE)` sai, `usesStock(NATIVE_SMALL)` đúng; đối chứng `POSES_BOTTOM.usesStock(NATIVE_COLLAPSIBLE)` đúng; `AdPreloadPlan.fromPlacements(listOf(REVIEW_BOTTOM))` không có `NATIVE_COLLAPSIBLE` trong nhóm nào, đối chứng `listOf(POSES_BOTTOM)` có |
+| KB-9, tiêu chí 6: mã đơn vị | Unit test | `AdUnitIdsTest.noCollapsibleLayer_layerFormatsBannerOnly`: `layerFormats` của khai báo `collapsibleLayer = false` là `[BANNER]`; `missingUnitKeys(listOf(khai báo đó), setOf(code))` là `["banner"]`, không có `native_collap`; đối chứng vị trí mặc định có cả hai |
+| KB-9, tiêu chí 6: không có lớp nổi dù khóa bật | Unit test | `BottomAdBarTest.layers_collapsibleLayerOff_noLayerWithCollapOn`: `bottomAdBarLayers(true, true, barFlags(nativeBottom = true, collap = true), false, collapsibleLayer = false)` bằng `BottomAdBarLayers(NATIVE, collapsible = false)`; đối chứng cùng đối số với `collapsibleLayer = true` có `collapsible = true`; `nativeBottom = false` vẫn ra `BANNER` |
+| KB-9, tiêu chí 6: khóa bật lúc màn đang mở | Compose UI test | `BottomAdBarTest.host_collapsibleLayerOff_collapSwitchedOn_noLayer`: `BottomAdBarHost` với `layers` từ `rememberBottomAdBarLayers(true, true, flags, collapsibleLayer = false)`, `flags` là `mutableStateOf` đổi `collap` từ false sang true; sau mỗi lần đổi, tag `bottom_ad_bar_layer` không có, tag `bottom_ad_bar_slot` có; đối chứng `collapsibleLayer = true` thì sau khi đổi có lớp |
+| KB-9, tiêu chí 5: thanh dưới hàng nút, ảnh co, giữ tỷ lệ | Compose UI test | `ReviewScreenTest.adBar_slotAtBottom_photoAndButtonsAbove`: khe cao 80 (±0,5), cách đáy 16; nút "Chụp lại", "Chia sẻ", "Tư thế tiếp", nút chính có `bottom <= slot.top`; ảnh `bottom <= slot.top`, `width / height` bằng 0,75 (±0,01); bật `withSlot` từ false sang true thì ảnh thấp đi đúng 96 (±1) và nút chính dời lên 96 (±0,5) |
+| KB-9, tiêu chí 5: bốn nút bấm được | Compose UI test | `ReviewScreenTest.adBar_buttonsStillCallBack`: có khe, bấm bốn nút gọi đúng callback một lần mỗi nút |
+| KB-9, tiêu chí 7: mọi trạng thái | Compose UI test | `ReviewScreenTest.adBar_savingAndSaveError_slotStays`: `SAVING`, `FAILED_STORAGE_FULL`, `PERMISSION_BLOCKED`: khe có, `SAVE_ERROR` và nút chính có `bottom <= slot.top` |
+| KB-9, tiêu chí 7: hộp thoại phủ lên thanh | Compose UI test | `ReviewScreenTest.adBar_discardDialog_coversSlot`: `pendingExit` khác null; vẽ `decorView` ra `Bitmap`, điểm giữa khe không còn là `Color.Red` thuần (kênh đỏ dưới 200, lớp mờ 50% phủ lên); đối chứng không có hộp thoại thì điểm đó đỏ (đỏ ≥ 240, xanh lá và xanh dương ≤ 15); bấm vào giữa khe gọi `onDismissDialog` một lần |
+| KB-9, tiêu chí 7: trình đọc màn hình | Compose UI test | `ReviewScreenTest.adBar_discardDialog_hidesSlotFromAccessibility`: hộp thoại mở thì `onNodeWithText("Ad")` không có; đối chứng hộp thoại đóng thì có |
+| KB-9, tiêu chí 9: không quảng cáo thì không chừa chỗ | Compose UI test | `ReviewScreenTest.realAdBar_withoutAds_takesNoSpace`: `adBar` mặc định (không có `AdsController`): tag `bottom_ad_bar_slot` không có; `root.bottom - save.bottom` bằng 20 (±0,5); đối chứng thanh giả có khe thì bằng 116 |
+| Màn hình thấp | Compose UI test, khung `vi-w360dp-h640dp-xxhdpi` | `ReviewScreenTest.small_adBar_saveError_allVisible`: `PERMISSION_BLOCKED` và khe: nút chính, nút "Mở cài đặt", ba nút phụ nằm trong màn và `bottom <= slot.top`; ảnh giữ 0,75 (±0,01) và cao hơn 0; cùng test với `pt-rBR-w360dp-h640dp-xxhdpi` (`smallPortuguese_adBar_saveError_allVisible`) |
+| KB-11, tiêu chí 3: gập mở | Compose UI test, khung `vi-w673dp-h841dp-xxhdpi` | `ReviewScreenUnfoldedTest.adBar_slotFullWidth_photoKept_saveAbove`: khe rộng 641 (±0,5), cách mép trái 16; ảnh 450 x 600 (±1), như khi không có khe; ba nút phụ và nút chính có `bottom <= slot.top`, nút chính ở cột phải (`left >= photo.right`) |
+| KB-11: nằm ngang | Compose UI test | `ReviewScreenUnfoldedTest.landscape_adBar_saveInsideWindow`, khung `vi-w960dp-h520dp-land-xxhdpi`: nút chính trong màn và trên khe; ảnh giữ 0,75 |
+| Câu 19 ý a: bản staging | Unit test | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` có `"is_show_review_bottom" to true` |
+| Bảng khóa khớp code | Unit test có sẵn | `RemoteConfigKeysTest` qua sau khi sinh lại hai bảng |
+| Giao diện màn hình có thanh | Screenshot test | `ReviewScreenScreenshotTest.ad_dark` ghi `src/test/screenshots/ReviewScreen_ad_dark.png`: `Ready(PATH, NOT_SAVED)`, `adBar` giả với `NativeAdCard(SCREENSHOT_AD, NativeAdSize.SMALL, it)` (chữ giả như ảnh của `PoseDetailScreen_ad_*`) |
+| Màn hình thấp | Screenshot test khung `vi-w360dp-h640dp-xxhdpi`, trạng thái nhiều nội dung nhất | `ReviewScreenScreenshotTest.ad_small`: `src/test/screenshots/ReviewScreen_ad_small.png`, `FAILED_STORAGE_FULL` và thanh |
+| Đúng thiết kế | Screenshot test cùng tên ảnh thiết kế, `scripts/design-compare.sh camera`, rà soát độc lập theo mục 7 của gói thiết kế | `ReviewScreen_ad_dark.png`; `ReviewScreenUnfoldedScreenshotTest.ad_dark_unfolded`: `src/test/screenshots/ReviewScreen_ad_dark_unfolded.png`, khung `vi-w673dp-h841dp-xxhdpi` |
+| Chữ đúng bảng chữ của thiết kế | Compose UI test có sẵn | `ReviewScreenTest.default_showsTexts` giữ nguyên; chữ của thẻ quảng cáo là chữ giả của khung, không thuộc bảng chữ |
+| KB-9, tiêu chí 5, 7 trên bản staging | Kiểm tra thủ công (máy thật: quảng cáo thật) | Đồng ý quảng cáo, chụp một ảnh: khe native thử 80 dp ở đáy màn xem lại, dưới nút "Lưu vào thư viện", ảnh không bị che; bấm Lưu, Chia sẻ, Chụp lại, Tư thế tiếp: đúng hành vi, không bấm vào quảng cáo; hộp "Bỏ ảnh này?" phủ lên khe; log `VGL.Ads` có `Bottom bar review_bottom: slot=NATIVE collapsible=false` (`bottomBarLayersLog`, ghi khi lớp đổi) |
+| KB-9, tiêu chí 6 trên bản staging | Kiểm tra thủ công (máy thật: Remote Config) | Đặt `is_show_native_collap = true` trên Firebase staging, mở lại app: thư viện tư thế có lớp nổi, màn xem lại không có; log `Bottom bar review_bottom: slot=NATIVE collapsible=false`; trả khóa về như cũ |
+| KB-9, tiêu chí 7: TalkBack | Kiểm tra thủ công (máy thật: TalkBack) | Bật TalkBack, mở hộp "Bỏ ảnh này?": vuốt qua các phần tử chỉ đọc hộp thoại, không đọc thẻ quảng cáo (khe thật là view của SDK, test Robolectric chỉ kiểm khe giả) |
+| KB-11 trên máy gập | Kiểm tra thủ công (máy thật: gập có bản lề) | Mở gập, chụp: khe trải hết bề rộng đáy, ảnh và nút "Lưu ảnh" ở trên khe |
+| Đề xuất về dự án mẫu | Kiểm tra thủ công (người: mở issue ở repo khác) | Người mở issue `from-app` cho thuộc tính `collapsibleLayer` (mục 3.1, bước 6) |
+
+**Ngoại lệ viết test trước:**
+
+- Dòng `REVIEW_BOTTOM` của `adBar` mặc định trong `ReviewScreen`: không có `AdsController` thì test không thấy vị trí nào được dùng; rà soát độc lập kiểm, và dòng log ở bước máy thật.
+- Sinh lại `docs/remote-config-keys.md`, `docs/remote-config-template.json`: sinh từ code; `RemoteConfigKeysTest` kiểm khớp.
+- `docs/ops/manual-test.md` và ảnh so sánh của `design/review/`: tài liệu.
+- Ba ảnh chuẩn mới: ghi ở bước 4 sau khi code xong (ảnh chuẩn không thất bại trước được).
+
+### 4.1. Chạy thử
+
+Không cần (E dưới 2): thanh đáy, `BottomAdBarLayout` giả, đo điểm ảnh `decorView` và đường thêm thuộc tính khai báo đều đã có mẫu trong dự án.
+
+`scripts/existing-tests.py docs/features/ads/plans/T-094-thanh-day-native-o-man-xem-lai.md` (2026-11-13, nhánh chính `8af6a3e`): 589 test dùng tên của các file plan sửa; 19 "Cần xem trước", 381 "Nên xem". Đối chiếu ở mục 3.5.
+
+## 5. Chấm rủi ro
+
+**Điểm chặn bị chạm:**
+
+- điểm 1: thêm vị trí quảng cáo `review_bottom`;
+- điểm 7: module core `:core:ads` (thuộc tính khai báo mới, cách chọn lớp của thanh đáy).
+
+Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã chốt vị trí và ý e ở câu 19 của spec ads ngày 2026-11-13, thiết kế đã duyệt cùng ngày.
+
+| Tiêu chí | Điểm (0 đến 3) | Lý do |
+| --- | --- | --- |
+| A. Phạm vi thay đổi | 3 | Ba module (`:core:ads`, `:feature:camera`, `:app`), sửa khung thanh đáy dùng chung và màn chính sau mỗi lần chụp |
+| B. Độ rõ của yêu cầu | 1 | Spec và thiết kế đã chốt; còn câu hỏi ở mục 8 về tên thuộc tính và việc tách ticket |
+| C. Khả năng kiểm chứng tự động | 1 | Khai báo, lớp, kho, bố cục, hộp thoại phủ lên có test; quảng cáo thật, TalkBack trên view của SDK chỉ kiểm trên máy |
+| D. Ảnh hưởng chéo | 2 | `AdPlacement.kt`, `StagingRemoteValuesModule`, bảng khóa dùng chung với T-093; `ReviewScreen.kt` dùng chung với T-096 |
+| E. Độ mới của kỹ thuật | 1 | Lần đầu một vị trí tắt lớp nổi, nhưng theo đúng đường của thuộc tính khai báo có sẵn (`firstOpenOnly`) |
+| **Tổng** | 8 | **Mức: Cao (chạm điểm chặn)** |
+
+## 6. Ảnh hưởng chéo
+
+- File hoặc thành phần dùng chung bị chạm: `AdPlacement.kt`, `AdUnitIds.kt`, `BottomAdBar.kt` của `:core:ads` (mọi thanh đáy); `StagingRemoteValuesModule` và test; hai bảng khóa; `docs/ops/manual-test.md`. Thanh đáy của thư viện, chi tiết tư thế và Cài đặt giữ hành vi cũ vì `collapsibleLayer` mặc định đúng.
+- Task khác có thể xung đột:
+  - T-093 (`settings_bottom`): sửa cùng `AdPlacement.kt`, `AdPlacementAppTest`, `AdUnitIdsTest`, `AdsControllerUnitIdsTest`, `StagingRemoteValuesModule` và test, hai bảng khóa, `manual-test.md`. Ticket T-094 ghi `depends_on: [T-093]`.
+  - T-096 (hỏi đánh giá app tính cả ảnh vừa lưu): sửa `ReviewScreen.kt` (phần `ReviewRoute`, số ảnh đưa cho lời hỏi đánh giá) và có thể `ReviewViewModel.kt`. Plan này chỉ sửa phần `ReviewScreen` không trạng thái; hai phần không chồng dòng, nhưng cùng file.
+  - T-097 (camera chờ quảng cáo toàn màn hình đóng): sửa `CameraScreen.kt`, không chạm file của plan này.
+- Đề xuất thứ tự chạy: T-093, rồi T-094; T-096 trước hoặc sau T-094 trong cùng phiên đều được, nhưng không chạy song song (một phiên làm lần lượt nên không vấn đề). Nếu T-093 chưa merge khi phiên tới T-094 thì T-094 bị bỏ qua theo `depends_on`.
+
+## 7. Điều kiện dừng riêng
+
+- Test có sẵn của `review_interstitial`, luật đếm ảnh (`InterstitialBreaks`) hay hỏi đánh giá đỏ: dừng, vì plan không được đổi các phần đó (ticket, mục Phạm vi).
+- Ảnh chuẩn có sẵn của `feature/camera` hay `feature/poses` đổi quá nhiễu vẽ (lệch hơn 1 mỗi kênh màu) sau khi sửa khung: dừng, vì plan giữ bố cục cũ khi không có quảng cáo.
+
+## 8. Câu hỏi cho người duyệt
+
+1. **Tên và chỗ của thuộc tính.** AI đề xuất tham số `collapsibleLayer = false` trên dòng `AdPlacement` (khai báo của vị trí, MC-01, MC-10), không đặt ở lời gọi `BottomAdBarScaffold`: khung còn cần nó để không mở kho native thu gọn và không đòi khóa khe cho vị trí đó. Luật MC-13 của tài liệu luật (màn có quảng cáo trong nội dung thì không có lớp nổi) chưa có trong code và không khớp trường hợp này (màn xem lại không có quảng cáo trong nội dung), nên plan không làm MC-13. Đồng ý?
+2. **Tách phần khung thành ticket riêng?** Ticket cho phép tách. AI đề xuất giữ một ticket: phần khung nhỏ (một thuộc tính, ba hàm), test của khung và của màn cùng chạy trong một lượt, và màn xem lại là nơi duy nhất dùng thuộc tính này. Tách thì T-094 phụ thuộc thêm một ticket khung chạy trước.
+3. **Bật dần 10% (câu 19, ý d).** Spec ads đã ghi cách bật dần và ngưỡng giữ; AI đề xuất không chép vào `docs/ops/remote-config.md` (tài liệu của dự án mẫu) hay ghi chú phát hành. Người phát hành bật dần trên Firebase production theo spec. Đồng ý?
+4. **Hàng nút nhảy khi khe co về 0.** Khung chỉ chừa chỗ khi khe đã có quảng cáo, nạp lỗi sau đó thì co về 0 (D-04), nên ảnh lớn lên và hàng nút dời xuống 96 dp lúc người dùng có thể đang bấm. Thư viện và chi tiết tư thế cũng vậy. AI đề xuất giữ hành vi chung của khung trong ticket này; nếu muốn giữ chỗ khi đã có quảng cáo một lần, đó là thay đổi khung cho mọi thanh đáy, cần ticket và đề xuất về mẫu riêng.
+5. **Khoảng cách nút chính và khe khi mở gập.** Code giữ lề đáy 20 có sẵn, thiết kế mở gập ghi 16 (lệch 4 dp, trong một bước lưới). AI đề xuất giữ 20 để điện thoại và gập mở như nhau.
+
+## 9. Quyết định duyệt
+
+<!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
+
+- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
+- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
+- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+
+## 10. Nhật ký thực hiện
+
+<!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). -->

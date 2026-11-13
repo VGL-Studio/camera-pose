@@ -91,28 +91,29 @@ Plan này viết cho nhánh chính sau khi T-093 (`settings_bottom`) đã merge:
 
   Trong `Box` ngoài cùng (nền `cameraBackground`, tag `SCREEN`), `adBar` thay chỗ `Column` hiện nay: `adBar(barModifier) { padding -> Column(Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) { ReviewTopBar(...); ... } }`. `barModifier` là `Modifier.fillMaxSize()` cộng `clearAndSetSemantics {}` khi hộp thoại mở (chuyển từ `Column` lên, để trình đọc màn hình không đọc cả khe quảng cáo sau hộp thoại). `DiscardDialog` vẫn vẽ sau, trong cùng `Box`, nên phủ lên thanh.
 - Không đổi `ReviewPhoneContent`. `ReviewUnfoldedContent` sửa cột phải (dưới đây). Cả hai đã co ảnh theo chỗ còn lại. Điện thoại: ảnh `weight(1f, fill = false)` và `aspectRatio(3/4)`; ở 411 x 891 ảnh đã bị giới hạn bởi bề rộng (379), cột chứa ảnh vẫn dư chỗ khi có khe (biên 37,7 dp ở khung test, khoảng 13,7 trên máy có thanh trạng thái 24), nên ảnh và hàng nút đứng yên, chỉ khoảng trống trên nút chính nhường 96 (đo ở mục 4.1). Gập mở: `photoHeight = min(maxHeight - 20, maxPhotoWidth / 0.75)`; ở 673 x 841 chỗ còn lại sau thanh trên và 96 vẫn đủ cho ảnh 600, nên ảnh giữ 450 x 600 như thiết kế. Nút chính cách khe 20 (lề đáy có sẵn); gói thiết kế ở PR #337 ghi 20 theo code, đã thống nhất.
-- `ReviewUnfoldedContent`, cột phải cuộn được khi thiếu chỗ. Hiện nay cột là `Column(Modifier.weight(1f).fillMaxHeight())` với `Spacer(Modifier.weight(1f))` giữa hàng nút và phần đáy; khi cột thấp hơn nội dung (nằm ngang 960 x 520 có khe và có thông báo lỗi: cần 192 + 16 + 92 + 16 + 56 = 372, cột chỉ 340), `Column` ép nút chính còn 40 dp, nhãn bị cắt và vùng chạm dưới 48. Đổi thành:
+- `ReviewUnfoldedContent`, cột phải gọn lại khi thiếu chỗ. Hiện nay cột là `Column(Modifier.weight(1f).fillMaxHeight())` với `Spacer(Modifier.weight(1f))` giữa hàng nút và phần đáy; khi cột thấp hơn nội dung (nằm ngang 960 x 520 có khe và có thông báo lỗi: cần 192 + 16 + 92 + 16 + 56 = 372, cột chỉ 340), `Column` ép nút chính còn 40 dp, nhãn bị cắt và vùng chạm dưới 48. Không dùng cuộn: `verticalScroll` cắt bóng sticker 4 dp dưới nút chính (người rà đã thấy `verifyRoborazziDebug` đỏ ở `ReviewScreen_default_dark_unfolded.png`, `ReviewScreen_save-error_unfolded.png`) và để nút chính nằm dưới mép cột tới khi cuộn. Đổi thành:
 
   ```kotlin
   BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxHeight()) {
-      val columnHeight = maxHeight
-      Column(
-          modifier = Modifier
-              .fillMaxWidth()
-              .verticalScroll(rememberScrollState())
-              .heightIn(min = columnHeight),
-          verticalArrangement = Arrangement.SpaceBetween,
-      ) {
-          ReviewActions(..., vertical = true)
-          Column {
+      val hasError = ready.save in ERROR_STATUSES
+      // Room the stacked actions need: 3 x 48 + 2 x 24, the main button 56, and the error (at most 132 high in the
+      // 175 dp column of the unfolded design) when there is one.
+      val stackedNeed = STACKED_ACTIONS_HEIGHT + Spacing.md + MAIN_BUTTON_HEIGHT +
+          if (hasError) Spacing.md + ERROR_ROOM else 0.dp
+      val compact = maxHeight < stackedNeed
+      Column(modifier = Modifier.fillMaxSize()) {
+          ReviewActions(..., vertical = !compact)
+          Spacer(modifier = Modifier.weight(1f))
+          if (hasError) {
+              SaveErrorMessage(..., modifier = Modifier.fillMaxWidth(), actionOnNewLine = !compact)
               Spacer(modifier = Modifier.height(Spacing.md))
-              // SaveErrorMessage and its Spacer as today, then PrimaryButton as today
           }
+          PrimaryButton(...) // as today
       }
   }
   ```
 
-  Đủ chỗ thì `heightIn(min)` và `SpaceBetween` giữ y như hôm nay (hàng nút ở đỉnh, phần đáy sát đáy cột); thiếu chỗ thì cột cuộn, nút chính giữ 56. Đã đo thật bằng thay đổi tạm này (mục 4.1): bố cục ở 673 x 841 và 841 x 593 không đổi, các test có sẵn của `ReviewScreenUnfoldedTest` và `ReviewScreenTest` qua trên code đã đổi. Phần nhỏ nhất: chỉ thêm cuộn ở cột phải, không đổi ảnh hay hàng nút; điện thoại không cần vì cột ảnh co được.
+  với `STACKED_ACTIONS_HEIGHT = 192.dp`, `MAIN_BUTTON_HEIGHT = 56.dp`, `ERROR_ROOM = 140.dp` (hằng `private` trong `ReviewUnfolded.kt`, chú thích ghi nguồn). Thiếu chỗ thì hàng nút phụ nằm ngang như điện thoại (cao 72), thông báo lỗi đặt nút hành động cùng dòng (cột rộng): ở 960 x 520 cần 72 + 16 + 48 + 16 + 56 = 208, cột 340, không cắt, không cuộn, không đụng bóng. Đủ chỗ thì y như hôm nay. Đã đo thật bằng thay đổi tạm này (mục 4.1). `verifyRoborazziDebug` của `ReviewScreenScreenshotTest`, `ReviewScreenSavingScreenshotTest`, `ReviewScreenUnfoldedScreenshotTest` qua trên code tạm: các ảnh chuẩn có sẵn (gồm `ReviewScreen_default_dark_unfolded.png`, `ReviewScreen_save-error_unfolded.png`) không đổi; `ReviewScreenTest`, `ReviewScreenUnfoldedTest` qua. Ngưỡng dùng hằng thay vì đo thông báo lỗi thật: ở 841 x 593 có khe và có lỗi, cột 413 nhỏ hơn 420 nên hàng nút nằm ngang dù xếp dọc vẫn vừa (372); chấp nhận được vì cả hai cách đều trọn và đúng thiết kế điện thoại.
 - `ReviewRoute` không đổi: dùng `adBar` mặc định. Không có `AdsController` (test, preview) thì thanh chỉ vẽ nội dung, phần đệm 0, nên mọi test và ảnh chuẩn có sẵn không đổi.
 
 **3. Bản staging.** `StagingRemoteValuesModule`: thêm `AdPlacement.REVIEW_BOTTOM` vào danh sách vị trí bật sẵn (câu 19, ý a); `StagingRemoteValuesModuleTest`: thêm `"is_show_review_bottom" to true` (dữ liệu của phần plan thêm, ADR-0029). `is_show_native_collap` của staging vẫn `false`.
@@ -138,7 +139,7 @@ Plan này viết cho nhánh chính sau khi T-093 (`settings_bottom`) đã merge:
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIdsTest.kt` | Chuỗi mã đơn vị có `review_bottom` (dữ liệu, ADR-0029); test `layerFormats`, `missingUnitKeys` (mục 4) |
 | Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdsControllerUnitIdsTest.kt` | Chuỗi mã đơn vị có `review_bottom` khi test đòi đủ mã của vị trí (dữ liệu, ADR-0029) |
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreen.kt` | Tham số `adBar`, thanh bọc thanh trên và nội dung, hộp thoại vẽ sau thanh |
-| Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewUnfolded.kt` | Cột phải cuộn được khi thiếu chỗ (`BoxWithConstraints`, `verticalScroll`, `heightIn(min)`, `Arrangement.SpaceBetween`) |
+| Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewUnfolded.kt` | Cột phải: thiếu chỗ (`BoxWithConstraints`, ngưỡng hằng) thì hàng nút phụ nằm ngang và thông báo lỗi để nút hành động cùng dòng; đủ chỗ như cũ |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreenTest.kt` | Test thanh đáy ở điện thoại và màn thấp (mục 4); hàm `fakeAdBar` |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreenUnfoldedTest.kt` | Test thanh đáy khi mở gập và nằm ngang (mục 4); lớp `ReviewScreenUnfoldedScreenshotTest` trong cùng file: ảnh `ad_dark_unfolded` |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreenScreenshotTest.kt` | Ảnh `ad_dark`, `ad_small` với `BottomAdBarLayout` và `NativeAdCard` giả |
@@ -192,7 +193,7 @@ Không có. Thanh đáy, `BottomAdBarLayout` và cách đặt hộp thoại ph�
 | `release.sh` đọc dòng có thuộc tính | Thêm dòng có `collapsibleLayer = false` | `AdPlacementSourceTest.releaseScript_readsEveryShippedPlacement`, `releaseScript_readsLinesWithAttributes` | Giữ: `review_bottom` là một dòng, mẫu của `release.sh` đọc được (kiểm bằng `AdPlacementSourceTest`, mục 4); `readsLinesWithAttributes` thêm dòng mẫu `R_B("r_b", AdFormat.NATIVE_SMALL, collapsibleLayer = false)` và `"r_b"` vào danh sách mong đợi (thêm trường hợp, không nới) |
 | Giá trị cục bộ của bản staging | Thêm `is_show_review_bottom = true` | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` | Dữ liệu (ADR-0029), câu khẳng định giữ |
 | Hộp thoại mở thì `Column` của màn bị ẩn với trình đọc màn hình | Phần bị ẩn là cả thanh (nội dung và khe) | `ReviewScreenTest.discard_hidesContentFromAccessibility`, `ReviewScreenUnfoldedTest.discardDialog_isCentered_andHidesContent` | Giữ: chữ của nội dung vẫn không đọc được; test mới thêm khe |
-| Cột phải khi mở gập hay nằm ngang | Cuộn được khi thiếu chỗ; đủ chỗ thì như cũ | `ReviewScreenUnfoldedTest.photoLeft_actionsAndSaveRight`, `saveError_isInRightColumn_aboveSave_andRetries`, bốn test `landscape_saveInsideWindow_*`, `ReviewScreenUnfoldedScreenshotTest` | Giữ: đã chạy trên thay đổi tạm, qua (mục 4.1); không khung nào của các test đó thiếu chỗ khi không có khe, nên ảnh chuẩn không đổi |
+| Cột phải khi mở gập hay nằm ngang | Thiếu chỗ thì hàng nút phụ nằm ngang, thông báo lỗi để nút cùng dòng; đủ chỗ như cũ | `ReviewScreenUnfoldedTest.photoLeft_actionsAndSaveRight`, `saveError_isInRightColumn_aboveSave_andRetries`, `discardDialog_isCentered_andHidesContent`, bốn test `landscape_saveInsideWindow_*`; `ReviewScreenUnfoldedScreenshotTest.default_dark_unfolded`, `saveError_unfolded` | Giữ: không khung nào của các test đó thiếu chỗ (không có khe); đã chạy trên thay đổi tạm và `verifyRoborazziDebug` qua, hai ảnh `ReviewScreen_default_dark_unfolded.png`, `ReviewScreen_save-error_unfolded.png` không đổi (mục 4.1) |
 | Bố cục điện thoại và gập mở | Không đổi khi không có quảng cáo (phần đệm 0); có khe thì ở 411 x 891 ảnh và hàng nút đứng yên, nút chính dời lên 96 | `ReviewScreenTest`, `ReviewScreenUnfoldedTest`, `ReviewScreenScreenshotTest` | Giữ, ảnh chuẩn có sẵn không đổi |
 
 `scripts/existing-tests.py` xếp 16 test vào nhóm "Cần xem trước" ở lần chạy sau rà soát (19 ở lần đầu; các test bàn dưới đây gồm cả hai lần). Các test của `:core:ads` (`AdSlotTest`, `BannerAdSizeTest`, `InListAdsTest`, `NativeAdCellTest`, `NativeAdSlotTest`, `NativeFullScreenOverlayTest`, `RewardedActionTest`) và của `:feature:poses` (`PosesScreenTest`, `PoseDetailScreenTest`) dùng vị trí khác hay thanh mặc định, không đọc `collapsibleLayer` hay `REVIEW_BOTTOM`: giữ nguyên. Ba test đo vị trí của màn xem lại (`ReviewScreenTest.smallPortuguese_saveError_primaryButtonVisible`, `ReviewScreenUnfoldedTest.photoLeft_actionsAndSaveRight`, `ReviewScreenUnfoldedTest.saveError_isInRightColumn_aboveSave_andRetries`) dựng màn không có `AdsController`, phần đệm 0: giữ nguyên câu khẳng định. Trong nhóm "Nên xem", `AdPreloadPlanTest.fromPlacements_withBottomBar_hasCollapsibleInSecondGroup` đọc `usesStock`: tập vị trí của app vẫn có `POSES_BOTTOM` dùng kho thu gọn nên giữ; test mới ở mục 4 kiểm riêng `REVIEW_BOTTOM`. Các test của `AdPlacementTest`, `RemoteConfigKeysTest`, `StagingRemoteValuesModuleTest` dùng `AdPlacement.entries` không đếm số vị trí cố định ngoài các test đã nêu ở bảng trên.
@@ -224,7 +225,7 @@ Test viết trước, ở commit test của bước 3. Chuỗi mã đơn vị c�
 | Màn hình thấp | Compose UI test, khung `vi-w360dp-h640dp-xxhdpi` | `ReviewScreenTest.small_adBar_photoShrinks_allVisible`: `NOT_SAVED` và khe: ảnh co từ 291 x 388 còn 219 x 292 (±1), giữ 0,75 (±0,01), nút chính đỉnh 468, đáy 524, khe đỉnh 544; `PERMISSION_BLOCKED` và khe: ảnh 156 x 208 (±1), thông báo, nút "Mở cài đặt", ba nút phụ và nút chính nằm trong màn và `bottom <= slot.top`; cùng test với `pt-rBR-w360dp-h640dp-xxhdpi` (`smallPortuguese_adBar_permissionBlocked_allVisible`: ảnh 131 x 174,7, thông báo cao 101,3, mọi nút trên khe) |
 | KB-11, tiêu chí 3: gập mở | Compose UI test, khung `vi-w673dp-h841dp-xxhdpi` | `ReviewScreenUnfoldedTest.adBar_slotFullWidth_photoKept_saveAbove`: khe rộng 641 (±0,5), cách mép trái 16, đỉnh 745; ảnh 450 x 600 (±1), như khi không có khe; ba nút phụ và nút chính có `bottom <= slot.top` (nút chính đáy 725, dời lên 96 từ 821), nút chính ở cột phải (`left >= photo.right`) |
 | KB-11: nằm ngang, đủ chỗ | Compose UI test | `ReviewScreenUnfoldedTest.landscape_adBar_saveInsideWindow`, khung `vi-w960dp-h520dp-land-xxhdpi`, `NOT_SAVED` có khe: nút chính 348 tới 404, cao 56 (±0,5), khe đỉnh 424; ảnh 255 x 340 (±1), giữ 0,75 |
-| KB-9 tiêu chí 5, KB-11: nằm ngang, thiếu chỗ | Compose UI test | `ReviewScreenUnfoldedTest.landscape_adBar_saveError_columnScrolls`, khung `vi-w960dp-h520dp-land-xxhdpi`, `PERMISSION_BLOCKED` và `FAILED_STORAGE_FULL` có khe, cùng test ở `pt-rBR-w960dp-h520dp-land-xxhdpi` với `PERMISSION_BLOCKED`: nút chính cao 56 (±0,5) và rộng như khi đủ chỗ (137, pt-BR 160,7); trước khi cuộn nút chính đỉnh 380, đáy 436 (phần dưới 404 bị cột cắt, không vẽ lên khe); `performScrollTo()` trên nút chính rồi: nút chính 348 tới 404, `bottom <= slot.top` (424), bấm được (gọi `onSaveClick` một lần); thông báo lỗi 240 tới 332; hàng nút cuộn lên 32 tới 224. Đối chứng trên code hiện tại (mục 4.1): nút chính bị ép còn 40 |
+| KB-9 tiêu chí 5, KB-11: nằm ngang, thiếu chỗ | Compose UI test | `ReviewScreenUnfoldedTest.landscape_adBar_saveError_compactColumn`, khung `vi-w960dp-h520dp-land-xxhdpi`, `PERMISSION_BLOCKED` và `FAILED_STORAGE_FULL` có khe, cùng test ở `pt-rBR-w960dp-h520dp-land-xxhdpi` với `PERMISSION_BLOCKED`: nút chính 348 tới 404, cao 56 (±0,5), rộng 137 (pt-BR 160,7), nằm trọn trong cột phải (đỉnh ≥ đáy thông báo lỗi + 16, đáy ≤ 404) và `bottom <= slot.top` (424); nhãn không bị cắt (`onNodeWithText(<nhãn>, useUnmergedTree = true)` nằm trọn trong nút); bấm gọi `onSaveClick` một lần; hàng nút phụ nằm ngang 64 tới 136 (cao 72, ba nút cùng đỉnh), thông báo lỗi 284 tới 332 (một dòng, nút hành động cùng dòng). Đối chứng trên code hiện tại (mục 4.1): nút chính bị ép còn 40, nên test viết trước thất bại đúng lý do |
 | Nút chính đủ cao ở mọi khung có khe | Compose UI test | Mỗi test bố cục có khe ở trên (điện thoại, khung thấp, pt-BR, gập mở, nằm ngang) thêm câu khẳng định nút chính cao 56 (±0,5) |
 | Câu 19 ý a: bản staging | Unit test | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` có `"is_show_review_bottom" to true` |
 | Bảng khóa khớp code | Unit test có sẵn | `RemoteConfigKeysTest` qua sau khi sinh lại hai bảng |
@@ -248,7 +249,7 @@ Test viết trước, ở commit test của bước 3. Chuỗi mã đơn vị c�
 
 ### 4.1. Chạy thử
 
-Tiêu chí E dưới 2, không bắt buộc `check.sh`. Hai điểm đã chạy thử bằng một test tạm không commit (`feature/camera/src/test/.../review/TmpT094MeasureTest.kt`, xóa sau khi đo), lệnh `./gradlew :feature:camera:testDebugUnitTest --tests '*TmpT094MeasureTest*'`, 2026-11-13, nhánh chính `8af6a3e`. Lần đo thứ hai (sau rà soát lại) thêm thay đổi tạm của cột phải ở `ReviewUnfolded.kt` (mục 3.1), cũng không commit, trả về bằng `git checkout -- <tệp>`, với lệnh `./gradlew :feature:camera:testDebugUnitTest --tests '*TmpT094MeasureTest*' --tests '*ReviewScreenUnfolded*' --tests '*ReviewScreenTest*'`: các test có sẵn của hai lớp qua trên code đã đổi. Test tạm bọc `ReviewScreen` hiện tại trong `BottomAdBarLayout` (khe giả 80 dp, phần đệm 96 áp cho cả màn), tức đúng bố cục của mục 3.1, bước 2. Tọa độ tính từ đỉnh màn của khung test; khung không có thanh trạng thái nên mọi thứ cao hơn thiết kế 24 (ảnh y 64 ứng với 88 của thiết kế). Nút chính neo đáy nên không lệch 24; đỉnh 719 so với 715 của thiết kế chênh 4 vì `PrimaryButton` cao 56, thiết kế vẽ 60 (lệch có từ frame `default`).
+Tiêu chí E dưới 2, không bắt buộc `check.sh`. Hai điểm đã chạy thử bằng một test tạm không commit (`feature/camera/src/test/.../review/TmpT094MeasureTest.kt`, xóa sau khi đo), lệnh `./gradlew :feature:camera:testDebugUnitTest --tests '*TmpT094MeasureTest*'`, 2026-11-13, nhánh chính `8af6a3e`. Lần đo thứ ba (sau rà soát lại lần 2) áp thay đổi tạm của cột phải ở `ReviewUnfolded.kt` đúng như mục 3.1 (hàng nút ngang khi thiếu chỗ), không commit, trả về bằng `git checkout -- <tệp>`. Lệnh đo như trên; lệnh kiểm ảnh chuẩn: `./gradlew :feature:camera:verifyRoborazziDebug :feature:camera:testDebugUnitTest --tests '*ReviewScreenUnfoldedScreenshotTest*' --tests '*ReviewScreenScreenshotTest*' --tests '*ReviewScreenSavingScreenshotTest*' --tests '*ReviewScreenUnfoldedTest*' --tests '*ReviewScreenTest*' --rerun` (`roborazzi.test.verify=true`): BUILD SUCCESSFUL; `ReviewScreenScreenshotTest` 5 test, `ReviewScreenSavingScreenshotTest` 1, `ReviewScreenUnfoldedScreenshotTest` 2, `ReviewScreenTest` 16, `ReviewScreenUnfoldedTest` 9, không lỗi. Lần đo thứ hai (cột cuộn) bị bỏ: người rà thấy nó cắt bóng của nút chính. Test tạm bọc `ReviewScreen` hiện tại trong `BottomAdBarLayout` (khe giả 80 dp, phần đệm 96 áp cho cả màn), tức đúng bố cục của mục 3.1, bước 2. Tọa độ tính từ đỉnh màn của khung test; khung không có thanh trạng thái nên mọi thứ cao hơn thiết kế 24 (ảnh y 64 ứng với 88 của thiết kế). Nút chính neo đáy nên không lệch 24; đỉnh 719 so với 715 của thiết kế chênh 4 vì `PrimaryButton` cao 56, thiết kế vẽ 60 (lệch có từ frame `default`).
 
 **Bố cục (số đo thật):**
 
@@ -266,13 +267,15 @@ Tiêu chí E dưới 2, không bắt buộc `check.sh`. Hai điểm đã chạy 
 | 673 x 841, `NOT_SAVED`, có khe | 16, 64, 450 x 600 | cột phải, đáy 256 | | 669, 725 | 745 (rộng 641) |
 | 960 x 520 ngang, `NOT_SAVED`, có khe | 16, 64, 255 x 340 | cột phải, đáy 256 | | 348, 404 | 424 (rộng 928) |
 | 960 x 520 ngang, `PERMISSION_BLOCKED`, có khe (code hiện tại) | 16, 64, 255 x 340 | cột phải, đáy 256 | 256 tới 348 | 364, 404: **bị ép còn 40** | 424 |
-| 960 x 520 ngang, `PERMISSION_BLOCKED`, có khe, cột cuộn (lần đo 2) | 16, 64, 255 x 340 | 64, 256; cuộn: 32, 224 | 272 tới 364; cuộn: 240 tới 332 | 380, 436 (cao 56); cuộn: 348, 404 | 424 |
-| 960 x 520 ngang, `FAILED_STORAGE_FULL`, có khe, cột cuộn | như dòng trên | như dòng trên | như dòng trên | như dòng trên | 424 |
-| 960 x 520 ngang pt-BR, `PERMISSION_BLOCKED`, có khe, cột cuộn | 16, 64, 255 x 340 | rộng 146; cuộn: 32, 224 | cuộn: 240 tới 332 | rộng 160,7, cao 56; cuộn: 348, 404 | 424 |
-| 960 x 520 ngang, `PERMISSION_BLOCKED`, không khe, cột cuộn | 16, 64, 327 x 436 | 64, 256 | 336 tới 428 | 444, 500 (không cuộn) | |
-| 841 x 593 ngang, `PERMISSION_BLOCKED`, có khe, cột cuộn | 16, 64, 309,7 x 413 | 64, 256 | 313 tới 405 | 421, 477 (không cuộn) | 497 |
-| 673 x 841, `PERMISSION_BLOCKED`, có khe, cột cuộn | 16, 64, 450 x 600 | 64, 256 | 521 tới 653 | 669, 725 (không cuộn) | 745 |
-| 673 x 841, `NOT_SAVED`, có khe và không khe, cột cuộn | 16, 64, 450 x 600 | 64, 256 | | 669, 725 và 765, 821: như code hiện tại | 745 |
+| 960 x 520 ngang, `PERMISSION_BLOCKED`, có khe, cột gọn (lần đo 3) | 16, 64, 255 x 340 | ngang: 64, 136 (rộng 331) | 284 tới 332 (một dòng) | 348, 404 (cao 56) | 424 |
+| 960 x 520 ngang, `FAILED_STORAGE_FULL`, có khe, cột gọn | 16, 64, 255 x 340 | ngang: 64, 136 | 284 tới 332 | 348, 404 | 424 |
+| 960 x 520 ngang pt-BR, `PERMISSION_BLOCKED`, có khe, cột gọn | 16, 64, 255 x 340 | ngang: 64, 136 | 284 tới 332 | 348, 404 (rộng 160,7, cao 56) | 424 |
+| 960 x 520 ngang, `NOT_SAVED`, có khe, lần đo 3 | 16, 64, 255 x 340 | dọc: 64, 256 (như cũ) | | 348, 404 | 424 |
+| 960 x 520 ngang, `PERMISSION_BLOCKED`, không khe, lần đo 3 | 16, 64, 327 x 436 | dọc: 64, 256 (như cũ) | 336 tới 428 | 444, 500 | |
+| 841 x 593 ngang, `PERMISSION_BLOCKED`, có khe, lần đo 3 | 16, 64, 309,7 x 413 | ngang: 64, 136 (cột 413 < ngưỡng 420) | 357 tới 405 | 421, 477 | 497 |
+| 841 x 593 ngang, `NOT_SAVED`, có khe, lần đo 3 | 16, 64, 309,7 x 413 | dọc: 64, 256 | | 421, 477 | 497 |
+| 673 x 841, `PERMISSION_BLOCKED`, có khe và không khe, lần đo 3 | 16, 64, 450 x 600 | dọc: 64, 256 (như cũ) | 521 tới 653 và 617 tới 749 | 669, 725 và 765, 821 | 745 |
+| 673 x 841, `NOT_SAVED`, có khe, lần đo 3 | 16, 64, 450 x 600 | dọc: 64, 256 | | 669, 725 | 745 |
 | 411 x 891, `SAVED`, có khe | 16, 64, 379 x 505,3 | 593,3, 665,3 | | 719, 775 | 795 |
 | 411 x 891, `FAILED_STORAGE_FULL`, có khe | 26, 64, 359,3 x 479 | 567, 639 | 655 tới 703 | 719, 775 | 795 |
 
@@ -280,7 +283,7 @@ Kết luận:
 - Ở 411 x 891 ảnh không co (giới hạn bởi bề rộng 379), hàng nút đứng yên, chỉ nút chính dời lên 96. Biên trước khi ảnh bắt đầu co: cột chứa ảnh cao 655 (64 tới 719), ảnh, hai khoảng và hàng nút cần 617,3, còn 37,7 trong khung test. Trên máy có thanh trạng thái 24 dp, biên còn khoảng 13,7; người rà tính từ thiết kế khoảng 9,7. Máy có thanh trạng thái hay thanh điều hướng cao hơn thì ảnh co sớm, vẫn giữ 3:4.
 - Thông báo lỗi ở khung test cao 68 (người rà ước 72 từ thiết kế): ảnh co còn 344,3 x 459 ngay ở khung chuẩn (người rà ước khoảng 332 x 443 khi có thanh trạng thái).
 - Khung 360 x 640 có khe: nút chính đỉnh 468, ảnh 219 x 292 trong khung test; có thanh trạng thái thì nút chính khoảng 464 và ảnh nhỏ hơn (người rà ước khoảng 198 x 264). Câu khẳng định của test dùng số đo của khung test, không dùng số ước.
-- Mọi nút ở trên khe ở mọi khung đã đo. Ở code hiện tại, nằm ngang 960 x 520 có khe và có thông báo lỗi ép nút chính còn 40 dp; với cột phải cuộn được, nút chính giữ 56 ở mọi khung, chỉ cột cuộn khi thiếu chỗ, và các khung đủ chỗ không đổi một điểm nào.
+- Mọi nút ở trên khe ở mọi khung đã đo. Ở code hiện tại, nằm ngang 960 x 520 có khe và có thông báo lỗi ép nút chính còn 40 dp; với cột phải gọn lại (hàng nút ngang), nút chính giữ 56 và nằm trọn ở mọi khung, không cuộn, không cắt bóng; các khung đủ chỗ không đổi một điểm nào.
 
 **Trợ năng của khe là view Android (dời `clearAndSetSemantics` lên `barModifier`):** test tạm dựng `BottomAdBarLayout` có khe là `AndroidView` (`TextView` "AdViewText"), nội dung `Text("ContentText")`, và `Text("DialogText")` vẽ sau; bật `AccessibilityManager` của Robolectric, duyệt cây từ `AndroidComposeView.accessibilityNodeProvider` (nút `-1`, con theo `getChildNodeIds` qua phản chiếu).
 - Thanh có `clearAndSetSemantics {}`: chữ đọc được chỉ có `DialogText`, không có con là view thật.
@@ -337,7 +340,7 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
 5. **Khoảng cách nút chính và khe khi mở gập:** đã thống nhất 20 dp theo code; gói thiết kế ở PR #337 ghi 20. Không còn câu hỏi.
 6. **Có cần ADR của app cho chỗ lệch D-01?** D-01 của tài liệu luật nói lớp nổi theo `is_show_native_collap` ở mọi thanh đáy; `review_bottom` khác điều đó. Lệch có chủ đích của app thường ghi ở ADR-1007. AI đề xuất không viết ADR mới: đây là một thuộc tính khai báo mới (mở rộng khung, mặc định giữ đúng D-01), không đổi luật cho các vị trí khác; quyết định đã ghi ở câu 19, ý e của spec ads, chỗ lệch với mẫu ghi ở `docs/template-sync.txt`, và issue `from-app` đề xuất đưa vào mẫu. Nếu mẫu từ chối issue thì lúc đó viết ADR của app (mã từ 1001) ghi chỗ lệch lâu dài.
 7. **Câu chữ của spec camera, KB-9 tiêu chí 5.** "Ảnh co lại cho vừa phần còn lại" ở plan hiểu là ảnh co khi thiếu chỗ; ở khung chuẩn 411 x 891 ảnh giữ 379 x 505 (quyết định của Nhật, 2026-11-13). AI đề xuất làm rõ câu thành "ảnh giữ nguyên khi đủ chỗ, co lại khi thiếu chỗ, giữ tỷ lệ, không bị cắt hay che" trong cùng lần xác nhận lại spec camera mà T-097 đang chuyển `changed`. Không sửa spec trong plan này.
-8. **Cột phải cuộn được khi mở gập hay nằm ngang (mục 3.1).** Thêm cuộn vào cột phải là thay đổi nhỏ nhất để nút chính giữ 56 dp khi thiếu chỗ (960 x 520 có khe và thông báo lỗi). Khi đó nút chính có thể nằm dưới mép cột tới khi người dùng cuộn; thông báo lỗi và nút "Mở cài đặt" vẫn thấy ngay. Đồng ý cách này?
+8. **Cột phải gọn lại khi thiếu chỗ (mục 3.1).** Khi mở gập hay nằm ngang mà cột phải không đủ cao cho hàng nút xếp dọc, thông báo lỗi và nút chính (ví dụ 960 x 520 có khe và có lỗi), hàng nút phụ nằm ngang như điện thoại và thông báo lỗi để nút hành động cùng dòng; nút chính giữ 56 dp, nằm trọn, không cuộn. Cách cuộn đã bỏ vì cắt bóng của nút và để nút dưới mép cột. Ngưỡng là hằng (192 + 16 + 56, cộng 16 + 140 khi có lỗi), nên ở 841 x 593 có khe và có lỗi hàng nút nằm ngang dù xếp dọc vẫn vừa. Đồng ý cách này?
 
 ## 9. Quyết định duyệt
 

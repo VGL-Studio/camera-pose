@@ -1,16 +1,16 @@
 ---
 ticket: T-093
 title: Thanh đáy native nhỏ ở màn Cài đặt (settings_bottom, tắt lúc phát hành)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 7.2M         # cỡ S theo scripts/token-usage.py estimate (2026-11-13), không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật
+cross_reviewer: Nhật           # nhóm một dev (risk-scoring.md, mục 3)
+approved_at: 2026-11-13
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -261,11 +261,12 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
 
 ## 9. Quyết định duyệt
 
-<!-- Người duyệt điền. -->
-
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Nhật (nhóm hiện chỉ có một dev, ngoại lệ của `risk-scoring.md` mục 3)
+- **Ghi chú:** Nhật duyệt trong phiên có người theo dõi ngày 2026-11-13, lời của Nhật: "duyệt", sau khi AI tóm tắt plan và nói câu hỏi mục 8 theo đề xuất của AI. AI ghi thay. Trả lời câu hỏi ở mục 8:
+  1. Chấp nhận tham số `listScrollState` của `SettingsScreen` (mặc định `rememberScrollState()`, Route không truyền), chỉ để test và ảnh khung thấp cuộn tới cuối.
+  2. Ảnh `SettingsScreen_ad_small` cuộn tới cuối danh sách.
+  3. Đồng ý: mã thật của `settings_bottom` trong `release.properties` là việc của người lúc phát hành; plan chỉ ghi nhắc ở mục 3.1.
 
 ## 10. Nhật ký thực hiện
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Brand mark on the logo, from docs/features/loading/design/handoff/brand_mark.svg. Each app replaces it (ADR-0008). -->
+<!-- Sample icon for the catalog's PrimaryButton; not the brand logo (BrandLogo draws brand_logo.webp). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="56dp"
     android:height="52dp"

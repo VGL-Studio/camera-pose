@@ -11,7 +11,7 @@ approved_at: 2026-10-31
 
 # THIẾT KẾ: CAMERA VÀ MÀN XEM LẠI
 
-Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Màn xem lại ở section Review trên Figma (node `18-23`). Camera và màn xem lại luôn dùng chế độ tối, nên chỉ có ảnh `_dark`. Tư thế premium (spec poses KB-8, plan T-086) ở section "Premium camera": https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=78-2729 (Nhật duyệt ngày 2026-10-31); dấu, hộp thoại mở khóa và chữ của chúng ở gói `poses`.
+Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Màn xem lại ở section Review trên Figma (node `18-23`). Camera và màn xem lại luôn dùng chế độ tối, nên chỉ có ảnh `_dark`. Tư thế premium (spec poses KB-8, plan T-086) ở section "Premium camera": https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=78-2729 (Nhật duyệt ngày 2026-10-31); dấu, hộp thoại mở khóa và chữ của chúng ở gói `poses`. Trạng thái `ad` của màn xem lại (`ReviewScreen_ad_*`) Nhật duyệt ngày 2026-11-13.
 
 ## 1. Các màn hình và trạng thái
 
@@ -36,6 +36,8 @@ Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../desig
 | `ReviewScreen` | Lưu lỗi | `ReviewScreen_save-error_dark` | KB-6 |
 | `ReviewScreen` | Hỏi "Bỏ ảnh này?" | `ReviewScreen_discard_dark` | KB-6 |
 | `ReviewScreen` | Máy gập mở ra | `ReviewScreen_default_dark_unfolded` | KB-11 |
+| `ReviewScreen` | Có thanh đáy native (`review_bottom`) | `ReviewScreen_ad_dark` | KB-9, KB-11 |
+| `ReviewScreen` | Có thanh đáy native, máy gập mở ra | `ReviewScreen_ad_dark_unfolded` | KB-9, KB-11 |
 
 Hộp thoại mất mạng thuộc gói `network`.
 
@@ -101,10 +103,11 @@ Dấu ba chấm là một ký tự (`…`).
 | Xem lại: nút chính | `PrimaryButton` `download` | `secondary` (tối: trắng), `onSecondary` | | Rộng hết, cách đáy `Spacing.lg` |
 | Xem lại: lưu lỗi | `Snackbar` | `inverseSurface`, `inverseOnSurface`, `inversePrimary` | | Trên nút chính `Spacing.md` |
 | Xem lại: hỏi bỏ ảnh | `ConfirmDialog` trên lớp mờ 50% | `surface`, viền `outline` | | Rộng 331 |
+| Xem lại: thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`); không có lớp native thu gọn nổi (spec ads, câu 19, ý e) | Theo khung, chế độ tối: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe 80, cách mép trái, phải, đáy `Spacing.md`; nội dung chừa 96 ở đáy. Điện thoại: ảnh co còn 307 x 409 (giữ 3:4, căn giữa), hàng nút phụ và nút chính dời lên 96. Gập mở: thanh rộng hết (641) dưới cả ảnh và cột phải; ảnh giữ 450 x 600, nút chính dời lên, cách thanh `Spacing.md` |
 
 - **Thành phần mới cần thêm vào hệ thống thiết kế:** `CameraIconButton`, `StickerChip`, `SelectedBadge`, `PoseThumb`, `StepCard`, `ZoomControl`, `MatchHint`, `AdjustPanel`, `GridOverlay`, `StateMessage`, `SecondaryButton` (xem `sticker.md`, mục 4).
 
-**Máy gập mở ra (673 x 841).** Camera: khung 3:4 cao 600 bên trái (lề `Spacing.md`); cột phải có đổi camera, nút chụp, ô ảnh vừa chụp, zoom; hàng chip và dải tư thế dưới khung. Xem lại: ảnh 450 x 600 bên trái; nút phụ xếp dọc và nút chính "Lưu ảnh" ở cột phải.
+**Máy gập mở ra (673 x 841).** Camera: khung 3:4 cao 600 bên trái (lề `Spacing.md`); cột phải có đổi camera, nút chụp, ô ảnh vừa chụp, zoom; hàng chip và dải tư thế dưới khung. Xem lại: ảnh 450 x 600 bên trái; nút phụ xếp dọc và nút chính "Lưu ảnh" ở cột phải. Có thanh đáy native: thanh trải hết bề rộng ở đáy, nút chính dời lên trên thanh (Nhật chọn ngày 2026-11-13, vì cột phải chỉ rộng 175 thì thẻ native nhỏ không đủ chỗ cho chữ).
 
 ## 4. Luồng thao tác
 
@@ -116,13 +119,13 @@ Dấu ba chấm là một ký tự (`…`).
 
 ## 5. Vị trí quảng cáo
 
-`review_interstitial`: toàn màn hình, hiện khi rời `ReviewScreen` sau khi đã lưu ảnh, trước khi về camera (spec mục 5). Không có vùng quảng cáo nào trên `CameraScreen` và `ReviewScreen`.
+`review_interstitial`: toàn màn hình, hiện khi rời `ReviewScreen` sau khi đã lưu ảnh, trước khi về camera (spec mục 5). `review_bottom` (spec ads, câu 19): thanh đáy native nhỏ ở đáy `ReviewScreen`, dưới mọi nút, ở mọi trạng thái của màn (ảnh `ReviewScreen_ad_*`); ảnh co lại cho vừa phần còn lại, không bị cắt hay che. Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp thoại "Bỏ ảnh này?" và thông báo lưu lỗi phủ lên như hôm nay. `is_show_native_bottom` tắt thì khe là banner ở cùng chỗ; không có lớp quảng cáo nổi dù `is_show_native_collap` bật (spec camera, KB-9). Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 của thẻ là số của khung (`NativeAdDimens`); `context/` ghi "ngoài hệ thống", không làm tròn hay thêm token. Vị trí từng phần lấy theo `context/` của từng frame: ở điện thoại nút chính cách thanh 20, ở máy gập mở ra cách 16. Chữ của thẻ là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ. Không có vùng quảng cáo nào trên `CameraScreen`.
 
 ## 6. Chuyển sang Compose
 
 - **Phải giống bản mẫu:** bố cục, thứ tự thành phần, chữ (mục 2), vai trò màu và kiểu chữ (mục 3).
 - **Được phép khác:** hình camera và ảnh tư thế (ảnh tạm trên thiết kế), cách vẽ chữ và bóng của hệ thống, hiệu ứng chuyển động, chênh lệch nhỏ theo lưới 4 dp.
-- **Màn hình thấp (360 x 640):** khung xem trước co lại theo chiều cao còn lại (giữ 3:4, căn giữa), không co hàng chip, dải tư thế và hàng nút chụp; thẻ bước và bảng chỉnh nằm trong khung. Màn xem lại: ảnh co lại, nút chính luôn thấy được.
+- **Màn hình thấp (360 x 640):** khung xem trước co lại theo chiều cao còn lại (giữ 3:4, căn giữa), không co hàng chip, dải tư thế và hàng nút chụp; thẻ bước và bảng chỉnh nằm trong khung. Màn xem lại: ảnh co lại, nút chính luôn thấy được, cả khi có thanh đáy native.
 
 ## 7. Tiêu chí khi duyệt
 
@@ -132,7 +135,7 @@ Dấu ba chấm là một ký tự (`…`).
 - [ ] Bố cục và thứ tự thành phần giống bản mẫu; lệch về vị trí không quá một bước lưới 4 dp.
 - [ ] Vùng chạm đủ lớn (ít nhất 48 dp), chữ dễ đọc trên nền camera.
 - [ ] Dùng được ở màn hình thấp (360 x 640): nút chụp, dải tư thế không bị che hay cắt.
-- [ ] Không có quảng cáo nào trên camera và màn xem lại.
+- [ ] Không có quảng cáo nào trên camera; màn xem lại chỉ có thanh đáy `review_bottom`.
 - [ ] Giao diện và nội dung không được thiết kế để thu hút chủ yếu trẻ em.
 
 ## 8. Kết quả đối chiếu

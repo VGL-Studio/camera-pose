@@ -11,7 +11,7 @@ approved_at: 2026-10-21
 
 # THIẾT KẾ: CÀI ĐẶT
 
-Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md).
+Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../design-system/sticker.md). Trạng thái `ad` (`SettingsScreen_ad_*`) Nhật duyệt ngày 2026-11-13.
 
 ## 1. Các màn hình và trạng thái
 
@@ -21,6 +21,8 @@ Màu, chữ, thành phần chung: [docs/design-system/sticker.md](../../../desig
 | `SettingsScreen` | Bình thường, chế độ tối | `SettingsScreen_default_dark` | KB-1, KB-3, KB-5, KB-6 |
 | `SettingsScreen` | Hộp chọn giao diện đang mở | `SettingsScreen_theme-picker_light` | KB-2 |
 | `SettingsScreen` | Hộp chọn giao diện, chế độ tối | `SettingsScreen_theme-picker_dark` | KB-2 |
+| `SettingsScreen` | Có thanh đáy native (`settings_bottom`) | `SettingsScreen_ad_light` | KB-1 |
+| `SettingsScreen` | Có thanh đáy native, chế độ tối | `SettingsScreen_ad_dark` | KB-1 |
 
 Hộp chọn ngôn ngữ (máy dưới Android 13, KB-4) dùng cùng thành phần `ChoiceDialog`, tiêu đề "Ngôn ngữ", các lựa chọn "Theo hệ thống" và 7 ngôn ngữ; không có ảnh riêng.
 
@@ -55,6 +57,7 @@ Hộp chọn ngôn ngữ (máy dưới Android 13, KB-4) dùng cùng thành ph�
 | Icon đầu dòng | `palette`, `volume_up`, `language`, `shield_person`, `policy`, `info` | `onSurfaceVariant` | | 24 |
 | Hộp chọn | `ChoiceDialog` với `RadioRow` | `surface`, viền `outline` 2; nút chọn đang chọn `secondaryContainer` | `titleLarge`, `bodyLarge` | Rộng 331, bo `sheet`, lề `Spacing.lg`; mỗi lựa chọn cao 48 |
 | Lớp mờ dưới hộp chọn | | `camera/scrim`, độ mờ 50% | | Phủ cả màn hình |
+| Thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`) | Theo khung: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe 80, cách mép trái, phải, đáy `Spacing.md`; danh sách chừa 96 ở đáy |
 
 - **Thành phần mới cần thêm vào hệ thống thiết kế:** `SettingsRow` (bốn kiểu), `SectionHeader`.
 
@@ -64,13 +67,13 @@ Hộp chọn ngôn ngữ (máy dưới Android 13, KB-4) dùng cùng thành ph�
 
 ## 5. Vị trí quảng cáo
 
-Không có.
+`settings_bottom` (`features/ads/spec.md`, câu 19): thanh đáy native nhỏ ở đáy `SettingsScreen`, như `poses_bottom`; danh sách cài đặt cuộn phía trên, dòng cuối không bị che (ảnh `SettingsScreen_ad_*`). Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp chọn giao diện và ngôn ngữ phủ lên thanh như phủ lên danh sách. `is_show_native_bottom` tắt thì khe là banner ở cùng chỗ; `is_show_native_collap` bật thì lớp quảng cáo nổi có thể phủ lên đáy danh sách và thu gọn được (spec settings, KB-1). Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 của thẻ là số của khung (`NativeAdDimens`); `context/` ghi "ngoài hệ thống", không làm tròn hay thêm token. Nhãn "Ad" và chữ của thẻ (Headline of the ad, Advertiser or short body, Install) thuộc `:core:ads` và nhà quảng cáo, là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ.
 
 ## 6. Chuyển sang Compose
 
 - **Phải giống bản mẫu:** bố cục, thứ tự thành phần, chữ (mục 2), vai trò màu và kiểu chữ (mục 3).
 - **Được phép khác:** cách vẽ chữ và bóng của hệ thống, hiệu ứng mở hộp thoại, chênh lệch nhỏ theo lưới 4 dp.
-- **Màn hình thấp (360 x 640):** danh sách cuộn được; hộp chọn nằm giữa, không bị cắt.
+- **Màn hình thấp (360 x 640):** danh sách cuộn được; hộp chọn nằm giữa, không bị cắt. Có thanh đáy native thì dòng cuối cuộn tới được, không bị thanh che.
 
 ## 7. Tiêu chí khi duyệt
 

@@ -2,7 +2,7 @@
 ticket: T-097
 title: Camera chờ quảng cáo toàn màn hình đóng rồi mới mở khi quay lại app
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 11               # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 15.0M        # cỡ M theo scripts/token-usage.py estimate (2026-11-13), không nâng tay
@@ -159,6 +159,7 @@ Test viết trước dùng `FakeCameraController` (`openCalls`, `closeCount`, `p
 | KB-1, KB-8 không đổi khi không có quảng cáo | Unit test | Test có sẵn của `CameraViewModelTest` qua với câu khẳng định nguyên (mục 3.5) |
 | Mục 5 trên máy: quảng cáo khi quay lại app | Kiểm tra thủ công (máy thật: khác, cần đưa app ra nền rồi mở lại từ biểu tượng; trình chạy kịch bản không có lệnh về màn hình chính) | `docs/ops/manual-test.md`, mục 11.3. `resume_ad_type` là `inter` trên Firebase staging (bản staging bật `show_resum_ads`). Mở app tới camera, về màn hình chính 2 giây, mở lại. Trong lúc quảng cáo còn trên màn: chấm báo camera của Android tắt; log có `Camera closed: full-screen ad` hay `Camera waits for the full-screen ad`. `Camera reopens after the full-screen ad` và `Camera ready` chỉ có sau khi quảng cáo đã đóng trên màn hình (người thử nhìn thấy; trong log, gần dòng `Full-screen turn finished: closed` do `FullScreenCompletion.kt:25` ghi khi lượt kết thúc). Tư thế và lựa chọn giữ nguyên. Lặp lại với `resume_ad_type` mặc định (app open) |
 | Mục 5 trên máy: quảng cáo có thưởng | Kiểm tra thủ công (máy thật: khác, quảng cáo có thưởng thử của AdMob trên bản staging) | `docs/ops/manual-test.md`, mục 11.6. Chạm ô tư thế premium, xem quảng cáo: chấm báo camera tắt, log `Camera closed: full-screen ad`; xem xong: `Camera reopens after the full-screen ad`, `Camera ready` với tư thế vừa mở khóa |
+| KB-9 tiêu chí 4 không đổi: quảng cáo toàn app khi quay lại app vẫn hiện ở camera theo luật cũ | Unit test (có sẵn) | Test có sẵn của luật quảng cáo khi quay lại app ở `:core:ads` (`ResumeAdRulesTest`, `ResumeAdTurnsTest`, `ResumeAdLifecycleTest`) qua với câu khẳng định nguyên; plan không sửa `:core:ads` |
 
 **Ngoại lệ viết test trước:** dòng gọi `CameraResumeEffect(viewModel::onScreenResumed, viewModel::onScreenPaused)` trong `CameraRoute`, vì `CameraRoute` cần Hilt và không test nào dựng nó (như `LifecycleStartEffect` có sẵn ngay cạnh); hai phía của dòng nối có test (`FullScreenAdCoverTest`, `CameraViewModelTest`), và hai bước thử trên máy thật kiểm dòng nối. Bước của `docs/ops/manual-test.md` là tài liệu.
 
@@ -212,5 +213,6 @@ Test viết trước dùng `FakeCameraController` (`openCalls`, `closeCount`, `p
   2. Chấp nhận khoảng mở rồi đóng ngắn ở plan này; thấy chấm báo camera trong lúc quảng cáo hiện khi thử trên máy thì đề xuất về dự án mẫu cờ "quảng cáo khi quay lại app đang chờ hiện".
   3. Chấp nhận giới hạn của chốt chặn cờ kẹt (lượt kẹt không qua `PAUSED` rồi `RESUMED`, chia đôi màn hình API 26 tới 28, combo native nếu sau này phủ camera); cờ kẹt sửa ở `:core:ads` nếu gặp.
   4. Nhật vừa duyệt vừa duyệt chéo vì nhóm một dev.
+- **Phiên bản 2 (2026-11-13):** Chỉ thêm một dòng ở mục 4 cho KB-9 tiêu chí 4 (dẫn test có sẵn), vì `scripts/run-check.py` đòi mọi kịch bản của ticket có dòng ở mục 4; không đổi cách làm hay test viết trước. Nhật duyệt phiên bản 2 trong phiên có người theo dõi ngày 2026-11-13 (chọn "Plan bản 2, duyệt lại" khi được hỏi), giữ nguyên câu trả lời mục 8 của phiên bản 1. AI ghi thay.
 
 ## 10. Nhật ký thực hiện

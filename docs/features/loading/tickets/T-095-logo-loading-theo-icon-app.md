@@ -10,7 +10,7 @@ risk: high                   # chạm module core (:core:designsystem), risk-sco
 size: S
 depends_on: []
 sprint:
-plan:
+plan: features/loading/plans/T-095-logo-loading-theo-icon-app.md
 auto_run:
 created: 2026-11-13
 ---

@@ -1,13 +1,13 @@
 ---
 feature: camera
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-10
+confirmed: 2026-11-13
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -215,7 +215,7 @@ Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked
 
 Sau `review_interstitial` có thể có quảng cáo native toàn màn hình (combo, `native_combo`, khóa `is_show_native_after_inter`), đếm ngược `time_close_native` giây rồi đóng được; rời màn xem lại khi combo đóng (`features/ads/spec.md`, câu 18).
 
-Màn camera không có vị trí quảng cáo nào của màn (bài học 3). Màn xem lại có `review_bottom` từ yêu cầu 2026-11-13: Nhật chọn đi ngược một phần bài học 3, thanh nằm dưới hàng nút và không che ảnh (`features/ads/spec.md`, câu 19). Trạng thái thiết kế và hành vi ở các trạng thái khác của màn xem lại chờ trả lời câu 19, ý b và c.
+Màn camera không có vị trí quảng cáo nào của màn (bài học 3). Màn xem lại có `review_bottom` từ yêu cầu 2026-11-13: Nhật chọn đi ngược một phần bài học 3, thanh nằm dưới hàng nút và không che ảnh (`features/ads/spec.md`, câu 19). Thanh hiện ở mọi trạng thái của màn xem lại (`default`, `saving`, `save-error`), cả khi mở từ ô ảnh vừa chụp; hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên. Thiết kế thêm trạng thái `ad` (`ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded`). Bản staging bật sẵn; production bật dần (câu 19, ý a tới d).
 
 Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) hiện ở mọi màn, nên có thể phủ lên camera hay màn xem lại khi người dùng quay lại app lúc đang ở đó. Đây là lựa chọn có chủ đích, đi ngược một phần bài học 3; Nhật chốt ngày 2026-10-28. Khung không hiện quảng cáo này khi người dùng vừa rời app có chủ đích (hộp thoại quyền, chia sẻ ảnh); app đánh dấu các chỗ đó (T-074). Đóng quảng cáo thì camera mở lại như khi quay lại app thường.
 
@@ -356,3 +356,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `review_interstitial` (mục 5, KB-9 tiêu chí 1). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |
 | 2026-11-10 | Nhật | Xác nhận lại spec sau T-090 (AI ghi theo lời Nhật trong phiên). Mục 1 thêm cách đếm: một interstitial cùng combo theo sau tính là một lần (plan T-090, mục 8, câu 7). Chuyển lại `confirmed` |
 | 2026-11-13 | AI | Yêu cầu 2026-11-13 (`features/ads/requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`): thêm thanh đáy native nhỏ `review_bottom` ở màn xem lại, tắt lúc phát hành (mục 2, mục 5; `features/ads/spec.md`, câu 19). Chuyển `changed`, chờ trả lời câu 19 của spec ads và xác nhận |
+| 2026-11-13 | Nhật | Trả lời câu 19, ý a tới d (AI ghi): staging bật sẵn, thêm trạng thái `ad` trên Figma, thanh ở mọi trạng thái của màn xem lại, production bật dần 10%. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |

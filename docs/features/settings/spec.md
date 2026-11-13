@@ -1,13 +1,13 @@
 ---
 feature: settings
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
   - requests/2026-10-21-cai-dat.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-10-21
+confirmed: 2026-11-13
 ---
 
 # SPEC: CÀI ĐẶT
@@ -98,7 +98,7 @@ Hộp chọn dùng thành phần có sẵn của hệ thống thiết kế; chư
 | --- | --- | --- | --- | --- |
 | `settings_bottom` (yêu cầu 2026-11-13) | native_small (thanh đáy) | Đáy màn Cài đặt, khi màn đang mở; danh sách cài đặt cuộn phía trên, không bị che | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground, như `poses_bottom`; tắt lúc phát hành (`features/ads/spec.md`, câu 19) | `is_show_settings_bottom`, cùng `is_show_native_bottom` |
 
-Trạng thái thiết kế có thanh quảng cáo chờ trả lời câu 19, ý b của `features/ads/spec.md`. Mở trang chính sách quyền riêng tư (KB-5) là rời app có chủ đích, nên quảng cáo khi quay lại app không hiện ngay sau đó.
+Thiết kế thêm trạng thái `ad` (`SettingsScreen_ad_light`, `SettingsScreen_ad_dark`); bản staging bật sẵn (`features/ads/spec.md`, câu 19, ý a, b). Mở trang chính sách quyền riêng tư (KB-5) là rời app có chủ đích, nên quảng cáo khi quay lại app không hiện ngay sau đó.
 
 ## 6. Dữ liệu và phân tích
 
@@ -147,3 +147,4 @@ Không có.
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: đường dẫn chính sách quyền riêng tư mặc định; thêm frame hộp chọn giao diện |
 | 2026-11-13 | AI | Yêu cầu 2026-11-13 (`features/ads/requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`): thêm thanh đáy native nhỏ `settings_bottom`, tắt lúc phát hành (mục 5; `features/ads/spec.md`, câu 19). Chuyển `changed`, chờ trả lời câu 19 của spec ads và xác nhận |
+| 2026-11-13 | Nhật | Trả lời câu 19, ý a tới d (AI ghi): staging bật sẵn, thêm trạng thái `ad` trên Figma, thanh ở mọi trạng thái của màn xem lại, production bật dần 10%. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |

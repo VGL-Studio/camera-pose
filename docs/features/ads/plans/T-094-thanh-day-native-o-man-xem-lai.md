@@ -2,7 +2,7 @@
 ticket: T-094
 title: Thanh đáy native nhỏ ở màn xem lại ảnh (review_bottom, tắt lúc phát hành)
 status: approved             # draft | approved | stopped | done
-version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
+version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 15.0M        # cỡ M theo scripts/token-usage.py estimate (2026-11-13), không nâng tay
@@ -242,6 +242,7 @@ Test viết trước, ở commit test của bước 3. Chuỗi mã đơn vị c�
 | KB-11 trên máy gập | Kiểm tra thủ công (máy thật: gập có bản lề) | Mở gập, chụp: khe trải hết bề rộng đáy, ảnh và nút "Lưu ảnh" ở trên khe |
 | Đề xuất về dự án mẫu | Kiểm tra thủ công (người: mở issue ở repo khác) | Người mở issue `from-app` cho thuộc tính `collapsibleLayer` (mục 3.1, bước 6) |
 | Kế hoạch quảng cáo trên Drive | Kiểm tra thủ công (người: file trên Drive, ngoài repo) | Sau khi merge, người chạy `scripts/ads-plan.py --keep <file trên Drive>`, xem dòng `review_bottom` có trong file Excel mới, rồi thay file trên Drive (`docs/ops/ads-plan.md`) |
+| KB-6 không đổi: chụp, lưu, chia sẻ, chụp lại ở màn xem lại | Unit test, test giao diện (có sẵn) | Test có sẵn của `ReviewViewModelTest` (ví dụ `save_success_logsEventAndRecords`, `save_showsSavingWhileWriting`), `ReviewRouteTest`, `ReviewScreenTest`, `ReviewScreenUnfoldedTest` qua với câu khẳng định nguyên (mục 3.5); màn có thanh giả vẫn bấm được bốn nút (test `adBar_*` ở trên) |
 
 **Ngoại lệ viết test trước:**
 
@@ -361,6 +362,7 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
   6. Không viết ADR mới cho chỗ lệch D-01; quyết định ở spec ads câu 19 ý e, chỗ lệch với mẫu ở `docs/template-sync.txt`, issue `from-app`. Viết ADR của app nếu mẫu từ chối issue.
   7. Câu "ảnh co lại cho vừa phần còn lại" của spec camera (KB-9, tiêu chí 5) hiểu là ảnh co khi thiếu chỗ; giữ câu chữ của spec, không sửa spec trong plan này.
   8. Cách (a): cột phải gọn lại khi thiếu chỗ theo ngưỡng của mục 3.1 (hàng nút phụ nằm ngang, thông báo lỗi để nút cùng dòng khi có lỗi); chấp nhận hàng nút đổi bố cục theo trạng thái lưu ở cửa sổ nằm ngang thấp có khe.
+- **Phiên bản 2 (2026-11-13):** Chỉ thêm một dòng ở mục 4 cho KB-6 (dẫn test có sẵn), vì `scripts/run-check.py` đòi mọi kịch bản của ticket có dòng ở mục 4; không đổi cách làm hay test viết trước. Nhật duyệt phiên bản 2 trong phiên có người theo dõi ngày 2026-11-13 (chọn "Plan bản 2, duyệt lại" khi được hỏi), giữ nguyên câu trả lời mục 8 của phiên bản 1. AI ghi thay.
 
 ## 10. Nhật ký thực hiện
 

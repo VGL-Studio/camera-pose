@@ -2,6 +2,7 @@ package com.vglstudio.camera.pose.line.guide.core.designsystem
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -29,8 +30,10 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.component.PrimaryB
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.ProgressBar
 import com.vglstudio.camera.pose.line.guide.core.designsystem.component.SecondaryButton
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
+import kotlin.math.roundToInt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -185,12 +188,44 @@ class ComponentsTest {
         composeRule.onNodeWithTag(LOGO).assertWidthIsEqualTo(112.dp).assertHeightIsEqualTo(112.dp)
     }
 
+    // The logo is the app icon artwork (spec loading, KB-6): the orange band at its top, not the old yellow tile.
     @Test
-    fun brandLogo_fill_isSecondaryContainer() {
+    fun brandLogo_fill_isAppIconArtwork() {
+        setLogoOnWhite()
+        val pixel = pixelAt(LOGO, 56.dp, 5.dp)
+        val red = (pixel.red * 255).roundToInt()
+        val green = (pixel.green * 255).roundToInt()
+        val blue = (pixel.blue * 255).roundToInt()
+        assertTrue("red $red", red >= 240)
+        assertTrue("green $green", green in 160..195)
+        assertTrue("blue $blue", blue < 60)
+    }
+
+    @Test
+    fun brandLogo_hasNoOutline() {
+        setLogoOnWhite()
+        val pixel = pixelAt(LOGO, 56.dp, 1.dp)
+        val sum = ((pixel.red + pixel.green + pixel.blue) * 255).roundToInt()
+        assertTrue("outline pixel sum $sum", sum > 300)
+    }
+
+    @Test
+    fun brandLogo_hasNoShadow() {
+        setLogoOnWhite()
+        // The old sticker shadow sat 4 dp below and right of the tile.
+        assertEquals(Color.White.toArgb(), pixelAt(LOGO, 56.dp, 114.dp).toArgb())
+        // Control: the corner is clipped by Radius.sheet (the artwork itself is square and orange to the edge).
+        assertEquals(Color.White.toArgb(), pixelAt(LOGO, 2.dp, 2.dp).toArgb())
+    }
+
+    private fun setLogoOnWhite() {
         composeRule.setContent {
-            AppTheme(darkTheme = false) { BrandLogo(modifier = Modifier.testTag(LOGO)) }
+            AppTheme(darkTheme = false) {
+                Box(Modifier.background(Color.White).padding(16.dp)) {
+                    BrandLogo(modifier = Modifier.testTag(LOGO))
+                }
+            }
         }
-        assertEquals(Color(0xFFFFC83D).toArgb(), pixelAt(LOGO, 56.dp, 8.dp).toArgb())
     }
 
     /**

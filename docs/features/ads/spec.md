@@ -54,11 +54,11 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
 
 ## 3. Kịch bản sử dụng
 
-Không có kịch bản mới ở spec này. `review_interstitial` giữ kịch bản của spec camera; bốn vị trí của thư viện và chi tiết theo KB-4, KB-6 của spec poses (câu 8, 9). Tiêu chí kiểm ở mục 9, ở Định nghĩa hoàn thành của T-074 và T-079.
+Không có kịch bản mới ở spec này. `review_interstitial` giữ kịch bản của spec camera; bốn vị trí của thư viện và chi tiết theo KB-4, KB-6 của spec poses (câu 8, 9); `settings_bottom` theo KB-1 của spec settings, `review_bottom` theo KB-9 của spec camera (câu 19). Tiêu chí kiểm ở mục 9, ở Định nghĩa hoàn thành của T-074 và T-079.
 
 ## 4. Giao diện
 
-Không có thiết kế riêng: thanh đáy native, ô quảng cáo trong lưới và interstitial dùng giao diện của khung. Trạng thái `ad` của thiết kế thư viện và chi tiết theo câu 5 của spec poses.
+Không có thiết kế riêng: thanh đáy native, ô quảng cáo trong lưới và interstitial dùng giao diện của khung. Trạng thái `ad` của thiết kế thư viện và chi tiết theo câu 5 của spec poses; của Cài đặt và màn xem lại theo câu 19, ý b.
 
 ## 5. Quảng cáo
 
@@ -236,6 +236,9 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
     - **d. Đo kết quả trước khi bật `review_bottom` cho mọi người.**
       - Đề xuất của AI: bật dần trên Firebase (10% người dùng trước), giữ khi tỷ lệ lưu ảnh (`photo_saved` trên `photo_captured`) và tỷ lệ giữ chân ngày 1 không giảm quá 2 điểm sau một tuần; `settings_bottom` bật cho mọi người luôn khi nhóm muốn. Không thêm sự kiện mới.
       - Trả lời: Chọn "Bật dần 10% rồi xem số", theo đề xuất. Nhật, 2026-11-13.
+    - **e. Lớp native thu gọn ở màn xem lại** (rà soát độc lập PR #323). Khóa chung `is_show_native_collap` bật lớp nổi 250 dp ở mọi thanh đáy; lớp này phủ lên nội dung và chặn chạm, nên sẽ che ảnh và hàng nút của màn xem lại khi nhóm bật nó cho màn khác.
+      - Phương án: chấp nhận lớp nổi ở màn xem lại; hoặc không cho lớp nổi ở `review_bottom` (sửa khung theo mô hình chung, không thêm cờ mang tên tính năng vào khung, đề xuất về dự án mẫu).
+      - Trả lời: chọn "Không cho lớp nổi ở `review_bottom`": màn xem lại luôn chỉ có khe đáy dưới hàng nút, dù `is_show_native_collap` bật. `settings_bottom` theo khóa chung như `poses_bottom`. Nhật, 2026-11-13.
     - Mã quảng cáo thật của hai vị trí trong cấu hình phát hành và khóa trên Firebase production là việc của người (ADR-0007, ADR-0009); vị trí tắt nên bản phát hành chưa cần mã khi chưa bật.
 
 ## 10. Lịch sử
@@ -266,3 +269,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-02 | Nhật | Xác nhận câu 18 và phần sửa mục 2. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-13 | AI | Yêu cầu quảng cáo ở màn Cài đặt và màn xem lại (`requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`); Nhật trả lời phần đầu câu 19 trong phiên (AI ghi): thanh đáy native nhỏ `settings_bottom`, `review_bottom`, tắt lúc phát hành. Sửa mục 2, 5, 8; câu 19 còn bốn ý mở. Chuyển `changed`, chờ trả lời và xác nhận |
 | 2026-11-13 | Nhật | Trả lời câu 19, ý a tới d (AI ghi): staging bật sẵn, thêm trạng thái `ad` trên Figma, thanh ở mọi trạng thái của màn xem lại, production bật dần 10%. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-11-13 | Nhật | Theo rà soát độc lập PR #323: sửa tiêu chí trái mục 5 mới (KB-1 của spec settings; KB-9, KB-11 của spec camera), thêm khóa ở mục 8, trạng thái `ad` ở mục 4; câu 19 ý e: không cho lớp native thu gọn ở `review_bottom` (AI ghi). Lời xác nhận lại của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Giữ `confirmed` |

@@ -47,8 +47,8 @@ Việc trước khi soạn plan: AI dựng `SettingsScreen_ad_light`, `SettingsS
 
 ## Định nghĩa hoàn thành
 
-- [ ] Tiêu chí của KB-1 của spec settings đạt khi có và không có thanh quảng cáo; `is_show_settings_bottom` mặc định tắt.
-- [ ] Có test cho: thanh chỉ chừa chỗ khi khe có quảng cáo; dòng cuối của danh sách cuộn tới được, không bị thanh che ở khung thấp; giá trị của bản staging.
+- [ ] Tiêu chí của KB-1 của spec settings đạt; `is_show_settings_bottom` mặc định tắt.
+- [ ] Có test cho: thanh chừa chỗ và co về 0 theo luật thanh đáy của khung (D-02, D-04 của `docs/ops/ads-business-rules.md`); dòng cuối của danh sách cuộn tới được, không bị thanh che ở khung thấp; giá trị của bản staging.
 - [ ] Bảng khóa sinh lại khớp code; manifest gộp không đổi.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.
 - [ ] Thử trên máy thật: thanh đáy ở Cài đặt (khóa bật trên staging), không bấm quảng cáo; đã nghiệm thu chéo.

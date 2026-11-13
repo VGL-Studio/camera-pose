@@ -3,7 +3,7 @@ id: T-094
 title: Thanh đáy native nhỏ ở màn xem lại ảnh (review_bottom, tắt lúc phát hành)
 feature: ads
 spec: features/ads/spec.md   # confirmed 2026-11-13, câu 19; vị trí của màn ở mục 5 của features/camera/spec.md (confirmed 2026-11-13)
-scenarios: [KB-6]            # của features/camera/spec.md
+scenarios: [KB-6, KB-9, KB-11]   # của features/camera/spec.md; tiêu chí của thanh đáy ở KB-9 và KB-11
 owner: Nhật
 status: backlog              # ready khi bốn frame trạng thái ad của câu 19, ý b đã duyệt
 risk: high
@@ -25,6 +25,7 @@ Theo câu 19 của `features/ads/spec.md`, đáy màn xem lại có thanh quản
 
 - **`AdPlacement` (`core/ads`):** thêm `REVIEW_BOTTOM("review_bottom", AdFormat.NATIVE_SMALL)`, một dòng, chú thích dẫn spec.
 - **Màn xem lại (`feature/camera`, `review/ReviewScreen.kt`):** `BottomAdBarScaffold(AdPlacement.REVIEW_BOTTOM)` dưới hàng nút; vùng ảnh nhận phần còn lại. Hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên như hôm nay. Bố cục mở gập theo thiết kế `_unfolded`. Không đổi `review_interstitial`, luật đếm ảnh, combo native và lời hỏi đánh giá.
+- **Không có lớp thu gọn ở `review_bottom` (câu 19, ý e):** màn xem lại không bao giờ hiện lớp native thu gọn nổi, dù `is_show_native_collap` bật. Cần sửa khung theo mô hình chung: một thuộc tính khai báo của vị trí (ví dụ trên dòng `AdPlacement`, không mang tên tính năng) mà `BottomAdBarScaffold` đọc; plan chọn cách và đề xuất về dự án mẫu (`docs/ops/from-app.md`). Có test: khóa bật, thanh đáy của `review_bottom` không có lớp nổi, `poses_bottom` vẫn có.
 - **Bản staging (`StagingRemoteValuesModule`):** bật `is_show_review_bottom` (câu 19, ý a); cập nhật `StagingRemoteValuesModuleTest`.
 - **Bảng khóa:** sinh lại `docs/remote-config-keys.md`, `docs/remote-config-template.json`, thêm `is_show_review_bottom`.
 - **Thiết kế và ảnh chuẩn:** screenshot test cùng tên `ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded` (thẻ native giả qua tham số composable); ảnh khung thấp `_small` có thanh quảng cáo; chạy `scripts/design-compare.sh camera`. Ảnh chuẩn có sẵn không đổi.
@@ -38,18 +39,18 @@ Theo câu 19 của `features/ads/spec.md`, đáy màn xem lại có thanh quản
 
 ## Rủi ro sơ bộ
 
-Chạm điểm chặn của `risk-scoring.md`: vị trí quảng cáo mới, module core (`core/ads`), thiết kế và ảnh chuẩn; màn xem lại là luồng chính (chụp, lưu ảnh) và đi ngược một phần bài học 3. Không thêm SDK hay quyền. Rủi ro cao, cần duyệt chéo. Cỡ M vì màn có nhiều trạng thái, bố cục mở gập và ảnh phải co lại đúng tỷ lệ.
+Chạm điểm chặn của `risk-scoring.md`: vị trí quảng cáo mới, module core (`core/ads`), thiết kế và ảnh chuẩn; màn xem lại là luồng chính (chụp, lưu ảnh) và đi ngược một phần bài học 3. Thêm sửa khung `core/ads` để tắt lớp thu gọn theo vị trí (câu 19, ý e), cần đề xuất về dự án mẫu. Không thêm SDK hay quyền. Rủi ro cao, cần duyệt chéo. Cỡ M (gần L; plan có thể tách phần sửa khung thành ticket riêng) vì màn có nhiều trạng thái, bố cục mở gập và ảnh phải co lại đúng tỷ lệ.
 
 ## Câu hỏi cho người
 
 Câu 19 của `features/ads/spec.md` đã có câu trả lời; Nhật xác nhận spec ngày 2026-11-13.
 
-Việc trước khi soạn plan: AI dựng `ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded` trên Figma, Nhật duyệt, xuất ảnh vào `docs/features/camera/design/screens/` và cập nhật gói bàn giao. Ticket chuyển `ready` khi thiết kế đã duyệt.
+Việc trước khi soạn plan: AI dựng `ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded` trên Figma, Nhật duyệt, xuất ảnh vào `docs/features/camera/design/screens/` và cập nhật gói bàn giao. Frame `_unfolded` quyết thanh trải hết bề rộng hay chỉ nằm dưới cột nút bên phải; khe native ở bề rộng 673 dp cao khoảng 200 dp (D-02), nên ảnh co nhiều. Plan xét chuyện hàng nút nhảy khi thanh co về 0 lúc nạp lỗi (bấm nhầm, `docs/ops/ads-guide.md`). Ticket chuyển `ready` khi thiết kế đã duyệt.
 
 ## Định nghĩa hoàn thành
 
-- [ ] Tiêu chí của KB-6 của spec camera đạt khi có và không có thanh quảng cáo; `is_show_review_bottom` mặc định tắt.
-- [ ] Có test cho: thanh chỉ chừa chỗ khi khe có quảng cáo; ảnh không bị cắt hay che và bốn nút không bị che ở khung thấp và khi mở gập; thanh có ở `saving`, `save-error` và khi mở từ ô ảnh vừa chụp; hộp thoại "Bỏ ảnh này?" vẫn phủ lên; giá trị của bản staging.
+- [ ] Tiêu chí của KB-6, KB-9, KB-11 của spec camera đạt khi có và không có thanh quảng cáo; `is_show_review_bottom` mặc định tắt.
+- [ ] Có test cho: thanh chừa chỗ và co về 0 theo luật thanh đáy của khung (D-02, D-04 của `docs/ops/ads-business-rules.md`); ảnh không bị cắt hay che và bốn nút không bị che ở khung thấp và khi mở gập; thanh có ở `saving`, `save-error` và khi mở từ ô ảnh vừa chụp; hộp thoại "Bỏ ảnh này?" vẫn phủ lên; giá trị của bản staging.
 - [ ] Test có sẵn của `review_interstitial`, luật đếm ảnh và hỏi đánh giá vẫn qua, không sửa câu khẳng định.
 - [ ] Bảng khóa sinh lại khớp code; manifest gộp không đổi.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.

@@ -138,4 +138,44 @@ class ReviewRouteTest {
         assertEquals(1, leaves)
         assertTrue(inAppReview.requests.isEmpty())
     }
+
+    // The count includes the photo saved from the discard dialog (plan T-096)
+
+    @Test
+    fun saveFromDiscardDialog_asksReviewWithNewCount() {
+        repository.count.value = 2
+        setRouteWithReview(SavedStateHandle(mapOf("review_path" to file.path)))
+        composeRule.onNodeWithText("Tư thế tiếp").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Lưu ảnh").performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, leaves)
+        assertEquals(listOf(3), inAppReview.requests)
+        assertEquals(listOf(1), inAppReview.leavesAtRequest)
+    }
+
+    @Test
+    fun saveThenNextPose_asksReviewWithNewCount() {
+        repository.count.value = 2
+        setRouteWithReview(SavedStateHandle(mapOf("review_path" to file.path)))
+        composeRule.onNodeWithText("Lưu vào thư viện").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Tư thế tiếp").performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, leaves)
+        assertEquals(listOf(3), inAppReview.requests)
+    }
+
+    @Test
+    fun saveFromDiscardDialog_recordFails_asksReviewWithStoredCount() {
+        repository.count.value = 2
+        repository.failWrites = true
+        setRouteWithReview(SavedStateHandle(mapOf("review_path" to file.path)))
+        composeRule.onNodeWithText("Tư thế tiếp").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Lưu ảnh").performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, leaves)
+        assertEquals(listOf(2), inAppReview.requests)
+    }
 }

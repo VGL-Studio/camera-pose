@@ -14,7 +14,7 @@ class AdUnitIdsTest {
                 // The other placements of this app (plan T-074, ADR-0029; plan T-081).
                 "pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
                 "inter_pose_detail=unit/13;poses_in_collection=unit/14;" +
-                "rw_premium_pose=unit/14;native_onboarding=unit/15",
+                "rw_premium_pose=unit/14;native_onboarding=unit/15;settings_bottom=unit/16",
         )
         assertEquals("unit/1", ids.of(AdPlacement.POSES_BOTTOM))
         assertTrue(ids.missing.isEmpty())
@@ -24,7 +24,7 @@ class AdUnitIdsTest {
                 "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;" +
                 "pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
                 "inter_pose_detail=unit/13;poses_in_collection=unit/14;" +
-                "rw_premium_pose=unit/14;native_onboarding=unit/15",
+                "rw_premium_pose=unit/14;native_onboarding=unit/15;settings_bottom=unit/16",
         )
         assertEquals(listOf("banner", "native_collap"), withoutSlots.missing)
         // Control: app-wide placements still need a unit on production (plan T-024, section 3.3).
@@ -32,7 +32,7 @@ class AdUnitIdsTest {
             " poses_bottom = unit/1 ; other_key=unit/2;" +
                 "pose_detail_bottom=unit/11;review_interstitial=unit/12;" +
                 "inter_pose_detail=unit/13;poses_in_collection=unit/14;" +
-                "rw_premium_pose=unit/14;native_onboarding=unit/15",
+                "rw_premium_pose=unit/14;native_onboarding=unit/15;settings_bottom=unit/16",
         )
         assertEquals(
             listOf("open_app", "open_app_inter", "native_combo", "resume", "resume_inter", "banner", "native_collap"),
@@ -231,7 +231,8 @@ class AdUnitIdsTest {
             // The placements of this app (ADR-0029).
             "poses_bottom=unit/10;pose_detail_bottom=unit/11;review_interstitial=unit/12;inter_pose_detail=unit/13;" +
             "poses_in_collection=unit/14;" +
-            "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;rw_premium_pose=unit/14;native_onboarding=unit/15"
+            "native_combo=unit/5;resume=unit/6;resume_inter=unit/7;rw_premium_pose=unit/14;native_onboarding=unit/15;" +
+            "settings_bottom=unit/16"
         val warning = missingUnitsWarning(ConfiguredAdUnitIds(placementUnits))
         assertTrue("warning: $warning", warning != null && "banner, native_collap" in warning)
         // Control: with the two slot keys nothing is missing, so no warning.

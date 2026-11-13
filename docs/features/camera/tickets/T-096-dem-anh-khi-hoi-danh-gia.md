@@ -40,4 +40,4 @@ Trung bình: sửa luồng rời màn xem lại (luồng chính sau mỗi lần 
 - [ ] KB-10, tiêu chí 1 đạt cả khi lưu từ hộp thoại lúc rời màn.
 - [ ] Có test tự động cho đường lưu từ hộp thoại; test có sẵn của `review_interstitial`, luật đếm ảnh và hỏi đánh giá vẫn qua.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.
-- [ ] Thử trên máy thật theo các bước của FB-20261113-01: log `Review requested` (hay hộp đánh giá hiện) ở lần đủ 3 ảnh.
+- [ ] Thử trên máy thật theo các bước của FB-20261113-01: log `Review asked` (hay hộp đánh giá hiện) ở lần đủ 3 ảnh.

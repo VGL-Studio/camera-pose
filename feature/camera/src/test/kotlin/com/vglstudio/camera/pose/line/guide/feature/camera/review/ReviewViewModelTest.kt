@@ -629,4 +629,33 @@ class ReviewViewModelTest {
 
         assertEquals(3, viewModel.savedCount.value)
     }
+
+    // The count handed to the store review request when leaving (plan T-096)
+
+    @Test
+    fun savedCountForReview_afterSaveFromDialog_isNewCount() = runTest {
+        repository.count.value = 2
+        repository.lagUpdates = true
+        val viewModel = viewModel()
+        viewModel.onNextPoseClick()
+        viewModel.onDiscardSave()
+        runCurrent()
+
+        assertEquals(listOf<ReviewEvent>(Leave(true)), events)
+        assertEquals(3, viewModel.savedCountForReview())
+    }
+
+    @Test
+    fun savedCountForReview_whenRecordFails_keepsStoredCount() = runTest {
+        repository.count.value = 2
+        repository.lagUpdates = true
+        repository.failWrites = true
+        val viewModel = viewModel()
+        viewModel.onNextPoseClick()
+        viewModel.onDiscardSave()
+        runCurrent()
+
+        assertEquals(listOf<ReviewEvent>(Leave(true)), events)
+        assertEquals(2, viewModel.savedCountForReview())
+    }
 }

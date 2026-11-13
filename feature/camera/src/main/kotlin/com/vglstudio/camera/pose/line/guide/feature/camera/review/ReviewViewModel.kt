@@ -57,6 +57,8 @@ class ReviewViewModel @Inject constructor(
     val savedCount: StateFlow<Int> =
         repository.savedCount.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
+    internal fun savedCountForReview(): Int = savedCount.value
+
     private val eventChannel = Channel<ReviewEvent>(Channel.BUFFERED)
     val events: Flow<ReviewEvent> = eventChannel.receiveAsFlow()
 

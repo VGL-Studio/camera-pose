@@ -52,6 +52,7 @@ class CameraViewModel @Inject constructor(
     private val activePose: ActivePoseHolder,
     private val matchHolder: PoseMatchHolder,
     private val countdownInterruptions: CountdownInterruptions,
+    private val fullScreenAdCover: FullScreenAdCover,
     private val userPreferences: UserPreferences,
     private val analytics: Analytics,
     private val logger: AppLogger,
@@ -122,6 +123,14 @@ class CameraViewModel @Inject constructor(
         openJob?.cancel()
         controller.close()
         logger.info(LOG_TAG, "Camera closed")
+    }
+
+    /** Skeleton for the tests written first (plan T-097, section 3.2). */
+    fun onScreenResumed() {
+    }
+
+    /** Skeleton for the tests written first (plan T-097, section 3.2). */
+    fun onScreenPaused() {
     }
 
     fun onRetry() {

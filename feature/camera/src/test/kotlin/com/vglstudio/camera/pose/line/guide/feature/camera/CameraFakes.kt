@@ -112,6 +112,13 @@ internal class FakeCountdownInterruptions : CountdownInterruptions {
     override fun active(): Flow<Boolean> = value
 }
 
+/** The full-screen ad flag of the app (plan T-097); off by default, so the camera opens as before. */
+internal class FakeFullScreenAdCover : FullScreenAdCover {
+    val value = MutableStateFlow(false)
+
+    override fun showing(): StateFlow<Boolean> = value
+}
+
 /** The settings choices held in memory (plan T-025); the camera reads the shutter sound only. */
 internal class FakeUserPreferences : UserPreferences {
     override val themeMode = MutableStateFlow(ThemeMode.SYSTEM)

@@ -43,6 +43,7 @@ class CameraViewModelTest {
     private val activePose = ActivePoseHolder()
     private val matchHolder = PoseMatchHolder()
     private val interruptions = FakeCountdownInterruptions()
+    private val adCover = FakeFullScreenAdCover()
     private val analytics = FakeAnalytics()
     private val logger = RecordingAppLogger()
     private val userPreferences = FakeUserPreferences()
@@ -56,6 +57,7 @@ class CameraViewModelTest {
             activePose = activePose,
             matchHolder = matchHolder,
             countdownInterruptions = interruptions,
+            fullScreenAdCover = adCover,
             userPreferences = userPreferences,
             analytics = analytics,
             logger = logger,
@@ -765,5 +767,319 @@ class CameraViewModelTest {
         viewModel.onShutterClick()
         runCurrent()
         assertEquals(0, controller.captureCount)
+    }
+
+    // Spec camera, section 5 and KB-8, criterion 4 (plan T-097): the camera does not run under a full-screen ad.
+
+    private fun TestScope.setAd(showing: Boolean) {
+        adCover.value.value = showing
+        runCurrent()
+    }
+
+    private fun logged(message: String) = logger.entries.any { it.tag == "Camera" && it.message == message }
+
+    @Test
+    fun adAlreadyShowingAtCreation_firstStartWaits() = runTest {
+        adCover.value.value = true
+        val viewModel = viewModel()
+        viewModel.onScreenStarted(permissionGranted = true)
+        viewModel.onScreenResumed()
+        runCurrent()
+        assertTrue(controller.openCalls.isEmpty())
+        assertEquals(CameraUiState.Starting, viewModel.uiState.value)
+        assertTrue(logged("Camera waits for the full-screen ad"))
+
+        // Control: the same screen with the flag off opens the camera.
+        setAd(false)
+        assertEquals(listOf(Lens.BACK), controller.openCalls)
+        assertTrue(viewModel.uiState.value is Ready)
+    }
+
+    @Test
+    fun adShownBeforeResume_staysClosedUntilAdCloses() = runTest {
+        val pending = CompletableDeferred<Unit>()
+        controller.pendingOpen = pending
+        val viewModel = viewModel()
+        viewModel.onScreenStarted(permissionGranted = true)
+        runCurrent()
+        assertEquals(1, controller.openCalls.size)
+
+        setAd(true)
+        assertEquals(1, controller.closeCount)
+        assertEquals(CameraUiState.Starting, viewModel.uiState.value)
+        assertTrue(logged("Camera closed: full-screen ad"))
+
+        // The screen reaches RESUMED after the ad began, before the ad activity pauses it: still covered.
+        viewModel.onScreenResumed()
+        runCurrent()
+        assertEquals(1, controller.openCalls.size)
+        viewModel.onScreenPaused()
+        runCurrent()
+        assertEquals(1, controller.openCalls.size)
+
+        setAd(false)
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(logged("Camera reopens after the full-screen ad"))
+        pending.complete(Unit)
+        runCurrent()
+        assertTrue(viewModel.uiState.value is Ready)
+
+        val messages = logger.entries.filter { it.tag == "Camera" }.map { it.message }
+        val closedAt = messages.indexOf("Camera closed: full-screen ad")
+        val reopensAt = messages.indexOf("Camera reopens after the full-screen ad")
+        assertTrue(closedAt in 0 until reopensAt)
+        assertTrue(messages.subList(closedAt, reopensAt).none { it.startsWith("Camera ready") })
+    }
+
+    @Test
+    fun adShownAfterResume_closesAtOnce() = runTest {
+        val pending = CompletableDeferred<Unit>()
+        controller.pendingOpen = pending
+        val viewModel = viewModel()
+        viewModel.onScreenStarted(permissionGranted = true)
+        viewModel.onScreenResumed()
+        runCurrent()
+
+        setAd(true)
+        // At once, without waiting for PAUSED.
+        assertEquals(1, controller.closeCount)
+        pending.complete(Unit)
+        runCurrent()
+        assertFalse(viewModel.uiState.value is Ready)
+
+        viewModel.onScreenPaused()
+        runCurrent()
+        setAd(false)
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(viewModel.uiState.value is Ready)
+    }
+
+    @Test
+    fun resumedBeforeFlagDrops_reopensOnce() = runTest {
+        val pending = CompletableDeferred<Unit>()
+        controller.pendingOpen = pending
+        val viewModel = viewModel()
+        viewModel.onScreenStarted(permissionGranted = true)
+        viewModel.onScreenResumed()
+        runCurrent()
+        setAd(true)
+        pending.complete(Unit)
+        viewModel.onScreenPaused()
+        runCurrent()
+        assertEquals(1, controller.openCalls.size)
+
+        // The ad activity is gone and the screen resumes before the flag drops: the ad counts as done.
+        viewModel.onScreenResumed()
+        runCurrent()
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(viewModel.uiState.value is Ready)
+
+        setAd(false)
+        assertEquals(2, controller.openCalls.size)
+    }
+
+    @Test
+    fun adClosed_reopensWithSameTools() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onGridClick()
+        viewModel.onTimerClick()
+        runCurrent()
+        viewModel.onScreenResumed()
+        runCurrent()
+
+        setAd(true)
+        assertEquals(1, controller.closeCount)
+        assertEquals(CameraUiState.Starting, viewModel.uiState.value)
+
+        viewModel.onScreenPaused()
+        runCurrent()
+        setAd(false)
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(viewModel.ready().gridVisible)
+        assertEquals(TimerSetting.THREE, viewModel.ready().timer)
+    }
+
+    @Test
+    fun flagStuckAfterPauseAndResume_cameraRuns() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onScreenResumed()
+        runCurrent()
+        setAd(true)
+        assertEquals(1, controller.closeCount)
+
+        viewModel.onScreenPaused()
+        runCurrent()
+        assertEquals(1, controller.openCalls.size)
+        // Back to RESUMED with the flag still on: the flag is stuck and the camera runs.
+        viewModel.onScreenResumed()
+        runCurrent()
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(viewModel.uiState.value is Ready)
+    }
+
+    @Test
+    fun shutterWhileReopening_isIgnored() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onScreenResumed()
+        runCurrent()
+        setAd(true)
+        viewModel.onScreenPaused()
+        runCurrent()
+        val pending = CompletableDeferred<Unit>()
+        controller.pendingOpen = pending
+        setAd(false)
+
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals(0, controller.captureCount)
+
+        // Control: once the camera is open again, the shutter takes a photo.
+        pending.complete(Unit)
+        runCurrent()
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals(1, controller.captureCount)
+    }
+
+    @Test
+    fun coveredDuringCountdown_cancelsCountdown() = runTest {
+        repository.stored.value = CameraSettings(timer = TimerSetting.THREE)
+        val viewModel = readyViewModel()
+        viewModel.onScreenResumed()
+        viewModel.onShutterClick()
+        runCurrent()
+        assertEquals(3, viewModel.ready().countdown)
+
+        setAd(true)
+        advanceTimeBy(5_000)
+        runCurrent()
+        assertEquals(0, controller.captureCount)
+        assertTrue(logged("Countdown cancelled: full_screen_ad"))
+    }
+
+    @Test
+    fun flipWhileCovered_isIgnored() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onScreenResumed()
+        runCurrent()
+        setAd(true)
+
+        viewModel.onFlipClick()
+        runCurrent()
+        assertTrue(repository.lensSaves.isEmpty())
+        assertEquals(listOf(Lens.BACK), controller.openCalls)
+
+        setAd(false)
+        assertEquals(listOf(Lens.BACK, Lens.BACK), controller.openCalls)
+    }
+
+    @Test
+    fun retryWhileCovered_doesNotOpen() = runTest {
+        controller.openError = IllegalStateException("camera in use")
+        val viewModel = readyViewModel()
+        assertEquals(CameraUiState.Error, viewModel.uiState.value)
+        viewModel.onScreenResumed()
+        runCurrent()
+        setAd(true)
+        controller.openError = null
+
+        viewModel.onRetry()
+        runCurrent()
+        assertEquals(1, controller.openCalls.size)
+        assertTrue(logged("Camera waits for the full-screen ad"))
+
+        setAd(false)
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(viewModel.uiState.value is Ready)
+    }
+
+    @Test
+    fun permissionGrantedWhileCovered_doesNotOpen() = runTest {
+        val viewModel = viewModel()
+        viewModel.onScreenStarted(permissionGranted = false)
+        runCurrent()
+        setAd(true)
+
+        viewModel.onPermissionResult(granted = true)
+        runCurrent()
+        assertTrue(controller.openCalls.isEmpty())
+        assertTrue(logged("Camera waits for the full-screen ad"))
+
+        setAd(false)
+        assertEquals(1, controller.openCalls.size)
+        assertTrue(viewModel.uiState.value is Ready)
+    }
+
+    @Test
+    fun errorThenCovered_retriesAfterAd() = runTest {
+        controller.openError = IllegalStateException("camera in use")
+        val viewModel = readyViewModel()
+        assertEquals(CameraUiState.Error, viewModel.uiState.value)
+
+        // Control: an error not covered waits for "Thử lại"; the screen pausing and resuming opens nothing.
+        viewModel.onScreenResumed()
+        viewModel.onScreenPaused()
+        viewModel.onScreenResumed()
+        runCurrent()
+        assertEquals(1, controller.openCalls.size)
+        assertEquals(CameraUiState.Error, viewModel.uiState.value)
+
+        setAd(true)
+        controller.openError = null
+        setAd(false)
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(viewModel.uiState.value is Ready)
+        assertTrue(logged("Camera reopens after the full-screen ad"))
+    }
+
+    @Test
+    fun stoppedWhileCovered_restartWithAdStillShowing_waits() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onScreenResumed()
+        runCurrent()
+        setAd(true)
+        assertEquals(1, controller.closeCount)
+
+        viewModel.onScreenStopped()
+        viewModel.onScreenStarted(permissionGranted = true)
+        runCurrent()
+        assertEquals(1, controller.openCalls.size)
+
+        setAd(false)
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(viewModel.uiState.value is Ready)
+    }
+
+    @Test
+    fun adClosedWhileStopped_opensOnlyOnNextStart() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onScreenResumed()
+        runCurrent()
+        setAd(true)
+        assertEquals(1, controller.closeCount)
+        assertEquals(CameraUiState.Starting, viewModel.uiState.value)
+        assertTrue(logged("Camera closed: full-screen ad"))
+
+        viewModel.onScreenStopped()
+        setAd(false)
+        assertEquals(1, controller.openCalls.size)
+
+        viewModel.onScreenStarted(permissionGranted = true)
+        runCurrent()
+        assertEquals(2, controller.openCalls.size)
+    }
+
+    @Test
+    fun coverWhileResumed_closesThenReopens() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onScreenResumed()
+        runCurrent()
+
+        // A cover drawn in the same activity: the screen stays RESUMED.
+        setAd(true)
+        assertEquals(1, controller.closeCount)
+        setAd(false)
+        assertEquals(2, controller.openCalls.size)
+        assertTrue(viewModel.uiState.value is Ready)
     }
 }

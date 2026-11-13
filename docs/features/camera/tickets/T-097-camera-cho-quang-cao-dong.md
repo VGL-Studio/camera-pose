@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-1, KB-8, KB-9]
 owner: Nhật
-status: backlog
+status: approved
 risk: high
 size: M
 depends_on: []
 sprint:
-plan:
+plan: features/camera/plans/T-097-camera-cho-quang-cao-dong.md
 auto_run:
 created: 2026-11-13
 ---

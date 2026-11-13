@@ -1,16 +1,16 @@
 ---
 ticket: T-097
 title: Camera chờ quảng cáo toàn màn hình đóng rồi mới mở khi quay lại app
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 11               # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 15.0M        # cỡ M theo scripts/token-usage.py estimate (2026-11-13), không nâng tay
 blocking_points: []          # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high: dev còn lại (risk-scoring.md, mục 3)
-approved_at:
+reviewer: Nhật
+cross_reviewer: Nhật           # nhóm một dev (risk-scoring.md, mục 3)
+approved_at: 2026-11-13
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -24,7 +24,7 @@ Kiểm chứng bằng unit test của `CameraViewModel` (cả hai thứ tự gi�
 
 ## 2. Hiểu yêu cầu
 
-Ticket xử lý các kịch bản sau trong `features/camera/spec.md` (bản `changed` trong PR của plan này, chờ Nhật xác nhận, mục 8):
+Ticket xử lý các kịch bản sau trong `features/camera/spec.md` (mục 5 và KB-8 sửa trong PR của plan này, Nhật xác nhận ngày 2026-11-13):
 
 | Kịch bản | Tiêu chí chấp nhận | Cách hiểu của AI |
 | --- | --- | --- |
@@ -176,7 +176,7 @@ Test viết trước dùng `FakeCameraController` (`openCalls`, `closeCount`, `p
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 3 | Hai module: `feature/camera` (interface mới, đổi constructor và hàm công khai của `CameraViewModel`) và `:app` (module Hilt mới) |
-| B. Độ rõ của yêu cầu | 2 | Nhật đã chọn cách làm và phạm vi, nhưng spec camera đang `changed` (mục 5, KB-8 tiêu chí 4) chờ xác nhận; plan chờ spec chốt (mục 8, câu 1) |
+| B. Độ rõ của yêu cầu | 2 | Chấm lúc viết plan: spec camera đang `changed` (mục 5, KB-8 tiêu chí 4) chờ xác nhận. Nhật xác nhận spec cùng lúc duyệt plan (mục 9); điểm giữ như lúc chấm |
 | C. Khả năng kiểm chứng tự động | 3 | Vòng đời ứng dụng và thứ tự với quảng cáo thật; khoảng thời gian giữa lời mở camera và lúc cờ bật chỉ kiểm được trên máy thật |
 | D. Ảnh hưởng chéo | 2 | `docs/ops/manual-test.md` cùng được T-093, T-094 sửa (mục Quảng cáo) |
 | E. Độ mới của kỹ thuật | 1 | Biến thể nhỏ của mẫu `CountdownInterruptions` và `LifecycleStartEffect`; lần đầu dùng `LifecycleResumeEffect` và mockk trong test của `:app` (đã chạy thử, mục 4.1) |
@@ -185,7 +185,7 @@ Test viết trước dùng `FakeCameraController` (`openCalls`, `closeCount`, `p
 ## 6. Ảnh hưởng chéo
 
 - File hoặc thành phần dùng chung bị chạm: đọc `AdsController.fullScreenAdShowing` của `:core:ads` ở `:app` (không sửa); thêm một module Hilt ở `:app`.
-- Spec camera `changed`: `scripts/run-check.py` từ chối mọi danh sách chạy có plan của feature camera (T-096, T-097) tới khi Nhật xác nhận lại spec. Thứ tự: Nhật xác nhận spec camera trước khi lập danh sách chạy có T-096 hay T-097.
+- Spec camera: phần đổi của mục 5 và KB-8 đã được Nhật xác nhận ngày 2026-11-13 (spec `confirmed`), nên `scripts/run-check.py` nhận danh sách có T-096, T-097.
 - Task khác trong sprint có thể xung đột: T-093, T-094 cùng thêm bước vào `docs/ops/manual-test.md`, mục Quảng cáo (khác đoạn); T-094, T-096 sửa `review/ReviewScreen.kt`, T-093, T-094 sửa `core/ads/.../AdPlacement.kt`, plan này không chạm hai file đó.
 - Đề xuất thứ tự chạy: độc lập về code; xếp trước hay sau T-093, T-094 trong cùng danh sách (không song song) vì cùng `docs/ops/manual-test.md`.
 
@@ -198,15 +198,19 @@ Test viết trước dùng `FakeCameraController` (`openCalls`, `closeCount`, `p
 
 ## 8. Câu hỏi cho người duyệt
 
-1. **Chờ xác nhận spec.** PR của plan này đổi `features/camera/spec.md` (mục 5, KB-8 tiêu chí 4 mới) sang `changed` theo lựa chọn của Nhật ngày 2026-11-13: camera không chạy khi bất kỳ quảng cáo toàn màn hình nào phủ lên, kể cả quảng cáo có thưởng mở khóa tư thế. Plan chỉ duyệt được sau khi Nhật xác nhận spec; spec còn `changed` thì `run-check.py` từ chối danh sách có T-096 hay T-097 (mục 6).
+1. **Chờ xác nhận spec.** PR của plan này đổi `features/camera/spec.md` (mục 5, KB-8 tiêu chí 4 mới) sang `changed` theo lựa chọn của Nhật ngày 2026-11-13: camera không chạy khi bất kỳ quảng cáo toàn màn hình nào phủ lên, kể cả quảng cáo có thưởng mở khóa tư thế. Nhật xác nhận spec cùng lúc duyệt plan (mục 9).
 2. **Khoảng mở rồi đóng ngắn (rủi ro còn lại, việc tiếp theo).** Lời mở camera bắt đầu ở `ON_START`, trước khi biết có quảng cáo. Máy nhanh có thể gắn camera xong trước khi cờ bật, nên camera chạy rất ngắn rồi đóng. Không có cách làm thay trong phiên mà không sửa `:core:ads`. Nếu thử trên máy vẫn thấy chấm báo camera trong lúc quảng cáo hiện, việc tiếp theo là đề xuất về dự án mẫu một cờ công khai "quảng cáo khi quay lại app đang chờ hiện" (từ lúc vào foreground tới khi lượt bắt đầu hay bị bỏ), để camera chờ cả lúc đó (`docs/ops/from-app.md`). Đề xuất của AI: chấp nhận ở plan này.
 3. **Giới hạn của chốt chặn cờ kẹt.** Một lượt kẹt mà màn không qua `PAUSED` rồi `RESUMED` (lớp native toàn màn hình trong cùng activity, hay lượt `NO_HOST_ACTIVITY` không hạ cờ) làm camera tối tới khi người dùng ra nền rồi quay lại hay một hộp thoại của hệ thống hiện. Trên Android 8 tới 9 (API 26 tới 28) ở chế độ chia đôi màn hình, màn camera không có tiêu điểm thì `PAUSED`, nên khi cờ kẹt camera tối trong lúc người dùng ở cửa sổ kia, và chạy lại khi chạm vào cửa sổ camera. Combo native sau inter giữ cờ liền mạch từ inter sang lớp native trong `MainActivity`; nếu sau này có combo phủ camera thì `MainActivity` resume khi inter đóng (qua `PAUSED` rồi `RESUMED`, cờ vẫn bật) và camera sẽ mở lại dưới lớp native. Hôm nay `resume_inter` không mở combo và `review_interstitial` ở màn khác; xét lại khi thêm combo trên camera. Đề xuất của AI: chấp nhận; cờ kẹt là lỗi của lượt quảng cáo, sửa ở `:core:ads` nếu gặp.
 4. **Người duyệt.** Rủi ro Cao: cần người duyệt và người duyệt chéo (dev còn lại); nhóm một dev thì ghi lý do ở mục 9 (`risk-scoring.md`, mục 3).
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Nhật (nhóm hiện chỉ có một dev, ngoại lệ của `risk-scoring.md` mục 3)
+- **Ghi chú:** Nhật duyệt trong phiên có người theo dõi ngày 2026-11-13, lời của Nhật: "duyệt", sau khi AI nêu cần xác nhận spec camera và duyệt plan, với câu hỏi ở mục 8 theo đề xuất của AI. AI ghi thay. Trả lời câu hỏi ở mục 8:
+  1. Spec camera (mục 5, KB-8 tiêu chí 4) đã được xác nhận cùng lúc, chuyển `confirmed`.
+  2. Chấp nhận khoảng mở rồi đóng ngắn ở plan này; thấy chấm báo camera trong lúc quảng cáo hiện khi thử trên máy thì đề xuất về dự án mẫu cờ "quảng cáo khi quay lại app đang chờ hiện".
+  3. Chấp nhận giới hạn của chốt chặn cờ kẹt (lượt kẹt không qua `PAUSED` rồi `RESUMED`, chia đôi màn hình API 26 tới 28, combo native nếu sau này phủ camera); cờ kẹt sửa ở `:core:ads` nếu gặp.
+  4. Nhật vừa duyệt vừa duyệt chéo vì nhóm một dev.
 
 ## 10. Nhật ký thực hiện

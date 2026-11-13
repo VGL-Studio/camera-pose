@@ -1,16 +1,16 @@
 ---
 ticket: T-095
 title: Logo màn loading dùng biểu tượng app
-status: draft                # draft | approved | stopped | done
+status: approved               # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn 7, không tính tổng
 risk_level: high             # low | medium | high
 token_estimate: 7.1M         # scripts/token-usage.py estimate, cỡ S
 blocking_points: [core]      # điểm 7: module core dùng chung (:core:designsystem)
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật
+cross_reviewer: Nhật           # nhóm một dev (risk-scoring.md, mục 3)
+approved_at: 2026-11-13
 lane:                        # phiên tự chạy
 ---
 
@@ -190,8 +190,12 @@ Không cần (E dưới 2): ảnh WebP trong `drawable-nodpi` vẽ bằng `Image
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:**
-- **Người duyệt:** , **duyệt chéo:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Nhật (nhóm hiện chỉ có một dev, ngoại lệ của `risk-scoring.md` mục 3)
+- **Ghi chú:** Nhật duyệt trong phiên có người theo dõi ngày 2026-11-13, lời của Nhật: "duyệt", sau khi AI đề xuất bốn câu trả lời ở mục 8 và nói sẽ điền mục 9 theo đó. AI ghi thay. Trả lời câu hỏi ở mục 8:
+  1. Ảnh logo đặt ở `:core:designsystem/res/drawable-nodpi/brand_logo.webp`, không đổi giao diện công khai của `BrandLogo`.
+  2. WebP 448 px, chất lượng 90 (29 KB).
+  3. Nhật vừa duyệt vừa duyệt chéo vì nhóm một dev.
+  4. **Chấp nhận ngoại lệ ADR-0031:** phiên được xóa `ComponentsTest.brandLogo_fill_isSecondaryContainer` và thay bằng test viết trước `brandLogo_fill_isAppIconArtwork` (mục 3.5, mục 4). Việc xóa này đã được duyệt, không thuộc điều kiện dừng 5 của `risk-scoring.md`; mọi test cũ khác vẫn giữ nguyên.
 
 ## 10. Nhật ký thực hiện

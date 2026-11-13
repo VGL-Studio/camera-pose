@@ -1,7 +1,7 @@
 ---
 ticket: T-093
 title: Thanh đáy native nhỏ ở màn Cài đặt (settings_bottom, tắt lúc phát hành)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -271,3 +271,15 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
 ## 10. Nhật ký thực hiện
 
 <!-- AI ghi khi task đã có kết quả cuối (đã merge hoặc đã dừng), trên nhánh báo cáo của phiên (auto-run.md, bước 10). -->
+
+### RUN-20261113-02, phiên bản plan 1
+
+- **Kết quả:** đã merge.
+- **Nhánh, PR:** `claude/T-093-thanh-day-cai-dat`, PR #341, commit merge `96a3c22`.
+- **Đã làm:** `AdPlacement.SETTINGS_BOTTOM("settings_bottom", AdFormat.NATIVE_SMALL)` (một dòng); `SettingsRoute` bọc màn trong `BottomAdBarScaffold(AdPlacement.SETTINGS_BOTTOM)`; `SettingsScreen` nhận `contentPadding` (lề dưới trong vùng cuộn và cho snackbar) và `listScrollState`; staging bật `settings_bottom`; bảng khóa sinh lại (chỉ thêm `is_show_settings_bottom`); `manual-test.md` mục 9 bước 1, dòng Firebase của mục 11, mục 11.1 bước 9 mới. Bước 3 đến 5 do phiên con làm trong worktree riêng.
+- **Test viết trước:** 7 test (commit `02522be`): `small_nativeBottomBar_lastRowScrollsAboveSlot`, `small_bannerBottomBar_lastRowScrollsAboveSlot`, `small_realBottomBar_withoutAds_takesNoSpace`, `saveFailedSnackbar_aboveSlot`, ba screenshot `ad_light`, `ad_dark`, `ad_small`. Thất bại đúng lý do: test của `:feature:settings` và `:core:ads` không biên dịch (thiếu `contentPadding`, `listScrollState`, `SETTINGS_BOTTOM`), `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` đỏ (thiếu `is_show_settings_bottom`). Dữ liệu `AdUnitIdsTest`, `AdsControllerUnitIdsTest` vẫn xanh ở commit test, như plan ghi. Đột biến sau code: bỏ `settings_bottom=unit/16` thì `AdUnitIdsTest` đỏ; bỏ lề dưới của danh sách thì 3 test `SettingsScreenTest` đỏ.
+- **Ảnh chuẩn:** mới `SettingsScreen_ad_light`, `_ad_dark`, `_ad_small` (cuộn tới cuối, dòng "Phiên bản" ngay trên khe). Không ảnh cũ nào đổi. `design-compare.sh settings`: `ad_light`, `ad_dark` 1.4% (khử răng cưa chữ); ảnh cũ không đổi.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú (`FakeBar` ghi thẳng chuỗi tag; phần nối ở `SettingsRoute` không có test JVM, đã đọc code, khớp mẫu `PosesScreen`, `PoseDetailScreen`).
+- **Kết quả CI:** `pr-check` xanh (lần chạy 43454084947), `main-guard` xanh (43456658881). `scripts/check.sh` trên máy qua (3155 test JVM, 0 lỗi; 172 ảnh).
+- **Lệch so với plan:** Không có về hành vi; phương án dự phòng 3.4 không dùng (`ScrollState(Int.MAX_VALUE)` chạy được). Khi hoàn tác đột biến, `git checkout` trả `SettingsScreen.kt` chưa commit về bản cũ; phiên con áp lại đúng phần sửa, chạy lại test, `verifyRoborazzi` và `check.sh`, đều xanh. Không có file ngoài mục 3.2.
+- **Cần người xem:** thử trên máy thật mục 11.1 bước 9 (thanh đáy ở Cài đặt, khóa bật trên staging; không bấm quảng cáo); ảnh chuẩn `feature/settings/src/test/screenshots/SettingsScreen_ad_*.png`. Mã thật của `settings_bottom` trong `release.properties` lúc phát hành. Sau merge chạy `scripts/ads-plan.py --keep <file trên Drive>`.

@@ -85,21 +85,21 @@ Không có.
 
 ## 8. Kết quả đối chiếu
 
-Đối chiếu bằng `scripts/design-compare.sh loading` ngày 2026-10-22 (T-008, RUN-20261022-01), ảnh chuẩn chụp bằng tiếng Việt, tên app thật, tiến độ 68%:
+Đối chiếu bằng `scripts/design-compare.sh loading` ngày 2026-11-13 (T-095, RUN-20261113-01), sau khi logo đổi thành biểu tượng app; ảnh chuẩn chụp bằng tiếng Việt, tên app thật, tiến độ 68%:
 
 | Màn hình | Điểm ảnh khác | Ảnh so sánh (thiết kế, thật, khác biệt) |
 | --- | --- | --- |
-| LoadingScreen_failed_dark | 2.7% | `LoadingScreen_failed_dark_compare.png` |
-| LoadingScreen_failed_light | 2.7% | `LoadingScreen_failed_light_compare.png` |
-| LoadingScreen_progress_dark | 1.6% | `LoadingScreen_progress_dark_compare.png` |
-| LoadingScreen_progress_light | 1.6% | `LoadingScreen_progress_light_compare.png` |
+| LoadingScreen_failed_dark | 2.5% | `LoadingScreen_failed_dark_compare.png` |
+| LoadingScreen_failed_light | 2.5% | `LoadingScreen_failed_light_compare.png` |
+| LoadingScreen_progress_dark | 1.4% | `LoadingScreen_progress_dark_compare.png` |
+| LoadingScreen_progress_light | 1.4% | `LoadingScreen_progress_light_compare.png` |
 
 Nhận xét của rà soát độc lập (mục 7):
 
-- `progress_light`, `progress_dark`: đủ các phần, đúng thứ tự, chữ đúng bảng chữ, đúng vai trò màu (nền `background`, nhãn `onSurfaceVariant`, phần trăm `onSurface`, thanh vàng trên `surfaceVariant`, viền `outline`). Khác biệt chỉ ở logo tạm, nét chữ và đầu thanh tiến trình lệch khoảng 1 dp. Không có lệch chặn.
+- `progress_light`, `progress_dark`: đủ các phần, đúng thứ tự, chữ đúng bảng chữ, đúng vai trò màu (nền `background`, nhãn `onSurfaceVariant`, phần trăm `onSurface`, thanh vàng trên `surfaceVariant`, viền `outline`). Logo là biểu tượng app, cùng chỗ và cỡ với thiết kế; khác biệt còn ở nét chữ và đầu thanh tiến trình lệch khoảng 1 dp. Không có lệch chặn.
 - `failed_light`, `failed_dark`: nhãn, phần trăm và thanh màu `error` trên `errorContainer`; biểu tượng `warning` tam giác, tiêu đề `onSurface`, lời hướng dẫn hai dòng, nút "Thử lại" có `refresh`; logo không đổi chỗ. Ngoài logo và nét chữ, khác biệt lớn nhất là nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56). Không có lệch chặn.
 - Ảnh khung 360 x 640 (`_small`): tên app hai dòng, nút "Thử lại" thấy trọn, chân trang dưới nút.
 
 `handoff/` giữ lại làm lịch sử của thiết kế cũ.
 
-Ngày 2026-11-13 (yêu cầu `requests/2026-11-13-logo-loading-theo-icon-app.md`, T-095): component `BrandLogo` trên Figma đổi thành ảnh biểu tượng app, bo `sheet`, không viền, không bóng; bốn frame đổi theo, ảnh trong `screens/` và số liệu trong `context/` xuất lại bằng `scripts/figma-export.py`. Nhật duyệt trong phiên. Số liệu không ghi ảnh nền của logo; ảnh nguồn là `docs/brand/app-icon/play-store-512.png`. Kết quả đối chiếu ở trên là của logo cũ; T-095 chạy lại `scripts/design-compare.sh loading`.
+Ngày 2026-11-13 (yêu cầu `requests/2026-11-13-logo-loading-theo-icon-app.md`, T-095): component `BrandLogo` trên Figma đổi thành ảnh biểu tượng app, bo `sheet`, không viền, không bóng; bốn frame đổi theo, ảnh trong `screens/` và số liệu trong `context/` xuất lại bằng `scripts/figma-export.py`. Nhật duyệt trong phiên. Số liệu không ghi ảnh nền của logo; ảnh nguồn là `docs/brand/app-icon/play-store-512.png`. T-095 đã chạy lại `scripts/design-compare.sh loading`; kết quả ở bảng trên. Lần đối chiếu trước (2026-10-22, T-008, logo tạm) cho 2.7% và 1.6%.

@@ -5,12 +5,12 @@ feature: camera
 spec: features/camera/spec.md
 scenarios: [KB-10]
 owner: Nhật
-status: backlog
+status: approved
 risk: medium
 size: S
 depends_on: []
 sprint:
-plan:
+plan: features/camera/plans/T-096-dem-anh-khi-hoi-danh-gia.md
 auto_run:
 created: 2026-11-13
 ---

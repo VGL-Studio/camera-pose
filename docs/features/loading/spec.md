@@ -7,9 +7,10 @@ requests:
   - requests/2026-10-15-man-hinh-loading.md
   - requests/2026-10-21-loading-cua-camera-pose.md
   - requests/2026-10-31-bieu-tuong-app.md
+  - requests/2026-11-13-logo-loading-theo-icon-app.md
 design: features/loading/design/README.md
 created: 2026-10-15
-confirmed: 2026-10-31
+confirmed: 2026-11-13
 ---
 
 # SPEC: MÀN HÌNH LOADING
@@ -25,7 +26,7 @@ confirmed: 2026-10-31
 **Trong phạm vi:**
 
 - Màn hình loading hiện mỗi lần mở app, có thanh tiến trình ngang và phần trăm từ 0% đến 100%.
-- Màn hình có nhận diện của app: logo, tên app, khẩu hiệu, và một dòng chân trang nói rằng ảnh chỉ lưu trên máy của người dùng.
+- Màn hình có nhận diện của app: logo là biểu tượng app, tên app, khẩu hiệu, và một dòng chân trang nói rằng ảnh chỉ lưu trên máy của người dùng.
 - Ba phần việc chuẩn bị, mỗi phần chiếm một phần thanh tiến trình (câu hỏi 8):
   1. Tải cấu hình mới nhất của app (Firebase Remote Config).
   2. Tải catalog tư thế từ R2, theo đường dẫn trong cấu hình.
@@ -39,7 +40,7 @@ confirmed: 2026-10-31
 **Ngoài phạm vi lần này:**
 
 - Màn hình chào của hệ thống Android giữ nguyên cách hiện; chỉ biểu tượng trên đó đổi theo biểu tượng app (KB-6).
-- Biểu tượng một màu cho chế độ biểu tượng theo chủ đề màu (Android 13 trở lên), logo trên màn hình loading (vẫn là logo tạm) và biểu tượng trên trang Google Play (người tải lên khi phát hành) (KB-6).
+- Biểu tượng một màu cho chế độ biểu tượng theo chủ đề màu (Android 13 trở lên) và biểu tượng trên trang Google Play (người tải lên khi phát hành) (KB-6).
 - Tải ảnh lớn của tư thế: tải khi mở chi tiết tư thế (spec `poses`).
 - Tải ảnh của tư thế ngoài bộ khởi đầu: tải khi cần ở camera và thư viện.
 - Loading trong từng màn hình khác, hoạt ảnh riêng cho màn hình loading.
@@ -111,12 +112,13 @@ Tiêu chí chấp nhận:
 - [ ] Khi cài app thì biểu tượng của app là máy ảnh vàng cam phía trước một ảnh tư thế, trên nền cam chuyển màu từ góc trên trái (vàng cam) tới góc dưới phải (cam đậm), theo ảnh trong `docs/brand/app-icon/`; không còn biểu tượng Android mặc định.
 - [ ] Khi máy cắt biểu tượng theo hình tròn, vuông bo góc hay hình khác thì máy ảnh và ảnh tư thế vẫn hiện trọn, không bị cắt: mọi phần của hình nằm trong vùng an toàn của biểu tượng (vòng tròn 66 dp ở giữa khung 108 dp).
 - [ ] Khi biểu tượng nhỏ (cỡ thường trên màn hình chính) thì vẫn nhận ra máy ảnh và gương mặt cô gái.
+- [ ] Khi màn hình loading hiện (đang tải hay báo lỗi, giao diện sáng hay tối) thì logo là biểu tượng app, cùng hình với biểu tượng trên màn hình chính: nền cam, máy ảnh và ảnh tư thế hiện trọn, bo góc, không viền, không bóng, cỡ 112 dp, cùng chỗ như logo cũ; không còn hình người nét đen trên ô vàng (yêu cầu 2026-11-13).
 
 ## 4. Giao diện
 
 - **Thiết kế:** [design/README.md](design/README.md), dựng trên Figma, ba trạng thái: đang tải (sáng, tối) và lỗi (sáng). Thiết kế đi kèm màu thương hiệu mới (xanh lục), phông Inter, logo, nên hệ thống thiết kế của dự án mẫu đổi theo trước (T-002), rồi màn hình loading làm theo thiết kế (T-003).
 - **Thiết kế của Camera Pose (2026-10-21):** dựng lại theo hướng Sticker trên Figma của app, section Loading của trang Screens: `LoadingScreen_progress_light`, `LoadingScreen_progress_dark`, `LoadingScreen_failed_light`, `LoadingScreen_failed_dark`. Gói bàn giao trong `design/` sẽ thay bằng thiết kế này sau khi spec được xác nhận. Hệ thống thiết kế đổi theo hướng Sticker trước (phông Bricolage Grotesque, màu mới), là thay đổi `:core:designsystem` (ADR-0008).
-- **Chữ của Camera Pose:** tên app "Camera Pose: Lines and Guides"; khẩu hiệu "Tạo dáng theo nét viền, chụp đẹp ngay."; dòng hướng dẫn khi đang tải "Đang chuẩn bị bộ tư thế…"; chân trang "Ảnh chỉ lưu trên máy của bạn"; các chữ khác giữ như mục 4 của thiết kế cũ. Logo là logo tạm cho tới khi có icon app.
+- **Chữ của Camera Pose:** tên app "Camera Pose: Lines and Guides"; khẩu hiệu "Tạo dáng theo nét viền, chụp đẹp ngay."; dòng hướng dẫn khi đang tải "Đang chuẩn bị bộ tư thế…"; chân trang "Ảnh chỉ lưu trên máy của bạn"; các chữ khác giữ như mục 4 của thiết kế cũ. Logo là biểu tượng app từ yêu cầu 2026-11-13 (KB-6); bốn frame loading trên Figma thay logo theo đó.
 - **Các màn hình:**
 
 | Màn hình | Mục đích | Kịch bản liên quan |
@@ -212,3 +214,5 @@ Quảng cáo toàn app khi mở app (`open_app`, `features/ads/spec.md` câu 6):
 | 2026-10-31 | Nhật | Xác nhận KB-6 và phần ngoài phạm vi (lời của Nhật trong phiên làm nhanh T-087: chọn "Xác nhận và duyệt"). Chuyển lại `confirmed` |
 | 2026-10-31 | AI | Sửa lỗi chép khi thêm KB-6 (rà soát độc lập T-087): trả lại tiêu đề `## 4. Giao diện` bị mất; không đổi nội dung đã xác nhận |
 | 2026-10-31 | AI | Đổi mã ticket biểu tượng app từ T-081 sang T-087: T-081 đã dùng cho ticket bỏ `:feature:sample` (PR #258, merge trước PR #263), theo `docs/CLAUDE.md`, mục Khi làm nhanh có người theo dõi. Không đổi nội dung |
+| 2026-11-13 | AI | Yêu cầu `requests/2026-11-13-logo-loading-theo-icon-app.md`: logo màn loading thành biểu tượng app trơn (bo góc, không viền, không bóng, 112 dp) theo lựa chọn của Nhật trong phiên; sửa mục 2 (đưa logo vào phạm vi), KB-6 thêm một tiêu chí, mục 4. Chuyển `changed`, chờ Nhật xác nhận. Ticket T-095 |
+| 2026-11-13 | Nhật | Xác nhận phần đổi logo màn loading. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |

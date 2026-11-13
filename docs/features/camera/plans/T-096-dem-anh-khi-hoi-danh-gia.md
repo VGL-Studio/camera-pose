@@ -20,7 +20,7 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 
 Khi người dùng lưu ảnh từ hộp thoại "Bỏ ảnh này?" lúc rời màn xem lại, app lưu rồi rời màn ngay, và phần hỏi đánh giá nhận số ảnh đã lưu chưa tính ảnh vừa lưu (FB-20261113-01). Test tạm trên code hiện tại xác nhận: kho đã có 3 ảnh nhưng lời hỏi nhận 2, và chính `ReviewViewModel.savedCount` (qua `stateIn`) cũng còn 2 lúc đó, không chỉ giá trị màn hình giữ qua `rememberUpdatedState`.
 
-Sửa: sau khi ghi xong, ViewModel đọc lại số đếm từ kho (`repository.savedCount.first()`) và giữ lại; màn hình hỏi đánh giá bằng số lớn hơn giữa số đó và `savedCount.value`, đọc đúng lúc hỏi. Kiểm chứng bằng hai test Robolectric của `ReviewRoute` (lưu từ hộp thoại, ghi lỗi) và hai unit test của `ReviewViewModel`; đường bấm Lưu rồi mới rời màn giữ nguyên.
+Sửa: sau khi ghi xong, ViewModel đọc lại số đếm từ kho (`repository.savedCount.first()`) và giữ lại; màn hình hỏi đánh giá bằng số lớn hơn giữa số đó và `savedCount.value`, đọc đúng lúc hỏi. Kiểm chứng bằng ba test Robolectric của `ReviewRoute` (lưu từ hộp thoại, bấm Lưu rồi rời màn, ghi lỗi) và hai unit test của `ReviewViewModel` dùng kho giả có số đếm cập nhật trễ; đường bấm Lưu rồi mới rời màn giữ nguyên.
 
 ## 2. Hiểu yêu cầu
 
@@ -46,8 +46,8 @@ Nguyên nhân (đã đo, mục 4): đường lưu từ hộp thoại là `onDisc
 
 Sửa trong `ReviewViewModel`:
 
-- Thêm `private var recordedCount = 0`. Trong `save()`, trong cùng khối `withContext(NonCancellable)` sau `repository.recordSaved(uri)`, đọc `recordedCount = repository.savedCount.first()`. Kho DataStore trả giá trị mới ngay sau `edit` (đã có test `DataStoreSavedPhotosRepositoryTest`, dòng 30). Ghi lỗi (`IOException`) thì không đọc, `recordedCount` giữ nguyên.
-- Thêm `internal fun savedCountForReview(): Int = maxOf(savedCount.value, recordedCount)`, kèm KDoc: số ảnh đã lưu đưa cho lời hỏi đánh giá, tính cả ảnh vừa ghi khi `savedCount` chưa kịp cập nhật. Lấy số lớn hơn vì luồng đọc của kho phát 0 khi gặp lỗi đọc (`retryWhen`), và vì `savedCount` có thể đã lớn hơn khi mở lại màn sau khi activity được dựng lại.
+- Thêm `private var recordedCount = 0`. Trong `save()`, trong cùng khối `withContext(NonCancellable)` sau `repository.recordSaved(uri)`, đọc `recordedCount = repository.savedCount.first()`. Kho DataStore trả giá trị mới ngay sau `edit` (đã có test `DataStoreSavedPhotosRepositoryTest`, dòng 30). Ghi lỗi (`IOException`) thì không đọc, `recordedCount` giữ nguyên. Kho thật đọc qua `retryWhen`: gặp lỗi đọc thì `first()` trả 0 (bản `emptyPreferences()`); `maxOf` ở dưới giữ số không bị hạ về 0.
+- Thêm `internal fun savedCountForReview(): Int = maxOf(savedCount.value, recordedCount)`, kèm KDoc: số ảnh đã lưu đưa cho lời hỏi đánh giá, tính cả ảnh vừa ghi khi `savedCount` chưa kịp cập nhật; `first()` của kho trả 0 khi đọc lỗi, nên lấy số lớn hơn. Lấy số lớn hơn vì luồng đọc của kho phát 0 khi gặp lỗi đọc (`retryWhen`), và vì `savedCount` có thể đã lớn hơn khi mở lại màn sau khi activity được dựng lại.
 - Giữ `savedCount` (`StateFlow`), vì test `savedCount_followsRepository` kiểm nó; không còn nơi nào khác đọc nó trong code chính.
 
 Sửa trong `ReviewScreen.kt` (`ReviewRoute`, dòng 75 đến 79): bỏ `val savedCount by viewModel.savedCount.collectAsStateWithLifecycle()` và `val currentSavedCount by rememberUpdatedState(savedCount)`; `askReview` thành `{ currentRequestReview(viewModel.savedCountForReview()) }`, đọc số đúng lúc hỏi. Chú thích cạnh đó ghi vì sao đọc lúc hỏi. Bỏ import không còn dùng nếu có.
@@ -75,6 +75,7 @@ Mẫu có sẵn: `ReviewRouteTest` (T-018, T-019) dựng `ReviewRoute` với `Fa
 | Sửa | `feature/camera/src/main/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewScreen.kt` | `askReview` đọc `viewModel.savedCountForReview()` lúc hỏi; bỏ `collectAsStateWithLifecycle` và `rememberUpdatedState` của số đếm |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewRouteTest.kt` | Ba test mới ở mục 4 |
 | Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewViewModelTest.kt` | Hai test mới ở mục 4 |
+| Sửa | `feature/camera/src/test/kotlin/com/vglstudio/camera/pose/line/guide/feature/camera/review/ReviewFakes.kt` | `FakeSavedPhotosRepository.lagUpdates` (mặc định `false`): khi bật, bộ thu đang chạy (`stateIn` của ViewModel) chỉ thấy số đếm lúc bắt đầu thu, bộ thu mới (`first()`) đọc số hiện tại, như DataStore ngay sau khi ghi. Code: `override val savedCount: Flow<Int> get() = if (!lagUpdates) count else flow { emit(count.value); awaitCancellation() }`. Đặt `lagUpdates` trước khi tạo ViewModel. Thuộc commit test của bước 3 |
 
 ### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện
 
@@ -102,6 +103,9 @@ Không có. Cách làm chỉ đọc lại một `Flow` đã có test sau khi ghi
 | Sự kiện `Leave(savedThisVisit)` | Không đổi | `ReviewViewModelTest` (các câu `Leave(true)`, `Leave(false)`) | Giữ |
 | Rời màn trong lúc ghi số đếm thì việc ghi vẫn xong | Không đổi: đọc lại số đếm nằm trong cùng khối `NonCancellable` sau `recordSaved` | `ReviewViewModelTest.save_leaveDuringRecord_recordStillCompletes` | Giữ |
 | Thứ tự rời màn: hỏi quảng cáo trước khi hỏi đánh giá | Không đổi | `ReviewExitTest.saved_asksAdBeforeReview` | Giữ |
+| Bỏ ảnh thì rời màn đúng một lần | Không đổi | `ReviewRouteTest.discardThenLeave_leavesOnce` | Giữ |
+| "Lưu ảnh" trong hộp thoại lưu rồi rời màn | Không đổi: đọc lại số đếm chạy trước `leave`, sự kiện vẫn là `Leave(true)` | `ReviewViewModelTest.discardSave_savesThenLeaves`, `ReviewViewModelTest.discardSave_permissionGranted_savesThenLeaves` | Giữ |
+| Ghi số đếm lỗi thì ảnh vẫn tính là đã lưu | Không đổi: lỗi bắt như cũ, không đọc lại số | `ReviewViewModelTest.save_recordFails_stillSaved` | Giữ |
 | Từ chối quyền lưu ảnh hẳn thì hiện thông báo và mở cài đặt | Không đổi (không chạm đường xin quyền) | `ReviewViewModelTest.permissionBlocked_showsBlocked_andOpensSettings` | Giữ |
 
 ## 4. Kiểm thử
@@ -117,18 +121,18 @@ Không có. Cách làm chỉ đọc lại một `Flow` đã có test sau khi ghi
 | KB-10, tiêu chí 1: lưu từ hộp thoại khi rời màn, số tính cả ảnh vừa lưu | Compose UI test (Robolectric) | `ReviewRouteTest.saveFromDiscardDialog_asksReviewWithNewCount`: `repository.count.value = 2`, `setRouteWithReview(SavedStateHandle(mapOf("review_path" to file.path)))`, bấm "Tư thế tiếp", `waitForIdle`, bấm "Lưu ảnh", `waitForIdle`; khẳng định `leaves == 1`, `inAppReview.requests == listOf(3)`, `inAppReview.leavesAtRequest == listOf(1)`. Trên code hiện tại thất bại với `[2]` (đã đo) |
 | KB-10, tiêu chí 1: bấm Lưu rồi rời màn (đối chứng, giữ hành vi) | Compose UI test | `ReviewRouteTest.saveThenNextPose_asksReviewWithNewCount`: số 2 trong kho, bấm "Lưu vào thư viện", rồi "Tư thế tiếp"; khẳng định `requests == listOf(3)`. Đối chứng, qua trên code hiện tại (đã đo) |
 | Ghi số đếm lỗi thì lời hỏi nhận số trong kho | Compose UI test | `ReviewRouteTest.saveFromDiscardDialog_recordFails_asksReviewWithStoredCount`: số 2, `repository.failWrites = true`, đường hộp thoại như trên; khẳng định `leaves == 1`, `requests == listOf(2)`. Đối chứng cho nhánh lỗi (qua trên code hiện tại, vì số trong kho không đổi) |
-| `savedCountForReview()` tính ảnh vừa ghi khi `savedCount` chưa cập nhật | Unit test | `ReviewViewModelTest.savedCountForReview_afterSaveFromDialog_isNewCount`: kho giả 2, `onNextPoseClick()`, `onDiscardSave()`, thu sự kiện tới `Leave(true)`; trong bộ thu, ngay khi nhận `Leave`, đọc `viewModel.savedCountForReview()` và khẳng định `3`. Viết trước: không biên dịch được tới khi có hàm (thất bại ở bước 3 vì thiếu hàm, đúng lý do) |
-| Ghi lỗi thì `savedCountForReview()` giữ số trong kho | Unit test | `ReviewViewModelTest.savedCountForReview_whenRecordFails_keepsStoredCount`: kho giả 2, `failWrites = true`, cùng đường; khẳng định `2` |
+| `savedCountForReview()` tính ảnh vừa ghi khi `savedCount` chưa cập nhật | Unit test | `ReviewViewModelTest.savedCountForReview_afterSaveFromDialog_isNewCount`: `repository.count.value = 2`, `repository.lagUpdates = true`, rồi `viewModel()`; `onNextPoseClick()`, `onDiscardSave()`, `runCurrent()`; khẳng định `events == listOf(Leave(true))` và `viewModel.savedCountForReview() == 3`. Trên khung của bước 3 thất bại `expected:<3> but was:<2>` (đã đo); không bật `lagUpdates` thì qua ngay trên khung, vì `MainDispatcherRule` dùng `UnconfinedTestDispatcher` và `stateIn` đã là 3 lúc nhận `Leave` (đã đo) |
+| Ghi lỗi thì `savedCountForReview()` giữ số trong kho | Unit test (đối chứng) | `ReviewViewModelTest.savedCountForReview_whenRecordFails_keepsStoredCount`: số 2, `lagUpdates = true`, `failWrites = true`, cùng đường; khẳng định `2`. Qua cả trên khung lẫn sau khi sửa (đã đo), giữ để chặn bản sửa cộng số khi ghi lỗi |
 | Quảng cáo vừa hiện thì không hỏi; cờ tắt thì không hỏi (KB-10, tiêu chí 2, 3) | Test có sẵn | `ReviewExitTest`, test của `:core:review`; không đổi |
-| Hộp đánh giá thật hiện ở lần đủ 3 ảnh khi lưu từ hộp thoại | Kiểm tra thủ công (máy thật: Play, In-App Review chỉ chạy với bản cài từ Play hay Internal App Sharing) | Theo FB-20261113-01: xóa dữ liệu app, cờ `feature_in_app_review_enabled` bật trên staging, lưu 2 ảnh bằng nút Lưu, ảnh thứ 3 lưu từ hộp thoại khi bấm "Tư thế tiếp"; xem log `VGL.InAppReview`: `Review asked` (`core/review/.../InAppReview.kt:66`), không có `Review skipped: not_due saved=2`. Lần rời màn đó phải không có quảng cáo `review_interstitial` (khóa tắt hay đang giãn cách), vì quảng cáo hiện thì không hỏi |
+| Hộp đánh giá thật hiện ở lần đủ 3 ảnh khi lưu từ hộp thoại | Kiểm tra thủ công (máy thật: Play, In-App Review chỉ chạy với bản cài từ Play hay Internal App Sharing) | Theo FB-20261113-01: đặt `is_show_review_interstitial` = false trên Firebase staging (bản staging bật sẵn vị trí này ở `StagingRemoteValuesModule`, Firebase ghi đè được); cờ `feature_in_app_review_enabled` luôn bật trên staging (`StagingFeatureFlagsModule`), không cần bật. Xóa dữ liệu app, lưu 2 ảnh bằng nút Lưu, ảnh thứ 3 lưu từ hộp thoại khi bấm "Tư thế tiếp"; xem log `VGL.InAppReview`: `Review asked` (`core/review/.../InAppReview.kt:66`), không có `Review skipped: not_due saved=2`. Lần rời màn đó không có quảng cáo `review_interstitial` (khóa đã tắt ở trên), vì quảng cáo hiện thì không hỏi |
 
-Thứ tự viết: commit test của bước 3 có năm test trên; `ReviewRouteTest.saveFromDiscardDialog_asksReviewWithNewCount` thất bại vì số `[2]`, hai test của `ReviewViewModelTest` thất bại vì chưa có `savedCountForReview()`. `FakeSavedPhotosRepository` (`ReviewFakes.kt`) không đổi.
+Khung của bước 3 (để test biên dịch được và thất bại ở câu khẳng định): `ReviewViewModel` có `internal fun savedCountForReview(): Int = savedCount.value`, chưa có `recordedCount`, chưa sửa `ReviewScreen.kt`. Commit test của bước 3 có năm test trên cùng `lagUpdates` của `ReviewFakes.kt`. Trên khung đó (đã đo bằng test tạm, không commit): `ReviewRouteTest.saveFromDiscardDialog_asksReviewWithNewCount` thất bại vì `[2]`; `ReviewViewModelTest.savedCountForReview_afterSaveFromDialog_isNewCount` thất bại `expected:<3> but was:<2>`; ba test còn lại là đối chứng, qua. Sau bản sửa của mục 3.1 cả năm qua (đã đo với bản sửa tạm, không commit).
 
 **Ngoại lệ viết test trước:** Không có.
 
 ### 4.1. Chạy thử
 
-Không cần (E dưới 2). Lệnh đo ở mục 4: `./gradlew :feature:camera:testDebugUnitTest --tests '*TmpT096Test'` (test tạm đã xóa, không commit).
+Không cần (E dưới 2). Lệnh đo ở mục 4: `./gradlew :feature:camera:testDebugUnitTest --tests '*TmpT096Test'` và `--tests '*TmpT096UnitTest'` (test tạm, khung và bản sửa tạm đã trả về bằng `git checkout --`, không commit).
 
 ## 5. Chấm rủi ro
 

@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-11-13, câu 19; vị trí của màn ở mục 5 của features/camera/spec.md (confirmed 2026-11-13)
 scenarios: [KB-6, KB-9, KB-11]   # của features/camera/spec.md; tiêu chí của thanh đáy ở KB-9 và KB-11
 owner: Nhật
-status: backlog              # ready khi bốn frame trạng thái ad của câu 19, ý b đã duyệt
+status: backlog              # ready khi frame trạng thái ad của câu 19, ý b đã duyệt; tới lúc đó dev giữ ticket ngoài danh sách chạy và hàng chờ plan (plan_queue), vì plan-queue.py nhận cả ticket backlog
 risk: high
 size: M
 depends_on: [T-093]          # cùng sửa AdPlacement, StagingRemoteValuesModule và bảng khóa; làm sau để không trùng file
@@ -45,12 +45,12 @@ Chạm điểm chặn của `risk-scoring.md`: vị trí quảng cáo mới, mod
 
 Câu 19 của `features/ads/spec.md` đã có câu trả lời; Nhật xác nhận spec ngày 2026-11-13.
 
-Việc trước khi soạn plan: AI dựng `ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded` trên Figma, Nhật duyệt, xuất ảnh vào `docs/features/camera/design/screens/` và cập nhật gói bàn giao. Frame `_unfolded` quyết thanh trải hết bề rộng hay chỉ nằm dưới cột nút bên phải; khe native ở bề rộng 673 dp cao khoảng 200 dp (D-02), nên ảnh co nhiều. Plan xét chuyện hàng nút nhảy khi thanh co về 0 lúc nạp lỗi (bấm nhầm, `docs/ops/ads-guide.md`). Ticket chuyển `ready` khi thiết kế đã duyệt.
+Việc trước khi soạn plan: AI dựng `ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded` trên Figma, Nhật duyệt, xuất ảnh vào `docs/features/camera/design/screens/` và cập nhật gói bàn giao. Frame `_unfolded` quyết thanh trải hết bề rộng hay chỉ nằm dưới cột nút bên phải; khe native của khung hiện cao 80 dp; luật D-02 của `docs/ops/ads-business-rules.md` (cao theo bề rộng, tới 200 dp) chưa có trong code, khi khung đồng bộ theo D-02, D-04 thì xét lại bố cục mở gập. Luật MC-13 (màn khai báo tắt lớp nổi) có trong tài liệu luật nhưng chưa có trong code; plan xét làm phần ý e theo mô hình đó và đề xuất thêm luật vào `ads-business-rules.md`, `ads-guide.md` của dự án mẫu. Plan xét chuyện hàng nút nhảy khi thanh co về 0 lúc nạp lỗi (bấm nhầm, `docs/ops/ads-guide.md`). Ticket chuyển `ready` khi thiết kế đã duyệt.
 
 ## Định nghĩa hoàn thành
 
 - [ ] Tiêu chí của KB-6, KB-9, KB-11 của spec camera đạt khi có và không có thanh quảng cáo; `is_show_review_bottom` mặc định tắt.
-- [ ] Có test cho: thanh chừa chỗ và co về 0 theo luật thanh đáy của khung (D-02, D-04 của `docs/ops/ads-business-rules.md`); ảnh không bị cắt hay che và bốn nút không bị che ở khung thấp và khi mở gập; thanh có ở `saving`, `save-error` và khi mở từ ô ảnh vừa chụp; hộp thoại "Bỏ ảnh này?" vẫn phủ lên; giá trị của bản staging.
+- [ ] Có test cho: thanh chừa chỗ và co về 0 theo hành vi hiện tại của khung (khe 80 dp, chỉ chừa chỗ khi khe đã có quảng cáo, nạp lỗi thì co về 0; như thanh đáy của thư viện); ảnh không bị cắt hay che và bốn nút không bị che ở khung thấp và khi mở gập; thanh có ở `saving`, `save-error` và khi mở từ ô ảnh vừa chụp; hộp thoại "Bỏ ảnh này?" vẫn phủ lên; giá trị của bản staging.
 - [ ] Test có sẵn của `review_interstitial`, luật đếm ảnh và hỏi đánh giá vẫn qua, không sửa câu khẳng định.
 - [ ] Bảng khóa sinh lại khớp code; manifest gộp không đổi.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.

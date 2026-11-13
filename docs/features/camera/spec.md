@@ -168,7 +168,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi không mở được camera (ví dụ app khác đang dùng) thì khung xem trước hiện tiêu đề "Không mở được camera", lời giải thích và nút "Thử lại"; bấm thì camera thử mở lại.
 - [ ] Khi app ra nền rồi quay lại thì camera tự chạy lại, giữ tư thế và các lựa chọn.
 
-### KB-9. Quảng cáo khi rời màn xem lại
+### KB-9. Quảng cáo ở màn xem lại
 
 Tiêu chí chấp nhận:
 
@@ -176,10 +176,11 @@ Tiêu chí chấp nhận:
 - [ ] Khi chưa lưu ảnh nào trong lần xem lại đó thì không hiện quảng cáo.
 - [ ] Khi khóa `is_show_review_interstitial` tắt hoặc người dùng chưa đồng ý quảng cáo theo hộp thoại đồng ý thì không hiện quảng cáo (ADR-0013, ADR-0014).
 - [ ] Khi ở camera thì không có vị trí quảng cáo nào của màn camera. Màn xem lại chỉ có thanh đáy `review_bottom` (tiêu chí dưới). Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6).
-- [ ] Khi khóa `is_show_review_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ hiện ở đáy màn xem lại, dưới hàng nút; ảnh co lại cho vừa phần còn lại, giữ tỷ lệ, không bị cắt hay che; bốn nút không bị che (`features/ads/spec.md`, câu 19).
+- [ ] Khi khóa `is_show_review_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (80 dp) hiện ở đáy màn xem lại, dưới hàng nút; ảnh co lại cho vừa phần còn lại, giữ tỷ lệ, không bị cắt hay che; bốn nút không bị che (`features/ads/spec.md`, câu 19).
 - [ ] Khi khóa `is_show_native_collap` bật thì màn xem lại vẫn chỉ có thanh nhỏ dưới hàng nút, không có lớp quảng cáo nổi phủ lên ảnh hay nút (`features/ads/spec.md`, câu 19, ý e).
 - [ ] Khi màn xem lại đang lưu, báo lỗi lưu, hay mở từ ô ảnh vừa chụp thì thanh vẫn ở đáy; hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên thanh.
-- [ ] Khi khóa tắt hay không tải được quảng cáo thì không có thanh, ảnh và nút như khi chưa có quảng cáo.
+- [ ] Khi `is_show_native_bottom` tắt thì khe đáy là banner ở cùng chỗ (`features/ads/spec.md`, câu 13); ảnh và bốn nút vẫn không bị che.
+- [ ] Khi khóa `is_show_review_bottom` tắt hay không tải được quảng cáo thì không có thanh, ảnh và nút như khi chưa có quảng cáo.
 
 ### KB-10. Hỏi đánh giá app
 
@@ -216,7 +217,7 @@ Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
 | `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình), khóa `ads_review_interstitial_first_break`; tối đa 1 lần mỗi 3 ảnh lưu, khóa `ads_review_interstitial_breaks_between`; nhịp chung của mọi quảng cáo toàn màn hình `ads_interval` (mặc định 45 giây). Không còn luật 120 giây riêng (`features/ads/spec.md`, câu 1, 2). | `is_show_review_interstitial` |
-| `review_bottom` (yêu cầu 2026-11-13) | native_small (thanh đáy) | Đáy màn xem lại, dưới hàng nút Lưu, Chụp lại, Chia sẻ, Tư thế tiếp; không phủ lên ảnh | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground, như `poses_bottom`; không bao giờ có lớp native thu gọn nổi, dù `is_show_native_collap` bật; tắt lúc phát hành (`features/ads/spec.md`, câu 19, ý e) | `is_show_review_bottom`, cùng `is_show_native_bottom` |
+| `review_bottom` (yêu cầu 2026-11-13) | native_small (thanh đáy) | Đáy màn xem lại, dưới hàng nút Lưu, Chụp lại, Chia sẻ, Tư thế tiếp; không phủ lên ảnh | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground, như `poses_bottom`; không bao giờ có lớp native thu gọn nổi, dù `is_show_native_collap` bật; tắt lúc phát hành (`features/ads/spec.md`, câu 19, ý e) | `is_show_review_bottom`; `is_show_native_bottom` chọn khe native hay banner |
 
 Sau `review_interstitial` có thể có quảng cáo native toàn màn hình (combo, `native_combo`, khóa `is_show_native_after_inter`), đếm ngược `time_close_native` giây rồi đóng được; rời màn xem lại khi combo đóng (`features/ads/spec.md`, câu 18).
 
@@ -273,7 +274,7 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | `feature_camera_enabled` | tắt | Từ T-081 không còn tác dụng: sau màn chào (hay khi màn chào không áp dụng) app luôn mở camera. Cờ bỏ khỏi code ở T-088. Trước T-081: bật để dùng camera làm màn chính |
 | `feature_pose_matching_enabled` | tắt | Bật nhận dạng dáng và điểm khớp; tắt từ xa nếu máy chậm hay báo sai nhiều |
 | `feature_in_app_review_enabled` | tắt | Bật hỏi đánh giá app trong app |
-| `is_show_review_bottom` | tắt | Bật thanh đáy `review_bottom` của màn xem lại; cần cả `is_show_native_bottom` bật. Bản staging bật sẵn; production bật dần (`features/ads/spec.md`, câu 19) |
+| `is_show_review_bottom` | tắt | Bật thanh đáy `review_bottom` của màn xem lại; `is_show_native_bottom` chọn khe native hay banner (`features/ads/spec.md`, câu 13). Bản staging bật sẵn; production bật dần (`features/ads/spec.md`, câu 19) |
 | `is_show_review_interstitial` | tắt | Bật quảng cáo `review_interstitial` (`features/ads/spec.md` câu 2; khóa cũ `ads_review_interstitial_enabled` bỏ từ T-074). Khóa chung `is_show_ads` (mặc định bật) tắt thì mọi quảng cáo tắt |
 
 ## 9. Câu hỏi còn mở
@@ -364,3 +365,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-11-13 | AI | Yêu cầu 2026-11-13 (`features/ads/requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`): thêm thanh đáy native nhỏ `review_bottom` ở màn xem lại, tắt lúc phát hành (mục 2, mục 5; `features/ads/spec.md`, câu 19). Chuyển `changed`, chờ trả lời câu 19 của spec ads và xác nhận |
 | 2026-11-13 | Nhật | Trả lời câu 19, ý a tới d (AI ghi): staging bật sẵn, thêm trạng thái `ad` trên Figma, thanh ở mọi trạng thái của màn xem lại, production bật dần 10%. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-13 | Nhật | Theo rà soát độc lập PR #323: sửa tiêu chí trái mục 5 mới (KB-1 của spec settings; KB-9, KB-11 của spec camera), thêm khóa ở mục 8, trạng thái `ad` ở mục 4; câu 19 ý e: không cho lớp native thu gọn ở `review_bottom` (AI ghi). Lời xác nhận lại của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Giữ `confirmed` |
+| 2026-11-13 | Nhật | Sửa vòng 2 theo rà soát PR #323 (AI ghi): `is_show_native_bottom` tắt thì khe đáy là banner (câu 13), thêm tiêu chí banner; spec settings thêm tiêu chí lớp nổi thu gọn; ghi thanh 80 dp theo khung hiện tại; spec camera đổi tên KB-9 thành "Quảng cáo ở màn xem lại". Chuyển `changed` rồi lại `confirmed`; lời xác nhận của Nhật: chọn "Xác nhận" khi được hỏi |

@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-11-13, câu 19; vị trí của màn ở mục 5 của features/settings/spec.md (confirmed 2026-11-13)
 scenarios: [KB-1]            # của features/settings/spec.md
 owner: Nhật
-status: backlog              # ready khi bốn frame trạng thái ad của câu 19, ý b đã duyệt
+status: backlog              # ready khi frame trạng thái ad của câu 19, ý b đã duyệt; tới lúc đó dev giữ ticket ngoài danh sách chạy và hàng chờ plan (plan_queue), vì plan-queue.py nhận cả ticket backlog
 risk: high
 size: S
 depends_on: []
@@ -48,7 +48,7 @@ Việc trước khi soạn plan: AI dựng `SettingsScreen_ad_light`, `SettingsS
 ## Định nghĩa hoàn thành
 
 - [ ] Tiêu chí của KB-1 của spec settings đạt; `is_show_settings_bottom` mặc định tắt.
-- [ ] Có test cho: thanh chừa chỗ và co về 0 theo luật thanh đáy của khung (D-02, D-04 của `docs/ops/ads-business-rules.md`); dòng cuối của danh sách cuộn tới được, không bị thanh che ở khung thấp; giá trị của bản staging.
+- [ ] Có test cho: thanh chừa chỗ và co về 0 theo hành vi hiện tại của khung (khe 80 dp, chỉ chừa chỗ khi khe đã có quảng cáo, nạp lỗi thì co về 0; như thanh đáy của thư viện); dòng cuối của danh sách cuộn tới được, không bị thanh che ở khung thấp; giá trị của bản staging.
 - [ ] Bảng khóa sinh lại khớp code; manifest gộp không đổi.
 - [ ] CI qua toàn bộ, đã merge vào nhánh chính, có trong bản staging.
 - [ ] Thử trên máy thật: thanh đáy ở Cài đặt (khóa bật trên staging), không bấm quảng cáo; đã nghiệm thu chéo.

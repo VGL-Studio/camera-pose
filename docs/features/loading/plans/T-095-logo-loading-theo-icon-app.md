@@ -31,7 +31,7 @@ Ticket xử lý các kịch bản sau trong `features/loading/spec.md`:
 
 Thiết kế tham chiếu: `features/loading/design/README.md` (duyệt 2026-11-13), ảnh `design/screens/LoadingScreen_progress_light.png`, `LoadingScreen_progress_dark.png`, `LoadingScreen_failed_light.png`, `LoadingScreen_failed_dark.png`.
 
-ADR liên quan: ADR-0008 (`:core:designsystem` là bản gốc của hệ thống thiết kế; mỗi app thay logo của mình), ADR-0020 (screenshot test cùng tên ảnh thiết kế), ADR-0031 (viết lại câu khẳng định cũ).
+ADR liên quan: ADR-0008 (`:core:designsystem` là bản gốc của hệ thống thiết kế; mỗi app thay logo của mình), ADR-0020 (screenshot test cùng tên ảnh thiết kế), ADR-0031 (mục 3.5; xóa test cũ chờ người duyệt, câu hỏi 4).
 
 ## 3. Giải pháp
 
@@ -69,7 +69,7 @@ Mẫu làm theo: ảnh WebP trong `drawable-nodpi` vẽ bằng `Image` như `Onb
 | Tạo | `core/designsystem/src/main/res/drawable-nodpi/brand_logo.png` | (dự phòng) Chép `docs/brand/app-icon/play-store-512.png`, mục 3.4 |
 | Sửa | `core/designsystem/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/component/BrandLogo.kt` | Vẽ ảnh `brand_logo`, cắt bo `Radius.sheet`, bỏ viền, bóng, nền; KDoc mới |
 | Sửa | `core/designsystem/src/main/res/drawable/brand_mark.xml` | Chỉ chú thích dòng 2 |
-| Sửa | `core/designsystem/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/ComponentsTest.kt` | Viết lại `brandLogo_fill_isSecondaryContainer` (mục 3.5), thêm hai test logo (mục 4) |
+| Sửa | `core/designsystem/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/ComponentsTest.kt` | Xóa `brandLogo_fill_isSecondaryContainer` khi người duyệt chấp nhận câu hỏi 4 (mục 3.5, 8); thêm `brandLogo_fill_isAppIconArtwork`, `brandLogo_hasNoOutline`, `brandLogo_hasNoShadow` (mục 4) |
 | Sửa | `core/designsystem/src/test/screenshots/DesignSystem_brand_light.png` | Ghi lại ảnh chuẩn |
 | Sửa | `core/designsystem/src/test/screenshots/DesignSystem_brand_dark.png` | Ghi lại ảnh chuẩn |
 | Sửa | `feature/loading/src/test/screenshots/LoadingScreen_progress_light.png` | Ghi lại ảnh chuẩn |
@@ -116,7 +116,7 @@ Không file nào khác đọc `brand_mark.xml` hay `BrandLogo` ngoài `LoadingSc
 
 | Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
 | --- | --- | --- | --- |
-| Nền logo là `secondaryContainer` `#FFC83D` (điểm 56 dp, 8 dp) | Nền logo là ảnh biểu tượng app. Ảnh luôn 4 px mỗi dp (448 px trên 112 dp); dải nền cam ở đỉnh ảnh chỉ cao khoảng 10 dp, dưới đó là khung ảnh tư thế màu kem. Đo bằng Pillow trên `brand-logo-448.webp`: hàng 20 (5 dp) là `(252, 181, 30)`; thu về 112 px thì (56, 5) cũng là `(252, 181, 30)` | `ComponentsTest.brandLogo_fill_isSecondaryContainer` | Không có màu cố định để so bằng (ảnh là dải màu, nén WebP có mất mát, thu nhỏ khi vẽ), nên câu cũ không viết lại được mà vẫn giữ phép so bằng. Đề xuất (câu hỏi 4, mục 8): người duyệt chấp nhận ngoại lệ của ADR-0031, xóa test này và thay bằng test viết trước `brandLogo_fill_isAppIconArtwork` (mục 4, dùng khoảng màu). Người duyệt không chấp nhận thì phiên giữ nguyên test cũ và dừng task theo điều kiện 5 của `risk-scoring.md` |
+| Nền logo là `secondaryContainer` `#FFC83D` (điểm 56 dp, 8 dp) | Nền logo là ảnh biểu tượng app. Ảnh luôn 4 px mỗi dp (448 px trên 112 dp); dải nền cam ở đỉnh ảnh chỉ cao khoảng 10 dp, dưới đó là khung ảnh tư thế màu kem. Đo bằng Pillow trên `brand-logo-448.webp`: hàng 20 (5 dp) là `(252, 181, 30)`; thu về 112 px thì (56, 5) cũng là `(252, 181, 30)` | `ComponentsTest.brandLogo_fill_isSecondaryContainer` | Không có màu cố định để so bằng (ảnh là dải màu, nén WebP có mất mát, thu nhỏ khi vẽ), nên câu cũ không viết lại được mà vẫn giữ phép so bằng. Đề xuất (câu hỏi 4, mục 8): người duyệt chấp nhận ngoại lệ của ADR-0031, xóa test này và thay bằng test viết trước `brandLogo_fill_isAppIconArtwork` (mục 4, dùng khoảng màu). Người duyệt không chấp nhận thì plan không được duyệt ở bản này; làm bản 2 theo phương án khác ở câu hỏi 4 |
 | Logo 112 x 112 dp | Giữ | `ComponentsTest.brandLogo_is112dpSquare` | Giữ nguyên |
 | Logo đầu ở 200 dp, cao 112, tên app ở 336 dp | Giữ (không có bóng hay đệm ngoài ô) | `LoadingScreenTest` (đo `logo top`, `logo height`, `app name top`) | Giữ nguyên |
 | Ảnh chuẩn có logo cũ | Ảnh chuẩn có logo mới | `LoadingScreenScreenshotTest` (8 ảnh), `DesignSystemCatalogScreenshotTest.brand_light`, `brand_dark` | Ghi lại ảnh chuẩn theo mục 3.2, không đổi test |
@@ -150,7 +150,7 @@ git status --short -- '*/src/test/screenshots/*'
 
 Chỉ giữ 10 ảnh của mục 3.2; ảnh khác đổi thì trả về bằng `git checkout -- <ảnh>` (`CLAUDE.md`, mục Lệnh). Logo không có bóng nên không gặp lệch macOS và Linux của ảnh có bóng.
 
-**Ngoại lệ viết test trước:** tệp `brand_logo.webp` và chú thích của `brand_mark.xml` là tài nguyên; ảnh chuẩn ghi sau khi code xong. Bốn test điểm ảnh ở trên viết trước và thất bại trên code cũ (trừ phần góc bo, là đối chứng).
+**Ngoại lệ viết test trước:** tệp `brand_logo.webp` và chú thích của `brand_mark.xml` là tài nguyên; ảnh chuẩn ghi sau khi code xong. Ba test điểm ảnh ở trên viết trước và thất bại trên code cũ (trừ câu góc bo trong `brandLogo_hasNoShadow`, là đối chứng).
 
 ### 4.1. Chạy thử
 
@@ -186,7 +186,7 @@ Không cần (E dưới 2): ảnh WebP trong `drawable-nodpi` vẽ bằng `Image
 2. **Ảnh 448 px WebP chất lượng 90 (29 KB) có đủ không?** Đề xuất: đủ cho ô 112 dp ở mọi mật độ tới `xxxhdpi`. Phương án khác: PNG 512 px (330 KB, nét hơn một chút khi phóng).
 3. **Nhóm có một dev:** Nhật vừa duyệt vừa duyệt chéo, ghi lý do ở mục 9 (`risk-scoring.md`, mục 3).
 
-4. **Thay `brandLogo_fill_isSecondaryContainer` (ngoại lệ ADR-0031).** Câu cũ so bằng `#FFC83D`; nền mới là ảnh nên không có một màu cố định để so bằng, mà ADR-0031 không cho đổi so bằng thành khoảng. Đề xuất: chấp nhận ngoại lệ, xóa test cũ, thay bằng test viết trước `brandLogo_fill_isAppIconArtwork` (khoảng màu, thất bại trên code cũ), ghi vào mục 9. Phương án khác: không chấp nhận, plan phải tìm cách so bằng (ví dụ ảnh logo một màu ở điểm đo), cần sửa ảnh.
+4. **Thay `brandLogo_fill_isSecondaryContainer` (ngoại lệ ADR-0031).** Câu cũ so bằng `#FFC83D`; nền mới là ảnh nên không có một màu cố định để so bằng, mà ADR-0031 không cho đổi so bằng thành khoảng. Đề xuất: chấp nhận ngoại lệ, xóa test cũ, thay bằng test viết trước `brandLogo_fill_isAppIconArtwork` (khoảng màu, thất bại trên code cũ), ghi vào mục 9. Khi chấp nhận, mục 9 ghi rõ việc xóa test đã được duyệt, để phiên không vướng điều kiện dừng 5 của `risk-scoring.md`. Không chấp nhận thì plan không được duyệt ở bản này; bản 2 chọn một cách giữ phép so bằng: so điểm ảnh vẽ ra với điểm tương ứng của chính `R.drawable.brand_logo` giải mã và thu cùng cỡ (dễ chập chờn vì bộ lọc thu nhỏ), hoặc sửa ảnh để có một vùng một màu ở điểm đo.
 
 ## 9. Quyết định duyệt
 

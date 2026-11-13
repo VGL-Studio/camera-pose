@@ -1,11 +1,12 @@
 ---
 feature: ads
-status: confirmed        # draft | confirmed | changed
+status: changed          # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
   - requests/2026-10-31-thanh-day-native-thu-gon.md
   - requests/2026-11-02-bat-combo-native-toan-man-hinh.md
+  - requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
 confirmed: 2026-11-02
@@ -40,6 +41,9 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
   - `rw_premium_pose`: quảng cáo có thưởng mở khóa tư thế premium; không có quảng cáo thì chặn (spec poses, KB-8, câu 8, 10).
   - Lớp banner và lớp native thu gọn của thanh đáy có mã quảng cáo ở production (khóa chung theo khe `banner`, `native_collap`; câu 14), chọn lớp bằng hai khóa có sẵn `is_show_native_bottom`, `is_show_native_collap` (câu 13 tới 15).
 - Combo native toàn màn hình (`native_combo`) sau mỗi interstitial của màn (`review_interstitial`, `inter_pose_detail`), đếm ngược theo `time_close_native`; bật ở staging và production (câu 18, thay phần combo của câu 6 và câu 9). Ticket T-090.
+- Theo yêu cầu 2026-11-13 (câu 19), hai thanh đáy native nhỏ mới, tắt lúc phát hành:
+  - `settings_bottom`: đáy màn Cài đặt (spec settings, mục 5);
+  - `review_bottom`: đáy màn xem lại ảnh, dưới hàng nút (spec camera, mục 5).
 
 **Ngoài phạm vi:**
 
@@ -58,7 +62,7 @@ Không có thiết kế riêng: thanh đáy native, ô quảng cáo trong lướ
 
 ## 5. Quảng cáo
 
-Vị trí của màn: theo `features/camera/spec.md`, `features/poses/spec.md` và `features/onboarding/spec.md`, mục 5 (câu 7 tới 10 đã chép vào spec poses; câu 12 ở spec onboarding và poses). Hai vị trí toàn app (`open_app`, `resume`) ghi ở đây theo câu 6, và chép vào mục 5 của `features/loading/spec.md` (quảng cáo mở app hiện sau loading) và `features/camera/spec.md` (quảng cáo khi quay lại app có thể hiện khi người dùng quay lại lúc đang ở camera) trong PR của T-074. Không thêm vị trí khác.
+Vị trí của màn: theo `features/camera/spec.md`, `features/poses/spec.md`, `features/onboarding/spec.md` và `features/settings/spec.md`, mục 5 (câu 7 tới 10 đã chép vào spec poses; câu 12 ở spec onboarding và poses). Hai vị trí toàn app (`open_app`, `resume`) ghi ở đây theo câu 6, và chép vào mục 5 của `features/loading/spec.md` (quảng cáo mở app hiện sau loading) và `features/camera/spec.md` (quảng cáo khi quay lại app có thể hiện khi người dùng quay lại lúc đang ở camera) trong PR của T-074. Không thêm vị trí khác.
 
 ## 6. Dữ liệu và phân tích
 
@@ -85,7 +89,7 @@ Không có.
 
 ## 8. Cờ tính năng
 
-Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu 2): `is_show_review_interstitial`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_inter_pose_detail`, `is_show_poses_in_collection`; thêm `native_every_poses_in_collection` (mặc định 8). Khóa chung của thanh đáy theo câu 8, 10.
+Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu 2): `is_show_review_interstitial`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_inter_pose_detail`, `is_show_poses_in_collection`; thêm `native_every_poses_in_collection` (mặc định 8). Câu 19 thêm `is_show_settings_bottom`, `is_show_review_bottom`, mặc định tắt. Khóa chung của thanh đáy theo câu 8, 10.
 
 ## 9. Câu hỏi còn mở
 
@@ -216,6 +220,24 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
       - Cần mã quảng cáo thật của `native_combo` trong cấu hình phát hành (T-075). Đặt khóa trên Firebase production là việc của người (ADR-0007, ADR-0009).
     - Đếm ngược, nút đóng, nút Back theo khung (K-02 tới K-08, `time_close_native` mặc định 5 giây). Màn camera và thư viện, chi tiết chép câu này vào mục 5 của spec camera và spec poses trong PR của T-090.
 
+19. **Quảng cáo ở màn Cài đặt và màn xem lại ảnh** (yêu cầu `requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`). Spec settings ghi "Không có" quảng cáo; spec camera ghi màn xem lại không có vị trí nào của màn (bài học 3: app mẫu bị chê vì quảng cáo che camera và ảnh).
+    - Định dạng: thanh đáy native nhỏ ở cả hai màn, vị trí `settings_bottom` và `review_bottom`, cùng luật với `poses_bottom` (thay nội dung tại chỗ mỗi 60 giây, theo `is_show_native_bottom`, `is_show_native_collap` của câu 13 tới 15). Chọn "Thanh đáy native small" cho cả hai màn. Nhật, 2026-11-13.
+    - Màn xem lại đi ngược một phần bài học 3; thanh nằm dưới hàng nút, không phủ lên ảnh. Nhật chọn phương án này sau khi được nhắc bài học 3. Nhật, 2026-11-13.
+    - Lúc phát hành: tắt cả hai, nhóm bật sau bằng `is_show_settings_bottom`, `is_show_review_bottom` trên Firebase. Chọn "Tắt, bật sau trên Remote Config". Nhật, 2026-11-13.
+    - **Còn mở, a. Bản staging bật sẵn hai vị trí?**
+      - Đề xuất của AI: bật sẵn trong `StagingRemoteValuesModule`, như câu 11, để người thử thấy bố cục có quảng cáo; Firebase staging vẫn tắt được.
+      - Trả lời:
+    - **Còn mở, b. Thiết kế.** Thiết kế Cài đặt (sáng, tối) và xem lại (tối, mở gập) chưa có thanh quảng cáo. Ticket giao diện chỉ `ready` khi thiết kế đã duyệt.
+      - Đề xuất của AI: thêm trạng thái `ad` lên Figma: `SettingsScreen_ad_light`, `SettingsScreen_ad_dark`, `ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded`, dùng khối thanh đáy native nhỏ có sẵn của trạng thái `ad` ở thư viện; dev duyệt rồi lập lại gói bàn giao. Màn xem lại: ảnh co lại cho vừa phần trên hàng nút, giữ tỷ lệ, không bị cắt.
+      - Trả lời:
+    - **Còn mở, c. Màn xem lại ở các trạng thái khác.**
+      - Đề xuất của AI: thanh hiện ở mọi trạng thái của màn xem lại (`default`, `saving`, `save-error`), cả khi mở từ ô ảnh vừa chụp ở camera; hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên như hôm nay; nút Chia sẻ đi qua lối rời app có chủ đích như hôm nay, nên quảng cáo khi quay lại app không hiện ngay sau chia sẻ.
+      - Trả lời:
+    - **Còn mở, d. Đo kết quả trước khi bật `review_bottom` cho mọi người.**
+      - Đề xuất của AI: bật dần trên Firebase (10% người dùng trước), giữ khi tỷ lệ lưu ảnh (`photo_saved` trên `photo_captured`) và tỷ lệ giữ chân ngày 1 không giảm quá 2 điểm sau một tuần; `settings_bottom` bật cho mọi người luôn khi nhóm muốn. Không thêm sự kiện mới.
+      - Trả lời:
+    - Mã quảng cáo thật của hai vị trí trong cấu hình phát hành và khóa trên Firebase production là việc của người (ADR-0007, ADR-0009); vị trí tắt nên bản phát hành chưa cần mã khi chưa bật.
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -242,3 +264,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-01 | AI | Câu 17, theo rà soát lại PR #279: sửa chữ cho đúng code (`gallery_banner_mrec` có trong danh sách vị trí ở mọi bản, mặc định tắt). Không đổi câu trả lời, spec giữ `confirmed` |
 | 2026-11-02 | AI | Yêu cầu bật combo native toàn màn hình (`requests/2026-11-02-bat-combo-native-toan-man-hinh.md`); Nhật trả lời câu 18 trong phiên (AI ghi): sau mọi interstitial trừ `open_app_inter`, `resume_inter`; bật ở staging; production bật khi phát hành. Sửa mục 2. Chuyển `changed`, chờ xác nhận. Ticket T-090 |
 | 2026-11-02 | Nhật | Xác nhận câu 18 và phần sửa mục 2. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-11-13 | AI | Yêu cầu quảng cáo ở màn Cài đặt và màn xem lại (`requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`); Nhật trả lời phần đầu câu 19 trong phiên (AI ghi): thanh đáy native nhỏ `settings_bottom`, `review_bottom`, tắt lúc phát hành. Sửa mục 2, 5, 8; câu 19 còn bốn ý mở. Chuyển `changed`, chờ trả lời và xác nhận |

@@ -1,6 +1,6 @@
 ---
 feature: camera
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -32,6 +32,7 @@ confirmed: 2026-11-10
 - Lưu ảnh vào thư mục ảnh riêng của app trong thư viện máy, không kèm nét viền, không xin quyền đọc ảnh. Android 10 trở lên không hỏi quyền nào; Android 9 trở xuống hỏi quyền lưu tệp vào bộ nhớ máy ở lần lưu đầu tiên, vì các bản này không cho lưu vào thư viện máy khi chưa có quyền đó (câu hỏi 10).
 - Xin quyền camera khi chưa có, trạng thái chưa có quyền với nút mở cài đặt máy.
 - Quảng cáo toàn màn hình khi rời màn xem lại sau khi đã lưu ảnh (mức B).
+- Thanh quảng cáo nhỏ ở đáy màn xem lại, dưới hàng nút, tắt lúc phát hành (`features/ads/spec.md`, câu 19).
 - Hỏi đánh giá app trong app sau khi người dùng đã lưu đủ ảnh (bản đề xuất, câu 12.8).
 - Điện thoại màn hình gập, khi mở ra: khung xem trước giữ 3:4, nút chụp và công cụ dời sang cột bên.
 - Điện thoại khóa chiều dọc ở mọi màn của app. Màn lớn (cạnh ngắn từ 600 dp: máy gập khi mở ra, máy tính bảng) không khóa hướng: app dùng cả màn hình theo hướng của máy, với bố cục mở gập (câu hỏi 7, phần bổ sung; câu hỏi 15).
@@ -210,10 +211,11 @@ Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
 | `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình), khóa `ads_review_interstitial_first_break`; tối đa 1 lần mỗi 3 ảnh lưu, khóa `ads_review_interstitial_breaks_between`; nhịp chung của mọi quảng cáo toàn màn hình `ads_interval` (mặc định 45 giây). Không còn luật 120 giây riêng (`features/ads/spec.md`, câu 1, 2). | `is_show_review_interstitial` |
+| `review_bottom` (yêu cầu 2026-11-13) | native_small (thanh đáy) | Đáy màn xem lại, dưới hàng nút Lưu, Chụp lại, Chia sẻ, Tư thế tiếp; không phủ lên ảnh | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground, như `poses_bottom`; tắt lúc phát hành (`features/ads/spec.md`, câu 19) | `is_show_review_bottom`, cùng `is_show_native_bottom` |
 
 Sau `review_interstitial` có thể có quảng cáo native toàn màn hình (combo, `native_combo`, khóa `is_show_native_after_inter`), đếm ngược `time_close_native` giây rồi đóng được; rời màn xem lại khi combo đóng (`features/ads/spec.md`, câu 18).
 
-Màn camera và màn xem lại không có vị trí quảng cáo nào của màn (bài học 3).
+Màn camera không có vị trí quảng cáo nào của màn (bài học 3). Màn xem lại có `review_bottom` từ yêu cầu 2026-11-13: Nhật chọn đi ngược một phần bài học 3, thanh nằm dưới hàng nút và không che ảnh (`features/ads/spec.md`, câu 19). Trạng thái thiết kế và hành vi ở các trạng thái khác của màn xem lại chờ trả lời câu 19, ý b và c.
 
 Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) hiện ở mọi màn, nên có thể phủ lên camera hay màn xem lại khi người dùng quay lại app lúc đang ở đó. Đây là lựa chọn có chủ đích, đi ngược một phần bài học 3; Nhật chốt ngày 2026-10-28. Khung không hiện quảng cáo này khi người dùng vừa rời app có chủ đích (hộp thoại quyền, chia sẻ ảnh); app đánh dấu các chỗ đó (T-074). Đóng quảng cáo thì camera mở lại như khi quay lại app thường.
 
@@ -353,3 +355,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-31 | Nhật | Mục 8: cờ `feature_camera_enabled` không còn tác dụng từ T-081 (app luôn mở camera; plan T-081 câu 1), bỏ ở T-088 (rà soát độc lập plan T-081; AI ghi). Lời của Nhật: chọn "Sửa spec + ticket bỏ cờ", phương án ghi rõ Nhật xác nhận spec lại ngay. Chuyển `changed` rồi lại `confirmed` |
 | 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `review_interstitial` (mục 5, KB-9 tiêu chí 1). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |
 | 2026-11-10 | Nhật | Xác nhận lại spec sau T-090 (AI ghi theo lời Nhật trong phiên). Mục 1 thêm cách đếm: một interstitial cùng combo theo sau tính là một lần (plan T-090, mục 8, câu 7). Chuyển lại `confirmed` |
+| 2026-11-13 | AI | Yêu cầu 2026-11-13 (`features/ads/requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`): thêm thanh đáy native nhỏ `review_bottom` ở màn xem lại, tắt lúc phát hành (mục 2, mục 5; `features/ads/spec.md`, câu 19). Chuyển `changed`, chờ trả lời câu 19 của spec ads và xác nhận |

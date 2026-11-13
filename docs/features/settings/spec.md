@@ -1,6 +1,6 @@
 ---
 feature: settings
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -94,7 +94,11 @@ Hộp chọn dùng thành phần có sẵn của hệ thống thiết kế; chư
 
 ## 5. Quảng cáo
 
-Không có.
+| Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
+| --- | --- | --- | --- | --- |
+| `settings_bottom` (yêu cầu 2026-11-13) | native_small (thanh đáy) | Đáy màn Cài đặt, khi màn đang mở; danh sách cài đặt cuộn phía trên, không bị che | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground, như `poses_bottom`; tắt lúc phát hành (`features/ads/spec.md`, câu 19) | `is_show_settings_bottom`, cùng `is_show_native_bottom` |
+
+Trạng thái thiết kế có thanh quảng cáo chờ trả lời câu 19, ý b của `features/ads/spec.md`. Mở trang chính sách quyền riêng tư (KB-5) là rời app có chủ đích, nên quảng cáo khi quay lại app không hiện ngay sau đó.
 
 ## 6. Dữ liệu và phân tích
 
@@ -142,3 +146,4 @@ Không có.
 | --- | --- | --- |
 | 2026-10-21 | AI | Tạo bản đầu từ yêu cầu (bản đề xuất đã duyệt) |
 | 2026-10-21 | AI | Ghi các câu trả lời của anh Nhật vào nội dung: đường dẫn chính sách quyền riêng tư mặc định; thêm frame hộp chọn giao diện |
+| 2026-11-13 | AI | Yêu cầu 2026-11-13 (`features/ads/requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`): thêm thanh đáy native nhỏ `settings_bottom`, tắt lúc phát hành (mục 5; `features/ads/spec.md`, câu 19). Chuyển `changed`, chờ trả lời câu 19 của spec ads và xác nhận |

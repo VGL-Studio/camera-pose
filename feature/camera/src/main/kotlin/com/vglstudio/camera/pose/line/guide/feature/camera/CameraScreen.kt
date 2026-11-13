@@ -141,6 +141,8 @@ internal fun CameraRoute(
         if (lastPhotoViewModel.consumeNextPoseRequest()) poseViewModel.onNextPose()
         onStopOrDispose { viewModel.onScreenStopped() }
     }
+    // The camera does not run under a full-screen ad; RESUMED tells a stuck ad flag apart (plan T-097).
+    CameraResumeEffect(onResumed = viewModel::onScreenResumed, onPaused = viewModel::onScreenPaused)
     // Only while started: a photo taken just as the app went to the background opens the review screen on return.
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {

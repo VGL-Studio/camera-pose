@@ -6,7 +6,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * The camera does not run under a full-screen ad (spec camera, section 5; plan T-097): the feature reads the flag of
@@ -16,9 +15,5 @@ import kotlinx.coroutines.flow.MutableStateFlow
 @InstallIn(SingletonComponent::class)
 object CameraAdCoverModule {
     @Provides
-    fun fullScreenAdCover(ads: AdsController): FullScreenAdCover {
-        // Skeleton for the tests written first (plan T-097, section 3.2): never covered.
-        val never = MutableStateFlow(false)
-        return FullScreenAdCover { never }
-    }
+    fun fullScreenAdCover(ads: AdsController): FullScreenAdCover = FullScreenAdCover { ads.fullScreenAdShowing }
 }

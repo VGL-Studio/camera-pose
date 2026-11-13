@@ -160,6 +160,8 @@ class CameraViewModelTest {
     @Test
     fun permissionGranted_logsEvent_andOpens() = runTest {
         val viewModel = viewModel()
+        // The request starts from a started screen; the camera opens only on a started screen (plan T-097, 3.1).
+        viewModel.onScreenStarted(permissionGranted = false)
         viewModel.onPermissionResult(granted = true)
         runCurrent()
         assertEquals(

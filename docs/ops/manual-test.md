@@ -388,8 +388,9 @@ Màn loading tắt thì không có quảng cáo mở app. Bản staging bật s�
 
 1. Ở thư viện: bấm Home, mở lại app.
    - [ ] Quảng cáo mở app thử hiện; log `Resume ad SHOW: resume`.
-2. Ở camera: bấm Home, mở lại app.
-   - [ ] Quảng cáo hiện; đóng quảng cáo thì khung camera chạy lại.
+2. Ở camera: bấm Home, đợi 2 giây, mở lại app từ biểu tượng (T-097, spec camera mục 5). Log: `adb logcat -v threadtime | grep -E ' VGL\.(Ads|Camera)'`. Thử với `resume_ad_type` là `inter` trên Firebase staging, rồi lặp lại với giá trị mặc định (quảng cáo mở app).
+   - [ ] Quảng cáo hiện; trong lúc quảng cáo còn trên màn, chấm báo camera của Android tắt; log có `Camera closed: full-screen ad` hay `Camera waits for the full-screen ad`.
+   - [ ] `Camera reopens after the full-screen ad` và `Camera ready` chỉ có sau khi quảng cáo đã đóng trên màn hình (gần dòng `Full-screen turn finished: closed`); khung camera chạy lại, giữ tư thế, đèn flash, hẹn giờ, lưới, ống kính.
 3. Xóa quyền camera (Cài đặt máy > Ứng dụng > Camera Pose > Quyền), mở app, cho quyền khi được hỏi.
    - [ ] Không có quảng cáo quay lại app sau hộp hỏi quyền (hộp hỏi quyền chỉ tạm dừng màn hình, app không ra nền, nên không có dòng log `Resume ad` nào).
 4. Chụp, chia sẻ ảnh qua một app khác, quay lại.
@@ -439,6 +440,7 @@ Màn loading tắt thì không có quảng cáo mở app. Bản staging bật s�
    - [ ] Hộp thoại mở khóa hiện với tên tư thế đó; tư thế đang dùng không đổi.
    - [ ] "Để sau": không đổi gì.
    - [ ] Chạm lại, "Xem quảng cáo", xem hết: camera dùng tư thế đó, ô không còn dấu.
+   - [ ] Trong lúc quảng cáo có thưởng hiện, chấm báo camera của Android tắt; log `Camera closed: full-screen ad` (T-097, spec camera mục 5). Xem xong: `Camera reopens after the full-screen ad` rồi `Camera ready`, khung camera chạy lại với tư thế vừa mở khóa.
 9. Trên Firebase staging đặt `is_show_rw_premium_pose` thành `false`, mở lại app, chạm một tư thế premium chưa mở (thẻ rồi nút mở khóa, hay ô ở camera).
    - [ ] Tư thế mở ngay, không có hộp thoại, không có quảng cáo. Đặt lại khóa như cũ.
 10. Vuốt app khỏi danh sách gần đây, mở lại.

@@ -1,16 +1,16 @@
 ---
 ticket: T-096
 title: Hỏi đánh giá app tính cả ảnh vừa lưu từ hộp thoại khi rời màn xem lại
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score: 5                # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: medium           # low | medium | high
 token_estimate: 7.2M         # cỡ S theo scripts/token-usage.py estimate (2026-11-13), không nâng tay
 blocking_points: []          # các điểm chặn bị chạm, ví dụ [ads, sdk]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật
+cross_reviewer:                  # mức trung bình, không bắt buộc
+approved_at: 2026-11-13
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -164,8 +164,10 @@ Không cần (E dưới 2). Lệnh đo ở mục 4: `./gradlew :feature:camera:t
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:**
-- **Người duyệt:**
-- **Ghi chú:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** không bắt buộc (mức trung bình)
+- **Ghi chú:** Nhật duyệt trong phiên có người theo dõi ngày 2026-11-13, lời của Nhật: "duyệt", sau khi AI tóm tắt plan và nói câu hỏi mục 8 theo đề xuất của AI. AI ghi thay. Cùng lúc Nhật xác nhận phần sửa spec camera ở PR #335. Trả lời câu hỏi ở mục 8:
+  1. Giữ giao diện của `SavedPhotosRepository`; ViewModel đọc lại `savedCount.first()` sau `recordSaved`, không để `recordSaved` trả số mới.
+  2. Không sửa ở plan này đường hiếm "bấm Lưu rồi rời màn trong vài mili giây khi việc ghi số đếm chưa xong"; lời hỏi khi đó vẫn nhận số cũ như hôm nay.
 
 ## 10. Nhật ký thực hiện

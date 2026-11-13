@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -399,7 +400,11 @@ class ReviewScreenTest {
 
         // The spinner never ends: keep the frame clock still (L-029).
         composeRule.mainClock.autoAdvance = false
-        composeRule.runOnUiThread { screenState = Ready(PATH, SaveStatus.SAVING) }
+        composeRule.runOnUiThread {
+            screenState = Ready(PATH, SaveStatus.SAVING)
+            // With the clock stopped no frame sends the change: send it so the next frame recomposes.
+            Snapshot.sendApplyNotifications()
+        }
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.mainClock.advanceTimeByFrame()
         composeRule.onNodeWithText("Đang lưu…").assertExists()

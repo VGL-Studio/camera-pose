@@ -7,12 +7,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -282,6 +280,7 @@ class ReviewScreenUnfoldedTest {
         assertCompactColumn(
             "PERMISSION_BLOCKED",
             "Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện.",
+            "Mở cài đặt",
             "Lưu ảnh",
             137f,
         )
@@ -289,7 +288,7 @@ class ReviewScreenUnfoldedTest {
 
         calls.clear()
         update { screenState = Ready(PATH, SaveStatus.FAILED_STORAGE_FULL) }
-        assertCompactColumn("FAILED_STORAGE_FULL", "Không lưu được ảnh: bộ nhớ máy đã đầy.", "Lưu ảnh", 137f)
+        assertCompactColumn("FAILED_STORAGE_FULL", "Không lưu được ảnh: bộ nhớ máy đã đầy.", "Thử lại", "Lưu ảnh", 137f)
         assertEquals(listOf("save"), calls)
     }
 
@@ -300,6 +299,7 @@ class ReviewScreenUnfoldedTest {
         assertCompactColumn(
             "pt-BR PERMISSION_BLOCKED",
             "Permita salvar fotos nas Configurações do aparelho para salvar na galeria.",
+            "Abrir configurações",
             "Salvar foto",
             160.7f,
         )
@@ -308,10 +308,17 @@ class ReviewScreenUnfoldedTest {
 
     /**
      * Too little room in the right column for the stacked actions, the error and the main button: the actions side by
-     * side (72 high), the error with its action on the same line, the main button whole (56) and above the slot. Taps
+     * side (72 high), the error with its action ([actionText]) on the same line, the main button whole (56) and above
+     * the slot. Taps
      * the main button once.
      */
-    private fun assertCompactColumn(state: String, message: String, saveText: String, saveWidth: Float) {
+    private fun assertCompactColumn(
+        state: String,
+        message: String,
+        actionText: String,
+        saveText: String,
+        saveWidth: Float,
+    ) {
         val slot = bounds(FAKE_AD_SLOT)
         assertNear("$state slot top", 424f, slot.top, 0.5f)
         val save = bounds(ReviewTestTags.SAVE)
@@ -329,7 +336,11 @@ class ReviewScreenUnfoldedTest {
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         val label = layouts.single()
         assertFalse("$state label overflows its height", label.didOverflowHeight)
-        assertFalse("$state label overflows its width", label.didOverflowWidth)
+        // didOverflowWidth of this action is true even in the unchanged layout (the paragraph takes the whole width of
+        // its constraints): the drawn line must fit in the size of the text instead, not cut nor ellipsized.
+        val lineWidth = label.getLineRight(0) - label.getLineLeft(0)
+        assertTrue("$state label line $lineWidth wider than ${label.size.width}", lineWidth <= label.size.width + 0.5f)
+        assertFalse("$state label ellipsized", label.isLineEllipsized(0))
         assertEquals("$state label lines", 1, label.lineCount)
         // The actions side by side, as on a phone.
         val actions = bounds(ReviewTestTags.ACTIONS)
@@ -344,9 +355,7 @@ class ReviewScreenUnfoldedTest {
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(messageLayouts) }
         assertEquals("$state message lines", 1, messageLayouts.single().lineCount)
         val text = composeRule.onNode(inSaveError(message), useUnmergedTree = true).getUnclippedBoundsInRoot()
-        val action = composeRule.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(ReviewTestTags.SAVE_ERROR)))
-            .onFirst()
-            .getUnclippedBoundsInRoot()
+        val action = composeRule.onNode(inSaveError(actionText), useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue("$state action ${action.top} on the line of the message ${text.bottom}", action.top < text.bottom)
         assertTrue("$state action ${action.left} right of the message ${text.right}", action.left >= text.right)
         composeRule.onNodeWithTag(ReviewTestTags.SAVE).performClick()

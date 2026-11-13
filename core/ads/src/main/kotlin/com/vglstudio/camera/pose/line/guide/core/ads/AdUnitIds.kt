@@ -92,10 +92,15 @@ internal val BOTTOM_BAR_LAYER_FORMATS = listOf(AdFormat.BANNER, AdFormat.NATIVE_
 
 /**
  * The layers of this placement: a native small placement is a bottom bar (MC-08, [BottomAdBarScaffold]), so it has
- * the [BOTTOM_BAR_LAYER_FORMATS]; any other has none.
+ * the [BOTTOM_BAR_LAYER_FORMATS], without the collapsible layer when it declares none ([collapsibleLayer] false,
+ * plan T-094); any other has none.
  */
 internal val AdPlacementDeclaration.layerFormats: List<AdFormat>
-    get() = if (format == AdFormat.NATIVE_SMALL) BOTTOM_BAR_LAYER_FORMATS else emptyList()
+    get() = when {
+        format != AdFormat.NATIVE_SMALL -> emptyList()
+        collapsibleLayer -> BOTTOM_BAR_LAYER_FORMATS
+        else -> BOTTOM_BAR_LAYER_FORMATS - AdFormat.NATIVE_COLLAPSIBLE
+    }
 
 /**
  * The keys missing from `adUnits` for [placements], given the [configured] keys: placement keys of the placements

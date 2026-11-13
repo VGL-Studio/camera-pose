@@ -48,16 +48,20 @@ internal fun bottomAdBarLayers(allowed: Boolean, flags: AdsGlobalFlags): BottomA
 /**
  * The layers of the bar from consent, `is_show_<code>` and whether the banner slot has an ad (D-01, D-04, B-06).
  * Without consent only a banner that had an ad is kept, never the native slot or the layer: nothing may load then.
+ * [collapsibleLayer] is the declaration of the placement: false never gives the layer, whatever
+ * `is_show_native_collap` says (plan T-094).
  */
 internal fun bottomAdBarLayers(
     canRequestAds: Boolean,
     enabled: Boolean,
     flags: AdsGlobalFlags,
     bannerHadAd: Boolean,
+    collapsibleLayer: Boolean,
 ): BottomAdBarLayers? {
     if (!bottomAdBarAllowed(canRequestAds, enabled, bannerHadAd)) return null
     if (!canRequestAds) return BottomAdBarLayers(BottomSlotKind.BANNER, collapsible = false)
-    return bottomAdBarLayers(allowed = true, flags = flags)
+    val layers = bottomAdBarLayers(allowed = true, flags = flags) ?: return null
+    return if (collapsibleLayer) layers else layers.copy(collapsible = false)
 }
 
 /**
@@ -156,6 +160,8 @@ fun BottomAdBarLayout(
  *   font scale and grows with large text, so its media keeps 120 dp (272 dp at font scale 2.0, plan T-045).
  * - [content] gets the slot's height as bottom padding once the slot has an ad, never for the layer (D-04), so a
  *   taller layer covers more of the content but moves nothing.
+ * - A placement declared with `collapsibleLayer = false` never has the floating layer, even with
+ *   `is_show_native_collap` on (plan T-094); its slot is as above.
  * - Nothing is drawn, and nothing kept, without consent or with `is_show_<code>` off; tests and previews (no ads
  *   controller) draw only the content. Turning the bar on or off never rebuilds [content].
  */
@@ -195,7 +201,10 @@ private fun rememberBottomAdBarState(ads: AdsController?, placement: AdPlacement
     val canRequestAds by ads.canRequestAds.collectAsStateWithLifecycle()
     val enabled by remember(placement) { ads.isEnabled(placement) }.collectAsStateWithLifecycle(initialValue = false)
     val flags by ads.globalFlags.collectAsStateWithLifecycle()
-    return BottomAdBarState(rememberBottomAdBarLayers(canRequestAds, enabled, flags), flags.expandCollapAfterSeconds)
+    return BottomAdBarState(
+        rememberBottomAdBarLayers(canRequestAds, enabled, flags, placement.declaration.collapsibleLayer),
+        flags.expandCollapAfterSeconds,
+    )
 }
 
 /** The layers of a bar, and what to call when its slot has an ad or not ([BottomAdBarHost.onSlotHasAdChange]). */
@@ -210,9 +219,10 @@ internal fun rememberBottomAdBarLayers(
     canRequestAds: Boolean,
     enabled: Boolean,
     flags: AdsGlobalFlags,
+    collapsibleLayer: Boolean,
 ): BottomAdBarChoice {
     var bannerHadAd by remember { mutableStateOf(false) }
-    val layers = bottomAdBarLayers(canRequestAds, enabled, flags, bannerHadAd)
+    val layers = bottomAdBarLayers(canRequestAds, enabled, flags, bannerHadAd, collapsibleLayer)
     return BottomAdBarChoice(layers) { hasAd -> bannerHadAd = hasAd && layers?.slot == BottomSlotKind.BANNER }
 }
 

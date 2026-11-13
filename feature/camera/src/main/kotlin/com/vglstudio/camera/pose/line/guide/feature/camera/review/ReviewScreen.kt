@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +41,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberAdHoldingLauncher
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberShowInterstitial
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberStartOutsideApp
@@ -159,6 +161,8 @@ private fun share(
  * Stateless screen. Layout from design/context/ReviewScreen_*.md (411 x 891), measured from the top of the frame: on a
  * phone the navigation host keeps it below the status bar. Top bar, the 3:4 photo with the three actions under it,
  * then the save error (if any) and the main button. The photo shrinks on short screens; the rest keeps its size.
+ * [adBar] is the bottom ad bar `review_bottom` (spec camera, KB-9; plan T-094): the content keeps the room of its slot
+ * once it has an ad, and "Bỏ ảnh này?" covers it. Tests pass a fake bar.
  */
 @Composable
 internal fun ReviewScreen(
@@ -175,6 +179,9 @@ internal fun ReviewScreen(
     onDiscardSave: () -> Unit,
     onDismissDialog: () -> Unit,
     modifier: Modifier = Modifier,
+    adBar: @Composable (Modifier, @Composable (PaddingValues) -> Unit) -> Unit = { barModifier, content ->
+        BottomAdBarScaffold(AdPlacement.REVIEW_BOTTOM, barModifier, content)
+    },
 ) {
     val ready = uiState as? Ready
     val saving = ready?.save == SaveStatus.SAVING
@@ -185,37 +192,39 @@ internal fun ReviewScreen(
             .background(MaterialTheme.appColors.cameraBackground)
             .testTag(ReviewTestTags.SCREEN),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                // While the dialog shows, screen readers only see the dialog (L-004).
-                .then(if (dialogOpen) Modifier.clearAndSetSemantics {} else Modifier),
-        ) {
-            ReviewTopBar(enabled = !saving, onCloseClick = onCloseClick)
-            if (ready != null) {
-                BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    if (isUnfolded(maxWidth)) {
-                        ReviewUnfoldedContent(
-                            ready = ready,
-                            image = image,
-                            onSaveClick = onSaveClick,
-                            onRetrySave = onRetrySave,
-                            onOpenAppSettings = onOpenAppSettings,
-                            onRetakeClick = onRetakeClick,
-                            onShareClick = onShareClick,
-                            onNextPoseClick = onNextPoseClick,
-                        )
-                    } else {
-                        ReviewPhoneContent(
-                            ready = ready,
-                            image = image,
-                            onSaveClick = onSaveClick,
-                            onRetrySave = onRetrySave,
-                            onOpenAppSettings = onOpenAppSettings,
-                            onRetakeClick = onRetakeClick,
-                            onShareClick = onShareClick,
-                            onNextPoseClick = onNextPoseClick,
-                        )
+        // While the dialog shows, screen readers only see the dialog (L-004), the slot of the ad bar included.
+        val barModifier = Modifier
+            .fillMaxSize()
+            .then(if (dialogOpen) Modifier.clearAndSetSemantics {} else Modifier)
+        // The bottom ad bar (plan T-094) around the top bar and the content; the dialog below is drawn over it.
+        adBar(barModifier) { padding ->
+            Column(modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
+                ReviewTopBar(enabled = !saving, onCloseClick = onCloseClick)
+                if (ready != null) {
+                    BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        if (isUnfolded(maxWidth)) {
+                            ReviewUnfoldedContent(
+                                ready = ready,
+                                image = image,
+                                onSaveClick = onSaveClick,
+                                onRetrySave = onRetrySave,
+                                onOpenAppSettings = onOpenAppSettings,
+                                onRetakeClick = onRetakeClick,
+                                onShareClick = onShareClick,
+                                onNextPoseClick = onNextPoseClick,
+                            )
+                        } else {
+                            ReviewPhoneContent(
+                                ready = ready,
+                                image = image,
+                                onSaveClick = onSaveClick,
+                                onRetrySave = onRetrySave,
+                                onOpenAppSettings = onOpenAppSettings,
+                                onRetakeClick = onRetakeClick,
+                                onShareClick = onShareClick,
+                                onNextPoseClick = onNextPoseClick,
+                            )
+                        }
                     }
                 }
             }

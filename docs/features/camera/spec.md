@@ -1,6 +1,6 @@
 ---
 feature: camera
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -167,6 +167,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi camera đang khởi động thì khung xem trước hiện vòng chờ và chữ "Đang mở camera…"; nút chụp mờ đi.
 - [ ] Khi không mở được camera (ví dụ app khác đang dùng) thì khung xem trước hiện tiêu đề "Không mở được camera", lời giải thích và nút "Thử lại"; bấm thì camera thử mở lại.
 - [ ] Khi app ra nền rồi quay lại thì camera tự chạy lại, giữ tư thế và các lựa chọn.
+- [ ] Khi một quảng cáo toàn màn hình phủ lên camera (quảng cáo khi quay lại app, quảng cáo có thưởng mở khóa tư thế) thì camera không chạy trong lúc quảng cáo hiện; quảng cáo đóng thì khung xem trước hiện vòng chờ rồi camera tự chạy lại, giữ tư thế và các lựa chọn (mục 5).
 
 ### KB-9. Quảng cáo ở màn xem lại
 
@@ -223,7 +224,7 @@ Sau `review_interstitial` có thể có quảng cáo native toàn màn hình (co
 
 Màn camera không có vị trí quảng cáo nào của màn (bài học 3). Màn xem lại có `review_bottom` từ yêu cầu 2026-11-13: Nhật chọn đi ngược một phần bài học 3, thanh nằm dưới hàng nút và không che ảnh (`features/ads/spec.md`, câu 19). Thanh hiện ở mọi trạng thái của màn xem lại (`default`, `saving`, `save-error`), cả khi mở từ ô ảnh vừa chụp; hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên. Thiết kế thêm trạng thái `ad` (`ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded`). Bản staging bật sẵn; production bật dần (câu 19, ý a tới d).
 
-Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) hiện ở mọi màn, nên có thể phủ lên camera hay màn xem lại khi người dùng quay lại app lúc đang ở đó. Đây là lựa chọn có chủ đích, đi ngược một phần bài học 3; Nhật chốt ngày 2026-10-28. Khung không hiện quảng cáo này khi người dùng vừa rời app có chủ đích (hộp thoại quyền, chia sẻ ảnh); app đánh dấu các chỗ đó (T-074). Đóng quảng cáo thì camera mở lại như khi quay lại app thường.
+Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) hiện ở mọi màn, nên có thể phủ lên camera hay màn xem lại khi người dùng quay lại app lúc đang ở đó. Đây là lựa chọn có chủ đích, đi ngược một phần bài học 3; Nhật chốt ngày 2026-10-28. Khung không hiện quảng cáo này khi người dùng vừa rời app có chủ đích (hộp thoại quyền, chia sẻ ảnh); app đánh dấu các chỗ đó (T-074). Trong lúc bất kỳ quảng cáo toàn màn hình nào phủ lên camera (quảng cáo khi quay lại app, quảng cáo có thưởng mở khóa tư thế premium), camera không chạy, để không dùng camera khi người dùng không thấy khung xem trước; đóng quảng cáo thì camera mở lại như khi quay lại app thường (KB-8).
 
 ## 6. Dữ liệu và phân tích
 
@@ -366,3 +367,4 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-11-13 | Nhật | Trả lời câu 19, ý a tới d (AI ghi): staging bật sẵn, thêm trạng thái `ad` trên Figma, thanh ở mọi trạng thái của màn xem lại, production bật dần 10%. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-13 | Nhật | Theo rà soát độc lập PR #323: sửa tiêu chí trái mục 5 mới (KB-1 của spec settings; KB-9, KB-11 của spec camera), thêm khóa ở mục 8, trạng thái `ad` ở mục 4; câu 19 ý e: không cho lớp native thu gọn ở `review_bottom` (AI ghi). Lời xác nhận lại của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Giữ `confirmed` |
 | 2026-11-13 | Nhật | Sửa vòng 2 theo rà soát PR #323 (AI ghi): `is_show_native_bottom` tắt thì khe đáy là banner (câu 13), thêm tiêu chí banner; spec settings thêm tiêu chí lớp nổi thu gọn; ghi thanh 80 dp theo khung hiện tại; spec camera đổi tên KB-9 thành "Quảng cáo ở màn xem lại". Chuyển `changed` rồi lại `confirmed`; lời xác nhận của Nhật: chọn "Xác nhận" khi được hỏi |
+| 2026-11-13 | AI | Phản hồi FB-20261113-02 (T-097): camera không chạy trong lúc bất kỳ quảng cáo toàn màn hình nào phủ lên, kể cả quảng cáo có thưởng mở khóa tư thế; mở lại khi quảng cáo đóng (mục 5, KB-8 tiêu chí 4 mới). Nhật chọn ngày 2026-11-13 trong phiên (T-097), chờ xác nhận. Chuyển `changed` |

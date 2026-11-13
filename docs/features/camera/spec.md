@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-10
+confirmed: 2026-11-13
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -32,6 +32,7 @@ confirmed: 2026-11-10
 - Lưu ảnh vào thư mục ảnh riêng của app trong thư viện máy, không kèm nét viền, không xin quyền đọc ảnh. Android 10 trở lên không hỏi quyền nào; Android 9 trở xuống hỏi quyền lưu tệp vào bộ nhớ máy ở lần lưu đầu tiên, vì các bản này không cho lưu vào thư viện máy khi chưa có quyền đó (câu hỏi 10).
 - Xin quyền camera khi chưa có, trạng thái chưa có quyền với nút mở cài đặt máy.
 - Quảng cáo toàn màn hình khi rời màn xem lại sau khi đã lưu ảnh (mức B).
+- Thanh quảng cáo nhỏ ở đáy màn xem lại, dưới hàng nút, tắt lúc phát hành (`features/ads/spec.md`, câu 19).
 - Hỏi đánh giá app trong app sau khi người dùng đã lưu đủ ảnh (bản đề xuất, câu 12.8).
 - Điện thoại màn hình gập, khi mở ra: khung xem trước giữ 3:4, nút chụp và công cụ dời sang cột bên.
 - Điện thoại khóa chiều dọc ở mọi màn của app. Màn lớn (cạnh ngắn từ 600 dp: máy gập khi mở ra, máy tính bảng) không khóa hướng: app dùng cả màn hình theo hướng của máy, với bố cục mở gập (câu hỏi 7, phần bổ sung; câu hỏi 15).
@@ -167,14 +168,19 @@ Tiêu chí chấp nhận:
 - [ ] Khi không mở được camera (ví dụ app khác đang dùng) thì khung xem trước hiện tiêu đề "Không mở được camera", lời giải thích và nút "Thử lại"; bấm thì camera thử mở lại.
 - [ ] Khi app ra nền rồi quay lại thì camera tự chạy lại, giữ tư thế và các lựa chọn.
 
-### KB-9. Quảng cáo khi rời màn xem lại
+### KB-9. Quảng cáo ở màn xem lại
 
 Tiêu chí chấp nhận:
 
 - [ ] Khi người dùng rời màn xem lại (bằng Chụp lại, Tư thế tiếp hay nút quay lại) sau khi đã lưu ảnh, và đủ điều kiện ở mục 5, thì một quảng cáo toàn màn hình hiện trước khi về camera; combo native toàn màn hình có thể hiện ngay sau nó, về camera khi combo đóng (mục 5).
 - [ ] Khi chưa lưu ảnh nào trong lần xem lại đó thì không hiện quảng cáo.
 - [ ] Khi khóa `is_show_review_interstitial` tắt hoặc người dùng chưa đồng ý quảng cáo theo hộp thoại đồng ý thì không hiện quảng cáo (ADR-0013, ADR-0014).
-- [ ] Khi ở camera và trong lúc xem lại thì không có vị trí quảng cáo nào của màn camera hay màn xem lại. Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6).
+- [ ] Khi ở camera thì không có vị trí quảng cáo nào của màn camera. Màn xem lại chỉ có thanh đáy `review_bottom` (tiêu chí dưới). Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6).
+- [ ] Khi khóa `is_show_review_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (80 dp) hiện ở đáy màn xem lại, dưới hàng nút; ảnh co lại cho vừa phần còn lại, giữ tỷ lệ, không bị cắt hay che; bốn nút không bị che (`features/ads/spec.md`, câu 19).
+- [ ] Khi khóa `is_show_native_collap` bật thì màn xem lại vẫn chỉ có thanh nhỏ dưới hàng nút, không có lớp quảng cáo nổi phủ lên ảnh hay nút (`features/ads/spec.md`, câu 19, ý e).
+- [ ] Khi màn xem lại đang lưu, báo lỗi lưu, hay mở từ ô ảnh vừa chụp thì thanh vẫn ở đáy; hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên thanh.
+- [ ] Khi `is_show_native_bottom` tắt thì khe đáy là banner ở cùng chỗ (`features/ads/spec.md`, câu 13); ảnh và bốn nút vẫn không bị che.
+- [ ] Khi khóa `is_show_review_bottom` tắt hay không tải được quảng cáo thì không có thanh, ảnh và nút như khi chưa có quảng cáo.
 
 ### KB-10. Hỏi đánh giá app
 
@@ -190,6 +196,7 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi máy gập mở ra thì camera giữ khung 3:4 bên trái, nút chụp, đổi camera, ô ảnh vừa chụp và zoom dời sang cột bên phải; màn xem lại đặt ảnh bên trái, các nút bên phải, đúng thiết kế `_unfolded`.
 - [ ] Khi gập lại thì camera và màn xem lại dùng bố cục điện thoại, giữ tư thế và các lựa chọn.
+- [ ] Khi máy gập mở ra và thanh đáy `review_bottom` có quảng cáo thì ảnh và các nút của màn xem lại vẫn hiện trọn, không bị thanh che, đúng thiết kế `ReviewScreen_ad_dark_unfolded` (`features/ads/spec.md`, câu 19).
 - [ ] Khi app mở trên màn lớn (cạnh ngắn từ 600 dp: máy gập khi mở ra, máy tính bảng) thì app dùng cả màn hình, không bị hệ thống đóng khung với hai dải đen, kể cả khi màn nằm ngang; xoay máy thì app xoay theo, mọi màn vẫn đủ nút chính trong màn hình.
 - [ ] Khi gập lại (cạnh ngắn dưới 600 dp) thì app trở về chiều dọc dù máy đang nằm ngang.
 
@@ -203,17 +210,18 @@ Tiêu chí chấp nhận:
 | Camera | Chụp theo tư thế: chọn tư thế, nét viền, thẻ bước, công cụ, điểm khớp | KB-1 đến KB-8, KB-11 |
 | Xem lại | Xem ảnh vừa chụp, lưu, chụp lại, chia sẻ, sang tư thế tiếp | KB-6, KB-9, KB-10, KB-11 |
 
-Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked`, `steps-hidden`, `matching`, `matched`, `no-person`, `countdown`, `starting`, `permission-denied`, `error`, `default` khi mở gập (hộp thoại mất mạng thuộc gói thiết kế `network`); xem lại `default`, `saving`, `save-error`, `discard`, `default` khi mở gập; hai thông báo về quyền lưu trên Android 9 trở xuống (KB-6) chưa có thiết kế riêng, dùng cùng kiểu thông báo với `save-error` (câu hỏi 10). Chỉ có bản tối (câu 12.10 của bản đề xuất).
+Trạng thái trên thiết kế: camera `default`, `no-pose`, `adjust`, `locked`, `steps-hidden`, `matching`, `matched`, `no-person`, `countdown`, `starting`, `permission-denied`, `error`, `default` khi mở gập (hộp thoại mất mạng thuộc gói thiết kế `network`); xem lại `default`, `saving`, `save-error`, `discard`, `default` khi mở gập, `ad` và `ad` khi mở gập (`ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded`, chờ dựng và duyệt, `features/ads/spec.md` câu 19, ý b); hai thông báo về quyền lưu trên Android 9 trở xuống (KB-6) chưa có thiết kế riêng, dùng cùng kiểu thông báo với `save-error` (câu hỏi 10). Chỉ có bản tối (câu 12.10 của bản đề xuất).
 
 ## 5. Quảng cáo
 
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
 | `review_interstitial` | toàn màn hình | Khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không trước ảnh lưu thứ 2 của phiên (phiên là một lần chạy của app, từ lúc mở tới khi hệ thống đóng tiến trình), khóa `ads_review_interstitial_first_break`; tối đa 1 lần mỗi 3 ảnh lưu, khóa `ads_review_interstitial_breaks_between`; nhịp chung của mọi quảng cáo toàn màn hình `ads_interval` (mặc định 45 giây). Không còn luật 120 giây riêng (`features/ads/spec.md`, câu 1, 2). | `is_show_review_interstitial` |
+| `review_bottom` (yêu cầu 2026-11-13) | native_small (thanh đáy) | Đáy màn xem lại, dưới hàng nút Lưu, Chụp lại, Chia sẻ, Tư thế tiếp; không phủ lên ảnh | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground, như `poses_bottom`; không bao giờ có lớp native thu gọn nổi, dù `is_show_native_collap` bật; tắt lúc phát hành (`features/ads/spec.md`, câu 19, ý e) | `is_show_review_bottom`; `is_show_native_bottom` chọn khe native hay banner |
 
 Sau `review_interstitial` có thể có quảng cáo native toàn màn hình (combo, `native_combo`, khóa `is_show_native_after_inter`), đếm ngược `time_close_native` giây rồi đóng được; rời màn xem lại khi combo đóng (`features/ads/spec.md`, câu 18).
 
-Màn camera và màn xem lại không có vị trí quảng cáo nào của màn (bài học 3).
+Màn camera không có vị trí quảng cáo nào của màn (bài học 3). Màn xem lại có `review_bottom` từ yêu cầu 2026-11-13: Nhật chọn đi ngược một phần bài học 3, thanh nằm dưới hàng nút và không che ảnh (`features/ads/spec.md`, câu 19). Thanh hiện ở mọi trạng thái của màn xem lại (`default`, `saving`, `save-error`), cả khi mở từ ô ảnh vừa chụp; hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên. Thiết kế thêm trạng thái `ad` (`ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded`). Bản staging bật sẵn; production bật dần (câu 19, ý a tới d).
 
 Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu 6) hiện ở mọi màn, nên có thể phủ lên camera hay màn xem lại khi người dùng quay lại app lúc đang ở đó. Đây là lựa chọn có chủ đích, đi ngược một phần bài học 3; Nhật chốt ngày 2026-10-28. Khung không hiện quảng cáo này khi người dùng vừa rời app có chủ đích (hộp thoại quyền, chia sẻ ảnh); app đánh dấu các chỗ đó (T-074). Đóng quảng cáo thì camera mở lại như khi quay lại app thường.
 
@@ -266,6 +274,7 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | `feature_camera_enabled` | tắt | Từ T-081 không còn tác dụng: sau màn chào (hay khi màn chào không áp dụng) app luôn mở camera. Cờ bỏ khỏi code ở T-088. Trước T-081: bật để dùng camera làm màn chính |
 | `feature_pose_matching_enabled` | tắt | Bật nhận dạng dáng và điểm khớp; tắt từ xa nếu máy chậm hay báo sai nhiều |
 | `feature_in_app_review_enabled` | tắt | Bật hỏi đánh giá app trong app |
+| `is_show_review_bottom` | tắt | Bật thanh đáy `review_bottom` của màn xem lại; `is_show_native_bottom` chọn khe native hay banner (`features/ads/spec.md`, câu 13). Bản staging bật sẵn; production bật dần (`features/ads/spec.md`, câu 19) |
 | `is_show_review_interstitial` | tắt | Bật quảng cáo `review_interstitial` (`features/ads/spec.md` câu 2; khóa cũ `ads_review_interstitial_enabled` bỏ từ T-074). Khóa chung `is_show_ads` (mặc định bật) tắt thì mọi quảng cáo tắt |
 
 ## 9. Câu hỏi còn mở
@@ -353,3 +362,7 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-10-31 | Nhật | Mục 8: cờ `feature_camera_enabled` không còn tác dụng từ T-081 (app luôn mở camera; plan T-081 câu 1), bỏ ở T-088 (rà soát độc lập plan T-081; AI ghi). Lời của Nhật: chọn "Sửa spec + ticket bỏ cờ", phương án ghi rõ Nhật xác nhận spec lại ngay. Chuyển `changed` rồi lại `confirmed` |
 | 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `review_interstitial` (mục 5, KB-9 tiêu chí 1). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |
 | 2026-11-10 | Nhật | Xác nhận lại spec sau T-090 (AI ghi theo lời Nhật trong phiên). Mục 1 thêm cách đếm: một interstitial cùng combo theo sau tính là một lần (plan T-090, mục 8, câu 7). Chuyển lại `confirmed` |
+| 2026-11-13 | AI | Yêu cầu 2026-11-13 (`features/ads/requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md`): thêm thanh đáy native nhỏ `review_bottom` ở màn xem lại, tắt lúc phát hành (mục 2, mục 5; `features/ads/spec.md`, câu 19). Chuyển `changed`, chờ trả lời câu 19 của spec ads và xác nhận |
+| 2026-11-13 | Nhật | Trả lời câu 19, ý a tới d (AI ghi): staging bật sẵn, thêm trạng thái `ad` trên Figma, thanh ở mọi trạng thái của màn xem lại, production bật dần 10%. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
+| 2026-11-13 | Nhật | Theo rà soát độc lập PR #323: sửa tiêu chí trái mục 5 mới (KB-1 của spec settings; KB-9, KB-11 của spec camera), thêm khóa ở mục 8, trạng thái `ad` ở mục 4; câu 19 ý e: không cho lớp native thu gọn ở `review_bottom` (AI ghi). Lời xác nhận lại của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Giữ `confirmed` |
+| 2026-11-13 | Nhật | Sửa vòng 2 theo rà soát PR #323 (AI ghi): `is_show_native_bottom` tắt thì khe đáy là banner (câu 13), thêm tiêu chí banner; spec settings thêm tiêu chí lớp nổi thu gọn; ghi thanh 80 dp theo khung hiện tại; spec camera đổi tên KB-9 thành "Quảng cáo ở màn xem lại". Chuyển `changed` rồi lại `confirmed`; lời xác nhận của Nhật: chọn "Xác nhận" khi được hỏi |

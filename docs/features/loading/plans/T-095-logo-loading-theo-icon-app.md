@@ -59,13 +59,14 @@ fun BrandLogo(modifier: Modifier = Modifier) {
 4. Không đổi `LoadingScreen.kt`: logo vẫn gọi `BrandLogo(modifier = Modifier.testTag(LoadingTestTags.LOGO))`.
 5. Ghi lại ảnh chuẩn (mục 4), chạy `scripts/design-compare.sh loading`, cập nhật mục 8 của `design/README.md` (bảng tỷ lệ khác, nhận xét, bỏ câu "logo tạm").
 
-Mẫu làm theo: `Image` với `ContentScale.Crop` như ô ảnh vừa chụp ở `CameraControls.kt` (`:feature:camera`) và ảnh tư thế ở `PoseDetailComponents.kt` (`:feature:poses`); đo màu điểm ảnh bằng `pixelAt` có sẵn của `ComponentsTest`.
+Mẫu làm theo: ảnh WebP trong `drawable-nodpi` vẽ bằng `Image` như `OnboardingIllustration.kt` và `res/drawable-nodpi/onboarding_art_*.webp` (`:feature:onboarding`, ảnh chuẩn do Robolectric `NATIVE` vẽ); `Image` với `ContentScale.Crop` như ô ảnh vừa chụp ở `CameraControls.kt` (`:feature:camera`) và ảnh tư thế ở `PoseDetailComponents.kt` (`:feature:poses`); đo màu điểm ảnh bằng `pixelAt` có sẵn của `ComponentsTest`.
 
 ### 3.2. Danh sách file
 
 | Thao tác | Đường dẫn | Nội dung thay đổi |
 | --- | --- | --- |
-| Tạo | `core/designsystem/src/main/res/drawable-nodpi/brand_logo.webp` | Chép nguyên `docs/brand/app-icon/brand-logo-448.webp` |
+| Tạo | `core/designsystem/src/main/res/drawable-nodpi/brand_logo.webp` | Chép nguyên `docs/brand/app-icon/brand-logo-448.webp`; khi chuyển sang dự phòng (mục 3.4) thì không giữ file này, chỉ có `brand_logo.png` |
+| Tạo | `core/designsystem/src/main/res/drawable-nodpi/brand_logo.png` | (dự phòng) Chép `docs/brand/app-icon/play-store-512.png`, mục 3.4 |
 | Sửa | `core/designsystem/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/component/BrandLogo.kt` | Vẽ ảnh `brand_logo`, cắt bo `Radius.sheet`, bỏ viền, bóng, nền; KDoc mới |
 | Sửa | `core/designsystem/src/main/res/drawable/brand_mark.xml` | Chỉ chú thích dòng 2 |
 | Sửa | `core/designsystem/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/designsystem/ComponentsTest.kt` | Viết lại `brandLogo_fill_isSecondaryContainer` (mục 3.5), thêm hai test logo (mục 4) |
@@ -105,9 +106,9 @@ Không file nào khác đọc `brand_mark.xml` hay `BrandLogo` ngoài `LoadingSc
 
 ### 3.4. Phương án dự phòng
 
-- **Điểm chưa chắc:** Robolectric `NATIVE` có giải mã WebP trong `drawable-nodpi` để vẽ ảnh thật không (test điểm ảnh và ảnh chuẩn cần thấy ảnh).
+- **Điểm chưa chắc:** nhỏ: ảnh WebP trong `drawable-nodpi` đã vẽ được trên Robolectric `NATIVE` ở `:feature:onboarding`; còn lại khả năng `:core:designsystem` vẽ khác (cấu hình test của module).
 - **Điều kiện chuyển:** `brandLogo_fill_isAppIconArtwork` vẫn thất bại sau khi viết code vì điểm ảnh trong ô trong suốt hay trùng màu nền, trong khi ảnh chuẩn vẽ ra không có ảnh logo.
-- **Cách làm thay:** dùng PNG thay WebP: chép `docs/brand/app-icon/play-store-512.png` thành `core/designsystem/src/main/res/drawable-nodpi/brand_logo.png` (dự phòng) và xóa `brand_logo.webp`. Ảnh 512 px nặng khoảng 330 KB; ghi vào nhật ký để người quyết có thu nhỏ sau không. Test và tiêu chí giữ nguyên.
+- **Cách làm thay:** dùng PNG thay WebP: chép `docs/brand/app-icon/play-store-512.png` thành `core/designsystem/src/main/res/drawable-nodpi/brand_logo.png` (dự phòng) và bỏ `brand_logo.webp` khỏi commit (hai tài nguyên cùng tên khác đuôi làm build lỗi). Ảnh 512 px nặng khoảng 330 KB; ghi vào nhật ký để người quyết có thu nhỏ sau không. Test và tiêu chí giữ nguyên.
 
 ### 3.5. Hành vi đã có bị đổi
 
@@ -115,23 +116,23 @@ Không file nào khác đọc `brand_mark.xml` hay `BrandLogo` ngoài `LoadingSc
 
 | Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
 | --- | --- | --- | --- |
-| Nền logo là `secondaryContainer` `#FFC83D` (điểm 56 dp, 8 dp) | Nền logo là ảnh biểu tượng app, nền cam của ảnh (đo được `(253, 175, 21)` ở hàng 40 của ảnh 448 px) | `ComponentsTest.brandLogo_fill_isSecondaryContainer` | Viết lại thành `brandLogo_fill_isAppIconArtwork`: điểm (56 dp, 12 dp) có đỏ từ 240, lục từ 140 tới 190, lam dưới 60 (cam của ảnh), khác `#FFC83D` (lục 200 nằm ngoài khoảng). Ý định giữ: nền logo đúng màu của thiết kế hiện hành. Không nới: khoảng màu loại trừ màu cũ. Đối chứng: chạy trên code cũ thì đỏ vì lục 200 |
+| Nền logo là `secondaryContainer` `#FFC83D` (điểm 56 dp, 8 dp) | Nền logo là ảnh biểu tượng app. Ảnh luôn 4 px mỗi dp (448 px trên 112 dp); dải nền cam ở đỉnh ảnh chỉ cao khoảng 10 dp, dưới đó là khung ảnh tư thế màu kem. Đo bằng Pillow trên `brand-logo-448.webp`: hàng 20 (5 dp) là `(252, 181, 30)`; thu về 112 px thì (56, 5) cũng là `(252, 181, 30)` | `ComponentsTest.brandLogo_fill_isSecondaryContainer` | Không có màu cố định để so bằng (ảnh là dải màu, nén WebP có mất mát, thu nhỏ khi vẽ), nên câu cũ không viết lại được mà vẫn giữ phép so bằng. Đề xuất (câu hỏi 4, mục 8): người duyệt chấp nhận ngoại lệ của ADR-0031, xóa test này và thay bằng test viết trước `brandLogo_fill_isAppIconArtwork` (mục 4, dùng khoảng màu). Người duyệt không chấp nhận thì phiên giữ nguyên test cũ và dừng task theo điều kiện 5 của `risk-scoring.md` |
 | Logo 112 x 112 dp | Giữ | `ComponentsTest.brandLogo_is112dpSquare` | Giữ nguyên |
 | Logo đầu ở 200 dp, cao 112, tên app ở 336 dp | Giữ (không có bóng hay đệm ngoài ô) | `LoadingScreenTest` (đo `logo top`, `logo height`, `app name top`) | Giữ nguyên |
 | Ảnh chuẩn có logo cũ | Ảnh chuẩn có logo mới | `LoadingScreenScreenshotTest` (8 ảnh), `DesignSystemCatalogScreenshotTest.brand_light`, `brand_dark` | Ghi lại ảnh chuẩn theo mục 3.2, không đổi test |
 
-Câu khẳng định viết lại: 1 (dưới giới hạn 3 của ADR-0031); câu của plan nói điều mới là tiêu chí KB-6 và mục 3.1 bước 2.
+Câu khẳng định viết lại: 0. Test bị thay chờ quyết định ở câu hỏi 4 của mục 8; câu của plan nói điều mới là tiêu chí KB-6 và mục 3.1 bước 2.
 
 ## 4. Kiểm thử
 
-Mọi test logo của `ComponentsTest` đặt `BrandLogo` trong `Box(Modifier.background(Color.White).padding(16.dp))`, gắn `testTag(LOGO)` vào logo, đo bằng `pixelAt(LOGO, x, y)` có sẵn (vẽ `decorView` ra `Bitmap`; đo được điểm ngoài node), `AppTheme(darkTheme = false)`.
+Các test đo điểm ảnh của logo ở `ComponentsTest` (`brandLogo_fill_isAppIconArtwork`, `brandLogo_hasNoOutline`, `brandLogo_hasNoShadow`) đặt `BrandLogo` trong `Box(Modifier.background(Color.White).padding(16.dp))`, gắn `testTag(LOGO)` vào logo, đo bằng `pixelAt(LOGO, x, y)` có sẵn (vẽ `decorView` ra `Bitmap`; đo được điểm ngoài node), `AppTheme(darkTheme = false)`.
 
 | Tiêu chí chấp nhận | Loại test | Tên test hoặc cách kiểm tra |
 | --- | --- | --- |
-| KB-6, nền là ảnh biểu tượng app, không còn ô vàng | Compose UI test (Robolectric `NATIVE`) | `ComponentsTest.brandLogo_fill_isAppIconArtwork`: điểm (56 dp, 12 dp) đỏ ≥ 240, 140 ≤ lục ≤ 190, lam < 60. Trên code cũ: `#FFC83D`, lục 200, thất bại |
+| KB-6, nền là ảnh biểu tượng app, không còn ô vàng | Compose UI test (Robolectric `NATIVE`) | `ComponentsTest.brandLogo_fill_isAppIconArtwork`: điểm (56 dp, 5 dp), trong dải nền cam ở đỉnh ảnh, có đỏ ≥ 240, 160 ≤ lục ≤ 195, lam < 60 (ảnh cho `(252, 181, 30)`). Trên code cũ: `#FFC83D`, lục 200, thất bại |
 | KB-6, không viền | Compose UI test | `ComponentsTest.brandLogo_hasNoOutline`: điểm (56 dp, 1 dp) không gần đen (đỏ + lục + lam > 300). Trên code cũ: viền `#111111` dày 2 dp, thất bại |
 | KB-6, không bóng | Compose UI test | `ComponentsTest.brandLogo_hasNoShadow`: điểm (56 dp, 114 dp), ngay dưới ô (bóng cũ lệch 4 dp xuống dưới, phải), bằng `Color.White` của nền bọc. Trên code cũ: màu bóng sticker, thất bại |
-| KB-6, bo góc | Compose UI test | Thêm vào `brandLogo_hasNoShadow`: điểm (2 dp, 2 dp) trong ô là `Color.White` (góc bị cắt). Đối chứng: qua cả trên code cũ (ô cũ cũng bo); giữ để bắt lỗi quên `clip` khi ảnh vuông kín mép |
+| KB-6, bo góc | Compose UI test | Thêm vào `brandLogo_hasNoShadow`: điểm (2 dp, 2 dp) trong ô là `Color.White` (góc bị cắt). Đối chứng: qua cả trên code cũ (ô cũ cũng bo). Đột biến: bỏ `.clip` trong code mới thì điểm này thành cam của ảnh, khoảng `(253, 160, 16)`, và test đỏ; ghi kết quả đột biến vào nhật ký |
 | KB-6, cỡ 112 dp, cùng chỗ | Compose UI test có sẵn | `ComponentsTest.brandLogo_is112dpSquare`, `LoadingScreenTest` (logo top 200, cao 112, tên app 336): giữ nguyên, phải qua |
 | KB-1, KB-6, đúng thiết kế | Screenshot test cùng tên ảnh thiết kế | `LoadingScreen_progress_light.png`, `LoadingScreen_progress_dark.png`, `LoadingScreen_failed_light.png`, `LoadingScreen_failed_dark.png` (`LoadingScreenScreenshotTest`, khung `vi-w411dp-h891dp-xxhdpi`); ghi lại rồi `scripts/design-compare.sh loading`, rà soát độc lập theo mục 7 của mẫu thiết kế |
 | Màn hình thấp | Screenshot test khung `w360dp-h640dp-xxhdpi` | `LoadingScreen_progress_small.png`, `LoadingScreen_failed_small.png`, `LoadingScreen_failed-server_small.png`: logo mới, nút "Thử lại" thấy trọn |
@@ -153,7 +154,7 @@ Chỉ giữ 10 ảnh của mục 3.2; ảnh khác đổi thì trả về bằng 
 
 ### 4.1. Chạy thử
 
-Không cần (E dưới 2): `Image` với `painterResource` là mẫu đã có trong dự án; phương án dự phòng ở mục 3.4 cho điểm giải mã WebP trên Robolectric.
+Không cần (E dưới 2): ảnh WebP trong `drawable-nodpi` vẽ bằng `Image` là mẫu đã có ở `:feature:onboarding`. Màu của điểm đo đã đọc trên chính ảnh `brand-logo-448.webp` bằng Pillow (mục 3.5, mục 4); màu trên code cũ suy từ `Shape.kt`, `AppColors.kt`, `Color.kt`, không đo bằng test tạm.
 
 ## 5. Chấm rủi ro
 
@@ -165,8 +166,8 @@ Không cần (E dưới 2): `Image` với `painterResource` là mẫu đã có t
 | B. Độ rõ của yêu cầu | 0 | Spec xác nhận, thiết kế duyệt ngày 2026-11-13, tiêu chí đo được |
 | C. Khả năng kiểm chứng tự động | 1 | Màu nền, viền, bóng, cỡ, vị trí có test; "giống biểu tượng" do người xem ảnh chuẩn |
 | D. Ảnh hưởng chéo | 1 | `BrandLogo` chỉ dùng ở màn loading và danh mục; không task nào khác đang sửa |
-| E. Độ mới của kỹ thuật | 1 | Ảnh WebP trong `drawable-nodpi` lần đầu dùng trong `:core:designsystem`; `Image` là mẫu có sẵn |
-| **Tổng** | 5 | **Mức: Cao (chạm điểm chặn 7)** |
+| E. Độ mới của kỹ thuật | 0 | Ảnh WebP trong `drawable-nodpi` vẽ bằng `Image` là mẫu đã có ở `:feature:onboarding` |
+| **Tổng** | 4 | **Mức: Cao (chạm điểm chặn 7)** |
 
 ## 6. Ảnh hưởng chéo
 
@@ -184,6 +185,8 @@ Không cần (E dưới 2): `Image` với `painterResource` là mẫu đã có t
 1. **Đặt ảnh logo ở `:core:designsystem` hay ở `:app`?** Đề xuất: `:core:designsystem/res/drawable-nodpi/brand_logo.webp`, cùng chỗ với `brand_mark.xml` hiện nay (quy ước "mỗi app thay logo của mình" của ADR-0008), không đổi giao diện công khai của `BrandLogo`. Phương án khác: `BrandLogo(painter)` nhận ảnh từ ngoài, ảnh để ở `:feature:loading`; đổi chữ ký nên dự án mẫu phải theo.
 2. **Ảnh 448 px WebP chất lượng 90 (29 KB) có đủ không?** Đề xuất: đủ cho ô 112 dp ở mọi mật độ tới `xxxhdpi`. Phương án khác: PNG 512 px (330 KB, nét hơn một chút khi phóng).
 3. **Nhóm có một dev:** Nhật vừa duyệt vừa duyệt chéo, ghi lý do ở mục 9 (`risk-scoring.md`, mục 3).
+
+4. **Thay `brandLogo_fill_isSecondaryContainer` (ngoại lệ ADR-0031).** Câu cũ so bằng `#FFC83D`; nền mới là ảnh nên không có một màu cố định để so bằng, mà ADR-0031 không cho đổi so bằng thành khoảng. Đề xuất: chấp nhận ngoại lệ, xóa test cũ, thay bằng test viết trước `brandLogo_fill_isAppIconArtwork` (khoảng màu, thất bại trên code cũ), ghi vào mục 9. Phương án khác: không chấp nhận, plan phải tìm cách so bằng (ví dụ ảnh logo một màu ở điểm đo), cần sửa ảnh.
 
 ## 9. Quyết định duyệt
 

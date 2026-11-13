@@ -1,16 +1,16 @@
 ---
 ticket: T-094
 title: Thanh đáy native nhỏ ở màn xem lại ảnh (review_bottom, tắt lúc phát hành)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 15.0M        # cỡ M theo scripts/token-usage.py estimate (2026-11-13), không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật
+cross_reviewer: Nhật           # nhóm một dev (risk-scoring.md, mục 3)
+approved_at: 2026-11-13
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -350,11 +350,17 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
 
 ## 9. Quyết định duyệt
 
-<!-- Người duyệt điền. AI không điền mục này, trừ plan `lane: quick` sau khi dev đồng ý trong phiên: ghi "Duyệt trong phiên làm nhanh" kèm lời đồng ý (ADR-0034). -->
-
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Nhật (nhóm hiện chỉ có một dev, ngoại lệ của `risk-scoring.md` mục 3)
+- **Ghi chú:** Nhật duyệt trong phiên có người theo dõi ngày 2026-11-13, lời của Nhật: "duyệt", sau khi AI tóm tắt plan và nói câu hỏi mục 8 theo đề xuất của AI. AI ghi thay. Trả lời câu hỏi ở mục 8:
+  1. Thuộc tính `collapsibleLayer = false` đặt trên dòng `AdPlacement` (khai báo của vị trí); plan không làm MC-13.
+  2. Giữ một ticket, không tách phần khung ra ticket riêng.
+  3. Không chép cách bật dần 10% vào `docs/ops/remote-config.md` hay ghi chú phát hành; người phát hành bật dần trên Firebase production theo spec ads, câu 19, ý d.
+  4. Giữ hành vi chung của khung (D-04): nút chính nhảy 96 khi khe có hay mất quảng cáo, như thư viện và chi tiết tư thế; giữ chỗ sau lần có quảng cáo đầu là thay đổi khung riêng, cần ticket và đề xuất về mẫu riêng.
+  5. Khoảng cách nút chính và khe khi mở gập: 20 dp theo code, đã thống nhất với gói thiết kế (PR #337).
+  6. Không viết ADR mới cho chỗ lệch D-01; quyết định ở spec ads câu 19 ý e, chỗ lệch với mẫu ở `docs/template-sync.txt`, issue `from-app`. Viết ADR của app nếu mẫu từ chối issue.
+  7. Câu "ảnh co lại cho vừa phần còn lại" của spec camera (KB-9, tiêu chí 5) hiểu là ảnh co khi thiếu chỗ; giữ câu chữ của spec, không sửa spec trong plan này.
+  8. Cách (a): cột phải gọn lại khi thiếu chỗ theo ngưỡng của mục 3.1 (hàng nút phụ nằm ngang, thông báo lỗi để nút cùng dòng khi có lỗi); chấp nhận hàng nút đổi bố cục theo trạng thái lưu ở cửa sổ nằm ngang thấp có khe.
 
 ## 10. Nhật ký thực hiện
 

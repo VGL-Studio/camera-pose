@@ -10,7 +10,7 @@ risk: medium
 size: S
 depends_on: []
 sprint:
-plan:
+plan: features/camera/plans/T-096-dem-anh-khi-hoi-danh-gia.md
 auto_run:
 created: 2026-11-13
 ---

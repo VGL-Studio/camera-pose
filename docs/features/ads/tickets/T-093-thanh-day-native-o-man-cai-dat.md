@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-11-13, câu 19; vị trí của màn ở mục 5 của features/settings/spec.md (confirmed 2026-11-13)
 scenarios: [KB-1]            # của features/settings/spec.md
 owner: Nhật
-status: backlog              # ready khi frame trạng thái ad của câu 19, ý b đã duyệt; tới lúc đó dev giữ ticket ngoài danh sách chạy và hàng chờ plan (plan_queue), vì plan-queue.py nhận cả ticket backlog
+status: ready                # frame trạng thái ad của câu 19, ý b đã duyệt (Nhật, 2026-11-13)
 risk: high
 size: S
 depends_on: []
@@ -43,7 +43,7 @@ Chạm điểm chặn của `risk-scoring.md`: vị trí quảng cáo mới, mod
 
 Câu 19 của `features/ads/spec.md` đã có câu trả lời; Nhật xác nhận spec ngày 2026-11-13.
 
-Việc trước khi soạn plan: AI dựng `SettingsScreen_ad_light`, `SettingsScreen_ad_dark` trên Figma bằng khối thanh đáy native nhỏ có sẵn, Nhật duyệt, xuất ảnh vào `docs/features/settings/design/screens/` và cập nhật gói bàn giao. Ticket chuyển `ready` khi thiết kế đã duyệt.
+Việc trước khi soạn plan: AI dựng `SettingsScreen_ad_light`, `SettingsScreen_ad_dark` trên Figma bằng khối thanh đáy native nhỏ có sẵn, Nhật duyệt, xuất ảnh vào `docs/features/settings/design/screens/` và cập nhật gói bàn giao. Thiết kế đã duyệt ngày 2026-11-13, ticket `ready`.
 
 ## Định nghĩa hoàn thành
 

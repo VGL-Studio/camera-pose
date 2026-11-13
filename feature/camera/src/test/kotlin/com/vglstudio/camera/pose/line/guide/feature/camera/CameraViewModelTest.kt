@@ -1084,4 +1084,24 @@ class CameraViewModelTest {
         assertEquals(2, controller.openCalls.size)
         assertTrue(viewModel.uiState.value is Ready)
     }
+
+    @Test
+    fun secondAd_afterFirstEnded_closesAgain() = runTest {
+        val viewModel = readyViewModel()
+        viewModel.onScreenResumed()
+        runCurrent()
+        // A first SDK ad: the screen pauses and resumes, the camera opens again, then the flag drops.
+        setAd(true)
+        viewModel.onScreenPaused()
+        viewModel.onScreenResumed()
+        runCurrent()
+        assertTrue(viewModel.uiState.value is Ready)
+        setAd(false)
+        assertEquals(1, controller.closeCount)
+
+        // A second ad while RESUMED: the pause of the first ad does not count for it.
+        setAd(true)
+        assertEquals(2, controller.closeCount)
+        assertEquals(CameraUiState.Starting, viewModel.uiState.value)
+    }
 }

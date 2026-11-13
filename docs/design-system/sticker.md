@@ -96,7 +96,7 @@ Thành phần trên Figma và tên đề xuất trong `:core:designsystem`. Thà
 | `ConfirmDialog` | | `AlertDialog` của Material 3, đổi màu | "Bỏ ảnh này?" |
 | `NetworkDialog` | | `NetworkDialog` (mới) | Hộp thoại mất mạng (spec `network`) |
 | `ProgressBar` | `State=Loading`, `Failed` | `ProgressBar` (đổi kiểu) | Màn loading |
-| `BrandLogo` | | `BrandLogo` (đổi hình) | Logo tạm, chờ icon app |
+| `BrandLogo` | | `BrandLogo` (đổi hình) | Ảnh biểu tượng app, bo `sheet`, không viền, không bóng (spec loading, KB-6) |
 | `Spinner` | | `CircularProgressIndicator` của Material 3 | |
 | `AdSlot` | | `AdSlot` của `:core:ads` | Chỉ là chỗ đặt banner, nội dung quảng cáo không thiết kế |
 

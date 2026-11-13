@@ -6,7 +6,7 @@ tool: figma
 link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=25-2036
 designer: AI (Claude), Nhật
 approved_by: Nhật
-approved_at: 2026-10-21
+approved_at: 2026-11-13
 ---
 
 # THIẾT KẾ: MÀN LOADING
@@ -44,7 +44,7 @@ Dòng hướng dẫn dùng dấu ba chấm một ký tự (`…`).
 
 | Phần tử trên thiết kế | Thành phần trong code | Màu (vai trò) | Kiểu chữ | Khoảng cách, kích thước |
 | --- | --- | --- | --- | --- |
-| Logo | `BrandLogo` (logo tạm) | `secondaryContainer`, `outline`, `onSecondaryContainer`, bóng `shadow/sticker` | | Ô 112, bo `sheet`; cách tên app 24 (`Spacing.lg`) |
+| Logo | `BrandLogo` | ảnh biểu tượng app (`docs/brand/app-icon/play-store-512.png`) lấp kín ô, không viền, không bóng | | Ô 112, bo `sheet`; cách tên app 24 (`Spacing.lg`) |
 | Tên app, khẩu hiệu | `Text`, căn giữa | `onBackground`, `onSurfaceVariant` | `headlineLarge`, `bodyMedium` | Cách nhau `Spacing.sm`; khẩu hiệu cách nhãn tiến trình 40 (`Spacing.xl + Spacing.sm`) |
 | Nhãn và phần trăm | `Row`, hai đầu | Đang tải: `onSurfaceVariant`, `onSurface`. Lỗi: `error` cả hai | `labelLarge`, `bodyMedium` | |
 | Thanh tiến trình | `ProgressBar` | Đang tải: `secondaryContainer` trên `surfaceVariant`. Lỗi: `error` trên `errorContainer`. Viền `outline` 1 | | Cao 8, bo `full`; cách nhãn `Spacing.md` |
@@ -70,7 +70,7 @@ Không có.
 ## 6. Chuyển sang Compose
 
 - **Phải giống bản mẫu:** bố cục, thứ tự thành phần, chữ (mục 2), vai trò màu và kiểu chữ (mục 3).
-- **Được phép khác:** cách vẽ chữ và bóng của hệ thống, hiệu ứng chuyển động, chênh lệch nhỏ theo lưới 4 dp, hình logo (logo tạm).
+- **Được phép khác:** cách vẽ chữ và bóng của hệ thống, hiệu ứng chuyển động, chênh lệch nhỏ theo lưới 4 dp.
 - **Màn hình thấp (360 x 640):** nội dung cuộn được; khi lỗi, nút "Thử lại" luôn thấy được; chân trang nằm dưới nút, không chồng lên lời hướng dẫn (bài học L-028 của dự án mẫu).
 
 ## 7. Tiêu chí khi duyệt
@@ -100,4 +100,6 @@ Nhận xét của rà soát độc lập (mục 7):
 - `failed_light`, `failed_dark`: nhãn, phần trăm và thanh màu `error` trên `errorContainer`; biểu tượng `warning` tam giác, tiêu đề `onSurface`, lời hướng dẫn hai dòng, nút "Thử lại" có `refresh`; logo không đổi chỗ. Ngoài logo và nét chữ, khác biệt lớn nhất là nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56). Không có lệch chặn.
 - Ảnh khung 360 x 640 (`_small`): tên app hai dòng, nút "Thử lại" thấy trọn, chân trang dưới nút.
 
-Logo vẫn là `brand_mark.xml` tạm (plan T-008, câu 8), thay khi có icon app. `handoff/` giữ lại làm lịch sử của thiết kế cũ.
+`handoff/` giữ lại làm lịch sử của thiết kế cũ.
+
+Ngày 2026-11-13 (yêu cầu `requests/2026-11-13-logo-loading-theo-icon-app.md`, T-095): component `BrandLogo` trên Figma đổi thành ảnh biểu tượng app, bo `sheet`, không viền, không bóng; bốn frame đổi theo, ảnh trong `screens/` và số liệu trong `context/` xuất lại bằng `scripts/figma-export.py`. Nhật duyệt trong phiên. Số liệu không ghi ảnh nền của logo; ảnh nguồn là `docs/brand/app-icon/play-store-512.png`. Kết quả đối chiếu ở trên là của logo cũ; T-095 chạy lại `scripts/design-compare.sh loading`.

@@ -97,7 +97,7 @@ Không có.
 Nhận xét của rà soát độc lập (mục 7):
 
 - `progress_light`, `progress_dark`: đủ các phần, đúng thứ tự, chữ đúng bảng chữ, đúng vai trò màu (nền `background`, nhãn `onSurfaceVariant`, phần trăm `onSurface`, thanh vàng trên `surfaceVariant`, viền `outline`). Logo là biểu tượng app, cùng chỗ và cỡ với thiết kế; khác biệt còn ở nét chữ và đầu thanh tiến trình lệch khoảng 1 dp. Không có lệch chặn.
-- `failed_light`, `failed_dark`: nhãn, phần trăm và thanh màu `error` trên `errorContainer`; biểu tượng `warning` tam giác, tiêu đề `onSurface`, lời hướng dẫn hai dòng, nút "Thử lại" có `refresh`; logo không đổi chỗ. Ngoài logo và nét chữ, khác biệt lớn nhất là nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56). Không có lệch chặn.
+- `failed_light`, `failed_dark`: nhãn, phần trăm và thanh màu `error` trên `errorContainer`; biểu tượng `warning` tam giác, tiêu đề `onSurface`, lời hướng dẫn hai dòng, nút "Thử lại" có `refresh`; logo không đổi chỗ. Logo khớp thiết kế; ngoài nét chữ, khác biệt lớn nhất là nút cao 56 so với 60 của thiết kế (T-007 đã chốt 56). Không có lệch chặn.
 - Ảnh khung 360 x 640 (`_small`): tên app hai dòng, nút "Thử lại" thấy trọn, chân trang dưới nút.
 
 `handoff/` giữ lại làm lịch sử của thiết kế cũ.

@@ -22,6 +22,7 @@ class AdPlacementAppTest {
             "poses_in_collection" to AdFormat.NATIVE_IN_COLLECTION,
             "rw_premium_pose" to AdFormat.REWARDED,
             "native_onboarding" to AdFormat.NATIVE_STEP,
+            "settings_bottom" to AdFormat.NATIVE_SMALL,
         )
         val byKey = AdPlacement.entries.associateBy { it.key }
         expected.forEach { (key, format) ->
@@ -40,6 +41,7 @@ class AdPlacementAppTest {
         assertEquals(AdPlacement.POSES_IN_COLLECTION, byKey["poses_in_collection"])
         assertEquals(AdPlacement.RW_PREMIUM_POSE, byKey["rw_premium_pose"])
         assertEquals(AdPlacement.NATIVE_ONBOARDING, byKey["native_onboarding"])
+        assertEquals(AdPlacement.SETTINGS_BOTTOM, byKey["settings_bottom"])
     }
 
     @Test

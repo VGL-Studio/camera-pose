@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-11-13, câu 19; vị trí của màn ở mục 5 của features/settings/spec.md (confirmed 2026-11-13)
 scenarios: [KB-1]            # của features/settings/spec.md
 owner: Nhật
-status: backlog              # ready khi frame trạng thái ad của câu 19, ý b đã duyệt; tới lúc đó dev giữ ticket ngoài danh sách chạy và hàng chờ plan (plan_queue), vì plan-queue.py nhận cả ticket backlog
+status: ready                # frame trạng thái ad của câu 19, ý b đã duyệt (Nhật, 2026-11-13)
 risk: high
 size: S
 depends_on: []

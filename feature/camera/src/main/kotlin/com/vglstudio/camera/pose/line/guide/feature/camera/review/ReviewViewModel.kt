@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -56,6 +57,16 @@ class ReviewViewModel @Inject constructor(
     /** Photos saved since install, for the review request (plan T-019). */
     val savedCount: StateFlow<Int> =
         repository.savedCount.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    /** The count read back from the repository right after this visit recorded its save (plan T-096). */
+    private var recordedCount = 0
+
+    /**
+     * Photos saved since install, for the store review request, counting the photo just recorded when [savedCount] has
+     * not caught up yet (saving from the discard dialog leaves at once). The larger of the two: the repository flow
+     * emits 0 when a read fails, and [savedCount] may be ahead when the screen was opened again after a recreation.
+     */
+    internal fun savedCountForReview(): Int = maxOf(savedCount.value, recordedCount)
 
     private val eventChannel = Channel<ReviewEvent>(Channel.BUFFERED)
     val events: Flow<ReviewEvent> = eventChannel.receiveAsFlow()
@@ -245,7 +256,10 @@ class ReviewViewModel @Inject constructor(
             logger.info(LOG_TAG, "Photo saved")
             try {
                 // Leaving right after the save clears this view model: the slot and the count must still be stored.
-                withContext(NonCancellable) { repository.recordSaved(uri) }
+                withContext(NonCancellable) {
+                    repository.recordSaved(uri)
+                    recordedCount = repository.savedCount.first()
+                }
             } catch (e: IOException) {
                 // The photo is in the gallery; only the slot and the count miss it.
                 logger.warn(LOG_TAG, "Saved photo not recorded", e)

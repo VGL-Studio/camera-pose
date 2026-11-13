@@ -10,8 +10,10 @@ import com.vglstudio.camera.pose.line.guide.feature.camera.photo.StoragePermissi
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 
 internal class FakePhotoStore : PhotoStore {
     var savedUri = "content://media/external/images/media/7"
@@ -42,7 +44,23 @@ internal class FakeSavedPhotosRepository : SavedPhotosRepository {
     var pendingWrite: CompletableDeferred<Unit>? = null
 
     override val lastSavedPhoto: Flow<String?> = last
-    override val savedCount: Flow<Int> = count
+
+    /**
+     * When set (before the view model is built), a collector already running, like the stateIn of the view model, keeps
+     * the count it saw when it started, while a new collector (first()) reads the current count, as DataStore does just
+     * after a write (plan T-096).
+     */
+    var lagUpdates = false
+
+    override val savedCount: Flow<Int>
+        get() = if (!lagUpdates) {
+            count
+        } else {
+            flow {
+                emit(count.value)
+                awaitCancellation()
+            }
+        }
 
     override suspend fun recordSaved(uri: String) {
         pendingWrite?.await()

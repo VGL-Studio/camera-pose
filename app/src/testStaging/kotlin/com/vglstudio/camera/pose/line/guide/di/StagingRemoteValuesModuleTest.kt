@@ -46,6 +46,8 @@ class StagingRemoteValuesModuleTest {
             "is_show_rw_premium_pose" to true,
             // The step card of the onboarding flow, first open only (spec onboarding, section 8; plan T-083).
             "is_show_native_onboarding" to true,
+            // The bottom bar of the settings screen (spec ads, question 19; plan T-093).
+            "is_show_settings_bottom" to true,
             "show_open_ads" to true,
             "show_resum_ads" to true,
             "is_show_native_bottom" to true,

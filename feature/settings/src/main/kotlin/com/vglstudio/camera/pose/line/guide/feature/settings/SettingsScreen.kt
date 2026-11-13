@@ -5,11 +5,14 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +37,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
@@ -43,6 +47,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
 import com.vglstudio.camera.pose.line.guide.core.ads.PrivacyOptionsButton
 import com.vglstudio.camera.pose.line.guide.core.ads.rememberStartOutsideApp
 import com.vglstudio.camera.pose.line.guide.core.data.AppLanguages
@@ -93,20 +99,24 @@ fun SettingsRoute(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMod
             }
         }
     }
-    SettingsScreen(
-        uiState = uiState,
-        onBack = onBack,
-        onThemeClick = viewModel::onThemeClick,
-        onThemeSelect = viewModel::onThemeSelect,
-        onShutterSoundChange = viewModel::onShutterSoundChange,
-        onLanguageClick = viewModel::onLanguageClick,
-        onLanguageSelect = viewModel::onLanguageSelect,
-        onPrivacyOptionsClick = viewModel::onPrivacyOptionsClick,
-        onPrivacyPolicyClick = viewModel::onPrivacyPolicyClick,
-        onDialogDismiss = viewModel::onDialogDismiss,
-        onSaveErrorShown = viewModel::onSaveErrorShown,
-        privacyOptionsEntry = { row -> PrivacyOptionsButton(content = row) },
-    )
+    // The native bottom bar of the framework (spec settings, section 5; spec ads, question 19).
+    BottomAdBarScaffold(AdPlacement.SETTINGS_BOTTOM) { padding ->
+        SettingsScreen(
+            uiState = uiState,
+            onBack = onBack,
+            onThemeClick = viewModel::onThemeClick,
+            onThemeSelect = viewModel::onThemeSelect,
+            onShutterSoundChange = viewModel::onShutterSoundChange,
+            onLanguageClick = viewModel::onLanguageClick,
+            onLanguageSelect = viewModel::onLanguageSelect,
+            onPrivacyOptionsClick = viewModel::onPrivacyOptionsClick,
+            onPrivacyPolicyClick = viewModel::onPrivacyPolicyClick,
+            onDialogDismiss = viewModel::onDialogDismiss,
+            onSaveErrorShown = viewModel::onSaveErrorShown,
+            contentPadding = padding,
+            privacyOptionsEntry = { row -> PrivacyOptionsButton(content = row) },
+        )
+    }
 }
 
 /** Opens [intent] through the start action of :core:ads; a device without an app for it calls [onUnavailable]. */
@@ -119,7 +129,9 @@ private fun ((Intent) -> Boolean).openOrReport(intent: Intent, onUnavailable: ()
  * language picker over them. [privacyOptionsEntry] draws the privacy options row through :core:ads, which hides it
  * where consent options are not required; without it the row is not drawn. [dialogInWindow] false draws the picker
  * inside the screen, for screenshots; true puts it in its own window, so the scrim covers the system bars and Back
- * closes it.
+ * closes it. Only the bottom of [contentPadding] is used: the space the bottom ad bar keeps, inside the scrolled list,
+ * so the background reaches the bottom of the screen and the last row scrolls above the bar. [listScrollState] is the
+ * scroll of the list, given by tests to scroll it to its end.
  */
 @Composable
 fun SettingsScreen(
@@ -135,6 +147,8 @@ fun SettingsScreen(
     onDialogDismiss: () -> Unit,
     onSaveErrorShown: () -> Unit,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
+    listScrollState: ScrollState = rememberScrollState(),
     privacyOptionsEntry: @Composable (row: @Composable (onClick: () -> Unit) -> Unit) -> Unit = {},
     dialogInWindow: Boolean = true,
 ) {
@@ -142,6 +156,7 @@ fun SettingsScreen(
     val saveError = stringResource(R.string.settings_save_error)
     val currentOnSaveErrorShown by rememberUpdatedState(onSaveErrorShown)
     val saveFailed = (uiState as? SettingsUiState.Ready)?.saveFailed == true
+    val bottomReserve = contentPadding.calculateBottomPadding()
     LaunchedEffect(saveFailed) {
         if (saveFailed) {
             snackbarHostState.showSnackbar(saveError)
@@ -165,10 +180,15 @@ fun SettingsScreen(
                     onPrivacyOptionsClick = onPrivacyOptionsClick,
                     onPrivacyPolicyClick = onPrivacyPolicyClick,
                     privacyOptionsEntry = privacyOptionsEntry,
+                    bottomReserve = bottomReserve,
+                    scrollState = listScrollState,
                 )
             }
         }
-        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomReserve),
+        )
         if (uiState is SettingsUiState.Ready && uiState.dialog != null) {
             PickerHost(inWindow = dialogInWindow, onDismiss = onDialogDismiss) {
                 when (uiState.dialog) {
@@ -236,11 +256,15 @@ private fun SettingsList(
     onPrivacyOptionsClick: () -> Unit,
     onPrivacyPolicyClick: () -> Unit,
     privacyOptionsEntry: @Composable (row: @Composable (onClick: () -> Unit) -> Unit) -> Unit,
+    bottomReserve: Dp,
+    scrollState: ScrollState,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
+            // Inside the scroll, so the last row stops above the bottom ad bar.
+            .padding(bottom = bottomReserve)
             .testTag(SettingsTestTags.LIST),
     ) {
         SectionHeader(title = stringResource(R.string.settings_section_general))

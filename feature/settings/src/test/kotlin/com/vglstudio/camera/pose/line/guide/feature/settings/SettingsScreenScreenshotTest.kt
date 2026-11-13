@@ -1,14 +1,23 @@
 package com.vglstudio.camera.pose.line.guide.feature.settings
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarDefaults
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdAssets
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdCard
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdSize
 import com.vglstudio.camera.pose.line.guide.core.data.ThemeMode
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
@@ -73,26 +82,70 @@ class SettingsScreenScreenshotTest {
         }
     }
 
+    // Design `ad` (spec settings, KB-1; spec ads, question 19; plan T-093): the native bottom bar of the framework
+    // with a fixed ad, as the real one is never drawn in tests.
+    @Test
+    fun ad_light() {
+        captureRoboImage("src/test/screenshots/SettingsScreen_ad_light.png") {
+            Screen(DEFAULT, dark = false, ad = true)
+        }
+    }
+
+    @Test
+    fun ad_dark() {
+        captureRoboImage("src/test/screenshots/SettingsScreen_ad_dark.png") { Screen(DEFAULT, dark = true, ad = true) }
+    }
+
+    // With the bar, the list scrolled to its end: the version row ends right above the slot.
+    @Test
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
+    fun ad_small() {
+        captureRoboImage("src/test/screenshots/SettingsScreen_ad_small.png") {
+            // ScrollState moves a value past the end back to maxValue when the list is measured.
+            Screen(DEFAULT, dark = false, ad = true, listScrollState = remember { ScrollState(Int.MAX_VALUE) })
+        }
+    }
+
     @Composable
-    private fun Screen(state: SettingsUiState, dark: Boolean) {
+    private fun Screen(
+        state: SettingsUiState,
+        dark: Boolean,
+        ad: Boolean = false,
+        listScrollState: ScrollState = rememberScrollState(),
+    ) {
         AppTheme(darkTheme = dark) {
-            Column(Modifier.background(MaterialTheme.colorScheme.background)) {
-                Spacer(Modifier.height(Spacing.lg))
-                SettingsScreen(
-                    uiState = state,
-                    onBack = {},
-                    onThemeClick = {},
-                    onThemeSelect = {},
-                    onShutterSoundChange = {},
-                    onLanguageClick = {},
-                    onLanguageSelect = {},
-                    onPrivacyOptionsClick = {},
-                    onPrivacyPolicyClick = {},
-                    onDialogDismiss = {},
-                    onSaveErrorShown = {},
-                    privacyOptionsEntry = { row -> row {} },
-                    dialogInWindow = false,
+            val screen = @Composable { contentPadding: PaddingValues ->
+                Column(Modifier.background(MaterialTheme.colorScheme.background)) {
+                    Spacer(Modifier.height(Spacing.lg))
+                    SettingsScreen(
+                        uiState = state,
+                        onBack = {},
+                        onThemeClick = {},
+                        onThemeSelect = {},
+                        onShutterSoundChange = {},
+                        onLanguageClick = {},
+                        onLanguageSelect = {},
+                        onPrivacyOptionsClick = {},
+                        onPrivacyPolicyClick = {},
+                        onDialogDismiss = {},
+                        onSaveErrorShown = {},
+                        contentPadding = contentPadding,
+                        listScrollState = listScrollState,
+                        privacyOptionsEntry = { row -> row {} },
+                        dialogInWindow = false,
+                    )
+                }
+            }
+            if (ad) {
+                // Around the status bar spacer too, so the slot is 16 from the bottom of the frame, as the design.
+                BottomAdBarLayout(
+                    reservation = BottomAdBarDefaults.nativeReservation,
+                    slot = { NativeAdCard(SCREENSHOT_AD, NativeAdSize.SMALL, it) },
+                    layer = null,
+                    content = screen,
                 )
+            } else {
+                screen(PaddingValues())
             }
         }
     }
@@ -108,3 +161,13 @@ class SettingsScreenScreenshotTest {
         val LANGUAGE_PICKER = DEFAULT.copy(dialog = SettingsDialog.LANGUAGE)
     }
 }
+
+/** The fixed ad of the design (context/SettingsScreen_ad_light.md). */
+private val SCREENSHOT_AD = NativeAdAssets(
+    headline = "Headline of the ad",
+    advertiser = "Advertiser or short body",
+    body = null,
+    callToAction = "Install",
+    icon = null,
+    hasMedia = false,
+)

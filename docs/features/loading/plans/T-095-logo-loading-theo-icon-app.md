@@ -1,13 +1,13 @@
 ---
 ticket: T-095
 title: Logo màn loading dùng biểu tượng app
-status: approved               # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn 7, không tính tổng
 risk_level: high             # low | medium | high
 token_estimate: 7.1M         # scripts/token-usage.py estimate, cỡ S
 blocking_points: [core]      # điểm 7: module core dùng chung (:core:designsystem)
-run_order:                   # AI điền sau họp đánh giá rủi ro
+run_order: RUN-20261113-01, 1
 reviewer: Nhật
 cross_reviewer: Nhật           # nhóm một dev (risk-scoring.md, mục 3)
 approved_at: 2026-11-13
@@ -199,3 +199,15 @@ Không cần (E dưới 2): ảnh WebP trong `drawable-nodpi` vẽ bằng `Image
   4. **Chấp nhận ngoại lệ ADR-0031:** phiên được xóa `ComponentsTest.brandLogo_fill_isSecondaryContainer` và thay bằng test viết trước `brandLogo_fill_isAppIconArtwork` (mục 3.5, mục 4). Việc xóa này đã được duyệt, không thuộc điều kiện dừng 5 của `risk-scoring.md`; mọi test cũ khác vẫn giữ nguyên.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261113-01, phiên bản plan 1
+
+- **Kết quả:** đã merge.
+- **Nhánh, PR:** `claude/T-095-logo-loading`, PR #327, commit merge `6fc591f`.
+- **Đã làm:** `BrandLogo` vẽ `res/drawable-nodpi/brand_logo.webp` (chép nguyên `docs/brand/app-icon/brand-logo-448.webp`), cắt bo `Radius.sheet`, bỏ viền, bóng, nền; KDoc mới. `brand_mark.xml` chỉ sửa chú thích. Ghi lại 10 ảnh chuẩn của mục 3.2; `scripts/design-compare.sh loading` 2.5% (failed), 1.4% (progress); mục 8 của `design/README.md` cập nhật. Không dùng phương án dự phòng.
+- **Test viết trước:** 3 test (`brandLogo_fill_isAppIconArtwork`, `brandLogo_hasNoOutline`, `brandLogo_hasNoShadow`), thất bại đúng lý do trên code cũ: `green 200`, `outline pixel sum 51`, điểm bóng `-14275` (`#FFC83D`). Test JVM của mọi module trên khung đó: chỉ 3 test này đỏ. `brandLogo_fill_isSecondaryContainer` xóa theo mục 9 (ngoại lệ ADR-0031 đã duyệt). Đột biến bỏ `.clip`: câu góc bo đỏ, điểm `-155632` (`#FDA010`). Lúc hoàn tác đột biến, `git checkout` trả `BrandLogo.kt` về code cũ vì code mới chưa commit; viết lại ngay theo mục 3.1 và chạy lại test, qua.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú. Đã sửa: nhận xét `failed` trong `design/README.md` (commit `2d96e17`). Còn lại: mô tả PR có đề xuất về dự án mẫu và kết quả `existing-tests.py`; người so logo trên ảnh chuẩn với `play-store-512.png`.
+- **Kết quả CI:** `pr-check` xanh (lần chạy 43369641901), `main-guard` xanh (43371415938). `scripts/check.sh` trên máy qua (3123 test JVM, 0 lỗi).
+- **Lệch so với plan:** Không có. Khi ghi lại ảnh chuẩn, 4 ảnh ngoài mục 3.2 của `:core:designsystem` (`DesignSystem_camera_components_dark`, `DesignSystem_pose_cards_light`, `DesignSystem_spacing_components_dark`, `DesignSystem_spacing_components_light`) lệch tối đa 1 mỗi kênh màu (nhiễu vẽ, mục 7 của plan không dừng), đã trả về bằng `git checkout`.
+- **Việc còn lại:** đề xuất về dự án mẫu (`BrandLogo` vẽ ảnh `brand_logo` mà mỗi app thay), theo `docs/ops/from-app.md`.
+- **Cần người xem:** logo trên ảnh chuẩn `feature/loading/src/test/screenshots/LoadingScreen_*.png` so với `docs/brand/app-icon/play-store-512.png`; ảnh so sánh trong `docs/features/loading/design/review/`.

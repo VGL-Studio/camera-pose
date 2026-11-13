@@ -952,3 +952,12 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `scripts/save-branch.sh`: trước khi báo lỗi, đọc lại `git ls-remote`; nhánh trên origin đã là đúng commit đầu nhánh thì in "ĐÃ ĐẨY". Hoặc `docs/auto-run.md` mục Giao bước 3 đến 5: khi `push-on-commit.sh` còn chạy, phiên chính dừng nó (công cụ dừng tác vụ nền) trước khi tự đẩy.
 - **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
 - **Kiểm chứng:**
+
+### L-103: scripts/check.sh đỏ trên máy macOS vì test của script dùng sed của GNU
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261113-01, kiểm tra đầu phiên `local`.
+- **Chuyện gì:** `scripts/check.sh` trên nhánh chính (máy dev macOS) dừng ở phần test của script, trước phần Gradle: test "pr-check: the filter output check fails on a copy reading an undefined output" dùng `sed '0,/.../s//.../'`, cú pháp chỉ GNU sed hiểu; `sed` của macOS (BSD) không hiểu nên bản chép không đổi và test thấy `yes`. CI (Linux) qua. `scripts/local-setup.sh --check` vẫn qua vì không kiểm `sed`. Phiên `local` theo chữ của `auto-run.md` mục 2 phải kết thúc phiên; Nhật chọn cài `gnu-sed` (`brew install gnu-sed`) và đặt `/opt/homebrew/opt/gnu-sed/libexec/gnubin` trước `PATH` cho cả phiên.
+- **Bằng chứng:** RUN-20261113-01, 04:20 UTC: `FAIL - pr-check: the filter output check fails on a copy reading an undefined output: expected 'no', got 'yes'`, `1 script test(s) failed`; `sed --version` trả `illegal option`. Chạy lại với GNU sed: `== Cổng chất lượng: QUA` (3121 test JVM).
+- **Đề xuất sửa:** `scripts/tests/run.sh`: viết lại lệnh đó bằng `awk` hay `perl` cho chạy được cả GNU lẫn BSD (như quy tắc `perl -pi -e` của `docs/CLAUDE.md`, mục Khi viết plan); hoặc `scripts/local-setup.sh --check` kiểm GNU sed và in lệnh cài. `scripts/failure-kind.sh --playbook` xếp log này thành PB-02 (GitHub không cấp máy), sai: thêm dòng tra cho `FAIL - ` của test script trên máy dev.
+- **Áp dụng:** chưa làm.
+- **Kiểm chứng:**

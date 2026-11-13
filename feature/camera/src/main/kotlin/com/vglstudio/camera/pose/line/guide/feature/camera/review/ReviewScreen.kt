@@ -72,11 +72,9 @@ internal fun ReviewRoute(onLeave: () -> Unit, viewModel: ReviewViewModel = hiltV
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnLeave by rememberUpdatedState(onLeave)
     val requestReview = rememberRequestInAppReview()
-    val savedCount by viewModel.savedCount.collectAsStateWithLifecycle()
-    // Read when the exit ends, not when the route was composed: the last save may have just been counted.
-    val currentSavedCount by rememberUpdatedState(savedCount)
     val currentRequestReview by rememberUpdatedState(requestReview)
-    val askReview = { currentRequestReview(currentSavedCount) }
+    // Read when the exit ends: a save from the discard dialog leaves before the collected count catches up (T-096).
+    val askReview = { currentRequestReview(viewModel.savedCountForReview()) }
     val showAd = rememberShowInterstitial(AdPlacement.REVIEW_INTERSTITIAL) { shown ->
         afterReviewAd(shown, currentOnLeave, askReview)
     }

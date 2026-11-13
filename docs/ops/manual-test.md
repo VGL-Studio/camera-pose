@@ -254,7 +254,7 @@ Cần một người đứng làm mẫu, chọn tư thế toàn thân một ngư
 ## 9. Cài đặt (settings KB-1 đến KB-6)
 
 1. Bấm bánh răng ở camera.
-   - [ ] Màn cài đặt mở, không có quảng cáo. Back: về camera.
+   - [ ] Màn cài đặt mở; có khe quảng cáo native thử ở đáy (mục 11.1). Back: về camera.
 2. Giao diện.
    - [ ] Bấm "Giao diện": hộp chọn Theo hệ thống, Sáng, Tối; lựa chọn hiện tại được đánh dấu; mặc định "Theo hệ thống".
    - [ ] Máy để sáng, chọn "Tối": màn đổi tối ngay, biểu tượng thanh trạng thái màu sáng, dòng "Giao diện" ghi "Tối".
@@ -343,7 +343,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 **Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
 
-- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080), `is_show_rw_premium_pose` đặt `false` (T-086), `is_show_native_onboarding` đặt `false` (T-083).
+- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080), `is_show_rw_premium_pose` đặt `false` (T-086), `is_show_native_onboarding` đặt `false` (T-083), `is_show_settings_bottom` đặt `false` (T-093).
 - [ ] Không có `show_open_ads_first_open`, `is_show_native_collap` đặt `true`; không có `is_show_native_after_inter` đặt `false` (T-090).
 - [ ] Hai khóa cũ `is_show_poses_banner`, `is_show_poses_detail_banner` không còn ai đọc từ T-079; để nguyên trên Firebase.
 - [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
@@ -374,6 +374,10 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
    - [ ] Đóng interstitial, rồi combo nếu có (mục 11.8), thì camera mở với đúng tư thế vừa chọn.
 8. Quay lại chi tiết, trong vòng 45 giây bấm "Chụp với tư thế này" lần nữa.
    - [ ] Không có quảng cáo (chưa qua nhịp `ads_interval`); camera mở ngay với đúng tư thế.
+9. Mở Cài đặt (T-093).
+   - [ ] Khe native thử cao khoảng 80 dp ở đáy, cách mép 16 dp; log `VGL.Ads` có `settings_bottom`.
+   - [ ] Cuộn hết: dòng "Phiên bản" nằm trên khe, không bị che.
+   - [ ] Mở hộp chọn "Giao diện": hộp và lớp mờ phủ lên khe.
 
 ### 11.2 Quảng cáo mở app từ lần mở thứ hai
 

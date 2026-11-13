@@ -38,6 +38,8 @@ object StagingRemoteValuesModule {
         AdPlacement.RW_PREMIUM_POSE,
         // The step card of the onboarding flow, first open only (spec onboarding, section 8; plan T-083).
         AdPlacement.NATIVE_ONBOARDING,
+        // The bottom bar of the settings screen (spec ads, question 19).
+        AdPlacement.SETTINGS_BOTTOM,
     ).map { LocalRemoteValue.of(AdsSettings.placementEnabled(it), true) }.toSet()
 
     /**

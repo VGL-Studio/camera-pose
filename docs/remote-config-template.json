@@ -216,6 +216,11 @@
       "description": "Shows ads in this placement. Off by default. Derived key of placement rw_premium_pose (rewarded).",
       "valueType": "BOOLEAN"
     },
+    "is_show_settings_bottom": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement settings_bottom (native_small).",
+      "valueType": "BOOLEAN"
+    },
     "native_every_gallery_in_collection": {
       "defaultValue": { "value": "4" },
       "description": "Number of items between two native ads of this placement, in items. Derived key of placement gallery_in_collection (native_in_collection).",

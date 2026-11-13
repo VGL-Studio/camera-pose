@@ -27,7 +27,7 @@ Theo yêu cầu 2026-11-13, logo trên màn loading đổi từ logo tạm (hìn
 - **Chú thích code:** sửa KDoc của `BrandLogo.kt` và chú thích của `brand_mark.xml` cho đúng logo mới, kèm cách mỗi app thay ảnh logo của mình (ADR-0008).
 - **Không có mô tả cho trình đọc màn hình:** giữ như cũ, vì tên app hiện ngay dưới logo.
 - **Ảnh chuẩn:** screenshot test của màn loading (`LoadingScreenScreenshotTest`: bốn ảnh cùng tên thiết kế, `LoadingScreen_progress_small`, `LoadingScreen_failed_small`, `LoadingScreen_failed-server_small`, `LoadingScreen_failed-server_light`) và hai ảnh có `BrandLogo` của `core/designsystem` (`DesignSystem_brand_light.png`, `DesignSystem_brand_dark.png`, do `DesignSystemCatalogScreenshotTest` ghi) ghi lại theo plan, lệnh có `--rerun`; chạy `scripts/design-compare.sh loading`, cập nhật mục 8 của `design/README.md`.
-- **Test:** `ComponentsTest` kiểm logo không còn viền và bóng (đo màu điểm ảnh ngoài mép ô bằng nền màn), cỡ 112 dp, bo góc. Test cũ `brandLogo_fill_isSecondaryContainer` khẳng định nền `#FFC83D`, trái thiết kế mới: plan viết lại câu khẳng định theo ADR-0031 ở mục 3.5; `brandLogo_is112dpSquare` giữ nguyên.
+- **Test:** `ComponentsTest` kiểm logo không còn viền và bóng (đo màu điểm ảnh ngoài mép ô bằng nền màn), cỡ 112 dp, bo góc. Test cũ `brandLogo_fill_isSecondaryContainer` khẳng định nền `#FFC83D`, trái thiết kế mới: theo mục 9 của plan (ngoại lệ ADR-0031 đã duyệt), phiên xóa test này và thay bằng `brandLogo_fill_isAppIconArtwork`; `brandLogo_is112dpSquare` giữ nguyên.
 
 **Không bao gồm:**
 

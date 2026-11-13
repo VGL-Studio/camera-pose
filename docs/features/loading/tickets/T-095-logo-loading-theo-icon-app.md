@@ -5,12 +5,12 @@ feature: loading
 spec: features/loading/spec.md   # confirmed 2026-11-13, KB-6 (tiêu chí logo màn loading)
 scenarios: [KB-1, KB-6]
 owner: Nhật
-status: ready                # thiết kế bốn frame loading đã sửa và Nhật duyệt ngày 2026-11-13
+status: approved                # thiết kế bốn frame loading đã sửa và Nhật duyệt ngày 2026-11-13
 risk: high                   # chạm module core (:core:designsystem), risk-scoring.md mục 1, điểm 7
 size: S
 depends_on: []
 sprint:
-plan:
+plan: features/loading/plans/T-095-logo-loading-theo-icon-app.md
 auto_run:
 created: 2026-11-13
 ---

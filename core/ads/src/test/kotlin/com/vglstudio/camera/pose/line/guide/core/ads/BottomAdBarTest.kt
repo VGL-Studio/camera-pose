@@ -92,6 +92,7 @@ class BottomAdBarTest {
     private var flags by mutableStateOf(barFlags(nativeBottom = true, collap = true))
     private var slotAllowed by mutableStateOf(true)
     private var layerUnitIds by mutableStateOf<AdUnitIds>(AllUnits)
+    private var collapsibleLayer by mutableStateOf(true)
 
     private val slotFeed = FakeNativeFeed()
     private val layerFeed = FakeNativeFeed()
@@ -117,7 +118,7 @@ class BottomAdBarTest {
             val enabledFromFlow = enabledFlow?.let { remember(it) { it }.collectAsState(initial = false).value }
             val barEnabled = enabledFromFlow ?: enabled
             val nativeAllowed = enabledFromFlow?.let { nativeSlotAllowed(canRequest, it, "unit") } ?: slotAllowed
-            val choice = rememberBottomAdBarLayers(canRequest, barEnabled, flags)
+            val choice = rememberBottomAdBarLayers(canRequest, barEnabled, flags, collapsibleLayer = collapsibleLayer)
             BottomAdBarHost(
                 layers = choice.layers,
                 nativeSlot = { delay, onAvailability, modifier ->
@@ -266,15 +267,89 @@ class BottomAdBarTest {
         // B-06 keeps the banner that had an ad; with no consent nothing else may load, even if the native slot is on.
         assertEquals(
             BottomAdBarLayers(BottomSlotKind.BANNER, collapsible = false),
-            bottomAdBarLayers(canRequestAds = false, enabled = true, flags = nativeOn, bannerHadAd = true),
+            bottomAdBarLayers(
+                canRequestAds = false,
+                enabled = true,
+                flags = nativeOn,
+                bannerHadAd = true,
+                collapsibleLayer = true,
+            ),
         )
         // Control: with consent the same switches give the native slot and the layer.
         assertEquals(
             BottomAdBarLayers(BottomSlotKind.NATIVE, collapsible = true),
-            bottomAdBarLayers(canRequestAds = true, enabled = true, flags = nativeOn, bannerHadAd = true),
+            bottomAdBarLayers(
+                canRequestAds = true,
+                enabled = true,
+                flags = nativeOn,
+                bannerHadAd = true,
+                collapsibleLayer = true,
+            ),
         )
-        assertNull(bottomAdBarLayers(canRequestAds = false, enabled = true, flags = nativeOn, bannerHadAd = false))
-        assertNull(bottomAdBarLayers(canRequestAds = false, enabled = false, flags = nativeOn, bannerHadAd = true))
+        assertNull(
+            bottomAdBarLayers(
+                canRequestAds = false,
+                enabled = true,
+                flags = nativeOn,
+                bannerHadAd = false,
+                collapsibleLayer = true,
+            ),
+        )
+        assertNull(
+            bottomAdBarLayers(
+                canRequestAds = false,
+                enabled = false,
+                flags = nativeOn,
+                bannerHadAd = true,
+                collapsibleLayer = true,
+            ),
+        )
+    }
+
+    @Test
+    fun layers_collapsibleLayerOff_noLayerWithCollapOn() {
+        // A placement declared without the layer (plan T-094, spec ads question 19 point e).
+        val collapOn = barFlags(nativeBottom = true, collap = true)
+        assertEquals(
+            BottomAdBarLayers(BottomSlotKind.NATIVE, collapsible = false),
+            bottomAdBarLayers(true, true, collapOn, false, collapsibleLayer = false),
+        )
+        // Control: the same switches for a placement with the layer give it.
+        assertEquals(
+            BottomAdBarLayers(BottomSlotKind.NATIVE, collapsible = true),
+            bottomAdBarLayers(true, true, collapOn, false, collapsibleLayer = true),
+        )
+        // is_show_native_bottom off still gives the banner slot.
+        assertEquals(
+            BottomAdBarLayers(BottomSlotKind.BANNER, collapsible = false),
+            bottomAdBarLayers(
+                true,
+                true,
+                barFlags(nativeBottom = false, collap = true),
+                false,
+                collapsibleLayer = false,
+            ),
+        )
+    }
+
+    @Test
+    fun host_collapsibleLayerOff_collapSwitchedOn_noLayer() {
+        collapsibleLayer = false
+        flags = barFlags(nativeBottom = true, collap = false)
+        setBar()
+        assertPresent(BottomAdBarTestTags.SLOT)
+        assertAbsent(BottomAdBarTestTags.LAYER)
+
+        // is_show_native_collap switched on while the screen shows.
+        update { flags = barFlags(nativeBottom = true, collap = true) }
+
+        assertAbsent(BottomAdBarTestTags.LAYER)
+        assertPresent(BottomAdBarTestTags.SLOT)
+
+        // Control: the same bar for a placement with the layer gets it.
+        update { collapsibleLayer = true }
+        assertPresent(BottomAdBarTestTags.LAYER)
+        assertPresent(BottomAdBarTestTags.SLOT)
     }
 
     // Space kept by the content (D-04, AR-02).

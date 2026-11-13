@@ -1,17 +1,26 @@
 package com.vglstudio.camera.pose.line.guide.feature.camera.review
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -20,6 +29,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.review.ReviewUiState.Ready
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -40,26 +50,52 @@ class ReviewScreenUnfoldedTest {
     val composeRule = createComposeRule()
 
     private val calls = mutableListOf<String>()
+    private var screenState by mutableStateOf<ReviewUiState>(ReviewUiState.Loading)
 
-    private fun setScreen(uiState: ReviewUiState) {
+    /** The screen in [uiState]; with [adBar], in that bar instead of the default one of the screen (plan T-094). */
+    private fun setScreen(uiState: ReviewUiState, adBar: ReviewAdBar? = null) {
+        screenState = uiState
         composeRule.setContent {
             AppTheme(darkTheme = true) {
-                ReviewScreen(
-                    uiState = uiState,
-                    image = null,
-                    onCloseClick = { calls += "close" },
-                    onSaveClick = { calls += "save" },
-                    onRetrySave = { calls += "retry" },
-                    onOpenAppSettings = { calls += "settings" },
-                    onRetakeClick = { calls += "retake" },
-                    onShareClick = { calls += "share" },
-                    onNextPoseClick = { calls += "nextPose" },
-                    onDiscardConfirm = { calls += "discard" },
-                    onDiscardSave = { calls += "discardSave" },
-                    onDismissDialog = { calls += "dismiss" },
-                )
+                if (adBar == null) {
+                    ReviewScreen(
+                        uiState = screenState,
+                        image = null,
+                        onCloseClick = { calls += "close" },
+                        onSaveClick = { calls += "save" },
+                        onRetrySave = { calls += "retry" },
+                        onOpenAppSettings = { calls += "settings" },
+                        onRetakeClick = { calls += "retake" },
+                        onShareClick = { calls += "share" },
+                        onNextPoseClick = { calls += "nextPose" },
+                        onDiscardConfirm = { calls += "discard" },
+                        onDiscardSave = { calls += "discardSave" },
+                        onDismissDialog = { calls += "dismiss" },
+                    )
+                } else {
+                    ReviewScreen(
+                        uiState = screenState,
+                        image = null,
+                        onCloseClick = { calls += "close" },
+                        onSaveClick = { calls += "save" },
+                        onRetrySave = { calls += "retry" },
+                        onOpenAppSettings = { calls += "settings" },
+                        onRetakeClick = { calls += "retake" },
+                        onShareClick = { calls += "share" },
+                        onNextPoseClick = { calls += "nextPose" },
+                        onDiscardConfirm = { calls += "discard" },
+                        onDiscardSave = { calls += "discardSave" },
+                        onDismissDialog = { calls += "dismiss" },
+                        adBar = adBar,
+                    )
+                }
             }
         }
+    }
+
+    private fun update(change: () -> Unit) {
+        composeRule.runOnIdle(change)
+        composeRule.waitForIdle()
     }
 
     private fun bounds(tag: String) = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
@@ -186,6 +222,164 @@ class ReviewScreenUnfoldedTest {
     @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
     fun landscape_saveInsideWindow_w960h520() = assertSaveInsideWindow()
 
+    // The bottom ad bar (plan T-094; spec camera, KB-11 criterion 3, KB-9 criterion 5): a fake 80 dp slot in the bar of
+    // the framework (fakeAdBar). Numbers from section 4.1 of the plan, measured from the top of the test frame.
+
+    private val actionTags = listOf(ReviewTestTags.RETAKE, ReviewTestTags.SHARE, ReviewTestTags.NEXT_POSE)
+
+    private fun assertAbove(label: String, box: DpRect, slot: DpRect) =
+        assertTrue("$label bottom ${box.bottom} above the slot ${slot.top}", box.bottom.value <= slot.top.value + 0.5f)
+
+    private fun assertActionsAndSaveAbove(slot: DpRect) {
+        (actionTags + ReviewTestTags.SAVE).forEach { assertAbove(it, bounds(it), slot) }
+        assertNear("save height", 56f, bounds(ReviewTestTags.SAVE).height, 0.5f)
+    }
+
+    @Test
+    fun adBar_slotFullWidth_photoKept_saveAbove() {
+        var withSlot by mutableStateOf(false)
+        setScreen(Ready(PATH, SaveStatus.NOT_SAVED), adBar = fakeAdBar(withSlot = { withSlot }))
+        val photoBefore = bounds(ReviewTestTags.PHOTO)
+        val saveBefore = bounds(ReviewTestTags.SAVE)
+
+        update { withSlot = true }
+
+        val slot = bounds(FAKE_AD_SLOT)
+        assertNear("slot width", 641f, slot.width, 0.5f)
+        assertNear("slot left", 16f, slot.left, 0.5f)
+        assertNear("slot top", 745f, slot.top, 0.5f)
+        val photo = bounds(ReviewTestTags.PHOTO)
+        assertNear("photo width", 450f, photo.width, 1f)
+        assertNear("photo height", 600f, photo.height, 1f)
+        assertNear("photo height kept", photoBefore.height.value, photo.height, 0.5f)
+        assertActionsAndSaveAbove(slot)
+        val save = bounds(ReviewTestTags.SAVE)
+        assertNear("save bottom", 725f, save.bottom, 0.5f)
+        assertNear("save moved up", 96f, saveBefore.bottom - save.bottom, 0.5f)
+        assertTrue("save ${save.left} right of the photo ${photo.right}", save.left >= photo.right)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_adBar_saveInsideWindow() {
+        setScreen(Ready(PATH, SaveStatus.NOT_SAVED), adBar = fakeAdBar())
+        val slot = bounds(FAKE_AD_SLOT)
+        assertNear("slot top", 424f, slot.top, 0.5f)
+        val save = bounds(ReviewTestTags.SAVE)
+        assertNear("save top", 348f, save.top, 0.5f)
+        assertNear("save bottom", 404f, save.bottom, 0.5f)
+        val photo = bounds(ReviewTestTags.PHOTO)
+        assertNear("photo width", 255f, photo.width, 1f)
+        assertNear("photo height", 340f, photo.height, 1f)
+        assertEquals("photo width / height", 0.75f, photo.width.value / photo.height.value, 0.01f)
+        assertActionsAndSaveAbove(slot)
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w960dp-h520dp-land-xxhdpi")
+    fun landscape_adBar_saveError_compactColumn() {
+        setScreen(Ready(PATH, SaveStatus.PERMISSION_BLOCKED), adBar = fakeAdBar())
+        assertCompactColumn(
+            "PERMISSION_BLOCKED",
+            "Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện.",
+            "Lưu ảnh",
+            137f,
+        )
+        assertEquals(listOf("save"), calls)
+
+        calls.clear()
+        update { screenState = Ready(PATH, SaveStatus.FAILED_STORAGE_FULL) }
+        assertCompactColumn("FAILED_STORAGE_FULL", "Không lưu được ảnh: bộ nhớ máy đã đầy.", "Lưu ảnh", 137f)
+        assertEquals(listOf("save"), calls)
+    }
+
+    @Test
+    @Config(qualifiers = "pt-rBR-w960dp-h520dp-land-xxhdpi")
+    fun landscape_adBar_saveError_compactColumn_portuguese() {
+        setScreen(Ready(PATH, SaveStatus.PERMISSION_BLOCKED), adBar = fakeAdBar())
+        assertCompactColumn(
+            "pt-BR PERMISSION_BLOCKED",
+            "Permita salvar fotos nas Configurações do aparelho para salvar na galeria.",
+            "Salvar foto",
+            160.7f,
+        )
+        assertEquals(listOf("save"), calls)
+    }
+
+    /**
+     * Too little room in the right column for the stacked actions, the error and the main button: the actions side by
+     * side (72 high), the error with its action on the same line, the main button whole (56) and above the slot. Taps
+     * the main button once.
+     */
+    private fun assertCompactColumn(state: String, message: String, saveText: String, saveWidth: Float) {
+        val slot = bounds(FAKE_AD_SLOT)
+        assertNear("$state slot top", 424f, slot.top, 0.5f)
+        val save = bounds(ReviewTestTags.SAVE)
+        val error = bounds(ReviewTestTags.SAVE_ERROR)
+        assertNear("$state save top", 348f, save.top, 0.5f)
+        assertNear("$state save bottom", 404f, save.bottom, 0.5f)
+        assertNear("$state save width", saveWidth, save.width, 1f)
+        assertTrue(
+            "$state save ${save.top} 16 under the error ${error.bottom}",
+            save.top.value >= error.bottom.value + 15.5f,
+        )
+        assertActionsAndSaveAbove(slot)
+        val layouts = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithText(saveText, useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val label = layouts.single()
+        assertFalse("$state label overflows its height", label.didOverflowHeight)
+        assertFalse("$state label overflows its width", label.didOverflowWidth)
+        assertEquals("$state label lines", 1, label.lineCount)
+        // The actions side by side, as on a phone.
+        val actions = bounds(ReviewTestTags.ACTIONS)
+        assertNear("$state actions top", 64f, actions.top, 0.5f)
+        assertNear("$state actions bottom", 136f, actions.bottom, 0.5f)
+        actionTags.forEach { assertNear("$state $it top", 64f, bounds(it).top, 0.5f) }
+        // The error on one line, its action beside the message.
+        assertNear("$state error top", 284f, error.top, 1f)
+        assertNear("$state error bottom", 332f, error.bottom, 1f)
+        val messageLayouts = mutableListOf<TextLayoutResult>()
+        composeRule.onNode(inSaveError(message), useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(messageLayouts) }
+        assertEquals("$state message lines", 1, messageLayouts.single().lineCount)
+        val text = composeRule.onNode(inSaveError(message), useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val action = composeRule.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(ReviewTestTags.SAVE_ERROR)))
+            .onFirst()
+            .getUnclippedBoundsInRoot()
+        assertTrue("$state action ${action.top} on the line of the message ${text.bottom}", action.top < text.bottom)
+        assertTrue("$state action ${action.left} right of the message ${text.right}", action.left >= text.right)
+        composeRule.onNodeWithTag(ReviewTestTags.SAVE).performClick()
+    }
+
+    @Test
+    @Config(qualifiers = "vi-w841dp-h593dp-land-xxhdpi")
+    fun landscape_adBar_thresholdBoundary() {
+        // Column 413 high with the slot: under the threshold with an error (420), over it without (264).
+        setScreen(Ready(PATH, SaveStatus.PERMISSION_BLOCKED), adBar = fakeAdBar())
+        val actions = bounds(ReviewTestTags.ACTIONS)
+        assertNear("PERMISSION_BLOCKED actions top", 64f, actions.top, 0.5f)
+        assertNear("PERMISSION_BLOCKED actions height", 72f, actions.height, 0.5f)
+        actionTags.forEach { assertNear("PERMISSION_BLOCKED $it top", 64f, bounds(it).top, 0.5f) }
+        assertSaveAt("PERMISSION_BLOCKED", 421f, 477f)
+
+        update { screenState = Ready(PATH, SaveStatus.NOT_SAVED) }
+
+        val stacked = bounds(ReviewTestTags.ACTIONS)
+        assertNear("NOT_SAVED actions top", 64f, stacked.top, 0.5f)
+        assertNear("NOT_SAVED actions bottom", 256f, stacked.bottom, 0.5f)
+        val tops = actionTags.map { bounds(it).top.value }
+        assertEquals("NOT_SAVED actions stacked: $tops", 3, tops.toSet().size)
+        assertSaveAt("NOT_SAVED", 421f, 477f)
+    }
+
+    private fun assertSaveAt(state: String, top: Float, bottom: Float) {
+        val save = bounds(ReviewTestTags.SAVE)
+        assertNear("$state save top", top, save.top, 0.5f)
+        assertNear("$state save bottom", bottom, save.bottom, 0.5f)
+        assertActionsAndSaveAbove(bounds(FAKE_AD_SLOT))
+    }
+
     private companion object {
         const val PATH = "/cache/captures/capture_1.jpg"
     }
@@ -215,27 +409,53 @@ class ReviewScreenUnfoldedScreenshotTest {
         }
     }
 
+    // Named like the design image (plan T-094): the slot spans the bottom, the main button above it.
+    @Test
+    fun ad_dark_unfolded() {
+        captureRoboImage("src/test/screenshots/ReviewScreen_ad_dark_unfolded.png") {
+            Screen(Ready(PATH, SaveStatus.NOT_SAVED), adBar = screenshotAdBar())
+        }
+    }
+
     private companion object {
         const val PATH = "/cache/captures/capture_1.jpg"
     }
 }
 
 @Composable
-private fun Screen(uiState: ReviewUiState) {
+private fun Screen(uiState: ReviewUiState, adBar: ReviewAdBar? = null) {
     AppTheme(darkTheme = true) {
-        ReviewScreen(
-            uiState = uiState,
-            image = null,
-            onCloseClick = {},
-            onSaveClick = {},
-            onRetrySave = {},
-            onOpenAppSettings = {},
-            onRetakeClick = {},
-            onShareClick = {},
-            onNextPoseClick = {},
-            onDiscardConfirm = {},
-            onDiscardSave = {},
-            onDismissDialog = {},
-        )
+        if (adBar == null) {
+            ReviewScreen(
+                uiState = uiState,
+                image = null,
+                onCloseClick = {},
+                onSaveClick = {},
+                onRetrySave = {},
+                onOpenAppSettings = {},
+                onRetakeClick = {},
+                onShareClick = {},
+                onNextPoseClick = {},
+                onDiscardConfirm = {},
+                onDiscardSave = {},
+                onDismissDialog = {},
+            )
+        } else {
+            ReviewScreen(
+                uiState = uiState,
+                image = null,
+                onCloseClick = {},
+                onSaveClick = {},
+                onRetrySave = {},
+                onOpenAppSettings = {},
+                onRetakeClick = {},
+                onShareClick = {},
+                onNextPoseClick = {},
+                onDiscardConfirm = {},
+                onDiscardSave = {},
+                onDismissDialog = {},
+                adBar = adBar,
+            )
+        }
     }
 }

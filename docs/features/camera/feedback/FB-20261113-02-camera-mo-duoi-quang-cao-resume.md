@@ -51,6 +51,7 @@ Không có.
 ## Phân loại
 
 - **Loại:** lỗi so với spec. Mục 5 của `features/camera/spec.md`: "Đóng quảng cáo thì camera mở lại như khi quay lại app thường"; camera hiện mở ngay dưới quảng cáo.
-- **Xử lý:** sửa code, giữ câu chữ của spec: camera chờ quảng cáo toàn màn hình đóng rồi mới mở. Ticket mới T-097, vì T-074 (nơi quảng cáo resume được nối) đã xong. Nhật chọn ngày 2026-11-13.
+- **Xử lý:** sửa code: camera không chạy trong lúc quảng cáo toàn màn hình phủ lên, mở lại khi quảng cáo đóng. Ticket mới T-097, vì T-074 (nơi quảng cáo resume được nối) đã xong. Nhật chọn ngày 2026-11-13.
+- **Mở rộng (Nhật chọn ngày 2026-11-13, khi duyệt plan T-097):** áp cho mọi quảng cáo toàn màn hình phủ lên camera, kể cả quảng cáo có thưởng mở khóa tư thế premium; spec camera sửa mục 5 và thêm KB-8, tiêu chí 4 (chờ xác nhận).
 - **Lý do:** mở camera dưới quảng cáo có thể làm chấm báo camera của Android hiện trên quảng cáo, và dùng camera khi người dùng không thấy khung xem trước.
 - **Liên kết:** [T-097](../tickets/T-097-camera-cho-quang-cao-dong.md)

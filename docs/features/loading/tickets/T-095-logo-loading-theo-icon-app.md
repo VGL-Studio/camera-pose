@@ -5,7 +5,7 @@ feature: loading
 spec: features/loading/spec.md   # confirmed 2026-11-13, KB-6 (tiêu chí logo màn loading)
 scenarios: [KB-1, KB-6]
 owner: Nhật
-status: approved                # thiết kế bốn frame loading đã sửa và Nhật duyệt ngày 2026-11-13
+status: on-staging
 risk: high                   # chạm module core (:core:designsystem), risk-scoring.md mục 1, điểm 7
 size: S
 depends_on: []

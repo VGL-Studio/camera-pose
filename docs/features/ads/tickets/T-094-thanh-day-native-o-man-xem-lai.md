@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # confirmed 2026-11-13, câu 19; vị trí của màn ở mục 5 của features/camera/spec.md (confirmed 2026-11-13)
 scenarios: [KB-6, KB-9, KB-11]   # của features/camera/spec.md; tiêu chí của thanh đáy ở KB-9 và KB-11
 owner: Nhật
-status: approved                # frame trạng thái ad của câu 19, ý b đã duyệt (Nhật, 2026-11-13)
+status: on-staging              # lên nhánh chính ở RUN-20261114-01 (PR #346)
 risk: high
 size: M
 depends_on: [T-093]          # cùng sửa AdPlacement, StagingRemoteValuesModule và bảng khóa; làm sau để không trùng file

@@ -14,6 +14,8 @@
 | CameraScreen_premium_dark | 6.8% | `CameraScreen_premium_dark_compare.png` |
 | CameraScreen_starting_dark | 2.8% | `CameraScreen_starting_dark_compare.png` |
 | CameraScreen_steps-hidden_dark | 6.0% | `CameraScreen_steps-hidden_dark_compare.png` |
+| ReviewScreen_ad_dark | 6.3% | `ReviewScreen_ad_dark_compare.png` |
+| ReviewScreen_ad_dark_unfolded | 4.0% | `ReviewScreen_ad_dark_unfolded_compare.png` |
 | ReviewScreen_default_dark | 5.9% | `ReviewScreen_default_dark_compare.png` |
 | ReviewScreen_default_dark_unfolded | 3.6% | `ReviewScreen_default_dark_unfolded_compare.png` |
 | ReviewScreen_discard_dark | 6.2% | `ReviewScreen_discard_dark_compare.png` |

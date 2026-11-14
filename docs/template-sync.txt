@@ -39,7 +39,12 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:
 # AdSlot separator (spec poses, KB-6; AdSlotTest) and PrivacyOptionsButton(content) (feature/settings), the public
 # startupAdPlacementFor of StartupAdChoice.kt (app/src/testStaging StagingRemoteValuesModuleTest), the CARD height when
-# space is kept in NativeAdSlot.kt, five T-080 tests of InListAdsTest. AdsSettingsTest follows the template apart from
+# space is kept in NativeAdSlot.kt, five T-080 tests of InListAdsTest.
+# The collapsibleLayer attribute of AdPlacement (T-094, review_bottom): the declaration field and its require in
+# AdPlacement.kt, layerFormats in AdUnitIds.kt, the collapsibleLayer parameter of bottomAdBarLayers,
+# rememberBottomAdBarLayers and rememberBottomAdBarState in BottomAdBar.kt, and its tests (AdPlacementTest,
+# AdPlacementAppTest, AdUnitIdsTest, BottomAdBarTest, AdsControllerNativeStockTest, AdPlacementSourceTest); keep them
+# until the template takes the attribute (from-app issue). AdsSettingsTest follows the template apart from
 # POSES_BOTTOM (its firstOpenOnly test checks both ways, so native_onboarding needs no edit). Template tests adapted to the
 # app: AdSlotTest (reloadMillis = 0), NativeFlowStepTest
 # (allowed = true), AdsControllerComboScopeTest (attachFullScreenHost). The core/ads screenshots are the template's

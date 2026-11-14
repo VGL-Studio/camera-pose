@@ -1,16 +1,16 @@
 ---
 ticket: T-094
 title: Thanh đáy native nhỏ ở màn xem lại ảnh (review_bottom, tắt lúc phát hành)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
 token_estimate: 15.0M        # cỡ M theo scripts/token-usage.py estimate (2026-11-13), không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền sau họp đánh giá rủi ro
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật
+cross_reviewer: Nhật           # nhóm một dev (risk-scoring.md, mục 3)
+approved_at: 2026-11-14
 lane:                        # để trống: phiên tự chạy; quick: đường làm nhanh có người theo dõi (ADR-0034)
 ---
 
@@ -20,7 +20,7 @@ lane:                        # để trống: phiên tự chạy; quick: đườ
 
 **Phiên bản 3 (2026-11-14).** Task dừng ở RUN-20261113-02, bước 4 (điều kiện dừng 8; nhật ký ở mục 10). Vì sao phiên bản 2 chưa đủ tốt: số của chế độ gọn ở cột phải (mục 4.1, lần đo 3) đo trên bố cục `SaveErrorMessage(Modifier.fillMaxWidth(), actionOnNewLine = false)`, trong đó Snackbar một hàng của Material cho chữ cả bề rộng và vẽ nút hành động đè lên chữ. Lần đo đó khi viết plan bản 2 không thấy nút đè chữ, nên mục 4 của bản 2 ghi số đo trên bố cục sai (thông báo một dòng 284 tới 332 cho cả pt-BR). Test viết trước (`d922a38`) đã có câu `action.left >= text.right` và đã bắt được nút đè chữ; phiên đổi sang `Modifier` để vẽ đúng (nút bên phải chữ), khi đó Snackbar rộng tối đa 600 dp nên pt-BR xuống hai dòng, và test pt-BR đỏ ở số đỉnh của thông báo (264, không phải 284). Thay đổi so với phiên bản 2:
 - Mục 3.1: chế độ gọn dùng `Modifier` (không `fillMaxWidth()`) cho thông báo lỗi; tiếp tục trên nhánh `claude/T-094-thanh-day-xem-lai`.
-- Mục 4: `assertCompactColumn` nhận thêm `errorTop`, `messageLines` (trên nhánh đang cứng 284 và một dòng); test pt-BR mong thông báo hai dòng 264 tới 332 (phương án (a) của nhật ký theo đề xuất, chờ duyệt ở mục 9); câu `action.left >= text.right` đã có trên nhánh, giữ, và thêm vào `landscape_adBar_thresholdBoundary`; nhận ba thay đổi test của phiên sau commit test (`Snapshot.sendApplyNotifications()`, cách kiểm "không bị cắt" mới, `actionText`). Số đo lại trên commit `7afc6e9` ở mục 4.1.
+- Mục 4: `assertCompactColumn` nhận thêm `errorTop`, `messageLines` (trên nhánh đang cứng 284 và một dòng); test pt-BR mong thông báo hai dòng 264 tới 332 (phương án (a) của nhật ký theo đề xuất, Nhật duyệt ngày 2026-11-14); câu `action.left >= text.right` đã có trên nhánh, giữ, và thêm vào `landscape_adBar_thresholdBoundary`; nhận ba thay đổi test của phiên sau commit test (`Snapshot.sendApplyNotifications()`, cách kiểm "không bị cắt" mới, `actionText`). Số đo lại trên commit `7afc6e9` ở mục 4.1.
 - Mục 8: bỏ các câu đã trả lời ở phiên bản 1; thêm câu về ranh giới 841 x 593.
 
 Thêm vị trí `review_bottom` (native nhỏ, thanh đáy) vào `AdPlacement`, khai báo kèm thuộc tính mới `collapsibleLayer = false` để thanh đáy của vị trí này không bao giờ có lớp native thu gọn nổi (câu 19, ý e). Màn xem lại đặt `BottomAdBarScaffold(AdPlacement.REVIEW_BOTTOM)` quanh thanh trên và phần nội dung, dưới hộp thoại "Bỏ ảnh này?", nên nội dung nhường 96 dp ở đáy và hộp thoại phủ lên thanh. Ở khung chuẩn 411 x 891, ảnh giữ 379 x 505 như khi không có khe, nút chính dời lên 96; ảnh chỉ co ở khung thấp (Nhật quyết ngày 2026-11-13: giữ bố cục của code, sửa thiết kế `ReviewScreen_ad_dark` theo). Bản staging bật sẵn `is_show_review_bottom`.
@@ -242,7 +242,7 @@ Test viết trước, ở commit test của bước 3. Chuỗi mã đơn vị c�
 | Màn hình thấp | Compose UI test, khung `vi-w360dp-h640dp-xxhdpi` | `ReviewScreenTest.small_adBar_photoShrinks_allVisible`: `NOT_SAVED` và khe: ảnh co từ 291 x 388 còn 219 x 292 (±1), giữ 0,75 (±0,01), nút chính đỉnh 468, đáy 524, khe đỉnh 544; `PERMISSION_BLOCKED` và khe: ảnh 156 x 208 (±1), thông báo, nút "Mở cài đặt", ba nút phụ và nút chính nằm trong màn và `bottom <= slot.top`; cùng test với `pt-rBR-w360dp-h640dp-xxhdpi` (`smallPortuguese_adBar_permissionBlocked_allVisible`: ảnh 131 x 174,7, thông báo cao 101,3, mọi nút trên khe) |
 | KB-11, tiêu chí 3: gập mở | Compose UI test, khung `vi-w673dp-h841dp-xxhdpi` | `ReviewScreenUnfoldedTest.adBar_slotFullWidth_photoKept_saveAbove`: khe rộng 641 (±0,5), cách mép trái 16, đỉnh 745; ảnh 450 x 600 (±1), như khi không có khe; ba nút phụ và nút chính có `bottom <= slot.top` (nút chính đáy 725, dời lên 96 từ 821), nút chính ở cột phải (`left >= photo.right`) |
 | KB-11: nằm ngang, đủ chỗ | Compose UI test | `ReviewScreenUnfoldedTest.landscape_adBar_saveInsideWindow`, khung `vi-w960dp-h520dp-land-xxhdpi`, `NOT_SAVED` có khe: nút chính 348 tới 404, cao 56 (±0,5), khe đỉnh 424; ảnh 255 x 340 (±1), giữ 0,75 |
-| KB-9 tiêu chí 5, KB-11: nằm ngang, thiếu chỗ | Compose UI test | Hàm chung `assertCompactColumn(state, message, actionText, saveText, saveWidth, errorTop, messageLines)`: khe đỉnh 424; nút chính 348 tới 404, cao 56 (±0,5), rộng `saveWidth` (±1), đỉnh ≥ đáy thông báo + 15,5, đáy ≤ khe; hàng nút phụ nằm ngang 64 tới 136, ba nút cùng đỉnh 64; thông báo lỗi `errorTop` tới 332 (±1), chữ của thông báo `messageLines` dòng; nút hành động của thông báo tìm theo chữ `actionText` trong `SAVE_ERROR` (không dùng `hasClickAction().onFirst()`), cùng hàng chữ (`action.top < text.bottom`) và **bên phải chữ, không đè lên** (`action.left >= text.right`); nhãn nút chính không bị cắt: `GetTextLayoutResult` của nhãn có `didOverflowHeight` sai, một dòng, bề rộng dòng (`getLineRight(0) - getLineLeft(0)`) không quá bề rộng chữ (`size.width` + 0,5) và `isLineEllipsized(0)` sai (không dùng `didOverflowWidth`: nó đúng cả ở bố cục mặc định chưa đổi); bấm nút chính gọi `onSaveClick` một lần. `ReviewScreenUnfoldedTest.landscape_adBar_saveError_compactColumn`, khung `vi-w960dp-h520dp-land-xxhdpi`: `PERMISSION_BLOCKED` ("Mở cài đặt", rộng 137, thông báo 284, một dòng) rồi `FAILED_STORAGE_FULL` ("Thử lại", 284, một dòng). `landscape_adBar_saveError_compactColumn_portuguese`, khung `pt-rBR-w960dp-h520dp-land-xxhdpi`, `PERMISSION_BLOCKED` ("Abrir configurações", nút chính "Salvar foto" rộng 160,7): thông báo **264 tới 332, hai dòng** (phương án (a), chờ duyệt ở mục 9), nút chính vẫn 348 tới 404. Hai test đổi qua ngay trên `7afc6e9`; lý do thất bại đúng nằm ở lần đối chứng `fillMaxWidth()` của mục 3.1 (đỏ ở `action.left >= text.right`, test pt-BR thêm ở `errorTop` 264). Đối chứng: trên code của nhánh chính nút chính bị ép còn 40; trên bố cục `fillMaxWidth()` của phiên bản 2 câu `action.left >= text.right` đỏ (nút đè chữ ở x khoảng 298) |
+| KB-9 tiêu chí 5, KB-11: nằm ngang, thiếu chỗ | Compose UI test | Hàm chung `assertCompactColumn(state, message, actionText, saveText, saveWidth, errorTop, messageLines)`: khe đỉnh 424; nút chính 348 tới 404, cao 56 (±0,5), rộng `saveWidth` (±1), đỉnh ≥ đáy thông báo + 15,5, đáy ≤ khe; hàng nút phụ nằm ngang 64 tới 136, ba nút cùng đỉnh 64; thông báo lỗi `errorTop` tới 332 (±1), chữ của thông báo `messageLines` dòng; nút hành động của thông báo tìm theo chữ `actionText` trong `SAVE_ERROR` (không dùng `hasClickAction().onFirst()`), cùng hàng chữ (`action.top < text.bottom`) và **bên phải chữ, không đè lên** (`action.left >= text.right`); nhãn nút chính không bị cắt: `GetTextLayoutResult` của nhãn có `didOverflowHeight` sai, một dòng, bề rộng dòng (`getLineRight(0) - getLineLeft(0)`) không quá bề rộng chữ (`size.width` + 0,5) và `isLineEllipsized(0)` sai (không dùng `didOverflowWidth`: nó đúng cả ở bố cục mặc định chưa đổi); bấm nút chính gọi `onSaveClick` một lần. `ReviewScreenUnfoldedTest.landscape_adBar_saveError_compactColumn`, khung `vi-w960dp-h520dp-land-xxhdpi`: `PERMISSION_BLOCKED` ("Mở cài đặt", rộng 137, thông báo 284, một dòng) rồi `FAILED_STORAGE_FULL` ("Thử lại", 284, một dòng). `landscape_adBar_saveError_compactColumn_portuguese`, khung `pt-rBR-w960dp-h520dp-land-xxhdpi`, `PERMISSION_BLOCKED` ("Abrir configurações", nút chính "Salvar foto" rộng 160,7): thông báo **264 tới 332, hai dòng** (phương án (a), Nhật duyệt ngày 2026-11-14), nút chính vẫn 348 tới 404. Hai test đổi qua ngay trên `7afc6e9`; lý do thất bại đúng nằm ở lần đối chứng `fillMaxWidth()` của mục 3.1 (đỏ ở `action.left >= text.right`, test pt-BR thêm ở `errorTop` 264). Đối chứng: trên code của nhánh chính nút chính bị ép còn 40; trên bố cục `fillMaxWidth()` của phiên bản 2 câu `action.left >= text.right` đỏ (nút đè chữ ở x khoảng 298) |
 | Ranh giới ngưỡng của cột phải | Compose UI test | `ReviewScreenUnfoldedTest.landscape_adBar_thresholdBoundary`, khung `vi-w841dp-h593dp-land-xxhdpi` có khe (cột 413, ngưỡng có lỗi 420, không lỗi 264): `PERMISSION_BLOCKED` thì hàng nút phụ nằm ngang (ba nút cùng đỉnh 64, cao 72), nút chính 421 tới 477; `NOT_SAVED` thì hàng nút xếp dọc (64 tới 256, ba nút khác đỉnh), nút chính 421 tới 477. Với `PERMISSION_BLOCKED` thêm: nút hành động bên phải chữ (`action.left >= text.right`, đo 735,3 ≥ 715,3; đỏ trên bố cục `fillMaxWidth()`, chữ tới 369,7 bị nút đè). Không khẳng định số dòng của thông báo ở khung này (tiếng Việt hai dòng 337 tới 405 trên bố cục `Modifier`, mục 4.1) |
 | Nút chính đủ cao ở mọi khung có khe | Compose UI test | Mỗi test bố cục có khe ở trên (điện thoại, khung thấp, pt-BR, gập mở, nằm ngang) thêm câu khẳng định nút chính cao 56 (±0,5) |
 | Câu 19 ý a: bản staging | Unit test | `StagingRemoteValuesModuleTest.localValues_areExactlyTheAppSet` có `"is_show_review_bottom" to true` |
@@ -363,7 +363,7 @@ Mức Cao, cần duyệt chéo. Người phụ trách sản phẩm (Nhật) đã
 
 ## 8. Câu hỏi cho người duyệt
 
-Các câu 1 tới 8 của phiên bản 1 đã được trả lời (mục 9), giữ nguyên. Hai việc của phiên bản 3 theo đề xuất của nhật ký, chờ duyệt ở mục 9: chấp nhận pt-BR hai dòng ở chế độ gọn (phương án (a)); chấp nhận ba thay đổi test sau commit test. Câu mới:
+Các câu 1 tới 8 của phiên bản 1 đã được trả lời (mục 9), giữ nguyên. Hai việc của phiên bản 3 theo đề xuất của nhật ký, Nhật duyệt ngày 2026-11-14 (mục 9): chấp nhận pt-BR hai dòng ở chế độ gọn (phương án (a)); chấp nhận ba thay đổi test sau commit test. Câu mới:
 
 1. **Thông báo lỗi hai dòng ở 841 x 593 có khe.** Trên bố cục `Modifier`, tiếng Việt `PERMISSION_BLOCKED` ở 841 x 593 xuống hai dòng (337 tới 405), nút chính vẫn 421 tới 477, nút hành động bên phải chữ. Plan không khẳng định số dòng ở khung này; `landscape_adBar_thresholdBoundary` khẳng định hàng nút, nút chính và, theo đề xuất này, nút hành động bên phải chữ (735,3 ≥ 715,3). AI đề xuất giữ như vậy. Đồng ý?
 
@@ -382,9 +382,11 @@ Các câu 1 tới 8 của phiên bản 1 đã được trả lời (mục 9), gi
   8. Cách (a): cột phải gọn lại khi thiếu chỗ theo ngưỡng của mục 3.1 (hàng nút phụ nằm ngang, thông báo lỗi để nút cùng dòng khi có lỗi); chấp nhận hàng nút đổi bố cục theo trạng thái lưu ở cửa sổ nằm ngang thấp có khe.
 - **Phiên bản 2 (2026-11-13):** Chỉ thêm một dòng ở mục 4 cho KB-6 (dẫn test có sẵn), vì `scripts/run-check.py` đòi mọi kịch bản của ticket có dòng ở mục 4; không đổi cách làm hay test viết trước. Nhật duyệt phiên bản 2 trong phiên có người theo dõi ngày 2026-11-13 (chọn "Plan bản 2, duyệt lại" khi được hỏi), giữ nguyên câu trả lời mục 8 của phiên bản 1. AI ghi thay.
 - **Phiên bản 3:**
-  - **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-  - **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-  - **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+  - **Quyết định:** Duyệt
+  - **Người duyệt:** Nhật, **duyệt chéo:** Nhật (nhóm hiện chỉ có một dev, ngoại lệ của `risk-scoring.md` mục 3)
+  - **Ghi chú:** Nhật duyệt phiên bản 3 trong phiên có người theo dõi ngày 2026-11-14, lời của Nhật: "duyệt", sau khi AI tóm tắt plan (phương án (a): chấp nhận thông báo lỗi hai dòng ở ngôn ngữ dài; nhận ba thay đổi test của phiên trước) và nói câu hỏi mục 8 theo đề xuất của AI. AI ghi thay. Trả lời câu hỏi ở mục 8 của phiên bản 3:
+    1. Thông báo lỗi hai dòng ở 841 x 593 có khe: giữ như đề xuất; plan không khẳng định số dòng ở khung này; `landscape_adBar_thresholdBoundary` khẳng định hàng nút, nút chính và nút hành động bên phải chữ.
+    Câu trả lời 1 tới 8 của phiên bản 1 giữ nguyên.
 
 ## 10. Nhật ký thực hiện
 

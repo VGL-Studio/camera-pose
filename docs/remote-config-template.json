@@ -206,6 +206,11 @@
       "description": "Shows ads in this placement. Off by default. Derived key of placement poses_in_collection (native_in_collection).",
       "valueType": "BOOLEAN"
     },
+    "is_show_review_bottom": {
+      "defaultValue": { "value": "false" },
+      "description": "Shows ads in this placement. Off by default. Derived key of placement review_bottom (native_small).",
+      "valueType": "BOOLEAN"
+    },
     "is_show_review_interstitial": {
       "defaultValue": { "value": "false" },
       "description": "Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial).",

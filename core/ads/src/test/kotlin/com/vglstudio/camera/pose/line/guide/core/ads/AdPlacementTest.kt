@@ -131,6 +131,24 @@ class AdPlacementTest {
     }
 
     @Test
+    fun collapsibleLayerOff_onlyForNativeSmallBottomBar() {
+        // Spec ads, question 19, point e (plan T-094): a bottom bar without the floating layer.
+        val bar = AdPlacementDeclaration("x", AdFormat.NATIVE_SMALL, collapsibleLayer = false)
+        assertFalse(bar.collapsibleLayer)
+        // Control: the default keeps the layer, so the value above comes from the declaration.
+        assertTrue(AdPlacementDeclaration("x", AdFormat.NATIVE_SMALL).collapsibleLayer)
+        // Control: the format and the list attribute alone are accepted, so the throws below come from collapsibleLayer.
+        AdPlacementDeclaration("x", AdFormat.INTERSTITIAL)
+        AdPlacementDeclaration("x", AdFormat.NATIVE_SMALL, nativeEvery = 8)
+        assertThrows(IllegalArgumentException::class.java) {
+            AdPlacementDeclaration("x", AdFormat.INTERSTITIAL, collapsibleLayer = false)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            AdPlacementDeclaration("x", AdFormat.NATIVE_SMALL, nativeEvery = 8, collapsibleLayer = false)
+        }
+    }
+
+    @Test
     fun nativeEveryBelowOne_isRejected() {
         // Control: 1 is accepted.
         AdPlacementDeclaration("list_x", AdFormat.NATIVE_IN_COLLECTION, nativeEvery = 1)

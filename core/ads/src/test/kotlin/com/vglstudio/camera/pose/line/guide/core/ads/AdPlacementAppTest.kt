@@ -23,6 +23,7 @@ class AdPlacementAppTest {
             "rw_premium_pose" to AdFormat.REWARDED,
             "native_onboarding" to AdFormat.NATIVE_STEP,
             "settings_bottom" to AdFormat.NATIVE_SMALL,
+            "review_bottom" to AdFormat.NATIVE_SMALL,
         )
         val byKey = AdPlacement.entries.associateBy { it.key }
         expected.forEach { (key, format) ->
@@ -42,6 +43,32 @@ class AdPlacementAppTest {
         assertEquals(AdPlacement.RW_PREMIUM_POSE, byKey["rw_premium_pose"])
         assertEquals(AdPlacement.NATIVE_ONBOARDING, byKey["native_onboarding"])
         assertEquals(AdPlacement.SETTINGS_BOTTOM, byKey["settings_bottom"])
+        assertEquals(AdPlacement.REVIEW_BOTTOM, byKey["review_bottom"])
+    }
+
+    @Test
+    fun reviewBottom_hasNoCollapsibleLayer() {
+        // Spec ads, question 19, point e; spec camera, KB-9 criterion 6 (plan T-094): never the floating layer.
+        assertFalse(AdPlacement.REVIEW_BOTTOM.declaration.collapsibleLayer)
+        // Control: the other bottom bars of the app keep the layer of D-01.
+        assertTrue(AdPlacement.POSES_BOTTOM.declaration.collapsibleLayer)
+        assertTrue(AdPlacement.POSE_DETAIL_BOTTOM.declaration.collapsibleLayer)
+        assertTrue(AdPlacement.SETTINGS_BOTTOM.declaration.collapsibleLayer)
+    }
+
+    @Test
+    fun reviewBottom_usesNoCollapsibleStock() {
+        // The review bar never opens nor fills the collapsible stock (plan T-094, KB-9 criterion 6).
+        assertFalse(AdPlacement.REVIEW_BOTTOM.usesStock(AdFormat.NATIVE_COLLAPSIBLE))
+        assertTrue(AdPlacement.REVIEW_BOTTOM.usesStock(AdFormat.NATIVE_SMALL))
+        // Control: the library bar uses the collapsible stock.
+        assertTrue(AdPlacement.POSES_BOTTOM.usesStock(AdFormat.NATIVE_COLLAPSIBLE))
+        val reviewOnly = AdPreloadPlan.fromPlacements(listOf(AdPlacement.REVIEW_BOTTOM)).groups.flatten()
+        assertTrue("groups: $reviewOnly", AdFormat.NATIVE_COLLAPSIBLE !in reviewOnly)
+        assertTrue("groups: $reviewOnly", AdFormat.NATIVE_SMALL in reviewOnly)
+        // Control: the same plan with the library bar has the collapsible format.
+        val posesOnly = AdPreloadPlan.fromPlacements(listOf(AdPlacement.POSES_BOTTOM)).groups.flatten()
+        assertTrue("groups: $posesOnly", AdFormat.NATIVE_COLLAPSIBLE in posesOnly)
     }
 
     @Test

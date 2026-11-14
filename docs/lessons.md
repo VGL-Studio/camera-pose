@@ -964,18 +964,18 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-104: số đo bố cục ở mục 4.1 của plan lấy trên một bố cục có phần tử đè lên nhau
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261113-02, task T-094.
+- **Trạng thái:** accepted. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261113-02, task T-094.
 - **Chuyện gì:** lần đo tạm của plan T-094 (mục 4.1, lần đo 3) cho thông báo lỗi ở màn ngang một dòng ở 284 tới 332. Bố cục lúc đo cho `SaveErrorMessage` cả bề rộng, nên Snackbar một hàng của Material vẽ nút hành động đè lên đầu chữ. Plan chỉ ghi chiều cao, không kiểm vị trí tương đối, nên test viết trước khóa một số sai. Khi code vẽ đúng (nút ở bên phải), chữ tiếng Bồ Đào Nha xuống hai dòng và phiên phải dừng theo điều kiện 8.
 - **Bằng chứng:** nhật ký plan T-094, RUN-20261113-02: `pt-BR PERMISSION_BLOCKED error top: expected 284.0 dp, got 264.0 dp`; nút "Mở cài đặt", "Thử lại" đè chữ ở x khoảng 298 dp, test bắt bằng `action.left >= text.right`.
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: lần đo tạm của bố cục ghi cả vị trí tương đối của các phần tử cạnh nhau (không chồng nhau, nút không đè chữ), và mở ảnh của lần đo để xem, không chỉ ghi chiều cao.
-- **Áp dụng:** chưa làm.
+- **Áp dụng:** chưa làm ở app: cần sửa `docs/CLAUDE.md`, mục Khi viết plan, chưa có PR. Nhật nhận ngày 2026-11-14.
 - **Kiểm chứng:**
 
 ### L-105: didOverflowWidth của GetTextLayoutResult không phát hiện được chữ bị cắt
 
-- **Trạng thái:** proposed. **Loại:** kiểm thử. **Phạm vi:** chung. **Nguồn:** RUN-20261113-02, task T-094.
+- **Trạng thái:** accepted. **Loại:** kiểm thử. **Phạm vi:** chung. **Nguồn:** RUN-20261113-02, task T-094.
 - **Chuyện gì:** plan T-094 kiểm nhãn không tràn bằng `didOverflowWidth` của `GetTextLayoutResult`. Cờ này đúng cả ở bố cục mặc định chưa đổi, vì đoạn văn được đo theo cả bề rộng ràng buộc, nên test không phân biệt được chữ bị cắt với chữ bình thường. Phiên con phải đổi cách kiểm sau commit test.
 - **Bằng chứng:** nhật ký plan T-094, RUN-20261113-02: `didOverflowWidth` đúng ở khung 673 x 841, không khe, `NOT_SAVED` của code trên nhánh chính.
 - **Đề xuất sửa:** `CLAUDE.md`, bước 10 của mục Viết một feature mới: kiểm chữ không bị cắt bằng bề rộng dòng so với bề rộng node và chữ không bị cắt ba chấm (hay số dòng), không dùng `didOverflowWidth`; plan có câu kiểm như vậy thì chạy thử trên code hiện tại.
-- **Áp dụng:** chưa làm.
+- **Áp dụng:** chưa làm ở app: cần sửa `CLAUDE.md`, bước 10 của mục Viết một feature mới, chưa có PR. Nhật nhận ngày 2026-11-14.
 - **Kiểm chứng:**

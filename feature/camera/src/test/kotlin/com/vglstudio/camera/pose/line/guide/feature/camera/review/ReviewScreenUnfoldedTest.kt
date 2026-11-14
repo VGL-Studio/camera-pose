@@ -283,12 +283,22 @@ class ReviewScreenUnfoldedTest {
             "Mở cài đặt",
             "Lưu ảnh",
             137f,
+            errorTop = 284f,
+            messageLines = 1,
         )
         assertEquals(listOf("save"), calls)
 
         calls.clear()
         update { screenState = Ready(PATH, SaveStatus.FAILED_STORAGE_FULL) }
-        assertCompactColumn("FAILED_STORAGE_FULL", "Không lưu được ảnh: bộ nhớ máy đã đầy.", "Thử lại", "Lưu ảnh", 137f)
+        assertCompactColumn(
+            "FAILED_STORAGE_FULL",
+            "Không lưu được ảnh: bộ nhớ máy đã đầy.",
+            "Thử lại",
+            "Lưu ảnh",
+            137f,
+            errorTop = 284f,
+            messageLines = 1,
+        )
         assertEquals(listOf("save"), calls)
     }
 
@@ -302,15 +312,18 @@ class ReviewScreenUnfoldedTest {
             "Abrir configurações",
             "Salvar foto",
             160.7f,
+            // The snackbar is at most 600 dp wide: the longer message takes two lines, the main button stays whole.
+            errorTop = 264f,
+            messageLines = 2,
         )
         assertEquals(listOf("save"), calls)
     }
 
     /**
      * Too little room in the right column for the stacked actions, the error and the main button: the actions side by
-     * side (72 high), the error with its action ([actionText]) on the same line, the main button whole (56) and above
-     * the slot. Taps
-     * the main button once.
+     * side (72 high), the error from [errorTop] to 332 with its message on [messageLines] lines and its action
+     * ([actionText]) beside the message, not over it, the main button whole (56) and above the slot. Taps the main
+     * button once.
      */
     private fun assertCompactColumn(
         state: String,
@@ -318,6 +331,8 @@ class ReviewScreenUnfoldedTest {
         actionText: String,
         saveText: String,
         saveWidth: Float,
+        errorTop: Float,
+        messageLines: Int,
     ) {
         val slot = bounds(FAKE_AD_SLOT)
         assertNear("$state slot top", 424f, slot.top, 0.5f)
@@ -347,13 +362,13 @@ class ReviewScreenUnfoldedTest {
         assertNear("$state actions top", 64f, actions.top, 0.5f)
         assertNear("$state actions bottom", 136f, actions.bottom, 0.5f)
         actionTags.forEach { assertNear("$state $it top", 64f, bounds(it).top, 0.5f) }
-        // The error on one line, its action beside the message.
-        assertNear("$state error top", 284f, error.top, 1f)
+        // The error, its action beside the message.
+        assertNear("$state error top", errorTop, error.top, 1f)
         assertNear("$state error bottom", 332f, error.bottom, 1f)
         val messageLayouts = mutableListOf<TextLayoutResult>()
         composeRule.onNode(inSaveError(message), useUnmergedTree = true)
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(messageLayouts) }
-        assertEquals("$state message lines", 1, messageLayouts.single().lineCount)
+        assertEquals("$state message lines", messageLines, messageLayouts.single().lineCount)
         val text = composeRule.onNode(inSaveError(message), useUnmergedTree = true).getUnclippedBoundsInRoot()
         val action = composeRule.onNode(inSaveError(actionText), useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue("$state action ${action.top} on the line of the message ${text.bottom}", action.top < text.bottom)
@@ -371,6 +386,16 @@ class ReviewScreenUnfoldedTest {
         assertNear("PERMISSION_BLOCKED actions height", 72f, actions.height, 0.5f)
         actionTags.forEach { assertNear("PERMISSION_BLOCKED $it top", 64f, bounds(it).top, 0.5f) }
         assertSaveAt("PERMISSION_BLOCKED", 421f, 477f)
+        // The action of the error beside its message, not drawn over it (no line count asserted in this window).
+        val text = composeRule.onNode(
+            inSaveError("Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện."),
+            useUnmergedTree = true,
+        ).getUnclippedBoundsInRoot()
+        val action = composeRule.onNode(inSaveError("Mở cài đặt"), useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(
+            "PERMISSION_BLOCKED action ${action.left} right of the message ${text.right}",
+            action.left >= text.right,
+        )
 
         update { screenState = Ready(PATH, SaveStatus.NOT_SAVED) }
 

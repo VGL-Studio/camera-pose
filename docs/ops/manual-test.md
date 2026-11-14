@@ -343,7 +343,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 
 **Firebase staging.** Bản staging dùng project Firebase staging thật, và giá trị trên Firebase thắng giá trị cục bộ của `StagingRemoteValuesModule` (ADR-1007). Trước khi phát bản staging có lượt 2, người phụ trách mở Remote Config của project staging và xem:
 
-- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080), `is_show_rw_premium_pose` đặt `false` (T-086), `is_show_native_onboarding` đặt `false` (T-083), `is_show_settings_bottom` đặt `false` (T-093).
+- [ ] Không có `show_open_ads`, `show_resum_ads`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_native_bottom`, `is_show_review_interstitial`, `is_show_inter_pose_detail` đặt `false` (T-079), `is_show_poses_in_collection` đặt `false` (T-080), `is_show_rw_premium_pose` đặt `false` (T-086), `is_show_native_onboarding` đặt `false` (T-083), `is_show_settings_bottom` đặt `false` (T-093), `is_show_review_bottom` đặt `false` (T-094).
 - [ ] Không có `show_open_ads_first_open`, `is_show_native_collap` đặt `true`; không có `is_show_native_after_inter` đặt `false` (T-090).
 - [ ] Hai khóa cũ `is_show_poses_banner`, `is_show_poses_detail_banner` không còn ai đọc từ T-079; để nguyên trên Firebase.
 - [ ] Các khóa cũ `ads_*_enabled`, `ads_interstitial_min_interval_seconds`, `ads_review_interstitial_min_interval_seconds` không còn ai đọc; để hay xóa đều được.
@@ -378,6 +378,12 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
    - [ ] Khe native thử cao khoảng 80 dp ở đáy, cách mép 16 dp; log `VGL.Ads` có `settings_bottom`.
    - [ ] Cuộn hết: dòng "Phiên bản" nằm trên khe, không bị che.
    - [ ] Mở hộp chọn "Giao diện": hộp và lớp mờ phủ lên khe.
+10. Chụp một ảnh, ở màn xem lại (T-094). Log: `adb logcat -v threadtime | grep ' VGL\.Ads'`.
+   - [ ] Khe native thử cao khoảng 80 dp ở đáy, cách mép 16 dp, dưới nút "Lưu vào thư viện"; ảnh và ba nút Chụp lại, Chia sẻ, Tư thế tiếp thấy trọn, không bị che; log có `Bottom bar review_bottom: slot=NATIVE collapsible=false`.
+   - [ ] Bấm Lưu, Chia sẻ, Chụp lại, Tư thế tiếp (mỗi lần chụp lại một ảnh): đúng hành vi như khi không có quảng cáo.
+   - [ ] Bấm X: hộp "Bỏ ảnh này?" và lớp mờ phủ lên khe. Bật TalkBack, mở lại hộp: vuốt qua các phần tử chỉ đọc hộp thoại, không đọc thẻ quảng cáo.
+   - [ ] Đặt `is_show_native_collap = true` trên Firebase staging, đóng hẳn app rồi mở lại: thư viện có lớp nổi, màn xem lại không có; log vẫn `Bottom bar review_bottom: slot=NATIVE collapsible=false`. Trả khóa về như cũ.
+   - [ ] Trên máy gập, mở ra rồi chụp: khe trải hết bề rộng đáy, ảnh và nút "Lưu ảnh" ở trên khe.
 
 ### 11.2 Quảng cáo mở app từ lần mở thứ hai
 

@@ -18,6 +18,7 @@ import java.time.Duration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -296,6 +297,83 @@ class AdsControllerNativeStockTest {
 
         assertEquals(1, requestsOf(AdFormat.NATIVE_SMALL))
         assertEquals(1, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+    }
+
+    // A bottom bar declared without the floating layer (plan T-094; spec ads, question 19 point e; spec camera, KB-9
+    // criterion 6): with is_show_native_collap on, the real controller neither loads nor shows the layer for it.
+
+    /** Only the bar of [placement] on, with is_show_native_collap [collapOn]; the other bars of the test off. */
+    private fun onlyBar(placement: AdPlacement, collapOn: Boolean) {
+        settings.set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), false)
+        settings.set(AdsSettings.placementEnabled(AdPlacement.GALLERY_NATIVE_SMALL), false)
+        settings.set(AdsSettings.placementEnabled(placement), true)
+        settings.set(AdsSettings.IS_SHOW_NATIVE_COLLAP, collapOn)
+    }
+
+    private fun layerShown(): Boolean = composeRule.onAllNodes(
+        hasTestTag(BottomAdBarTestTags.LAYER) or hasTestTag(CollapsibleNativeAdTestTags.AD),
+        useUnmergedTree = true,
+    ).fetchSemanticsNodes().isNotEmpty()
+
+    @Test
+    fun reviewBottom_collapOn_noLayer_noCollapsibleRequest() {
+        onlyBar(AdPlacement.REVIEW_BOTTOM, collapOn = true)
+        startAndPreload()
+        assertEquals(0, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+        assertEquals(1, requestsOf(AdFormat.NATIVE_SMALL))
+        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+
+        show { BottomAdBarScaffold(AdPlacement.REVIEW_BOTTOM) {} }
+
+        assertTrue(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
+        assertFalse(layerShown())
+        assertEquals(0, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+    }
+
+    @Test
+    fun posesBottom_collapOn_layerAndCollapsibleRequest() {
+        // Control of the test above: the same setup with the library bar loads and shows the layer.
+        onlyBar(AdPlacement.POSES_BOTTOM, collapOn = true)
+        startAndPreload()
+        assertEquals(1, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+        assertEquals(1, requestsOf(AdFormat.NATIVE_SMALL))
+        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+
+        show { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} }
+
+        assertTrue(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
+        assertTrue(layerShown())
+    }
+
+    @Test
+    fun reviewBottom_collapSwitchedOnWhileShown_noLayer() {
+        showThenSwitchCollapOn(AdPlacement.REVIEW_BOTTOM)
+        assertFalse(layerShown())
+        assertEquals(0, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+    }
+
+    @Test
+    fun posesBottom_collapSwitchedOnWhileShown_layerLoads() {
+        // Control of the test above: the library bar gets the layer and a collapsible request once the key is on.
+        showThenSwitchCollapOn(AdPlacement.POSES_BOTTOM)
+        assertTrue(layerShown())
+        assertTrue(requestsOf(AdFormat.NATIVE_COLLAPSIBLE) >= 1)
+    }
+
+    /** The bar of [placement] shows its slot with is_show_native_collap off, then the key is switched on. */
+    private fun showThenSwitchCollapOn(placement: AdPlacement) {
+        onlyBar(placement, collapOn = false)
+        startAndPreload()
+        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+        show { BottomAdBarScaffold(placement) {} }
+        assertTrue(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
+        assertFalse(layerShown())
+        assertEquals(0, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+
+        settings.set(AdsSettings.IS_SHOW_NATIVE_COLLAP, true)
+        idle()
+        runPreload()
+        composeRule.waitForIdle()
     }
 
     /**

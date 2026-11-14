@@ -34,8 +34,9 @@ class AdPlacementSourceTest {
             "    A_B(\"a_b\", AdFormat.NATIVE_SMALL),",
             "    X_Y(\"x_y\", AdFormat.INTERSTITIAL, intervalGroup = AdIntervalGroup.named(\"sounds\", 30)),",
             "    L_N(\"l_n\", AdFormat.NATIVE_MEDIUM, nativeEvery = 8),",
+            "    R_B(\"r_b\", AdFormat.NATIVE_SMALL, collapsibleLayer = false),",
             "    GALLERY_X(\"gallery_x\", AdFormat.NATIVE_SMALL, nativeEvery = 8),",
         )
-        assertEquals(listOf("a_b", "x_y", "l_n"), readByReleaseScript(lines))
+        assertEquals(listOf("a_b", "x_y", "l_n", "r_b"), readByReleaseScript(lines))
     }
 }

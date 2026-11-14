@@ -1,7 +1,7 @@
 ---
 ticket: T-094
 title: Thanh đáy native nhỏ ở màn xem lại ảnh (review_bottom, tắt lúc phát hành)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 3                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # tổng điểm theo risk-scoring.md, để trống nếu chạm điểm chặn
 risk_level: high             # low | medium | high
@@ -402,3 +402,39 @@ Các câu 1 tới 8 của phiên bản 1 đã được trả lời (mục 9), gi
 - **Thay đổi ở file test sau commit test (commit `9bb26d7`):** (1) `ReviewScreenTest.adBar_savingAndSaveError_slotStays` thêm `Snapshot.sendApplyNotifications()` sau khi đặt trạng thái (đồng hồ dừng nên `SAVING` không vẽ lại); trước: không thấy "Đang lưu…", sau: qua. (2) `assertCompactColumn`: `didOverflowWidth` của `GetTextLayoutResult` đúng cả ở bố cục mở gập mặc định chưa đổi (673 x 841, không khe, `NOT_SAVED`), nên không bắt được chữ bị cắt; thay bằng "bề rộng dòng không quá bề rộng chữ, không bị cắt ba chấm", giữ kiểm một dòng và chiều cao. Thay đổi này đổi cách kiểm ý "không bị cắt", người cần xác nhận. (3) nút hành động của thông báo tìm theo chữ (`actionText`) thay `hasClickAction().onFirst()`.
 - **Lệch so với plan:** ở chế độ gọn, thông báo lỗi dùng `Modifier` thay `fillMaxWidth()` (sửa chuyện nút đè chữ). Không có file ngoài mục 3.2. Test cũ đổi theo mục 3.5: hàm `Bar` và bốn lời gọi năm đối số của `bottomAdBarLayers` trong `BottomAdBarTest` thêm `collapsibleLayer = true`.
 - **Cần người quyết (plan phiên bản 3):** (a) chấp nhận pt-BR hai dòng ở chế độ gọn, viết lại số của test pt-BR (thông báo 264 tới 332, hai dòng; nút chính giữ 348 tới 404) — đề xuất của AI, vì nút chính và bốn nút vẫn trọn, chỉ thông báo cao hơn; (b) dùng `actionOnNewLine` ở chế độ gọn cho ngôn ngữ dài (phải đo lại, có thể lại thiếu chỗ); (c) viết hàng báo lỗi riêng thay Snackbar (sửa `ReviewComponents.kt`, ngoài mục 3.2). Cùng lúc xác nhận thay đổi (2) ở trên về cách kiểm "không bị cắt". Plan phiên bản 3 tiếp tục trên nhánh `claude/T-094-thanh-day-xem-lai`, chỉ đổi mục 4 (số của test pt-BR, cách kiểm không bị cắt) và mục 3.1 (bỏ `fillMaxWidth` ở chế độ gọn); bước 3 chỉ áp cho test đổi.
+
+### RUN-20261114-01, phiên bản plan 3
+
+- **Kết quả:** đã merge, PR #346, commit merge `4c2a437`. CI: `pr-check` 43577582469 xanh; `main-guard` 43579055535 xanh (gồm `ui-test`).
+- **Nhánh:** tiếp tục trên `claude/T-094-thanh-day-xem-lai`. Nhánh đã được cập nhật theo nhánh chính (`d5f71ee`). Commit mới:
+  - `84f9bd0`: test của phiên bản 3;
+  - `6cf138b`: bảng khóa, ba ảnh chuẩn, `manual-test.md`, `template-sync.txt`;
+  - `4269577`: `design/review/`.
+- **Test viết trước:** chỉ áp cho các test mà phiên bản 3 đổi (commit `84f9bd0`):
+  - `assertCompactColumn` nhận `errorTop` và `messageLines`;
+  - test pt-BR mong thông báo hai dòng, từ 264 tới 332;
+  - `landscape_adBar_thresholdBoundary` thêm câu `action.left >= text.right` cho `PERMISSION_BLOCKED`.
+
+  Trên code đã có, ba test qua ngay. Đối chứng: chạy lệnh `perl -pi -e` của plan (`git diff --stat` báo `ReviewUnfolded.kt` đổi 1 dòng) thì cả ba đỏ đúng lý do:
+  - `landscape_adBar_saveError_compactColumn`: nút hành động 298,3 dp bên phải chữ 686,0 dp (nút đè chữ);
+  - `..._portuguese`: `error top: expected 264.0 dp, got 284.0 dp` (đúng lời dặn của danh sách chạy);
+  - `landscape_adBar_thresholdBoundary`: nút 369,7 dp bên phải chữ 724,3 dp.
+
+  Tệp đã được trả lại bằng `git checkout --`.
+- **Phần còn lại:**
+  - sinh lại `docs/remote-config-keys.md` và `docs/remote-config-template.json` (thêm `is_show_review_bottom`);
+  - ba ảnh chuẩn `ReviewScreen_ad_dark`, `ReviewScreen_ad_dark_unfolded`, `ReviewScreen_ad_small`. Lệnh ghi ảnh ghi lại 13 ảnh `CameraScreen_*` vì nhiễu vẽ trên macOS; cả 13 đã được trả về bản cũ. CI Linux qua với ba ảnh mới;
+  - `docs/ops/manual-test.md`: thêm khóa `is_show_review_bottom` và bước thanh đáy ở màn xem lại;
+  - `docs/template-sync.txt`: thêm đoạn `collapsibleLayer`.
+- **Kiểm tra cục bộ:** `scripts/check.sh` qua: 3184 test JVM, 0 lỗi; 175 ảnh. `design-compare.sh camera`: `ReviewScreen_ad_dark` lệch 6,3%, `ReviewScreen_ad_dark_unfolded` lệch 4,0%.
+- **Thay đổi ở file test sau commit test `84f9bd0`:** không có. Ba thay đổi của `9bb26d7` (phiên trước) đã được plan phiên bản 3 nhận.
+- **Lệch so với plan:**
+  - Không có file ngoài mục 3.2.
+  - Hàm `Bar` của `BottomAdBarTest` truyền biến trạng thái `collapsibleLayer` (mặc định `true`) thay cho hằng `true` mà mục 3.5 ghi, để test `host_collapsibleLayerOff_collapSwitchedOn_noLayer` đổi được giữa chừng. Kết quả các test cũ không đổi.
+- **Rà soát độc lập:** agent con ngữ cảnh mới, 0 chặn, 0 nên sửa, 6 ghi chú (ghi ở mô tả PR):
+  1. lệch thiết kế nhỏ đã có sẵn ở `ReviewScreen_default_dark*`;
+  2. thông báo lỗi ở chế độ gọn, khung nằm ngang, không thẳng mép phải cột (trống khoảng 33 dp);
+  3. cách kiểm "không bị cắt";
+  4. giá trị mặc định `adBar` là ngoại lệ viết test trước;
+  5. hàm `Bar`;
+  6. đề xuất `from-app` cho `collapsibleLayer`.

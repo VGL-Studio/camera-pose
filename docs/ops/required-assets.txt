@@ -11,3 +11,5 @@ poses/catalog/v3/catalog-40c97474.json
 poses/catalog/v3/catalog-fe967525.json
 poses/catalog/v3/catalog-045c0bb1.json
 poses/catalog/v3/catalog-abe38607.json
+poses/catalog/v3/catalog-e102f48e.json
+poses/catalog/v3/catalog-28760c1a.json

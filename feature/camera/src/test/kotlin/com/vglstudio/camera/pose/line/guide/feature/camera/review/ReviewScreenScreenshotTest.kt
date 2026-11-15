@@ -5,6 +5,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarDefaults
+import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarLayout
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdAssets
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdCard
+import com.vglstudio.camera.pose.line.guide.core.ads.NativeAdSize
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.feature.camera.review.ReviewUiState.Ready
 import org.junit.Rule
@@ -61,6 +66,23 @@ class ReviewScreenScreenshotTest {
             Screen(Ready(PATH, SaveStatus.FAILED_STORAGE_FULL))
         }
     }
+
+    // The bottom ad bar (plan T-094), named like the design image: the photo kept, the main button above the slot.
+    @Test
+    fun ad_dark() {
+        captureRoboImage("src/test/screenshots/ReviewScreen_ad_dark.png") {
+            Screen(Ready(PATH, SaveStatus.NOT_SAVED), adBar = screenshotAdBar())
+        }
+    }
+
+    // Short phone frame with the bar: the most content, the message with "Mở cài đặt", the actions and the button.
+    @Test
+    @Config(qualifiers = "vi-w360dp-h640dp-xxhdpi")
+    fun ad_small() {
+        captureRoboImage("src/test/screenshots/ReviewScreen_ad_small.png") {
+            Screen(Ready(PATH, SaveStatus.PERMISSION_BLOCKED), adBar = screenshotAdBar())
+        }
+    }
 }
 
 /**
@@ -92,21 +114,60 @@ class ReviewScreenSavingScreenshotTest {
 private const val PATH = "/cache/captures/capture_1.jpg"
 
 @Composable
-private fun Screen(uiState: ReviewUiState) {
+private fun Screen(uiState: ReviewUiState, adBar: ReviewAdBar? = null) {
     AppTheme(darkTheme = true) {
-        ReviewScreen(
-            uiState = uiState,
-            image = null,
-            onCloseClick = {},
-            onSaveClick = {},
-            onRetrySave = {},
-            onOpenAppSettings = {},
-            onRetakeClick = {},
-            onShareClick = {},
-            onNextPoseClick = {},
-            onDiscardConfirm = {},
-            onDiscardSave = {},
-            onDismissDialog = {},
-        )
+        if (adBar == null) {
+            ReviewScreen(
+                uiState = uiState,
+                image = null,
+                onCloseClick = {},
+                onSaveClick = {},
+                onRetrySave = {},
+                onOpenAppSettings = {},
+                onRetakeClick = {},
+                onShareClick = {},
+                onNextPoseClick = {},
+                onDiscardConfirm = {},
+                onDiscardSave = {},
+                onDismissDialog = {},
+            )
+        } else {
+            ReviewScreen(
+                uiState = uiState,
+                image = null,
+                onCloseClick = {},
+                onSaveClick = {},
+                onRetrySave = {},
+                onOpenAppSettings = {},
+                onRetakeClick = {},
+                onShareClick = {},
+                onNextPoseClick = {},
+                onDiscardConfirm = {},
+                onDiscardSave = {},
+                onDismissDialog = {},
+                adBar = adBar,
+            )
+        }
     }
 }
+
+/** The bar of the framework with the fixed ad of the design (context/ReviewScreen_ad_dark.md), always with its ad. */
+internal fun screenshotAdBar(): ReviewAdBar = { barModifier, content ->
+    BottomAdBarLayout(
+        reservation = BottomAdBarDefaults.nativeReservation,
+        slot = { NativeAdCard(SCREENSHOT_AD, NativeAdSize.SMALL, it) },
+        layer = null,
+        modifier = barModifier,
+        content = content,
+    )
+}
+
+/** The fixed ad of the design: the same text as the other screens of the app, no icon, no media. */
+private val SCREENSHOT_AD = NativeAdAssets(
+    headline = "Headline of the ad",
+    advertiser = "Advertiser or short body",
+    body = null,
+    callToAction = "Install",
+    icon = null,
+    hasMedia = false,
+)

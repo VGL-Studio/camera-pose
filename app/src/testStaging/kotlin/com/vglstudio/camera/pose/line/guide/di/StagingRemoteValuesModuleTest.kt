@@ -48,6 +48,8 @@ class StagingRemoteValuesModuleTest {
             "is_show_native_onboarding" to true,
             // The bottom bar of the settings screen (spec ads, question 19; plan T-093).
             "is_show_settings_bottom" to true,
+            // The bottom bar of the review screen, never the floating layer (spec ads, question 19; plan T-094).
+            "is_show_review_bottom" to true,
             "show_open_ads" to true,
             "show_resum_ads" to true,
             "is_show_native_bottom" to true,

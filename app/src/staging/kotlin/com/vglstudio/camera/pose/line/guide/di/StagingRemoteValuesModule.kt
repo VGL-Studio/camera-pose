@@ -40,6 +40,8 @@ object StagingRemoteValuesModule {
         AdPlacement.NATIVE_ONBOARDING,
         // The bottom bar of the settings screen (spec ads, question 19).
         AdPlacement.SETTINGS_BOTTOM,
+        // The bottom bar of the review screen, never the floating layer (spec ads, question 19; plan T-094).
+        AdPlacement.REVIEW_BOTTOM,
     ).map { LocalRemoteValue.of(AdsSettings.placementEnabled(it), true) }.toSet()
 
     /**

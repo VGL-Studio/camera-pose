@@ -47,6 +47,7 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 | `is_show_pose_detail_bottom` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement pose_detail_bottom (native_small). |
 | `is_show_poses_bottom` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement poses_bottom (native_small). |
 | `is_show_poses_in_collection` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement poses_in_collection (native_in_collection). |
+| `is_show_review_bottom` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement review_bottom (native_small). |
 | `is_show_review_interstitial` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement review_interstitial (interstitial). |
 | `is_show_rw_premium_pose` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement rw_premium_pose (rewarded). |
 | `is_show_settings_bottom` | boolean | `false` | `:core:ads` | Shows ads in this placement. Off by default. Derived key of placement settings_bottom (native_small). |

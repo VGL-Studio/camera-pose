@@ -302,6 +302,6 @@ Tư thế premium (yêu cầu 2026-10-31, câu 6): catalog có thêm trường `
 | 2026-10-31 | Nhật | Trả lời câu 6 tới 12 (AI ghi, cùng phiên). Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `inter_pose_detail` (mục 5, KB-4 tiêu chí 4). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |
 | 2026-11-10 | Nhật | Xác nhận lại spec sau T-090 (AI ghi theo lời Nhật trong phiên). Chuyển lại `confirmed` |
-| 2026-11-16 | AI | Câu 20 của spec ads, ý a (Nhật trả lời trong phiên, T-098): tiêu chí thanh đáy native nhỏ bỏ con số 80 dp, ghi chiều cao theo khung; câu 20 ý e: mục 6 ghi `ad_platform` ở `ad_load_success`, `ad_load_fail`, `ad_clicked`. Chuyển `changed` rồi lại `confirmed` |
+| 2026-11-16 | AI | Câu 20 của spec ads, ý a (Nhật trả lời trong phiên, T-098): tiêu chí thanh đáy native nhỏ bỏ con số 80 dp, ghi chiều cao theo khung. Giữ `confirmed`; Nhật xác nhận ở dòng sau |
 | 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |
 | 2026-11-16 | Nhật | Xác nhận lại sau sửa theo rà soát độc lập PR #353 (AI ghi): `ad_platform` ở mục 6 của spec poses, camera; mục 2 của spec ads ghi thẻ bước và thẻ trong lưới giữ kích thước, lớp thu gọn là vùng ảnh cộng khe đáy D-02. Lời xác nhận của Nhật: chọn "Xác nhận lại" khi được hỏi. Giữ `confirmed` |

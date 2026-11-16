@@ -26,7 +26,8 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # names PosesScreenScreenshotTest and poses_bottom where the template names the sample screen.
 # App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6
 # (scenario budget 1800, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS, the timeout 15 of env-canary.yml
-# (start-run.yml takes the template's 30: it covers the main-guard wait and the pose catalog check), the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
+# (start-run.yml takes the template's 30: it covers the main-guard wait and the pose catalog check), the pose
+# catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md. Also the default
 # DEVICE_SCENARIOS_BUDGET of 1800 in scripts/device-scenario.py (the template takes 600).
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
@@ -36,7 +37,8 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # app open (T-069, T-070, T-072, T-106). Taking it changes the screenshots and size tests of feature/poses,
 # feature/camera and feature/settings, so it comes with an app ticket and plan (docs/ops/to-app.md of the template,
 # section 5). docs/ops/ads-guide.md and docs/ops/ads-business-rules.md describe that code, so they are held with it:
-# take all three together.
+# the plan runs --take once for each of the three paths. Until then ads-guide.md says release.sh does not read the MAX
+# keys; release.sh and docs/ops/release.md (taken at bc3e80e) do.
 hold=core/ads 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 hold=docs/ops/ads-guide.md 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 hold=docs/ops/ads-business-rules.md 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9

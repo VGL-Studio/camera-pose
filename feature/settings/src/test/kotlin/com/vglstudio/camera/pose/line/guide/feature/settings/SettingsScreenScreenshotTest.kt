@@ -139,7 +139,7 @@ class SettingsScreenScreenshotTest {
             if (ad) {
                 // Around the status bar spacer too, so the slot is 16 from the bottom of the frame, as the design.
                 BottomAdBarLayout(
-                    reservation = BottomAdBarDefaults.nativeReservation,
+                    reservation = BottomAdBarDefaults.nativeReservation(),
                     slot = { NativeAdCard(SCREENSHOT_AD, NativeAdSize.SMALL, it) },
                     layer = null,
                     content = screen,

@@ -18,9 +18,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Screenshots of the bottom bar with fake ads (Roborazzi, plan T-030): the 80 dp native slot 16 dp from the edges,
- * the 250 dp collapsible layer floating over it, and the content keeping the slot's 96 dp (drawn as a tinted block,
- * so the kept space shows). Nothing here animates, so the screen settles (L-048).
+ * Screenshots of the bottom bar with fake ads (Roborazzi, plan T-030): the native slot (126 dp at 411 dp) 16 dp
+ * from the edges, the collapsible layer (299 dp) floating over it, and the content keeping the slot and its margin
+ * (142 dp; drawn as a tinted block, so the kept space shows). Nothing here animates, so the screen settles (L-048).
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -31,7 +31,7 @@ class BottomAdBarScreenshotTest {
         AdsTestTheme(darkTheme = false) {
             Surface {
                 BottomAdBarLayout(
-                    reservation = BottomAdBarDefaults.nativeReservation,
+                    reservation = BottomAdBarDefaults.nativeReservation(),
                     slot = { NativeAdCard(sampleNativeAdAssets, NativeAdSize.SMALL, it) },
                     layer = if (layerShown) {
                         { CollapsibleNativeAdCard(screenshotAd, onCollapse = {}, modifier = it) }
@@ -61,6 +61,27 @@ class BottomAdBarScreenshotTest {
     @Test
     fun collapsed_light() {
         captureRoboImage("src/test/screenshots/BottomAdBar_collapsed_light.png") { Bar(layerShown = false) }
+    }
+
+    /** A 891 x 411 dp window (KB-4 added 2026-11-16): the 126 dp slot only, no layer, the content keeping 142 dp. */
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-xxhdpi")
+    fun landscape_light() {
+        captureRoboImage("src/test/screenshots/BottomAdBar_landscape_light.png") { Bar(layerShown = true) }
+    }
+
+    /** A 411 x 445 dp window (split screen): the 126 dp slot only, no layer. */
+    @Test
+    @Config(qualifiers = "w411dp-h445dp-xxhdpi")
+    fun split_light() {
+        captureRoboImage("src/test/screenshots/BottomAdBar_split_light.png") { Bar(layerShown = true) }
+    }
+
+    /** A 411 x 600 dp window: the layer 284 dp (MediaView 146 dp), its top at half the window (300 dp). */
+    @Test
+    @Config(qualifiers = "w411dp-h600dp-xxhdpi")
+    fun shortWindow_light() {
+        captureRoboImage("src/test/screenshots/BottomAdBar_short-window_light.png") { Bar(layerShown = true) }
     }
 
     private companion object {

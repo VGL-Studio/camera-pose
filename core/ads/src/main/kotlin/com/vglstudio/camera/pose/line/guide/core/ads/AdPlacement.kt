@@ -29,8 +29,9 @@ enum class AdFormat(val code: String) {
     NATIVE_MEDIUM("native_medium"),
 
     /**
-     * The 250 dp layer of a bottom bar ([BottomAdBarScaffold]) floating over its slot: the user collapses it, and it
-     * opens again `time_expand_collap_ad` seconds later (CL-01 to CL-04). Not drawn on its own (D-01).
+     * The layer of a bottom bar ([BottomAdBarScaffold], 299 dp on a 411 x 891 dp window, none when the window has no room, CL-05) floating over its slot: the
+     * user collapses it, and it opens again `time_expand_collap_ad` seconds later (CL-01 to CL-04). Not drawn on its
+     * own (D-01).
      */
     NATIVE_COLLAPSIBLE("native_collap"),
 
@@ -157,7 +158,7 @@ enum class AdPlacement(
      * loading screen (T-024), the native ad of the combo (T-026) and the resume ad (T-025). Features never show it.
      */
     val appWide: Boolean = false,
-    /** The large call to action of 5.7 (56 dp, 17 sp, card 422 dp high); native medium only (`cta_large`). */
+    /** The large call to action of 5.7 (56 dp, 17 sp, same card height); native medium only (`cta_large`). */
     val ctaLarge: Boolean = false,
     /** A cell keeps a static placeholder instead of hiding while its pool is exhausted (P-06); pooled formats only. */
     val keepSpaceWhenPoolEmpty: Boolean = false,

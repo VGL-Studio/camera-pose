@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetricEvent
+import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetricPlatform
 import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdFunnel
 import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdMetrics
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
@@ -60,6 +61,7 @@ class MaxBannerAdViewTest {
         format: AdFormat = placement.format,
         sdkView: FakeMaxBannerSdkView = sdk,
         loadErrorLog: LoadErrorLog = LoadErrorLog.CODE_ONLY,
+        networkLog: AdNetworkLog = AdNetworkLog.OFF,
     ): MaxBannerAdView {
         // The ad unit lives in the lambda only, as in BannerSlot: the wrapper never gets it.
         val unitId = UNIT
@@ -75,6 +77,7 @@ class MaxBannerAdViewTest {
             now = { nowMillis },
             logger = logger,
             loadErrorLog = loadErrorLog,
+            networkLog = networkLog,
         )
     }
 
@@ -131,12 +134,14 @@ class MaxBannerAdViewTest {
 
     @Test
     fun logs_neverContainUnitId() = runTest {
-        val view = banner()
+        // The per-network log on (plan T-072), and a revenue whose ad holds the unit.
+        val view = banner(networkLog = AdNetworkLog(true, logger))
         collect(view)
         view.send()
-        sdk.emitFailed(204)
+        sdk.emitFailed(204, networks = twoNetworks())
         view.send()
-        sdk.emitLoaded()
+        sdk.emitLoaded(maxInfo(networks = twoNetworks()))
+        sdk.emitRevenue(maxInfo())
         sdk.emitClicked()
         view.pause()
         view.resume()
@@ -148,6 +153,7 @@ class MaxBannerAdViewTest {
         assertTrue(messages.toString(), "Banner gallery_banner MAX view created" in messages)
         assertTrue(messages.toString(), "Banner gallery_banner MAX loaded" in messages)
         assertTrue(messages.toString(), "Banner gallery_banner MAX failed (code 204)" in messages)
+        assertTrue(messages.toString(), messages.any { it.startsWith("Network gallery_banner/max: ") })
     }
 
     @Test
@@ -264,10 +270,10 @@ class MaxBannerAdViewTest {
             assertEquals(
                 code,
                 listOf(
-                    AdMetricEvent.LoadFail(code, key, 1, 10, "204", "no_fill"),
-                    AdMetricEvent.LoadSuccess(code, key, 2, 30),
-                    AdMetricEvent.LoadFail(code, key, 1, null, "-1009", "network"),
-                    AdMetricEvent.Clicked(code, key),
+                    AdMetricEvent.LoadFail(code, key, 1, 10, "204", "no_fill", AdMetricPlatform.APPLOVIN),
+                    AdMetricEvent.LoadSuccess(code, key, 2, 30, AdMetricPlatform.APPLOVIN),
+                    AdMetricEvent.LoadFail(code, key, 1, null, "-1009", "network", AdMetricPlatform.APPLOVIN),
+                    AdMetricEvent.Clicked(code, key, AdMetricPlatform.APPLOVIN),
                 ),
                 metrics.events,
             )
@@ -288,6 +294,140 @@ class MaxBannerAdViewTest {
         assertEquals(1, clicks)
     }
 
+    // Plan T-072: revenue, network log and platform of MAX
+
+    @Test
+    fun revenue_recordsFramePlacement_applovin() {
+        listOf(
+            Triple(AdPlacement.GALLERY_BANNER, AdFormat.BANNER, "BANNER"),
+            Triple(AdPlacement.GALLERY_BANNER_MREC, AdFormat.BANNER_MREC, "BANNER_MREC"),
+        ).forEach { (placement, format, code) ->
+            metrics = RecordingAdMetrics()
+            val fake = FakeMaxBannerSdkView()
+            val view = banner(placement, format, fake)
+            view.send()
+            // The revenue is logged whatever the switches say (T-01).
+            logSlot = false
+
+            fake.emitRevenue(maxInfo())
+
+            assertEquals(
+                code,
+                listOf(
+                    AdMetricEvent.ImpressionRevenue(
+                        adFormat = code,
+                        adSource = "AppLovin",
+                        monetizationNetwork = "AppLovin",
+                        adUnitName = UNIT,
+                        currency = "USD",
+                        value = 0.0123,
+                        adPlacement = placement.key,
+                        adapterClassName = ADAPTER,
+                        platform = AdMetricPlatform.APPLOVIN,
+                    ),
+                ),
+                metrics.events,
+            )
+            logSlot = true
+            view.destroy()
+        }
+    }
+
+    @Test
+    fun twoFramesSamePlacement_eachRevenueOnce() {
+        val first = FakeMaxBannerSdkView()
+        val second = FakeMaxBannerSdkView()
+        banner(sdkView = first).send()
+        banner(sdkView = second).send()
+
+        first.emitRevenue(maxInfo())
+        second.emitRevenue(maxInfo())
+
+        val revenues = metrics.events.filterIsInstance<AdMetricEvent.ImpressionRevenue>()
+        assertEquals(2, revenues.size)
+        assertTrue(revenues.all { it.adPlacement == "gallery_banner" && it.platform == AdMetricPlatform.APPLOVIN })
+        // Control: one frame reporting twice gives two events of that frame; nothing is merged or dropped.
+        first.emitRevenue(maxInfo())
+        assertEquals(3, metrics.events.filterIsInstance<AdMetricEvent.ImpressionRevenue>().size)
+    }
+
+    @Test
+    fun loadedAndFailed_logNetworks_whenLogOn() {
+        val view = banner(networkLog = AdNetworkLog(true, logger))
+        view.send()
+        sdk.emitLoaded(maxInfo(networks = twoNetworks()))
+        assertEquals(
+            listOf(
+                "Network gallery_banner/max: AppLovin, 80 ms, error -5208",
+                "Network gallery_banner/max: Google, 120 ms, loaded",
+            ),
+            networkLines(),
+        )
+        view.send()
+        sdk.emitFailed(204, null, listOf(MaxNetworkAttempt("Mintegral", 40, MaxNetworkResult.FAILED, 204)))
+        assertEquals("Network gallery_banner/max: Mintegral, 40 ms, error 204", networkLines().last())
+        assertTrue(logger.entries.none { UNIT in it.message })
+    }
+
+    @Test
+    fun networkLogOff_noNetworkLines() {
+        val view = banner()
+        view.send()
+        sdk.emitLoaded(maxInfo(networks = twoNetworks()))
+        sdk.emitFailed(204, null, twoNetworks())
+        assertEquals(emptyList<String>(), networkLines())
+
+        // Control: the same calls with the log on write the lines.
+        val other = FakeMaxBannerSdkView()
+        val logged = banner(sdkView = other, networkLog = AdNetworkLog(true, logger))
+        logged.send()
+        other.emitLoaded(maxInfo(networks = twoNetworks()))
+        assertTrue(logger.entries.toString(), networkLines().isNotEmpty())
+    }
+
+    @Test
+    fun loadAndClick_applovinPlatform() {
+        listOf(AdPlacement.GALLERY_BANNER, AdPlacement.GALLERY_BANNER_MREC).forEach { placement ->
+            metrics = RecordingAdMetrics()
+            val fake = FakeMaxBannerSdkView()
+            val view = banner(placement, placement.format, fake)
+            view.send()
+            fake.emitLoaded()
+            view.send()
+            fake.emitFailed(204)
+            fake.emitClicked()
+            assertEquals(
+                placement.key,
+                listOf(AdMetricPlatform.APPLOVIN, AdMetricPlatform.APPLOVIN, AdMetricPlatform.APPLOVIN),
+                metrics.events.map { event ->
+                    when (event) {
+                        is AdMetricEvent.LoadSuccess -> event.platform
+                        is AdMetricEvent.LoadFail -> event.platform
+                        is AdMetricEvent.Clicked -> event.platform
+                        else -> throw AssertionError("Unexpected $event")
+                    }
+                },
+            )
+            view.destroy()
+        }
+    }
+
+    private fun networkLines(): List<String> = logger.entries.map { it.message }.filter { it.startsWith("Network ") }
+
+    private fun twoNetworks() = listOf(
+        MaxNetworkAttempt("AppLovin", 80, MaxNetworkResult.FAILED, -5208),
+        MaxNetworkAttempt("Google", 120, MaxNetworkResult.LOADED, null),
+    )
+
+    private fun maxInfo(networks: List<MaxNetworkAttempt> = emptyList()) = MaxAdInfo(
+        adUnitId = UNIT,
+        revenueUsd = 0.0123,
+        networkName = "AppLovin",
+        revenuePrecision = "exact",
+        adapterClassName = ADAPTER,
+        networks = networks,
+    )
+
     @Test
     fun realView_buildsForBannerAndMrec_rejectsCollapsible() {
         val activity = composeRule.activity
@@ -299,7 +439,7 @@ class MaxBannerAdViewTest {
         assertEquals(56, maxBannerHeightDp(activity, BannerSizeKind.ANCHORED, 360))
         assertEquals(250, maxBannerHeightDp(activity, BannerSizeKind.MEDIUM_RECTANGLE, 360))
         // Pause and resume of MAX work on a view that never loaded.
-        banner.setCallbacks({}, { _, _ -> }, {})
+        banner.setCallbacks({}, { _, _, _ -> }, {}, {})
         banner.stopAutoRefresh()
         banner.startAutoRefresh()
         assertFalse(banner.view === mrec.view)
@@ -309,6 +449,7 @@ class MaxBannerAdViewTest {
 
     private companion object {
         const val UNIT = "unit-secret"
+        const val ADAPTER = "com.applovin.mediation.adapters.GoogleMediationAdapter"
 
         val DEFAULT_FLAGS: AdsGlobalFlags = runBlocking { DefaultAdsFlags(FakeRemoteSettings()).global.first() }
     }

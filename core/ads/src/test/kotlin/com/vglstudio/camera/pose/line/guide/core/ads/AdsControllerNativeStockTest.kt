@@ -1,18 +1,25 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
 import android.app.Application
+import android.content.res.Configuration
 import android.os.Looper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnelEvent
+import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnelKind
+import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdFunnel
 import com.vglstudio.camera.pose.line.guide.core.logging.RecordingAppLogger
 import java.time.Duration
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 
 /**
  * The native small and collapsible stocks of KB-33 in the real [AdsController] (plan T-086): filled by the preload
@@ -39,6 +47,7 @@ class AdsControllerNativeStockTest {
 
     private val application = ApplicationProvider.getApplicationContext<Application>()
     private val logger = RecordingAppLogger()
+    private val funnel = RecordingAdFunnel()
     private val loader = FakeNativeAdLoader()
     private val adFree = MutableStateFlow(false)
     private val settings = FakeRemoteSettings().apply {
@@ -60,6 +69,7 @@ class AdsControllerNativeStockTest {
                     override val adFree: StateFlow<Boolean> = this@AdsControllerNativeStockTest.adFree
                 },
             ),
+            funnel = funnel,
             logger = logger,
         ).also { it.nativeLoaderForTest = loader }
     }
@@ -116,6 +126,18 @@ class AdsControllerNativeStockTest {
         useUnmergedTree = true,
     ).fetchSemanticsNodes().isNotEmpty()
 
+    private fun eligibleEvents(): List<AdFunnelEvent.Eligible> =
+        funnel.events.filterIsInstance<AdFunnelEvent.Eligible>()
+
+    private fun layerDrawn(): Boolean = composeRule.onAllNodes(
+        hasTestTag(CollapsibleNativeAdTestTags.AD),
+        useUnmergedTree = true,
+    ).fetchSemanticsNodes().isNotEmpty()
+
+    private fun loggedNoRoom(window: String): Boolean = logger.entries.any {
+        it.message == "Collapsible poses_bottom not shown: window $window dp has no room"
+    }
+
     private fun shown(headline: String): Boolean =
         composeRule.onAllNodes(hasText(headline), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
@@ -146,6 +168,7 @@ class AdsControllerNativeStockTest {
     }
 
     @Test
+    @Config(qualifiers = "w411dp-h891dp-xxhdpi")
     fun layer_entersAfterPreload_showsStockAd() {
         startAndPreload()
         deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
@@ -157,6 +180,70 @@ class AdsControllerNativeStockTest {
         assertTrue(shownIn(CollapsibleNativeAdTestTags.AD, LAYER_AD))
         // The ad of the layer came from the stock: one more collapsible request, the next load after the claim.
         assertEquals(2, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+        // One display opportunity for the slot and one for the layer (control of the landscape test below).
+        assertEquals(List(2) { AdFunnelEvent.Eligible(AdFunnelKind.NATIVE) }, eligibleEvents())
+    }
+
+    /**
+     * KB-4 added 2026-11-16, KB-33, section 8.3 of the spec: on a 891 x 411 dp window the layer has no room, so it
+     * never takes the ad of the `native_collap` stock (no next load), reports no display opportunity, and logs it;
+     * the slot shows its stock ad and reports its own opportunity.
+     */
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-xxhdpi")
+    fun landscape_layerNoRoom_stockKept_noEligible_logged() {
+        startAndPreload()
+        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+        val layerAd = deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
+
+        show { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} }
+
+        assertTrue(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
+        assertFalse("no layer without room", layerDrawn())
+        assertEquals("the stock was not claimed: no next load", 1, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+        assertEquals("the stock keeps its ad", 0, layerAd.destroyCount)
+        assertEquals(listOf(AdFunnelEvent.Eligible(AdFunnelKind.NATIVE)), eligibleEvents())
+        assertTrue(loggedNoRoom("891x411"))
+    }
+
+    /**
+     * KB-4 added 2026-11-16: the window changes without the activity being rebuilt (from 411 x 891 to 891 x 411 dp):
+     * the open layer goes and its ad is destroyed (L-061), the slot stays at 126 dp, the line is logged, and no new
+     * display opportunity is reported.
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h891dp-xxhdpi")
+    fun configurationChange_layerGoes_adDestroyed_logged() {
+        val base = application.resources.configuration
+        fun window(width: Int, height: Int) = Configuration(base).apply {
+            screenWidthDp = width
+            screenHeightDp = height
+        }
+        var config by mutableStateOf(window(411, 891))
+        startAndPreload()
+        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+        val layerAd = deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
+        composeRule.setContent {
+            CompositionLocalProvider(LocalAdsController provides controller, LocalConfiguration provides config) {
+                BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {}
+            }
+        }
+        composeRule.waitForIdle()
+        // Control: with room the layer shows the ad of the stock.
+        assertTrue(shownIn(CollapsibleNativeAdTestTags.AD, LAYER_AD))
+        val eligibleBefore = eligibleEvents().size
+
+        config = window(891, 411)
+        composeRule.waitForIdle()
+
+        assertFalse("the layer goes", layerDrawn())
+        assertEquals("the held ad is destroyed", 1, layerAd.destroyCount)
+        assertTrue(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
+        val slot = composeRule.onNodeWithTag(BottomAdBarTestTags.SLOT, useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        assertEquals("slot height", 126f, (slot.bottom - slot.top).value, 1f)
+        assertTrue(loggedNoRoom("891x411"))
+        assertEquals("no new display opportunity", eligibleBefore, eligibleEvents().size)
     }
 
     @Test

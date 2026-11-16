@@ -327,14 +327,17 @@ class SettingsScreenTest {
         val listState = ScrollState(0)
         var padded by mutableStateOf(true)
         setBarScreen(listState) { screen ->
-            FakeBar(BottomAdBarDefaults.nativeReservation, slotHeight = 80.dp) { padding ->
+            FakeBar(
+                BottomAdBarDefaults.nativeReservation(),
+                slotHeight = BottomAdBarDefaults.nativeSlotHeight(),
+            ) { padding ->
                 screen(if (padded) padding else PaddingValues())
             }
         }
         scrollToEnd(listState)
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         val slot = composeRule.onNodeWithTag(FAKE_SLOT).getUnclippedBoundsInRoot()
-        assertEquals("slot height", 80f, (slot.bottom - slot.top).value, 0.5f)
+        assertEquals("slot height", 106f, (slot.bottom - slot.top).value, 0.5f)
         assertEquals("slot margin from the bottom", 16f, (root.bottom - slot.bottom).value, 0.5f)
         val row = versionRowBounds()
         assertTrue("version row ${row.bottom} above slot ${slot.top}", row.bottom.value <= slot.top.value + 0.5f)
@@ -381,7 +384,10 @@ class SettingsScreenTest {
             when (mode) {
                 BarMode.BARE -> screen(PaddingValues())
                 BarMode.REAL -> BottomAdBarScaffold(AdPlacement.SETTINGS_BOTTOM) { screen(it) }
-                BarMode.FAKE -> FakeBar(BottomAdBarDefaults.nativeReservation, slotHeight = 80.dp) { screen(it) }
+                BarMode.FAKE -> FakeBar(
+                    BottomAdBarDefaults.nativeReservation(),
+                    slotHeight = BottomAdBarDefaults.nativeSlotHeight(),
+                ) { screen(it) }
             }
         }
         scrollToEnd(listState)
@@ -397,19 +403,22 @@ class SettingsScreenTest {
         assertEquals("version row bottom kept", bareRow.bottom.value, row.bottom.value, 0.5f)
         val list = composeRule.onNodeWithTag(SettingsTestTags.LIST).getUnclippedBoundsInRoot()
         assertEquals("list reaches the bottom", root.bottom.value, list.bottom.value, 0.5f)
-        // Control: the same screen in a bar with a native slot keeps 96 under the last row.
+        // Control: the same screen in a bar with a native slot keeps the slot and its margin under the last row.
         mode = BarMode.FAKE
         composeRule.waitForIdle()
         scrollToEnd(listState)
         val withSlot = versionRowBounds()
-        assertEquals("control: with a slot", 96f, (root.bottom - withSlot.bottom).value, 0.5f)
+        assertEquals("control: with a slot", 122f, (root.bottom - withSlot.bottom).value, 0.5f)
     }
 
     @Test
     fun saveFailedSnackbar_aboveSlot() {
         composeRule.mainClock.autoAdvance = false
         setBarScreen(ScrollState(0), ready(saveFailed = true)) { screen ->
-            FakeBar(BottomAdBarDefaults.nativeReservation, slotHeight = 80.dp) { screen(it) }
+            FakeBar(
+                BottomAdBarDefaults.nativeReservation(),
+                slotHeight = BottomAdBarDefaults.nativeSlotHeight(),
+            ) { screen(it) }
         }
         composeRule.mainClock.advanceTimeByFrame()
         val slot = composeRule.onNodeWithTag(FAKE_SLOT).getUnclippedBoundsInRoot()

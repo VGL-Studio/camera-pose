@@ -565,7 +565,8 @@ class PosesScreenTest {
         assertTrue("button $button in $root", button.left >= root.left && button.right <= root.right)
     }
 
-    // KB-6: native bottom bar (plan T-079, section 4). The bar of the framework with a fake 80 dp slot.
+    // KB-6: native bottom bar (plan T-079, section 4). The bar of the framework with a fake slot as high as the
+    // framework's (126 dp at the standard frame, plan T-098).
 
     @Test
     fun bottomBar_lastCardScrollsAboveSlot() {
@@ -608,7 +609,7 @@ class PosesScreenTest {
             val slot = composeRule.onNodeWithTag(SLOT).assertExists().getUnclippedBoundsInRoot()
             val button = composeRule.onNodeWithText(action).getUnclippedBoundsInRoot()
             assertTrue("$action ${button.bottom} above slot ${slot.top}", button.bottom.value <= slot.top.value + 0.5f)
-            assertEquals("$action moves up half of 96", 48f, centerWithout - centerY(action), 1f)
+            assertEquals("$action moves up half of 122", 61f, centerWithout - centerY(action), 1f)
             // Control: without the padding the button is back where it was.
             passPadding = false
             composeRule.waitForIdle()
@@ -640,11 +641,11 @@ class PosesScreenTest {
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         composeRule.onNodeWithTag(REAL_SLOT).assertDoesNotExist()
         assertEquals("last cards 16 above the bottom", 16f, root.bottom.value - lastRowBottom(), 0.5f)
-        // Control: the same screen in a bar with a slot keeps 16 + 96 under the last card.
+        // Control: the same screen in a bar with a slot keeps the slot and its margin under the last card.
         real = false
         composeRule.waitForIdle()
         scrollToLastCard()
-        assertEquals("control: with a slot", 112f, root.bottom.value - lastRowBottom(), 0.5f)
+        assertEquals("control: with a slot", 158f, root.bottom.value - lastRowBottom(), 0.5f)
     }
 
     // Ad cells of the grid (spec poses KB-6, criteria 5 and 6; plan T-080, section 4)
@@ -809,7 +810,7 @@ class PosesScreenTest {
         /** The index of the ad cell after card 8 in the grid (cards 1 to 8, then the cell). */
         const val AD_INDEX = 8
         const val SLOT = "fake_ad_slot"
-        const val SLOT_HEIGHT = 80f
+        const val SLOT_HEIGHT = 126f
 
         // The tag of the real slot of the framework (BottomAdBarTestTags, internal to :core:ads).
         const val REAL_SLOT = "bottom_ad_bar_slot"
@@ -862,15 +863,16 @@ class PosesScreenTest {
 }
 
 /**
- * The bottom bar of the framework with a fake 80 dp slot (plan T-079, section 4): the slot takes the modifier the bar
- * gives, so it is as wide as the screen less 2 x 16. [passPadding] false keeps the bar but gives the screen no padding.
+ * The bottom bar of the framework with a fake slot as high as the framework's (plan T-079, section 4; plan T-098): the
+ * slot takes the modifier the bar gives, so it is as wide as the screen less 2 x 16. [passPadding] false keeps the bar
+ * but gives the screen no padding.
  */
 private fun fakeBar(
     passPadding: () -> Boolean = { true },
 ): @Composable (screen: @Composable (PaddingValues) -> Unit) -> Unit = { screen ->
     BottomAdBarLayout(
-        reservation = BottomAdBarDefaults.nativeReservation,
-        slot = { Box(it.height(80.dp).testTag("fake_ad_slot")) },
+        reservation = BottomAdBarDefaults.nativeReservation(),
+        slot = { Box(it.height(BottomAdBarDefaults.nativeSlotHeight()).testTag("fake_ad_slot")) },
         layer = null,
     ) { padding -> screen(if (passPadding()) padding else PaddingValues()) }
 }

@@ -355,38 +355,238 @@ class BottomAdBarTest {
     // Space kept by the content (D-04, AR-02).
 
     @Test
-    fun reservation_nativeWithAd_is80PlusMargin() {
-        assertEquals(96.dp, bottomBarReservation(BottomSlotKind.NATIVE, slotHasAd = true, bannerHeight = 62.dp))
-        assertEquals(96.dp, BottomAdBarDefaults.nativeReservation)
+    fun reservation_nativeWithAd_isSlotPlusMargin() {
+        assertEquals(
+            142.dp,
+            bottomBarReservation(
+                BottomSlotKind.NATIVE,
+                slotHasAd = true,
+                bannerHeight = 62.dp,
+                windowShortEdge = 411.dp,
+            ),
+        )
+        var reservation = 0.dp
+        composeRule.setContent { reservation = BottomAdBarDefaults.nativeReservation() }
+        composeRule.waitForIdle()
+        assertEquals(142.dp, reservation)
+        assertEquals(
+            bottomBarReservation(
+                BottomSlotKind.NATIVE,
+                slotHasAd = true,
+                bannerHeight = 0.dp,
+                windowShortEdge = 411.dp,
+            ),
+            reservation,
+        )
     }
 
     @Test
     fun reservation_bannerWithAd_isBannerHeight() {
-        assertEquals(62.dp, bottomBarReservation(BottomSlotKind.BANNER, slotHasAd = true, bannerHeight = 62.dp))
+        assertEquals(
+            62.dp,
+            bottomBarReservation(
+                BottomSlotKind.BANNER,
+                slotHasAd = true,
+                bannerHeight = 62.dp,
+                windowShortEdge = 411.dp,
+            ),
+        )
     }
 
     @Test
     fun reservation_noAd_isZero() {
-        assertEquals(0.dp, bottomBarReservation(BottomSlotKind.NATIVE, slotHasAd = false, bannerHeight = 62.dp))
-        assertEquals(0.dp, bottomBarReservation(BottomSlotKind.BANNER, slotHasAd = false, bannerHeight = 62.dp))
-        // Control: the same slot with an ad keeps space (L-055).
-        assertEquals(96.dp, bottomBarReservation(BottomSlotKind.NATIVE, slotHasAd = true, bannerHeight = 62.dp))
+        assertEquals(
+            0.dp,
+            bottomBarReservation(
+                BottomSlotKind.NATIVE,
+                slotHasAd = false,
+                bannerHeight = 62.dp,
+                windowShortEdge = 411.dp,
+            ),
+        )
+        assertEquals(
+            0.dp,
+            bottomBarReservation(
+                BottomSlotKind.BANNER,
+                slotHasAd = false,
+                bannerHeight = 62.dp,
+                windowShortEdge = 411.dp,
+            ),
+        )
+        // Control: the same slot with an ad keeps space (L-055): bottomSlotHeight(411 dp) + 16 dp.
+        assertEquals(
+            NativeAdDimens.bottomSlotHeight(411.dp) + 16.dp,
+            bottomBarReservation(
+                BottomSlotKind.NATIVE,
+                slotHasAd = true,
+                bannerHeight = 62.dp,
+                windowShortEdge = 411.dp,
+            ),
+        )
+        assertEquals(
+            142.dp,
+            bottomBarReservation(
+                BottomSlotKind.NATIVE,
+                slotHasAd = true,
+                bannerHeight = 62.dp,
+                windowShortEdge = 411.dp,
+            ),
+        )
     }
 
     @Test
     fun reservation_notAllowed_isZero() {
-        assertEquals(0.dp, bottomBarReservation(null, slotHasAd = true, bannerHeight = 62.dp))
+        assertEquals(0.dp, bottomBarReservation(null, slotHasAd = true, bannerHeight = 62.dp, windowShortEdge = 411.dp))
     }
 
     @Test
     fun reservedSlot_equalsDrawnSlotHeight() {
-        val reserved = bottomBarReservation(BottomSlotKind.NATIVE, slotHasAd = true, bannerHeight = 0.dp) -
-            BottomAdBarDimens.SlotMargin
-        assertEquals(NativeAdDimens.BottomSlotHeight, reserved)
+        val reserved = bottomBarReservation(
+            BottomSlotKind.NATIVE,
+            slotHasAd = true,
+            bannerHeight = 0.dp,
+            windowShortEdge = 411.dp,
+        ) - BottomAdBarDimens.SlotMargin
+        assertEquals(NativeAdDimens.bottomSlotHeight(411.dp), reserved)
         setBar()
         loadBoth()
         val slot = bounds(SLOT_AD)
         assertEquals(reserved.value, (slot.bottom - slot.top).value, TOLERANCE)
+    }
+
+    /**
+     * KB-17 criterion 5, D-04: the space kept for the native slot follows the screen width, as the slot does: the
+     * slot drawn on this screen and its 16 dp margin; a banner still keeps its own height.
+     */
+    @Test
+    fun nativeReservation_followsScreenWidth() = assertNativeReservation(expected = 142.dp)
+
+    /** The same on a 360 dp screen: a 106 dp slot, 122 dp kept. */
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    fun nativeReservation_followsScreenWidth_360() = assertNativeReservation(expected = 122.dp)
+
+    private fun assertNativeReservation(expected: Dp, expectedSlot: Dp? = null) {
+        var reservation = 0.dp
+        var slotHeight = 0.dp
+        composeRule.setContent {
+            AdsTestTheme {
+                reservation = BottomAdBarDefaults.nativeReservation()
+                slotHeight = BottomAdBarDefaults.nativeSlotHeight()
+                BottomAdBarLayout(
+                    reservation = reservation,
+                    slot = { NativeAdCard(sampleNativeAdAssets, NativeAdSize.SMALL, it.testTag(SLOT_AD)) },
+                    layer = null,
+                ) {}
+            }
+        }
+        composeRule.waitForIdle()
+        assertEquals("kept space", expected.value, reservation.value, 0.5f)
+        val slot = bounds(SLOT_AD)
+        assertEquals("slot drawn plus 16 dp", (slot.bottom - slot.top).value + 16f, reservation.value, 0.5f)
+        assertEquals("slot height", (slot.bottom - slot.top).value, slotHeight.value, 0.5f)
+        // Control: a banner keeps its own frame, whatever the screen width.
+        assertEquals(
+            62.dp,
+            bottomBarReservation(
+                BottomSlotKind.BANNER,
+                slotHasAd = true,
+                bannerHeight = 62.dp,
+                windowShortEdge = 360.dp,
+            ),
+        )
+        if (expectedSlot != null) assertEquals("slot height", expectedSlot.value, slotHeight.value, 0.5f)
+    }
+
+    // Landscape, split screen and low windows (KB-4 added 2026-11-16, KB-17, KB-32 criterion 3).
+
+    /** KB-17 criterion 5, D-04: on a 891 x 411 dp window the slot and the space kept follow the short edge. */
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-xxhdpi")
+    fun nativeReservation_landscape_followsShortEdge() =
+        assertNativeReservation(expected = 142.dp, expectedSlot = 126.dp)
+
+    /**
+     * KB-4 added 2026-11-16, KB-17: on a 891 x 411 dp window the layer has no room (not even with its media at 120
+     * dp): only the 126 dp slot, 16 dp above the bottom, the content kept above it, the layer's ads never collected.
+     */
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-xxhdpi")
+    fun landscape_slotOnly_noLayer() {
+        setBar()
+        loadBoth()
+        val slot = bounds(SLOT_AD)
+        assertEquals("slot height", 126f, (slot.bottom - slot.top).value, TOLERANCE)
+        assertEquals("slot top", 269f, slot.top.value, TOLERANCE)
+        assertEquals("slot bottom", 395f, slot.bottom.value, TOLERANCE)
+        assertContentBottom("content ends at the slot top", 269f)
+        assertEquals(listOf(0.dp, 142.dp), reservations)
+        assertAbsent(CollapsibleNativeAdTestTags.AD)
+        assertEquals("layer collections", 0, layerFeed.collections)
+    }
+
+    /** KB-4 added 2026-11-16: a 411 x 445 dp window (split screen) has no room for the layer either. */
+    @Test
+    @Config(qualifiers = "w411dp-h445dp-xxhdpi")
+    fun split_slotOnly_noLayer() {
+        setBar()
+        loadBoth()
+        val slot = bounds(SLOT_AD)
+        assertEquals("slot height", 126f, (slot.bottom - slot.top).value, TOLERANCE)
+        assertEquals("slot top", 303f, slot.top.value, TOLERANCE)
+        assertAbsent(CollapsibleNativeAdTestTags.AD)
+        assertEquals("layer collections", 0, layerFeed.collections)
+    }
+
+    /**
+     * KB-4 added 2026-11-16, KB-32 criterion 3: on a 411 x 600 dp window the layer with its 16 dp margin reaches half
+     * the window, its media shrinking first: 284 dp (media area 158 dp, MediaView 146 dp, content 126 dp), top 300 dp.
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h600dp-xxhdpi")
+    fun shortWindow_layerMediaShrinks() {
+        var layerHeight: Dp? = 0.dp
+        composeRule.setContent {
+            layerHeight = BottomAdBarDefaults.collapsibleLayerHeight()
+            Bar()
+        }
+        composeRule.waitForIdle()
+        loadBoth()
+        val layer = bounds(CollapsibleNativeAdTestTags.AD)
+        assertEquals("layer height", 284f, (layer.bottom - layer.top).value, TOLERANCE)
+        assertEquals("layer top at half the window", 300f, layer.top.value, TOLERANCE)
+        val media = bounds(CollapsibleNativeAdTestTags.MEDIA)
+        assertEquals("MediaView height", 146f, (media.bottom - media.top).value, TOLERANCE)
+        val content = bounds(CollapsibleNativeAdTestTags.CONTENT)
+        assertEquals("content height", 126f, (content.bottom - content.top).value, TOLERANCE)
+        assertEquals("collapsibleLayerHeight()", 284f, layerHeight?.value ?: -1f, 0.5f)
+    }
+
+    /** The layer height for screens drawing a fake bar: 299 dp on the 411 x 891 dp frame of this class. */
+    @Test
+    fun collapsibleLayerHeight_nullWhenNoRoom() {
+        assertEquals(299f, collapsibleLayerHeight()?.value ?: -1f, 0.5f)
+    }
+
+    /** No room on a 891 x 411 dp window: no height, so a fake bar draws no layer. */
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-xxhdpi")
+    fun collapsibleLayerHeight_nullWhenNoRoom_landscape() {
+        assertNull(collapsibleLayerHeight())
+    }
+
+    /** No room on a 411 x 445 dp window (split screen). */
+    @Test
+    @Config(qualifiers = "w411dp-h445dp-xxhdpi")
+    fun collapsibleLayerHeight_nullWhenNoRoom_split() {
+        assertNull(collapsibleLayerHeight())
+    }
+
+    private fun collapsibleLayerHeight(): Dp? {
+        var height: Dp? = (-1).dp
+        composeRule.setContent { height = BottomAdBarDefaults.collapsibleLayerHeight() }
+        composeRule.waitForIdle()
+        return height
     }
 
     @Test
@@ -395,7 +595,7 @@ class BottomAdBarTest {
         setBar()
         update { slotFeed.load(FakeLoadedNativeAd()) }
         val slot = bounds(SLOT_AD)
-        assertEquals("slot top", 795f, slot.top.value, TOLERANCE)
+        assertEquals("slot top", 749f, slot.top.value, TOLERANCE)
         assertEquals("slot bottom", 875f, slot.bottom.value, TOLERANCE)
         assertContentBottom("content ends at the slot top", slot.top.value)
 
@@ -407,13 +607,13 @@ class BottomAdBarTest {
     @Test
     fun slotLoading_reservesNothing() {
         setBar()
-        // D-02: the 80 dp placeholder is shown; D-04: no space is kept for it.
-        assertEquals(80f, bounds(NativeAdTestTags.PLACEHOLDER).let { (it.bottom - it.top).value }, TOLERANCE)
+        // D-02: the 126 dp placeholder is shown; D-04: no space is kept for it.
+        assertEquals(126f, bounds(NativeAdTestTags.PLACEHOLDER).let { (it.bottom - it.top).value }, TOLERANCE)
         assertContentBottom("content while loading", SCREEN_HEIGHT)
 
         // Control: the ad arrives and the space is kept.
         update { slotFeed.load(FakeLoadedNativeAd()) }
-        assertContentBottom("content with an ad", 795f)
+        assertContentBottom("content with an ad", 749f)
     }
 
     @Test
@@ -436,7 +636,7 @@ class BottomAdBarTest {
         update { slotFeed.load(FakeLoadedNativeAd()) }
         update { slotFeed.load(FakeLoadedNativeAd()) }
         update { slotFeed.load(FakeLoadedNativeAd()) }
-        assertEquals(listOf(0.dp, 96.dp), reservations)
+        assertEquals(listOf(0.dp, 142.dp), reservations)
     }
 
     @Test
@@ -444,7 +644,7 @@ class BottomAdBarTest {
         setBar()
         update { slotFeed.load(FakeLoadedNativeAd()) }
         // Control: the slot with its ad keeps its space.
-        assertContentBottom("with an ad", 795f)
+        assertContentBottom("with an ad", 749f)
 
         update { slotAllowed = false }
         assertContentBottom("slot no longer allowed", SCREEN_HEIGHT)
@@ -457,8 +657,8 @@ class BottomAdBarTest {
         setBar()
         loadBoth()
         val layer = bounds(CollapsibleNativeAdTestTags.AD)
-        assertEquals("layer height", 250f, (layer.bottom - layer.top).value, TOLERANCE)
-        assertEquals("layer top", 625f, layer.top.value, TOLERANCE)
+        assertEquals("layer height", 299f, (layer.bottom - layer.top).value, TOLERANCE)
+        assertEquals("layer top", 576f, layer.top.value, TOLERANCE)
         val slot = bounds(SLOT_AD)
         assertEquals("as wide as the slot", (slot.right - slot.left).value, (layer.right - layer.left).value, TOLERANCE)
 
@@ -531,7 +731,7 @@ class BottomAdBarTest {
     fun placementSwitchedOff_barGone_reservationZero_adsDestroyed() {
         setBar()
         val (slotAd, layerAd) = loadBoth()
-        assertContentBottom("control: bar with an ad", 795f)
+        assertContentBottom("control: bar with an ad", 749f)
 
         update { enabled = false }
 
@@ -555,7 +755,7 @@ class BottomAdBarTest {
         composeRule.setContent { Bar(enabledFlow = controller.isEnabled(placement)) }
         composeRule.waitForIdle()
         val (slotAd, layerAd) = loadBoth()
-        assertContentBottom("control: bar with an ad", 795f)
+        assertContentBottom("control: bar with an ad", 749f)
 
         update { adFree.value = true }
 
@@ -569,7 +769,7 @@ class BottomAdBarTest {
         // with the same build, also takes it away.
         update { adFree.value = false }
         val (againSlotAd, _) = loadBoth()
-        assertContentBottom("control: bar back", 795f)
+        assertContentBottom("control: bar back", 749f)
         update { settings.set(AdsSettings.placementEnabled(placement), false) }
         assertAbsent(SLOT_AD)
         assertEquals(1, againSlotAd.destroyCount)
@@ -584,7 +784,7 @@ class BottomAdBarTest {
     fun consentWithdrawn_barGone_adsDestroyed() {
         setBar()
         val (slotAd, layerAd) = loadBoth()
-        assertContentBottom("control: bar with an ad", 795f)
+        assertContentBottom("control: bar with an ad", 749f)
 
         update { canRequest = false }
 
@@ -625,7 +825,7 @@ class BottomAdBarTest {
         assertPresent(NativeAdTestTags.PLACEHOLDER)
         assertContentBottom("new slot loading", SCREEN_HEIGHT)
         update { slotFeed.load(FakeLoadedNativeAd()) }
-        assertContentBottom("new slot with an ad", 795f)
+        assertContentBottom("new slot with an ad", 749f)
     }
 
     // No controller, state of the content, restoration.
@@ -660,7 +860,7 @@ class BottomAdBarTest {
         composeRule.waitForIdle()
         repeat(3) { composeRule.onNodeWithTag(COUNTER).performClick() }
         update { slotFeed.load(FakeLoadedNativeAd()) }
-        assertContentBottom("control: bar shown", 795f)
+        assertContentBottom("control: bar shown", 749f)
 
         update { enabled = false }
         assertContentBottom("control: bar gone", SCREEN_HEIGHT)
@@ -668,7 +868,7 @@ class BottomAdBarTest {
 
         update { enabled = true }
         update { slotFeed.load(FakeLoadedNativeAd()) }
-        assertContentBottom("control: bar back", 795f)
+        assertContentBottom("control: bar back", 749f)
         assertCounter(3)
     }
 
@@ -684,14 +884,14 @@ class BottomAdBarTest {
         restoration.setContent { Bar() }
         composeRule.waitForIdle()
         update { slotFeed.load(FakeLoadedNativeAd()) }
-        assertContentBottom("before restoring", 795f)
+        assertContentBottom("before restoring", 749f)
 
         restoration.emulateSavedInstanceStateRestore()
         composeRule.waitForIdle()
         assertContentBottom("restored, slot loading again", SCREEN_HEIGHT)
 
         update { slotFeed.load(FakeLoadedNativeAd()) }
-        assertContentBottom("slot reports an ad again", 795f)
+        assertContentBottom("slot reports an ad again", 749f)
     }
 
     // Ad units of the layers (L-072, B-04).
@@ -705,7 +905,7 @@ class BottomAdBarTest {
         assertEquals(0, layerFeed.collections)
         assertAbsent(CollapsibleNativeAdTestTags.AD)
         assertPresent(SLOT_AD)
-        assertContentBottom("slot keeps its space", 795f)
+        assertContentBottom("slot keeps its space", 749f)
     }
 
     @Test

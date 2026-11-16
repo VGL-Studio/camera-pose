@@ -24,7 +24,12 @@ private const val TAG = "Ads"
 internal interface MaxBannerSdkView {
     val view: View
 
-    fun setCallbacks(onLoaded: () -> Unit, onFailed: (code: Int, message: String?) -> Unit, onClicked: () -> Unit)
+    fun setCallbacks(
+        onLoaded: (MaxAdInfo) -> Unit,
+        onFailed: (code: Int, message: String?, networks: List<MaxNetworkAttempt>) -> Unit,
+        onClicked: () -> Unit,
+        onRevenue: (MaxAdInfo) -> Unit,
+    )
 
     fun loadAd()
 
@@ -40,8 +45,8 @@ internal interface MaxBannerSdkView {
  * ([BannerSizeKind.ANCHORED]) or the 300 x 250 MREC ([BannerSizeKind.MEDIUM_RECTANGLE]); a collapsible banner never
  * loads from MAX, so [BannerSizeKind.LARGE_ANCHORED] throws [IllegalArgumentException]. Built with the constructor
  * that takes a [Context]: the one with `MaxAdViewConfiguration` throws while the MAX SDK has not started (plan T-071,
- * section 4.1). `stopAutoRefresh` stops at once, not after the refresh being counted down (KB-27). No revenue
- * listener yet (T-072).
+ * section 4.1). `stopAutoRefresh` stops at once, not after the refresh being counted down (KB-27). The revenue of each
+ * show and the waterfall of each load reach the callbacks as [MaxAdInfo] (plan T-072).
  */
 internal class AppLovinMaxBannerView(unitId: String, kind: BannerSizeKind, widthDp: Int, context: Context) :
     MaxBannerSdkView {
@@ -58,15 +63,18 @@ internal class AppLovinMaxBannerView(unitId: String, kind: BannerSizeKind, width
     override val view: View get() = adView
 
     override fun setCallbacks(
-        onLoaded: () -> Unit,
-        onFailed: (code: Int, message: String?) -> Unit,
+        onLoaded: (MaxAdInfo) -> Unit,
+        onFailed: (code: Int, message: String?, networks: List<MaxNetworkAttempt>) -> Unit,
         onClicked: () -> Unit,
+        onRevenue: (MaxAdInfo) -> Unit,
     ) {
+        adView.setRevenueListener { onRevenue(maxAdInfoOf(it)) }
         adView.setListener(
             object : MaxAdViewAdListener {
-                override fun onAdLoaded(ad: MaxAd) = onLoaded()
+                override fun onAdLoaded(ad: MaxAd) = onLoaded(maxAdInfoOf(ad))
 
-                override fun onAdLoadFailed(adUnitId: String, error: MaxError) = onFailed(error.code, error.message)
+                override fun onAdLoadFailed(adUnitId: String, error: MaxError) =
+                    onFailed(error.code, error.message, maxNetworkAttemptsOf(error.waterfall))
 
                 override fun onAdClicked(ad: MaxAd) = onClicked()
 
@@ -114,7 +122,10 @@ internal fun maxBannerHeightDp(context: Context, kind: BannerSizeKind, widthDp: 
  *   [send], one `loadAd` on the same view.
  * - Loads and clicks go to [telemetry] like those of AdMob: the load counter of MAX is `<slot key>/max`, apart from
  *   AdMob in the same frame (L-068); a failure is labelled by [maxLoadStateAfterError]; a click skips the next resume
- *   ad (A-14). Revenue of MAX is T-072.
+ *   ad (A-14). Loads and clicks carry the platform of MAX (`ad_platform = applovin`, plan T-072).
+ * - Each revenue of the view goes to [AdTelemetry.maxRevenue] with the placement of this frame; the ad unit reaches
+ *   the event only, through [MaxAdInfo], never a log line. At staging, [networkLog] logs the networks MAX tried for
+ *   each load under `<slot key>/max` (KB-28, plan T-072).
  */
 internal class MaxBannerAdView(
     private val newSdkView: () -> MaxBannerSdkView,
@@ -124,6 +135,7 @@ internal class MaxBannerAdView(
     private val now: () -> Long,
     private val logger: AppLogger,
     private val loadErrorLog: LoadErrorLog = LoadErrorLog.CODE_ONLY,
+    private val networkLog: AdNetworkLog = AdNetworkLog.OFF,
 ) : BannerAdView {
     // Callbacks come one at a time; the buffer keeps tryEmit from dropping a result the loop has not read yet.
     private val emitted = MutableSharedFlow<BannerLoadResult>(extraBufferCapacity = RESULT_BUFFER)
@@ -139,7 +151,12 @@ internal class MaxBannerAdView(
     override fun send() {
         val existing = sdk
         val view = existing ?: newSdkView().also { built ->
-            built.setCallbacks(onLoaded = ::onLoaded, onFailed = ::onFailed, onClicked = ::onClicked)
+            built.setCallbacks(
+                onLoaded = ::onLoaded,
+                onFailed = ::onFailed,
+                onClicked = ::onClicked,
+                onRevenue = ::onRevenue,
+            )
             sdk = built
             logger.info(TAG, "Banner $placementKey MAX view created")
         }
@@ -174,20 +191,24 @@ internal class MaxBannerAdView(
         }
     }
 
-    private fun onLoaded() {
+    private fun onLoaded(info: MaxAdInfo) {
         logger.info(TAG, "Banner $placementKey MAX loaded")
-        telemetry.loadSucceeded(format, maxSlot, loadPlacement, now())
+        networkLog.maxResult(maxSlot, info.networks)
+        telemetry.loadSucceeded(format, maxSlot, loadPlacement, now(), AdPlatform.MAX)
         emitted.tryEmit(BannerLoadResult.Loaded)
     }
 
-    private fun onFailed(code: Int, message: String?) {
+    private fun onFailed(code: Int, message: String?, networks: List<MaxNetworkAttempt>) {
         logger.info(TAG, "Banner $placementKey MAX failed (code ${loadErrorLog.text(code, message)})")
+        networkLog.maxResult(maxSlot, networks)
         telemetry.maxLoadFailed(format, maxSlot, loadPlacement, code, now())
         // No message: it is in the line above, the retry line does not repeat it (question 4 of plan T-093).
         emitted.tryEmit(BannerLoadResult.Failed(code))
     }
 
-    private fun onClicked() = telemetry.clicked(format, placement)
+    private fun onClicked() = telemetry.clicked(format, placement, AdPlatform.MAX)
+
+    private fun onRevenue(info: MaxAdInfo) = telemetry.maxRevenue(format, info.adUnitId, { placement }, info)
 
     private companion object {
         const val RESULT_BUFFER = 16

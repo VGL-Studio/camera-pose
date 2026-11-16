@@ -205,8 +205,8 @@ internal fun NativeAdSlotContent(
                     // The step card's height follows the font scale, like the card and its placeholder (plan T-045).
                     val height = when (size) {
                         NativeAdSize.STEP -> NativeStepAdDefaults.height()
-                        NativeAdSize.CARD -> cardHeight ?: NativeAdDimens.heightOf(size, ctaLarge)
-                        else -> NativeAdDimens.heightOf(size, ctaLarge)
+                        NativeAdSize.CARD -> cardHeight ?: NativeAdDimens.heightOf(size, ctaLarge, nativeScreenSize())
+                        else -> NativeAdDimens.heightOf(size, ctaLarge, nativeScreenSize())
                     }
                     Spacer(Modifier.fillMaxWidth().height(height))
                 }
@@ -215,8 +215,8 @@ internal fun NativeAdSlotContent(
 }
 
 /**
- * The native slot of a bottom bar ([BottomAdBarScaffold], D-02): like [NativeAdSlot] for native small (gate, 80 dp
- * placeholder, nothing with no ad, availability reported), with its first refresh [firstRefreshExtraMillis] later
+ * The native slot of a bottom bar ([BottomAdBarScaffold], D-02): like [NativeAdSlot] for native small (gate,
+ * placeholder as high as the slot of the window's short edge, nothing with no ad, availability reported), with its first refresh [firstRefreshExtraMillis] later
  * than the interval of `time_reload_native_small` (section 5.7). The stream is built once per placement: a new extra
  * (the layer turned on or off) applies from the next slot, without destroying the ad or loading again.
  */

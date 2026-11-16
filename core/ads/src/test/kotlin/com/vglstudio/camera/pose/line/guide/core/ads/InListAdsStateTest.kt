@@ -88,6 +88,8 @@ class InListAdsStateTest {
             retryResets = retryResets,
             logger = logger,
             placementKey = "${placement.key}#$slot",
+            // As AdsController wires it: Internet back also counts the failures from 1 again (plan T-103).
+            failureResets = retryResets,
         ).onEach { emitted.getOrPut(slot) { mutableListOf() } += it }
     }
 
@@ -191,17 +193,18 @@ class InListAdsStateTest {
     }
 
     @Test
-    fun failedRow_keepsRetryingEvery5s_neverGivesUp() = runTest {
+    fun failedRow_keepsRetrying_backsOff_neverGivesUp() = runTest {
+        // O-05 (plan T-103): with no ad, 5, 10, 20 s, never giving up.
         failAtOnce = true
         val ads = sdkAds()
 
         ads.slot(0)
         runCurrent()
         at(5_000)
-        at(10_000)
         at(15_000)
+        at(35_000)
 
-        assertEquals(listOf(0L, 5_000L, 10_000L, 15_000L), sendTimes())
+        assertEquals(listOf(0L, 5_000L, 15_000L, 35_000L), sendTimes())
         assertEquals(listOf(NativeAdState.Loading, NativeAdState.Unavailable), emitted[0])
     }
 
@@ -474,14 +477,14 @@ class InListAdsStateTest {
         (2 until 20).forEach { ads.onRowShown(it, false) }
 
         at(60_000)
-        assertEquals(20 + 24, sends.size)
-        assertEquals((0..12).map { it * 5_000L }, sendTimes(0))
-        assertEquals((0..12).map { it * 5_000L }, sendTimes(1))
+        assertEquals(20 + 6, sends.size)
+        assertEquals(listOf(0L, 5_000L, 15_000L, 35_000L), sendTimes(0))
+        assertEquals(listOf(0L, 5_000L, 15_000L, 35_000L), sendTimes(1))
 
         at(62_000)
         retryResets.value += 1
         runCurrent()
-        assertEquals(20 + 24 + 2, sends.size)
+        assertEquals(20 + 6 + 2, sends.size)
         assertEquals(62_000L, sendTimes(0).last())
         assertEquals(62_000L, sendTimes(1).last())
 
@@ -580,10 +583,11 @@ class InListAdsStateTest {
         openLoader(1).fail(3)
         runCurrent()
 
-        at(10_000)
+        // Row 1 failed twice: 10 s; row 0 getting its ad does not bring row 1 back to 5 s.
+        at(15_000)
         assertEquals(5, sends.size)
         assertEquals(listOf(0L, 5_000L), sendTimes(0))
-        assertEquals(listOf(0L, 5_000L, 10_000L), sendTimes(1))
+        assertEquals(listOf(0L, 5_000L, 15_000L), sendTimes(1))
         assertEquals(NativeAdState.Loaded(ad), row0.value)
         assertEquals(NativeAdState.Unavailable, row1.value)
     }

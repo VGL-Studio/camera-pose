@@ -4,6 +4,7 @@ import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnel
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnelEvent
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnelKind
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetricEvent
+import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetricPlatform
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.FanOutAdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdFunnel
@@ -765,11 +766,11 @@ class AdTelemetryTest {
         telemetry.requestSent(MAX_SLOT, 0)
         telemetry.requestSent(MAX_SLOT, 5)
         telemetry.maxLoadFailed(AdFormat.BANNER, MAX_SLOT, BANNER_SLOT, 204, 10)
-        telemetry.loadSucceeded(AdFormat.BANNER, MAX_SLOT, BANNER_SLOT, 12)
+        telemetry.loadSucceeded(AdFormat.BANNER, MAX_SLOT, BANNER_SLOT, 12, AdPlatform.MAX)
         assertEquals(
             listOf(
-                AdMetricEvent.LoadFail("BANNER", BANNER_SLOT, 1, 5, "204", "no_fill"),
-                AdMetricEvent.LoadSuccess("BANNER", BANNER_SLOT, 2, null),
+                AdMetricEvent.LoadFail("BANNER", BANNER_SLOT, 1, 5, "204", "no_fill", AdMetricPlatform.APPLOVIN),
+                AdMetricEvent.LoadSuccess("BANNER", BANNER_SLOT, 2, null, AdMetricPlatform.APPLOVIN),
             ),
             metrics.events,
         )
@@ -782,11 +783,17 @@ class AdTelemetryTest {
         val telemetry = telemetry()
         telemetry.requestSent(MAX_SLOT, 0)
         assertEquals("no_fill", telemetry.maxLoadFailed(AdFormat.BANNER, MAX_SLOT, BANNER_SLOT, 204, 10))
-        assertEquals(listOf(AdMetricEvent.LoadFail("BANNER", BANNER_SLOT, 1, 10, "204", "no_fill")), metrics.events)
+        assertEquals(
+            listOf(AdMetricEvent.LoadFail("BANNER", BANNER_SLOT, 1, 10, "204", "no_fill", AdMetricPlatform.APPLOVIN)),
+            metrics.events,
+        )
         offline = true
         assertEquals("network", telemetry.maxLoadFailed(AdFormat.BANNER, MAX_SLOT, BANNER_SLOT, -1, 20))
         offline = false
-        assertEquals(AdMetricEvent.LoadFail("BANNER", BANNER_SLOT, 2, null, "-1", "network"), metrics.events.last())
+        assertEquals(
+            AdMetricEvent.LoadFail("BANNER", BANNER_SLOT, 2, null, "-1", "network", AdMetricPlatform.APPLOVIN),
+            metrics.events.last(),
+        )
 
         // The slot group off: the label is returned, nothing is logged, the counter still moves.
         logSlot = false
@@ -795,6 +802,188 @@ class AdTelemetryTest {
         assertEquals(before, metrics.events.size)
         assertEquals(3, counter.failuresInARow(MAX_SLOT))
     }
+
+    // Plan T-072: revenue, loads, clicks and failed shows of AppLovin MAX
+
+    @Test
+    fun maxRevenue_applovinDollarsUsd_networkAsSource() {
+        telemetry().maxRevenue(AdFormat.INTERSTITIAL, MAX_UNIT, { AdPlacement.GALLERY_INTERSTITIAL }, maxInfo())
+
+        assertEquals(
+            listOf(
+                AdMetricEvent.ImpressionRevenue(
+                    adFormat = "INTER",
+                    adSource = "AppLovin",
+                    monetizationNetwork = "AppLovin",
+                    adUnitName = MAX_UNIT,
+                    currency = "USD",
+                    value = 0.0123,
+                    adPlacement = "gallery_interstitial",
+                    adapterClassName = MAX_ADAPTER,
+                    platform = AdMetricPlatform.APPLOVIN,
+                ),
+            ),
+            metrics.events,
+        )
+    }
+
+    @Test
+    fun maxRevenue_ignoresLifecycleSwitchesAndServing() {
+        // Group switches off, nothing served, the consent gate closed: the revenue is still logged (T-01).
+        val telemetry = telemetry()
+        telemetry.maxRevenue(AdFormat.BANNER, MAX_UNIT, { AdPlacement.GALLERY_BANNER }, maxInfo())
+        assertEquals(1, metrics.events.filterIsInstance<AdMetricEvent.ImpressionRevenue>().size)
+
+        // Control: under the same conditions a lifecycle event of MAX is not logged.
+        telemetry.requestSent(MAX_SLOT, 0)
+        telemetry.loadSucceeded(AdFormat.BANNER, MAX_SLOT, BANNER_SLOT, 10, AdPlatform.MAX)
+        assertEquals(1, metrics.events.size)
+    }
+
+    @Test
+    fun maxRevenue_noNetwork_sourceApplovin_monetizationEmpty() {
+        listOf(null, "").forEach { network ->
+            val target = RecordingAdMetrics()
+            telemetry(target).maxRevenue(
+                AdFormat.REWARDED,
+                MAX_UNIT,
+                { AdPlacement.GALLERY_RW_ACTION },
+                maxInfo(networkName = network),
+            )
+            val event = target.events.single() as AdMetricEvent.ImpressionRevenue
+            assertEquals("$network", "applovin", event.adSource)
+            assertEquals("$network", "", event.monetizationNetwork)
+        }
+        // Control: AdMob with no network keeps admob (T-03).
+        telemetry().revenue(AdFormat.INTERSTITIAL, "unit", { null }, 1_000, "USD", null, null)
+        assertEquals("admob", (metrics.events.single() as AdMetricEvent.ImpressionRevenue).adSource)
+    }
+
+    @Test
+    fun maxRevenue_readsPlacementAtEventTime() {
+        var cell: AdPlacement? = AdPlacement.SAMPLE_NATIVE_SMALL
+        val telemetry = telemetry()
+        // The listener holds the cell; the placement changes before the revenue comes (PL-03).
+        cell = AdPlacement.GALLERY_INTERSTITIAL
+
+        telemetry.maxRevenue(AdFormat.INTERSTITIAL, MAX_UNIT, { cell }, maxInfo())
+
+        assertEquals(
+            "gallery_interstitial",
+            (metrics.events.single() as AdMetricEvent.ImpressionRevenue).adPlacement,
+        )
+    }
+
+    @Test
+    fun maxRevenue_placementThrows_noPlacement_logged() {
+        telemetry().maxRevenue(AdFormat.APP_OPEN, MAX_UNIT, { throw IllegalStateException("gone") }, maxInfo())
+
+        val event = metrics.events.single() as AdMetricEvent.ImpressionRevenue
+        assertNull(event.adPlacement)
+        assertEquals(AdMetricPlatform.APPLOVIN, event.platform)
+        assertEquals("APP_OPEN", event.adFormat)
+        assertTrue(
+            logger.entries.toString(),
+            logger.entries.any { it.level == LogLevel.WARN && "IllegalStateException" in it.message },
+        )
+        assertTrue(logger.entries.toString(), logger.entries.none { "gone" in it.message })
+    }
+
+    @Test
+    fun maxRevenue_logLine_platformPrecision_noUnitNoValue() {
+        telemetry().maxRevenue(AdFormat.BANNER_MREC, MAX_UNIT, { AdPlacement.GALLERY_BANNER_MREC }, maxInfo())
+        telemetry().revenue(AdFormat.INTERSTITIAL, "admob-unit", { null }, 12_300, "USD", null, null)
+
+        val messages = logger.entries.map { it.message }
+        assertTrue(
+            messages.toString(),
+            "Ad revenue BANNER_MREC placement=gallery_banner_mrec fallback=false platform=applovin precision=exact" in
+                messages,
+        )
+        assertTrue(messages.toString(), "Ad revenue INTER placement=none fallback=false platform=admob" in messages)
+        assertTrue(messages.toString(), messages.none { MAX_UNIT in it || "admob-unit" in it })
+        assertTrue(messages.toString(), messages.none { "0.0123" in it })
+    }
+
+    @Test
+    fun revenue_admob_platformAdmob() {
+        telemetry().revenue(AdFormat.INTERSTITIAL, "unit", { null }, 12_300, "EUR", "AppLovin", null)
+        telemetry().revenueFallback(AdFormat.NATIVE_MEDIUM, "unit", { null }, null, null)
+
+        val events = metrics.events.filterIsInstance<AdMetricEvent.ImpressionRevenue>()
+        assertEquals(listOf(AdMetricPlatform.ADMOB, AdMetricPlatform.ADMOB), events.map { it.platform })
+        // AdMob keeps the currency of the SDK and the micros divided.
+        assertEquals("EUR", events.first().currency)
+        assertEquals(0.0123, events.first().value, 0.0)
+    }
+
+    @Test
+    fun loadAndClick_admobByDefault() {
+        logFullScreen = true
+        serving = true
+        val telemetry = telemetry()
+        telemetry.requestSent(SLOT, 0)
+        telemetry.loadSucceeded(AdFormat.INTERSTITIAL, SLOT, "preload", 10)
+        telemetry.requestSent(SLOT, 20)
+        telemetry.loadFailed(AdFormat.INTERSTITIAL, SLOT, "preload", 3, null, 30)
+        telemetry.clicked(AdFormat.INTERSTITIAL, AdPlacement.GALLERY_INTERSTITIAL)
+
+        assertEquals(
+            listOf(
+                AdMetricEvent.LoadSuccess("INTER", "preload", 1, 10, AdMetricPlatform.ADMOB),
+                AdMetricEvent.LoadFail("INTER", "preload", 1, 10, "3", "no_fill", AdMetricPlatform.ADMOB),
+                AdMetricEvent.Clicked("INTER", "gallery_interstitial", AdMetricPlatform.ADMOB),
+            ),
+            metrics.events,
+        )
+    }
+
+    @Test
+    fun clickedMax_runsOnClicked() {
+        var clicks = 0
+        val telemetry = telemetry(onClicked = { clicks++ })
+        // Lifecycle logs off: the click of MAX still skips the next resume (A-14).
+        telemetry.clicked(AdFormat.INTERSTITIAL, AdPlacement.GALLERY_INTERSTITIAL, AdPlatform.MAX)
+        assertEquals(1, clicks)
+        assertTrue(metrics.events.isEmpty())
+        // Control: logs on, the event of the click names MAX.
+        logFullScreen = true
+        serving = true
+        telemetry.clicked(AdFormat.INTERSTITIAL, AdPlacement.GALLERY_INTERSTITIAL, AdPlatform.MAX)
+        assertEquals(2, clicks)
+        assertEquals(
+            listOf(AdMetricEvent.Clicked("INTER", "gallery_interstitial", AdMetricPlatform.APPLOVIN)),
+            metrics.events,
+        )
+    }
+
+    @Test
+    fun showFailed_max_usesMaxTable_admob_unchanged() {
+        logFullScreen = true
+        serving = true
+        val telemetry = telemetry()
+        telemetry.showFailed(AdFormat.INTERSTITIAL, AdPlacement.GALLERY_INTERSTITIAL, -24, AdPlatform.MAX)
+        telemetry.showFailed(AdFormat.INTERSTITIAL, AdPlacement.GALLERY_INTERSTITIAL, -24)
+        telemetry.showFailed(AdFormat.INTERSTITIAL, AdPlacement.GALLERY_INTERSTITIAL, 3)
+
+        assertEquals(
+            listOf(
+                AdMetricEvent.ShowFail("INTER", "gallery_interstitial", "-24", "not_ready"),
+                AdMetricEvent.ShowFail("INTER", "gallery_interstitial", "-24", "unknown"),
+                AdMetricEvent.ShowFail("INTER", "gallery_interstitial", "3", "app_not_foreground"),
+            ),
+            metrics.events,
+        )
+    }
+
+    private fun maxInfo(networkName: String? = "AppLovin") = MaxAdInfo(
+        adUnitId = "FAKE_UNIT_FROM_AD",
+        revenueUsd = 0.0123,
+        networkName = networkName,
+        revenuePrecision = "exact",
+        adapterClassName = MAX_ADAPTER,
+        networks = emptyList(),
+    )
 
     /** `load_attempt` of a load event; any other event is a test error. */
     private fun AdMetricEvent.latencyOrMissing(): Long? = when (this) {
@@ -814,6 +1003,8 @@ class AdTelemetryTest {
         const val NATIVE_SLOT = "poses_bottom"
         const val BANNER_SLOT = "gallery_banner"
         const val MAX_SLOT = "gallery_banner/max"
+        const val MAX_UNIT = "FAKE_MAX_UNIT_0123"
+        const val MAX_ADAPTER = "com.applovin.mediation.adapters.GoogleMediationAdapter"
 
         /** The defaults of T-019, as read when Remote Config has no value. */
         val DEFAULT_FLAGS: AdsGlobalFlags = runBlocking { DefaultAdsFlags(FakeRemoteSettings()).global.first() }

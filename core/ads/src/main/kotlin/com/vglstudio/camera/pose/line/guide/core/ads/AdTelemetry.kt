@@ -17,7 +17,9 @@ import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
  * - The AppsFlyer funnel ([eligible], [apiCalled], [displayed], [interDisplayed], plan T-033) goes to [funnel] whatever
  *   the lifecycle switches or the consent gate say: its own switches are read by :core:analytics. App open and banners
  *   have no funnel ([funnelKind]).
- * - The loads of AppLovin MAX fail through [maxLoadFailed], with the error labels of MAX (plan T-071).
+ * - The loads of AppLovin MAX fail through [maxLoadFailed], with the error labels of MAX (plan T-071). Loads, clicks
+ *   and failed shows take the platform of the ad, `ad_platform` of the event; a failed show of MAX gets the reason of
+ *   [maxShowFailReasonOf]; the revenue of MAX goes through [maxRevenue] (plan T-072).
  * - A failing [metrics] or [funnel] is swallowed and logged by class name only: the ads keep running. No message of the SDK is
  *   ever put in a param.
  */
@@ -45,7 +47,37 @@ internal class AdTelemetry(
         currency: String,
         adSource: String?,
         adapterClassName: String?,
-    ) = logRevenue(format, unitId, placement, revenueValue(valueMicros), currency, adSource, adapterClassName, false)
+    ) = logRevenue(
+        format = format,
+        unitId = unitId,
+        placement = placement,
+        value = revenueValue(valueMicros),
+        currency = currency,
+        adSource = adSourceOrAdmob(adSource),
+        monetizationNetwork = adSource.orEmpty(),
+        adapterClassName = adapterClassName,
+        fallback = false,
+        platform = AdPlatform.ADMOB,
+    )
+
+    /**
+     * One paid event of an AppLovin MAX ad (plan T-072, KB-31 criterion 7): the value of [info] in dollars, always
+     * `USD` (a `MaxAd` has no currency, its revenue is in dollars: spec `ads`, question 46), the network MAX reports
+     * (`applovin` when none, T-03). [unitId] is the MAX ad unit of the format (M-10). Always sent, like [revenue].
+     */
+    fun maxRevenue(format: AdFormat, unitId: String, placement: () -> AdPlacement?, info: MaxAdInfo) = logRevenue(
+        format = format,
+        unitId = unitId,
+        placement = placement,
+        value = info.revenueUsd,
+        currency = MAX_CURRENCY,
+        adSource = maxAdSourceOrApplovin(info.networkName),
+        monetizationNetwork = info.networkName.orEmpty(),
+        adapterClassName = info.adapterClassName,
+        fallback = false,
+        platform = AdPlatform.MAX,
+        precision = info.revenuePrecision,
+    )
 
     /** The zero-value impression of a native ad with no paid event 2 s after its impression (T-02). */
     fun revenueFallback(
@@ -54,7 +86,18 @@ internal class AdTelemetry(
         placement: () -> AdPlacement?,
         adSource: String?,
         adapterClassName: String?,
-    ) = logRevenue(format, unitId, placement, 0.0, FALLBACK_CURRENCY, adSource, adapterClassName, true)
+    ) = logRevenue(
+        format = format,
+        unitId = unitId,
+        placement = placement,
+        value = 0.0,
+        currency = FALLBACK_CURRENCY,
+        adSource = adSourceOrAdmob(adSource),
+        monetizationNetwork = adSource.orEmpty(),
+        adapterClassName = adapterClassName,
+        fallback = true,
+        platform = AdPlatform.ADMOB,
+    )
 
     /** The load of a slot with a failure counter: same as [requestSent], [loadSucceeded], [loadFailed]. */
     fun countedLoad(format: AdFormat, slot: String, placement: String?): LoadReport = object : LoadReport {
@@ -107,10 +150,24 @@ internal class AdTelemetry(
         counter.onRequestSent(slot, now)
     }
 
-    fun loadSucceeded(format: AdFormat, slot: String, placement: String?, now: Long) {
+    fun loadSucceeded(
+        format: AdFormat,
+        slot: String,
+        placement: String?,
+        now: Long,
+        platform: AdPlatform = AdPlatform.ADMOB,
+    ) {
         val outcome = counter.onLoaded(slot, now)
         if (!lifecycleOn(format)) return
-        log(AdMetricEvent.LoadSuccess(format.metricCode(), placement, outcome.attempt, outcome.latencyMs))
+        log(
+            AdMetricEvent.LoadSuccess(
+                format.metricCode(),
+                placement,
+                outcome.attempt,
+                outcome.latencyMs,
+                platform.metricPlatform(),
+            ),
+        )
     }
 
     /**
@@ -124,7 +181,7 @@ internal class AdTelemetry(
         code: Int,
         sdkMessage: String?,
         now: Long,
-    ): String = recordLoadFailure(format, slot, placement, code, now) { offline ->
+    ): String = recordLoadFailure(format, slot, placement, code, now, AdPlatform.ADMOB) { offline ->
         loadStateAfterError(code, offline, isSdkThrottledMessage(sdkMessage))
     }
 
@@ -135,6 +192,7 @@ internal class AdTelemetry(
         placement: String?,
         code: Int,
         now: Long,
+        platform: AdPlatform,
         labelOf: (offline: Boolean) -> String,
     ): String {
         val outcome = counter.onFailed(slot, now)
@@ -148,6 +206,7 @@ internal class AdTelemetry(
                     outcome.latencyMs,
                     code.toString(),
                     label,
+                    platform.metricPlatform(),
                 ),
             )
         }
@@ -159,7 +218,9 @@ internal class AdTelemetry(
      * [maxLoadStateAfterError]. Returns that label.
      */
     fun maxLoadFailed(format: AdFormat, slot: String, placement: String?, code: Int, now: Long): String =
-        recordLoadFailure(format, slot, placement, code, now) { offline -> maxLoadStateAfterError(code, offline) }
+        recordLoadFailure(format, slot, placement, code, now, AdPlatform.MAX) { offline ->
+            maxLoadStateAfterError(code, offline)
+        }
 
     /** One call to show [placement]; no placement or no [result] is no opportunity (A 06:197). */
     fun opportunity(format: AdFormat, placement: AdPlacement?, result: String?, loadState: String) {
@@ -167,13 +228,17 @@ internal class AdTelemetry(
         log(AdMetricEvent.Opportunity(format.metricCode(), placement.key, result, loadState))
     }
 
-    fun showFailed(format: AdFormat, placement: AdPlacement?, code: Int) {
+    fun showFailed(format: AdFormat, placement: AdPlacement?, code: Int, platform: AdPlatform = AdPlatform.ADMOB) {
         if (!lifecycleOn(format)) return
-        log(AdMetricEvent.ShowFail(format.metricCode(), placement?.key, code.toString(), showFailReasonOf(code)))
+        val reason = when (platform) {
+            AdPlatform.ADMOB -> showFailReasonOf(code)
+            AdPlatform.MAX -> maxShowFailReasonOf(code)
+        }
+        log(AdMetricEvent.ShowFail(format.metricCode(), placement?.key, code.toString(), reason))
     }
 
     /** A click on an ad of any format; every click callback of :core:ads comes here, so it always skips a resume. */
-    fun clicked(format: AdFormat, placement: AdPlacement?) {
+    fun clicked(format: AdFormat, placement: AdPlacement?, platform: AdPlatform = AdPlatform.ADMOB) {
         try {
             onClicked()
         } catch (e: Exception) {
@@ -181,7 +246,7 @@ internal class AdTelemetry(
             logger.warn(TAG, "Ad click not handled: ${e.javaClass.simpleName}")
         }
         if (!lifecycleOn(format)) return
-        log(AdMetricEvent.Clicked(format.metricCode(), placement?.key))
+        log(AdMetricEvent.Clicked(format.metricCode(), placement?.key, platform.metricPlatform()))
     }
 
     /** The user earned the reward of a rewarded ad of [placement] (R-02, `ad_reward_earned`). */
@@ -223,15 +288,23 @@ internal class AdTelemetry(
         logFunnel(AdFunnelEvent.InterDisplayedTimes(count))
     }
 
+    /**
+     * [adSource] is the network for Firebase, already defaulted (T-03); [monetizationNetwork] the raw source for
+     * AppsFlyer, empty when the SDK reports none (section 8.3). The log line has no ad unit and no value; a MAX one has
+     * the [precision] MAX reports.
+     */
     private fun logRevenue(
         format: AdFormat,
         unitId: String,
         placement: () -> AdPlacement?,
         value: Double,
         currency: String,
-        adSource: String?,
+        adSource: String,
+        monetizationNetwork: String,
         adapterClassName: String?,
         fallback: Boolean,
+        platform: AdPlatform,
+        precision: String? = null,
     ) {
         val placementKey = try {
             placement()?.key
@@ -239,18 +312,24 @@ internal class AdTelemetry(
             logger.warn(TAG, "Ad revenue placement not read: ${e.javaClass.simpleName}")
             null
         }
-        logger.debug(TAG, "Ad revenue ${format.metricCode()} placement=${placementKey ?: "none"} fallback=$fallback")
+        val metricPlatform = platform.metricPlatform()
+        val precisionText = if (platform == AdPlatform.MAX) " precision=$precision" else ""
+        logger.debug(
+            TAG,
+            "Ad revenue ${format.metricCode()} placement=${placementKey ?: "none"} fallback=$fallback " +
+                "platform=${metricPlatform.code}$precisionText",
+        )
         log(
             AdMetricEvent.ImpressionRevenue(
                 adFormat = format.metricCode(),
-                adSource = adSourceOrAdmob(adSource),
-                // The raw source for AppsFlyer, empty when the SDK reports none (section 8.3).
-                monetizationNetwork = adSource.orEmpty(),
+                adSource = adSource,
+                monetizationNetwork = monetizationNetwork,
                 adUnitName = unitId,
                 currency = currency,
                 value = value,
                 adPlacement = placementKey,
                 adapterClassName = adapterClassName,
+                platform = metricPlatform,
             ),
         )
     }
@@ -286,6 +365,9 @@ internal class AdTelemetry(
     private companion object {
         const val TAG = "Ads"
         const val FALLBACK_CURRENCY = "USD"
+
+        /** A `MaxAd` has no currency: its revenue is in dollars (spec `ads`, question 46). */
+        const val MAX_CURRENCY = "USD"
     }
 }
 

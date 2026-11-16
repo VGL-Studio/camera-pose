@@ -19,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 
 /**
  * The reload keys of KB-34 in the real [AdsController] (plan T-087): each layer reads its own key
@@ -161,6 +162,7 @@ class AdsControllerReloadIntervalTest {
     }
 
     @Test
+    @Config(qualifiers = "w411dp-h891dp-xxhdpi")
     fun collapsibleLayer_refreshesAtCollapKey_staysCollapsed() {
         settings.set(AdsSettings.IS_SHOW_NATIVE_BOTTOM, true)
         settings.set(AdsSettings.TIME_EXPAND_COLLAP_AD, 0L)

@@ -125,7 +125,9 @@ class AdsControllerMaxTest {
         idle()
         val missing = logger.entries.filter { it.message.startsWith("MAX ad units missing") }
         assertEquals(
-            listOf("MAX ad units missing for banner_mrec; those slots run without MAX"),
+            listOf(
+                "MAX ad units missing for banner_mrec, interstitial, rewarded, app_open; those slots run without MAX",
+            ),
             missing.map {
                 it.message
             },
@@ -141,7 +143,8 @@ class AdsControllerMaxTest {
             noUnits.entries.map { it.message }.toString(),
             noUnits.entries.any {
                 it.message ==
-                    "MAX ad units missing for banner, banner_mrec; those slots run without MAX"
+                    "MAX ad units missing for banner, banner_mrec, interstitial, rewarded, app_open; " +
+                    "those slots run without MAX"
             },
         )
 

@@ -225,7 +225,8 @@ internal fun interface InListRowSource {
 
 /**
  * The states of one native small row of a list (plan T-059): no refresh, no single-ad source. Each send, the first
- * one and every retry (5 s with no ad, sooner when Internet comes back), goes through [retryingNativeAdStates], which
+ * one and every retry (5, 10, 20, 40, then 60 s with no ad, sooner when Internet comes back; counted from 1 again when
+ * [failureResets] moves, O-05), goes through [retryingNativeAdStates], which
  * waits for the in-screen [window] (foreground, no full-screen ad over the app, KB-27) and asks [mayRequestNow]; then
  * it waits until the row is drawn ([rowShown]) and asks the window and the gate again right before the send, since
  * that wait may be long. A row scrolled away sends nothing until it is drawn again. A Loaded ad stays until the
@@ -239,6 +240,7 @@ internal fun inListRowStates(
     retryResets: StateFlow<Int>,
     logger: AppLogger,
     placementKey: String,
+    failureResets: StateFlow<Int> = MutableStateFlow(0),
 ): Flow<NativeAdState> = retryingNativeAdStates(
     load = {
         rowShown.first { it }
@@ -250,6 +252,7 @@ internal fun inListRowStates(
     logger = logger,
     placementKey = placementKey,
     refresh = null,
+    failureResets = failureResets,
 )
 
 /**

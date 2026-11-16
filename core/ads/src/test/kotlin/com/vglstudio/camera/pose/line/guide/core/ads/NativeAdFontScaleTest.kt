@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -118,18 +119,33 @@ class NativeAdFontScaleTest {
         val size: NativeAdSize,
         val ctaLarge: Boolean,
         val ctaHeight: Dp,
-        val cardHeight: Dp,
+        /** The card's height at a font scale. */
+        val cardHeight: (Float) -> Dp,
         val modifier: Modifier,
     )
 
     @Test
     fun cardSizes_ctaTextFits_fontScales() {
         val cases = listOf(
-            CardCase("small", NativeAdSize.SMALL, false, 34.dp, 80.dp, Modifier.width(CARD_WIDTH)),
-            CardCase("medium", NativeAdSize.MEDIUM, false, 44.dp, 410.dp, Modifier.width(CARD_WIDTH)),
-            CardCase("medium ctaLarge", NativeAdSize.MEDIUM, true, 56.dp, 422.dp, Modifier.width(CARD_WIDTH)),
-            CardCase("full", NativeAdSize.FULL, false, 36.dp, 418.dp, Modifier.width(CARD_WIDTH)),
-            CardCase("card", NativeAdSize.CARD, false, 36.dp, 300.dp, Modifier.size(180.dp, 300.dp)),
+            CardCase("small", NativeAdSize.SMALL, false, 44.dp, { 126.dp }, Modifier.width(CARD_WIDTH)),
+            CardCase(
+                "medium",
+                NativeAdSize.MEDIUM,
+                false,
+                44.dp,
+                { if (it < 2f) 400.dp else 406.dp },
+                Modifier.width(CARD_WIDTH),
+            ),
+            CardCase(
+                "medium ctaLarge",
+                NativeAdSize.MEDIUM,
+                true,
+                56.dp,
+                { if (it < 2f) 400.dp else 418.dp },
+                Modifier.width(CARD_WIDTH),
+            ),
+            CardCase("full", NativeAdSize.FULL, false, 36.dp, { 418.dp }, Modifier.width(CARD_WIDTH)),
+            CardCase("card", NativeAdSize.CARD, false, 36.dp, { 300.dp }, Modifier.size(180.dp, 300.dp)),
         )
         var fontScale by mutableStateOf(1f)
         var assets by mutableStateOf(sampleNativeAdAssets)
@@ -153,7 +169,7 @@ class NativeAdFontScaleTest {
                         ctaText = texts.callToAction!!,
                         frameTag = NativeAdTestTags.CARD,
                         designHeight = current.ctaHeight,
-                        frameHeight = current.cardHeight,
+                        frameHeight = current.cardHeight(scale),
                     )
                 }
             }
@@ -242,7 +258,7 @@ class NativeAdFontScaleTest {
     fun smallAndCard_headlineBadgeCta_notCut_fontScales() {
         assertTextsNotCut(
             listOf(
-                TextCase("small 379 dp", NativeAdSize.SMALL, Modifier, NativeAdDimens.BottomSlotHeight),
+                TextCase("small 379 dp", NativeAdSize.SMALL, Modifier, NativeAdDimens.bottomSlotHeight(411.dp)),
                 TextCase("card 180 x 300 dp", NativeAdSize.CARD, Modifier.size(180.dp, 300.dp), 300.dp),
             ),
         )
@@ -254,13 +270,18 @@ class NativeAdFontScaleTest {
     fun smallAndCard_headlineBadgeCta_notCut_fontScales_small() {
         assertTextsNotCut(
             listOf(
-                TextCase("small 328 dp", NativeAdSize.SMALL, Modifier, NativeAdDimens.BottomSlotHeight),
+                TextCase("small 328 dp", NativeAdSize.SMALL, Modifier, NativeAdDimens.bottomSlotHeight(360.dp)),
                 TextCase("card 180 x 300 dp", NativeAdSize.CARD, Modifier.size(180.dp, 300.dp), 300.dp),
                 TextCase("card 156 x 300 dp", NativeAdSize.CARD, Modifier.size(156.dp, 300.dp), 300.dp),
             ),
         )
     }
 
+    /**
+     * Medium on the 891 dp screen: the card keeps 400 dp (also with `cta_large`) while its media stays above 120 dp
+     * (font scales 1.0 to 1.5); at 2.0 the media reaches 120 dp and the card grows by just the media it lacks, to
+     * 406 dp (418 dp), as plan T-045 lets it (plan T-065, section 3.4, question 12).
+     */
     @Test
     fun medium_partsKeepSize_mediaShrinksFirst_fontScales() {
         var fontScale by mutableStateOf(1f)
@@ -274,7 +295,7 @@ class NativeAdFontScaleTest {
             }
         }
         listOf(false, true).forEach { large ->
-            SCALES.forEach { scale ->
+            listOf(1f, 1.3f, 1.5f, 2f).forEach { scale ->
                 listOf(sampleNativeAdAssets, longFullNativeAdAssets).forEach { texts ->
                     ctaLarge = large
                     fontScale = scale
@@ -285,7 +306,12 @@ class NativeAdFontScaleTest {
                     val cta = bounds(NativeAdTestTags.CTA)
                     val stars = bounds(NativeAdTestTags.STAR_ROW)
                     val media = bounds(NativeAdTestTags.MEDIA)
-                    assertEquals("card, $case", if (large) 422f else 410f, card.h(), TOLERANCE)
+                    if (scale < 2f) {
+                        assertEquals("card, $case", 400f, card.h(), TOLERANCE)
+                    } else {
+                        assertEquals("media at its floor, $case", 120f, media.h(), TOLERANCE)
+                        assertEquals("card, $case", if (large) 418f else 406f, card.h(), TOLERANCE)
+                    }
                     assertEquals("call to action, $case", if (large) 56f else 44f, cta.h(), TOLERANCE)
                     assertEquals("star row, $case", 16f, stars.h(), TOLERANCE)
                     assertEquals(
@@ -300,7 +326,61 @@ class NativeAdFontScaleTest {
                         "media top ${media.top}, star row bottom ${stars.bottom}, $case",
                         media.top.value >= stars.bottom.value - TOLERANCE,
                     )
-                    if (scale == 1f) assertEquals("media at the design size, $case", 196f, media.h(), TOLERANCE)
+                    if (scale == 1f) {
+                        assertEquals("media at the design size, $case", if (large) 170f else 182f, media.h(), TOLERANCE)
+                    }
+                    if (scale == 1.5f) assertEquals("media, $case", if (large) 127f else 139f, media.h(), TOLERANCE)
+                }
+            }
+        }
+    }
+
+    /**
+     * KB-2 at large text on the low frame (question 7 of plan T-065): at font scale 1.0 the card keeps 320 dp
+     * (media 134 dp, 122 dp with `cta_large`); with larger text the media shrinks to 120 dp first, then the card
+     * grows (337 / 349 dp at 1.5, 357 / 369 dp at 2.0, measured on a stand-in layout: 1 dp tolerance). The body
+     * keeps one line.
+     */
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    fun medium_compact_lowScreen_fontScales() {
+        var fontScale by mutableStateOf(1f)
+        var ctaLarge by mutableStateOf(false)
+        composeRule.setContent {
+            WithFontScale(fontScale) {
+                AdsTestTheme {
+                    Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        NativeAdCard(longFullNativeAdAssets, NativeAdSize.MEDIUM, ctaLarge = ctaLarge)
+                    }
+                }
+            }
+        }
+        listOf(false, true).forEach { large ->
+            listOf(1f, 1.5f, 2f).forEach { scale ->
+                ctaLarge = large
+                fontScale = scale
+                composeRule.waitForIdle()
+                val case = "medium${if (large) " ctaLarge" else ""} low frame, font scale $scale"
+                val card = bounds(NativeAdTestTags.CARD)
+                val media = bounds(NativeAdTestTags.MEDIA)
+                when (scale) {
+                    1f -> {
+                        assertEquals("card, $case", 320f, card.h(), TOLERANCE)
+                        assertEquals("media, $case", if (large) 122f else 134f, media.h(), TOLERANCE)
+                    }
+                    1.5f -> {
+                        assertEquals("media, $case", 120f, media.h(), TOLERANCE)
+                        assertEquals("card, $case", if (large) 349f else 337f, card.h(), 1f)
+                    }
+                    else -> {
+                        assertEquals("media, $case", 120f, media.h(), TOLERANCE)
+                        assertEquals("card, $case", if (large) 369f else 357f, card.h(), 1f)
+                    }
+                }
+                assertEquals("body lines, $case", 1, textLayout(longFullNativeAdAssets.body!!).lineCount)
+                assertTrue("media is ${media.h()} high, $case", media.h() >= 120f - TOLERANCE)
+                if (card.h() > 320f + TOLERANCE) {
+                    assertEquals("card grows only with the media at its floor, $case", 120f, media.h(), TOLERANCE)
                 }
             }
         }
@@ -318,7 +398,7 @@ class NativeAdFontScaleTest {
         val media = bounds(NativeAdTestTags.MEDIA)
         assertEquals("media", 120f, media.h(), TOLERANCE)
         assertTrue("call to action is ${cta.h()} high", cta.h() >= 44f - TOLERANCE)
-        assertTrue("card is ${card.h()} high", card.h() > 410f + TOLERANCE)
+        assertTrue("card is ${card.h()} high", card.h() > 406f + TOLERANCE)
     }
 
     @Test
@@ -369,8 +449,12 @@ class NativeAdFontScaleTest {
         }
     }
 
+    /**
+     * The collapsible layer keeps 299 dp at 411 dp at every font scale (plan T-065, section 3.1 step 4): its content
+     * follows the small native, whose text column never goes past the slot, so the MediaView keeps 161 dp.
+     */
     @Test
-    fun collapsibleLayer_mediaFloor120dp_layerGrows_fontScales() {
+    fun collapsibleLayer_keepsHeight_fontScales() {
         var fontScale by mutableStateOf(1f)
         var assets by mutableStateOf(sampleNativeAdAssets)
         composeRule.setContent {
@@ -386,25 +470,159 @@ class NativeAdFontScaleTest {
                 val case = "collapsible layer, font scale $scale, ${textsName(texts)}"
                 val media = bounds(CollapsibleNativeAdTestTags.MEDIA)
                 assertTrue("media is ${media.h()} high, $case", media.h() >= 120f - TOLERANCE)
+                assertEquals("MediaView, $case", 161f, media.h(), TOLERANCE)
                 assertCtaFits(
                     case = case,
                     scale = scale,
                     ctaTag = NativeAdTestTags.CTA,
                     ctaText = texts.callToAction!!,
                     frameTag = CollapsibleNativeAdTestTags.AD,
-                    designHeight = 36.dp,
-                    frameHeight = when (scale) {
-                        1f, 1.3f -> 250.dp
-                        2f -> 272.dp
-                        else -> null
-                    },
+                    designHeight = 44.dp,
+                    frameHeight = 299.dp,
                 )
                 val layer = bounds(CollapsibleNativeAdTestTags.AD)
                 val collapse = bounds(CollapsibleNativeAdTestTags.COLLAPSE)
                 assertEquals("collapse button to the top, $case", 4f, (collapse.top - layer.top).value, TOLERANCE)
-                assertEquals("collapse button to the end, $case", 4f, (layer.right - collapse.right).value, TOLERANCE)
+                assertEquals("collapse button to the start, $case", 4f, (collapse.left - layer.left).value, TOLERANCE)
             }
         }
+    }
+
+    /**
+     * KB-1 at 200% (plan T-065, question 8), on the screens of 411 (this class), 320 and 360 dp, at font scales 1.0
+     * to 2.0, long and short texts: the card keeps the slot height of its screen; headline, "Ad" and call-to-action
+     * texts are not cut in height and lie inside the card; "Ad" shows both letters; the headline shows at least
+     * [minHeadlineChars] characters before "…"; "Install" (18 sp) shows whole, 83.33 / 100.33 / 117.33 dp wide at
+     * 1.0 / 1.5 / 2.0 and 44 dp high; a long call to action stops at 120 dp.
+     */
+    @Test
+    fun small_fontScales_headlineBadgeCta_notCut_allWidths() = assertSmallTexts(slotHeight = 126f, minHeadlineChars = 4)
+
+    @Test
+    @Config(qualifiers = "w320dp-h640dp-xxhdpi")
+    fun small_fontScales_headlineBadgeCta_notCut_allWidths_320() =
+        assertSmallTexts(slotHeight = 90f, minHeadlineChars = 1)
+
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-xxhdpi")
+    fun small_fontScales_headlineBadgeCta_notCut_allWidths_360() =
+        assertSmallTexts(slotHeight = 106f, minHeadlineChars = 4)
+
+    private fun assertSmallTexts(slotHeight: Float, minHeadlineChars: Int) {
+        var fontScale by mutableStateOf(1f)
+        var assets by mutableStateOf(sampleNativeAdAssets)
+        composeRule.setContent {
+            WithFontScale(fontScale) {
+                AdsTestTheme {
+                    Box(Modifier.fillMaxWidth().padding(16.dp)) { NativeAdCard(assets, NativeAdSize.SMALL) }
+                }
+            }
+        }
+        SMALL_SCALES.forEach { scale ->
+            listOf(sampleNativeAdAssets, longFullNativeAdAssets).forEach { texts ->
+                fontScale = scale
+                assets = texts
+                composeRule.waitForIdle()
+                val frame = bounds(NativeAdTestTags.CARD)
+                val name = "small ${frame.w()} dp, font scale $scale, ${textsName(texts)}"
+                assertEquals("card height, $name", slotHeight, frame.h(), TOLERANCE)
+                val headline = textLayout(texts.headline)
+                val label = textLayout(badge)
+                val cta = textLayout(texts.callToAction!!)
+                listOf(
+                    Triple("headline", texts.headline, headline),
+                    Triple("Ad", badge, label),
+                    Triple("CTA", texts.callToAction!!, cta),
+                ).forEach { (part, text, layout) ->
+                    assertFalse("$part text cut in height, $name", cutInHeight(layout))
+                    val textRect = textBounds(text)
+                    assertTrue("$part text $textRect inside the card $frame, $name", textRect.inside(frame))
+                }
+                assertEquals("Ad letters shown, $name", badge.length, visibleChars(label))
+                assertTrue(
+                    "headline shows ${visibleChars(headline)} of ${texts.headline.length} characters, " +
+                        "${bounds(NativeAdTestTags.HEADLINE).w()} dp wide, $name",
+                    visibleChars(headline) >= minHeadlineChars,
+                )
+                val ctaBox = bounds(NativeAdTestTags.CTA)
+                if (texts === sampleNativeAdAssets) {
+                    assertEquals("Install shown whole, $name", texts.callToAction!!.length, visibleChars(cta))
+                    assertFalse("Install cut with an ellipsis, $name", cta.isLineEllipsized(0))
+                    assertEquals("Install height, $name", 44f, ctaBox.h(), TOLERANCE)
+                    INSTALL_WIDTHS[scale]?.let { width ->
+                        assertEquals("Install width, $name", width, ctaBox.w(), TOLERANCE)
+                    }
+                } else {
+                    assertEquals("long call to action width, $name", 120f, ctaBox.w(), TOLERANCE)
+                }
+            }
+        }
+    }
+
+    /**
+     * Question 8 of plan T-065: below font scale 1.5 the "Ad" label stands before the headline on its row and the
+     * body has up to two lines; from 1.5 the label starts the body line, the body keeps one line and the headline
+     * takes the whole text column. Without any text below the headline, the label still goes to the line below.
+     */
+    @Test
+    fun small_badgeMovesToBodyLine_fromFontScale1_5() {
+        var fontScale by mutableStateOf(1f)
+        var assets by mutableStateOf(longFullNativeAdAssets.copy(advertiser = null))
+        composeRule.setContent {
+            WithFontScale(fontScale) {
+                AdsTestTheme { NativeAdCard(assets, NativeAdSize.SMALL, Modifier.width(CARD_WIDTH)) }
+            }
+        }
+        val bodyText = longFullNativeAdAssets.body!!
+        SMALL_SCALES.forEach { scale ->
+            fontScale = scale
+            composeRule.waitForIdle()
+            val case = "font scale $scale"
+            val label = bounds(NativeAdTestTags.BADGE)
+            val headline = bounds(NativeAdTestTags.HEADLINE)
+            val body = textBounds(bodyText)
+            val lines = textLayout(bodyText).lineCount
+            if (scale < 1.5f) {
+                assertTrue(
+                    "label right ${label.right}, headline left ${headline.left}, $case",
+                    label.right <= headline.left,
+                )
+                val centers =
+                    abs((label.top.value + label.bottom.value) - (headline.top.value + headline.bottom.value)) / 2
+                assertTrue("label and headline centers $centers dp apart, $case", centers < 2f)
+                assertTrue("body lines $lines, $case", lines in 1..2)
+            } else {
+                assertTrue(
+                    "label top ${label.top}, headline bottom ${headline.bottom}, $case",
+                    label.top.value >= headline.bottom.value - TOLERANCE,
+                )
+                assertEquals(
+                    "label start at the headline start, $case",
+                    headline.left.value,
+                    label.left.value,
+                    TOLERANCE,
+                )
+                assertEquals("body lines, $case", 1, lines)
+                assertTrue("body after the label, $case", body.left.value >= label.right.value - TOLERANCE)
+                assertTrue("body on the label's line, $case", body.top < label.bottom && body.bottom > label.top)
+                assertEquals(
+                    "headline as wide as the text column, $case",
+                    (body.right - label.left).value,
+                    headline.w(),
+                    TOLERANCE,
+                )
+            }
+        }
+
+        fontScale = 1.5f
+        assets = longFullNativeAdAssets.copy(advertiser = null, body = null)
+        composeRule.waitForIdle()
+        val label = bounds(NativeAdTestTags.BADGE)
+        val headline = bounds(NativeAdTestTags.HEADLINE)
+        assertTrue(
+            "no text below: label top ${label.top}, headline bottom ${headline.bottom}",
+            label.top.value >= headline.bottom.value - TOLERANCE,
+        )
     }
 
     @Test
@@ -517,6 +735,12 @@ class NativeAdFontScaleTest {
     private companion object {
         val CARD_WIDTH = 379.dp
         val SCALES = listOf(1f, 1.3f, 2f)
+
+        /** Small at the font scales of question 8 of plan T-065, with 1.5 where the "Ad" label moves. */
+        val SMALL_SCALES = listOf(1f, 1.3f, 1.5f, 2f)
+
+        /** "Install" at 18 sp, as wide as its text (plan T-065, section 4.1). */
+        val INSTALL_WIDTHS = mapOf(1f to 83.33f, 1.5f to 100.33f, 2f to 117.33f)
 
         /** The "Ad" label is as high as one line of `labelSmall`: 16, 21 and 32 dp at font scales 1.0, 1.3, 2.0. */
         val BADGE_HEIGHTS = mapOf(1f to 16f, 1.3f to 21f, 2f to 32f)

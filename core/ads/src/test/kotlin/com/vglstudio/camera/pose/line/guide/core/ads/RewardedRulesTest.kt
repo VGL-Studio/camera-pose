@@ -102,4 +102,32 @@ class RewardedRulesTest {
         assertTrue(AdFormat.APP_OPEN.hasFullScreenSlot)
         assertFalse(AdFormat.APP_OPEN.isFullScreen)
     }
+
+    @Test
+    fun isMaxNetworkLoadError_networkCodesOrOffline() {
+        // R-03 for MAX (plan T-106): NETWORK_ERROR, NETWORK_TIMEOUT, NO_NETWORK.
+        listOf(-1000, -1001, -1009).forEach { assertTrue("$it", isMaxNetworkLoadError(it, offline = false)) }
+        // Control: other codes while online are no network error.
+        listOf(204, -5001, 2, -1).forEach { assertFalse("$it", isMaxNetworkLoadError(it, offline = false)) }
+        // Any code while offline.
+        listOf(204, -5001, 2, -1, -1009).forEach { assertTrue("$it", isMaxNetworkLoadError(it, offline = true)) }
+    }
+
+    @Test
+    fun rewardedNetworkError_platformsWithResultAllOnNetwork() {
+        val admobOnly = listOf(AdPlatform.ADMOB)
+        assertTrue(rewardedNetworkError(admobOnly, admob = true, max = null))
+        assertFalse(rewardedNetworkError(admobOnly, admob = false, max = null))
+        assertFalse(rewardedNetworkError(admobOnly, admob = null, max = null))
+        // A platform not in the order does not count.
+        assertFalse(rewardedNetworkError(admobOnly, admob = null, max = true))
+        val both = listOf(AdPlatform.MAX, AdPlatform.ADMOB)
+        assertTrue(rewardedNetworkError(both, admob = true, max = true))
+        assertFalse(rewardedNetworkError(both, admob = false, max = true))
+        // MAX with no result yet does not count.
+        assertTrue(rewardedNetworkError(both, admob = true, max = null))
+        assertTrue(rewardedNetworkError(both, admob = null, max = true))
+        assertFalse(rewardedNetworkError(both, admob = null, max = null))
+        assertFalse(rewardedNetworkError(emptyList(), admob = true, max = true))
+    }
 }

@@ -2,6 +2,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 
 import android.os.Bundle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.applovin.mediation.MaxNetworkResponseInfo
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdapterResponseInfo
 import com.google.android.gms.ads.LoadAdError
@@ -100,6 +101,65 @@ class AdNetworkResponsesTest {
         listOf(offInfo, defaultInfo).forEach { fake -> verify(exactly = 0) { fake.info.adapterResponses } }
     }
 
+    @Test
+    fun maxResult_enabled_writesLines_disabled_writesNothing() {
+        val attempts = listOf(
+            MaxNetworkAttempt("AppLovin", 80, MaxNetworkResult.FAILED, -5208),
+            MaxNetworkAttempt("Google", 120, MaxNetworkResult.LOADED, null),
+        )
+        val logger = RecordingAppLogger()
+
+        AdNetworkLog(true, logger).apply {
+            maxResult(MAX_KEY, attempts)
+            maxResult(MAX_KEY, emptyList())
+        }
+
+        assertEquals(
+            listOf(
+                LogEntry(LogLevel.INFO, "Ads", "Network $MAX_KEY: AppLovin, 80 ms, error -5208"),
+                LogEntry(LogLevel.INFO, "Ads", "Network $MAX_KEY: Google, 120 ms, loaded"),
+                LogEntry(LogLevel.INFO, "Ads", "Network $MAX_KEY: none tried"),
+            ),
+            logger.entries,
+        )
+
+        // Control: off (production) and by default, the same calls write nothing.
+        val offLogger = RecordingAppLogger()
+        AdNetworkLog(false, offLogger).maxResult(MAX_KEY, attempts)
+        AdNetworkLog.OFF.maxResult(MAX_KEY, attempts)
+        assertEquals(emptyList<LogEntry>(), offLogger.entries)
+    }
+
+    @Test
+    fun maxResult_linesNeverContainUnit() {
+        val logger = RecordingAppLogger()
+        val info = maxAdInfoOf(
+            FakeMaxAd(
+                adUnitId = MAX_UNIT,
+                waterfall = FakeMaxWaterfall(
+                    listOf(
+                        FakeMaxNetworkResponse(
+                            FakeMaxNetwork("AppLovin", "com.applovin.mediation.adapters.AppLovinMediationAdapter"),
+                            80,
+                            MaxNetworkResponseInfo.AdLoadState.AD_LOADED,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        AdNetworkLog(true, logger).maxResult(MAX_KEY, info.networks)
+
+        assertTrue(logger.entries.toString(), logger.entries.none { MAX_UNIT in it.message })
+        // Control: the network was logged.
+        assertTrue(
+            logger.entries.toString(),
+            logger.entries.any {
+                "Network " in it.message && "AppLovin" in it.message
+            },
+        )
+    }
+
     private fun sdkError() = LoadAdError(3, "No fill for $UNIT", "com.google.android.gms.ads", null, null)
 
     /** A response of two networks: AdMob failed with code 3 (its message has the ad unit), AppLovin loaded. */
@@ -136,5 +196,7 @@ class AdNetworkResponsesTest {
         const val ADMOB = "com.google.ads.mediation.admob.AdMobAdapter"
         const val APPLOVIN = "com.google.ads.mediation.applovin.AppLovinMediationAdapter"
         const val FACEBOOK = "com.google.ads.mediation.facebook.FacebookMediationAdapter"
+        const val MAX_KEY = "preload:interstitial/max"
+        const val MAX_UNIT = "FAKE_MAX_UNIT_0123"
     }
 }

@@ -2,14 +2,12 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -39,10 +37,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.AppTheme
 import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -94,8 +93,9 @@ fun rememberCollapsibleAdState(): CollapsibleAdState =
 
 /**
  * The open collapsible layer with fixed content, for screenshots and previews (the app shows real ads in the bottom
- * bar, [BottomAdBarScaffold]): 250 dp high at the default font scale, a 32 dp collapse button in the top end
- * corner, a marker where the SDK pins AdChoices in the top start corner.
+ * bar, [BottomAdBarScaffold]): 299 dp high on a 411 x 891 dp window, a 27 dp collapse button in the top start corner,
+ * a marker where the SDK pins AdChoices in the top end corner. Sized like [CollapsibleNativeAdLayout]: on a window
+ * with no room for the layer (landscape phone, split screen) it draws nothing, as the real layer.
  */
 @Composable
 fun CollapsibleNativeAdCard(assets: NativeAdAssets, onCollapse: () -> Unit, modifier: Modifier = Modifier) {
@@ -108,20 +108,16 @@ fun CollapsibleNativeAdCard(assets: NativeAdAssets, onCollapse: () -> Unit, modi
     )
 }
 
-/** Sizes of the open layer, from design/context/AdGalleryScreen_collapsible-expanded_light.md. */
+/** Sizes of the open layer, from design/context/AdGalleryScreen_collapsible-expanded_light.md (design T-064). */
 internal object CollapsibleNativeAdDimens {
-    val LayerHeight = 250.dp
-    val CollapseButtonSize = 32.dp
-    val CollapseIconSize = 20.dp
+    val CollapseButtonSize = 27.dp
+    val CollapseIconSize = 17.dp
     val CollapseButtonInset = 4.dp
-    val LayerIconSize = 32.dp
-    val LayerCallToActionHeight = 36.dp
-    val LayerHeadlineSize = 13.sp
 
-    /** Gap between media, head and call to action. */
-    val LayerGap = Spacing.sm
+    /** Margin of the media inside its area: top and sides, none below (the small native content follows). */
+    val MediaMargin = 12.dp
 
-    /** Where the SDK pins AdChoices (ADCHOICES_TOP_LEFT): nothing to tap in this corner. */
+    /** Where the SDK pins AdChoices (ADCHOICES_TOP_RIGHT): nothing to tap in this corner. */
     val AdChoicesCorner = 24.dp
 }
 
@@ -129,10 +125,8 @@ internal object CollapsibleNativeAdTestTags {
     const val AD = "collapsible_ad"
     const val MEDIA = "collapsible_ad_media"
     const val COLLAPSE = "collapsible_ad_collapse"
+    const val CONTENT = "collapsible_ad_content"
 }
-
-/** Top and bottom margin inside the border, so the parts add up to the 250 dp of the design (media 134 dp). */
-private val LayerInnerVertical = NativeAdDimens.BorderWidth + NativeAdDimens.InnerPadding
 
 /** The 40% black of the design behind the collapse icon, from the scrim token (like the network dialog). */
 private const val COLLAPSE_BUTTON_ALPHA = 0.4f
@@ -141,12 +135,15 @@ private const val COLLAPSE_BUTTON_ALPHA = 0.4f
 private val CollapseIconTint = Color.White
 
 /**
- * The open layer: media filling the height left, head (32 dp icon, 13 sp headline, "Ad" line), 36 dp call to action
- * as wide as the layer; the collapse button over the top end corner. 250 dp at the default font scale; with larger
- * text the media shrinks first, never below 120 dp, then the layer grows (272 dp at font scale 2.0;
- * [MediaShrinksFirstLayout], plan T-045), and the call to action is as high as its line of text. Each ad part goes
- * through [binder], so a fake ad and a real ad bound to the SDK share it. The collapse button is not an ad asset: a
- * tap on it is not a click on the ad. AdChoices is drawn by the SDK in the top start corner, never in Compose.
+ * The open layer (design T-064), sized by [NativeAdDimens.collapsibleLayer] of the window: the media area (the
+ * MediaView 12 dp in at the top and sides: 161 dp in a 173 dp area at 411 x 891 dp) over the content of the small
+ * native ([SmallLayout], as high as the bottom slot); 299 dp at 411 x 891 dp. With its 16 dp bottom margin it never
+ * takes more than half the window height: the media area shrinks first (MediaView 146 dp at 411 x 600 dp, never below
+ * 120 dp); a window with no room draws nothing. The content follows the rules of small at large text
+ * (its text column never goes past the slot), so the layer keeps its height at every font scale. The collapse button
+ * floats over the top start corner. Each ad part goes through [binder], so a fake ad and a real ad bound to the SDK
+ * share it. The collapse button is not an ad asset: a tap on it is not a click on the ad. AdChoices is drawn by the
+ * SDK in the top end corner, never in Compose.
  */
 @Composable
 internal fun CollapsibleNativeAdLayout(
@@ -156,45 +153,33 @@ internal fun CollapsibleNativeAdLayout(
     showAdChoicesMarker: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val layer = NativeAdDimens.collapsibleLayer(nativeScreenSize()) ?: return
+    val slotHeight = layer.slot
     NativeAdFrame(
         modifier = modifier
             .fillMaxWidth()
-            // 250 dp; more only when the media reaches its 120 dp floor with large text (plan T-045).
-            .heightIn(min = CollapsibleNativeAdDimens.LayerHeight)
             .testTag(CollapsibleNativeAdTestTags.AD),
     ) {
-        MediaShrinksFirstLayout(
-            innerHeight = CollapsibleNativeAdDimens.LayerHeight - LayerInnerVertical * 2,
-            gap = CollapsibleNativeAdDimens.LayerGap,
-            mediaIndex = 0,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = NativeAdDimens.InnerPadding,
-                    top = LayerInnerVertical,
-                    end = NativeAdDimens.InnerPadding,
-                    bottom = LayerInnerVertical,
-                ),
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(CollapsibleNativeAdTestTags.MEDIA),
+                    .height(layer.mediaArea)
+                    .padding(
+                        start = CollapsibleNativeAdDimens.MediaMargin,
+                        top = CollapsibleNativeAdDimens.MediaMargin,
+                        end = CollapsibleNativeAdDimens.MediaMargin,
+                    ),
             ) {
-                NativeAdMediaArea(binder, Modifier.fillMaxSize())
+                NativeAdMediaArea(binder, Modifier.fillMaxSize().testTag(CollapsibleNativeAdTestTags.MEDIA))
             }
-            LayerHeader(assets, binder)
-            val ctaModifier = Modifier.fillMaxWidth()
-            val callToAction = assets.callToAction
-            if (callToAction != null) {
-                NativeAdCallToAction(
-                    text = callToAction,
-                    binder = binder,
-                    modifier = ctaModifier,
-                    height = CollapsibleNativeAdDimens.LayerCallToActionHeight,
-                )
-            } else {
-                Box(ctaModifier.heightIn(min = CollapsibleNativeAdDimens.LayerCallToActionHeight))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(slotHeight)
+                    .testTag(CollapsibleNativeAdTestTags.CONTENT),
+            ) {
+                SmallLayout(assets, binder, slotHeight)
             }
         }
         if (showAdChoicesMarker) AdChoicesMarker()
@@ -202,37 +187,18 @@ internal fun CollapsibleNativeAdLayout(
     }
 }
 
-/** Icon, 13 sp headline and the "Ad" line with the advertiser, 38 dp high. */
-@Composable
-private fun LayerHeader(assets: NativeAdAssets, binder: NativeAdBinder) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(NativeAdDimens.PartGap),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        NativeAdIcon(assets.icon, binder, size = CollapsibleNativeAdDimens.LayerIconSize)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(NativeAdDimens.HeadlineGap),
-        ) {
-            NativeAdHeadline(assets.headline, binder, fontSize = CollapsibleNativeAdDimens.LayerHeadlineSize)
-            NativeAdBadgeLine(assets, binder, bodyWhenNoAdvertiser = false)
-        }
-    }
-}
-
 /**
- * A 32 dp round button, 4 dp from the top end corner, drawn and laid out at 32 dp: Compose widens its touch area to
+ * A 27 dp round button, 4 dp from the top start corner, drawn and laid out at 27 dp: Compose widens its touch area to
  * 48 dp without moving anything (as the close button of the native full screen, plan T-027).
  */
 @Composable
 private fun BoxScope.CollapseButton(onCollapse: () -> Unit) {
     Box(
         modifier = Modifier
-            .align(Alignment.TopEnd)
+            .align(Alignment.TopStart)
             .padding(
                 top = CollapsibleNativeAdDimens.CollapseButtonInset,
-                end = CollapsibleNativeAdDimens.CollapseButtonInset,
+                start = CollapsibleNativeAdDimens.CollapseButtonInset,
             )
             .size(CollapsibleNativeAdDimens.CollapseButtonSize)
             .clip(CircleShape)
@@ -255,8 +221,8 @@ private fun BoxScope.CollapseButton(onCollapse: () -> Unit) {
 private fun BoxScope.AdChoicesMarker() {
     Box(
         modifier = Modifier
-            .align(Alignment.TopStart)
-            .padding(top = Spacing.xs, start = Spacing.xs)
+            .align(Alignment.TopEnd)
+            .padding(top = Spacing.xs, end = Spacing.xs)
             .size(NativeAdDimens.AdChoicesSize)
             .clip(RoundedCornerShape(NativeAdDimens.BadgeCorner))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
@@ -275,6 +241,11 @@ private fun BoxScope.AdChoicesMarker() {
  *   or as soon as an ad is there (CL-03), and calls [onReexpanded]; 0 never. The wait is worked out again from the
  *   kept mark each time this runs, so a restored state goes on with the time left.
  * - [allowed] false (no ad unit for the layer): nothing collected, nothing sent.
+ * - [hasRoom] false (must match the real window; the window has no room for the layer, [NativeAdDimens.collapsibleLayer]; CL-05): as not
+ *   [allowed]: nothing collected (no ad taken from the stock, no request), nothing drawn, no timer and no
+ *   [onReexpanded]. [state] stays as it is, so an open layer opens again with room, and a collapsed one keeps its mark:
+ *   with room again the timer goes on from the mark (due already: open at once with an ad). Losing room while
+ *   collecting stops the collection, which destroys the ad held (L-061).
  */
 @Composable
 internal fun CollapsibleNativeAdLayerHost(
@@ -286,13 +257,14 @@ internal fun CollapsibleNativeAdLayerHost(
     onReexpanded: () -> Unit,
     modifier: Modifier = Modifier,
     allowed: Boolean = true,
+    hasRoom: Boolean = NativeAdDimens.collapsibleLayer(nativeScreenSize()) != null,
     renderAd: @Composable (ad: LoadedNativeAd, onCollapse: () -> Unit) -> Unit = { ad, onCollapse ->
         BoundNativeAd(ad) { binder ->
             CollapsibleNativeAdLayout(ad.assets, onCollapse, binder, showAdChoicesMarker = false)
         }
     },
 ) {
-    if (!allowed) {
+    if (!allowed || !hasRoom) {
         Box(modifier = modifier)
         return
     }
@@ -328,7 +300,9 @@ internal fun CollapsibleNativeAdLayerHost(
  * over the bottom slot. Its ads are format [AdFormat.NATIVE_COLLAPSIBLE] of the bar's placement, from the
  * `native_collap` stock shared by every bottom bar with the same ad unit (KB-33): its first ad shows at once when the
  * stock holds one, then it refreshes at the interval of `time_reload_collap_ad`, staying collapsed (CL-02, KB-34);
- * the bar checks consent and the placement first.
+ * the bar checks consent and the placement first. On a window with no room for it (CL-05: 299 dp at 411 x 891 dp, the
+ * layer with its margin at most half the window) it takes no ad, reports no display opportunity and logs one line;
+ * its state is kept, so it opens again when the window has room.
  */
 @Composable
 internal fun CollapsibleNativeAdLayer(placement: AdPlacement, expandAfterSeconds: Long, modifier: Modifier = Modifier) {
@@ -336,8 +310,15 @@ internal fun CollapsibleNativeAdLayer(placement: AdPlacement, expandAfterSeconds
     // Outside any branch that depends on the ad: a new ad never opens it again.
     val state = rememberCollapsibleAdState()
     val unitId = remember(placement) { ads.unitId(placement, AdFormat.NATIVE_COLLAPSIBLE) }
-    // `af_native_ad_eligible` once each time the layer comes in: the bar checked consent and its key (plan T-033).
-    ReportNativeEligible(unitId != null)
+    val window = nativeScreenSize()
+    val hasRoom = NativeAdDimens.collapsibleLayer(window) != null
+    // `af_native_ad_eligible` once each time the layer comes in: the bar checked consent and its key (plan T-033); a
+    // window with no room is no display opportunity (CL-05, MC-14).
+    ReportNativeEligible(unitId != null && hasRoom)
+    val currentWindow by rememberUpdatedState(window)
+    LaunchedEffect(hasRoom) {
+        if (unitId != null && !hasRoom) ads.onCollapsibleNoRoom(placement, currentWindow)
+    }
     // Collected while in composition; leaving it cancels the collection, which destroys the ad.
     val states = remember(placement) { ads.nativeAd(placement, AdFormat.NATIVE_COLLAPSIBLE) }
     CollapsibleNativeAdLayerHost(
@@ -349,8 +330,14 @@ internal fun CollapsibleNativeAdLayer(placement: AdPlacement, expandAfterSeconds
         onReexpanded = { ads.onNativeReexpanded(placement, expandAfterSeconds) },
         modifier = modifier,
         allowed = unitId != null,
+        hasRoom = hasRoom,
     )
 }
+
+/** The log line of a collapsible layer with no room on its window (ADR-0019, CL-05). */
+internal fun collapsibleNoRoomLog(placement: AdPlacement, window: DpSize): String =
+    "Collapsible ${placement.key} not shown: window ${window.width.value.roundToInt()}x" +
+        "${window.height.value.roundToInt()} dp has no room"
 
 @Preview
 @Composable

@@ -138,10 +138,16 @@ class AdNetworkLogWiringTest {
 
     @Test
     fun maxLoadFailure_passesMessage() {
-        // Control: a callback that drops the message does not match.
+        // Controls: a callback that drops the message, or the networks of the waterfall, does not match.
         assertFalse(
             MAX_FAILED.containsMatchIn(
-                "onAdLoadFailed(adUnitId: String, error: MaxError) = onFailed(error.code, null)",
+                "onAdLoadFailed(adUnitId: String, error: MaxError) = " +
+                    "onFailed(error.code, null, maxNetworkAttemptsOf(error.waterfall))",
+            ),
+        )
+        assertFalse(
+            MAX_FAILED.containsMatchIn(
+                "onAdLoadFailed(adUnitId: String, error: MaxError) = onFailed(error.code, error.message, emptyList())",
             ),
         )
 
@@ -149,6 +155,154 @@ class AdNetworkLogWiringTest {
         assertEquals(1, text.occurrences("onAdLoadFailed("))
         assertTrue(text, MAX_FAILED.containsMatchIn(text))
     }
+
+    @Test
+    fun everyMaxLoadCallback_handsTheWaterfall() {
+        // Controls (L-055), both forms of a body: a callback without the call is reported, one with it is not.
+        assertEquals(1, maxLoadProblems("override fun onAdLoaded(ad: MaxAd) = onLoaded(MaxAdInfo.EMPTY)").size)
+        assertEquals(0, maxLoadProblems("override fun onAdLoaded(ad: MaxAd) = onLoaded(maxAdInfoOf(ad))").size)
+        assertEquals(
+            1,
+            maxLoadProblems("override fun onAdLoaded(maxAd: MaxAd) {\n listener?.onLoaded(MaxAdInfo.EMPTY)\n}").size,
+        )
+        assertEquals(
+            0,
+            maxLoadProblems("override fun onAdLoaded(maxAd: MaxAd) {\n listener?.onLoaded(maxAdInfoOf(maxAd))\n}").size,
+        )
+        val failedPrefix = "override fun onAdLoadFailed(adUnitId: String, error: MaxError)"
+        assertEquals(1, maxLoadProblems("$failedPrefix = onFailed(error.code, error.message, emptyList())").size)
+        assertEquals(
+            0,
+            maxLoadProblems(
+                "$failedPrefix =\n    onFailed(error.code, error.message, maxNetworkAttemptsOf(error.waterfall))",
+            ).size,
+        )
+        assertEquals(1, maxLoadProblems("$failedPrefix {\n listener?.onLoadFailed(error.code, emptyList())\n}").size)
+        assertEquals(
+            0,
+            maxLoadProblems(
+                "$failedPrefix {\n listener?.onLoadFailed(error.code, maxNetworkAttemptsOf(error.waterfall))\n}",
+            ).size,
+        )
+        // Control: a body of the expression form ends with its line; the next function is not part of it.
+        assertEquals(
+            1,
+            maxLoadProblems(
+                "override fun onAdLoaded(ad: MaxAd) = onLoaded(MaxAdInfo.EMPTY)\n" +
+                    "override fun onAdClicked(ad: MaxAd) = onClicked(maxAdInfoOf(ad))",
+            ).size,
+        )
+        // The callbacks of today (banner, interstitial, rewarded, app open): one load and one failure each.
+        listOf("MaxBannerAdView.kt", "MaxInterstitial.kt", "MaxRewarded.kt", "MaxAppOpen.kt").forEach { name ->
+            assertEquals(name, 1 to 1, maxCallbackCounts(code(source(name))))
+        }
+
+        val problems = sources.flatMap { file -> maxLoadProblems(code(file)).map { "${file.name}: $it" } }
+        assertTrue("MAX load callbacks without the waterfall:\n${problems.joinToString("\n")}", problems.isEmpty())
+    }
+
+    @Test
+    fun everyMaxAdObject_hasRevenueListener() {
+        // Controls (L-055).
+        assertEquals(
+            listOf("MaxInterstitialAd"),
+            revenueListenerProblems("private val ad = MaxInterstitialAd(adUnitId, context)"),
+        )
+        val withLambda = "private val adView = MaxAdView(unitId, MaxAdFormat.BANNER, context)\n" +
+            "adView.setRevenueListener { onRevenue(maxAdInfoOf(it)) }"
+        assertEquals(emptyList<String>(), revenueListenerProblems(withLambda))
+        val withCall = "private val ad = MaxRewardedAd.getInstance(adUnitId, context)\nad.setRevenueListener(listener)"
+        assertEquals(emptyList<String>(), revenueListenerProblems(withCall))
+        assertEquals(emptyList<String>(), maxObjectsBuilt("val v = MyMaxAdView(x)\nval w = x.MaxAdView(y)"))
+        assertEquals(emptyList<String>(), maxObjectsBuilt(code("/** [MaxRewardedAd.getInstance] */")))
+        assertEquals(listOf("MaxRewardedAd"), maxObjectsBuilt("val ad = MaxRewardedAd.getInstance(unit, context)"))
+
+        val built = sources.flatMap { file -> maxObjectsBuilt(code(file)) }.toSet()
+        assertEquals(
+            "A type of MAX object is built nowhere in src/main: $built",
+            setOf("MaxAdView", "MaxInterstitialAd", "MaxAppOpenAd", "MaxRewardedAd"),
+            built,
+        )
+        val problems = sources.flatMap { file -> revenueListenerProblems(code(file)).map { "${file.name}: $it" } }
+        assertTrue("MAX objects without a revenue listener:\n${problems.joinToString("\n")}", problems.isEmpty())
+    }
+
+    @Test
+    fun everyMaxSlotAndBanner_getsTheNetworkLog() {
+        // Control (L-055): a call without the log is reported.
+        val noLog = callsOf("MaxBannerAdView(newSdkView = { x }, placement = p, logger = logger)", "MaxBannerAdView")
+        assertTrue(noLog.isNotEmpty())
+        assertFalse(noLog.single().arguments.any { it == "networkLog = ads.networkLog" })
+
+        val banners = callsOf(code(source("AdSlot.kt")), "MaxBannerAdView")
+        assertTrue("AdSlot.kt makes no MaxBannerAdView", banners.isNotEmpty())
+        banners.forEach { call -> assertTrue("$call", "networkLog = ads.networkLog" in call.arguments) }
+
+        val slots = callsOf(code(source("AdsController.kt")), "MaxInterstitialSlot")
+        // Interstitial, rewarded, app open.
+        assertEquals(slots.toString(), 3, slots.size)
+        slots.forEach { call -> assertTrue("$call", "networkLog = networkLog" in call.arguments) }
+    }
+
+    /** The MAX load callbacks of [text] (loads, failures), counted by the types of MAX (L-062). */
+    private fun maxCallbackCounts(text: String): Pair<Int, Int> =
+        MAX_LOADED.findAll(text).count() to MAX_LOAD_FAILED.findAll(text).count()
+
+    /**
+     * The MAX load callbacks of [text] whose body does not hand the ad to [maxAdInfoOf] (loads) or the waterfall of the
+     * error to [maxNetworkAttemptsOf] (failures).
+     */
+    private fun maxLoadProblems(text: String): List<String> {
+        val loads = MAX_LOADED.findAll(text).mapNotNull { match ->
+            val body = functionBody(text, match.range.last + 1)
+            body.takeUnless { "maxAdInfoOf(${match.groupValues[1]})" in it }
+        }
+        val failures = MAX_LOAD_FAILED.findAll(text).mapNotNull { match ->
+            val body = functionBody(text, match.range.last + 1)
+            body.takeUnless { "maxNetworkAttemptsOf(${match.groupValues[1]}.waterfall)" in it }
+        }
+        return (loads + failures).toList()
+    }
+
+    /**
+     * The body of the function whose parameter list ends right before [from]: a block from `{` to its matching `}`, or
+     * an expression after `=` up to the end of its logical line (every bracket closed at a line break).
+     */
+    private fun functionBody(text: String, from: Int): String {
+        var index = from
+        while (index < text.length && text[index].isWhitespace()) index++
+        // A return type, if any, up to the body.
+        if (text.getOrNull(index) == ':') {
+            while (index < text.length && text[index] != '{' && text[index] != '=') index++
+        }
+        return when (text.getOrNull(index)) {
+            '{' -> text.substring(index, closingBracket(text, index) + 1)
+            '=' -> {
+                var depth = 0
+                var end = index + 1
+                var started = false
+                while (end < text.length) {
+                    val char = text[end]
+                    if (char in "([{") depth++
+                    if (char in ")]}") depth--
+                    if (!char.isWhitespace()) started = true
+                    if (char == '\n' && depth == 0 && started) break
+                    end++
+                }
+                text.substring(index, end)
+            }
+            else -> error("No body at $from")
+        }
+    }
+
+    /** The MAX objects [text] builds, by type: `MaxRewardedAd` for `MaxRewardedAd.getInstance(`. */
+    private fun maxObjectsBuilt(text: String): List<String> =
+        MAX_OBJECT.findAll(text).map { it.groupValues[1] }.toList() +
+            MAX_REWARDED_OBJECT.findAll(text).map { "MaxRewardedAd" }.toList()
+
+    /** The MAX objects of [text] in a source with no `setRevenueListener`. */
+    private fun revenueListenerProblems(text: String): List<String> =
+        if (REVENUE_LISTENER.containsMatchIn(text)) emptyList() else maxObjectsBuilt(text)
 
     /** The bodies of the AdMob load failure callbacks of [text], each with the name of its error. */
     private fun loadFailureBodies(text: String): List<Pair<String, String>> =
@@ -294,7 +448,10 @@ class AdNetworkLogWiringTest {
     }
 
     /** The code of [file], without comment lines, so a name in a KDoc is not a call. */
-    private fun code(file: File): String = file.readLines()
+    private fun code(file: File): String = code(file.readText())
+
+    /** [text] without comment lines. */
+    private fun code(text: String): String = text.lines()
         .filterNot { line ->
             val trimmed = line.trimStart()
             trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")
@@ -309,8 +466,15 @@ class AdNetworkLogWiringTest {
         const val LISTENER = "NativeAdLoadListener"
         val MAX_FAILED =
             Regex(
-                """onAdLoadFailed\(\s*\w+\s*:\s*String\s*,\s*(\w+)\s*:\s*MaxError\s*\)\s*=\s*onFailed\(\1\.code,\s*\1\.message\)""",
+                """onAdLoadFailed\(\s*\w+\s*:\s*String\s*,\s*(\w+)\s*:\s*MaxError\s*\)\s*=\s*""" +
+                    """onFailed\(\1\.code,\s*\1\.message,\s*maxNetworkAttemptsOf\(\1\.waterfall\)\)""",
             )
+        val MAX_LOADED = Regex("""override fun onAdLoaded\(\s*(\w+)\s*:\s*MaxAd\s*\)""")
+        val MAX_LOAD_FAILED =
+            Regex("""override fun onAdLoadFailed\(\s*\w+\s*:\s*String\s*,\s*(\w+)\s*:\s*MaxError\s*\)""")
+        val MAX_OBJECT = Regex("""(?<![\w.])(MaxAdView|MaxInterstitialAd|MaxAppOpenAd)\(""")
+        val MAX_REWARDED_OBJECT = Regex("""(?<![\w.])MaxRewardedAd\.getInstance\(""")
+        val REVENUE_LISTENER = Regex("""\.setRevenueListener\s*[({]""")
         val FUNCTION = Regex("""\bfun\s+(?:<[^>]*>\s*)?(?:[\w.]+\.)?(\w+)\s*\(""")
     }
 }

@@ -5,6 +5,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -77,6 +78,10 @@ internal interface PooledNativeAds {
  * - O-05, S-15, L-072: every send goes through [sendNext], which asks [sendGate] (foreground and not covered, then
  *   the consent gate); a closed gate sends nothing, counts no failure and plans no retry. A failed load retries after
  *   [AdRetryPolicy.nativeDelayMillis] (holding an ad when the pool holds one), or when [retryResets] moves (S-24).
+ *   The failures in a row count from 1 again when an ad loads, on [reopen], when [failureResets] moves (the process
+ *   back in foreground, Internet back), and when a failure comes with the pool empty after one holding an ad, or the
+ *   other way round (plan T-103, question 3). Not when a new screen starts a cell: the pool outlives screens
+ *   (question 1).
  * - S-11: [claim] gives nothing while [canShowNow] is false.
  *
  * Main thread only ([scope] runs on the main thread).
@@ -99,6 +104,8 @@ internal class NativeAdPool(
     private val logger: AppLogger,
     /** Format code and number of the pool, never the ad unit (ADR-0019). */
     private val logKey: String,
+    /** Moves when the failures in a row count from 1 again: process back in foreground, Internet back (O-05). */
+    private val failureResets: StateFlow<Int> = MutableStateFlow(0),
 ) : PooledNativeAds {
     private class Entry(val ad: LoadedNativeAd, val holder: PlacementCell, val loadedAtMillis: Long)
 
@@ -111,7 +118,10 @@ internal class NativeAdPool(
     /** A request was handed to the SDK and has no result yet. */
     private var requestSent = false
     private var waitingRetry = false
-    private var failures = 0
+    private val retryCount = NativeRetryCount(failureResets)
+
+    /** The pool held an ad at its last failure; null before the first one. */
+    private var lastFailureHeld: Boolean? = null
     private var closed = false
 
     /** Moves at every close, so a send of an earlier opening changes nothing. */
@@ -211,7 +221,7 @@ internal class NativeAdPool(
     fun reopen() {
         if (!closed) return
         closed = false
-        failures = 0
+        retryCount.clear()
         logger.info(TAG, "Pool $logKey reopened")
     }
 
@@ -241,17 +251,21 @@ internal class NativeAdPool(
             return
         }
         if (result != null) {
-            failures = 0
+            retryCount.onLoaded()
             free.addLast(Entry(result.ad, result.holder, clock.nowMillis()))
             logger.info(TAG, "Pool $logKey loaded (free ${free.size}/$capacity)")
             job = null
             refill()
             return
         }
-        failures++
+        val holdsAd = free.size + inUse.size > 0
+        // Each rule of O-05 starts its own sequence: from empty to holding an ad, or back.
+        if (lastFailureHeld != null && lastFailureHeld != holdsAd) retryCount.clear()
+        lastFailureHeld = holdsAd
+        val failures = retryCount.onFailure()
         waitingRetry = true
         val generation = retryResets.value
-        val wait = AdRetryPolicy.nativeDelayMillis(failures, holdsAd = free.size + inUse.size > 0)
+        val wait = AdRetryPolicy.nativeDelayMillis(failures, holdsAd = holdsAd)
         logger.info(TAG, "Pool $logKey failed, retry in $wait ms (failures $failures)")
         withTimeoutOrNull(wait) { retryResets.first { it != generation } }
         if (session != opening) return

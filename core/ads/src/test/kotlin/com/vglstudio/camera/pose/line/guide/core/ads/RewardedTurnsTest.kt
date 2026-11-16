@@ -1280,6 +1280,88 @@ class RewardedTurnsTest {
         assertEquals(listOf(Triple("rw_get_item", "not_ready", "ready")), port.opportunities)
     }
 
+    // Plan T-106: R-03 through the port, the turn still waiting, F-08 during the wait for the switch
+
+    @Test
+    fun noAd_networkFromPort() = runTest {
+        // The port says network (MAX failed on the network) while AdMob has no failed load.
+        port.networkAnswer = true
+        request()
+        assertEquals(listOf(RewardedOutcome.NoAd(network = true, granted = false)), outcomes)
+        assertEquals(listOf<Boolean?>(null), port.admobNetworkErrors)
+
+        // Control: the port says no network although AdMob just failed with code 2.
+        port.networkAnswer = false
+        turns.onLoadFailed(rwGetItem, 2, offline = false)
+        request()
+        assertEquals(RewardedOutcome.NoAd(network = false, granted = false), outcomes.last())
+        assertEquals(listOf<Boolean?>(null, true), port.admobNetworkErrors)
+    }
+
+    @Test
+    fun decisionTimedOut_networkFromPort() = runTest {
+        port.networkAnswer = true
+        port.switchGates += CompletableDeferred<Boolean>()
+        launch { request() }
+        runCurrent()
+        advanceTimeBy(5_001)
+        runCurrent()
+        assertEquals(listOf(RewardedOutcome.NoAd(network = true, granted = false)), outcomes)
+    }
+
+    @Test
+    fun hasTurn_whileWaiting_falseAfterDismissFailOrStuck() = runTest {
+        assertFalse(turns.hasTurn(rwGetItem))
+        // Closed.
+        port.ready["rw_get_item"] = true
+        request()
+        assertTrue(turns.hasTurn(rwGetItem))
+        port.fireDismissed()
+        assertFalse(turns.hasTurn(rwGetItem))
+        // The last show failed (R-04).
+        port.ready["rw_get_item"] = true
+        request()
+        assertTrue(turns.hasTurn(rwGetItem))
+        port.fireShowFailed(-24)
+        assertFalse(turns.hasTurn(rwGetItem))
+        // A failed show again while the first is on screen keeps the turn (R-06); stuck recovery ends it.
+        port.ready["rw_get_item"] = true
+        request()
+        port.fireShowed()
+        request()
+        port.fireShowFailed(-24)
+        assertTrue(turns.hasTurn(rwGetItem))
+        assertFalse(turns.hasTurn(rwExport))
+        turns.onStuck()
+        assertFalse(turns.hasTurn(rwGetItem))
+    }
+
+    @Test
+    fun hostGoneDuringSwitchWait_notTaken() = runTest {
+        // F-08 (plan T-106, section 3.1, step 4 (a)): the app goes to the background while the decision waits for the
+        // switch; the check of the activity comes after the switch and before the ad is taken, whatever the platform.
+        port.ready["rw_get_item"] = true
+        val gate = CompletableDeferred<Boolean>()
+        port.switchGates += gate
+        launch { request() }
+        runCurrent()
+        port.hostUsable = false
+        gate.complete(true)
+        runCurrent()
+
+        assertTrue(port.takes.isEmpty())
+        assertTrue(port.shows.isEmpty())
+        assertEquals(listOf(Triple("rw_get_item", "shown", "ready")), port.opportunities)
+        assertEquals(listOf(3), port.showFailsRecorded)
+        assertEquals(listOf(RewardedOutcome.NoAd(network = false, granted = false)), outcomes)
+        // Back in the app: nothing shows by itself.
+        port.hostUsable = true
+        advanceTimeBy(60_000)
+        runCurrent()
+        assertTrue(port.shows.isEmpty())
+        assertTrue(port.takes.isEmpty())
+    }
+
     /**
      * The port of [RewardedTurns] without the SDK: switches and states per placement code, every call recorded.
      * [ready] turns false once the ad is taken out to be shown, like the cache of [AdsController].
@@ -1420,6 +1502,17 @@ class RewardedTurnsTest {
 
         override fun recordShowFailed(declaration: AdPlacementDeclaration, code: Int) {
             showFailsRecorded += code
+        }
+
+        /** What [networkError] answers (plan T-106); null answers with the AdMob flag, like the port's default. */
+        var networkAnswer: Boolean? = null
+
+        /** The AdMob flag each call of [networkError] got, in order. */
+        val admobNetworkErrors = mutableListOf<Boolean?>()
+
+        override fun networkError(declaration: AdPlacementDeclaration, admobNetworkError: Boolean?): Boolean {
+            admobNetworkErrors += admobNetworkError
+            return networkAnswer ?: (admobNetworkError == true)
         }
 
         companion object {

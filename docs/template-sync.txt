@@ -39,7 +39,6 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # section 5). docs/ops/ads-guide.md and docs/ops/ads-business-rules.md describe that code, so they are held with it:
 # the plan runs --take once for each of the three paths. Until then ads-guide.md says release.sh does not read the MAX
 # keys; release.sh and docs/ops/release.md (taken at bc3e80e) do.
-hold=core/ads 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 hold=docs/ops/ads-guide.md 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 hold=docs/ops/ads-business-rules.md 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 # core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:

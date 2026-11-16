@@ -25,18 +25,21 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # dropped), the sample_native_small example in the KDoc of AdUnitIds.kt reads poses_bottom, and docs/ops/ads-guide.md
 # names PosesScreenScreenshotTest and poses_bottom where the template names the sample screen.
 # App values kept inside template files after each sync: docs/ops/to-app.md of the template, section 6
-# (scenario budget 1800, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS and timeouts 15/10 in env-canary.yml
-# and start-run.yml, the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
+# (scenario budget 1800, -camera-back emulated, STAGING_REMOTE_CONFIG_CREDENTIALS, the timeout 15 of env-canary.yml
+# (start-run.yml takes the template's 30: it covers the main-guard wait and the pose catalog check), the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md. Also the default
 # DEVICE_SCENARIOS_BUDGET of 1800 in scripts/device-scenario.py (the template takes 600).
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
-# core/ads is held at 698c5b3: the template range 698c5b3..bc3e80e changes the native slot height (T-064, T-065, T-107,
-# nativeReservation() is now a function) and adds the MAX full screen formats (T-069, T-070, T-072, T-106); taking it
-# changes the screenshots and size tests of feature/poses, feature/camera and feature/settings, so it comes with an app
-# ticket and plan (docs/ops/to-app.md of the template, section 5).
-# Until then docs/ops/ads-guide.md and docs/ops/ads-business-rules.md (taken at bc3e80e) describe template core/ads
-# at bc3e80e, ahead of this app's core/ads: the native sizes of KB-32 and the MAX interstitial, rewarded and app open.
+# core/ads is held at 698c5b3: the template range 698c5b3..bc3e80e changes the native sizes (T-065, KB-32; the bottom
+# slot height follows the window, nativeReservation() is now a function), turns the collapsible layer off in landscape
+# and split screen (T-107, CL-05), backs off native retries (T-103, O-05) and adds the MAX interstitial, rewarded and
+# app open (T-069, T-070, T-072, T-106). Taking it changes the screenshots and size tests of feature/poses,
+# feature/camera and feature/settings, so it comes with an app ticket and plan (docs/ops/to-app.md of the template,
+# section 5). docs/ops/ads-guide.md and docs/ops/ads-business-rules.md describe that code, so they are held with it:
+# take all three together.
 hold=core/ads 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
+hold=docs/ops/ads-guide.md 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
+hold=docs/ops/ads-business-rules.md 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 # core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:
 # AdSlot separator (spec poses, KB-6; AdSlotTest) and PrivacyOptionsButton(content) (feature/settings), the public
 # startupAdPlacementFor of StartupAdChoice.kt (app/src/testStaging StagingRemoteValuesModuleTest), the CARD height when

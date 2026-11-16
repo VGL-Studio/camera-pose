@@ -861,7 +861,7 @@ class AdTelemetryTest {
 
     @Test
     fun maxRevenue_readsPlacementAtEventTime() {
-        var cell: AdPlacement? = AdPlacement.SAMPLE_NATIVE_SMALL
+        var cell: AdPlacement? = AdPlacement.POSES_BOTTOM
         val telemetry = telemetry()
         // The listener holds the cell; the placement changes before the revenue comes (PL-03).
         cell = AdPlacement.GALLERY_INTERSTITIAL

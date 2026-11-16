@@ -329,7 +329,7 @@ private fun Screen(
         if (ad) {
             // The bottom bar of the framework with a fixed native small ad, as the design (plan T-079, section 3.1).
             BottomAdBarLayout(
-                reservation = BottomAdBarDefaults.nativeReservation,
+                reservation = BottomAdBarDefaults.nativeReservation(),
                 slot = { NativeAdCard(SCREENSHOT_AD, NativeAdSize.SMALL, it) },
                 layer = null,
                 content = screen,

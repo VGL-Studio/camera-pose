@@ -135,7 +135,7 @@ class AdsControllerNativeStockTest {
     ).fetchSemanticsNodes().isNotEmpty()
 
     private fun loggedNoRoom(window: String): Boolean = logger.entries.any {
-        it.message == "Collapsible sample_native_small not shown: window $window dp has no room"
+        it.message == "Collapsible poses_bottom not shown: window $window dp has no room"
     }
 
     private fun shown(headline: String): Boolean =
@@ -196,7 +196,7 @@ class AdsControllerNativeStockTest {
         deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
         val layerAd = deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
 
-        show { BottomAdBarScaffold(AdPlacement.SAMPLE_NATIVE_SMALL) {} }
+        show { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} }
 
         assertTrue(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
         assertFalse("no layer without room", layerDrawn())
@@ -225,7 +225,7 @@ class AdsControllerNativeStockTest {
         val layerAd = deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
         composeRule.setContent {
             CompositionLocalProvider(LocalAdsController provides controller, LocalConfiguration provides config) {
-                BottomAdBarScaffold(AdPlacement.SAMPLE_NATIVE_SMALL) {}
+                BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {}
             }
         }
         composeRule.waitForIdle()

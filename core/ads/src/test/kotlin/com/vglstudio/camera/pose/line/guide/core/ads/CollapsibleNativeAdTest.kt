@@ -732,8 +732,8 @@ class CollapsibleNativeAdTest {
     @Test
     fun noRoomLog_text() {
         assertEquals(
-            "Collapsible sample_native_small not shown: window 891x411 dp has no room",
-            collapsibleNoRoomLog(AdPlacement.SAMPLE_NATIVE_SMALL, DpSize(891.dp, 411.dp)),
+            "Collapsible poses_bottom not shown: window 891x411 dp has no room",
+            collapsibleNoRoomLog(AdPlacement.POSES_BOTTOM, DpSize(891.dp, 411.dp)),
         )
     }
 

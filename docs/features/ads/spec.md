@@ -1,6 +1,6 @@
 ---
 feature: ads
-status: confirmed          # draft | confirmed | changed
+status: changed            # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
@@ -241,6 +241,24 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
       - Trả lời: chọn "Không cho lớp nổi ở `review_bottom`": màn xem lại luôn chỉ có khe đáy dưới hàng nút, dù `is_show_native_collap` bật. `settings_bottom` theo khóa chung như `poses_bottom`. Nhật, 2026-11-13.
     - Mã quảng cáo thật của hai vị trí trong cấu hình phát hành và khóa trên Firebase production là việc của người (ADR-0007, ADR-0009); vị trí tắt nên bản phát hành chưa cần mã khi chưa bật.
 
+20. **Lấy phần mới của khung quảng cáo trong đợt đồng bộ dự án mẫu `698c5b3..bc3e80e`** (PR #351, ticket T-098). PR #351 giữ `core/ads` và hai tài liệu ads ở mốc cũ; T-098 đưa chúng lên. Phần mới đổi các điều sau ở cả staging và production:
+    - **a. Kích thước native.** Khe native nhỏ ở đáy cao theo cạnh ngắn của cửa sổ: 90 dp ở 320 dp trở xuống, 200 dp ở 600 dp trở lên, tăng đều ở giữa. Khung chuẩn 411 x 891 dp ra 126 dp, khung mở gập 673 x 841 dp ra 200 dp; hôm nay khe cố định 80 dp. Bên trong thẻ cũng đổi theo thiết kế mới của khung (icon, nút, cỡ chữ, chỗ nhãn "Ad"). Lớp native thu gọn là vùng ảnh (160 tới 200 dp) cộng khe: 299 dp ở khung chuẩn, thay cho 250 dp; ở khung mở gập đứng dọc lớp cao 400 dp, gần nửa màn hình. Thẻ bước của luồng giới thiệu (250 dp) và thẻ trong lưới giữ kích thước.
+      - Chỗ đang ghi số cũ: tiêu chí "thanh đáy native nhỏ (80 dp)" của spec poses (KB-6), camera (KB-9) và settings (KB-1); mục 2 của spec này ("lớp native thu gọn 250 dp"); các bước 80 dp, 250 dp của `docs/ops/manual-test.md`, mục 11.1; ảnh thiết kế trạng thái `ad` của thư viện, chi tiết, cài đặt, màn xem lại (cả `ReviewScreen_ad_dark_unfolded`) vẽ khe 80 dp.
+      - Đề xuất của AI: nhận kích thước của khung (ADR-0045 của dự án mẫu là chuẩn nghiệp vụ chung). Ba spec màn và mục 2 bỏ con số, ghi "theo khung (`docs/ops/ads-business-rules.md`, D-02)". Thiết kế trạng thái `ad` vẽ lại theo component thẻ native mới trên Figma rồi lập lại gói bàn giao, trước khi duyệt plan T-098. Screenshot test cùng tên theo thiết kế mới. Plan đo ở khung thấp `w360dp-h640dp` để nút chính không bị che.
+      - Trả lời:
+    - **b. Lớp thu gọn khi cửa sổ thấp.** Lớp kể cả lề không cao quá nửa chiều cao cửa sổ: cửa sổ thấp thì vùng ảnh co lại, co tới dưới 132 dp thì lớp không mở, chỉ còn khe đáy. Trên app này là chia đôi màn hình, máy gập hay máy tính bảng nằm ngang; điện thoại khóa dọc nên không gặp khi xoay. Máy gập mở ra đứng dọc thì lớp vẫn mở (ý a). Vị trí `review_bottom` vẫn không bao giờ có lớp nổi (câu 19, ý e).
+      - Đề xuất của AI: nhận như dự án mẫu.
+      - Trả lời:
+    - **c. Thử lại native khi chưa có quảng cáo.** Khung giãn dần 5, 10, 20, 40, 60 giây thay cho thử lại đều 5 giây, đặt lại khi app quay lại foreground hay khi mạng về. Luật áp cho thanh đáy, ô trong lưới thư viện, thẻ luồng giới thiệu và combo native toàn màn hình.
+      - Đề xuất của AI: nhận như dự án mẫu. Không có khóa Remote Config mới.
+      - Trả lời:
+    - **d. Interstitial, rewarded, app open của MAX.** Khung thêm ba định dạng toàn màn hình của MAX và doanh thu của MAX. Như câu 16: không có khóa MAX thì MAX không khởi động, mọi vị trí tải từ AdMob như hôm nay. Không thêm thư viện hay quyền: SDK AppLovin đã có trong app.
+      - Đề xuất của AI: nhận vào app, chưa bật, như câu 16. Bật MAX là quyết định sau, qua ticket riêng.
+      - Trả lời:
+    - **e. Sự kiện quảng cáo có `ad_platform`.** Từ PR #351 (`:core:analytics` đã lấy), `ad_load_success`, `ad_load_fail`, `ad_clicked` gửi thêm `ad_platform=admob` lên Firebase. Đây là một tham số mới của sự kiện có sẵn, không phải sự kiện mới.
+      - Đề xuất của AI: giữ. Báo nhóm thu hút người dùng (UA) trước khi phát hành bản production đầu tiên có tham số này (`ads-business-rules.md`, HD-07). Mục 6 ghi tham số khi spec được xác nhận.
+      - Trả lời:
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -271,3 +289,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-13 | Nhật | Trả lời câu 19, ý a tới d (AI ghi): staging bật sẵn, thêm trạng thái `ad` trên Figma, thanh ở mọi trạng thái của màn xem lại, production bật dần 10%. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-13 | Nhật | Theo rà soát độc lập PR #323: sửa tiêu chí trái mục 5 mới (KB-1 của spec settings; KB-9, KB-11 của spec camera), thêm khóa ở mục 8, trạng thái `ad` ở mục 4; câu 19 ý e: không cho lớp native thu gọn ở `review_bottom` (AI ghi). Lời xác nhận lại của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Giữ `confirmed` |
 | 2026-11-13 | Nhật | Sửa vòng 2 theo rà soát PR #323 (AI ghi): `is_show_native_bottom` tắt thì khe đáy là banner (câu 13), thêm tiêu chí banner; spec settings thêm tiêu chí lớp nổi thu gọn; ghi thanh 80 dp theo khung hiện tại; spec camera đổi tên KB-9 thành "Quảng cáo ở màn xem lại". Chuyển `changed` rồi lại `confirmed`; lời xác nhận của Nhật: chọn "Xác nhận" khi được hỏi |
+| 2026-11-16 | AI | Đồng bộ dự án mẫu PR #351 giữ `core/ads` ở mốc cũ; thêm câu 20 (kích thước native mới, lớp thu gọn ở màn ngang, thử lại giãn dần, MAX toàn màn hình chưa bật, `ad_platform`) cho ticket T-098. Chuyển `changed`, chờ Nhật trả lời và xác nhận |

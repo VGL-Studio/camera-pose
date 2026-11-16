@@ -170,6 +170,21 @@ class AppsFlyerTrackerTest {
     }
 
     @Test
+    fun maxRevenue_sentAsAfAdRevenue_throughSwitch() = runUnconfined {
+        val tracker = started()
+        val max = revenue().copy(platform = AdMetricPlatform.APPLOVIN)
+        settings.set(AppsFlyerSettings.IS_LOG_AF_AD_REVENUE, false)
+        tracker.log(max)
+        assertTrue(sink.events.isEmpty())
+
+        settings.set(AppsFlyerSettings.IS_LOG_AF_AD_REVENUE, true)
+        tracker.log(max)
+        assertEquals(listOf("af_ad_revenue"), sink.events.map { it.name })
+        assertEquals("applovinmax", sink.events.single().params!!["mediation_network"])
+        assertTrue(sink.events.none { it.name == "af_revenue" })
+    }
+
+    @Test
     fun devKey_neverInLogs() = runUnconfined {
         val tracker = started()
         tracker.log(revenue())

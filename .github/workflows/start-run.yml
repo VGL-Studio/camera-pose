@@ -1,4 +1,6 @@
-# Starts an auto-run session (docs/auto-run.md, ADR-0009, ADR-0016) by firing the Claude Code routine API.
+# Starts an auto-run session (docs/auto-run.md, ADR-0049) by firing the Claude Code routine API.
+# Two ways to run: by hand (Run workflow, with the run file), or on a push to main that changes docs/runs/RUN-*.md,
+# when that push moves a list with "start: auto" and "open_with: routine" to approved (scripts/auto-start-check.py).
 # Any developer can start a session from GitHub without signing in to the Claude account that owns the routine.
 # Secrets (added by people, never read or printed by AI):
 #   ROUTINE_FIRE_URL    https://api.anthropic.com/v1/claude_code/routines/<trig_ id>/fire, from the routine's API trigger
@@ -6,24 +8,31 @@
 # Before firing, scripts/setup-check.sh --staging also reads the staging secrets of staging.yml
 # (STAGING_GOOGLE_SERVICES_JSON, STAGING_APP_DISTRIBUTION_CREDENTIALS) and the STAGING_TESTER_GROUPS variable.
 # A green check closes an open setup-broken issue before the routine is fired, so the session does not stop on an
-# old one (L-113). Three jobs: check, close-setup-broken (the only one with issues: write), fire (the only one that may
-# write Actions: it enables the schedules of resume-run.yml and run-watchdog.yml for the session, T-051).
+# old one (L-113). Four jobs: pick (chooses the run list), check, close-setup-broken (the only one with issues: write),
+# fire (the only one that may write Actions: it enables the schedules of resume-run.yml and run-watchdog.yml for the
+# session, T-051). A push that approves no list stops after pick, green.
+# Against two sessions: pick, and fire again just before the API call, refuse a list no longer approved on main, a
+# list with a report branch, another running list, or another fire job holding a session (scripts/auto-start-check.py;
+# the force input skips the last one). check and fire wait in the start-run concurrency group with resume-run.yml.
+# auto-start-check.py finds fire jobs by the job name "fire <run file>" and the step name "Kích hoạt routine": keep both.
 # The fire endpoint is a research preview behind a beta header, so its contract may still change.
 # It has no idempotency key: every successful call starts a new session, so it is never retried.
 # Changing this file is a high-risk plan; cross-review required.
 name: start-run
 
 on:
+  push:
+    branches: [main]
+    paths: ['docs/runs/RUN-*.md']
   workflow_dispatch:
     inputs:
       run_file:
         description: Danh sách chạy đã duyệt, ví dụ docs/runs/RUN-20261015-01.md
         required: true
-
-# Only one session at a time (docs/auto-run.md, section 1).
-concurrency:
-  group: start-run
-  cancel-in-progress: false
+      force:
+        description: Bỏ qua kiểm tra "vừa kích hoạt một phiên"; mở lại phiên của chính danh sách khi nhánh báo cáo đang running. Chỉ dùng khi biết chắc phiên trước không bắt đầu.
+        type: boolean
+        default: false
 
 defaults:
   run:
@@ -37,12 +46,72 @@ permissions:
   actions: read
 
 jobs:
-  check:
+  # Chooses the run list: on a push, the one this push approved with start auto; by hand, the input. No concurrency
+  # here, so a push that approves nothing never waits in, or cancels a run waiting in, the start-run group.
+  pick:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # camera-pose: 10, not 5. scripts/setup-check.sh --staging includes the pose catalog check of
-    # scripts/setup-check-app.sh (plan T-065).
-    timeout-minutes: 10
+    timeout-minutes: 5
+    outputs:
+      run_file: ${{ steps.choose.outputs.run_file }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Chọn danh sách chạy
+        id: choose
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          RUN_FILE_INPUT: ${{ inputs.run_file }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          code=0
+          if [ "${EVENT}" = "push" ]; then
+            out="$(python3 -I scripts/auto-start-check.py push --before "${BEFORE}" --after "${GITHUB_SHA}" 2> "${RUNNER_TEMP}/pick.err")" || code=$?
+          else
+            force=()
+            if [ "${FORCE}" = "true" ]; then force=(--force); fi
+            out="$(python3 -I scripts/auto-start-check.py dispatch "${RUN_FILE_INPUT}" ${force[@]+"${force[@]}"} 2> "${RUNNER_TEMP}/pick.err")" || code=$?
+          fi
+          cat "${RUNNER_TEMP}/pick.err" >&2
+          {
+            echo "### Chọn danh sách chạy"
+            echo
+            sed 's/^/- /' "${RUNNER_TEMP}/pick.err"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          case "${code}" in
+            0) ;;
+            3)
+              echo "::error::Không bắt đầu phiên: $(tail -n 1 "${RUNNER_TEMP}/pick.err")"
+              exit 1
+              ;;
+            *)
+              echo "::error::Không chọn được danh sách chạy (mã ${code}). Lý do ở log của bước này."
+              exit 1
+              ;;
+          esac
+          if [[ "${out}" =~ ^docs/runs/RUN-[0-9]{8}-[0-9]{2}\.md$ ]]; then
+            echo "run_file=${out}" >> "${GITHUB_OUTPUT}"
+          fi
+
+  check:
+    needs: pick
+    if: needs.pick.outputs.run_file != ''
+    runs-on: ubuntu-latest
+    # Up to 20 minutes waiting for a running main-guard on a push.
+    # camera-pose: the 10 minutes left after the wait cover scripts/setup-check.sh --staging with the pose catalog
+    # check of scripts/setup-check-app.sh (plan T-065).
+    timeout-minutes: 30
+    # Only one session at a time (docs/auto-run.md, section 1), shared with resume-run.yml.
+    concurrency:
+      group: start-run
+      cancel-in-progress: false
+    outputs:
+      run_file: ${{ needs.pick.outputs.run_file }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -52,7 +121,7 @@ jobs:
       - name: Kiểm tra trước khi bắt đầu phiên
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_FILE: ${{ inputs.run_file }}
+          RUN_FILE: ${{ needs.pick.outputs.run_file }}
         run: |
           if ! [[ "${RUN_FILE}" =~ ^docs/runs/RUN-[0-9]{8}-[0-9]{2}\.md$ ]]; then
             echo "::error::Đường dẫn danh sách chạy phải có dạng docs/runs/RUN-YYYYMMDD-NN.md."
@@ -88,7 +157,21 @@ jobs:
       - name: Kiểm tra main-guard trên nhánh chính
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/main-guard-status.sh "${GITHUB_SHA}"
+          EVENT: ${{ github.event_name }}
+        run: |
+          # A run list is often merged right after code: on a push, wait while main-guard still runs (exit 2).
+          if [ "${EVENT}" = "push" ]; then
+            for attempt in $(seq 1 20); do
+              code=0
+              GITHUB_ACTIONS= scripts/main-guard-status.sh "${GITHUB_SHA}" || code=$?
+              if [ "${code}" != "2" ]; then
+                break
+              fi
+              echo "main-guard còn chạy, chờ 60 giây (lần ${attempt}/20)."
+              sleep 60
+            done
+          fi
+          scripts/main-guard-status.sh "${GITHUB_SHA}"
 
       # What otherwise fails only at the end of the session (device-session.yml, staging.yml) or in the first
       # emulator test: fake or wrong Firebase staging secret, missing tester group, missing R2 files, DNS of the
@@ -132,12 +215,43 @@ jobs:
           done
 
   fire:
+    name: fire ${{ needs.check.outputs.run_file }}
     needs: [check, close-setup-broken]
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: start-run
+      cancel-in-progress: false
     permissions:
+      contents: read
       actions: write
     steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      # pick checked before the queue; a run that fired meanwhile is seen only here, inside the start-run group.
+      - name: Kiểm tra lại ngay trước khi kích hoạt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_FILE: ${{ needs.check.outputs.run_file }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          force=()
+          if [ "${FORCE}" = "true" ]; then force=(--force); fi
+          code=0
+          out="$(python3 -I scripts/auto-start-check.py dispatch "${RUN_FILE}" --recheck ${force[@]+"${force[@]}"} 2> "${RUNNER_TEMP}/recheck.err")" || code=$?
+          cat "${RUNNER_TEMP}/recheck.err" >&2
+          if [ "${code}" != "0" ] || [ "${out}" != "${RUN_FILE}" ]; then
+            {
+              echo "### Kiểm tra lại trước khi kích hoạt"
+              echo
+              sed 's/^/- /' "${RUNNER_TEMP}/recheck.err"
+            } >> "${GITHUB_STEP_SUMMARY}"
+            echo "::error::Không kích hoạt phiên (mã ${code}): $(tail -n 1 "${RUNNER_TEMP}/recheck.err")"
+            exit 1
+          fi
+
       # The schedules turn themselves off while no session runs (scripts/schedule-idle.py). Turned on before the
       # routine, so the session is watched and continued from its start. A failure only warns: the session enables
       # them again at its start.
@@ -154,8 +268,9 @@ jobs:
         env:
           FIRE_URL: ${{ secrets.ROUTINE_FIRE_URL }}
           FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
-          RUN_FILE: ${{ inputs.run_file }}
+          RUN_FILE: ${{ needs.check.outputs.run_file }}
           ACTOR: ${{ github.actor }}
+          EVENT: ${{ github.event_name }}
         run: |
           if [ -z "${FIRE_URL}" ] || [ -z "${FIRE_TOKEN}" ]; then
             echo "::error::Thiếu bí mật ROUTINE_FIRE_URL hoặc ROUTINE_FIRE_TOKEN. Xem docs/ops/staging-and-runs.md."
@@ -163,8 +278,10 @@ jobs:
           fi
 
           # The routine's own prompt reads the run file named in this text (docs/ops/staging-and-runs.md).
-          payload="$(jq -n --arg file "${RUN_FILE}" --arg actor "${ACTOR}" \
-            '{text: ("Danh sách chạy: " + $file + "\nNgười kích hoạt: " + $actor)}')"
+          how="bấm tay"
+          if [ "${EVENT}" = "push" ]; then how="tự động khi danh sách approved lên nhánh chính"; fi
+          payload="$(jq -n --arg file "${RUN_FILE}" --arg actor "${ACTOR}" --arg how "${how}" \
+            '{text: ("Danh sách chạy: " + $file + "\nNgười kích hoạt: " + $actor + "\nCách bắt đầu: " + $how)}')"
 
           # The token goes through a header file, so it never appears in the command line.
           umask 077

@@ -43,15 +43,6 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - chỉ dùng màu, chữ, khoảng cách, thành phần từ `:core:designsystem`
 - không viết cứng mã màu hay cỡ chữ trong feature
 
-### [ADR-0009](adr/0009-auto-run-infrastructure.md): Phiên tự chạy dùng Claude Code routine, staging chạy trên GitHub Actions, phát hành production ngoài GitHub
-
-- đặt tên nhánh theo `claude/T-NNN-<tu-khoa>`
-- ghi đường dẫn phiên chạy vào mô tả PR
-- không cố cài hay chạy emulator trong phiên
-- không đọc, in ra hay chuyển đi bất kỳ bí mật nào của repo
-- không viết workflow mới có dùng bí mật, trừ khi đó chính là plan rủi ro cao đã được duyệt chéo
-- không chạm vào `scripts/release.sh`
-
 ### [ADR-0010](adr/0010-soft-quality-gate-github-free.md): Cổng chất lượng mềm trên GitHub Free, merge chỉ qua script kiểm tra
 
 - chỉ merge bằng `scripts/merge-if-green.sh`
@@ -69,18 +60,6 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - feature chỉ dùng `RemoteAssets`, không gọi HTTP hay viết địa chỉ R2
 - mỗi thay đổi nội dung file là một đường dẫn mới
 - không viết code hay script ghi đè, xóa file trên R2
-
-### [ADR-0016](adr/0016-staging-and-start-run-workflows.md): Bản staging build bằng biến thể release ký khóa staging riêng, phiên tự chạy kích hoạt qua API của routine
-
-- không đọc, in ra hay chuyển đi giá trị bí mật
-- không đổi `staging.yml` hay `start-run.yml` ngoài plan rủi ro cao đã duyệt chéo
-- cuối phiên tự chạy chỉ khởi động `staging.yml` trên nhánh chính
-
-### [ADR-0017](adr/0017-release-and-new-app-scripts.md): Script phát hành chỉ build bản ký, người tải lên Google Play; script khởi tạo chép dự án mẫu thành repo mới
-
-- không chạm vào `scripts/release.sh` (ADR-0009)
-- không đọc, tạo hay sửa thư mục phát hành
-- khi đổi tên một file mà `scripts/new-app.sh` sửa (README, CLAUDE.md, `strings.xml`, `settings.gradle.kts`, `app/build.gradle.kts`), cập nhật script và test của nó trong cùng PR
 
 ### [ADR-0018](adr/0018-loading-waits-for-remote-config.md): Màn hình loading chờ tải Remote Config khi mở app, các màn hình khác vẫn không chờ
 
@@ -192,23 +171,6 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - L12 không đổi chữ hiển thị, nội dung log, tên trong code hay dòng code chạy
 - mỗi lệch L11, L12 ghi vào mục "Quyết định AI đã tự làm" của báo cáo
 - rà soát độc lập xét L11 kèm lệnh tái hiện như L1 tới L7 và L10, xét L12 ở vòng rà soát lại của điểm nên sửa kèm `git diff -w`, lệch không đủ điều kiện là mức chặn
-
-### [ADR-0034](adr/0034-lam-nhanh-co-nguoi-theo-doi.md): Việc nhỏ, rủi ro thấp của code app được làm ngay ban ngày theo đường làm nhanh, AI làm cùng dev, vẫn đủ yêu cầu, ticket, plan, nhật ký, CI và merge-if-green.sh
-
-- đường làm nhanh chỉ cho code app, chỉ khi dev ngồi cùng suốt task tới khi `main-guard` xanh, plan không chạm điểm chặn nào kể cả điểm 7, không thêm quyền, thư viện hay SDK, mức rủi ro Thấp và tiêu chí E dưới 2, ticket cỡ S hoặc M khi dev đồng ý, kịch bản có trong spec `confirmed` hoặc dev ngồi cùng là người xác nhận spec của feature
-- không bắt đầu khi có phiên tự chạy đang chạy hay issue `main-broken`, `env-broken` đang mở
-- vẫn ghi yêu cầu, ticket, plan đủ mục theo mẫu với `lane: quick`, chạy `scripts/plan-check.py` khi plan còn `draft` và sửa hết lỗi
-- chỉ chuyển plan sang `approved`, ghi mục 9, hay chuyển spec sang `confirmed` sau khi dev đồng ý rõ ràng trong chính phiên đó, ghi người duyệt, ngày và lời đồng ý
-- dev nào ngồi cùng cũng duyệt được plan làm nhanh, ghi khi người duyệt không phải `owner` của ticket
-- vẫn viết test trước, chạy `scripts/check.sh`, rà soát độc lập bằng agent con ngữ cảnh mới theo bước 6 của `docs/auto-run.md`, lời giao có dòng `Task: T-NNN`
-- chờ CI và merge chỉ bằng `scripts/merge-if-green.sh`, chờ `main-guard`
-- một PR cho cả task trên nhánh `claude/quick-T-NNN-<tu-khoa>`, mô tả ghi "Đường làm nhanh (ADR-0034)" và những gì đường thường ghi vào báo cáo phiên
-- nhật ký, plan `done`, ticket `on-staging` ghi trong lần đẩy cuối trước CI
-- trước khi merge chạy `scripts/plan-check.py` và `scripts/run-check.py` cho các danh sách chạy chưa chạy trên nhánh làm nhanh và báo dev lỗi mới
-- hỏi dev trước mọi lệch mà phiên tự chạy được tự làm rồi báo, ghi vào nhật ký
-- dừng hay bỏ task thì đóng PR làm nhanh và đưa yêu cầu, ticket `stopped`, plan có nhật ký lần dừng lên nhánh chính bằng PR tài liệu, làm tiếp thì theo đường thường trên nhánh `claude/T-NNN-<tu-khoa>`
-- nhánh chính đỏ vì commit merge của PR làm nhanh thì revert theo ADR-0025 cùng dev, rồi ticket `stopped` và nhật ký ghi "đã merge rồi revert"
-- đánh dấu token bằng `scripts/token-usage.py mark` và ghi CSV với `--run QUICK-YYYYMMDD-T-NNN`
 
 ### [ADR-0035](adr/0035-diem-chan-khong-tai-hien.md): Điểm chặn của rà soát độc lập nói code chạy sai mà test chạy thật không tái hiện được thì phiên ghi "không tái hiện" và đi tiếp, có người kiểm sau
 
@@ -323,6 +285,52 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không đặt `android.newDsl=false`, plugin cần DSL cũ thì nâng plugin đó
 - giữ `compileSdk = "<số>"` trên một dòng của `gradle/libs.versions.toml`
 - nâng Gradle thì thêm giới hạn Java của bản đó vào `scripts/java-check.sh` kèm test
+
+### [ADR-0048](adr/0048-duyet-plan-va-danh-sach-chay-mot-lan.md): Đường làm nhanh giữ, thêm bước gộp nhánh chính; plan và danh sách chạy của một đợt được duyệt một lần trong một PR, không cần họp; AI chỉ ghi trạng thái duyệt theo lời đồng ý rõ ràng của dev, ở một quy tắc chung
+
+- đường làm nhanh chỉ cho code app, chỉ khi dev ngồi cùng suốt task tới khi `main-guard` xanh, plan không chạm điểm chặn nào kể cả điểm 7, không thêm quyền, thư viện hay SDK, mức rủi ro Thấp và tiêu chí E dưới 2, ticket cỡ S hoặc M khi dev đồng ý, kịch bản có trong spec `confirmed` hoặc dev ngồi cùng là người xác nhận spec của feature
+- không bắt đầu khi có phiên tự chạy đang chạy hay issue `main-broken`, `env-broken` đang mở
+- vẫn ghi yêu cầu, ticket, plan đủ mục theo mẫu với `lane: quick`, chạy `scripts/plan-check.py` khi plan còn `draft` và sửa hết lỗi
+- dev nào ngồi cùng cũng duyệt được plan làm nhanh, ghi khi người duyệt không phải `owner` của ticket
+- vẫn viết test trước, chạy `scripts/check.sh`, rà soát độc lập bằng agent con ngữ cảnh mới theo bước 6 của `docs/auto-run.md`, lời giao có dòng `Task: T-NNN`
+- chờ CI và merge chỉ bằng `scripts/merge-if-green.sh`, chờ `main-guard`
+- một PR cho cả task trên nhánh `claude/quick-T-NNN-<tu-khoa>`, mô tả ghi "Đường làm nhanh (ADR-0048)" và những gì đường thường ghi vào báo cáo phiên
+- nhật ký, plan `done`, ticket `on-staging` ghi trong lần đẩy cuối trước CI
+- trước khi merge gộp nhánh chính vào nhánh làm nhanh rồi chạy `scripts/plan-check.py` và `scripts/run-check.py` cho các danh sách chạy chưa chạy và báo dev lỗi mới
+- hỏi dev trước mọi lệch mà phiên tự chạy được tự làm rồi báo, ghi vào nhật ký
+- dừng hay bỏ task thì đóng PR làm nhanh và đưa yêu cầu, ticket `stopped`, plan có nhật ký lần dừng lên nhánh chính bằng PR tài liệu, làm tiếp thì theo đường thường trên nhánh `claude/T-NNN-<tu-khoa>`
+- nhánh chính đỏ vì commit merge của PR làm nhanh thì revert theo ADR-0025 cùng dev, rồi ticket `stopped` và nhật ký ghi "đã merge rồi revert"
+- đánh dấu token bằng `scripts/token-usage.py mark` và ghi CSV với `--run QUICK-YYYYMMDD-T-NNN`
+- khi duyệt cả đợt, lập danh sách chạy `draft` cùng PR với các plan `draft` của đợt trên nhánh `claude/batch-YYYYMMDD-NN`, sau khi các plan đã qua `plan-check.py` và rà soát độc lập của từng plan
+- spec cần sửa của đợt đi cùng PR và được người xác nhận spec của feature xác nhận trong cùng lời duyệt
+- kiểm danh sách bằng `run-check.py --batch` (chỉ bỏ qua lỗi trạng thái của file có trong diff so với điểm tách) và rà soát theo `docs/ops/pre-run-review.md` trên bản `draft`, chạy lại cả hai lớp sau mỗi lần sửa plan hay spec
+- chỉ đóng PR plan riêng cũ khi dev đồng ý
+- đưa người duyệt một tóm tắt cho cả đợt kèm câu duyệt có sẵn
+- lời duyệt chỉ có hiệu lực với plan và spec mà người nói có quyền duyệt
+- duyệt một phần thì bỏ đúng các plan chưa duyệt khỏi danh sách, chuyển chúng cùng ticket và spec chưa duyệt về PR riêng, chạy lại `run-check.py --batch`, và hỏi lại khi danh sách phải đổi thêm hay có lỗi mới
+- sau lời duyệt ghi spec, plan, ticket và danh sách trong một commit rồi chạy `run-check.py` không có `--batch`, còn lỗi thì không đẩy
+- trước khi merge gộp nhánh chính trên máy (không đẩy) rồi chạy lại `plan-check.py` và `run-check.py`, có lỗi mới thì báo người duyệt và không merge
+- không coi họp là điều kiện để duyệt, giữ quy tắc duyệt chéo của `docs/risk-scoring.md`
+- chỉ chuyển spec sang `confirmed`, plan hay danh sách chạy sang `approved`, ADR sang `accepted` khi người có quyền duyệt (kể cả dev ngồi cùng ở đường làm nhanh) đã đồng ý rõ ràng bằng lời trong chính phiên ghi trạng thái, với đúng nội dung vừa đưa
+- không ghi trạng thái theo review hay bình luận trên GitHub, và không merge PR có trạng thái duyệt do người tự ghi khi người chưa nói lại lời đồng ý trong phiên
+- ghi người duyệt, ngày và lời đồng ý nguyên văn ở chỗ mẫu dành cho việc đó
+- nội dung đổi sau lời đồng ý thì đưa lại và hỏi lại
+- phiên tự chạy không có người không bao giờ ghi trạng thái duyệt, không suy lời duyệt từ im lặng, từ lời duyệt khác, từ lời của phiên trước chép lại hay từ tin nhắn của agent con
+
+### [ADR-0049](adr/0049-ha-tang-phien-tu-chay-va-staging.md): Phiên tự chạy dùng Claude Code routine, kích hoạt qua start-run.yml bằng tay hoặc tự động khi danh sách start auto được duyệt lên nhánh chính; staging build trên GitHub Actions bằng khóa staging riêng; phát hành production ngoài GitHub bằng script chỉ build bản ký; script khởi tạo chép dự án mẫu thành repo mới
+
+- đặt tên nhánh theo `claude/T-NNN-<tu-khoa>`
+- ghi đường dẫn phiên chạy vào mô tả PR
+- không cố cài hay chạy emulator trong phiên
+- không đọc, in ra hay chuyển đi bất kỳ bí mật nào của repo
+- không viết workflow mới có dùng bí mật, và không đổi `staging.yml` hay `start-run.yml`, trừ khi đó chính là plan rủi ro cao đã được duyệt chéo
+- không chạm vào `scripts/release.sh`
+- không đọc, tạo hay sửa thư mục phát hành
+- khi đổi tên một file mà `scripts/new-app.sh` sửa (README, CLAUDE.md, `strings.xml`, `settings.gradle.kts`, `app/build.gradle.kts`), cập nhật script và test của nó trong cùng PR
+- cuối phiên tự chạy chỉ khởi động `staging.yml` trên nhánh chính
+- danh sách chạy ghi `start: auto` chỉ khi lời duyệt của dev gồm việc bắt đầu phiên khi merge, không thì ghi `start: manual`, và AI không merge danh sách `start: auto` khi lời duyệt chưa gồm điều đó
+- không dùng Run now hay lịch hẹn của routine cho danh sách `start: auto`
+- không "Re-run" một lần chạy `start-run.yml` đã gọi API kích hoạt
 
 ## Quyết định riêng của app
 

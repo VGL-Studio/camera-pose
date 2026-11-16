@@ -1,6 +1,6 @@
 # CÀI ĐẶT BẢN STAGING VÀ PHIÊN TỰ CHẠY
 
-Tài liệu này dành cho người phụ trách. Nó liệt kê những việc làm một lần cho mỗi app để hai workflow `staging.yml` và `start-run.yml` chạy được (ADR-0009, ADR-0016). AI không làm các bước này và không bao giờ đọc hay in ra giá trị bí mật.
+Tài liệu này dành cho người phụ trách. Nó liệt kê những việc làm một lần cho mỗi app để hai workflow `staging.yml` và `start-run.yml` chạy được (ADR-0049). AI không làm các bước này và không bao giờ đọc hay in ra giá trị bí mật.
 
 Bí mật thêm ở **Settings > Secrets and variables > Actions > Secrets** của repo. Biến thường thêm ở tab **Variables** cùng trang.
 
@@ -68,7 +68,7 @@ Sau đó chuyển `google-services.json`, file khóa và `staging.keystore` ra k
 ### 2.1. Routine
 
 1. Cài Claude GitHub App cho tổ chức trên GitHub, cấp quyền cho repo này (repo private cần app được cài).
-2. Trên https://claude.ai/code, ở ô chọn môi trường dưới khung nhập, chọn **New environment** (ADR-0009):
+2. Trên https://claude.ai/code, ở ô chọn môi trường dưới khung nhập, chọn **New environment** (ADR-0049):
 
    | Trường | Giá trị |
    | --- | --- |
@@ -93,6 +93,8 @@ Sau đó chuyển `google-services.json`, file khóa và `staging.keystore` ra k
    - Danh sách chạy không có trạng thái approved thì không làm task nào, kết thúc phiên và báo lý do.
 
    Nhánh: không làm việc trên nhánh mặc định của phiên này. Tạo nhánh báo cáo và nhánh riêng cho từng task đúng như docs/auto-run.md.
+
+   Merge: người duyệt plan và danh sách chạy giao cho phiên việc merge bằng đúng lệnh scripts/merge-if-green.sh <số PR>: PR task sau rà soát độc lập (bước 6) và khi CI xanh (bước 9); PR báo cáo, PR tóm tắt plan soạn sẵn và bản revert đúng như mục 3 và mục 4 của docs/auto-run.md. Không merge bằng cách nào khác.
    ```
 
    Routine tạo sẵn cho mỗi phiên một nhánh `claude/<tên ngẫu nhiên>`. Dòng "Nhánh" của prompt yêu cầu phiên bỏ qua nhánh đó, vì một phiên có nhiều task, mỗi task cần nhánh riêng tạo từ nhánh chính.
@@ -114,13 +116,16 @@ Mã này chỉ kích hoạt được đúng routine đó, không đọc được
 
 1. Danh sách chạy `docs/runs/RUN-YYYYMMDD-NN.md` có trạng thái `approved` đã được merge vào nhánh chính.
    Lịch của `resume-run` và `run-watchdog` tự tắt khi không có phiên; `status-page.yml` bật lại chúng khi danh sách `approved` lên nhánh chính (mục 2.8). GitHub có lúc không phát sự kiện push của một lần merge, nên kiểm `gh workflow list --all` thấy cả hai ở `active` (lệnh không có `--all` ẩn workflow đã tắt); không thì chạy `scripts/schedule-idle.py --enable` trên máy.
-2. **Actions > start-run > Run workflow**, nhánh `main`, nhập đường dẫn danh sách chạy.
-3. Workflow từ chối nếu danh sách chưa `approved`, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`). Workflow cũng chạy `scripts/setup-check.sh --staging` trên máy của GitHub và từ chối khi: bí mật `STAGING_GOOGLE_SERVICES_JSON` thiếu, là file giả (`fake-staging-project`) hay không có app `<applicationId>.staging`; một nhóm trong `STAGING_TESTER_GROUPS` (mặc định `team`) chưa có trên App Distribution; một file trong `docs/ops/required-assets.txt` không trả `200`; tên miền file tĩnh không phân giải được qua 1.1.1.1 hay 8.8.8.8; kiểm tra riêng của app (`scripts/setup-check-app.sh`, nếu app có) báo lỗi; ở camera-pose: catalog tư thế mặc định của app, hay catalog mà một giá trị của khóa `poses_catalog_path` trên Remote Config staging trỏ tới, hay một file khởi đầu của các catalog đó không trả `200` (plan T-065, mục 2.4). Một lần R2 trả 429, 5xx hay không kết nối được thì script hỏi lại một lần. File trả 404 mà hỏi lại kèm tham số chống bộ nhớ đệm thì trả `200`: dòng lỗi nói CDN còn giữ câu trả lời cũ, xóa bộ nhớ đệm của URL đó. Kiểm tra xanh thì workflow đóng issue `setup-broken` đang mở trước khi kích hoạt routine, để phiên không dừng vì issue cũ. Nhờ vậy các lỗi này lộ ra trước khi phiên bắt đầu, không phải ở cuối phiên khi phát bản staging. Nhóm người test được kiểm bằng API của App Distribution với tài khoản dịch vụ ở mục 1.1; API không trả lời (ví dụ thiếu quyền) thì chỉ báo chú ý. Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
-4. Bị từ chối vì `main-guard` chưa chạy hay chưa có kết quả (`CHƯA KIỂM`, thường vì GitHub không phát sự kiện push sau một lần merge; cũng báo khi lần chạy thất bại mà không có issue `main-broken`, tức lỗi hạ tầng): **Actions > main-guard > Run workflow** trên `main`, **Re-run all jobs** trên lần chạy thất bại, hoặc lệnh mà thông báo in ra, chờ xanh, rồi chạy lại `start-run`. Đang chạy (`CHỜ`): chờ xong rồi chạy lại.
+2. Danh sách ghi `start: auto` (mẫu mặc định, cần `open_with: routine`): lần merge ở bước 1 tự chạy `start-run` (ADR-0049). Mở **Actions > start-run**, lần chạy của lần push đó: job `fire` xanh là phiên đã bắt đầu, không bấm gì nữa. Không có lần chạy, lần chạy `cancelled`, lần chạy xanh mà `fire` bị bỏ qua (`pick` không chọn danh sách, lý do ở tóm tắt của `pick`), hay lần chạy đỏ mà đã sửa nguyên nhân (lý do ở tóm tắt hay dòng lỗi của job `pick`, `check` hay `fire`): bấm tay như dưới đây. Danh sách `start: manual` (hay không ghi `start`) luôn bấm tay.
+
+   Bấm tay: **Actions > start-run > Run workflow**, nhánh `main`, nhập đường dẫn danh sách chạy. Ô **force** chỉ chọn khi biết chắc phiên trước không bắt đầu (lần chạy bị từ chối vì "vừa kích hoạt một phiên"), hoặc để mở lại phiên của chính danh sách đó khi nhánh báo cáo của nó còn `running` mà `resume-run` không tiếp tục. Không chọn **force** khi lần chạy do push của cùng danh sách chưa xong: hai lần cùng gọi API là hai phiên.
+3. Workflow (tự chạy hay bấm tay) từ chối nếu danh sách đã có nhánh báo cáo, có phiên khác đang `running`, một lần `start-run` khác vừa kích hoạt routine cho một danh sách chưa có nhánh báo cáo (trong 90 phút), danh sách chưa hay không còn `approved` trên nhánh chính, nhánh chính đang đỏ (có issue `main-broken` đang mở), môi trường cloud đang lỗi (có issue `env-broken` đang mở, mục 2.4), hoặc `main-guard` chưa qua trên commit gần nhất có đổi code của nhánh chính (`scripts/main-guard-status.sh`). Workflow cũng chạy `scripts/setup-check.sh --staging` trên máy của GitHub và từ chối khi: bí mật `STAGING_GOOGLE_SERVICES_JSON` thiếu, là file giả (`fake-staging-project`) hay không có app `<applicationId>.staging`; một nhóm trong `STAGING_TESTER_GROUPS` (mặc định `team`) chưa có trên App Distribution; một file trong `docs/ops/required-assets.txt` không trả `200`; tên miền file tĩnh không phân giải được qua 1.1.1.1 hay 8.8.8.8; kiểm tra riêng của app (`scripts/setup-check-app.sh`, nếu app có) báo lỗi; ở camera-pose: catalog tư thế mặc định của app, hay catalog mà một giá trị của khóa `poses_catalog_path` trên Remote Config staging trỏ tới, hay một file khởi đầu của các catalog đó không trả `200` (plan T-065, mục 2.4). Một lần R2 trả 429, 5xx hay không kết nối được thì script hỏi lại một lần. File trả 404 mà hỏi lại kèm tham số chống bộ nhớ đệm thì trả `200`: dòng lỗi nói CDN còn giữ câu trả lời cũ, xóa bộ nhớ đệm của URL đó. Kiểm tra xanh thì workflow đóng issue `setup-broken` đang mở trước khi kích hoạt routine, để phiên không dừng vì issue cũ. Nhờ vậy các lỗi này lộ ra trước khi phiên bắt đầu, không phải ở cuối phiên khi phát bản staging. Nhóm người test được kiểm bằng API của App Distribution với tài khoản dịch vụ ở mục 1.1; API không trả lời (ví dụ thiếu quyền) thì chỉ báo chú ý. Khi thành công, phần tóm tắt của workflow có đường dẫn tới phiên.
+4. Bị từ chối vì `main-guard` chưa chạy hay chưa có kết quả (`CHƯA KIỂM`, thường vì GitHub không phát sự kiện push sau một lần merge; cũng báo khi lần chạy thất bại mà không có issue `main-broken`, tức lỗi hạ tầng): **Actions > main-guard > Run workflow** trên `main`, **Re-run all jobs** trên lần chạy thất bại, hoặc lệnh mà thông báo in ra, chờ xanh, rồi chạy lại `start-run`. Đang chạy (`CHỜ`): chờ xong rồi chạy lại; lần tự chạy do merge danh sách tự chờ `main-guard` đang chạy tối đa 20 phút.
 
 Lưu ý:
 
-- Mỗi lần chạy workflow thành công là một phiên mới. Không chạy lại workflow khi phiên trước còn đang chạy.
+- Mỗi lần chạy workflow thành công là một phiên mới. Không chạy lại workflow khi phiên trước còn đang chạy, và không **Re-run** một lần chạy `start-run` mà job `fire` đã tới bước `Kích hoạt routine`, kể cả khi job đỏ.
+- Danh sách `start: auto` không dùng Run now hay lịch hẹn của routine (không qua kiểm tra chống mở hai phiên); muốn chọn giờ thì ghi `start: manual`.
 - Routine giới hạn 30 lần kích hoạt mỗi giờ. API kích hoạt đang ở giai đoạn thử nghiệm của Anthropic, gọi kèm header `anthropic-beta: experimental-cc-routine-2026-04-01`; cách gọi có thể đổi.
 - Phiên tự chạy dùng chung hạn mức với tài khoản Claude sở hữu routine.
 
@@ -217,6 +222,7 @@ Mỗi job tính tối thiểu 1 phút Actions. Ba lịch chạy cả khi không 
 | `run-watchdog.yml` | Mỗi 30 phút | khoảng 1.440 | Như `resume-run.yml` |
 | `env-canary.yml` | 01:00 UTC (08:00 giờ Việt Nam) hằng ngày, 2 job | khoảng 60 | Không tự tắt: vẫn kiểm môi trường và file R2 cho phiên sau |
 | `status-page.yml`, job `schedules` | Mỗi lần merge có đổi `docs/` | không áp dụng | Khoảng 1 phút mỗi lần |
+| `start-run.yml`, job `pick` | Mỗi push lên nhánh chính đổi `docs/runs/RUN-*.md` | không áp dụng | Khoảng 1 phút mỗi lần; lần chạy đó cũng giữ lịch của `resume-run`, `run-watchdog` bật thêm 3 giờ |
 
 Cách làm (`scripts/schedule-idle.py`):
 

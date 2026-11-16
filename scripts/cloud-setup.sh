@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Setup script for the cloud environment of the auto-run routine (ADR-0009).
+# Setup script for the cloud environment of the auto-run routine (ADR-0049).
 # Paste this file into the "Setup script" field of the cloud environment.
 # Needs the Custom network level: the default allowlist plus dl.google.com.
 # After changing this file, paste it again into the environment: the cached environment is rebuilt from it.

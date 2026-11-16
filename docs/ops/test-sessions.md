@@ -159,6 +159,13 @@ Sau mỗi lệnh `device`, trình chạy đọc màn hình tới khi hai lần d
 - Trạng thái này không đi qua ranh giới tệp, và `fresh` đặt lại nó.
 - `consent decline` chạm "Do not consent", nhưng bộ đồng ý UMP vẫn cho nạp quảng cáo không cá nhân hóa (camera-pose: log `VGL.Ads: Consent path: GRANTED` sau khi từ chối, spec onboarding câu 9). Nên kịch bản sau `consent decline` vẫn có thể gặp quảng cáo toàn màn hình: bước ngay sau một điểm hiện quảng cáo chờ nút đóng của nó hoặc màn đích (`wait text="Close" | id=<màn đích> 20`, rồi `tap_if text="Close"`), như ba kịch bản của camera-pose T-089. Quảng cáo thử của AdMob vẽ nút đóng trong `WebView`, chỉ có chữ `Close`, không có `resource-id`.
 
+**Quảng cáo toàn màn hình.** Bước ngay sau một điểm có thể hiện quảng cáo toàn màn hình (kể cả sau `consent decline`, ý trên) không chờ thẳng màn đích, vì quảng cáo phủ lên và bước đó đỏ. Chờ nút đóng của quảng cáo hoặc màn đích, chạm nút đóng nếu thấy, rồi chờ lại màn đích, vì `tap_if` chạm xong là đi tiếp ngay:
+- Interstitial: `wait text="Close" | id=<màn đích> 20`, rồi `tap_if text="Close"`. Quảng cáo thử của AdMob vẽ nút đóng trong `WebView`: node chỉ có chữ `Close`, không có `resource-id`, nên không chọn bằng `id=` được.
+- Native toàn màn hình mở bằng `rememberShowFullScreenAd`, và native hiện ngay sau khi interstitial đóng (bản staging bật sẵn): `wait str=ads_close_full_screen | id=<màn đích> 20`, rồi `tap_if str=ads_close_full_screen`. Nút đóng chỉ hiện sau khi đếm ngược `time_close_native` (mặc định 5 giây) xong, nên số giây chờ lớn hơn đếm ngược. Trang native của một bước trong luồng không có nút đóng và không phủ lên màn khác, nên không cần cặp này.
+- Sau một nút có interstitial, kịch bản viết cặp interstitial rồi cặp native, theo thứ tự đó (bản staging bật sẵn native sau interstitial): màn đích chỉ mở khi native đóng.
+- App open thử của AdMob: nút "Continue to app" có thể nằm ở chữ hay ở `content-desc`, nên chọn cả hai, `text="Continue to app" | desc="Continue to app"`.
+- Cuối cùng `wait id=<màn đích> 15`.
+
 **Bảng của hệ thống.** Monkey chạy ngay trước các tệp kịch bản và có thể vuốt từ mép trên, để bảng thông báo hay cài đặt nhanh mở đè lên app; khi đó mọi lần dump chỉ có node của `com.android.systemui`. Màn hình khóa cũng chỉ có node của `com.android.systemui`: khi đó lệnh đóng bảng không có tác dụng, dòng `note` vẫn ghi, và tệp vẫn lỗi.
 - `fresh` đóng bảng (`adb shell cmd statusbar collapse`) trước khi mở app.
 - Một lần dump chỉ có node của `com.android.systemui`: trình chạy đóng bảng một lần, đọc lại màn hình và ghi `note ... bảng của hệ thống che app, đã đóng (cmd statusbar collapse)` (một lần mỗi bước). Bảng vẫn còn thì bước xử lý màn hình đọc lại như mọi màn hình không có phần tử nó tìm.

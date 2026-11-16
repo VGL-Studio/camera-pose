@@ -1,6 +1,6 @@
 # PHÁT HÀNH BẢN PRODUCTION
 
-Tài liệu này dành cho người phụ trách phát hành. Bản production được build trên máy của người đó bằng `scripts/release.sh`, rồi người tải lên Google Play bằng tay (ADR-0009, ADR-0017). Không có bước nào chạy trên GitHub, AI không tham gia.
+Tài liệu này dành cho người phụ trách phát hành. Bản production được build trên máy của người đó bằng `scripts/release.sh`, rồi người tải lên Google Play bằng tay (ADR-0049). Không có bước nào chạy trên GitHub, AI không tham gia.
 
 ## 1. Chuẩn bị một lần cho mỗi app
 
@@ -25,6 +25,10 @@ Cất vào trình quản lý mật khẩu, mỗi app một mục:
 | Mã ứng dụng AdMob, dạng `ca-app-pub-<số>~<số>` | AdMob, mục App settings |
 | Mã quảng cáo của từng vị trí, dạng `ca-app-pub-<số>/<số>` | AdMob, mục Ad units. Mỗi vị trí trong `AdPlacement` một mã |
 | Địa chỉ gốc của file trên R2 production, kết thúc bằng `/` | Cloudflare R2, tên miền công khai của bucket production |
+| Khóa SDK AppLovin MAX (chỉ khi app dùng MAX) | AppLovin, mục **Account > Keys > SDK Key** |
+| Mã đơn vị MAX của từng khe: `banner`, `banner_mrec` (thêm `interstitial`, `rewarded`, `app_open` khi app dùng các khe đó) | AppLovin, mục **MAX > Mediation > Manage > Ad Units** |
+
+App chưa có tài khoản AppLovin thì bỏ qua hai dòng cuối: bản phát hành không chạy MAX, mọi khe chỉ dùng AdMob.
 
 Đơn vị banner cố định, MREC và banner thu gọn trên AdMob và MAX tắt tự làm mới khi tạo mã: `:core:ads` tự nạp lại theo Remote Config; chi tiết ở [ads-guide.md](ads-guide.md), mục 9.
 
@@ -41,6 +45,10 @@ Làm một lần cho mỗi nhà phát triển. File `app-ads.txt` đặt ở g�
 - Dòng của tám mạng còn lại trong nhóm mediation (Meta Audience Network, DT Exchange, InMobi, ironSource, Mintegral, Moloco, Pangle, Unity Ads): lấy từ bảng điều khiển của từng mạng ([ads-guide.md](ads-guide.md) mục 7).
 
 Thiếu dòng của một mạng thì doanh thu của mạng đó giảm đáng kể.
+
+### 1.5. Nhóm mediation AdMob khi app dùng MAX
+
+App có khóa MAX thì trên AdMob, mọi nhóm mediation của app bỏ nguồn "AppLovin (Bidding)" và "AppLovin" (waterfall), để AppLovin không đấu giá hai lần với chính nó; MAX gọi Google qua adapter Google của MAX. App chưa dùng MAX thì giữ AppLovin trong nhóm mediation AdMob như cũ. Adapter AppLovin của AdMob vẫn có trong bản build; bỏ adapter là việc riêng. Kiểm lại mỗi khi thêm nhóm mediation mới hay khi bắt đầu dùng MAX.
 
 ## 2. Mỗi lần phát hành
 
@@ -69,11 +77,15 @@ adUnits=<khóa vị trí>=ca-app-pub-<số>/<số>;<khóa vị trí>=ca-app-pub-
 assetsBaseUrl=https://<địa chỉ production trên R2>/
 uploadKeyAlias=upload
 appsFlyerDevKey=<khóa dev AppsFlyer>
+maxSdkKey=<khóa SDK MAX>
+maxAdUnits=banner=<mã MAX>;banner_mrec=<mã MAX>
 ```
 
 Khóa vị trí là giá trị `key` trong `AdPlacement`, ví dụ `sample_native_small`. Vị trí chưa có mã thật thì bỏ khỏi `adUnits`: script tự dùng mã quảng cáo thử của Google theo định dạng của vị trí, in tên các vị trí đó ("không có doanh thu") để người phát hành biết. App được phép phát hành khi chưa có đủ mã thật. Vị trí dùng mã thử hiện quảng cáo thử, không có doanh thu; thêm mã thật vào `adUnits` ở bản sau. Mã ứng dụng AdMob (`admobAppId`) vẫn phải là mã thật.
 
 `appsFlyerDevKey` lấy ở **AppsFlyer > App settings > Dev key** (ADR-0027); script không in khóa ra, chỉ truyền cho build qua biến môi trường. Khóa chỉ bắt buộc khi app có SDK AppsFlyer (một file `*.gradle.kts` khai báo `libs.appsflyer` hay `com.appsflyer:`); app chưa bật AppsFlyer thì bỏ dòng này, có dòng mà không có SDK thì script in CHÚ Ý và không dùng khóa. Mật khẩu khóa upload không ghi vào thư mục này, script hỏi khi chạy.
+
+Hai dòng `maxSdkKey`, `maxAdUnits` tùy chọn; không ghi chú thích trên cùng dòng với giá trị (script đọc cả phần sau dấu `=` làm giá trị). Không có `maxSdkKey` thì bản phát hành không chạy MAX: script in CHÚ Ý và dòng "MAX: không dùng" ở phần tóm tắt, mọi khe chỉ dùng AdMob. Khóa chỉ gồm chữ, số, `_`, `-`. `maxAdUnits` có dạng `<khe>=<mã>;<khe>=<mã>`, không khoảng trắng, không `;` ở cuối; khe thiếu mã chỉ chạy AdMob; có mã mà không có khóa thì script in CHÚ Ý và bỏ mã. Giá trị sai dạng làm script dừng. Script không in khóa hay mã, chỉ in số khe có mã. App không có adapter MAX (không file `*.gradle.kts` nào khai báo `libs.max.mediation.google` hay nhóm `com.applovin.mediation`) mà có `maxSdkKey` thì script in CHÚ Ý và không dùng khóa.
 
 ### 2.3. Chạy script
 
@@ -88,7 +100,7 @@ Nên chạy `--check-only` một lần trước ngày phát hành: script kiểm
 
 Script làm theo thứ tự, dừng ngay khi có điều kiện không đạt:
 
-1. Kiểm tra thư mục phát hành: đủ file, nằm ngoài repo, mã ứng dụng AdMob không phải mã thử của Google, có khóa dev AppsFlyer khi app có SDK AppsFlyer, địa chỉ R2 là https.
+1. Kiểm tra thư mục phát hành: đủ file, nằm ngoài repo, mã ứng dụng AdMob không phải mã thử của Google, có khóa dev AppsFlyer khi app có SDK AppsFlyer, địa chỉ R2 là https, khóa và mã đơn vị MAX (nếu có) đúng ký tự.
 2. Kiểm tra commit: nằm trên `main`, đã qua `main-guard.yml`, nhánh chính không có issue `main-broken` đang mở, `versionCode` chưa có tag `release/<versionCode>`.
 3. Đối chiếu cấu hình với code của commit: `google-services.json` có đúng `applicationId`; vị trí trong `AdPlacement` chưa có mã thật thì dùng mã thử của Google theo định dạng, script in danh sách các vị trí đó (dòng "Mã quảng cáo thử").
 4. Hỏi mật khẩu khóa upload.

@@ -281,6 +281,8 @@ UNUSED_ADSKIT_KEYS = [
 ]
 
 AD_PARAMS = "ad_format, ad_placement"
+# Load and click events also carry the platform that served the ad (admob, applovin).
+AD_PARAMS_PLATFORM = "ad_format, ad_platform, ad_placement"
 LIFECYCLE = "is_log_ad_fullscreen_events / is_log_ad_slot_events"
 CORE_ADS, CORE_ANALYTICS, SDK, FEATURE, NEVER = (":core:ads tự gửi", ":core:analytics tự gửi", "SDK tự gửi",
                                                  "App khai báo", "Không gửi")
@@ -291,21 +293,23 @@ AD_EVENTS = [
         ("Firebase", "ad_impression_placement",
          "Mỗi lượt hiện, mọi định dạng. Native không có paid event sau 2 giây vẫn ghi một lượt giá trị 0",
          "ad_format, ad_platform, ad_source, ad_unit_name, currency, value, ad_placement",
-         "ad_platform = admob; value là số thực (micro chia 1 000 000); không biết mạng thì ad_source = admob",
+         "ad_platform = admob hay applovin (MAX); value: AdMob micro chia 1 000 000, MAX đô la; "
+         "không biết mạng thì ad_source = admob, MAX = applovin",
          "Luôn gửi, không có công tắc", CORE_ADS, "Doanh thu theo vị trí, theo định dạng, theo mạng."),
         ("AppsFlyer", "af_ad_revenue", "Mỗi lượt hiện, kể cả lượt dự phòng giá trị 0",
          "monetization_network, mediation_network, af_currency, af_revenue, country, ad_placement, ad_unit, ad_type",
-         "mediation_network = admob; monetization_network rỗng khi SDK không báo; country theo SIM, mạng, ngôn ngữ máy",
+         "mediation_network = admob hay applovinmax; monetization_network rỗng khi SDK không báo; "
+         "country theo SIM, mạng, ngôn ngữ máy",
          "is_log_af_ad_revenue", CORE_ANALYTICS, "ROAS theo nguồn cài đặt."),
         ("AppsFlyer", "af_revenue", "Không bao giờ gửi", "", "", "", NEVER,
          "Gửi cùng af_ad_revenue thì AppsFlyer cộng doanh thu hai lần."),
     ]),
     ("Vòng đời quảng cáo", [
-        ("Firebase", "ad_load_success", "Nạp quảng cáo xong", AD_PARAMS + ", load_attempt, latency_ms",
+        ("Firebase", "ad_load_success", "Nạp quảng cáo xong", AD_PARAMS_PLATFORM + ", load_attempt, latency_ms",
          "ad_placement của lượt nạp: preload (inter, app open, rewarded), pool (pool native), hoặc vị trí của màn",
          LIFECYCLE, CORE_ADS, "Thời gian nạp, số lần thử."),
         ("Firebase", "ad_load_fail", "Nạp quảng cáo lỗi",
-         AD_PARAMS + ", load_attempt, latency_ms, load_error_code, load_state",
+         AD_PARAMS_PLATFORM + ", load_attempt, latency_ms, load_error_code, load_state",
          "load_state: no_fill, network, sdk_throttled, invalid, internal, unknown", LIFECYCLE, CORE_ADS,
          "Fill rate = ad_load_success / (ad_load_success + ad_load_fail có load_state = no_fill)."),
         ("Firebase", "ad_opportunity", "Mỗi cơ hội hiện quảng cáo kèm kết quả",
@@ -316,7 +320,8 @@ AD_EVENTS = [
         ("Firebase", "ad_show_fail", "SDK báo hiện quảng cáo lỗi", AD_PARAMS + ", show_error_code, show_fail_reason",
          "show_fail_reason: internal, ad_reused, not_ready, app_not_foreground, mediation_show_error, unknown",
          LIFECYCLE, CORE_ADS, ""),
-        ("Firebase", "ad_clicked", "Người dùng bấm quảng cáo", AD_PARAMS, "", LIFECYCLE, CORE_ADS, "CTR theo vị trí."),
+        ("Firebase", "ad_clicked", "Người dùng bấm quảng cáo", AD_PARAMS_PLATFORM, "", LIFECYCLE, CORE_ADS,
+         "CTR theo vị trí."),
         ("Firebase", "ad_reward_earned", "Người dùng nhận thưởng sau rewarded", "ad_placement", "",
          "is_log_ad_fullscreen_events", CORE_ADS, ""),
         ("Firebase", "reward_dialog", "Hộp thoại xem quảng cáo hiện hoặc bị đóng", "ad_placement, dialog_action",

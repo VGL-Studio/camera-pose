@@ -2,11 +2,12 @@
 id: RUN-YYYYMMDD-NN
 status: draft                # draft | approved | running | finished
 sprint: <tên hoặc số sprint>
-approved_by: <dev duyệt danh sách và kích hoạt phiên>
+approved_by: <dev duyệt danh sách và kích hoạt phiên>   # người duyệt danh sách (AI ghi theo lời đồng ý trong phiên khi người duyệt nói trong phiên)
 max_tasks: <số task tối đa>      # dev quyết định theo ước tính; mặc định bằng số task trong danh sách (docs/CLAUDE.md, mục Khi lập danh sách chạy)
 staging_needed_by:           # tùy chọn: thời điểm muốn có bản staging, ví dụ 2026-10-21 08:00
 plan_queue: 2                # số plan soạn sẵn cuối phiên, 0 là tắt (auto-run.md, mục 4, bước 5); tăng lên 3 sau 2 phiên tốt
 open_with:                   # cloud | routine | local: cách mở phiên (docs/ops/session-capabilities.md); run-check.py quy tắc 8
+start: auto                  # auto: phiên tự bắt đầu khi danh sách approved lên nhánh chính (start-run.yml, cần open_with: routine); manual: dev bấm start-run
 started_at:
 finished_at:
 staging_build:               # phiên bản bản staging được phát cuối phiên
@@ -16,7 +17,7 @@ staging_build:               # phiên bản bản staging được phát cuối 
 
 ## 1. Danh sách chạy
 
-<!-- AI lập sau họp đánh giá rủi ro. Dev xem lại và chuyển trạng thái sang approved. -->
+<!-- AI lập; có thể đi cùng PR với plan `draft` của đợt (docs/CLAUDE.md, mục Khi duyệt cả đợt). Dev xem lại và chuyển trạng thái sang approved, hoặc đồng ý rõ ràng trong phiên để AI ghi approved kèm lời đồng ý (ADR-0048, phần C). -->
 
 | Thứ tự | Ticket | Feature | Plan (phiên bản) | Rủi ro | Phụ thuộc | Ghi chú |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -27,12 +28,13 @@ staging_build:               # phiên bản bản staging được phát cuối 
 
 ### Kiểm tra trước khi duyệt
 
-<!-- AI điền sau khi lập danh sách, theo docs/ops/pre-run-review.md. Dev chỉ duyệt khi script qua và không còn điểm chặn chưa xử lý. Plan hay spec đổi sau đó thì kiểm tra lại. -->
+<!-- AI điền sau khi lập danh sách, theo docs/ops/pre-run-review.md. Chỉ duyệt khi script qua (duyệt cả đợt: `run-check.py --batch` qua trên bản draft, rồi `run-check.py` không có `--batch` qua sau khi ghi trạng thái) và không còn điểm chặn chưa xử lý. Plan hay spec đổi sau đó thì kiểm tra lại. -->
 
-- **`scripts/run-check.py`:** <qua, hoặc các lỗi đã sửa>; chú ý: <từng dòng và kết luận>
+- **`scripts/run-check.py`:** <khi duyệt cả đợt: kết quả `--batch` trên bản draft (các dòng bỏ qua trạng thái, điểm so); kết quả cuối không có `--batch`: qua, hoặc các lỗi đã sửa>; chú ý: <từng dòng và kết luận>
 - **Rà soát độc lập:** <ngày, số điểm chặn, nên sửa, ghi chú>
 - **Cách mở phiên:** <open_with và lý do>; khả năng mà plan cần (quy tắc 8 của `run-check.py`, `docs/ops/session-capabilities.md`): <từng dòng và cách xử lý, hoặc "Không có">
 - **Hạn mức Actions:** <số phút CI ước tính của danh sách, số phút còn lại dev đã xem, ngày> (`auto-run.md` mục 1)
+- **Duyệt:** <người duyệt, ngày; AI ghi theo lời <người duyệt>: "...">
 
 | Mức | Ticket | Vấn đề | Xử lý |
 | --- | --- | --- | --- |
@@ -176,16 +178,17 @@ Task lệch ước tính từ 2 lần trở lên: <task, lý do có thể; hoặ
 
 **Kiểm chứng bài học cũ:** <bài học `applied` nào liên quan tới phiên này, có hiệu quả không, bằng chứng; hoặc "Không có">
 
-### Đề xuất cho buổi họp tiếp theo
+### Đề xuất cho đợt sau
 
 1. <...>
 
 ### Plan soạn sẵn và câu hỏi cho người
 
-<!-- auto-run.md, mục 4. Hàng chờ và ticket bỏ qua điền ở bước 2 (viết báo cáo), phần còn lại điền qua PR tóm tắt ở bước 5. Ghi "Không soạn" kèm lý do khi bước 5 không chạy. -->
+<!-- auto-run.md, mục 4. Hàng chờ, ticket bỏ qua và ticket đang chặn điền ở bước 2 (viết báo cáo), phần còn lại điền qua PR tóm tắt ở bước 5. Ghi "Không soạn" kèm lý do khi bước 5 không chạy. -->
 
 - Hàng chờ: <các dòng của `scripts/plan-queue.py`, hoặc "Không soạn" kèm lý do>
-- Ticket bỏ qua: <các dòng stderr của `scripts/plan-queue.py`, hoặc "Không có">
+- Ticket bỏ qua: <các dòng `bỏ qua` trong stderr của `scripts/plan-queue.py`, hoặc "Không có">
+- Đang chặn hàng chờ: <các dòng `Đang chặn hàng chờ:` trong stderr của `scripts/plan-queue.py`, hoặc "Không có">
 
 | Ticket | PR plan | Rủi ro | `plan-check.py` | Rà soát độc lập | Chạy thử |
 | --- | --- | --- | --- | --- | --- |

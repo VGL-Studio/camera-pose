@@ -48,7 +48,7 @@ internal fun AdMetricEvent.firebaseParams(): Map<String, Any> {
     val params: List<Pair<String, Any?>> = when (this) {
         is AdMetricEvent.ImpressionRevenue -> listOf(
             "ad_format" to adFormat,
-            "ad_platform" to AD_PLATFORM,
+            "ad_platform" to platform.code,
             "ad_source" to adSource,
             "ad_unit_name" to adUnitName,
             "currency" to currency,
@@ -57,12 +57,14 @@ internal fun AdMetricEvent.firebaseParams(): Map<String, Any> {
         )
         is AdMetricEvent.LoadSuccess -> listOf(
             "ad_format" to adFormat,
+            "ad_platform" to platform.code,
             "ad_placement" to adPlacement,
             "load_attempt" to loadAttempt?.toLong(),
             "latency_ms" to latencyMs,
         )
         is AdMetricEvent.LoadFail -> listOf(
             "ad_format" to adFormat,
+            "ad_platform" to platform.code,
             "ad_placement" to adPlacement,
             "load_attempt" to loadAttempt?.toLong(),
             "latency_ms" to latencyMs,
@@ -83,6 +85,7 @@ internal fun AdMetricEvent.firebaseParams(): Map<String, Any> {
         )
         is AdMetricEvent.Clicked -> listOf(
             "ad_format" to adFormat,
+            "ad_platform" to platform.code,
             "ad_placement" to adPlacement,
         )
         // No `ad_format` for the two rewarded events (section 8.2).
@@ -100,6 +103,3 @@ internal fun AdMetricEvent.firebaseParams(): Map<String, Any> {
         }
     }
 }
-
-/** Ads are served through AdMob, mediation included. */
-private const val AD_PLATFORM = "admob"

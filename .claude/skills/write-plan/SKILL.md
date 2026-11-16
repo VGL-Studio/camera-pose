@@ -1,6 +1,6 @@
 ---
 name: write-plan
-description: Viết plan draft cho một ticket theo mẫu plan, có danh sách file đầy đủ, test viết trước, điểm rủi ro, mục 3.5 từ existing-tests.py, token_estimate, và qua plan-check.py. Dùng khi một ticket cần plan để đưa vào họp đánh giá rủi ro.
+description: Viết plan draft cho một ticket theo mẫu plan, có danh sách file đầy đủ, test viết trước, điểm rủi ro, mục 3.5 từ existing-tests.py, token_estimate, và qua plan-check.py. Dùng khi một ticket cần plan để đưa người duyệt.
 argument-hint: <T-NNN>
 ---
 
@@ -21,5 +21,5 @@ Tham số: `$ARGUMENTS` (mã ticket). Không có thì chạy `python3 scripts/pl
    - `token_estimate` từ `python3 scripts/token-usage.py estimate`.
    - Điều chưa chắc ghi ở mục câu hỏi cho người duyệt.
 5. Chạy `python3 scripts/plan-check.py <plan>` tới khi không còn lỗi.
-6. Plan `draft`. Không tự chuyển `approved` (trừ `/quick-lane`). Nhánh `claude/plan-T-NNN-<tu-khoa>` từ `origin/main`, commit theo đường dẫn, mở PR có kết quả `plan-check.py` trong mô tả.
+6. Plan `draft`. Không tự ghi `approved`, trừ khi người có quyền duyệt đồng ý rõ ràng trong phiên (ADR-0048, phần C; `/quick-lane` cũng theo phần này). Nhánh `claude/plan-T-NNN-<tu-khoa>` từ `origin/main`, commit theo đường dẫn, mở PR có kết quả `plan-check.py` trong mô tả. Plan của một đợt duyệt cả đợt thì viết trên nhánh của đợt (`docs/CLAUDE.md`, mục Khi duyệt cả đợt).
 7. Gọi `/pr-review` trước khi báo dev PR xong. Báo dev: phạm vi, file, test, điểm rủi ro, câu hỏi.

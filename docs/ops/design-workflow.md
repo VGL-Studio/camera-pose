@@ -114,7 +114,7 @@ Tỷ lệ khác biệt chỉ để tham khảo: phông chữ và cách vẽ ch�
 
 ## 7. Duyệt giao diện thật
 
-Người phụ trách sản phẩm mở `design/review/*_compare.png` trên PR hoặc trong repo, và xem bản staging. Đồng ý thì ghi vào báo cáo phiên hoặc vào PR; ảnh chuẩn screenshot từ đó giữ giao diện. Không đồng ý thì ghi phản hồi (`docs/README.md`, bước phản hồi), plan sửa đi qua họp đánh giá như thường.
+Người phụ trách sản phẩm mở `design/review/*_compare.png` trên PR hoặc trong repo, và xem bản staging. Đồng ý thì ghi vào báo cáo phiên hoặc vào PR; ảnh chuẩn screenshot từ đó giữ giao diện. Không đồng ý thì ghi phản hồi (`docs/README.md`, bước phản hồi), plan sửa được duyệt lại như plan mới.
 
 ## 8. Thiết kế app clone: chọn hướng, AI dựng, người làm mịn
 

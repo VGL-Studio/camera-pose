@@ -1,4 +1,4 @@
-base=698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
+base=bc3e80ebd6afea8300619d1308fbbcfa7351a986
 package=com.vglstudio.camera.pose.line.guide
 # app/ and feature/loading took parts of template T-007, T-008, T-024 by hand (plan T-074): MainActivity.kt,
 # TemplateApplication.kt, di/AnalyticsConfigModule.kt, config/AppRemoteKeys.kt, the remoteConfigKeys block of
@@ -29,17 +29,13 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # and start-run.yml, the pose catalog sections of docs/ops/staging-and-runs.md, the workflow-push note of
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md. Also the default
 # DEVICE_SCENARIOS_BUDGET of 1800 in scripts/device-scenario.py (the template takes 600).
-# The release.sh test block of scripts/tests/run.sh is the template's (T-075), adapted to an app without the AppsFlyer
-# SDK (ADR-1007): repo_has_appsflyer, read like release.sh reads it, runs the two "AppsFlyer dev key" refusals on this
-# repo only with the SDK (without it, a copy of this repo's build files passes the folder check without a key, and the
-# two refusals run on that copy with a module declaring libs.appsflyer), skips appsFlyerDevKey in the "build reads
-# every exported property" contract, and expects 3 required properties instead of 4. A sync that takes the template
-# block puts this back, until the template branches on the SDK the same way (VGL-Studio/app-project-template#470).
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
 # core/ads is held at 698c5b3: the template range 698c5b3..bc3e80e changes the native slot height (T-064, T-065, T-107,
 # nativeReservation() is now a function) and adds the MAX full screen formats (T-069, T-070, T-072, T-106); taking it
 # changes the screenshots and size tests of feature/poses, feature/camera and feature/settings, so it comes with an app
 # ticket and plan (docs/ops/to-app.md of the template, section 5).
+# Until then docs/ops/ads-guide.md and docs/ops/ads-business-rules.md (taken at bc3e80e) describe template core/ads
+# at bc3e80e, ahead of this app's core/ads: the native sizes of KB-32 and the MAX interstitial, rewarded and app open.
 hold=core/ads 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 # core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:
 # AdSlot separator (spec poses, KB-6; AdSlotTest) and PrivacyOptionsButton(content) (feature/settings), the public

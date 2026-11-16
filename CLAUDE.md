@@ -101,6 +101,6 @@ Làm theo mẫu `:feature:settings` (bố cục module, `UiState`, `Route` và `
 - Không sửa `.github/`, `scripts/check.sh`, `scripts/merge-if-green.sh`, `build-logic/` hay `gradle/libs.versions.toml`, trừ khi đó chính là nội dung của một plan rủi ro cao đã được duyệt chéo. Thay đổi có ích cho mọi app ở các phần dùng chung (quy trình, CI, script, cấu hình build, module core) phải được đề xuất về dự án mẫu (`docs/ops/from-app.md`); ghi điều này vào mô tả PR.
 - Không thêm quyền truy cập vào `AndroidManifest.xml`, không thêm SDK, vị trí quảng cáo hay sự kiện phân tích ngoài spec đã duyệt.
 - Không merge bằng cách nào khác ngoài `scripts/merge-if-green.sh`. Không đóng, sửa hay bình luận để gỡ issue mang nhãn `main-broken`.
-- Không đọc, in ra hay chuyển đi bí mật của repo. Không tạo hay sửa cấu hình production (ADR-0007, ADR-0009).
-- Không chạm vào `scripts/release.sh`, không đọc hay tạo thư mục phát hành production (ADR-0009, ADR-0017).
+- Không đọc, in ra hay chuyển đi bí mật của repo. Không tạo hay sửa cấu hình production (ADR-0007, ADR-0049).
+- Không chạm vào `scripts/release.sh`, không đọc hay tạo thư mục phát hành production (ADR-0049).
 - Không làm cho test qua bằng cách sửa test, xóa test, cập nhật ảnh chuẩn screenshot ngoài plan, hay tắt quy tắc lint. Ngoại lệ duy nhất: test cũ đỏ chỉ vì dữ liệu của nó chưa có phần plan thêm (dòng enum, khóa mới) thì cập nhật dữ liệu đó, test vẫn kiểm phần mới (ADR-0029); câu khẳng định cũ trái điều plan đã duyệt nói rõ thì viết lại, giữ ý định, không nới, theo đủ sáu điều của ADR-0031; test chỉ đỏ vì máy chạy thiếu cấu hình chung thì sửa phần dựng của test, không đổi câu khẳng định (ADR-0033/L11).

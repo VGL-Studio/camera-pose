@@ -70,6 +70,48 @@ class AppsFlyerEventsTest {
     }
 
     @Test
+    fun afRevenue_max_mediationApplovinmax() {
+        val event = revenue(adSource = "AppLovin", monetizationNetwork = "AppLovin", adPlacement = "home")
+            .copy(platform = AdMetricPlatform.APPLOVIN)
+
+        val params = afRevenue(event, "VN").params!!
+
+        assertEquals(
+            mapOf(
+                "monetization_network" to "AppLovin",
+                "mediation_network" to "applovinmax",
+                "af_currency" to "USD",
+                "af_revenue" to 0.0123,
+                "country" to "VN",
+                "ad_placement" to "home",
+                "ad_unit" to "unit",
+                "ad_type" to "INTER",
+            ),
+            params,
+        )
+        assertEquals(
+            listOf(
+                "monetization_network",
+                "mediation_network",
+                "af_currency",
+                "af_revenue",
+                "country",
+                "ad_placement",
+                "ad_unit",
+                "ad_type",
+            ),
+            params.keys.toList(),
+        )
+    }
+
+    @Test
+    fun afRevenue_admob_mediationAdmob() {
+        val params = afRevenue(revenue().copy(platform = AdMetricPlatform.ADMOB), "VN").params!!
+        assertEquals("admob", params["mediation_network"])
+        assertEquals("admob", afRevenue(revenue(), "VN").params!!["mediation_network"])
+    }
+
+    @Test
     fun noEventIsNamedAfRevenue() {
         val subclasses = AdFunnelEvent::class.sealedSubclasses
         assertEquals(4, subclasses.size)

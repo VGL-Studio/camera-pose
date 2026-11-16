@@ -41,13 +41,13 @@ docs/
 | --- | --- | --- |
 | Báo cáo khảo sát app mẫu, đề xuất app (app clone) | AI theo yêu cầu của dev | Dev |
 | Yêu cầu | Người phụ trách sản phẩm, chủ feature | Không cần |
-| Spec | AI sinh từ yêu cầu | Người phụ trách sản phẩm |
+| Spec | AI sinh từ yêu cầu | Người phụ trách sản phẩm (AI ghi theo lời đồng ý trong phiên, ADR-0048 phần C) |
 | Thiết kế | Chủ feature cùng Claude Design hoặc Figma | Người phụ trách sản phẩm |
 | Ticket | AI sinh từ spec | Chủ feature |
-| Plan | AI sinh | Chủ feature, duyệt chéo nếu rủi ro cao |
+| Plan | AI sinh | Chủ feature, duyệt chéo nếu rủi ro cao (AI ghi theo lời đồng ý trong phiên, ADR-0048 phần C) |
 | Phản hồi | Bất kỳ ai trong nhóm | Chủ feature phân loại |
 | ADR | Dev, hoặc AI theo yêu cầu của dev | Cả hai dev |
-| Phiên tự chạy | Danh sách chạy do AI lập sau họp, báo cáo do AI viết | Dev kích hoạt phiên duyệt danh sách chạy |
+| Phiên tự chạy | Danh sách chạy do AI lập, báo cáo do AI viết | Dev duyệt danh sách chạy (AI ghi theo lời đồng ý trong phiên, ADR-0048 phần C) và kích hoạt phiên |
 | Báo cáo vận hành | AI tổng hợp | Người phụ trách sản phẩm |
 
 ## Vòng đời của một yêu cầu
@@ -55,15 +55,19 @@ docs/
 0. **Khảo sát app mẫu (chỉ app clone).** Dev đưa thông tin chung và danh sách app mẫu đã cài trên máy. AI dùng thử từng app, đọc APK, tìm trên web và Play, rồi viết bản đề xuất app tốt hơn app mẫu: tên, tính năng, luồng, màn hình, bài học và cải tiến. Dev duyệt đề xuất, chốt tên và tên gói, tạo repo app. AI dựng 2 đến 3 hướng thiết kế trên Figma, dev chọn một; AI dựng toàn bộ màn hình, dev làm mịn, AI quét lại. Xong thì AI viết yêu cầu và spec, đi tiếp từ bước 1. Chi tiết ở [ops/clone-study.md](ops/clone-study.md) và [ops/design-workflow.md](ops/design-workflow.md), mục 8 (ADR-0021).
 1. **Yêu cầu.** Người phụ trách sản phẩm hoặc chủ feature ghi yêu cầu vào `features/<feature>/requests/`, viết tự nhiên, không bắt buộc theo mẫu. Có thể dán biên bản họp, hoặc dựa vào [mẫu gợi ý](templates/request.md). Chưa rõ thuộc feature nào, hoặc là feature mới chưa có tên, thì ghi vào `inbox/`.
 2. **Spec.** AI đọc yêu cầu, sinh hoặc cập nhật `features/<feature>/spec.md` theo [mẫu spec](templates/spec.md). Với feature mới, AI tạo thư mục feature. Chỗ nào chưa rõ, AI ghi vào mục câu hỏi còn mở, không tự đoán.
-3. **Xác nhận spec.** Người phụ trách sản phẩm đọc lại, trả lời câu hỏi, chuyển trạng thái spec sang `confirmed`.
+3. **Xác nhận spec.** Người phụ trách sản phẩm đọc lại, trả lời câu hỏi, chuyển trạng thái spec sang `confirmed`, hoặc đồng ý rõ ràng trong phiên để AI ghi `confirmed` kèm lời đồng ý (ADR-0048, phần C).
 4. **Thiết kế.** Chủ feature dựng bản mẫu trên Claude Design hoặc Figma (tùy dự án), người phụ trách sản phẩm duyệt. Gói bàn giao (ảnh khung chuẩn, bảng chữ, ánh xạ thành phần) lưu vào `features/<feature>/design/` theo [mẫu thiết kế](templates/design.md) và [quy trình thiết kế](ops/design-workflow.md). Giao diện làm ra được đối chiếu với thiết kế bằng ảnh so sánh (ADR-0020).
 5. **Ticket.** AI tách spec thành các ticket trong `features/<feature>/tickets/` theo [mẫu ticket](templates/ticket.md). Ticket chỉ chuyển sang `ready` khi spec đã xác nhận và thiết kế (nếu cần) đã duyệt. Ticket chỉ người làm được (ví dụ chạm `scripts/release.sh` hay cấu hình production) ghi `auto_run: false`, để không bao giờ vào phiên tự chạy.
 6. **Plan (ngày 1).** AI sinh plan cho từng ticket được chọn vào sprint, theo [mẫu plan](templates/plan.md), kèm điểm rủi ro.
-7. **Họp đánh giá rủi ro.** Nhóm xem plan, đánh giá ảnh hưởng chéo, duyệt hoặc dừng. AI sắp thứ tự chạy các plan đã duyệt và lập danh sách chạy trong `runs/`, rồi kiểm tra cả danh sách bằng script và một lần rà soát độc lập: mâu thuẫn giữa spec và plan, giữa các plan, test chưa đủ tốt ([ops/pre-run-review.md](ops/pre-run-review.md)). Danh sách ghi cách mở phiên (`cloud`, `routine` hay `local`), chọn theo việc mỗi cách làm được ([ops/session-capabilities.md](ops/session-capabilities.md)). Điểm chặn được xử lý trước khi dev duyệt danh sách.
+7. **Duyệt plan và danh sách chạy.** Người duyệt xem plan, ảnh hưởng chéo, duyệt hoặc dừng. AI sắp thứ tự chạy và lập danh sách chạy trong `runs/`, rồi kiểm tra cả danh sách bằng script và một lần rà soát độc lập: mâu thuẫn giữa spec và plan, giữa các plan, test chưa đủ tốt ([ops/pre-run-review.md](ops/pre-run-review.md)). Danh sách ghi cách mở phiên (`cloud`, `routine` hay `local`), chọn theo việc mỗi cách làm được ([ops/session-capabilities.md](ops/session-capabilities.md)). Điểm chặn được xử lý trước khi duyệt danh sách. Có hai cách duyệt (ADR-0048):
+   - **Duyệt cả đợt trong một PR:** AI lập danh sách `draft` cùng PR với các plan `draft` của đợt, kiểm bằng `scripts/run-check.py --batch` và rà soát độc lập, rồi đưa một tóm tắt; người duyệt duyệt một lần cho cả đợt ([CLAUDE.md](CLAUDE.md), mục Khi duyệt cả đợt).
+   - **Duyệt plan lẻ rồi lập danh sách:** mỗi plan một PR được duyệt và merge, sau đó AI lập danh sách từ các plan đã duyệt.
+
+   Nhóm có thể họp khi muốn bàn ảnh hưởng chéo; họp không phải điều kiện để duyệt.
 8. **Phiên AI tự chạy.** Khi dev đã duyệt xong và kích hoạt, AI thực hiện lần lượt từng plan theo [quy trình phiên tự chạy](auto-run.md): viết test trước, viết code, rà soát độc lập, qua cổng chất lượng thì merge vào nhánh chính. Gặp lệch nhỏ thuộc danh sách của các ADR (ví dụ sửa thêm file ngoài plan mà task cần, test cũ mâu thuẫn với điều plan đã duyệt, test đỏ vì máy chạy thiếu cấu hình chung, điểm chặn của rà soát mà test chạy thật không tái hiện) hay task mà môi trường của phiên không làm được, phiên tự xử lý hoặc bỏ qua theo luật rồi ghi vào báo cáo cho người kiểm sau, không dừng chờ người (ADR-0029, ADR-0031 đến ADR-0033, ADR-0035). Cuối phiên, AI build bản staging và viết báo cáo phiên.
 
-   **Đường làm nhanh.** Việc nhỏ, rủi ro thấp, không chạm điểm chặn, mà dev muốn có ngay trong ngày thì làm cùng AI trên máy dev (ADR-0034). Vẫn có yêu cầu, ticket, plan đủ mục, test viết trước, rà soát độc lập, CI, `merge-if-green.sh` và nhật ký; bỏ họp, các PR duyệt riêng, danh sách chạy và báo cáo phiên. Dev đồng ý plan ngay trong phiên, cả task nằm trong một PR. Hướng dẫn cho dev ở [ops/quick-lane.md](ops/quick-lane.md); phần AI phải làm ở [CLAUDE.md](CLAUDE.md), mục Khi làm nhanh có người theo dõi.
-9. **Kiểm tra và phản hồi (ngày 2).** Dev đọc báo cáo phiên, kiểm tra bản staging, ghi phản hồi theo [mẫu phản hồi](templates/feedback.md). AI cập nhật plan theo phản hồi, plan sửa lại đi qua họp đánh giá rủi ro trước phiên tự chạy tiếp theo.
+   **Đường làm nhanh.** Việc nhỏ, rủi ro thấp, không chạm điểm chặn, mà dev muốn có ngay trong ngày thì làm cùng AI trên máy dev (ADR-0048). Vẫn có yêu cầu, ticket, plan đủ mục, test viết trước, rà soát độc lập, CI, `merge-if-green.sh` và nhật ký; bỏ các PR duyệt riêng, danh sách chạy và báo cáo phiên. Dev đồng ý plan ngay trong phiên, cả task nằm trong một PR. Trước khi merge, AI gộp nhánh chính vào nhánh làm nhanh trên máy (không đẩy) rồi kiểm các danh sách chạy chưa chạy. Hướng dẫn cho dev ở [ops/quick-lane.md](ops/quick-lane.md); phần AI phải làm ở [CLAUDE.md](CLAUDE.md), mục Khi làm nhanh có người theo dõi.
+9. **Kiểm tra và phản hồi (ngày 2).** Dev đọc báo cáo phiên, kiểm tra bản staging, ghi phản hồi theo [mẫu phản hồi](templates/feedback.md). AI cập nhật plan theo phản hồi, plan sửa lại được duyệt lại như plan mới trước phiên tự chạy tiếp theo.
 10. **Nghiệm thu (ngày 3).** Dev nghiệm thu chéo, người phụ trách sản phẩm nghiệm thu cuối. Ticket đạt chuyển sang `accepted`.
 11. **Phát hành và vận hành.** Người phụ trách sản phẩm quyết định phát hành. AI tổng hợp định kỳ số liệu từ store thành [báo cáo vận hành](templates/ops-report.md) trong `ops/`. Vấn đề cần xử lý được tách thành phản hồi, ghi vào feature tương ứng hoặc vào `inbox/`.
 

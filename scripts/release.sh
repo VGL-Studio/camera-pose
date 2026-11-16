@@ -19,6 +19,8 @@
 #                          assetsBaseUrl=https://<production address on R2>/
 #                          uploadKeyAlias=<alias of the upload key>
 #                          appsFlyerDevKey=<AppsFlyer dev key> (ADR-0027), only when the app has the AppsFlyer SDK
+#                          maxSdkKey=<AppLovin MAX SDK key>, optional: without it the release runs AdMob only
+#                          maxAdUnits=<slot>=<MAX ad unit>;<slot>=..., optional: a slot without a unit uses AdMob only
 # Passwords of the upload key are asked for when the script runs; they are never stored in the folder.
 #
 # Only commits of main that passed main-guard.yml are built (commits touching docs only reuse the run of
@@ -27,7 +29,8 @@
 # Written during the template phase only. AI never changes this file afterwards (ADR-0009), except when the
 # release owner allows it for one session (2026-10-23: native formats and staging-only placements; 2026-10-24:
 # placements with attributes; 2026-10-26: AppsFlyer dev key, Google test units for placements without a real unit;
-# 2026-10-29: the AppsFlyer dev key only for an app with the AppsFlyer SDK; --check-only).
+# 2026-10-29: the AppsFlyer dev key only for an app with the AppsFlyer SDK; --check-only;
+# 2026-11-15: AppLovin MAX key and ad units).
 # Messages are in Vietnamese for the team; comments are in English.
 
 set -euo pipefail
@@ -142,6 +145,8 @@ ad_units="$(property adUnits)"
 assets_base_url="$(property assetsBaseUrl)"
 upload_key_alias="$(property uploadKeyAlias)"
 appsflyer_dev_key="$(property appsFlyerDevKey)"
+max_sdk_key="$(property maxSdkKey)"
+max_ad_units="$(property maxAdUnits)"
 
 [[ "$admob_app_id" =~ ^ca-app-pub-[0-9]+~[0-9]+$ ]] ||
   die "admobAppId phải có dạng ca-app-pub-<số>~<số> (mã ứng dụng AdMob, không phải mã quảng cáo)."
@@ -168,6 +173,33 @@ if grep -rqsE --include='*.gradle.kts' --exclude-dir=build --exclude-dir=.gradle
 elif [ -n "$appsflyer_dev_key" ]; then
   echo "CHÚ Ý: app không có SDK AppsFlyer, appsFlyerDevKey trong release.properties không được dùng."
   appsflyer_dev_key=""
+fi
+# AppLovin MAX is optional: an app without an AppLovin account leaves the key out and the release runs AdMob only.
+# The values go into a Java string of BuildConfig, so odd characters stop here; neither value is ever printed.
+[ -z "$max_sdk_key" ] || [[ "$max_sdk_key" =~ ^[A-Za-z0-9_-]+$ ]] ||
+  die "maxSdkKey sai dạng trong release.properties: chỉ chữ, số, _ và -."
+[ -z "$max_ad_units" ] || [[ "$max_ad_units" =~ ^[a-z_]+=[A-Za-z0-9_-]+(;[a-z_]+=[A-Za-z0-9_-]+)*$ ]] ||
+  die "maxAdUnits sai dạng trong release.properties: <khe>=<mã>;<khe>=<mã>, không khoảng trắng."
+if grep -rqsE --include='*.gradle.kts' --exclude-dir=build --exclude-dir=.gradle \
+  'libs\.max\.mediation\.|"com\.applovin\.mediation:' .; then
+  if [ -z "$max_sdk_key" ]; then
+    echo "CHÚ Ý: không có maxSdkKey trong release.properties: bản này không chạy MAX, mọi khe chỉ dùng AdMob."
+    max_summary="không dùng (không có maxSdkKey)"
+  fi
+else
+  if [ -n "$max_sdk_key" ]; then
+    echo "CHÚ Ý: app không có adapter MAX, maxSdkKey không được dùng (release.properties)."
+    max_sdk_key=""
+  fi
+  max_summary="không có trong app"
+fi
+if [ -z "$max_sdk_key" ] && [ -n "$max_ad_units" ]; then
+  echo "CHÚ Ý: không có khóa MAX, maxAdUnits không được dùng (release.properties)."
+  max_ad_units=""
+fi
+if [ -n "$max_sdk_key" ]; then
+  max_unit_count="$(tr ';' '\n' <<< "$max_ad_units" | grep -c . || true)"
+  max_summary="có khóa, $max_unit_count khe có mã đơn vị"
 fi
 
 # 2. The commit: on main, and checked green by main-guard.yml.
@@ -223,6 +255,7 @@ cat << EOF
    Commit:     ${target::7} $(git log -1 --format=%s "$target")
    Vị trí quảng cáo: $(tr '\n' ' ' <<< "${placements:-không có}")
    Mã quảng cáo thử (không có doanh thu): ${test_unit_keys:-không có}
+   MAX: $max_summary
 EOF
 
 if [ "$check_only" = "yes" ]; then
@@ -269,9 +302,11 @@ cp "$config_dir/google-services.json" "$work/src/app/src/production/google-servi
   export ORG_GRADLE_PROJECT_uploadKeyAlias="$upload_key_alias"
   export ORG_GRADLE_PROJECT_uploadKeyPassword="$key_password"
   export ORG_GRADLE_PROJECT_appsFlyerDevKey="$appsflyer_dev_key"
+  export ORG_GRADLE_PROJECT_maxSdkKey="$max_sdk_key"
+  export ORG_GRADLE_PROJECT_maxAdUnits="$max_ad_units"
   ./gradlew --no-daemon --console=plain :app:bundleProductionRelease
 )
-unset keystore_password key_password appsflyer_dev_key
+unset keystore_password key_password appsflyer_dev_key max_sdk_key max_ad_units
 
 # 6. Check the bundle is signed, keep it with its mapping file, and mark the version as released.
 [ -f "$work/src/$BUNDLE" ] || die "không tìm thấy $BUNDLE sau khi build."

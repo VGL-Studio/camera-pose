@@ -16,14 +16,14 @@ internal data class AfEvent(val name: String, val params: Map<String, Any>?)
 /**
  * `af_ad_revenue` of one impression, the params in the order of section 8.3: `af_revenue` is a [Double], every other
  * one a [String]. Unlike Firebase, the network is the raw source of the SDK (empty when none) and a missing placement
- * is sent as an empty string. `af_currency` and `af_revenue` are the values of `AFInAppEventParameterName.CURRENCY`
+ * is sent as an empty string; `mediation_network` is `admob` or `applovinmax` ([AdMetricPlatform]). `af_currency` and `af_revenue` are the values of `AFInAppEventParameterName.CURRENCY`
  * and `REVENUE`, written out so this needs no class of the SDK.
  */
 internal fun afRevenue(event: AdMetricEvent.ImpressionRevenue, country: String): AfEvent = AfEvent(
     name = "af_ad_revenue",
     params = linkedMapOf(
         "monetization_network" to event.monetizationNetwork,
-        "mediation_network" to MEDIATION_NETWORK,
+        "mediation_network" to event.platform.mediationNetwork,
         "af_currency" to event.currency,
         "af_revenue" to event.value,
         "country" to country,
@@ -101,9 +101,6 @@ private fun funnelParams(adFormat: String, adUnitId: String, adSource: String): 
     "ad_unit_id" to adUnitId,
     "ad_source" to adSource,
 )
-
-/** Ads are served through AdMob, mediation included. */
-private const val MEDIATION_NETWORK = "admob"
 
 /** N-05: `af_inters_displayed_{N}_times` for N from 1 to 20 only. */
 private val INTER_COUNT_RANGE = 1..20

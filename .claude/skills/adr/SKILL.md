@@ -12,5 +12,5 @@ Tham số: `$ARGUMENTS` (chủ đề của quyết định mới, hoặc mã ADR
 2. Mã: repo có `docs/ops/new-app.md` (dự án mẫu) lấy số tiếp theo dưới 1000, `origin: template`; repo app lấy số tiếp theo từ 1001, `origin: app`. Lấy số trên nhánh chính mới nhất; PR song song đã lấy số thì lấy số sau.
 3. Ở app: không sửa ADR `origin: template`; muốn khác thì ADR của app có `supersedes`, và gợi ý `/lesson` để đề xuất về dự án mẫu.
 4. Mục "Việc AI phải tuân thủ": các vế ngắn nối bằng dấu chấm phẩy, mỗi vế là một dòng của `docs/foundation.md`.
-5. ADR mới `proposed`. Chỉ đổi trạng thái khi dev đã quyết trong phiên. Không sửa ADR `accepted`; khi có ADR thay thế thì ở ADR cũ chỉ ghi `status: superseded` và `superseded_by`.
+5. ADR mới `proposed`. Chỉ đổi trạng thái khi dev đã quyết trong phiên; ghi lời đồng ý nguyên văn trong mô tả PR (ADR-0048, C2). Không sửa ADR `accepted`; khi có ADR thay thế thì ở ADR cũ chỉ ghi `status: superseded` và `superseded_by`.
 6. Chạy `python3 scripts/foundation.py`, commit `docs/foundation.md` cùng PR. Gọi `/pr-review`, rồi báo dev quyết định cần duyệt.

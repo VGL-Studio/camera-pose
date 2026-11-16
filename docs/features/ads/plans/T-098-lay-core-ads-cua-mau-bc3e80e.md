@@ -8,7 +8,7 @@ risk_level: high             # low | medium | high
 token_estimate: 39.0M        # cỡ L theo scripts/token-usage.py estimate (2026-11-16), không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền khi lập danh sách chạy
-reviewer:                    # người duyệt
+reviewer: Nhật               # người duyệt
 cross_reviewer:              # bắt buộc khi risk_level là high
 approved_at:
 lane:                        # để trống: phiên tự chạy
@@ -249,8 +249,8 @@ So với thiết kế: frame thiết kế vẽ thanh trạng thái 24 dp, screen
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:**
-- **Người duyệt:** , **duyệt chéo:**
-- **Ghi chú:**
+- **Quyết định:** Nhật duyệt ngày 2026-11-16; chờ Tuấn ghi lời duyệt chéo (xem ghi chú).
+- **Người duyệt:** Nhật, **duyệt chéo:**
+- **Ghi chú:** AI ghi theo lời Nhật (2026-11-16): "Cả toi va Tuấn đều đa duyệt. Triển khai theo đề xuất của AI." Câu hỏi mục 8 nhận theo đề xuất của AI: (1) nhận hàng nút phụ nằm ngang ở màn 960 x 520 dp, không đổi code của màn; (2) nhận ảnh xem lại khoảng 373 x 497 dp như thiết kế đã duyệt; (3) không dán diff vào mục 3.1, phiên đọc phần gộp trên nhánh `template-sync/take-ads-bc3e80e`, dừng khi nhánh mất commit `4917154b`; (4) Nhật duyệt, Tuấn duyệt chéo. Lời duyệt chéo của Tuấn do Nhật chuyển lại, nên AI không ghi thay (ADR-0048, C1 và C4): Tuấn nói lời đồng ý trong phiên, hoặc tự ghi `cross_reviewer: Tuấn`, `status: approved`, `approved_at: 2026-11-16`, chạy `scripts/status.py --sync` rồi merge PR.
 
 ## 10. Nhật ký thực hiện

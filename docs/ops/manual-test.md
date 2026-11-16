@@ -379,7 +379,7 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
    - [ ] Khe native thử cao khoảng 126 dp (khoảng 106 dp trên máy rộng 360 dp) ở đáy, cách mép 16 dp; log `VGL.Ads` có `settings_bottom`.
    - [ ] Cuộn hết: dòng "Phiên bản" nằm trên khe, không bị che.
    - [ ] Mở hộp chọn "Giao diện": hộp và lớp mờ phủ lên khe.
-   - [ ] Làm sau dòng `is_show_native_collap` của bước 10, quay lại Cài đặt (khóa còn bật, T-098): lớp quảng cáo nổi phủ đáy danh sách; bấm thu gọn, cuộn hết: dòng "Phiên bản" thấy trọn trên khe.
+   - [ ] Đặt `is_show_native_collap = true` trên Firebase staging, đóng hẳn app rồi mở lại, mở Cài đặt (T-098): lớp quảng cáo nổi phủ đáy danh sách; bấm thu gọn, cuộn hết: dòng "Phiên bản" thấy trọn trên khe. Trả khóa về như cũ.
 10. Chụp một ảnh, ở màn xem lại (T-094). Log: `adb logcat -v threadtime | grep ' VGL\.Ads'`.
    - [ ] Khe native thử cao khoảng 126 dp (khoảng 106 dp trên máy rộng 360 dp) ở đáy, cách mép 16 dp, dưới nút "Lưu vào thư viện"; ảnh và ba nút Chụp lại, Chia sẻ, Tư thế tiếp thấy trọn, không bị che; log có `Bottom bar review_bottom: slot=NATIVE collapsible=false`.
    - [ ] Bấm Lưu, Chia sẻ, Chụp lại, Tư thế tiếp (mỗi lần chụp lại một ảnh): đúng hành vi như khi không có quảng cáo.

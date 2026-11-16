@@ -32,7 +32,7 @@ Sau khi xong:
 - Câu 20 của spec ads đã trả lời và spec chốt lại.
 - Nếu nhận kích thước mới (câu 20, ý a), phải xong trước khi duyệt plan:
   - tiêu chí "80 dp" ở spec poses (KB-6), camera (KB-9) và settings (KB-1) đã đổi;
-  - ảnh thiết kế trạng thái `ad` của thư viện, chi tiết, cài đặt, màn xem lại (cả `ReviewScreen_ad_dark_unfolded`) đã vẽ lại theo component thẻ native mới của khung, gói bàn giao đã lập lại.
+  - ảnh thiết kế trạng thái `ad` của thư viện, chi tiết, cài đặt, màn xem lại (cả `ReviewScreen_ad_dark_unfolded`) đã vẽ lại theo component thẻ native mới của khung, gói bàn giao đã lập lại. Xong 2026-11-16: component `NativeAdSmall` trên Figma theo `Native/Small` của mẫu, 8 frame `ad` xuất lại, Nhật duyệt.
 - Người, hay AI có người theo dõi, đã đẩy nhánh điểm bắt đầu theo phần Điểm bắt đầu dưới đây.
 
 ## Phạm vi

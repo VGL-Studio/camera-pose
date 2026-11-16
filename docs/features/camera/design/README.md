@@ -6,7 +6,7 @@ tool: figma
 link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=16-24
 designer: AI (Claude), Nhật
 approved_by: Nhật
-approved_at: 2026-10-31
+approved_at: 2026-11-16
 ---
 
 # THIẾT KẾ: CAMERA VÀ MÀN XEM LẠI
@@ -103,7 +103,7 @@ Dấu ba chấm là một ký tự (`…`).
 | Xem lại: nút chính | `PrimaryButton` `download` | `secondary` (tối: trắng), `onSecondary` | | Rộng hết, cách đáy `Spacing.lg` |
 | Xem lại: lưu lỗi | `Snackbar` | `inverseSurface`, `inverseOnSurface`, `inversePrimary` | | Trên nút chính `Spacing.md` |
 | Xem lại: hỏi bỏ ảnh | `ConfirmDialog` trên lớp mờ 50% | `surface`, viền `outline` | | Rộng 331 |
-| Xem lại: thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`); không có lớp native thu gọn nổi (spec ads, câu 19, ý e) | Theo khung, chế độ tối: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe 80, cách mép trái, phải, đáy `Spacing.md`; nội dung chừa 96 ở đáy. Điện thoại: ảnh giữ 379 x 505 và hàng nút phụ giữ chỗ như khi không có thanh (còn đủ chỗ ở khung chuẩn), chỉ nút chính dời lên 96; khi màn có thêm nội dung (thông báo lưu lỗi, nút "Mở cài đặt") và ở khung thấp, ảnh co lại theo chỗ còn lại, giữ 3:4; số đo thật ở mục 4 của plan T-094 (Nhật chọn ngày 2026-11-13, theo bố cục có sẵn của màn). Gập mở: thanh rộng hết (641) dưới cả ảnh và cột phải; ảnh giữ 450 x 600, nút chính dời lên, cách thanh 20 (như điện thoại: lề dưới của nút chính trong code; frame vẽ 16) |
+| Xem lại: thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`); không có lớp native thu gọn nổi (spec ads, câu 19, ý e) | Theo khung, chế độ tối: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe cao theo cạnh ngắn của cửa sổ (theo khung, `docs/ops/ads-business-rules.md`, D-02): 126 ở khung chuẩn, 200 ở khung mở gập; thẻ: icon 44, nhãn "Ad" 13 sp trước tiêu đề 16 sp một dòng, dòng dưới 13 sp tối đa 2 dòng, CTA cao 44 chữ 18 sp rộng theo chữ; cách mép trái, phải, đáy `Spacing.md`; nội dung chừa 142 ở đáy (khung mở gập: 216). Điện thoại: ảnh co lại theo chỗ còn lại, giữ 3:4: 355 x 473 ở khung chuẩn (bố cục có sẵn của màn: ảnh, `Spacing.lg`, hàng nút phụ, `Spacing.md`, nút chính, 20 trên thanh); hàng nút phụ ở y 585, nút chính ở y 669. Gập mở: thanh 641 x 200 rộng hết dưới cả ảnh và cột phải; ảnh 400 x 533, cột phải từ x 432 rộng 225; nút chính cách thanh 20 (lề dưới của nút chính trong code; frame vẽ 16) |
 
 - **Thành phần mới cần thêm vào hệ thống thiết kế:** `CameraIconButton`, `StickerChip`, `SelectedBadge`, `PoseThumb`, `StepCard`, `ZoomControl`, `MatchHint`, `AdjustPanel`, `GridOverlay`, `StateMessage`, `SecondaryButton` (xem `sticker.md`, mục 4).
 
@@ -119,7 +119,9 @@ Dấu ba chấm là một ký tự (`…`).
 
 ## 5. Vị trí quảng cáo
 
-`review_interstitial`: toàn màn hình, hiện khi rời `ReviewScreen` sau khi đã lưu ảnh, trước khi về camera (spec mục 5). `review_bottom` (spec ads, câu 19): thanh đáy native nhỏ ở đáy `ReviewScreen`, dưới mọi nút, ở mọi trạng thái của màn (ảnh `ReviewScreen_ad_*`); ảnh co lại cho vừa phần còn lại, không bị cắt hay che. Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp thoại "Bỏ ảnh này?" và thông báo lưu lỗi phủ lên như hôm nay. `is_show_native_bottom` tắt thì khe là banner ở cùng chỗ; không có lớp quảng cáo nổi dù `is_show_native_collap` bật (spec camera, KB-9). Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 của thẻ là số của khung (`NativeAdDimens`); `context/` ghi "ngoài hệ thống", không làm tròn hay thêm token. Vị trí từng phần lấy theo `context/` của từng frame; nút chính cách thanh 20 ở cả điện thoại lẫn máy gập mở ra (frame máy gập vẽ 16, code giữ 20). Chữ của thẻ là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ. Không có vùng quảng cáo nào trên `CameraScreen`.
+Thiết kế trạng thái `ad` vẽ lại ngày 2026-11-16 theo thẻ native nhỏ mới của khung (component `Native/Small` của dự án mẫu): khe 126 ở khung chuẩn thay khe 80; Nhật duyệt trong phiên ("Duyệt").
+
+`review_interstitial`: toàn màn hình, hiện khi rời `ReviewScreen` sau khi đã lưu ảnh, trước khi về camera (spec mục 5). `review_bottom` (spec ads, câu 19): thanh đáy native nhỏ ở đáy `ReviewScreen`, dưới mọi nút, ở mọi trạng thái của màn (ảnh `ReviewScreen_ad_*`); ảnh co lại cho vừa phần còn lại, không bị cắt hay che. Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp thoại "Bỏ ảnh này?" và thông báo lưu lỗi phủ lên như hôm nay. `is_show_native_bottom` tắt thì khe là banner ở cùng chỗ; không có lớp quảng cáo nổi dù `is_show_native_collap` bật (spec camera, KB-9). Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13, 16 và 18 của thẻ là số của khung (`NativeAdDimens`); `context/` ghi "ngoài hệ thống", không làm tròn hay thêm token. Vị trí từng phần lấy theo `context/` của từng frame; nút chính cách thanh 20 ở cả điện thoại lẫn máy gập mở ra (frame máy gập vẽ 16, code giữ 20). Chữ của thẻ là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ. Không có vùng quảng cáo nào trên `CameraScreen`.
 
 ## 6. Chuyển sang Compose
 

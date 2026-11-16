@@ -134,7 +134,7 @@ Năm cải tiến chính: 1 (2 chạm tới camera, không quảng cáo trước
 | Chi tiết tư thế với nút "Chụp với tư thế này" | bắt buộc | PoseCamera, SimplePose, AI Posing, PoseMate | |
 | Lưu ảnh vào thư viện máy | bắt buộc | Cả 5 app | Ảnh lưu không kèm nét viền |
 | Màn giải thích quyền camera | bắt buộc | SimplePose, PoseMate | Bài học 16 |
-| Cài đặt: giao diện sáng tối, âm chụp, ngôn ngữ, quyền riêng tư và đồng ý quảng cáo, chính sách, phiên bản | bắt buộc | Cả 5 app (mức khác nhau) | Đồng ý quảng cáo qua `:core:ads` (ADR-0013) |
+| Cài đặt: giao diện sáng tối, âm chụp, ngôn ngữ, quyền riêng tư và đồng ý quảng cáo, chính sách, phiên bản | bắt buộc | Cả 5 app (mức khác nhau) | Đồng ý quảng cáo qua `:core:ads` (ADR-0045) |
 | Vào thẳng camera, không quảng cáo trước ảnh đầu | khác biệt | Không app nào làm trọn; PoseMate gần nhất | Bài học 1, 2 |
 | Lớp phủ chỉnh đủ: độ mờ, cỡ, kéo, lật, khóa, ẩn, đặt lại | khác biệt | SimplePose đủ; PoseCamera, PoseMate một phần | Bài học 5 |
 | Thẻ bước tạo dáng trên camera | khác biệt | PoseCamera (thẻ mẹo), PoseMate (chỉ ở chi tiết) | Bài học 10 |
@@ -283,7 +283,7 @@ Dev chọn một mức. AI đề xuất **mức B**. **Dev chọn mức B (vừa
 | **B. Vừa (đề xuất)** | `poses_banner` như trên; `poses_detail_banner`: banner đáy chi tiết tư thế; `review_interstitial`: interstitial khi rời màn xem lại sau khi đã lưu ảnh (điểm dừng tự nhiên) | Không quảng cáo ở chào mừng, camera, xem lại (trong lúc xem), cài đặt |
 | C. Dày hơn | Như B, thêm app open khi quay lại app từ nền | Rủi ro lặp lại bài học 1 |
 
-Giới hạn đề xuất cho `review_interstitial`, đặt trong `RemoteSettings` để chỉnh từ xa: không hiện trước ảnh thứ 2 của phiên; cách nhau ít nhất 120 giây; tối đa 1 lần mỗi 3 ảnh lưu. Mọi vị trí mặc định tắt, bật bằng `ads_<vị trí>_enabled` (ADR-0014). Không dùng mediation lúc đầu, chỉ AdMob.
+Giới hạn đề xuất cho `review_interstitial`, đặt trong `RemoteSettings` để chỉnh từ xa: không hiện trước ảnh thứ 2 của phiên; cách nhau ít nhất 120 giây; tối đa 1 lần mỗi 3 ảnh lưu. Mọi vị trí mặc định tắt, bật bằng `ads_<vị trí>_enabled` (ADR-0045). Không dùng mediation lúc đầu, chỉ AdMob.
 
 Thước đo: số quảng cáo toàn màn hình mỗi 10 phút phiên (đích tối đa 3), số quảng cáo trước ảnh đầu tiên (đích 0).
 
@@ -297,7 +297,7 @@ Thước đo: số quảng cáo toàn màn hình mỗi 10 phút phiên (đích t
 
 ### Câu hỏi 9.3: dữ liệu thu thập
 
-Đề xuất: ảnh chỉ lưu trên máy, không tải lên đâu. Không đăng nhập. Chỉ số liệu ẩn danh của Firebase. Đồng ý quảng cáo qua hộp thoại của `:core:ads` (ADR-0013). Câu này đưa vào phần mô tả trên Play như PoseMate làm (Play, 2.7).
+Đề xuất: ảnh chỉ lưu trên máy, không tải lên đâu. Không đăng nhập. Chỉ số liệu ẩn danh của Firebase. Đồng ý quảng cáo qua hộp thoại của `:core:ads` (ADR-0045). Câu này đưa vào phần mô tả trên Play như PoseMate làm (Play, 2.7).
 
 - Dev trả lời: ảnh chỉ lưu trên máy, không cần đăng nhập.
 

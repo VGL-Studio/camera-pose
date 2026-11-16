@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Checks a whole run list before a dev approves it, and again at the start of the session.
 
-Usage: scripts/run-check.py <docs/runs/RUN-YYYYMMDD-NN.md>
-Exit 0: no error (warnings may be printed). Exit 1: at least one error.
+Usage: scripts/run-check.py [--batch] <docs/runs/RUN-YYYYMMDD-NN.md>
+Exit 0: no error (warnings may be printed). Exit 1: at least one error. Exit 2: wrong arguments.
 
 plan-check.py looks at one plan at a time. This script looks at what only shows across the list and the
 documents behind it, the mistakes that stopped or slowed earlier sessions:
@@ -31,6 +31,16 @@ documents behind it, the mistakes that stopped or slowed earlier sessions:
   9. A plan that deletes a file or a folder (section 3.2, "Xóa") that a plan after it in the list still changes or
      deletes in its own section 3.2: an error, since that later plan fails plan-check.py at its start and is skipped.
      A later plan that creates the file again, or names it elsewhere in sections 3 and 4: a warning.
+  10. The list's `start`: auto, manual or empty; any other value is an error. `start: auto` (the session starts when
+     the list reaches main approved, ADR-0049) with an `open_with` in the file other than routine is an error, since
+     start-run.yml fires only the routine. Read from the file only, not from RUN_CHECK_OPEN_WITH.
+  11. --batch checks the draft run list of a batch whose plans are still draft, in the same PR (ADR-0048, B3). Only
+     three status errors are waived, and only for a file in `git diff --name-only --relative <base>...HEAD` (changed by
+     the branch since its fork point; a file changed only in the working tree is not waived): a plan `draft`, a ticket
+     `planned`, a spec `changed` or `draft`. Each waived file is a warning, and so is the base with its commit. Any
+     other status, and every other check, is unchanged. A list that is not draft is an error with --batch, since an
+     approved list must pass without it. A diff git cannot read is an error and nothing is waived. The base is
+     RUN_CHECK_BASE (tests) or origin/main; the caller runs `git fetch origin` first.
 RUN_CHECK_ROOT overrides the repository root (tests). RUN_CHECK_OPEN_WITH overrides `open_with` (a session opened
 another way than the list says). Messages are in Vietnamese for the team.
 """
@@ -95,12 +105,13 @@ def ids(value):
     return re.findall(r"(?:T|KB)-\d+", value or "")
 
 
-def spec_problems(spec_path, plan_fields):
+def spec_problems(spec_path, plan_fields, waive_status=False):
+    """Errors and warnings of rule 2. waive_status drops only the error of a spec not confirmed (--batch)."""
     errors, warnings = [], []
     text = spec_path.read_text()
     fields = front_matter(text)
     name = spec_path.relative_to(ROOT)
-    if fields.get("status") != "confirmed":
+    if fields.get("status") != "confirmed" and not waive_status:
         errors.append(f"{name}: spec đang '{fields.get('status')}', chưa confirmed; plan dựa trên spec chưa chốt.")
     for question in re.split(r"^\d+\. ", chapter(text, 9), flags=re.M)[1:]:
         answer = re.search(r"Trả lời:\s*(.*)", question)
@@ -276,13 +287,56 @@ def capability_problems(run_text, files_of, in_list):
     return errors, warnings
 
 
-def check(run_path):
+def repo_path(path):
+    """Path from ROOT as git prints it with --relative; ROOT is not resolved on either side (rule 11)."""
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return None
+
+
+def batch_changes(base):
+    """(files the branch changes since its fork point from base, commit of base) or (None, error message)."""
+    commands = (["diff", "--name-only", "--relative", f"{base}...HEAD"], ["rev-parse", "--short", base])
+    outputs = []
+    for command in commands:
+        try:
+            result = subprocess.run(["git", "-C", str(ROOT), *command], capture_output=True, text=True)
+        except OSError as error:
+            return None, str(error)
+        if result.returncode != 0:
+            return None, (result.stderr.strip().splitlines() or [f"git {command[0]} trả {result.returncode}"])[0]
+        outputs.append(result.stdout)
+    return set(outputs[0].split()), outputs[1].strip()
+
+
+def check(run_path, batch_files=None):
+    """Errors and warnings of the list. batch_files: the files the branch changes (--batch, rule 11), or None."""
     errors, warnings = [], []
+    waived_files = set()
+
+    def waived(path, status, allowed):
+        """True when --batch waives this status error; warns once per file."""
+        name = repo_path(path)
+        if not batch_files or name not in batch_files or status not in allowed:
+            return False
+        if name not in waived_files:
+            waived_files.add(name)
+            warnings.append(f"(--batch) bỏ qua trạng thái: {name} đang '{status}', đổi trong nhánh này.")
+        return True
+
     rows = run_rows(run_path.read_text())
     if not rows:
         return ["mục 1 không có dòng nào đúng mẫu (Thứ tự | Ticket | Feature | Plan | ...)."], []
     run_text = run_path.read_text()
     in_list = [ticket for ticket, _ in rows]
+    run_fields = front_matter(run_text)
+    start = run_fields.get("start", "").lower()
+    if start not in ("", "auto", "manual"):
+        errors.append(f"start phải là auto hay manual (nhận '{start}').")
+    elif start == "auto" and run_fields.get("open_with", "").lower() != "routine":
+        errors.append("start: auto mà open_with không phải routine: phiên tự bắt đầu chỉ kích hoạt được routine; "
+                      "đổi open_with hay ghi start: manual.")
     depends, files_of, created_by, deleted_by, plan_texts, hints = {}, {}, {}, {}, {}, {}
     ops_of = {}
 
@@ -293,7 +347,7 @@ def check(run_path):
             continue
         plan_text = plan.read_text()
         plan_fields = front_matter(plan_text)
-        if plan_fields.get("status") != "approved":
+        if plan_fields.get("status") != "approved" and not waived(plan, plan_fields.get("status"), {"draft"}):
             errors.append(f"{ticket}: plan đang '{plan_fields.get('status')}', chưa approved.")
         plan_errors, _ = PLAN_CHECK.check(plan)
         for message in plan_errors:
@@ -314,7 +368,7 @@ def check(run_path):
             errors.append(f"{ticket}: không tìm thấy ticket.")
             continue
         fields = front_matter(ticket_path.read_text())
-        if fields.get("status") != "approved":
+        if fields.get("status") != "approved" and not waived(ticket_path, fields.get("status"), {"planned"}):
             errors.append(f"{ticket}: ticket đang '{fields.get('status')}', chưa approved (L-045).")
         if fields.get("auto_run", "").lower() == "false":
             errors.append(f"{ticket}: ticket ghi auto_run: false, người làm; không đưa vào danh sách chạy.")
@@ -337,7 +391,9 @@ def check(run_path):
         if not fields.get("spec") or not spec_path.is_file():
             errors.append(f"{ticket}: không tìm thấy spec '{fields.get('spec')}'.")
             continue
-        spec_errors, spec_warnings = spec_problems(spec_path, plan_fields)
+        spec_status = front_matter(spec_path.read_text()).get("status")
+        waive_spec = spec_status != "confirmed" and waived(spec_path, spec_status, {"changed", "draft"})
+        spec_errors, spec_warnings = spec_problems(spec_path, plan_fields, waive_status=waive_spec)
         # A spec shared by several tickets reports each problem once.
         errors += [f"{ticket}: {m}" for m in dict.fromkeys(spec_errors) if not any(e.endswith(m) for e in errors)]
         warnings += [f"{ticket}: {m}" for m in dict.fromkeys(spec_warnings) if not any(w.endswith(m) for w in warnings)]
@@ -436,20 +492,41 @@ def check(run_path):
 
 
 def main(argv):
-    if len(argv) != 2:
-        print("Cách dùng: scripts/run-check.py <docs/runs/RUN-YYYYMMDD-NN.md>", file=sys.stderr)
+    args = argv[1:]
+    batch = bool(args) and args[0] == "--batch"
+    if batch:
+        args = args[1:]
+    if len(args) != 1:
+        print("Cách dùng: scripts/run-check.py [--batch] <docs/runs/RUN-YYYYMMDD-NN.md>", file=sys.stderr)
         return 2
-    run = Path(argv[1])
+    name = args[0]
+    run = Path(name)
     if not run.is_file():
-        print(f"{argv[1]}: LỖI: không có file này.")
+        print(f"{name}: LỖI: không có file này.")
         return 1
-    errors, warnings = check(run)
+    batch_errors, batch_warnings, batch_files = [], [], None
+    if batch:
+        status = front_matter(run.read_text()).get("status", "")
+        base = os.environ.get("RUN_CHECK_BASE") or "origin/main"
+        if status != "draft":
+            batch_errors.append(f"--batch chỉ dùng cho danh sách draft (đang '{status}'); danh sách approved phải qua "
+                                "run-check.py không có --batch.")
+        else:
+            batch_files, detail = batch_changes(base)
+            if batch_files is None:
+                batch_errors.append(f"--batch không đọc được diff so với {base} ({detail}); chạy git fetch origin rồi "
+                                    "thử lại.")
+            else:
+                batch_warnings.append(f"(--batch) so với {base} ({detail}).")
+    errors, warnings = check(run, batch_files)
+    errors = batch_errors + errors
+    warnings = batch_warnings + warnings
     for message in errors:
-        print(f"{argv[1]}: LỖI: {message}")
+        print(f"{name}: LỖI: {message}")
     for message in warnings:
-        print(f"{argv[1]}: CHÚ Ý: {message}")
+        print(f"{name}: CHÚ Ý: {message}")
     if not errors:
-        print(f"{argv[1]}: qua.")
+        print(f"{name}: qua.")
     return 1 if errors else 0
 
 

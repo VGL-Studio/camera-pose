@@ -89,6 +89,11 @@ class FirebaseAdMetricsTest {
             AdMetricEvent.Clicked("INTER", "p"),
             AdMetricEvent.RewardEarned("REWARDED", "p"),
             AdMetricEvent.RewardDialog("REWARDED", "p", "show"),
+            // The events of AppLovin MAX (plan T-072).
+            revenue(adPlacement = "p").copy(platform = AdMetricPlatform.APPLOVIN),
+            AdMetricEvent.LoadSuccess("INTER", "preload", 1, 10, AdMetricPlatform.APPLOVIN),
+            AdMetricEvent.LoadFail("INTER", "preload", 1, 10, "204", "no_fill", AdMetricPlatform.APPLOVIN),
+            AdMetricEvent.Clicked("INTER", "p", AdMetricPlatform.APPLOVIN),
         )
         // One event of every subclass.
         assertEquals(subclasses.toSet(), events.map { it::class }.toSet())
@@ -96,6 +101,57 @@ class FirebaseAdMetricsTest {
             assertNotEquals("ad_impression", it.firebaseName())
             assertTrue(it.firebaseName().isNotEmpty())
         }
+    }
+
+    @Test
+    fun maxRevenue_adPlatformApplovin_valueAsIs() {
+        val event = AdMetricEvent.ImpressionRevenue(
+            adFormat = "INTER",
+            adSource = "AppLovin",
+            monetizationNetwork = "AppLovin",
+            adUnitName = "unit",
+            currency = "USD",
+            value = 0.0123,
+            adPlacement = "gallery_interstitial",
+            adapterClassName = null,
+            platform = AdMetricPlatform.APPLOVIN,
+        )
+
+        val params = event.firebaseParams()
+
+        assertEquals("ad_impression_placement", event.firebaseName())
+        assertEquals("applovin", params["ad_platform"])
+        assertTrue(params["value"] is Double)
+        assertEquals(0.0123, params["value"] as Double, 0.0)
+        assertEquals("USD", params["currency"])
+        assertEquals(
+            setOf("ad_format", "ad_platform", "ad_source", "ad_unit_name", "currency", "value", "ad_placement"),
+            params.keys,
+        )
+    }
+
+    @Test
+    fun loadSuccessFailClicked_carryAdPlatform() {
+        AdMetricPlatform.entries.forEach { platform ->
+            val events = listOf(
+                AdMetricEvent.LoadSuccess("BANNER", "gallery_banner", 1, 10, platform),
+                AdMetricEvent.LoadFail("BANNER", "gallery_banner", 1, 10, "204", "no_fill", platform),
+                AdMetricEvent.Clicked("BANNER", "gallery_banner", platform),
+            )
+            events.forEach { event ->
+                assertEquals("$event", platform.code, event.firebaseParams()["ad_platform"])
+            }
+        }
+        assertEquals(listOf("admob", "applovin"), AdMetricPlatform.entries.map { it.code })
+    }
+
+    @Test
+    fun opportunityShowFail_noAdPlatform() {
+        val events = listOf(
+            AdMetricEvent.Opportunity("INTER", "p", "shown", "ready"),
+            AdMetricEvent.ShowFail("INTER", "p", "-23", "ad_reused"),
+        )
+        events.forEach { assertFalse("$it", it.firebaseParams().containsKey("ad_platform")) }
     }
 
     @Test
@@ -139,6 +195,7 @@ class FirebaseAdMetricsTest {
         assertEquals(
             mapOf(
                 "ad_format" to "NATIVE_SMALL",
+                "ad_platform" to "admob",
                 "ad_placement" to "poses_bottom",
                 "load_attempt" to 2L,
                 "latency_ms" to 340L,
@@ -159,7 +216,7 @@ class FirebaseAdMetricsTest {
 
         assertEquals("ad_clicked", event.firebaseName())
         assertEquals(
-            mapOf("ad_format" to "NATIVE_MEDIUM", "ad_placement" to "gallery_native_medium"),
+            mapOf("ad_format" to "NATIVE_MEDIUM", "ad_platform" to "admob", "ad_placement" to "gallery_native_medium"),
             event.firebaseParams(),
         )
     }

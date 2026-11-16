@@ -1,6 +1,6 @@
 # LÀM NHANH CÓ NGƯỜI THEO DÕI
 
-Hướng dẫn cho dev muốn làm ngay một việc nhỏ của code app trong ngày, cùng AI, không chờ phiên tự chạy. Quy tắc gốc ở [ADR-0034](../adr/0034-lam-nhanh-co-nguoi-theo-doi.md); phần AI phải làm ở [docs/CLAUDE.md](../CLAUDE.md), mục Khi làm nhanh có người theo dõi.
+Hướng dẫn cho dev muốn làm ngay một việc nhỏ của code app trong ngày, cùng AI, không chờ phiên tự chạy. Quy tắc gốc ở [ADR-0048](../adr/0048-duyet-plan-va-danh-sach-chay-mot-lan.md); phần AI phải làm ở [docs/CLAUDE.md](../CLAUDE.md), mục Khi làm nhanh có người theo dõi.
 
 ## 1. Khi nào dùng
 
@@ -35,7 +35,7 @@ AI kiểm điều kiện ở mục 1. Thiếu điều nào thì AI nói rõ và 
 | 1. Tài liệu | Ghi lời dev thành file yêu cầu, sửa spec nếu cần, viết ticket và plan đủ mục (`lane: quick`, mục 3.5 từ `scripts/existing-tests.py`), chạy `plan-check.py` | Trả lời câu hỏi nếu có; xác nhận phần spec đổi, khi dev là người xác nhận spec của feature |
 | 2. Duyệt plan | Đưa tóm tắt: phạm vi, file sẽ sửa, test, điểm rủi ro, câu hỏi | Đồng ý, hoặc yêu cầu sửa. Lời đồng ý được ghi vào plan |
 | 3. Làm | Viết test trước, viết code, chạy `scripts/check.sh`, nhờ một agent khác rà soát độc lập, sửa theo rà soát | Trả lời khi AI hỏi về chỗ lệch so với plan |
-| 4. PR và CI | Ghi nhật ký vào plan, mở một PR chứa mọi thứ, kiểm các danh sách chạy chưa chạy có bị ảnh hưởng không, chờ CI | Xem PR nếu muốn; quyết khi AI báo ảnh hưởng tới danh sách chạy |
+| 4. PR và CI | Ghi nhật ký vào plan, mở một PR chứa mọi thứ, chờ CI; trước khi merge, gộp nhánh chính vào nhánh làm nhanh trên máy (không đẩy) rồi kiểm các danh sách chạy chưa chạy có bị ảnh hưởng không | Xem PR nếu muốn; quyết khi AI báo ảnh hưởng tới danh sách chạy |
 | 5. Merge | Merge bằng `scripts/merge-if-green.sh`, chờ `main-guard` | Không kích hoạt phiên tự chạy khi PR còn mở |
 | 6. Kiểm tra | Chạy tay `device-session.yml` hay `staging.yml` khi cần | Thử trên máy nếu plan có dòng kiểm tra thủ công; báo kết quả để AI ghi vào nhật ký |
 
@@ -47,7 +47,7 @@ AI dừng đường làm nhanh khi gặp điều kiện dừng ở [mục 4 củ
 
 - PR làm nhanh được đóng, nhánh giữ lại.
 - Yêu cầu, spec nếu đã xác nhận, ticket (`stopped`) và plan có nhật ký lần dừng vẫn lên nhánh chính bằng một PR tài liệu, để không mất lịch sử.
-- Muốn làm tiếp thì plan có phiên bản mới, đi đường thường: họp đánh giá rủi ro, danh sách chạy, phiên tự chạy.
+- Muốn làm tiếp thì plan có phiên bản mới, đi đường thường: duyệt plan, danh sách chạy, phiên tự chạy.
 
 Nhánh chính đỏ sau khi merge (issue `main-broken`) vì commit của PR làm nhanh: AI cùng dev revert theo ADR-0025, rồi một PR tài liệu chuyển ticket sang `stopped`, nhật ký plan ghi "đã merge rồi revert". Commit gây lỗi không phải của PR làm nhanh thì AI không revert, chỉ báo dev.
 

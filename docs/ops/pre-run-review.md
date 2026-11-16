@@ -1,6 +1,6 @@
 # KIỂM TRA DANH SÁCH CHẠY TRƯỚC KHI DUYỆT
 
-Phiên tự chạy dừng hay merge sai thường vì những lỗi đã nằm sẵn trong tài liệu từ trước khi phiên bắt đầu: spec mâu thuẫn với plan, hai plan hiểu một file khác nhau, kỹ thuật chưa chạy thử, test không bắt được lỗi thật. Tài liệu này mô tả hai lớp kiểm tra sau khi AI lập danh sách chạy và trước khi dev duyệt (`docs/CLAUDE.md`, mục Khi lập danh sách chạy). Mục tiêu: mọi điều cần người quyết định được quyết trước, để phiên chạy suốt đêm mà không phải dừng.
+Phiên tự chạy dừng hay merge sai thường vì những lỗi đã nằm sẵn trong tài liệu từ trước khi phiên bắt đầu: spec mâu thuẫn với plan, hai plan hiểu một file khác nhau, kỹ thuật chưa chạy thử, test không bắt được lỗi thật. Tài liệu này mô tả hai lớp kiểm tra sau khi AI lập danh sách chạy và trước khi dev duyệt (`docs/CLAUDE.md`, mục Khi lập danh sách chạy). Mục tiêu: mọi điều cần người quyết định được quyết trước, để phiên chạy suốt đêm mà không phải dừng. Khi duyệt cả đợt (`docs/CLAUDE.md`, mục Khi duyệt cả đợt), hai lớp chạy được trên bản `draft` của đợt, với plan còn `draft`, bằng `scripts/run-check.py --batch` (ADR-0048, B3).
 
 ## 1. Kiểm tra bằng script
 
@@ -22,6 +22,8 @@ Phiên tự chạy dừng hay merge sai thường vì những lỗi đã nằm s
 | Danh sách xếp ngược dòng "Đề xuất thứ tự chạy" ở mục 6 của một plan ("A trước B", "sau A", "nhóm ...: A, B, C", "A, rồi B"; không tính chữ trong ngoặc kép, "trước hay sau", câu "... thì ...", câu "không cần") | Lỗi |
 | Plan nhắc một file mà plan khác trong danh sách tạo, không có file đó ở mục 3.2 của mình và không phụ thuộc plan kia: lỗi khi đứng trước, chú ý (kèm file sẽ thiếu nếu plan kia dừng) khi đứng sau | Lỗi hoặc chú ý |
 | Plan có hàng ở bảng file của mục 3.2 cần một khả năng mà cách mở phiên (`open_with`) không có, theo `docs/ops/session-capabilities.md`: lỗi khi ô ghi `không`, chú ý khi ghi `thử` (phiên thử ở đầu phiên); `open_with` trống hay sai mà có plan cần khả năng: chú ý; mẫu của bảng viết sai: chú ý | Lỗi hoặc chú ý |
+| Trường `start` khác `auto`, `manual` hay trống; `start: auto` mà `open_with` trong file không phải `routine` (phiên tự bắt đầu chỉ kích hoạt được routine) | Lỗi |
+| `--batch` (duyệt cả đợt): lỗi "plan chưa `approved`" của plan `draft`, "ticket chưa `approved`" của ticket `planned` và "spec chưa `confirmed`" của spec `changed` hay `draft` thành chú ý, chỉ với file mà nhánh đổi so với điểm tách khỏi `origin/main` (chạy `git fetch origin` trước); trạng thái khác và mọi kiểm tra khác giữ nguyên mức. Danh sách không phải `draft`, hay không đọc được diff | Lỗi |
 
 Muốn giữ thứ tự ngược với một đề xuất của plan (ví dụ hai task chỉ chung vài dòng), ghi vào danh sách chạy một dòng `Bỏ đề xuất thứ tự: A trước B` kèm lý do, trong mục Lý do của thứ tự chạy; lỗi khi đó thành chú ý. Lỗi phải sửa trước khi đưa danh sách cho dev. Mỗi dòng chú ý được xem ở lớp thứ hai và ghi kết luận.
 
@@ -82,7 +84,7 @@ Phiên rà soát trả về một bảng:
 | Chặn | T-NNN | plan mục 4, dòng `...` | <điều sai và vì sao phiên sẽ dừng hay merge sai> | <sửa plan, sửa spec, hay bỏ task> |
 
 - **Chặn:** phiên gần như chắc chắn sẽ dừng task, hoặc sẽ merge một hành vi sai mà test không bắt được. Phải xử lý trước khi duyệt danh sách:
-  - Plan `approved` thì AI soạn phiên bản mới ở trạng thái `draft` để người duyệt lại.
+  - Plan `approved` thì AI soạn phiên bản mới ở trạng thái `draft` để người duyệt lại. Plan `draft` của một đợt thì AI sửa ngay trong PR của đợt, rồi chạy lại cả hai lớp.
   - Spec sai thì chuyển spec sang `changed` và chờ xác nhận lại.
   - Không kịp xử lý thì bỏ task khỏi danh sách, kèm các task phụ thuộc nó.
 - **Nên sửa:** người quyết định sửa ngay hay để phiên chạy như plan đã duyệt.
@@ -90,4 +92,4 @@ Phiên rà soát trả về một bảng:
 
 AI rà soát không sửa plan `approved`, spec `confirmed` hay danh sách chạy. Khi hai tài liệu mâu thuẫn, AI không tự chọn bên nào mà đặt thành câu hỏi cho người (`docs/CLAUDE.md`, mục Đọc trước khi làm).
 
-Kết quả của cả hai lớp được ghi vào mục "Kiểm tra trước khi duyệt" của danh sách chạy ([mẫu](../templates/run.md)): kết quả `run-check.py`, số điểm theo từng mức, và cách xử lý từng điểm chặn. Dev chỉ chuyển danh sách sang `approved` khi `run-check.py` qua và không còn điểm chặn nào chưa xử lý. Plan hay spec đổi sau lần kiểm tra thì chạy lại cả hai lớp.
+Kết quả của cả hai lớp được ghi vào mục "Kiểm tra trước khi duyệt" của danh sách chạy ([mẫu](../templates/run.md)): kết quả `run-check.py`, số điểm theo từng mức, và cách xử lý từng điểm chặn. Danh sách chỉ chuyển sang `approved` (dev tự ghi, hoặc AI ghi theo lời đồng ý trong phiên của dev, ADR-0048 phần C) khi `run-check.py` không có `--batch` qua và không còn điểm chặn nào chưa xử lý. Plan hay spec đổi sau lần kiểm tra thì chạy lại cả hai lớp.

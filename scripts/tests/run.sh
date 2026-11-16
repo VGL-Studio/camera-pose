@@ -252,8 +252,9 @@ expect "start-run: main-guard step runs after the run-file checks and before the
 # job of its own: only that job may write issues (L-113). The checks never get a GitHub token in .git/config or env.
 expect "start-run: only close-setup-broken writes issues, between the checks and the routine" "yes 1 1 1" \
   "$(grep -qE '^  issues: read$' "$start_wf" && echo yes || echo no) $(grep -cE '^      issues: write$' "$start_wf") $(awk '/^  close-setup-broken:$/ { c = 1 } c && /^    needs: check$/ { n++ } END { print n + 0 }' "$start_wf") $(grep -cE '^    needs: \[check, close-setup-broken\]$' "$start_wf")"
-expect "start-run: the setup check runs without a GitHub token" "1 1" \
-  "$(grep -c 'persist-credentials: false' "$start_wf") $(grep -c 'env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging' "$start_wf")"
+# Every checkout of start-run.yml (pick, check, fire) keeps the token out of .git/config (T-104, ADR-0031).
+expect "start-run: the setup check runs without a GitHub token" "3 3 1" \
+  "$(grep -c 'persist-credentials: false' "$start_wf") $(grep -c 'uses: actions/checkout' "$start_wf") $(grep -c 'env -u GH_TOKEN -u GITHUB_TOKEN scripts/setup-check.sh --staging' "$start_wf")"
 canary_wf=.github/workflows/env-canary.yml
 # env-canary.yml checks a red setup once more after 90 seconds, and setup_only runs the setup check without the routine.
 expect "env-canary: a red setup check is run again after 90 seconds, without a GitHub token" "1 2 1" \
@@ -3768,7 +3769,7 @@ release_fails_with() {
 }
 write_release_properties() {
   printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" "appsFlyerDevKey=${4-AbCdEf0123456789XyZ}" \
-    > "$release_dir/release.properties"
+    "maxSdkKey=${5-FAKE_MAX_KEY_0123456789}" "maxAdUnits=${6-}" > "$release_dir/release.properties"
 }
 mkdir -p "$release_dir"
 release_fails_with "missing files" "/release/google-services.json"
@@ -3780,8 +3781,9 @@ release_fails_with "ad unit given as app id" "admobAppId phải có dạng"
 # A Google test unit given by hand is accepted (2026-10-26): the folder check goes on to the next value.
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner=ca-app-pub-3940256099942544/9214589741" "http://cdn.example.vn/"
 release_fails_with "a Google test ad unit given by hand passes the ad unit check" "assetsBaseUrl phải"
-# Whether this repo declares the AppsFlyer SDK, read the way release.sh reads it. An app without the SDK (camera-pose,
-# ADR-1007) has no key to refuse, so this repo's own release.sh must not ask for one; with the SDK it must.
+# Whether this repo declares the AppsFlyer SDK, read the way release.sh reads it. An app without the SDK (ADR-0027
+# lets an app leave it out) has no key to refuse, so this repo's own release.sh must not ask for one; with the SDK it
+# must. The template has the SDK, so the template's CI runs only the first branch.
 repo_has_appsflyer=no
 if grep -rqsE --include='*.gradle.kts' --exclude-dir=build --exclude-dir=.gradle \
   'libs\.appsflyer([^.A-Za-z0-9_]|$)|"com\.appsflyer:' .; then
@@ -3807,8 +3809,8 @@ else
   own_af_out="$("$own_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
   expect "release.sh: this repo has no AppsFlyer SDK, so its build files pass the folder check without a key" "0 1" \
     "$(grep -c 'appsFlyerDevKey' <<< "$own_af_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$own_af_out" || true)"
-  # The two refusals of the template still run, on the same copy with a module that declares the SDK through the
-  # version catalog (libs.appsflyer), the way an app with the SDK declares it.
+  # The two refusals still run, on the same copy with a module that declares the SDK through the version catalog
+  # (libs.appsflyer), the way an app with the SDK declares it.
   mkdir -p "$own_af/core/appsflyer-probe"
   printf '%s\n' 'dependencies {' '    implementation(libs.appsflyer)' '}' > "$own_af/core/appsflyer-probe/build.gradle.kts"
   write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
@@ -3835,6 +3837,16 @@ no_af_out="$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/nul
 expect "release.sh: an app without the AppsFlyer SDK warns that its key is not used, and goes on" "1 1" \
   "$(grep -c '^CHÚ Ý: .*appsFlyerDevKey' <<< "$no_af_out") $(grep -c '^== Kiểm tra commit phát hành' <<< "$no_af_out")"
 expect "release.sh: the unused AppsFlyer key is never printed" 0 "$(grep -c 'SecretKey0123456789' <<< "$no_af_out" || true)"
+# The same copy has no AppLovin MAX adapter either: no MAX key is needed, and a MAX key given is not used.
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "" ""
+no_af_out="$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
+expect "release.sh: an app without the MAX adapter releases without a MAX key and prints no MAX notice" "1 0" \
+  "$(grep -c '^== Kiểm tra commit phát hành' <<< "$no_af_out" || true) $(grep -c '^CHÚ Ý: .*maxSdkKey' <<< "$no_af_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "" "FAKE_MAX_SECRET_0123456789"
+no_af_out="$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
+expect "release.sh: an app without the MAX adapter warns that its MAX key is not used, never prints it" "1 1 0" \
+  "$(grep -c '^== Kiểm tra commit phát hành' <<< "$no_af_out" || true) \
+$(grep -c '^CHÚ Ý: .*maxSdkKey không được dùng' <<< "$no_af_out" || true) $(grep -c 'FAKE_MAX_SECRET_0123456789' <<< "$no_af_out" || true)"
 # The SDK declared directly by its Maven coordinates counts too.
 printf '%s\n' 'dependencies {' '    implementation("com.appsflyer:af-android-sdk:6.18.1")' '}' > "$no_af/core/analytics/build.gradle.kts"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
@@ -3843,6 +3855,66 @@ expect "release.sh: the SDK given by its Maven coordinates needs the key" 1 \
 expect "release.sh never prints the AppsFlyer dev key" 0 \
   "$(write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/" "SecretKey0123456789"
      scripts/release.sh --config "$release_dir" 2>&1 < /dev/null | grep -c 'SecretKey0123456789' || true)"
+# AppLovin MAX values are optional: without a key the release runs AdMob only. The MAX check ends the folder check,
+# after the https address, so a run that passes it reaches the commit step; these runs use a copy without a real
+# origin holding this repo's build files, like the AppsFlyer copies above, and never touch git in this repository.
+repo_has_max=no
+if grep -rqsE --include='*.gradle.kts' --exclude-dir=build --exclude-dir=.gradle \
+  'libs\.max\.mediation\.|"com\.applovin\.mediation:' .; then
+  repo_has_max=yes
+fi
+max_copy="$work/release-max"
+mkdir -p "$max_copy/scripts"
+cp scripts/release.sh "$max_copy/scripts/"
+while IFS= read -r build_file; do
+  mkdir -p "$max_copy/$(dirname "$build_file")"
+  cp "$build_file" "$max_copy/$build_file"
+done < <(git ls-files '*.gradle.kts')
+git -C "$max_copy" init -q
+max_run() { "$max_copy/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true; }
+max_af_key="AbCdEf0123456789XyZ"
+if [[ "$repo_has_max" == no ]]; then
+  # An app that left MAX out: its own build files pass without a MAX key and print no MAX notice. The checks below
+  # then run with a module that declares the MAX adapter, the way an app with MAX declares it.
+  write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "$max_af_key" ""
+  max_out="$(max_run)"
+  expect "release.sh: this repo has no MAX adapter, so its build files need no MAX key and print no MAX notice" "0 1" \
+    "$(grep -c 'không có maxSdkKey' <<< "$max_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$max_out" || true)"
+  mkdir -p "$max_copy/core/max-probe"
+  printf '%s\n' 'dependencies {' '    implementation(libs.max.mediation.google)' '}' > "$max_copy/core/max-probe/build.gradle.kts"
+fi
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "$max_af_key" ""
+max_out="$(max_run)"
+expect "release.sh: an app with MAX and no MAX key warns and goes on (AdMob only)" "1 1" \
+  "$(grep -c '^CHÚ Ý: .*không có maxSdkKey' <<< "$max_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$max_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "$max_af_key" \
+  "FAKE_MAX_SECRET_0123456789 x"
+max_out="$(max_run)"
+expect "release.sh refuses a MAX SDK key with odd characters, before the commit step, without printing it" "1 0 0" \
+  "$(grep -c 'maxSdkKey sai dạng' <<< "$max_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$max_out" || true) \
+$(grep -c 'FAKE_MAX_SECRET_0123456789' <<< "$max_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "$max_af_key" \
+  "FAKE_MAX_KEY_0123456789" "banner"
+max_out="$(max_run)"
+expect "release.sh refuses MAX ad units without '=', before the commit step" "1 0" \
+  "$(grep -c 'maxAdUnits sai dạng' <<< "$max_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$max_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "$max_af_key" \
+  "FAKE_MAX_KEY_0123456789" 'banner=FAKE_UNIT_SECRET"X'
+max_out="$(max_run)"
+expect "release.sh refuses MAX ad units with a quote, before the commit step, without printing them" "1 0 0" \
+  "$(grep -c 'maxAdUnits sai dạng' <<< "$max_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$max_out" || true) \
+$(grep -c 'FAKE_UNIT_SECRET' <<< "$max_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "$max_af_key" \
+  "FAKE_MAX_SECRET_0123456789" "banner=FAKE_UNIT_A"
+max_out="$(max_run)"
+expect "release.sh never prints the MAX SDK key or units" "1 0 0" \
+  "$(grep -c '^== Kiểm tra commit phát hành' <<< "$max_out" || true) $(grep -c 'FAKE_MAX_SECRET_0123456789' <<< "$max_out" || true) \
+$(grep -c 'FAKE_UNIT_A' <<< "$max_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "$max_af_key" "" \
+  "banner=FAKE_UNIT_A"
+max_out="$(max_run)"
+expect "release.sh: MAX ad units without a MAX key are not used, and the release goes on" "1 1" \
+  "$(grep -c '^CHÚ Ý: .*maxAdUnits không được dùng' <<< "$max_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$max_out" || true)"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "sample_bottom_banner" "https://cdn.example.vn/"
 release_fails_with "malformed ad unit entry" "mục adUnits"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn.example.vn/"
@@ -3874,8 +3946,8 @@ for prop in $exported_props; do
   [[ "$prop" == appsFlyerDevKey && "$repo_has_appsflyer" == no ]] && continue
   grep -q "gradleProperty(\"$prop\")" app/build.gradle.kts || unread_props="$unread_props $prop"
 done
-# The count guards against a grep that finds nothing and so passes: release.sh exports 8 properties today.
-expect "contract: app/build.gradle.kts reads every Gradle property that release.sh exports" "8 none" \
+# The count guards against a grep that finds nothing and so passes: release.sh exports 10 properties today.
+expect "contract: app/build.gradle.kts reads every Gradle property that release.sh exports" "10 none" \
   "$(wc -w <<< "$exported_props" | tr -d ' ') ${unread_props:-none}"
 # The other way: every property the production build requires is one that release.sh exports, so renaming one
 # in the build file fails here instead of on release night.
@@ -3908,6 +3980,13 @@ cp scripts/release.sh "$rl/src/scripts/"
 cp app/build.gradle.kts "$rl/src/app/"
 cp core/analytics/build.gradle.kts "$rl/src/core/analytics/"
 cp "$rl_placement" "$rl/src/$rl_placement"
+mkdir -p "$rl/src/core/ads"
+cp core/ads/build.gradle.kts "$rl/src/core/ads/"
+if [[ "$repo_has_max" == no ]]; then
+  # An app that left MAX out still runs the MAX lines below, with a module that declares the adapter.
+  mkdir -p "$rl/src/core/max-probe"
+  printf '%s\n' 'dependencies {' '    implementation(libs.max.mediation.google)' '}' > "$rl/src/core/max-probe/build.gradle.kts"
+fi
 (
   cd "$rl/src"
   git init -q -b main
@@ -3948,6 +4027,14 @@ rl_out="$(release_check_only)"
 expect "release.sh --check-only: runs every check, prints the summary and stops before the passwords" "1 1 0 0" \
   "$(grep -c "^   App: *$rl_app_id$" <<< "$rl_out" || true) $(grep -c '^== Đã kiểm xong, chưa build (--check-only)' <<< "$rl_out" || true) \
 $(grep -c 'TỪ CHỐI' <<< "$rl_out" || true) $(grep -c 'Mật khẩu' <<< "$rl_out" || true)"
+expect "release.sh --check-only: prints the MAX line without values" "1 0" \
+  "$(grep -c '^   MAX: có khóa, 0 khe có mã đơn vị$' <<< "$rl_out" || true) $(grep -c 'FAKE_MAX_KEY_0123456789' <<< "$rl_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" \
+  "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/" "AbCdEf0123456789XyZ" ""
+expect "release.sh --check-only: without a MAX key the MAX line says MAX is not used" 1 \
+  "$(release_check_only | grep -c '^   MAX: không dùng (không có maxSdkKey)$' || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" \
+  "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/"
 rl_test_units="$(grep 'Mã quảng cáo thử (không có doanh thu):' <<< "$rl_out" | sed 's/.*doanh thu)://')"
 if [[ -n "$rl_first" ]]; then
   expect "release.sh --check-only: the configured unit is not replaced by a test unit" 0 \
@@ -4945,19 +5032,19 @@ write_spec() { # <status> <answer>
   printf -- '---\nstatus: %s\n---\n\n## 3. Kịch bản\n\n### KB-1. Một\n\n- [ ] Khi a thì b.\n\n## 9. Câu hỏi còn mở\n\n1. **Câu?**\n   - Trả lời: %s\n\n## 10. Lịch sử\n\n| 2026-10-01 | AI | Tạo |\n' \
     "$1" "$2" > "$rr/docs/features/demo/spec.md"
 }
-write_ticket() { # <id> <depends>
-  printf -- '---\nid: %s\nstatus: approved\nspec: features/demo/spec.md\nscenarios: [KB-1]\ndepends_on: [%s]\n---\n' \
-    "$1" "$2" > "$rr/docs/features/demo/tickets/$1-x.md"
+write_ticket() { # <id> <depends> [status]
+  printf -- '---\nid: %s\nstatus: %s\nspec: features/demo/spec.md\nscenarios: [KB-1]\ndepends_on: [%s]\n---\n' \
+    "$1" "${3:-approved}" "$2" > "$rr/docs/features/demo/tickets/$1-x.md"
 }
-write_run_plan() { # <id> <file> <test row> [operation] [text added to section 3] [text added as section 6]
+write_run_plan() { # <id> <file> <test row> [operation] [text added to section 3] [text added as section 6] [status]
   local section6=""
   [ -z "${6:-}" ] || section6="## 6. Ảnh hưởng chéo"$'\n\n'"$6"$'\n\n'
-  printf -- '---\nticket: %s\nstatus: approved\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n## 3. Giải pháp\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| %s | `%s` | x |\n\n%s\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n%s## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
-    "$1" "${4:-Sửa}" "$2" "${5:-}" "$3" "$section6" > "$rr/docs/features/demo/plans/$1-x.md"
+  printf -- '---\nticket: %s\nstatus: %s\nrisk_level: medium\nreviewer: A\napproved_at: 2026-10-02\n---\n\n## 3. Giải pháp\n\n### 3.2. Danh sách file\n\n| Thao tác | Đường dẫn | Nội dung |\n| --- | --- | --- |\n| %s | `%s` | x |\n\n%s\n\n## 4. Kiểm thử\n\n| Tiêu chí | Loại | Tên |\n| --- | --- | --- |\n%s\n\n%s## 9. Quyết định duyệt\n\n- **Quyết định:** Duyệt\n- **Người duyệt:** A\n' \
+    "$1" "${7:-approved}" "${4:-Sửa}" "$2" "${5:-}" "$3" "$section6" > "$rr/docs/features/demo/plans/$1-x.md"
 }
-write_run() { # <rows>
-  printf -- '---\nstatus: draft\n---\n\n## 1. Danh sách chạy\n\n| Thứ tự | Ticket | Feature | Plan | Rủi ro | Phụ thuộc | Ghi chú |\n| --- | --- | --- | --- | --- | --- | --- |\n%b\n\n## 2. Kiểm tra\n' \
-    "$1" > "$rr/docs/runs/RUN-1.md"
+write_run() { # <rows> [status]
+  printf -- '---\nstatus: %s\n---\n\n## 1. Danh sách chạy\n\n| Thứ tự | Ticket | Feature | Plan | Rủi ro | Phụ thuộc | Ghi chú |\n| --- | --- | --- | --- | --- | --- | --- |\n%b\n\n## 2. Kiểm tra\n' \
+    "${2:-draft}" "$1" > "$rr/docs/runs/RUN-1.md"
 }
 run_row() { printf '| %s | %s | demo | `features/demo/plans/%s-x.md` (1) | | | |\\n' "$1" "$2" "$2"; }
 run_check() { if RUN_CHECK_ROOT="$rr" PLAN_CHECK_ROOT="$rr" python3 -I scripts/run-check.py "$rr/docs/runs/RUN-1.md" > "$work/run-check.out" 2>&1; then echo pass; else echo stop; fi; }
@@ -4969,6 +5056,26 @@ write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 expect "run-check: a ready list passes" pass "$(run_check)"
 expect "run-check: a ready list has no warning" 0 "$(grep -c 'CHÚ Ý' "$work/run-check.out")"
+# The start field: auto or manual, and auto only with open_with routine in the file (T-104).
+rc_start() { # <start line> <open_with line>; the list with these front matter lines
+  write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+  python3 -I - "$rr/docs/runs/RUN-1.md" "$1" "$2" << 'PY'
+import sys
+p, start, open_with = sys.argv[1:]
+s = open(p).read().replace("status: draft\n", f"status: draft\n{start}\n{open_with}\n", 1)
+open(p, "w").write(s)
+PY
+}
+rc_start 'start: soon' 'open_with: routine'
+r1="$(run_check) $(grep -c 'start phải là auto hay manual' "$work/run-check.out" || true)"
+rc_start 'start: auto' 'open_with: cloud'
+r1="$r1|$(run_check) $(grep -c 'chỉ kích hoạt được routine' "$work/run-check.out" || true)"
+rc_start 'start: auto       # auto | manual' 'open_with: routine   # cloud | routine'
+r1="$r1|$(run_check) $(grep -c 'start' "$work/run-check.out" || true)"
+rc_start 'start: auto' 'open_with: routine'
+expect "run-check: the start field is auto or manual, and auto needs open_with routine in the file" "stop 1|stop 1|pass 0|pass 0" \
+  "$r1|$(RUN_CHECK_OPEN_WITH=cloud run_check) $(grep -c 'start' "$work/run-check.out")"
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 # The pre-run review table also sits in section 1 and names tickets; only the run table lists tasks.
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)\n\n### Kiểm tra trước khi duyệt\n\n| Mức | Ticket | Vấn đề | Xử lý |\n| --- | --- | --- | --- |\n| Chặn | T-002 | x | y |"
 expect "run-check: a review table naming a ticket is not a task" pass "$(run_check)"
@@ -5236,6 +5343,174 @@ write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
 write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 
+# run-check.py --batch checks the draft run list of a batch whose plans are still draft (ADR-0048, B3): it waives only
+# the three status errors (plan draft, ticket planned, spec changed or draft), and only for files that the branch
+# changes against its fork point from the base (RUN_CHECK_BASE in the tests, origin/main by default).
+# Each case is a git repository with a base commit and a commit of the branch.
+# A draft plan meets the strict rules of plan-check.py for drafts: section 3.3 (rule 8) and section 3.5 (rule 13).
+batch_extra=$'### 3.3. Cờ tính năng, quảng cáo, dữ liệu, quyền, thư viện\n\n- **Quyền truy cập:** Không thêm\n- **Thư viện và SDK:** Không thêm\n\n### 3.5. Hành vi đã có bị đổi\n\nKhông có.'
+batch_plan() { # <id> <status>: the plan of T-001 (A.kt) or T-002 (B.kt) in the batch cases
+  if [[ "$1" == T-001 ]]; then
+    write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |' Sửa "$batch_extra" '' "$2"
+  else
+    write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |' Sửa "$batch_extra" '' "$2"
+  fi
+}
+batch_case() { # <name>: a new repository with the base state of a case; a case sets another base before batch_base
+  batch_name="$1"
+  rm -rf "${rr:?}/.git"
+  write_spec confirmed 'Đồng ý.'
+  write_ticket T-001 ''
+  write_ticket T-002 ''
+  batch_plan T-001 approved
+  batch_plan T-002 approved
+  write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+  git -C "$rr" init -q -b main
+}
+batch_base() {
+  git -C "$rr" add -A
+  git -C "$rr" commit -q -m "base $batch_name"
+  base="$(git -C "$rr" rev-parse HEAD)"
+}
+batch_commit() {
+  git -C "$rr" add -A
+  git -C "$rr" commit -q -m "branch $batch_name"
+}
+run_batch() {
+  if RUN_CHECK_BASE="${RUN_CHECK_BASE:-$base}" RUN_CHECK_ROOT="$rr" PLAN_CHECK_ROOT="$rr" \
+    python3 -I scripts/run-check.py --batch "$rr/docs/runs/RUN-1.md" > "$work/run-check.out" 2>&1; then
+    echo pass
+  else
+    echo stop
+  fi
+}
+batch_count() { grep -cF -- "$1" "$work/run-check.out" || true; }
+batch_new() { # the branch of a new batch: plan T-002 draft, ticket T-002 planned, spec <status> with <answer>
+  batch_plan T-002 draft
+  write_ticket T-002 '' planned
+  write_spec "$1" "$2"
+}
+
+batch_case B1
+batch_base
+batch_new changed 'Đồng ý.'
+batch_commit
+expect "run-check: --batch passes a batch whose draft plans, planned tickets and changed spec are in the branch" \
+  "pass 0 3 1" \
+  "$(run_batch) $(batch_count 'LỖI') $(batch_count '(--batch) bỏ qua trạng thái') $(batch_count '(--batch) so với')"
+expect "run-check: without --batch the same batch stops" stop "$(run_check)"
+
+batch_case B1b
+batch_base
+batch_new draft 'Đồng ý.'
+batch_commit
+r1="$(run_batch) $(batch_count 'LỖI')"
+write_spec confimred 'Đồng ý.'
+batch_commit
+expect "run-check: --batch passes the draft spec of a new feature, not a misspelt status" "pass 0|stop 1 1" \
+  "$r1|$(run_batch) $(batch_count 'LỖI') $(batch_count 'chưa confirmed')"
+
+batch_case B2
+batch_plan T-002 draft
+batch_base
+write_ticket T-002 '' planned
+batch_commit
+expect "run-check: --batch keeps the error of a draft plan the branch does not change" "stop 1 1" \
+  "$(run_batch) $(batch_count 'LỖI') $(batch_count "plan đang 'draft', chưa approved")"
+
+batch_case B2b
+write_ticket T-002 '' planned
+batch_base
+batch_plan T-002 draft
+batch_commit
+expect "run-check: --batch keeps the error of a planned ticket the branch does not change" "stop 1 1" \
+  "$(run_batch) $(batch_count 'LỖI') $(batch_count "ticket đang 'planned'")"
+
+batch_case B2c
+write_spec changed 'Đồng ý.'
+batch_base
+batch_plan T-002 draft
+write_ticket T-002 '' planned
+batch_commit
+expect "run-check: --batch keeps the error of an unconfirmed spec the branch does not change" "stop 1 1" \
+  "$(run_batch) $(batch_count 'LỖI') $(batch_count 'chưa confirmed')"
+
+batch_case B3
+batch_base
+batch_plan T-002 draft
+write_ticket T-002 '' ready
+batch_commit
+r1="$(run_batch) $(batch_count 'LỖI') $(batch_count "ticket đang 'ready'")"
+batch_plan T-002 stopped
+write_ticket T-002 '' planned
+batch_commit
+expect "run-check: --batch waives only a planned ticket and a draft plan" "stop 1 1|stop 1 1" \
+  "$r1|$(run_batch) $(batch_count 'LỖI') $(batch_count "plan đang 'stopped'")"
+
+batch_case B4
+batch_base
+batch_new changed ''
+batch_commit
+expect "run-check: --batch keeps an unanswered spec question" "stop 1 1 0" \
+  "$(run_batch) $(batch_count 'LỖI') $(batch_count 'câu hỏi còn mở chưa có trả lời') $(batch_count 'chưa confirmed')"
+
+batch_case B5
+batch_base
+batch_new changed 'Đồng ý.'
+write_ticket T-001 'T-002'
+batch_commit
+expect "run-check: --batch keeps the other checks, a dependency later in the list" "stop 1 1" \
+  "$(run_batch) $(batch_count 'LỖI') $(batch_count 'phụ thuộc T-002 đứng sau')"
+
+batch_case B6
+batch_base
+batch_new changed 'Đồng ý.'
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)" approved
+batch_commit
+expect "run-check: --batch refuses a run list that is not draft" "stop 1" \
+  "$(run_batch) $(batch_count '--batch chỉ dùng cho danh sách draft')"
+
+batch_case B7
+batch_base
+batch_new changed 'Đồng ý.'
+batch_commit
+expect "run-check: --batch without a readable diff waives nothing" "stop 1 1" \
+  "$(RUN_CHECK_BASE=khong-co run_batch) $(batch_count '--batch không đọc được diff') $(batch_count "plan đang 'draft'")"
+
+batch_case B9
+batch_base
+batch_new changed 'Đồng ý.'
+batch_commit
+batch_plan T-001 draft
+expect "run-check: --batch does not waive a file changed only in the working tree" "stop 1 1" \
+  "$(run_batch) $(batch_count 'LỖI') $(batch_count "T-001: plan đang 'draft'")"
+
+batch_case B10
+batch_plan T-001 draft
+batch_base
+git -C "$rr" branch -q dot
+printf '\nMột dòng thêm trên nhánh chính.\n' >> "$rr/docs/features/demo/plans/T-001-x.md"
+batch_commit
+git -C "$rr" checkout -q dot
+batch_plan T-002 draft
+write_ticket T-002 '' planned
+batch_commit
+expect "run-check: --batch compares with the fork point, not with the newer base" "stop 1 1 2" \
+  "$(RUN_CHECK_BASE=main run_batch) $(batch_count 'LỖI') $(batch_count "T-001: plan đang 'draft'") \
+$(batch_count '(--batch) bỏ qua trạng thái')"
+
+expect "run-check: --batch without a run list, or with two, prints the usage" "2 2" \
+  "$(python3 -I scripts/run-check.py --batch > /dev/null 2>&1; echo $?) \
+$(python3 -I scripts/run-check.py --batch a b > /dev/null 2>&1; echo $?)"
+
+rm -rf "${rr:?}/.git"
+write_spec confirmed 'Đồng ý.'
+write_ticket T-001 ''
+write_ticket T-002 ''
+write_run_plan T-001 feature/demo/A.kt '| KB-1 | Unit | `aTest` |'
+write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
+
 # plan-queue.py picks the tickets whose plan the session drafts at the end of a run (L-084).
 pq="$work/pq"
 mkdir -p "$pq/docs/features/demo/tickets" "$pq/docs/features/demo/plans"
@@ -5280,6 +5555,26 @@ write_pq_ticket T-925 backlog '' '' T-924 '' ''
 printf -- '---\nid: T-926\nstatus: backlog\nspec:\nscenarios: []\ndepends_on: []\nsprint:\nplan:\nauto_run: false               # people do it\n---\n' \
   > "$pq/docs/features/demo/tickets/T-926-x.md"
 write_pq_ticket T-927 backlog '' '' T-926 '' ''
+write_pq_ticket T-928 backlog '' '' T-927 '' ''
+write_pq_ticket T-929 backlog '' '' T-909 '' ''
+write_pq_manual() { # <id> <depends>: a ticket people do (auto_run: false)
+  printf -- '---\nid: %s\nstatus: backlog\nspec:\nscenarios: []\ndepends_on: [%s]\nsprint:\nplan:\nauto_run: false\n---\n' \
+    "$1" "$2" > "$pq/docs/features/demo/tickets/$1-x.md"
+}
+write_pq_manual T-931 ''
+write_pq_manual T-932 T-931
+write_pq_ticket T-933 backlog '' '' T-932 '' ''
+write_pq_ticket T-934 backlog '' '' T-935 '' ''
+write_pq_ticket T-935 backlog '' '' T-934 '' ''
+write_pq_ticket T-936 backlog '' '' T-920 '' ''
+write_pq_manual T-940 ''
+write_pq_ticket T-937 backlog '' '' T-940 '' ''
+write_pq_ticket T-938 backlog '' '' T-940 '' ''
+write_pq_ticket T-939 backlog '' '' 'T-937, T-938' '' ''
+write_pq_ticket T-941 backlog '' '' 'T-942, T-943' '' ''
+write_pq_ticket T-942 backlog '' '' T-943 '' ''
+write_pq_ticket T-943 backlog '' '' T-941 '' ''
+write_pq_ticket T-944 backlog '' '' T-941 '' ''
 touch "$pq/README"
 pq_git init -q -b main
 pq_git add -A
@@ -5316,10 +5611,35 @@ expect "plan-queue: a backlog ticket is queued" 1 "$(grep -c 'T-923' <<< "$all_i
 expect "plan-queue: a missing dependency is skipped" 1 "$(pq_err 'T-916: bỏ qua.*T-999 không có ticket')"
 expect "plan-queue: a ticket with auto_run false is skipped" 1 "$(pq_err 'T-926: bỏ qua.*auto_run: false')"
 expect "plan-queue: a ticket waiting for an auto_run false ticket is skipped" 1 "$(pq_err 'T-927: bỏ qua, chờ T-926')"
+expect "plan-queue: a ticket waiting through a chain is skipped" 1 "$(pq_err 'T-928: bỏ qua, chờ T-927')"
+expect "plan-queue: a people-only ticket is named with every ticket it blocks" 1 \
+  "$(pq_err '^Đang chặn hàng chờ: T-926 chặn 2 ticket (T-927, T-928): ticket ghi auto_run: false')"
+expect "plan-queue: a draft spec is named as a blocker" 1 \
+  "$(pq_err '^Đang chặn hàng chờ: T-905 chặn 1 ticket (T-907): .*chưa confirmed')"
+expect "plan-queue: a dependency that is not open and has no plan is named" 1 \
+  "$(pq_err '^Đang chặn hàng chờ: T-909 chặn 1 ticket (T-929): đang approved, chưa có plan')"
+expect "plan-queue: a stopped dependency is named" 1 "$(pq_err '^Đang chặn hàng chờ: T-914 chặn 1 ticket (T-915): đang stopped')"
+expect "plan-queue: a root behind another root is named with both tickets" 1 \
+  "$(pq_err '^Đang chặn hàng chờ: T-931 chặn 2 ticket (T-932, T-933): ticket ghi auto_run: false')"
+expect "plan-queue: the nearer root is named too" 1 "$(pq_err '^Đang chặn hàng chờ: T-932 chặn 1 ticket (T-933): ')"
+expect "plan-queue: a dependency cycle is named" 1 \
+  "$(pq_err '^Đang chặn hàng chờ: chu trình T-934, T-935 chặn 2 ticket (T-934, T-935): ')"
+expect "plan-queue: overlapping cycles are one line with every ticket behind them" "1 2" \
+  "$(pq_err '^Đang chặn hàng chờ: chu trình T-941, T-942, T-943 chặn 4 ticket (T-941, T-942, T-943, T-944): ') $(pq_err '^Đang chặn hàng chờ: chu trình')"
+expect "plan-queue: a plan in an open PR is named as a blocker" 1 \
+  "$(pq_err '^Đang chặn hàng chờ: T-920 chặn 1 ticket (T-936): đang có PR mở #77')"
+expect "plan-queue: a ticket reached twice is counted once" 1 \
+  "$(pq_err '^Đang chặn hàng chờ: T-940 chặn 3 ticket (T-937, T-938, T-939): ')"
+expect "plan-queue: the blockers that hold most tickets come first" "chu trình T-941, T-942, T-943|T-940|T-926" \
+  "$(grep '^Đang chặn hàng chờ:' "$work/pq.err" | head -3 | sed 's/^Đang chặn hàng chờ: \(.*\) chặn [0-9]* ticket.*/\1/' | paste -sd '|' -)"
+expect "plan-queue: a queued dependency is not a blocker" 0 "$(pq_err '^Đang chặn hàng chờ: T-903 ')"
+expect "plan-queue: a missing dependency is not named as a blocker" 0 "$(pq_err '^Đang chặn hàng chờ: T-999 ')"
 expect "plan-queue: a ticket with a plan branch is skipped" 1 "$(pq_err 'T-919: bỏ qua.*đang có plan trên nhánh origin/claude/plan-T-919-x')"
 expect "plan-queue: a ticket in an open PR is skipped" 1 "$(pq_err 'T-920: bỏ qua.*đang có PR mở #77')"
 expect "plan-queue: --max limits the list" "T-901 T-910" "$(pq_ids --max 2)"
 expect "plan-queue: default is 2" "T-901 T-910" "$(pq_ids)"
+expect "plan-queue: --max 0 picks nothing and still names the blockers" " 1" \
+  "$(pq_ids --max 0) $(pq_err '^Đang chặn hàng chờ: T-926 chặn 2 ticket')"
 expect "plan-queue: the line has the ticket path" "T-901 docs/features/demo/tickets/T-901-x.md" \
   "$(pq_run --max 1 | tr '\t' ' ')"
 expect "plan-queue: skipped tickets do not change the exit code" 0 "$(pq_codes --max 20)"
@@ -7544,6 +7864,293 @@ wb.save(sys.argv[1])' "$work/ap-1.xlsx"
 else
   echo "skip - ads-plan: workbook tests need openpyxl (python3 -m pip install --user openpyxl)"
 fi
+
+# auto-start-check.py picks the run list a push to main just approved (start: auto, open_with: routine) and refuses
+# any start (push or by hand) while that list is no longer approved on main, has a report branch, another list runs,
+# or another fire job holds a session (T-104, ADR-0049). Fixed time 2026-12-01 10:00 UTC; this run is 999.
+asc_root="$(pwd)"
+ar="$work/asc-repo"
+cat > "$work/asc-fixture.py" << 'PY'
+# Builds the fixture of one auto-start-check run from key=value arguments.
+import json, sys
+o = {"main": "approved", "own": "none", "other": "none", "page2": "", "brerr": "", "runs": "none", "runs_err": "",
+     "job_status": "completed", "job_concl": "success", "step": "success", "done": "09:30",
+     "name": "fire docs/runs/RUN-20261130-09.md", "attempt": "1", "run_id": "500", "listed": "yes",
+     "prev_main": "approved", "prev_report": "none"}
+for arg in sys.argv[2:]:
+    key, value = arg.split("=", 1)
+    o[key] = value
+text = lambda status, rid: f"---\nid: {rid}\nstatus: {status}             # draft | approved\nopen_with: routine\nstart: auto\n---\n"
+R, OTHER, PREV = "RUN-20261201-01", "RUN-20261130-01", "RUN-20261130-09"
+routes, errors = {}, {}
+if o["main"] == "error":
+    errors[f"contents/docs/runs/{R}.md?ref=main"] = "HTTP 500: Server Error"
+elif o["main"] != "none":
+    routes[f"contents/docs/runs/{R}.md?ref=main"] = text(o["main"], R)
+branches = [{"name": "main"}, {"name": "claude/T-099-other"}]
+if o["own"] == "error":
+    errors[f"branches/claude%2F{R}-report"] = "HTTP 500: Server Error"
+elif o["own"] != "none":
+    routes[f"branches/claude%2F{R}-report"] = {"name": f"claude/{R}-report"}
+    routes[f"contents/docs/runs/{R}.md?ref=claude/{R}-report"] = text(o["own"], R)
+    branches.append({"name": f"claude/{R}-report"})
+if o["other"] != "none":
+    branches.append({"name": f"claude/{OTHER}-report"})
+    routes[f"contents/docs/runs/{OTHER}.md?ref=claude/{OTHER}-report"] = text(o["other"], OTHER)
+if o["page2"]:
+    routes["branches?per_page=100&page=1"] = [{"name": f"claude/T-{n:03d}-x"} for n in range(100)]
+    routes["branches?per_page=100&page=2"] = [{"name": f"claude/{OTHER}-report"}]
+    routes[f"contents/docs/runs/{OTHER}.md?ref=claude/{OTHER}-report"] = text("running", OTHER)
+else:
+    routes["branches?per_page=100&page=1"] = branches
+if o["brerr"]:
+    errors["branches?per_page=100&page=1"] = "HTTP 502: Bad Gateway"
+runs_route = "actions/workflows/start-run.yml/runs?per_page=20"
+if o["runs_err"]:
+    errors[runs_route] = "HTTP 502: Bad Gateway"
+elif o["runs"] == "none":
+    routes[runs_route] = {"workflow_runs": []}
+else:
+    run_id = int(o["run_id"])
+    routes[runs_route] = {"workflow_runs": [{"id": run_id}] if o["listed"] == "yes" else []}
+    done = o["job_status"] == "completed"
+    routes[f"actions/runs/{run_id}/jobs?filter=all&per_page=50"] = {"jobs": [{
+        "name": o["name"], "status": o["job_status"], "run_attempt": int(o["attempt"]),
+        "conclusion": o["job_concl"] if done else None,
+        "completed_at": f"2026-12-01T{o['done']}:00Z" if done else None,
+        "steps": [{"name": "Kích hoạt routine", "status": "completed" if done else "queued",
+                   "conclusion": None if o["step"] == "none" else o["step"]}]}]}
+    if o["prev_main"] != "none":
+        routes[f"contents/docs/runs/{PREV}.md?ref=main"] = text(o["prev_main"], PREV)
+    if o["prev_report"] != "none":
+        routes[f"branches/claude%2F{PREV}-report"] = {"name": f"claude/{PREV}-report"}
+json.dump({"routes": routes, "errors": errors}, open(sys.argv[1], "w"))
+PY
+asc_git() { git -C "$ar" "$@"; }
+asc_new() { rm -rf "$ar"; mkdir -p "$ar/docs/runs"; asc_git init -q -b main; }
+asc_list() { # <id> <status> <start or -> <open_with> [extra line]
+  {
+    printf -- '---\nid: %s\nstatus: %s             # draft | approved | running | finished\n' "$1" "$2"
+    printf -- 'open_with: %s             # cloud | routine | local\n' "$4"
+    [ "$3" = "-" ] || printf -- 'start: %s                  # auto | manual\n' "$3"
+    printf -- '---\n\n# PHIÊN %s\n%s\n' "$1" "${5:-}"
+  } > "$ar/docs/runs/$1.md"
+}
+asc_commit() { asc_git add -A; asc_git commit -q --allow-empty -m "$1"; asc_git rev-parse HEAD; }
+asc() { # <args...>; prints "<exit code>|<stdout>", stderr in $work/asc.err; fixture from asc_fx
+  local code=0 out
+  out="$(cd "$ar" && PATH="$work/bin:$PATH" FIXTURE="$work/asc.json" GITHUB_REPOSITORY=o/r GITHUB_RUN_ID=999 \
+    GITHUB_RUN_ATTEMPT="${ASC_ATTEMPT:-1}" AUTO_START_NOW=2026-12-01T10:00:00Z \
+    python3 -I "$asc_root/scripts/auto-start-check.py" "$@" 2> "$work/asc.err")" || code=$?
+  echo "$code|$out"
+}
+asc_fx() { rm -f "$work/asc.json.seen" "$work/asc.json.writes"; python3 -I "$work/asc-fixture.py" "$work/asc.json" "$@"; }
+asc_err() { grep -c -- "$1" "$work/asc.err" || true; }
+L1=docs/runs/RUN-20261201-01.md
+
+# T1: draft in A, approved with start auto in B.
+asc_new
+echo readme > "$ar/docs/runs/README.md"
+asc_list RUN-20261201-01 draft auto routine
+A="$(asc_commit a)"
+asc_list RUN-20261201-01 approved auto routine
+B="$(asc_commit b)"
+asc_fx
+expect "auto-start-check: a run list approved by this push with start auto is picked" "0|$L1" "$(asc push --before "$A" --after "$B")"
+# T3: approved before and after (a later push changes a line): not again.
+asc_list RUN-20261201-01 approved auto routine "Sửa chữ."
+C="$(asc_commit c)"
+expect "auto-start-check: a later push to an approved list does not start it again" "0| 1" \
+  "$(asc push --before "$B" --after "$C") $(asc_err 'đã approved trước lần push này')"
+# T4: start manual, or no start field.
+asc_list RUN-20261201-01 approved manual routine
+D="$(asc_commit d)"
+r1="$(asc push --before "$A" --after "$D") $(asc_err 'start là manual')"
+asc_list RUN-20261201-01 approved - routine
+E="$(asc_commit e)"
+expect "auto-start-check: start manual or no start field is not started" "0| 1|0| 1" \
+  "$r1|$(asc push --before "$A" --after "$E") $(asc_err 'không ghi start')"
+# T5: open_with other than routine.
+asc_list RUN-20261201-01 approved auto cloud
+F="$(asc_commit f)"
+expect "auto-start-check: open_with other than routine is not started" "0| 1" \
+  "$(asc push --before "$A" --after "$F") $(asc_err 'open_with')"
+
+# T2: a new file that is approved at once.
+asc_new
+echo readme > "$ar/docs/runs/README.md"
+A="$(asc_commit a)"
+asc_list RUN-20261201-01 approved auto routine
+B="$(asc_commit b)"
+asc_fx
+expect "auto-start-check: a new approved run list is picked" "0|$L1" "$(asc push --before "$A" --after "$B")"
+# T6: the list already has a report branch.
+asc_fx own=finished
+r1="$(asc push --before "$A" --after "$B")|$(asc dispatch "$L1")|$(asc dispatch "$L1" --force)"
+expect "auto-start-check: a list with a report branch is refused, even with force" "3||3||3| 1" "$r1 $(asc_err 'đã có nhánh báo cáo')"
+asc_fx own=running
+expect "auto-start-check: reopening a running session needs force" "3||0|$L1" "$(asc dispatch "$L1")|$(asc dispatch "$L1" --force)"
+# T7: another list is running.
+asc_fx other=running
+r1="$(asc push --before "$A" --after "$B")|$(asc dispatch "$L1")|$(asc dispatch "$L1" --force)"
+expect "auto-start-check: another running session refuses every start" "3||3||3| 1" "$r1 $(asc_err 'Đang có phiên RUN-20261130-01 chạy')"
+asc_fx other=finished
+expect "auto-start-check: a finished report branch of another list does not refuse" "0|$L1" "$(asc dispatch "$L1")"
+# T8: the running report branch is on page 2 of the branches.
+asc_fx page2=yes
+expect "auto-start-check: a running report branch on page 2 refuses" "3|" "$(asc dispatch "$L1")"
+# T13: GitHub errors.
+asc_fx own=error
+r1="$(asc dispatch "$L1")"
+asc_fx brerr=yes
+r1="$r1|$(asc dispatch "$L1")"
+asc_fx runs_err=yes
+expect "auto-start-check: a GitHub read error is exit 1" "1||1||1|" "$r1|$(asc dispatch "$L1")"
+
+# T9: no usable commit before the push.
+asc_new
+asc_list RUN-20261201-01 draft auto routine
+A="$(asc_commit a)"
+asc_list RUN-20261201-01 approved auto routine
+B="$(asc_commit b)"
+asc_fx
+expect "auto-start-check: a zero or unknown before falls back to the first parent" "0|$L1|0|$L1" \
+  "$(asc push --before 0000000000000000000000000000000000000000 --after "$B")|$(asc push --before 1234567890abcdef1234567890abcdef12345678 --after "$B")"
+asc_new
+asc_list RUN-20261201-01 approved auto routine
+A="$(asc_commit a)"
+asc_list RUN-20261201-01 approved auto routine "Sửa."
+B="$(asc_commit b)"
+expect "auto-start-check: a parent that is already approved falls back to nothing" "0|" \
+  "$(asc push --before 0000000000000000000000000000000000000000 --after "$B")"
+asc_new
+asc_list RUN-20261201-01 approved auto routine
+A="$(asc_commit a)"
+expect "auto-start-check: a first commit without parent picks nothing" "0| 1" \
+  "$(asc push --before 0000000000000000000000000000000000000000 --after "$A") $(asc_err 'không có commit trước')"
+
+# T10: two lists approved by one push: the smaller id; the other is named.
+asc_new
+echo readme > "$ar/docs/runs/README.md"
+A="$(asc_commit a)"
+asc_list RUN-20261201-02 approved auto routine
+asc_list RUN-20261201-01 approved auto routine
+B="$(asc_commit b)"
+asc_fx
+expect "auto-start-check: two approved lists pick the smaller id and name the other" "0|$L1 1" \
+  "$(asc push --before "$A" --after "$B") $(asc_err 'RUN-20261201-02')"
+
+# T11: files that are not run lists, a deleted list, renamed lists.
+asc_new
+echo readme > "$ar/docs/runs/README.md"
+asc_list RUN-20261130-05 draft auto routine "$(printf 'dòng %s\n' 1 2 3 4 5 6 7 8)"
+asc_list RUN-20261130-06 approved auto routine "$(printf 'dòng %s\n' 1 2 3 4 5 6 7 8)"
+asc_list RUN-20261130-07 approved auto routine
+A="$(asc_commit a)"
+echo readme2 > "$ar/docs/runs/README.md"
+mkdir -p "$ar/docs/runs/patches"; echo x > "$ar/docs/runs/patches/x.md"
+B="$(asc_commit b)"
+rm "$ar/docs/runs/RUN-20261130-07.md"
+C="$(asc_commit c)"
+r1="$(asc push --before "$A" --after "$B")|$(asc push --before "$B" --after "$C")"
+asc_git mv docs/runs/RUN-20261130-05.md docs/runs/RUN-20261201-01.md
+sed -i.bak 's/^status: draft/status: approved/' "$ar/docs/runs/RUN-20261201-01.md"; rm -f "$ar/docs/runs/"*.bak
+D="$(asc_commit d)"
+r1="$r1|$(asc push --before "$C" --after "$D")"
+asc_git mv docs/runs/RUN-20261130-06.md docs/runs/RUN-20261201-02.md
+E="$(asc_commit e)"
+expect "auto-start-check: other files, a deleted list and a renamed approved list pick nothing; a renamed draft is picked" \
+  "0||0||0|$L1|0|" "$r1|$(asc push --before "$D" --after "$E")"
+
+# T12, T22, T23: another fire job holds a session. Run 500 fired RUN-20261130-09 at 09:30.
+asc_fx runs=500
+r1="$(asc dispatch "$L1") $(asc_err 'vừa kích hoạt một phiên')|$(asc dispatch "$L1" --force)"
+expect "auto-start-check: a fire job that called the API 30 minutes ago refuses, force passes" "3| 1|0|$L1" "$r1"
+asc_fx runs=500 job_status=in_progress
+r1="$(asc dispatch "$L1")"
+asc_fx runs=500 done=08:00
+r1="$r1|$(asc dispatch "$L1")"
+asc_fx runs=500 job_concl=skipped step=none
+expect "auto-start-check: a fire job in progress refuses; one older than 90 minutes or skipped does not" "3||0|$L1|0|$L1" \
+  "$r1|$(asc dispatch "$L1")"
+r1=""
+for state in queued waiting requested; do
+  asc_fx runs=500 job_status="$state"
+  r1="$r1$(asc dispatch "$L1")/$(asc dispatch "$L1" --recheck);"
+done
+asc_fx runs=500 job_status=queued name=fire
+expect "auto-start-check: a waiting fire job naming a list refuses except in the recheck; one without a list does not" \
+  "3|/0|$L1;3|/0|$L1;3|/0|$L1;|0|$L1" "$r1|$(asc dispatch "$L1")"
+asc_fx runs=999 run_id=999 job_status=in_progress
+r1="$(asc dispatch "$L1" --recheck)"
+asc_fx runs=999 run_id=999 attempt=1 listed=no
+expect "auto-start-check: this run does not refuse itself; a re-run after a fire refuses" "0|$L1|3|" \
+  "$r1|$(ASC_ATTEMPT=2 asc dispatch "$L1" --recheck)"
+asc_fx runs=500 job_concl=failure step=failure
+r1="$(asc dispatch "$L1")"
+asc_fx runs=500 job_concl=cancelled step=cancelled
+r1="$r1|$(asc dispatch "$L1")"
+asc_fx runs=500 job_concl=failure step=skipped
+expect "auto-start-check: a fire job red or cancelled after the API step refuses; red before it does not" "3||3||0|$L1" \
+  "$r1|$(asc dispatch "$L1")"
+asc_fx runs=500 prev_report=finished
+r1="$(asc dispatch "$L1")"
+asc_fx runs=500 prev_main=finished
+r1="$r1|$(asc dispatch "$L1")"
+asc_fx runs=500 name=fire
+expect "auto-start-check: a session that started or finished does not hold the next list; an unnamed fire does" \
+  "0|$L1|0|$L1|3|" "$r1|$(asc dispatch "$L1")"
+
+# T24: the list is no longer approved on main (a re-run of an old push run).
+asc_new
+asc_list RUN-20261201-01 draft auto routine
+A="$(asc_commit a)"
+asc_list RUN-20261201-01 approved auto routine
+B="$(asc_commit b)"
+# T12 for a push: another fire job holds a session.
+asc_fx runs=500
+expect "auto-start-check: a push run is refused too while another fire job holds a session" "3| 1" \
+  "$(asc push --before "$A" --after "$B") $(asc_err 'vừa kích hoạt một phiên')"
+# start and open_with are read as run-check.py reads them, without regard to case.
+asc_list RUN-20261201-01 approved Auto Routine
+C="$(asc_commit c)"
+asc_fx
+expect "auto-start-check: start and open_with are read without regard to case" "0|$L1" "$(asc push --before "$A" --after "$C")"
+asc_fx main=finished
+r1="$(asc push --before "$A" --after "$B")|$(asc dispatch "$L1" --force) $(asc_err 'không còn approved trên nhánh chính')"
+asc_fx main=none
+r1="$r1|$(asc dispatch "$L1")"
+asc_fx main=error
+expect "auto-start-check: a list no longer approved on main is refused, even with force" "3||3| 1|3||1|" \
+  "$r1|$(asc dispatch "$L1")"
+
+# T14: wrong arguments.
+asc_fx
+expect "auto-start-check: wrong arguments are exit 2" "2||2||2||2|" \
+  "$(asc push --before "$A")|$(asc dispatch docs/runs/../x.md)|$(asc dispatch "$L1"$'\n')|$(asc dispatch 'docs/runs/RUN-٢٠٢٦١٢٠١-01.md')"
+
+# T16 to T21: the structure of start-run.yml.
+sr=.github/workflows/start-run.yml
+expect "start-run: runs on a push to main that changes a run list" "1 1 1 1 1" \
+  "$(grep -cE '^  push:$' "$sr") $(grep -cF "    branches: [main]" "$sr") $(grep -cF "    paths: ['docs/runs/RUN-*.md']" "$sr") $(grep -cE '^      run_file:$' "$sr") $(awk '/^      force:$/ { f = 1; next } f && /type: boolean/ { t = 1 } f && /default: false/ { d = 1 } f && /^      [a-z_]+:$/ { f = 0 } END { print (t && d) ? 1 : 0 }' "$sr")"
+pick_job="$(wf_job "$sr" pick)"
+check_job="$(wf_job "$sr" check)"
+fire_job="$(wf_job "$sr" fire)"
+expect "start-run: pick chooses the list, event values only through env" "1 1 0 1 1 1" \
+  "$(grep -cF 'scripts/auto-start-check.py push --before "${BEFORE}"' <<<"$pick_job") $(grep -cF 'scripts/auto-start-check.py dispatch "${RUN_FILE_INPUT}"' <<<"$pick_job") $(grep -E '\$\{\{ (github\.event\.before|inputs\.run_file|inputs\.force) \}\}' "$sr" | grep -cvE '^ +[A-Z_]+: \$\{\{ (github\.event\.before|inputs\.run_file|inputs\.force) \}\}$' || true) $(grep -cE '^    needs: pick$' <<<"$check_job") $(grep -cF "if: needs.pick.outputs.run_file != ''" <<<"$check_job") $(grep -cF 'needs.check.outputs.run_file' <<<"$fire_job" | sed 's/^[1-9][0-9]*$/1/')"
+expect "start-run: permissions and queue of the jobs" "0 1 1 0 1 1 0" \
+  "$(grep -cE '^    (permissions|concurrency):' <<<"$pick_job") $(grep -cE '^      contents: read$' <<<"$fire_job") $(grep -cE '^      actions: write$' <<<"$fire_job") $(grep -cE '^      actions: read$' <<<"$fire_job") $(grep -cF 'group: start-run' <<<"$check_job") $(grep -cF 'group: start-run' <<<"$fire_job") $(grep -cE '^concurrency:' "$sr")"
+expect "start-run: the main-guard step waits for a running main-guard on a push" "1 1 1 1 1 1 0" \
+  "$(grep -cF 'GITHUB_ACTIONS= scripts/main-guard-status.sh "${GITHUB_SHA}" || code=$?' <<<"$check_job") $(grep -cF 'seq 1 20' <<<"$check_job") $(grep -cE '^ +code=0$' <<<"$check_job") $(grep -cF '"${EVENT}" = "push"' <<<"$check_job") $(grep -cE '^    timeout-minutes: 30$' <<<"$check_job") $(grep -cF 'sleep 60' <<<"$check_job") $(grep -c 'continue-on-error' "$sr")"
+expect "start-run: fire checks again before enabling the schedules and calling the API" "yes 1 1" \
+  "$(awk '/auto-start-check.py dispatch "\$\{RUN_FILE\}" --recheck/ && !k { k = NR } /name: Bật lịch của phiên/ { b = NR } /curl / && !c { c = NR }
+     END { print ((k && b && c && k < b && k < c) ? "yes" : "no") }' <<<"$fire_job") $(grep -cF 'name: fire ${{ needs.check.outputs.run_file }}' <<<"$fire_job") $(grep -cF '"${FORCE}" = "true"' <<<"$fire_job" | sed 's/^[1-9][0-9]*$/1/')"
+expect "start-run: fire writes the reason of a refusal to the summary and the error line" "1 1" \
+  "$(grep -cF 'GITHUB_STEP_SUMMARY' <<<"$(awk '/name: Kiểm tra lại ngay trước khi kích hoạt/ { f = 1 } /name: Bật lịch của phiên/ { f = 0 } f' <<<"$fire_job")" | sed 's/^[1-9][0-9]*$/1/') $(grep -cF 'tail -n 1 "${RUNNER_TEMP}/recheck.err"' <<<"$fire_job")"
+expect "start-run: the API call stays in the step named Kích hoạt routine" "yes" \
+  "$(awk '/^      - name: / { s = $0 } /curl / && !c { c = 1; print (s ~ /Kích hoạt routine$/) ? "yes" : "no" }' <<<"$fire_job")"
+expect "start-run: pick fails with the reason when the list is refused" "1 1 1" \
+  "$(grep -cE '^ +3\)' <<<"$pick_job") $(grep -cF '::error::' <<<"$pick_job" | sed 's/^[1-9][0-9]*$/1/') $(grep -cE '^ +exit 1$' <<<"$pick_job" | sed 's/^[1-9][0-9]*$/1/')"
 
 # An app's own script tests (scripts/tests/app.sh in the app; the template has none) run in this same shell, so they
 # use expect, $work and the fakes above, and count in the same total (docs/ops/to-app.md, section 6).

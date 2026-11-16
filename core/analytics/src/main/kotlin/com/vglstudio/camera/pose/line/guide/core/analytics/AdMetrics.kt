@@ -9,6 +9,15 @@ interface AdMetrics {
 }
 
 /**
+ * The platform that served an ad (spec `ads`, question 46): [code] is `ad_platform` of Firebase, [mediationNetwork]
+ * is `mediation_network` of AppsFlyer.
+ */
+enum class AdMetricPlatform(val code: String, val mediationNetwork: String) {
+    ADMOB("admob", "admob"),
+    APPLOVIN("applovin", "applovinmax"),
+}
+
+/**
  * One ad metric. Every value is a code (format, placement, network, currency, numeric error code): never a message
  * of the SDK, never personal data (risk-scoring.md, blocking point 4).
  */
@@ -32,6 +41,8 @@ sealed interface AdMetricEvent {
          * the logs and diagnosis.
          */
         val adapterClassName: String?,
+        /** The platform that served the ad: `ad_platform` of Firebase, `mediation_network` of AppsFlyer. */
+        val platform: AdMetricPlatform = AdMetricPlatform.ADMOB,
     ) : AdMetricEvent
 
     data class LoadSuccess(
@@ -39,6 +50,7 @@ sealed interface AdMetricEvent {
         val adPlacement: String?,
         val loadAttempt: Int?,
         val latencyMs: Long?,
+        val platform: AdMetricPlatform = AdMetricPlatform.ADMOB,
     ) : AdMetricEvent
 
     data class LoadFail(
@@ -49,6 +61,7 @@ sealed interface AdMetricEvent {
         /** Numeric code of the SDK, as a string. */
         val loadErrorCode: String,
         val loadState: String,
+        val platform: AdMetricPlatform = AdMetricPlatform.ADMOB,
     ) : AdMetricEvent
 
     data class Opportunity(
@@ -66,7 +79,11 @@ sealed interface AdMetricEvent {
         val showFailReason: String,
     ) : AdMetricEvent
 
-    data class Clicked(override val adFormat: String, val adPlacement: String?) : AdMetricEvent
+    data class Clicked(
+        override val adFormat: String,
+        val adPlacement: String?,
+        val platform: AdMetricPlatform = AdMetricPlatform.ADMOB,
+    ) : AdMetricEvent
 
     /** The user earned the reward of a rewarded ad (R-02); Firebase gets no `ad_format` for it. */
     data class RewardEarned(override val adFormat: String, val adPlacement: String) : AdMetricEvent

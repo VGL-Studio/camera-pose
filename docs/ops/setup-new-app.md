@@ -4,7 +4,7 @@ Tài liệu này dành cho dev của mọi nhóm. Làm lần lượt từ trên 
 
 Quy ước: `<applicationId>` là tên gói của app, ví dụ `com.vglstudio.notes`. Bản staging có tên gói `<applicationId>.staging`.
 
-AI không làm các bước trong tài liệu này. Mọi bước có bí mật (khóa, mật khẩu, mã kích hoạt) do người làm, và AI không bao giờ đọc hay in ra bí mật (ADR-0009).
+AI không làm các bước trong tài liệu này. Mọi bước có bí mật (khóa, mật khẩu, mã kích hoạt) do người làm, và AI không bao giờ đọc hay in ra bí mật (ADR-0049).
 
 ## Tổng quan
 
@@ -103,10 +103,10 @@ Kiểm tra: file có sheet Vị trí QC với năm vị trí toàn app (`open_ap
 
 Quy trình đầy đủ ở `docs/README.md` và `docs/auto-run.md`. Thứ tự một vòng:
 
-1. Viết yêu cầu (`docs/inbox/` hoặc `docs/features/<feature>/requests/`). AI sinh spec `draft`, người phụ trách sản phẩm trả lời câu hỏi và chuyển sang `confirmed`.
-2. AI sinh ticket và plan. Người duyệt trả lời câu hỏi ở mục 8 của plan, điền mục 9, chuyển plan và ticket sang `approved`. Plan rủi ro cao cần người duyệt chéo.
-3. AI lập danh sách chạy `docs/runs/RUN-YYYYMMDD-NN.md`. Dev chuyển sang `approved`, điền `approved_by`, merge.
-4. **Actions > start-run > Run workflow**, nhánh `main`, nhập đường dẫn danh sách chạy. Phần tóm tắt của workflow có đường dẫn tới phiên.
+1. Viết yêu cầu (`docs/inbox/` hoặc `docs/features/<feature>/requests/`). AI sinh spec `draft`, người phụ trách sản phẩm trả lời câu hỏi và chuyển sang `confirmed`, hoặc đồng ý rõ ràng trong phiên để AI ghi `confirmed` kèm lời đồng ý (ADR-0048, phần C).
+2. AI sinh ticket và plan. Người duyệt trả lời câu hỏi ở mục 8 của plan, điền mục 9, chuyển plan và ticket sang `approved`; hoặc người duyệt đồng ý rõ ràng trong phiên, AI ghi mục 9 kèm lời đồng ý và chuyển plan, ticket sang `approved` (ADR-0048, phần C). Plan rủi ro cao cần người duyệt chéo.
+3. AI lập danh sách chạy `docs/runs/RUN-YYYYMMDD-NN.md`. Dev chuyển sang `approved`, điền `approved_by`, merge; hoặc dev đồng ý rõ ràng trong phiên và AI ghi theo phần C. Bước 2 và 3 gộp được thành một lần duyệt cả đợt: plan `draft` và danh sách `draft` đi chung một PR (`docs/CLAUDE.md`, mục Khi duyệt cả đợt).
+4. Danh sách ghi `start: auto` (mẫu mặc định, với `open_with: routine`): lần merge ở bước 3 tự bắt đầu phiên qua `start-run`; xem job `fire` xanh trong **Actions > start-run**. Danh sách `start: manual`, hay lần tự chạy không có hoặc đỏ: **Actions > start-run > Run workflow**, nhánh `main`, nhập đường dẫn danh sách chạy (`docs/ops/staging-and-runs.md`, mục 2.3). Phần tóm tắt của workflow có đường dẫn tới phiên.
 5. Trong lúc phiên chạy, không merge gì vào `main`.
 6. Sáng hôm sau, đọc báo cáo trong danh sách chạy (đã lên `main` qua PR báo cáo của phiên), xem ảnh chuẩn screenshot mới, làm các kiểm tra thủ công trên bản staging.
 7. Retro 15 phút: quyết định các bài học mới trong `docs/lessons.md`, nhờ AI làm các bài học được nhận thành PR cải tiến (`docs/auto-run.md`, mục 6).

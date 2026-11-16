@@ -1,6 +1,6 @@
 # THANG ĐIỂM RỦI RO VÀ ĐIỀU KIỆN DỪNG
 
-Mỗi plan được AI chấm điểm rủi ro trước khi đưa vào họp đánh giá. Điểm rủi ro quyết định ai phải duyệt plan và mức độ thận trọng trong phiên tự chạy. Thang điểm này được điều chỉnh qua các buổi retro; lý do của mỗi lần điều chỉnh ghi trong mô tả PR, tra lại bằng git log (ADR-0044).
+Mỗi plan được AI chấm điểm rủi ro trước khi đưa người duyệt. Điểm rủi ro quyết định ai phải duyệt plan và mức độ thận trọng trong phiên tự chạy. Thang điểm này được điều chỉnh qua các buổi retro; lý do của mỗi lần điều chỉnh ghi trong mô tả PR, tra lại bằng git log (ADR-0044).
 
 ## 1. Điểm chặn: tự động xếp rủi ro cao
 
@@ -32,11 +32,13 @@ Với plan không chạm điểm chặn, AI chấm từng tiêu chí từ 0 đ�
 
 | Tổng điểm | Mức | Ai duyệt | Ghi chú |
 | --- | --- | --- | --- |
-| 0 đến 4 | **Thấp** | Chủ feature tự duyệt | Nêu ngắn trong họp đánh giá rủi ro |
-| 5 đến 8 | **Trung bình** | Chủ feature duyệt | Trình bày trong họp, dev còn lại được quyền yêu cầu duyệt chéo |
+| 0 đến 4 | **Thấp** | Chủ feature tự duyệt | Nêu ngắn khi duyệt |
+| 5 đến 8 | **Trung bình** | Chủ feature duyệt | Nêu trong tóm tắt duyệt, dev còn lại được quyền yêu cầu duyệt chéo |
 | 9 trở lên, hoặc chạm điểm chặn | **Cao** | Bắt buộc dev còn lại duyệt chéo | Cân nhắc tách thành task nhỏ hơn trước khi duyệt |
 
-Đường làm nhanh có người theo dõi (ADR-0034) chỉ nhận plan mức Thấp không chạm điểm chặn; dev nào ngồi cùng cũng duyệt được, ngay trong phiên, không cần họp.
+Đường làm nhanh có người theo dõi (ADR-0048) chỉ nhận plan mức Thấp không chạm điểm chặn; dev nào ngồi cùng cũng duyệt được, ngay trong phiên.
+
+Ở mọi mức, người có quyền duyệt tự ghi trạng thái, hoặc AI ghi theo lời đồng ý rõ ràng trong phiên của người đó (ADR-0048, phần C), là đủ; review hay bình luận trên GitHub không đủ để AI ghi trạng thái. Họp không bắt buộc. Quy tắc duyệt chéo ở trên giữ nguyên.
 
 Ngoại lệ khi nhóm chỉ có một dev: người đó vừa duyệt vừa duyệt chéo plan rủi ro cao, ghi rõ lý do ở mục 9 của plan. Phiên tự chạy không coi đây là lý do bỏ qua task. Khi nhóm có dev thứ hai, quy tắc duyệt chéo áp dụng lại đầy đủ.
 

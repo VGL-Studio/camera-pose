@@ -16,7 +16,7 @@ Chạy các lệnh độc lập song song. Lệnh nào lỗi (không có mạng,
 3. **Phiên tự chạy:** liệt kê nhánh `claude/RUN-YYYYMMDD-NN-report` trên remote; phiên đang chạy khi file `docs/runs/<RUN>.md` trên nhánh đó có `status: running` (cùng cách `scripts/merge-if-green.sh` kiểm). Trên nhánh chính, danh sách `draft` hay `approved` chưa chạy trong `docs/runs/`.
 4. **PR đang mở:** `gh pr list --state open --json number,title,headRefName,isDraft,labels,reviewDecision,statusCheckRollup`. Tách PR có nhãn `needs-human`, PR nháp, PR có CI đỏ, PR xanh chờ merge.
 5. **Việc chờ người:** `python3 scripts/status.py`, rồi đọc mục 1 "Đang chờ người" và mục 6 "Sẵn sàng phát hành" của `docs/STATUS.md`.
-6. **Hàng chờ plan:** `python3 scripts/plan-queue.py --max 5`. Thêm ticket `stopped` và plan `draft` chưa duyệt.
+6. **Hàng chờ plan:** `python3 scripts/plan-queue.py --max 5`. Thêm ticket `stopped` và plan `draft` chưa duyệt. Giữ các dòng `Đang chặn hàng chờ:` của stderr: ticket chờ người đang giữ lại bao nhiêu ticket khác.
 7. **Chỉ ở dự án mẫu:** `gh issue list --state open --label from-app`.
 8. **Chỉ ở repo app:** dòng `base=` của `docs/template-sync.txt`, rồi đếm commit của dự án mẫu kể từ mốc đó nếu đọc được repo mẫu (`gh api repos/VGL-Studio/app-project-template/compare/<base>...main --jq .ahead_by`).
 
@@ -29,7 +29,7 @@ Viết ngắn, tiếng Việt, theo thứ tự:
    1. Nhánh chính đỏ, môi trường hỏng, phiên đứng im: báo người, không tự sửa issue `main-broken`.
    2. Phiên tự chạy đang chạy: chỉ theo dõi, không merge PR ngoài phiên.
    3. PR xanh chờ merge: `/merge-pr <số>`. PR đỏ: xem log bằng `scripts/failure-kind.sh --playbook`.
-   4. Việc chờ người ở `docs/STATUS.md` (duyệt spec, plan, danh sách chạy, kiểm thủ công).
+   4. Việc chờ người ở `docs/STATUS.md` (duyệt spec, plan, danh sách chạy, kiểm thủ công). Có dòng `Đang chặn hàng chờ:` thì ticket chặn nhiều ticket nhất lên trước, kèm số ticket nó giữ lại và cách gỡ: ticket `auto_run: false` thì làm cùng dev, spec chưa chốt thì trả lời câu hỏi, plan đang chờ duyệt thì duyệt, chu trình phụ thuộc thì sửa `depends_on`, lý do khác thì theo lý do script in.
    5. Ticket trong hàng chờ: `/write-plan <T-NNN>`; việc nhỏ dev muốn có ngay: `/quick-lane`.
    6. Plan `approved` chưa vào danh sách: `/run-list`.
    7. Dự án mẫu: issue `from-app` đang mở: `/from-app <số>`. Repo app: dự án mẫu đã có commit mới: nhắc người phụ trách chạy `/to-app` ở dự án mẫu.

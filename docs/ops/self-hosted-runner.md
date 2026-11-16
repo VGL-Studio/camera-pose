@@ -79,5 +79,5 @@ Ghi lệnh, mã lần chạy và kết quả của từng bước vào nhật k�
 
 ## 9. Ngoài phạm vi
 
-- Runner cho bản production và `scripts/release.sh` (ADR-0009, ADR-0017).
+- Runner cho bản production và `scripts/release.sh` (ADR-0049).
 - `staging`, `device-session`: đọc bí mật, giữ runner của GitHub.

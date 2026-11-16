@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import androidx.compose.ui.unit.DpSize
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdLoader
@@ -178,6 +179,9 @@ class AdsController @Inject internal constructor(
     /** The rewarded ad taken out of the slot for the turn on screen, kept for a second show (R-06). */
     private val showingRewardeds = mutableMapOf<AdPlacement, RewardedAd>()
 
+    /** The turn of the MAX rewarded ad taken out for each placement, kept for a second show (R-06, plan T-106). */
+    private val showingMaxRewardeds = mutableMapOf<AdPlacement, MaxRewardedShow>()
+
     /** The app open slot (A-07): a load replaces the ad kept before it, an ad an hour old is dropped when read. */
     private val loadedAppOpens = FreshAdCache<AppOpenAd>(APP_OPEN_MAX_AGE_MILLIS, onDiscard = { appOpenCells -= it })
 
@@ -225,6 +229,13 @@ class AdsController @Inject internal constructor(
 
     /** True while an app activity is started, as [AdsActivityTracker] reports it; native requests wait for it. */
     private val foregroundState = MutableStateFlow(false)
+
+    /**
+     * Moves when the failures in a row of every native place with no ad count from 1 again (O-05, plan T-103): the
+     * whole process back in foreground, Internet back. Not when only the app activity stops and starts (an SDK screen
+     * over the app, a rotation) nor when a full-screen ad of ours closes: that is no return to foreground.
+     */
+    private val nativeFailureResets = MutableStateFlow(0)
 
     /** The [FullScreenAdHost]s in a composition now (K-09); main thread only. */
     private var fullScreenHostCount = 0
@@ -372,6 +383,10 @@ class AdsController @Inject internal constructor(
         // Foreground, not the in-screen window: the screen over the app waits for this very load (K-04, plan T-054).
         foreground = foregroundState,
         logger = logger,
+        failureResets = nativeFailureResets,
+        // Read late: the preloader is made below this line, after this one.
+        retryResets = { preloader.nativeRetryResets },
+        onRetryCutShort = ::onNativeFullScreenRetryCutShort,
     )
 
     /** "A load of the native full-screen slot ended", per placement (L-068): the combo waits for its own. */
@@ -515,8 +530,8 @@ class AdsController @Inject internal constructor(
                 isFullScreenAdReady(declaration.placement())
 
             override fun needsLoad(declaration: AdPlacementDeclaration): Boolean =
-                // The gate is asked by the round itself (rewardedLoadStep).
-                needsLoad(fullScreenLoadState(declaration.placement()), clock.nowMillis(), gateOpen = true)
+                // The gate is asked by the round itself (rewardedLoadStep). The round loads AdMob only (plan T-106).
+                needsLoad(admobRewardedState(declaration.placement()), clock.nowMillis(), gateOpen = true)
 
             override fun loadState(declaration: AdPlacementDeclaration): String =
                 opportunityLoadState(declaration.placement())
@@ -537,10 +552,23 @@ class AdsController @Inject internal constructor(
 
             override fun take(declaration: AdPlacementDeclaration): Boolean {
                 val placement = declaration.placement()
-                val ad = loadedRewardeds.take(placement, clock.nowMillis()) ?: return false
-                rewardedCells.remove(ad)?.value = placement
-                showingRewardeds[placement] = ad
-                return true
+                // Plan T-106: the first platform of the order that holds an ad (ADR-0045, section 2.2).
+                val platform = readyPlatform(
+                    rewardedPlatformsOf(placement),
+                    admobReady = loadedRewardeds.hasFresh(placement, clock.nowMillis()),
+                    maxReady = maxRewardeds.state == FullScreenLoadState.Ready,
+                )
+                return when (platform) {
+                    AdPlatform.MAX -> takeMaxRewarded(declaration)
+                    AdPlatform.ADMOB -> {
+                        val ad = loadedRewardeds.take(placement, clock.nowMillis()) ?: return false
+                        rewardedCells.remove(ad)?.value = placement
+                        showingRewardeds[placement] = ad
+                        showingMaxRewardeds -= placement
+                        true
+                    }
+                    null -> false
+                }
             }
 
             override fun show(declaration: AdPlacementDeclaration, activity: Activity?) =
@@ -568,8 +596,74 @@ class AdsController @Inject internal constructor(
 
             override fun recordShowFailed(declaration: AdPlacementDeclaration, code: Int) =
                 telemetry.showFailed(AdFormat.REWARDED, declaration.placement(), code)
+
+            override fun networkError(declaration: AdPlacementDeclaration, admobNetworkError: Boolean?): Boolean =
+                rewardedNetworkError(
+                    rewardedPlatformsOf(declaration.placement()),
+                    admob = admobNetworkError,
+                    max = maxRewardeds.lastLoadNetworkError,
+                )
         },
         logger = logger,
+    )
+
+    /**
+     * The one interstitial slot of AppLovin MAX (plan T-069, M-10), shared by every interstitial placement whose
+     * platforms have MAX ([platformsOf]). Declared after [maxReady] and [telemetry], which it reads at once.
+     */
+    private val maxInterstitials = MaxInterstitialSlot(
+        scope = scope,
+        clock = clock,
+        unitId = { maxConfig.unitFor(AdFormat.INTERSTITIAL) },
+        maxReady = maxReady,
+        shouldLoad = ::maxInterstitialWanted,
+        mayRequestNow = ::mayRequestNow,
+        newAd = maxPlatform::newInterstitial,
+        telemetry = telemetry,
+        failuresInARow = { loadCounter.failuresInARow(MaxInterstitialSlot.SLOT) },
+        logger = logger,
+        fullScreenBusy = { presence.isBusy(clock.nowMillis()) },
+        networkLog = networkLog,
+    )
+
+    /**
+     * The one rewarded slot of AppLovin MAX (plan T-106, M-10), shared by every rewarded placement whose platforms
+     * have MAX ([rewardedPlatformsOf]). Its show follows the SDK object itself (see [MaxInterstitialSlot]).
+     */
+    private val maxRewardeds = MaxInterstitialSlot(
+        format = AdFormat.REWARDED,
+        scope = scope,
+        clock = clock,
+        unitId = { maxConfig.unitFor(AdFormat.REWARDED) },
+        maxReady = maxReady,
+        shouldLoad = ::maxRewardedLoadWanted,
+        mayRequestNow = ::mayRequestNow,
+        newAd = maxPlatform::rewarded,
+        telemetry = telemetry,
+        failuresInARow = { loadCounter.failuresInARow(MaxInterstitialSlot.REWARDED_SLOT) },
+        logger = logger,
+        networkError = { isMaxNetworkLoadError(it, offline = !online.value) },
+        networkLog = networkLog,
+    )
+
+    /**
+     * The one app open slot of AppLovin MAX (plan T-070, M-10), for the resume ad only ([appOpenPlatformsOf]). It
+     * reloads 2 seconds after a close and holds every other send until then (ADR-0045, section 2.4).
+     */
+    private val maxAppOpens = MaxInterstitialSlot(
+        format = AdFormat.APP_OPEN,
+        scope = scope,
+        clock = clock,
+        unitId = { maxConfig.unitFor(AdFormat.APP_OPEN) },
+        maxReady = maxReady,
+        shouldLoad = ::maxAppOpenWanted,
+        mayRequestNow = ::mayRequestNow,
+        newAd = maxPlatform::newAppOpen,
+        telemetry = telemetry,
+        failuresInARow = { loadCounter.failuresInARow(MaxInterstitialSlot.APP_OPEN_SLOT) },
+        logger = logger,
+        fullScreenBusy = { presence.isBusy(clock.nowMillis()) },
+        networkLog = networkLog,
     )
 
     /** One slot of the preload plan per full-screen placement. */
@@ -577,7 +671,7 @@ class AdsController @Inject internal constructor(
         FullScreenPreloadSlot(
             placement = placement,
             enabled = { enabledNow[placement] == true },
-            state = { fullScreenLoadState(placement) },
+            state = { preloadState(placement) },
             load = { loadFullScreenAdIfNeeded(it) },
         )
     }
@@ -712,7 +806,13 @@ class AdsController @Inject internal constructor(
                 .collect { preloader.onGateChanged() }
         }
         // The value read in start, so Internet is watched once (S-24, T-016).
-        scope.launch { networkReturns(online).collect { preloader.onNetworkReturned() } }
+        scope.launch {
+            networkReturns(online).collect {
+                // Before the cut short below, so the try it sends counts its failures from 1 (O-05, plan T-103).
+                resetNativeFailures("network back")
+                preloader.onNetworkReturned()
+            }
+        }
     }
 
     /**
@@ -838,7 +938,14 @@ class AdsController @Inject internal constructor(
         logger.warn(TAG, "Full-screen ${placement.key} stuck: flag released")
         endCurrentTurn("stuck_recovered")
         // A rewarded turn is not the current turn: it ends here, with no outcome (F-03).
-        if (placement.format == AdFormat.REWARDED) rewardedTurns.onStuck()
+        if (placement.format == AdFormat.REWARDED) endRewardedTurnsStuck()
+    }
+
+    /** A rewarded turn ends with no outcome (F-03, lost host); a MAX ad still on screen reaches it no more. */
+    private fun endRewardedTurnsStuck() {
+        rewardedTurns.onStuck()
+        showingMaxRewardeds.clear()
+        maxRewardeds.releaseShow()
     }
 
     /**
@@ -862,8 +969,31 @@ class AdsController @Inject internal constructor(
 
     /** The whole process came to foreground or went to background ([AdsActivityTracker]): the resume ad turn. */
     internal fun onProcessForegroundChanged(foreground: Boolean) {
+        onProcessForegroundForNativeRetry(foreground)
         logger.info(TAG, if (foreground) "App in foreground" else "App in background")
         resumeAds.onProcessForegroundChanged(foreground)
+    }
+
+    /**
+     * The whole process came back to foreground: the native places with no ad count their failures from 1 again (O-05,
+     * plan T-103). [ProcessForegroundCounter] reports changes only, so each true is a return.
+     */
+    private fun onProcessForegroundForNativeRetry(foreground: Boolean) {
+        if (foreground) resetNativeFailures("foreground")
+    }
+
+    private fun resetNativeFailures(reason: String) {
+        nativeFailureResets.value += 1
+        logger.info(TAG, "Native retry counters reset: $reason")
+    }
+
+    /**
+     * The retry wait of the native full-screen ad of [placement] was cut short by Internet back (S-24): the retry is not
+     * due yet, so the slot stops waiting for it, then loads (F-04).
+     */
+    private fun onNativeFullScreenRetryCutShort(placement: AdPlacement) {
+        if (loadStates[placement] is FullScreenLoadState.WaitingRetry) loadStates -= placement
+        loadFullScreenAdIfNeeded(placement)
     }
 
     /**
@@ -907,7 +1037,7 @@ class AdsController @Inject internal constructor(
             HostDestroyedAction.FORCE_COMPLETE -> {
                 logger.warn(TAG, "Full-screen ${shown.placement.key}: host destroyed before close")
                 endCurrentTurn("host_destroyed")
-                if (shown.placement.format == AdFormat.REWARDED) rewardedTurns.onStuck()
+                if (shown.placement.format == AdFormat.REWARDED) endRewardedTurnsStuck()
             }
         }
     }
@@ -1033,7 +1163,14 @@ class AdsController @Inject internal constructor(
         if (!isHostUsable(activity)) return@withContext skipHostGone(placement, onFinished)
         val turn = beginInterstitialTurn(placement, System.identityHashCode(activity), combo, onFinished)
             ?: return@withContext skipTurn(placement, FullScreenShowDecision.BUSY, loadState, onFinished)
-        val ad = loadedInterstitials.remove(placement)
+        // Plan T-069: the first platform of the order that holds an ad (ADR-0045, section 2.2).
+        val platform = readyPlatform(
+            platformsOf(placement),
+            admobReady = placement in loadedInterstitials,
+            maxReady = maxInterstitials.state == FullScreenLoadState.Ready,
+        )
+        if (platform == AdPlatform.MAX) return@withContext showMaxInterstitial(activity, placement, turn, loadState)
+        val ad = if (platform == AdPlatform.ADMOB) loadedInterstitials.remove(placement) else null
         if (ad == null) {
             onInterstitialLost(placement, turn, loadState)
             return@withContext false
@@ -1068,6 +1205,60 @@ class AdsController @Inject internal constructor(
     }
 
     /**
+     * Shows the interstitial of the MAX slot for [turn] of [placement] (plan T-069): the same turn as an AdMob one, so
+     * the showing flag, the `ads_interval` mark (I-05), the combo, the recovery (F-03) and the end of the turn are
+     * shared; the slot loads again 2 seconds after the close or the failed show (F-06).
+     */
+    private fun showMaxInterstitial(
+        activity: Activity,
+        placement: AdPlacement,
+        turn: FullScreenCompletion,
+        loadState: String,
+    ): Boolean {
+        val unit = maxConfig.unitFor(AdFormat.INTERSTITIAL).orEmpty()
+        // The adapter of the ad held, for `ad_source` of the funnel (plan T-072): read before the take empties the slot.
+        val adapter = maxInterstitials.heldAdapterClassName
+        val ad = maxInterstitials.take(
+            placement,
+            object : MaxInterstitialListener {
+                override fun onLoaded(info: MaxAdInfo) = Unit
+
+                override fun onLoadFailed(code: Int, networks: List<MaxNetworkAttempt>) = Unit
+
+                override fun onDisplayed() {
+                    telemetry.displayed(AdFormat.INTERSTITIAL, unit, adapter)
+                    // N-05, as for AdMob.
+                    scope.launch {
+                        val count = interDisplayCounter.increment()
+                        telemetry.interDisplayed(count)
+                        if (count != null) logger.info(TAG, "Interstitial displays since install: $count")
+                    }
+                }
+
+                override fun onHidden() {
+                    onInterstitialClosed(placement, turn)
+                    maxInterstitials.onClosedOrShowFailed()
+                }
+
+                override fun onDisplayFailed(code: Int) {
+                    onInterstitialShowFailed(placement, turn, code, AdPlatform.MAX)
+                    maxInterstitials.onClosedOrShowFailed()
+                }
+
+                override fun onClicked() = telemetry.clicked(AdFormat.INTERSTITIAL, placement, AdPlatform.MAX)
+            },
+        )
+        if (ad == null) {
+            onInterstitialLost(placement, turn, loadState)
+            return false
+        }
+        recordShownOpportunity(placement)
+        logger.info(TAG, "Interstitial shown (MAX): ${placement.key}")
+        ad.show(activity)
+        return true
+    }
+
+    /**
      * Starts an interstitial turn of [placement] that passed the gate, on [hostActivityId]: raises the showing flag
      * (null when another full-screen ad shows) and returns its completion. With [combo], every end of the turn goes
      * through [NativeFullScreenTurns.afterInterstitial] (closed, show failed, ad lost, stuck, host destroyed, cap
@@ -1098,10 +1289,15 @@ class AdsController @Inject internal constructor(
         fullScreenReloads.onClosedOrShowFailed(placement)
     }
 
-    /** The interstitial of [turn] failed to show (SDK). */
-    internal fun onInterstitialShowFailed(placement: AdPlacement, turn: FullScreenCompletion, code: Int) {
+    /** The interstitial of [turn] failed to show (SDK of [platform]: the reason of `ad_show_fail` follows it). */
+    internal fun onInterstitialShowFailed(
+        placement: AdPlacement,
+        turn: FullScreenCompletion,
+        code: Int,
+        platform: AdPlatform = AdPlatform.ADMOB,
+    ) {
         logger.warn(TAG, "Interstitial ${placement.key} failed to show: $code")
-        telemetry.showFailed(AdFormat.INTERSTITIAL, placement, code)
+        telemetry.showFailed(AdFormat.INTERSTITIAL, placement, code, platform)
         endTurn(turn, "show_failed")
         fullScreenReloads.onClosedOrShowFailed(placement)
     }
@@ -1126,8 +1322,9 @@ class AdsController @Inject internal constructor(
      * Shows the app open ad of [placement] (A-05): the full-screen gate of [decideFullScreenShow], with the lock of
      * one second after the previous app open ad closed (A-08) in place of the `ads_interval` mark, which app open
      * never reads or moves (I-02). The ad leaves the slot when it shows, so an ad loaded while it is on screen is kept
-     * (A-09); closing it or failing to show loads again at once (F-06). [onFinished] runs once, as for
-     * [showInterstitial].
+     * (A-09); closing it or failing to show loads again at once (F-06). The resume ad shows the first platform of
+     * `ads_mediation_order` that holds an ad (plan T-070, A-16); the MAX slot reloads 2 seconds later. [onFinished]
+     * runs once, as for [showInterstitial].
      */
     private suspend fun showAppOpen(activity: Activity, placement: AdPlacement, onFinished: () -> Unit): Boolean =
         withContext(Dispatchers.Main.immediate) {
@@ -1149,7 +1346,16 @@ class AdsController @Inject internal constructor(
             if (!presence.tryBegin(placement, System.identityHashCode(activity), now)) {
                 return@withContext skipTurn(placement, FullScreenShowDecision.BUSY, loadState, onFinished)
             }
-            val ad = loadedAppOpens.take(placement, now)
+            // Plan T-070: the first platform of the order that holds an ad (ADR-0045, section 2.2).
+            val platform = readyPlatform(
+                appOpenPlatformsOf(placement),
+                admobReady = loadedAppOpens.hasFresh(placement, now),
+                maxReady = maxAppOpens.state == FullScreenLoadState.Ready,
+            )
+            if (platform == AdPlatform.MAX) {
+                return@withContext showMaxAppOpen(activity, placement, loadState, onFinished)
+            }
+            val ad = if (platform == AdPlatform.ADMOB) loadedAppOpens.take(placement, now) else null
             if (ad == null) {
                 presence.onClosed()
                 return@withContext skipTurn(placement, FullScreenShowDecision.NOT_READY, loadState, onFinished)
@@ -1178,6 +1384,60 @@ class AdsController @Inject internal constructor(
             ad.show(activity)
             true
         }
+
+    /**
+     * Shows the app open ad of the MAX slot for [placement] (plan T-070), once the gate passed and the showing flag
+     * rose: the same turn as an AdMob one, so the lock of A-08, the recovery (F-03) and the end of the turn are shared;
+     * the slot loads again 2 seconds after the close or the failed show (F-06, ADR-0045, section 2.4).
+     */
+    private fun showMaxAppOpen(
+        activity: Activity,
+        placement: AdPlacement,
+        loadState: String,
+        onFinished: () -> Unit,
+    ): Boolean {
+        lateinit var turn: FullScreenCompletion
+        val ad = maxAppOpens.take(
+            placement,
+            object : MaxInterstitialListener {
+                override fun onLoaded(info: MaxAdInfo) = Unit
+
+                override fun onLoadFailed(code: Int, networks: List<MaxNetworkAttempt>) = Unit
+
+                // Like the app open of AdMob, no `displayed` event.
+                override fun onDisplayed() = Unit
+
+                override fun onHidden() {
+                    // First line (A-08, both platforms); no `ads_interval` mark (I-02).
+                    lastAppOpenClosedAt = clock.nowMillis()
+                    // Before the end of the turn: the slot lowers its flag and holds its sends first.
+                    maxAppOpens.onClosedOrShowFailed()
+                    endTurn(turn, "closed")
+                    fullScreenReloads.onClosedOrShowFailed(placement)
+                }
+
+                override fun onDisplayFailed(code: Int) {
+                    logger.warn(TAG, "App open ${placement.key} failed to show: $code")
+                    telemetry.showFailed(AdFormat.APP_OPEN, placement, code, AdPlatform.MAX)
+                    maxAppOpens.onClosedOrShowFailed()
+                    endTurn(turn, "show_failed")
+                    fullScreenReloads.onClosedOrShowFailed(placement)
+                }
+
+                // A-14: the next resume ad is suppressed.
+                override fun onClicked() = telemetry.clicked(AdFormat.APP_OPEN, placement, AdPlatform.MAX)
+            },
+        )
+        if (ad == null) {
+            presence.onClosed()
+            return skipTurn(placement, FullScreenShowDecision.NOT_READY, loadState, onFinished)
+        }
+        recordShownOpportunity(placement)
+        turn = beginTurn(onFinished)
+        logger.info(TAG, "App open shown (MAX): ${placement.key}")
+        ad.show(activity)
+        return true
+    }
 
     /**
      * Shows the app open ad of a staging-only [placement] for the staging ad gallery ([rememberShowAppOpenAd], plan
@@ -1306,6 +1566,10 @@ class AdsController @Inject internal constructor(
      */
     private fun showRewardedAd(declaration: AdPlacementDeclaration, activity: Activity?) {
         val placement = declaration.placement()
+        showingMaxRewardeds[placement]?.let {
+            showMaxRewarded(it, activity)
+            return
+        }
         val ad = showingRewardeds[placement]
         if (ad == null || activity == null) {
             logger.warn(TAG, "Rewarded ${placement.key}: nothing to show")
@@ -1339,6 +1603,87 @@ class AdsController @Inject internal constructor(
         }
         // R-02: the reward is given in the SDK's callback, before the ad closes.
         ad.show(activity) { rewardedTurns.onReward(declaration) }
+    }
+
+    /**
+     * Takes the ad of the MAX rewarded slot out for the turn of [declaration] (plan T-106); false when the slot holds
+     * none.
+     */
+    private fun takeMaxRewarded(declaration: AdPlacementDeclaration): Boolean {
+        val placement = declaration.placement()
+        // The adapter of the ad held, for `ad_source` of the funnel (plan T-072): read before the take.
+        val show = MaxRewardedShow(declaration, maxRewardeds.heldAdapterClassName)
+        maxRewardeds.take(placement, show) ?: return false
+        showingMaxRewardeds[placement] = show
+        showingRewardeds -= placement
+        return true
+    }
+
+    /** Shows the MAX rewarded ad of [show] on [activity]: the first show of the turn or a show again (R-06). */
+    private fun showMaxRewarded(show: MaxRewardedShow, activity: Activity?) {
+        val placement = show.declaration.placement()
+        if (activity == null) {
+            logger.warn(TAG, "Rewarded ${placement.key}: nothing to show")
+            rewardedTurns.onShowFailed(show.declaration, SHOW_FAILED_INTERNAL)
+            show.endIfTurnOver()
+            return
+        }
+        logger.info(TAG, "Rewarded shown (MAX): ${placement.key}")
+        maxRewardeds.showTaken(activity)
+    }
+
+    /**
+     * One turn of the MAX rewarded ad of [declaration] (plan T-106): the SDK callbacks go to [rewardedTurns], as for
+     * AdMob, only while this turn is the one of its placement, since the SDK object is shared by every turn. The slot
+     * loads again 2 seconds after the close or a failed show that ends the turn (F-06); no `ads_interval` mark (R-05).
+     */
+    private inner class MaxRewardedShow(val declaration: AdPlacementDeclaration, private val adapter: String?) :
+        MaxInterstitialListener {
+        private val placement = declaration.placement()
+        private val current: Boolean get() = showingMaxRewardeds[placement] === this
+
+        override fun onLoaded(info: MaxAdInfo) = Unit
+
+        override fun onLoadFailed(code: Int, networks: List<MaxNetworkAttempt>) = Unit
+
+        override fun onDisplayed() {
+            if (!current) return
+            telemetry.displayed(AdFormat.REWARDED, maxConfig.unitFor(AdFormat.REWARDED).orEmpty(), adapter)
+            rewardedTurns.onShowed(declaration)
+        }
+
+        // R-02: the reward is given in the SDK's callback, before the ad closes.
+        override fun onRewarded() {
+            if (current) rewardedTurns.onReward(declaration)
+        }
+
+        override fun onHidden() {
+            if (!current) return
+            showingMaxRewardeds -= placement
+            rewardedTurns.onDismissed(declaration)
+            maxRewardeds.onClosedOrShowFailed()
+            fullScreenReloads.onClosedOrShowFailed(placement)
+        }
+
+        override fun onDisplayFailed(code: Int) {
+            if (!current) return
+            logger.warn(TAG, "Rewarded ${placement.key} failed to show (MAX): $code")
+            telemetry.showFailed(AdFormat.REWARDED, placement, code, AdPlatform.MAX)
+            rewardedTurns.onShowFailed(declaration, code)
+            endIfTurnOver()
+            fullScreenReloads.onClosedOrShowFailed(placement)
+        }
+
+        override fun onClicked() {
+            if (current) telemetry.clicked(AdFormat.REWARDED, placement, AdPlatform.MAX)
+        }
+
+        /** Every show of the turn failed (R-04): the turn is over, the slot loads again (F-06). */
+        fun endIfTurnOver() {
+            if (!current || rewardedTurns.hasTurn(declaration)) return
+            showingMaxRewardeds -= placement
+            maxRewardeds.onClosedOrShowFailed()
+        }
     }
 
     /** The close button of the native full-screen turn on screen; works once its countdown is over (K-03, K-04). */
@@ -1418,6 +1763,52 @@ class AdsController @Inject internal constructor(
         inScreenAdWindowState.onForeground(foreground)
     }
 
+    /**
+     * Tests only: the whole process came to foreground or went to background, as [AdsActivityTracker] reports it, for
+     * the native retry counters only (O-05, plan T-103): no resume ad turn.
+     */
+    @VisibleForTesting
+    internal fun setProcessForegroundForTest(foreground: Boolean) {
+        onProcessForegroundForNativeRetry(foreground)
+    }
+
+    /**
+     * Tests only: the send of each native full-screen load instead of the SDK's (plan T-103). It returns the ad that
+     * loaded, or null for a failure (code 3); everything before the send (foreground, gate, switch) runs for real.
+     */
+    @VisibleForTesting
+    internal var nativeFullScreenRequestForTest: ((AdPlacement) -> LoadedNativeAd?)? = null
+
+    /**
+     * Tests only: the send of each AdMob interstitial load instead of the SDK's (plan T-069). It returns the ad that
+     * loaded, or null for a failure; everything before the send (switch, gate, platforms) runs for real.
+     */
+    @VisibleForTesting
+    internal var interstitialRequestForTest: ((AdPlacement) -> InterstitialAd?)? = null
+
+    /**
+     * Tests only: the send of each AdMob rewarded load instead of the SDK's (plan T-106). It returns the ad that
+     * loaded, or null for a failure with [rewardedLoadErrorCodeForTest]; everything before the send runs for real.
+     */
+    @VisibleForTesting
+    internal var rewardedRequestForTest: ((AdPlacement) -> RewardedAd?)? = null
+
+    /**
+     * Tests only: the send of each AdMob app open load instead of the SDK's (plan T-070). It returns the ad that
+     * loaded, or null for a failure (no fill); everything before the send (switch, gate, platforms) runs for real.
+     */
+    @VisibleForTesting
+    internal var appOpenRequestForTest: ((AdPlacement) -> AppOpenAd?)? = null
+
+    /** Tests only: the code of a failed load of [rewardedRequestForTest]; no fill by default (plan T-106). */
+    @VisibleForTesting
+    internal var rewardedLoadErrorCodeForTest: Int = NO_FILL_CODE_FOR_TEST
+
+    /** Tests only: where the full-screen ad of [placement] is in its loading (F-04). */
+    @VisibleForTesting
+    internal fun nativeFullScreenLoadStateForTest(placement: AdPlacement): FullScreenLoadState =
+        fullScreenLoadState(placement)
+
     /** Tests only: the preload of S-21, which the SDK's init callback asks for (plan T-086). */
     @VisibleForTesting
     internal fun requestPreloadForTest() = preloader.request(PreloadReason.SDK_READY)
@@ -1437,12 +1828,14 @@ class AdsController @Inject internal constructor(
     /** Tests only: puts [ad] in the interstitial slot of [placement], as a load would (plan T-055). */
     @VisibleForTesting
     internal fun putLoadedInterstitialForTest(placement: AdPlacement, ad: InterstitialAd) {
+        loadStates -= placement
         loadedInterstitials[placement] = ad
     }
 
     /** Tests only: puts [ad] in the app open slot of [placement], loaded now, as a load would (plan T-055). */
     @VisibleForTesting
     internal fun putLoadedAppOpenForTest(placement: AdPlacement, ad: AppOpenAd) {
+        loadStates -= placement
         loadedAppOpens.put(placement, ad, clock.nowMillis())
     }
 
@@ -1516,23 +1909,177 @@ class AdsController @Inject internal constructor(
 
     /** Loads a full-screen ad of [placement] unless one is loading, loaded, or waiting for a retry (F-04). */
     internal fun loadFullScreenAdIfNeeded(placement: AdPlacement) {
+        if (placement.format == AdFormat.INTERSTITIAL) {
+            // Plan T-069: each platform checks its own state; the gate stops it early, as needsLoad did.
+            if (canRequestAds.value) loadInterstitialPlatforms(placement)
+            return
+        }
+        if (placement.format == AdFormat.REWARDED) {
+            // Plan T-106: as an interstitial, each platform checks its own state.
+            if (canRequestAds.value) loadRewardedPlatforms(placement)
+            return
+        }
+        if (placement.format == AdFormat.APP_OPEN) {
+            // Plan T-070: as an interstitial, each platform checks its own state.
+            if (canRequestAds.value) loadAppOpenPlatforms(placement)
+            return
+        }
         if (needsLoad(fullScreenLoadState(placement), clock.nowMillis(), canRequestAds.value)) preloadNow(placement)
     }
 
+    /** Loads each platform of the interstitial of [placement] that needs it (plan T-069, ADR-0045, section 2.3). */
+    private fun loadInterstitialPlatforms(placement: AdPlacement) {
+        val platforms = platformsOf(placement)
+        if (AdPlatform.ADMOB in platforms) preloadInterstitial(placement)
+        if (AdPlatform.MAX in platforms) maxInterstitials.loadIfNeeded()
+    }
+
+    /** Loads each platform of the app open ad of [placement] that needs it (plan T-070, ADR-0045, section 2.3). */
+    private fun loadAppOpenPlatforms(placement: AdPlacement) {
+        val platforms = appOpenPlatformsOf(placement)
+        if (AdPlatform.ADMOB in platforms) preloadAppOpen(placement)
+        if (AdPlatform.MAX in platforms) maxAppOpens.loadIfNeeded()
+    }
+
+    /** Loads each platform of the rewarded ad of [placement] that needs it (plan T-106, ADR-0045, section 2.3). */
+    private fun loadRewardedPlatforms(placement: AdPlacement) {
+        val platforms = rewardedPlatformsOf(placement)
+        // The AdMob round decides by itself (L-072); the MAX slot checks its state, the switches and the gate.
+        if (AdPlatform.ADMOB in platforms) scope.launch { rewardedTurns.loadIfNeeded(placement.declaration) }
+        if (AdPlatform.MAX in platforms) maxRewardeds.loadIfNeeded()
+    }
+
     private fun fullScreenLoadState(placement: AdPlacement): FullScreenLoadState = when {
-        placement.format == AdFormat.INTERSTITIAL && placement in loadedInterstitials -> FullScreenLoadState.Ready
+        // Plan T-069: the state of the turn, over the platforms of the placement; each platform loads by its own state.
+        placement.format == AdFormat.INTERSTITIAL ->
+            turnLoadState(platformsOf(placement), admobInterstitialState(placement), maxInterstitials.state)
         placement.format == AdFormat.NATIVE_FULL_SCREEN &&
             preloadedNativeFullScreen.hasFresh(placement, clock.nowMillis()) -> FullScreenLoadState.Ready
-        placement.format == AdFormat.APP_OPEN &&
-            loadedAppOpens.hasFresh(placement, clock.nowMillis()) -> FullScreenLoadState.Ready
-        placement.format == AdFormat.REWARDED &&
-            loadedRewardeds.hasFresh(placement, clock.nowMillis()) -> FullScreenLoadState.Ready
+        // Plan T-070: the state of the turn, over the platforms of the placement (`resume` only may have MAX).
+        placement.format == AdFormat.APP_OPEN ->
+            turnLoadState(appOpenPlatformsOf(placement), admobAppOpenState(placement), maxAppOpens.state)
+        // Plan T-106: the state of the turn, over both platforms; each platform loads by its own state.
+        placement.format == AdFormat.REWARDED ->
+            turnLoadState(rewardedPlatformsOf(placement), admobRewardedState(placement), maxRewardeds.state)
         else -> loadStates[placement] ?: FullScreenLoadState.Idle
     }
 
-    /** `load_state` of an opportunity of [placement], taken at the decision (section 8.2). */
-    private fun opportunityLoadState(placement: AdPlacement): String =
-        loadStateAtDecision(fullScreenLoadState(placement), lastLoadErrors[placement])
+    /** The state of the AdMob app open ad of [placement] alone (plan T-070). */
+    private fun admobAppOpenState(placement: AdPlacement): FullScreenLoadState =
+        if (loadedAppOpens.hasFresh(placement, clock.nowMillis())) {
+            FullScreenLoadState.Ready
+        } else {
+            loadStates[placement] ?: FullScreenLoadState.Idle
+        }
+
+    /**
+     * The platforms an app open ad of [placement] loads and shows from (plan T-070), read like [platformsOf]: an AdMob
+     * ad already held counts as a unit; the AdMob unit is read directly, with no error log, as this is read every
+     * 250 ms by the loading screen.
+     */
+    private fun appOpenPlatformsOf(placement: AdPlacement): List<AdPlatform> = appOpenPlatforms(
+        placement,
+        mediationOrder.value,
+        hasAdmobUnit = loadedAppOpens.hasFresh(placement, clock.nowMillis()) ||
+            unitIds.of(placement, placement.format) != null,
+        hasMaxUnit = maxConfig.unitFor(AdFormat.APP_OPEN) != null,
+    )
+
+    /**
+     * The MAX app open slot may send (plan T-070): MAX is in the order and the resume ad is an app open ad that is on
+     * ([isEnabled] of `resume`: `show_resum_ads`, `is_show_ads`, `resume_ad_type` not `inter`). Asked right before
+     * each send of the slot.
+     */
+    private suspend fun maxAppOpenWanted(): Boolean =
+        AdPlatform.MAX in mediationOrder.value.platforms && isEnabled(AdPlacement.RESUME).first()
+
+    /** The state of the AdMob rewarded ad of [placement] alone (plan T-106). */
+    private fun admobRewardedState(placement: AdPlacement): FullScreenLoadState =
+        if (loadedRewardeds.hasFresh(placement, clock.nowMillis())) {
+            FullScreenLoadState.Ready
+        } else {
+            loadStates[placement] ?: FullScreenLoadState.Idle
+        }
+
+    /**
+     * The platforms a rewarded ad of [placement] loads and shows from (plan T-106), read like [platformsOf]: an AdMob
+     * ad already held counts as a unit.
+     */
+    private fun rewardedPlatformsOf(placement: AdPlacement): List<AdPlatform> = rewardedPlatforms(
+        mediationOrder.value,
+        hasAdmobUnit = loadedRewardeds.hasFresh(placement, clock.nowMillis()) ||
+            unitIds.of(placement, AdFormat.REWARDED) != null,
+        hasMaxUnit = maxConfig.unitFor(AdFormat.REWARDED) != null,
+    )
+
+    /**
+     * The MAX rewarded slot may send (plan T-106): MAX is in the order and a rewarded placement is on, the switches
+     * read for at most 5 seconds. Asked right before each send of the slot.
+     */
+    private suspend fun maxRewardedLoadWanted(): Boolean = maxRewardedWanted(mediationOrder.value) {
+        fullScreenPlacements().any { it.format == AdFormat.REWARDED && isEnabled(it).first() }
+    }
+
+    /** The state of the AdMob interstitial of [placement] alone (plan T-069). */
+    private fun admobInterstitialState(placement: AdPlacement): FullScreenLoadState =
+        if (placement in loadedInterstitials) {
+            FullScreenLoadState.Ready
+        } else {
+            loadStates[placement] ?: FullScreenLoadState.Idle
+        }
+
+    /**
+     * The platforms an interstitial of [placement] loads and shows from (plan T-069): reads the AdMob unit directly,
+     * not through [unitId], which logs an error at each missing unit, while this is read every 200 ms. An AdMob ad
+     * already held counts as a unit, so a held ad stays showable as before.
+     */
+    private fun platformsOf(placement: AdPlacement): List<AdPlatform> = interstitialPlatforms(
+        placement,
+        mediationOrder.value,
+        hasAdmobUnit = placement in loadedInterstitials || unitIds.of(placement, placement.format) != null,
+        hasMaxUnit = maxConfig.unitFor(AdFormat.INTERSTITIAL) != null,
+    )
+
+    /** The state the preload plan waits on (S-22): an interstitial waits for each of its platforms (plan T-069). */
+    private fun preloadState(placement: AdPlacement): FullScreenLoadState = when (placement.format) {
+        AdFormat.INTERSTITIAL ->
+            preloadSettleState(platformsOf(placement), admobInterstitialState(placement), maxInterstitials.state)
+        // Plan T-106: a rewarded placement waits for each of its platforms too.
+        AdFormat.REWARDED ->
+            preloadSettleState(rewardedPlatformsOf(placement), admobRewardedState(placement), maxRewardeds.state)
+        // Plan T-070: likewise an app open placement.
+        AdFormat.APP_OPEN ->
+            preloadSettleState(appOpenPlatformsOf(placement), admobAppOpenState(placement), maxAppOpens.state)
+        else -> fullScreenLoadState(placement)
+    }
+
+    /**
+     * The MAX interstitial slot may send (plan T-069): MAX is in the order and an interstitial placement that may
+     * show MAX (not `open_app_inter`) is on. Asked right before each send of the slot.
+     */
+    private suspend fun maxInterstitialWanted(): Boolean = AdPlatform.MAX in mediationOrder.value.platforms &&
+        fullScreenPlacements().any {
+            it.format == AdFormat.INTERSTITIAL && it != AdPlacement.OPEN_APP_INTER && isEnabled(it).first()
+        }
+
+    /**
+     * `load_state` of an opportunity of [placement], taken at the decision (section 8.2); an interstitial takes the
+     * error label of the first platform of its turn (plan T-069).
+     */
+    private fun opportunityLoadState(placement: AdPlacement): String {
+        val error = when {
+            placement.format == AdFormat.INTERSTITIAL && platformsOf(placement).firstOrNull() == AdPlatform.MAX ->
+                maxInterstitials.lastLoadError
+            // Plan T-106: likewise for a rewarded turn.
+            placement.format == AdFormat.REWARDED && rewardedPlatformsOf(placement).firstOrNull() == AdPlatform.MAX ->
+                maxRewardeds.lastLoadError
+            // Plan T-070: likewise for an app open turn.
+            placement.format == AdFormat.APP_OPEN && appOpenPlatformsOf(placement).firstOrNull() == AdPlatform.MAX ->
+                maxAppOpens.lastLoadError
+            else -> lastLoadErrors[placement]
+        }
+        return loadStateAtDecision(fullScreenLoadState(placement), error)
+    }
 
     /** `shown` always goes with `ready` (section 8.2). */
     private fun recordShownOpportunity(placement: AdPlacement) {
@@ -1738,6 +2285,7 @@ class AdsController @Inject internal constructor(
                     scope = scope,
                     logger = logger,
                     logKey = "${key.format.code}#$made",
+                    failureResets = nativeFailureResets,
                 )
             },
             scope = scope,
@@ -1818,9 +2366,9 @@ class AdsController @Inject internal constructor(
 
     /**
      * The states of one native ad of [placement], drawn as [format], for a slot on screen: loading, then loaded, or
-     * unavailable and a new try 5 s later (O-05), sent in foreground only and when [mayRequestNow]; Internet back cuts
-     * the wait short (S-24). Each try waits at most [NATIVE_LOAD_TIMEOUT_MILLIS] and gets its own metrics events
-     * (T-023). A native small slot or collapsible layer ([usesSingleAdSource]) claims its ad from its stock (plan
+     * unavailable and a new try 5, 10, 20, 40, then 60 s later (O-05), sent in foreground only and when [mayRequestNow];
+     * Internet back cuts the wait short (S-24). Each try waits at most [NATIVE_LOAD_TIMEOUT_MILLIS] and gets its own
+     * metrics events (T-023). A native small slot or collapsible layer ([usesSingleAdSource]) claims its ad from its stock (plan
      * T-086) and replaces it in place in foreground at the interval of its key ([reloadIntervalMillis], KB-34), the
      * first count longer by [firstRefreshExtraMillis] (plan T-040, T-087); a pooled format (medium) is a cell of its pool ([pooledCell], plan T-028); other formats
      * keep their ad, destroyed when the collection is cancelled. The caller checks consent and [isEnabled] first, like
@@ -1853,6 +2401,7 @@ class AdsController @Inject internal constructor(
                         placementKey = nativeSlotKey(placement, format),
                         intervalMillis = reloadIntervalMillis(format),
                         firstTickExtraMillis = firstRefreshExtraMillis,
+                        failureResets = nativeFailureResets,
                     ),
                 )
                 return@flow
@@ -1873,6 +2422,7 @@ class AdsController @Inject internal constructor(
                     retryResets = preloader.nativeRetryResets,
                     logger = logger,
                     placementKey = placement.key,
+                    failureResets = nativeFailureResets,
                 ),
             )
         }
@@ -1928,6 +2478,11 @@ class AdsController @Inject internal constructor(
         logger.info(TAG, bottomBarLayersLog(placement, layers))
     }
 
+    /** The collapsible layer of [placement] has no room on a window of [window] (CL-05). Logged only (ADR-0019). */
+    internal fun onCollapsibleNoRoom(placement: AdPlacement, window: DpSize) {
+        logger.info(TAG, collapsibleNoRoomLog(placement, window))
+    }
+
     /** The collapsible layer of [placement] opened again [seconds] after the user collapsed it (CL-03). Logged only. */
     internal fun onNativeReexpanded(placement: AdPlacement, seconds: Long) {
         logger.info(TAG, "Collapsible ${placement.key} re-expanded after $seconds s")
@@ -1935,7 +2490,7 @@ class AdsController @Inject internal constructor(
 
     /**
      * The states of the native small row of [slot] of a list of [placement] ([inListRowStates]): its own `LIST_ROW`
-     * load on each try, tried again like a native slot (5 s, the in-screen window, the gate right before the send,
+     * load on each try, tried again like a native slot (O-05, the in-screen window, the gate right before the send,
      * Internet back) but never refreshed and never through a single-ad source (plan T-059, section 3.1). Logs under
      * `<code>#<slot>`, so rows loading at once do not mix; the metrics keep [placement]. [rowShown] is true while the
      * row is drawn. The caller checks consent and [isEnabled] first ([inListEvery]).
@@ -1969,6 +2524,7 @@ class AdsController @Inject internal constructor(
                 retryResets = preloader.nativeRetryResets,
                 logger = logger,
                 placementKey = key,
+                failureResets = nativeFailureResets,
             ),
         )
     }
@@ -2066,9 +2622,9 @@ class AdsController @Inject internal constructor(
     private fun preloadNow(placement: AdPlacement) {
         when (fullScreenLoaderOf(placement.format)) {
             FullScreenLoader.NATIVE_FULL_SCREEN -> preloadNativeFullScreen(placement)
-            FullScreenLoader.APP_OPEN -> preloadAppOpen(placement)
-            FullScreenLoader.INTERSTITIAL -> preloadInterstitial(placement)
-            FullScreenLoader.REWARDED -> scope.launch { rewardedTurns.loadIfNeeded(placement.declaration) }
+            FullScreenLoader.APP_OPEN -> loadAppOpenPlatforms(placement)
+            FullScreenLoader.INTERSTITIAL -> loadInterstitialPlatforms(placement)
+            FullScreenLoader.REWARDED -> loadRewardedPlatforms(placement)
         }
     }
 
@@ -2114,21 +2670,27 @@ class AdsController @Inject internal constructor(
                 nativeLoadResults.signal(placement)
                 return@launch
             }
+            val requestForTest = nativeFullScreenRequestForTest
+            if (requestForTest != null) {
+                // Tests only: the send itself is replaced; everything before it ran for real.
+                events.onRequestSent()
+                val loaded = requestForTest(placement)
+                if (loaded != null) {
+                    onNativeFullScreenLoaded(placement, loaded, cell)
+                } else {
+                    onNativeFullScreenLoadFailed(placement, events, NO_FILL_CODE_FOR_TEST, null)
+                }
+                return@launch
+            }
             try {
                 // O-06, shared with every native request (NativeRequestOptions.kt).
                 val options = fullScreenNativeRequestOptions().toNativeAdOptions()
                 val loader = AdLoader.Builder(context, unitId)
                     .forNativeAd { ad ->
                         networkLog.loaded(placement.key, ad.responseInfo)
-                        loadStates -= placement
-                        lastLoadErrors -= placement
                         ad.setOnPaidEventListener { events.onPaid(it) }
                         events.onLoaded(ad)
-                        val loaded = SdkLoadedNativeAd(ad, events)
-                        nativeFullScreenCells[loaded] = cell
-                        preloadedNativeFullScreen.put(placement, loaded, clock.nowMillis())
-                        // L-068: a combo waiting for this placement takes the ad.
-                        nativeLoadResults.signal(placement)
+                        onNativeFullScreenLoaded(placement, SdkLoadedNativeAd(ad, events), cell)
                     }
                     .withAdListener(
                         object : AdListener() {
@@ -2160,6 +2722,20 @@ class AdsController @Inject internal constructor(
         }
     }
 
+    /**
+     * The native full-screen ad of [placement] loaded, by the SDK or by [nativeFullScreenRequestForTest]: kept in its
+     * slot for the show, with [cell] for the placement its metrics read (PL-03).
+     */
+    private fun onNativeFullScreenLoaded(placement: AdPlacement, loaded: LoadedNativeAd, cell: PlacementCell) {
+        loadStates -= placement
+        lastLoadErrors -= placement
+        nativeFullScreenCells[loaded] = cell
+        preloadedNativeFullScreen.put(placement, loaded, clock.nowMillis())
+        fullScreenReloads.onLoaded(placement)
+        // L-068: a combo waiting for this placement takes the ad.
+        nativeLoadResults.signal(placement)
+    }
+
     /** The load of the native full-screen ad of [placement] failed: counted (T-023), then a retry (O-05). */
     private fun onNativeFullScreenLoadFailed(
         placement: AdPlacement,
@@ -2180,8 +2756,8 @@ class AdsController @Inject internal constructor(
      * plan T-034). A failure retries by F-05 ([FullScreenReloads]).
      */
     private fun preloadInterstitial(placement: AdPlacement) {
-        // The gate is asked right before sending, below.
-        if (!needsLoad(fullScreenLoadState(placement), clock.nowMillis(), gateOpen = true)) return
+        // The gate is asked right before sending, below. The AdMob state alone: the MAX slot never blocks it (T-069).
+        if (!needsLoad(admobInterstitialState(placement), clock.nowMillis(), gateOpen = true)) return
         val unitId = unitId(placement) ?: return
         loadStates[placement] = FullScreenLoadState.Loading
         scope.launch {
@@ -2234,6 +2810,16 @@ class AdsController @Inject internal constructor(
             try {
                 val request = adRequest()
                 telemetry.requestSent(slot, clock.nowMillis())
+                val requestForTest = interstitialRequestForTest
+                if (requestForTest != null) {
+                    val ad = requestForTest(placement)
+                    if (ad != null) {
+                        callback.onAdLoaded(ad)
+                    } else {
+                        onInterstitialLoadFailed(placement, slot, loadPlacement, NO_FILL_CODE_FOR_TEST, null)
+                    }
+                    return@launch
+                }
                 InterstitialAd.load(fullScreenLoadContext(tracker?.resumedActivity, context), unitId, request, callback)
             } catch (e: Exception) {
                 // O-09: the request could not be built or sent; never the message of the error.
@@ -2249,8 +2835,8 @@ class AdsController @Inject internal constructor(
      * shown for (PL-03). A failure retries by F-05 ([FullScreenReloads]).
      */
     private fun preloadAppOpen(placement: AdPlacement) {
-        // The gate is asked right before sending, below.
-        if (!needsLoad(fullScreenLoadState(placement), clock.nowMillis(), gateOpen = true)) return
+        // The gate is asked right before sending, below. The AdMob state alone: the MAX slot never blocks it (T-070).
+        if (!needsLoad(admobAppOpenState(placement), clock.nowMillis(), gateOpen = true)) return
         val unitId = unitId(placement) ?: return
         loadStates[placement] = FullScreenLoadState.Loading
         scope.launch {
@@ -2302,6 +2888,23 @@ class AdsController @Inject internal constructor(
             try {
                 val request = adRequest()
                 telemetry.requestSent(slot, clock.nowMillis())
+                val requestForTest = appOpenRequestForTest
+                if (requestForTest != null) {
+                    val ad = requestForTest(placement)
+                    if (ad != null) {
+                        callback.onAdLoaded(ad)
+                    } else {
+                        onFullScreenLoadFailed(
+                            AdFormat.APP_OPEN,
+                            placement,
+                            slot,
+                            loadPlacement,
+                            NO_FILL_CODE_FOR_TEST,
+                            null,
+                        )
+                    }
+                    return@launch
+                }
                 AppOpenAd.load(fullScreenLoadContext(tracker?.resumedActivity, context), unitId, request, callback)
             } catch (e: Exception) {
                 // O-09: the request could not be built or sent; never the message of the error.
@@ -2358,6 +2961,16 @@ class AdsController @Inject internal constructor(
         try {
             val request = adRequest()
             telemetry.requestSent(slot, clock.nowMillis())
+            val requestForTest = rewardedRequestForTest
+            if (requestForTest != null) {
+                val ad = requestForTest(placement)
+                if (ad != null) {
+                    callback.onAdLoaded(ad)
+                } else {
+                    onRewardedLoadFailed(placement, slot, loadPlacement, rewardedLoadErrorCodeForTest, null)
+                }
+                return
+            }
             RewardedAd.load(fullScreenLoadContext(tracker?.resumedActivity, context), unitId, request, callback)
         } catch (e: Exception) {
             // O-09: the request could not be built or sent; never the message of the error.
@@ -2410,6 +3023,9 @@ class AdsController @Inject internal constructor(
 
     private companion object {
         const val TAG = "Ads"
+
+        /** The SDK code of no fill, for a failed load of [nativeFullScreenRequestForTest]. */
+        const val NO_FILL_CODE_FOR_TEST = 3
 
         /** `load_state` of a shown full-screen ad. */
         const val READY = "ready"

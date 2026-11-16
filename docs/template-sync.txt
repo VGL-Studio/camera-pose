@@ -31,21 +31,11 @@ hold=feature 0eaeadbc2b04a94c81d9877aec4681b05a11587a
 # docs/ops/session-capabilities.md). Also kept: the link to manual-test.md in docs/ops/test-sessions.md. Also the default
 # DEVICE_SCENARIOS_BUDGET of 1800 in scripts/device-scenario.py (the template takes 600).
 # core/config is no longer held: keep the app value RemoteConfigRefresher.REFRESH_TIMEOUT_MILLIS = 15_000 (ADR-1001).
-# core/ads is held at 698c5b3: the template range 698c5b3..bc3e80e changes the native sizes (T-065, KB-32; the bottom
-# slot height follows the window, nativeReservation() is now a function), turns the collapsible layer off in landscape
-# and split screen (T-107, CL-05), backs off native retries (T-103, O-05) and adds the MAX interstitial, rewarded and
-# app open (T-069, T-070, T-072, T-106). Taking it changes the screenshots and size tests of feature/poses,
-# feature/camera and feature/settings, so it comes with an app ticket and plan (docs/ops/to-app.md of the template,
-# section 5). docs/ops/ads-guide.md and docs/ops/ads-business-rules.md describe that code, so they are held with it:
-# the plan runs --take once for each of the three paths. Until then ads-guide.md says release.sh does not read the MAX
-# keys; release.sh and docs/ops/release.md (taken at bc3e80e) do.
-hold=core/ads 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
-hold=docs/ops/ads-guide.md 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
-hold=docs/ops/ads-business-rules.md 698c5b3ea2c5ceee0a80fc497d75529ae5c747a9
 # core/ads keeps parts of this app the template does not have; a sync that takes the template version puts them back:
 # AdSlot separator (spec poses, KB-6; AdSlotTest) and PrivacyOptionsButton(content) (feature/settings), the public
 # startupAdPlacementFor of StartupAdChoice.kt (app/src/testStaging StagingRemoteValuesModuleTest), the CARD height when
-# space is kept in NativeAdSlot.kt, five T-080 tests of InListAdsTest.
+# space is kept in NativeAdSlot.kt, five T-080 tests of InListAdsTest. The CARD height when space is kept in
+# NativeAdSlot.kt passes nativeScreenSize() like the template.
 # The collapsibleLayer attribute of AdPlacement (T-094, review_bottom): the declaration field and its require in
 # AdPlacement.kt, layerFormats in AdUnitIds.kt, the collapsibleLayer parameter of bottomAdBarLayers,
 # rememberBottomAdBarLayers and rememberBottomAdBarState in BottomAdBar.kt, and its tests (AdPlacementTest,

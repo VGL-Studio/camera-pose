@@ -154,7 +154,7 @@ private fun Screen(uiState: ReviewUiState, adBar: ReviewAdBar? = null) {
 /** The bar of the framework with the fixed ad of the design (context/ReviewScreen_ad_dark.md), always with its ad. */
 internal fun screenshotAdBar(): ReviewAdBar = { barModifier, content ->
     BottomAdBarLayout(
-        reservation = BottomAdBarDefaults.nativeReservation,
+        reservation = BottomAdBarDefaults.nativeReservation(),
         slot = { NativeAdCard(SCREENSHOT_AD, NativeAdSize.SMALL, it) },
         layer = null,
         modifier = barModifier,

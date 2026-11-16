@@ -1,5 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
+import com.applovin.mediation.MaxErrorCode
+import com.applovin.mediation.adapter.MaxAdapterError
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnelKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -125,6 +127,34 @@ class AdTelemetryRulesTest {
         assertEquals("app_not_foreground", showFailReasonOf(3))
         assertEquals("mediation_show_error", showFailReasonOf(4))
         assertEquals("unknown", showFailReasonOf(9))
+    }
+
+    @Test
+    fun maxShowFailReason_table() {
+        // Plan T-072, question 3: the constants of MaxErrorCode and MaxAdapterError (applovin-sdk 13.6.4).
+        val expected = mapOf(
+            MaxErrorCode.FULLSCREEN_AD_NOT_READY to "not_ready",
+            MaxAdapterError.ERROR_CODE_AD_NOT_READY to "not_ready",
+            MaxAdapterError.ERROR_CODE_AD_EXPIRED to "not_ready",
+            MaxErrorCode.FULLSCREEN_AD_ALREADY_SHOWING to "ad_reused",
+            MaxAdapterError.ERROR_CODE_MISSING_ACTIVITY to "app_not_foreground",
+            MaxErrorCode.DONT_KEEP_ACTIVITIES_ENABLED to "app_not_foreground",
+            MaxAdapterError.ERROR_CODE_AD_DISPLAY_FAILED to "mediation_show_error",
+            MaxErrorCode.UNSPECIFIED to "internal",
+            MaxAdapterError.ERROR_CODE_UNSPECIFIED to "internal",
+            MaxAdapterError.ERROR_CODE_INTERNAL_ERROR to "internal",
+        )
+        // The values of the table of the plan, written out.
+        assertEquals(
+            setOf(-24, -5205, -5213, -23, -5601, -5602, -4205, -1, -5200, -5209),
+            expected.keys,
+        )
+        expected.forEach { (code, reason) -> assertEquals("code $code", reason, maxShowFailReasonOf(code)) }
+        // Codes out of the table, AdMob's included, are unknown for MAX.
+        listOf(204, 0, 3, 1, -1009).forEach { assertEquals("code $it", "unknown", maxShowFailReasonOf(it)) }
+        // Control: the table of AdMob is unchanged.
+        assertEquals("app_not_foreground", showFailReasonOf(3))
+        assertEquals("unknown", showFailReasonOf(-24))
     }
 
     @Test

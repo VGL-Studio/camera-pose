@@ -49,10 +49,12 @@ class NativeAdRetryTest {
         load: suspend () -> NativeAdState? = loadOnce(),
         refresh: ((NativeAdState.Loaded) -> Flow<NativeAdState>)? = null,
         gate: StateFlow<Boolean> = foreground,
+        // As AdsController wires it: Internet back also counts the failures from 1 again (plan T-103).
+        failureResets: StateFlow<Int> = retryResets,
     ): Pair<MutableList<NativeAdState>, Job> {
         val states = mutableListOf<NativeAdState>()
         val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-            retryingNativeAdStates(load, gate, { mayRequest }, retryResets, logger, KEY, refresh)
+            retryingNativeAdStates(load, gate, { mayRequest }, retryResets, logger, KEY, refresh, failureResets)
                 .collect { states += it }
         }
         return states to job
@@ -85,16 +87,41 @@ class NativeAdRetryTest {
     }
 
     @Test
-    fun keepsFailing_every5s_neverGivesUp() = runTest {
+    fun keepsFailing_backsOff_neverGivesUp() = runTest {
+        // O-05 (plan T-103): with no ad, 5, 10, 20, 40, then 60 s, for ever.
         collectStates()
-        repeat(5) { index ->
-            at(index * 5_000L)
+        val failedAt = listOf(0L, 5_000L, 15_000L, 35_000L, 75_000L, 135_000L)
+        failedAt.forEach { time ->
+            at(time)
             loader.fail(2)
             runCurrent()
         }
-        at(25_000)
+        at(195_000)
 
-        assertEquals(listOf(0L, 5_000L, 10_000L, 15_000L, 20_000L, 25_000L), requestTimes)
+        assertEquals(listOf(0L, 5_000L, 15_000L, 35_000L, 75_000L, 135_000L, 195_000L), requestTimes)
+    }
+
+    @Test
+    fun failureResets_nextFailureWaits5s() = runTest {
+        val failureResets = MutableStateFlow(0)
+        collectStates(failureResets = failureResets)
+        listOf(0L, 5_000L, 15_000L).forEach { time ->
+            at(time)
+            loader.fail(2)
+            runCurrent()
+        }
+        at(20_000)
+        failureResets.value += 1
+        runCurrent()
+        // The wait in progress is not cut short: the try is still due at 35 000.
+        at(34_999)
+        assertEquals(listOf(0L, 5_000L, 15_000L), requestTimes)
+        at(35_000)
+        loader.fail(2)
+        runCurrent()
+        at(40_000)
+
+        assertEquals(listOf(0L, 5_000L, 15_000L, 35_000L, 40_000L), requestTimes)
     }
 
     @Test

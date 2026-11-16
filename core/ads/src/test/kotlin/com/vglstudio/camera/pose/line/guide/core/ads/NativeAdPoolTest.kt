@@ -35,7 +35,12 @@ class NativeAdPoolTest {
     /** The window of the in-screen ads as AdsController builds it, in foreground (KB-27, plan T-054). */
     private val window = InScreenAdWindow(logger).apply { onForeground(true) }
 
-    private fun TestScope.newPool(capacity: Int = 3, gate: StateFlow<Boolean> = foreground): NativeAdPool {
+    private fun TestScope.newPool(
+        capacity: Int = 3,
+        gate: StateFlow<Boolean> = foreground,
+        // As AdsController wires it: Internet back also counts the failures from 1 again (plan T-103).
+        failureResets: StateFlow<Int> = retryResets,
+    ): NativeAdPool {
         loads = FakePoolLoads(loader, { testScheduler.currentTime }, logger)
         return NativeAdPool(
             key = NativePoolKey(AdFormat.NATIVE_MEDIUM, FakePoolLoads.FAKE_POOL_UNIT_ID),
@@ -52,6 +57,7 @@ class NativeAdPoolTest {
             scope = backgroundScope,
             logger = logger,
             logKey = FakePoolLoads.FAKE_POOL_KEY,
+            failureResets = failureResets,
         )
     }
 
@@ -608,17 +614,17 @@ class NativeAdPoolTest {
 
     @Test
     fun failures_retryDelays() = runTest {
-        // An empty pool: 5 s after each failure (O-05, holding no ad).
+        // An empty pool: 5, 10, 20 s after the failures in a row (O-05 of plan T-103, holding no ad).
         val empty = newPool()
         empty.refill()
         runCurrent()
         fail()
         at(5_000)
         fail()
-        at(10_000)
-        fail()
         at(15_000)
-        assertEquals(listOf(0L, 5_000L, 10_000L, 15_000L), loads.times)
+        fail()
+        at(35_000)
+        assertEquals(listOf(0L, 5_000L, 15_000L, 35_000L), loads.times)
         empty.close()
 
         // A pool holding one ad: 2, 4, 8 s; a success counts again from 2 s.
@@ -639,6 +645,93 @@ class NativeAdPoolTest {
         at(start + 16_000)
         val offsets = loads.times.map { it - start }
         assertEquals(listOf(0L, 0L, 2_000L, 6_000L, 14_000L, 14_000L, 16_000L), offsets)
+    }
+
+    @Test
+    fun successThenEmptyAgain_failureWaits5s() = runTest {
+        val pool = newPool()
+        pool.refill()
+        runCurrent()
+        fail()
+        at(5_000)
+        fail()
+        at(15_000)
+        fail()
+        at(35_000)
+        // An ad comes: the pool holds one and sends the next request at once.
+        val ad = deliver()
+        // Failures while holding an ad: 2, 4, 8 s.
+        fail()
+        at(37_000)
+        fail()
+        at(41_000)
+        fail()
+        // A cell takes the only ad and gives it back with an impression: the pool is empty again.
+        at(42_000)
+        assertSame(ad, pool.claim(AdPlacement.GALLERY_NATIVE_MEDIUM))
+        ad.impressionRecorded = true
+        pool.release(ad)
+        runCurrent()
+        at(49_000)
+        // The first failure of the empty pool again waits 5 s, not 40 or 60 s.
+        fail()
+        at(54_000)
+
+        assertEquals(
+            listOf(0L, 5_000L, 15_000L, 35_000L, 35_000L, 37_000L, 41_000L, 49_000L, 54_000L),
+            loads.times,
+        )
+    }
+
+    @Test
+    fun failureResets_nextFailureWaits5s() = runTest {
+        val failureResets = MutableStateFlow(0)
+        val pool = newPool(failureResets = failureResets)
+        pool.refill()
+        runCurrent()
+        fail()
+        at(5_000)
+        fail()
+        at(15_000)
+        fail()
+        at(20_000)
+        failureResets.value += 1
+        runCurrent()
+        // The wait in progress is not cut short: the try is still due at 35 000.
+        at(34_999)
+        assertEquals(listOf(0L, 5_000L, 15_000L), loads.times)
+        at(35_000)
+        fail()
+        at(40_000)
+
+        assertEquals(listOf(0L, 5_000L, 15_000L, 35_000L, 40_000L), loads.times)
+    }
+
+    @Test
+    fun reopen_countsFrom5sAgain() = runTest {
+        val pool = newPool()
+        pool.refill()
+        runCurrent()
+        fail()
+        at(5_000)
+        fail()
+        at(15_000)
+        fail()
+        // Control (L-055): three failures in a row, the third waits 20 s.
+        at(34_999)
+        assertEquals(listOf(0L, 5_000L, 15_000L), loads.times)
+        at(35_000)
+        fail()
+
+        at(36_000)
+        pool.close()
+        pool.reopen()
+        pool.refill()
+        runCurrent()
+        fail()
+        at(41_000)
+
+        assertEquals(listOf(0L, 5_000L, 15_000L, 35_000L, 36_000L, 41_000L), loads.times)
     }
 
     @Test

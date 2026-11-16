@@ -355,14 +355,15 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 Điều kiện: đã đồng ý quảng cáo ở hộp thoại đồng ý.
 
 1. Mở thư viện (T-079).
-   - [ ] Có khe quảng cáo native thử cao khoảng 80 dp ở đáy, cách mép trái, phải và đáy 16 dp; log `VGL.Ads` có `poses_bottom`.
+   - [ ] Có khe quảng cáo native thử cao khoảng 126 dp (khoảng 106 dp trên máy rộng 360 dp) ở đáy, cách mép trái, phải và đáy 16 dp; log `VGL.Ads` có `poses_bottom`.
    - [ ] Cuộn hết lưới: thẻ cuối nằm trên khe, không bị che.
-   - [ ] Không có lớp quảng cáo nổi lớn (250 dp) đè lên lưới.
+   - [ ] Không có lớp quảng cáo nổi lớn (khoảng 300 dp) đè lên lưới.
 2. Mở chi tiết một tư thế.
    - [ ] Khe native thử nằm ngay dưới thanh nút chính; nút "Chụp với tư thế này" thấy trọn, không bị che hay đẩy ra ngoài màn; log `VGL.Ads` có `pose_detail_bottom`.
    - [ ] Không có lớp quảng cáo nổi đè lên nút chính.
 3. Đóng hẳn app (vuốt khỏi danh sách app gần đây) rồi mở lại, để bắt đầu phiên mới. Chụp, lưu ảnh 1, rời màn xem lại.
    - [ ] Không có quảng cáo toàn màn hình; về camera.
+   - [ ] Log `VGL.Ads` có `MAX skipped: no SDK key` lúc mở app, không có dòng `shown (MAX)` (T-098: bản build chưa có khóa MAX, quảng cáo toàn màn hình vẫn tải từ AdMob).
 4. Chụp, lưu ảnh 2, rời màn xem lại.
    - [ ] Có quảng cáo toàn màn hình (log `VGL.Ads`); đóng interstitial, rồi combo nếu có (mục 11.8), thì về camera.
 5. Lưu ảnh 3 và ảnh 4, mỗi lần rời màn xem lại.
@@ -375,15 +376,21 @@ Bản staging có T-074 lượt 2 trở lên. Quảng cáo là quảng cáo th�
 8. Quay lại chi tiết, trong vòng 45 giây bấm "Chụp với tư thế này" lần nữa.
    - [ ] Không có quảng cáo (chưa qua nhịp `ads_interval`); camera mở ngay với đúng tư thế.
 9. Mở Cài đặt (T-093).
-   - [ ] Khe native thử cao khoảng 80 dp ở đáy, cách mép 16 dp; log `VGL.Ads` có `settings_bottom`.
+   - [ ] Khe native thử cao khoảng 126 dp (khoảng 106 dp trên máy rộng 360 dp) ở đáy, cách mép 16 dp; log `VGL.Ads` có `settings_bottom`.
    - [ ] Cuộn hết: dòng "Phiên bản" nằm trên khe, không bị che.
    - [ ] Mở hộp chọn "Giao diện": hộp và lớp mờ phủ lên khe.
+   - [ ] Đặt `is_show_native_collap = true` trên Firebase staging, đóng hẳn app rồi mở lại, mở Cài đặt (T-098): lớp quảng cáo nổi phủ đáy danh sách; bấm thu gọn, cuộn hết: dòng "Phiên bản" thấy trọn trên khe. Trả khóa về như cũ.
 10. Chụp một ảnh, ở màn xem lại (T-094). Log: `adb logcat -v threadtime | grep ' VGL\.Ads'`.
-   - [ ] Khe native thử cao khoảng 80 dp ở đáy, cách mép 16 dp, dưới nút "Lưu vào thư viện"; ảnh và ba nút Chụp lại, Chia sẻ, Tư thế tiếp thấy trọn, không bị che; log có `Bottom bar review_bottom: slot=NATIVE collapsible=false`.
+   - [ ] Khe native thử cao khoảng 126 dp (khoảng 106 dp trên máy rộng 360 dp) ở đáy, cách mép 16 dp, dưới nút "Lưu vào thư viện"; ảnh và ba nút Chụp lại, Chia sẻ, Tư thế tiếp thấy trọn, không bị che; log có `Bottom bar review_bottom: slot=NATIVE collapsible=false`.
    - [ ] Bấm Lưu, Chia sẻ, Chụp lại, Tư thế tiếp (mỗi lần chụp lại một ảnh): đúng hành vi như khi không có quảng cáo.
    - [ ] Bấm X: hộp "Bỏ ảnh này?" và lớp mờ phủ lên khe. Bật TalkBack, mở lại hộp: vuốt qua các phần tử chỉ đọc hộp thoại, không đọc thẻ quảng cáo.
    - [ ] Đặt `is_show_native_collap = true` trên Firebase staging, đóng hẳn app rồi mở lại: thư viện có lớp nổi, màn xem lại không có; log vẫn `Bottom bar review_bottom: slot=NATIVE collapsible=false`. Trả khóa về như cũ.
    - [ ] Trên máy gập, mở ra rồi chụp: khe trải hết bề rộng đáy, ảnh và nút "Lưu ảnh" ở trên khe.
+   - [ ] Đặt `is_show_native_collap = true` trên Firebase staging (bản staging để tắt qua `StagingRemoteValuesModule`, Firebase ghi đè được), đóng hẳn app rồi mở lại; trên máy gập mở ra đứng dọc, vào thư viện: lớp nổi mở, cao khoảng 400 dp (T-098).
+   - [ ] Cùng khóa, máy gập nằm ngang hay chia đôi màn hình: lớp co vùng ảnh hay không mở; log `VGL.Ads` có `Collapsible poses_bottom not shown: window ... dp has no room`. Trả khóa về như cũ. (App khóa dọc nên không có bước xoay điện thoại.)
+11. Ở thư viện, bật chế độ máy bay và chờ khoảng 40 giây; hộp thoại mạng của app phủ lên, không cần đóng (T-098).
+   - [ ] Log `VGL.Ads` có các dòng thử lại của `poses_bottom` với khoảng chờ tăng dần: `Native poses_bottom retry in 5000 ms (failures 1)` rồi `10000 ms (failures 2)` khi khe đang trống, hay `refresh: failed, retry in ... ms` khi khe đã có quảng cáo.
+   - [ ] Tắt chế độ máy bay: log có `Native retry counters reset: network back`.
 
 ### 11.2 Quảng cáo mở app từ lần mở thứ hai
 

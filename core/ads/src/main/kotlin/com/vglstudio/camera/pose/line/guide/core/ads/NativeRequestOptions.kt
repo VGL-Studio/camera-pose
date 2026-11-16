@@ -45,11 +45,10 @@ internal fun fullScreenNativeRequestOptions(): NativeRequestOptions = NativeRequ
 )
 
 /**
- * Options of the collapsible layer of a bottom bar: as medium, but AdChoices in the top left corner, since the collapse
- * button takes the top right one (design, plan T-030).
+ * Options of the collapsible layer of a bottom bar: as medium, AdChoices in the top right corner, since the collapse
+ * button takes the top left one (design T-064, plan T-065).
  */
-internal fun collapsibleNativeRequestOptions(): NativeRequestOptions =
-    nativeRequestOptions(NativeAdSize.MEDIUM).copy(adChoicesCorner = NativeAdOptions.ADCHOICES_TOP_LEFT)
+internal fun collapsibleNativeRequestOptions(): NativeRequestOptions = nativeRequestOptions(NativeAdSize.MEDIUM)
 
 /** The SDK options of this request; AdChoices in [NativeRequestOptions.adChoicesCorner], kept free by the layout. */
 internal fun NativeRequestOptions.toNativeAdOptions(): NativeAdOptions = NativeAdOptions.Builder()

@@ -18,9 +18,14 @@ import org.junit.Test
 class FullScreenReloadsTest {
     private val logger = RecordingAppLogger()
     private val foreground = MutableStateFlow(true)
+    private val failureResets = MutableStateFlow(0)
+    private val retryResets = MutableStateFlow(0)
 
     /** Times of each loadIfNeeded call, per placement. */
     private val loads = mutableMapOf<AdPlacement, MutableList<Long>>()
+
+    /** Times of each onRetryCutShort call, per placement. */
+    private val cutShort = mutableMapOf<AdPlacement, MutableList<Long>>()
 
     private fun TestScope.reloads(failuresInARow: (AdPlacement) -> Int, onLoad: (AdPlacement) -> Unit = {}) =
         FullScreenReloads(
@@ -33,6 +38,9 @@ class FullScreenReloadsTest {
             },
             foreground = foreground,
             logger = logger,
+            failureResets = failureResets,
+            retryResets = { retryResets },
+            onRetryCutShort = { cutShort.getOrPut(it) { mutableListOf() } += testScheduler.currentTime },
         )
 
     private fun loadsOf(placement: AdPlacement): List<Long> = loads[placement].orEmpty()
@@ -138,6 +146,86 @@ class FullScreenReloadsTest {
         foreground.value = true
         runCurrent()
         assertEquals(listOf(8_000L), loadsOf(NATIVE_FULL_SCREEN))
+    }
+
+    @Test
+    fun nativeFullScreen_failures_5_10_20_40_60() = runTest {
+        // Native full screen counts its own failures (O-05, plan T-103): the counter of the metrics is not read.
+        val reloads = reloads(failuresInARow = { 1 })
+        val waits = List(6) { reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3) }
+
+        assertEquals(
+            listOf(5_000L, 10_000L, 20_000L, 40_000L, 60_000L, 60_000L).map { FullScreenLoadState.WaitingRetry(it) },
+            waits,
+        )
+        assertTrue(
+            logger.entries.any {
+                it.message == "Retry gallery_native_full_screen in 40000 ms (failures 4, code 3)"
+            },
+        )
+        // The interstitial keeps F-05.
+        assertEquals(FullScreenLoadState.WaitingRetry(2_000), reloads.onLoadFailed(INTER, 3))
+    }
+
+    @Test
+    fun nativeFullScreen_loadedThenFailure_waits5s() = runTest {
+        val reloads = reloads(failuresInARow = { 1 })
+        repeat(2) { reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3) }
+        // Control (L-055): the third failure in a row waits 20 s.
+        assertEquals(FullScreenLoadState.WaitingRetry(20_000), reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3))
+
+        reloads.onLoaded(NATIVE_FULL_SCREEN)
+
+        assertEquals(FullScreenLoadState.WaitingRetry(5_000), reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3))
+        assertEquals(FullScreenLoadState.WaitingRetry(10_000), reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3))
+    }
+
+    @Test
+    fun nativeFullScreen_failureResets_nextFailureWaits5s() = runTest {
+        val reloads = reloads(failuresInARow = { 1 })
+        repeat(2) { reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3) }
+        assertEquals(FullScreenLoadState.WaitingRetry(20_000), reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3))
+
+        failureResets.value += 1
+
+        assertEquals(FullScreenLoadState.WaitingRetry(5_000), reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3))
+    }
+
+    @Test
+    fun nativeFullScreen_retryResetsCutWaitShort() = runTest {
+        val reloads = reloads(failuresInARow = { 1 })
+        assertEquals(FullScreenLoadState.WaitingRetry(5_000), reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3))
+        assertEquals(FullScreenLoadState.WaitingRetry(2_000), reloads.onLoadFailed(INTER, 3))
+
+        at(1_000)
+        retryResets.value += 1
+        runCurrent()
+        assertEquals(listOf(1_000L), cutShort[NATIVE_FULL_SCREEN].orEmpty())
+        assertEquals(emptyList<Long>(), loadsOf(NATIVE_FULL_SCREEN))
+
+        // The interstitial is not cut short; nothing more comes for the native ad at its old due time.
+        at(10_000)
+        assertEquals(listOf(2_000L), loadsOf(INTER))
+        assertEquals(emptyList<Long>(), loadsOf(NATIVE_FULL_SCREEN))
+        assertEquals(listOf(1_000L), cutShort[NATIVE_FULL_SCREEN].orEmpty())
+        assertEquals(null, cutShort[INTER])
+    }
+
+    @Test
+    fun nativeFullScreen_cutShortInBackground_waitsForForeground() = runTest {
+        val reloads = reloads(failuresInARow = { 1 })
+        reloads.onLoadFailed(NATIVE_FULL_SCREEN, 3)
+        foreground.value = false
+
+        at(1_000)
+        retryResets.value += 1
+        at(3_000)
+        assertEquals(null, cutShort[NATIVE_FULL_SCREEN])
+
+        foreground.value = true
+        runCurrent()
+        assertEquals(listOf(3_000L), cutShort[NATIVE_FULL_SCREEN].orEmpty())
+        assertEquals(emptyList<Long>(), loadsOf(NATIVE_FULL_SCREEN))
     }
 
     @Test
@@ -248,6 +336,32 @@ class FullScreenReloadsTest {
         assertEquals(emptyList<Long>(), loadsOf(REWARDED))
         at(2_000)
         assertEquals(listOf(2_000L), loadsOf(REWARDED))
+    }
+
+    @Test
+    fun closedReload_keepsPendingRetry_retryAtDue() = runTest {
+        // Plan T-070, step 6b: the reload after a close (F-06) never cancels the retry of F-05 that waits.
+        val reloads = reloads(failuresInARow = { 2 })
+        assertEquals(FullScreenLoadState.WaitingRetry(4_000), reloads.onLoadFailed(INTER, 3))
+
+        at(100)
+        reloads.onClosedOrShowFailed(INTER)
+
+        at(60_000)
+        assertEquals(listOf(2_100L, 4_000L), loadsOf(INTER))
+    }
+
+    @Test
+    fun sendBlocked_cancelsRetryAndReload() = runTest {
+        // Plan T-070, step 6b: S-15 cancels both the retry and the reload that wait.
+        val reloads = reloads(failuresInARow = { 1 })
+        reloads.onLoadFailed(INTER, 3)
+        reloads.onClosedOrShowFailed(INTER)
+
+        assertEquals(FullScreenLoadState.Idle, reloads.onSendBlocked(INTER))
+
+        at(60_000)
+        assertEquals(emptyList<Long>(), loadsOf(INTER))
     }
 
     private companion object {

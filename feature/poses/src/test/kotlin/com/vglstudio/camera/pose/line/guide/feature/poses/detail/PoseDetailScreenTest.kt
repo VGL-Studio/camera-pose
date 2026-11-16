@@ -358,7 +358,8 @@ class PoseDetailScreenTest {
         composeRule.onNodeWithText("Chụp với tư thế này").assertExists()
     }
 
-    // KB-6: native bottom bar (plan T-079, section 4). The bar of the framework with a fake 80 dp slot.
+    // KB-6: native bottom bar (plan T-079, section 4). The bar of the framework with a fake slot as high as the
+    // framework's (126 dp at the standard frame, plan T-098).
 
     @Test
     fun bottomBar_slotBelowButtonBar_buttonNotCovered() {
@@ -367,9 +368,9 @@ class PoseDetailScreenTest {
         val slot = composeRule.onNodeWithTag(SLOT).getUnclippedBoundsInRoot()
         val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
         val button = composeRule.onNodeWithText("Chụp với tư thế này").getUnclippedBoundsInRoot()
-        assertEquals("slot height", 80f, slot.height.value, 0.5f)
+        assertEquals("slot height", 126f, slot.height.value, 0.5f)
         assertEquals("slot 16 above the bottom", 16f, (root.bottom - slot.bottom).value, 0.5f)
-        // Design: the button bar ends at y = 795, where the slot starts (699 + 96).
+        // Design: the button bar ends at y = 749, where the slot starts (653 + 96).
         assertEquals("slot starts where the bar ends", 0f, (slot.top - bar.bottom).value, 0.5f)
         assertTrue("button $button inside the screen $root", button.top >= root.top && button.bottom <= root.bottom)
         assertTrue("button ${button.bottom} above slot ${slot.top}", button.bottom.value <= slot.top.value + 0.5f)
@@ -437,11 +438,11 @@ class PoseDetailScreenTest {
         composeRule.onNodeWithTag(REAL_SLOT).assertDoesNotExist()
         val bar = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
         assertEquals("bar reaches the bottom of the screen", root.bottom.value, bar.bottom.value, 0.5f)
-        // Control: the same screen in a bar with a slot keeps 96 under the button bar.
+        // Control: the same screen in a bar with a slot keeps the slot and its margin under the button bar.
         real = false
         composeRule.waitForIdle()
         val barWithSlot = composeRule.onNodeWithTag(PoseDetailTestTags.BOTTOM_BAR).getUnclippedBoundsInRoot()
-        assertEquals("control: with a slot", 96f, (root.bottom - barWithSlot.bottom).value, 0.5f)
+        assertEquals("control: with a slot", 142f, (root.bottom - barWithSlot.bottom).value, 0.5f)
     }
 
     // KB-7: unfolded foldable
@@ -782,17 +783,18 @@ class PoseDetailRouteTest {
 }
 
 /**
- * The bottom bar of the framework with a fake 80 dp slot (plan T-079, section 4): the slot takes the modifier the bar
- * gives, so it is as wide as the screen less 2 x 16. [withSlot] false is a bar without an ad: no slot, nothing kept.
+ * The bottom bar of the framework with a fake slot as high as the framework's (plan T-079, section 4; plan T-098): the
+ * slot takes the modifier the bar gives, so it is as wide as the screen less 2 x 16. [withSlot] false is a bar without
+ * an ad: no slot, nothing kept.
  */
 private fun fakeBar(
     withSlot: () -> Boolean = { true },
 ): @Composable (screen: @Composable (PaddingValues) -> Unit) -> Unit = { screen ->
     val shown = withSlot()
     BottomAdBarLayout(
-        reservation = if (shown) BottomAdBarDefaults.nativeReservation else 0.dp,
+        reservation = if (shown) BottomAdBarDefaults.nativeReservation() else 0.dp,
         slot = if (shown) {
-            { Box(it.height(80.dp).testTag("fake_ad_slot")) }
+            { Box(it.height(BottomAdBarDefaults.nativeSlotHeight()).testTag("fake_ad_slot")) }
         } else {
             null
         },

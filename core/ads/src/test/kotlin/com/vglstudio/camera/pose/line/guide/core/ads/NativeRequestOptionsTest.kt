@@ -97,12 +97,12 @@ class NativeRequestOptionsTest {
     }
 
     @Test
-    fun collapsible_adChoicesTopLeft_otherwiseLikeMedium() {
-        // The collapse button takes the top right corner of the layer, so the SDK pins AdChoices top left (plan T-030).
+    fun collapsible_adChoicesTopRight_likeMedium() {
+        // The collapse button takes the top left corner of the layer (design T-064), so the SDK pins AdChoices top
+        // right, as on every other native ad.
         val collapsible = collapsibleNativeRequestOptions()
-        assertEquals(NativeAdOptions.ADCHOICES_TOP_LEFT, collapsible.adChoicesCorner)
-        val medium = nativeRequestOptions(NativeAdSize.MEDIUM)
-        assertEquals(medium.copy(adChoicesCorner = NativeAdOptions.ADCHOICES_TOP_LEFT), collapsible)
+        assertEquals(NativeAdOptions.ADCHOICES_TOP_RIGHT, collapsible.adChoicesCorner)
+        assertEquals(nativeRequestOptions(NativeAdSize.MEDIUM), collapsible)
         // Control: every other native ad keeps the top right corner.
         NativeAdSize.entries.forEach { size ->
             assertEquals("$size", NativeAdOptions.ADCHOICES_TOP_RIGHT, nativeRequestOptions(size).adChoicesCorner)
@@ -112,8 +112,10 @@ class NativeRequestOptionsTest {
 
     @Test
     fun toNativeAdOptions_copiesAdChoicesCorner() {
-        val collapsible = collapsibleNativeRequestOptions().toNativeAdOptions()
-        assertEquals(NativeAdOptions.ADCHOICES_TOP_LEFT, collapsible.adChoicesPlacement)
+        val topLeft = nativeRequestOptions(NativeAdSize.MEDIUM)
+            .copy(adChoicesCorner = NativeAdOptions.ADCHOICES_TOP_LEFT)
+            .toNativeAdOptions()
+        assertEquals(NativeAdOptions.ADCHOICES_TOP_LEFT, topLeft.adChoicesPlacement)
         // Control: the default corner comes through as top right.
         assertEquals(
             NativeAdOptions.ADCHOICES_TOP_RIGHT,

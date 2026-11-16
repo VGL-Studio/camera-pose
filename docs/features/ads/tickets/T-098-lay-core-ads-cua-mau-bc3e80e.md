@@ -2,7 +2,7 @@
 id: T-098
 title: Lấy core/ads và hai tài liệu ads của dự án mẫu lên mốc bc3e80e (kích thước native mới, MAX toàn màn hình chưa bật)
 feature: ads
-spec: features/ads/spec.md   # câu 20 (changed 2026-11-16, chờ trả lời); MAX theo câu 16; giao diện quảng cáo theo khung (mục 4)
+spec: features/ads/spec.md   # câu 20 (Nhật trả lời và xác nhận 2026-11-16); MAX theo câu 16; giao diện quảng cáo theo khung (mục 4)
 scenarios: []                # spec ads không có kịch bản riêng (mục 3); ticket đổi tiêu chí thanh đáy ở KB-6 của spec poses, KB-1 của spec settings, KB-9 và KB-11 của spec camera
 owner: Nhật
 status: backlog

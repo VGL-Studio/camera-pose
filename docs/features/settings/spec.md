@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-cai-dat.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-13
+confirmed: 2026-11-16
 ---
 
 # SPEC: CÀI ĐẶT
@@ -40,7 +40,7 @@ confirmed: 2026-11-13
 Tiêu chí chấp nhận:
 
 - [ ] Khi bấm nút bánh răng ở camera hoặc ở thư viện thì màn cài đặt mở, đúng thiết kế.
-- [ ] Khi khóa `is_show_settings_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (80 dp) hiện ở đáy màn cài đặt; danh sách cuộn phía trên thanh, dòng cuối không bị che (`features/ads/spec.md`, câu 19).
+- [ ] Khi khóa `is_show_settings_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (cao theo khung, `docs/ops/ads-business-rules.md`, D-02) hiện ở đáy màn cài đặt; danh sách cuộn phía trên thanh, dòng cuối không bị che (`features/ads/spec.md`, câu 19).
 - [ ] Khi `is_show_native_bottom` tắt thì khe đáy là banner ở cùng chỗ (`features/ads/spec.md`, câu 13); danh sách vẫn cuộn phía trên, dòng cuối không bị che.
 - [ ] Khi `is_show_native_collap` bật thì lớp quảng cáo nổi có thể phủ lên đáy danh sách và thu gọn được; thu gọn thì dòng cuối tới được (`features/ads/spec.md`, câu 19, ý e).
 - [ ] Khi khóa `is_show_settings_bottom` tắt hay không tải được quảng cáo thì không có thanh, danh sách dùng cả màn.
@@ -158,3 +158,6 @@ Không có.
 | 2026-11-13 | Nhật | Trả lời câu 19 của spec ads (AI ghi): staging bật sẵn `settings_bottom`, thêm trạng thái `ad` của Cài đặt trên Figma. Xác nhận spec. Lời xác nhận của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-13 | Nhật | Theo rà soát độc lập PR #323: sửa tiêu chí trái mục 5 mới (KB-1 của spec settings; KB-9, KB-11 của spec camera), thêm khóa ở mục 8, trạng thái `ad` ở mục 4; câu 19 ý e: không cho lớp native thu gọn ở `review_bottom` (AI ghi). Lời xác nhận lại của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Giữ `confirmed` |
 | 2026-11-13 | Nhật | Sửa vòng 2 theo rà soát PR #323 (AI ghi): `is_show_native_bottom` tắt thì khe đáy là banner (câu 13), thêm tiêu chí banner; spec settings thêm tiêu chí lớp nổi thu gọn; ghi thanh 80 dp theo khung hiện tại; spec camera đổi tên KB-9 thành "Quảng cáo ở màn xem lại". Chuyển `changed` rồi lại `confirmed`; lời xác nhận của Nhật: chọn "Xác nhận" khi được hỏi |
+| 2026-11-16 | AI | Câu 20 của spec ads, ý a (Nhật trả lời trong phiên, T-098): tiêu chí thanh đáy native nhỏ bỏ con số 80 dp, ghi chiều cao theo khung. Giữ `confirmed`; Nhật xác nhận ở dòng sau |
+| 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |
+| 2026-11-16 | Nhật | Xác nhận lại sau sửa theo rà soát độc lập PR #353 (AI ghi): `ad_platform` ở mục 6 của spec poses, camera; mục 2 của spec ads ghi thẻ bước và thẻ trong lưới giữ kích thước, lớp thu gọn là vùng ảnh cộng khe đáy D-02. Lời xác nhận của Nhật: chọn "Xác nhận lại" khi được hỏi. Giữ `confirmed` |

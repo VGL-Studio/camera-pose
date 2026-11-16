@@ -8,7 +8,7 @@ requests:
   - requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-10
+confirmed: 2026-11-16
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -115,7 +115,7 @@ Theo `features/ads/spec.md` câu 8, 9, 10: thanh đáy native thay banner từ T
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi khóa `is_show_poses_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (80 dp) hiện ở đáy thư viện; lưới cuộn phía trên thanh, thẻ cuối không bị che (câu hỏi 1).
+- [ ] Khi khóa `is_show_poses_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (cao theo khung, `docs/ops/ads-business-rules.md`, D-02) hiện ở đáy thư viện; lưới cuộn phía trên thanh, thẻ cuối không bị che (câu hỏi 1).
 - [ ] Khi khóa `is_show_pose_detail_bottom` bật thì thanh đáy native hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình.
 - [ ] Khi khóa tắt, quảng cáo đang tải hay không tải được thì không chừa khoảng trống; nội dung chỉ được chừa chỗ khi khe đã có quảng cáo.
 - [ ] Khi `is_show_native_collap` tắt (giá trị lúc phát hành) thì không có lớp quảng cáo nổi trên lưới hay trên nút chính.
@@ -203,7 +203,7 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | `premium_pose_unlocked` | Khi một tư thế premium mở khóa: sau khi nhận thưởng, hay mở ngay khi quảng cáo không được phép (câu 10) | `pose_id`, `category`, `source`: `detail` hoặc `camera` | Tư thế premium nào được mở, mở từ đâu |
 | `content_load_failed` | Khi tải catalog hay ảnh thất bại | `content`: `catalog`, `thumbnail`, `image`; `reason`: `network`, `not_found`, `timeout`, `other` | Lỗi tải nội dung có nhiều không (bài học 7) |
 
-**Sự kiện quảng cáo do khung ghi** (`:core:analytics`, `FirebaseAdMetrics`; chung cho mọi vị trí, không riêng màn này; mỗi sự kiện có `ad_format`, `ad_placement`): `ad_impression_placement` (luôn ghi; thêm `value`, `currency`, `ad_source`, `ad_unit_name`, `ad_platform`), `ad_opportunity` (luôn ghi; `opportunity_result`, `load_state`), `ad_load_success`, `ad_load_fail`, `ad_show_fail`, `ad_clicked` (chỉ ghi khi khóa `is_log_ad_fullscreen_events` hay `is_log_ad_slot_events` bật; mặc định tắt, bản staging bật). Dùng để đo doanh thu và tỷ lệ hiện của từng vị trí. Không gửi gì tới AppsFlyer (`features/ads/spec.md` câu 3).
+**Sự kiện quảng cáo do khung ghi** (`:core:analytics`, `FirebaseAdMetrics`; chung cho mọi vị trí, không riêng màn này; mỗi sự kiện có `ad_format`, `ad_placement`): `ad_impression_placement` (luôn ghi; thêm `value`, `currency`, `ad_source`, `ad_unit_name`, `ad_platform`), `ad_opportunity` (luôn ghi; `opportunity_result`, `load_state`), `ad_load_success`, `ad_load_fail`, `ad_show_fail`, `ad_clicked` (`ad_load_success`, `ad_load_fail`, `ad_clicked` có thêm `ad_platform`, `features/ads/spec.md` câu 20 ý e; chỉ ghi khi khóa `is_log_ad_fullscreen_events` hay `is_log_ad_slot_events` bật; mặc định tắt, bản staging bật). Dùng để đo doanh thu và tỷ lệ hiện của từng vị trí. Không gửi gì tới AppsFlyer (`features/ads/spec.md` câu 3).
 
 ## 7. File tĩnh trên R2
 
@@ -302,3 +302,6 @@ Tư thế premium (yêu cầu 2026-10-31, câu 6): catalog có thêm trường `
 | 2026-10-31 | Nhật | Trả lời câu 6 tới 12 (AI ghi, cùng phiên). Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `inter_pose_detail` (mục 5, KB-4 tiêu chí 4). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |
 | 2026-11-10 | Nhật | Xác nhận lại spec sau T-090 (AI ghi theo lời Nhật trong phiên). Chuyển lại `confirmed` |
+| 2026-11-16 | AI | Câu 20 của spec ads, ý a (Nhật trả lời trong phiên, T-098): tiêu chí thanh đáy native nhỏ bỏ con số 80 dp, ghi chiều cao theo khung. Giữ `confirmed`; Nhật xác nhận ở dòng sau |
+| 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |
+| 2026-11-16 | Nhật | Xác nhận lại sau sửa theo rà soát độc lập PR #353 (AI ghi): `ad_platform` ở mục 6 của spec poses, camera; mục 2 của spec ads ghi thẻ bước và thẻ trong lưới giữ kích thước, lớp thu gọn là vùng ảnh cộng khe đáy D-02. Lời xác nhận của Nhật: chọn "Xác nhận lại" khi được hỏi. Giữ `confirmed` |

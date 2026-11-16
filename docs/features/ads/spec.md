@@ -44,13 +44,13 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
 - Theo yêu cầu 2026-11-13 (câu 19), hai thanh đáy native nhỏ mới, tắt lúc phát hành:
   - `settings_bottom`: đáy màn Cài đặt (spec settings, mục 5);
   - `review_bottom`: đáy màn xem lại ảnh, dưới hàng nút (spec camera, mục 5).
-- Phần mới của khung từ đợt đồng bộ dự án mẫu `698c5b3..bc3e80e` (câu 20, ticket T-098): thẻ native và thanh đáy cao theo khung; lớp thu gọn co lại hay không mở khi cửa sổ thấp; native chưa có quảng cáo thì thử lại giãn dần; interstitial, rewarded, app open của MAX có sẵn nhưng chưa bật.
+- Phần mới của khung từ đợt đồng bộ dự án mẫu `698c5b3..bc3e80e` (câu 20, ticket T-098): khe đáy native và lớp thu gọn cao theo khung, bên trong thẻ theo thiết kế mới của khung (thẻ bước của luồng giới thiệu và thẻ trong lưới giữ kích thước); lớp thu gọn co lại hay không mở khi cửa sổ thấp; native chưa có quảng cáo thì thử lại giãn dần; interstitial, rewarded, app open của MAX có sẵn nhưng chưa bật.
 
 **Ngoài phạm vi:**
 
 - Vị trí quảng cáo khác các vị trí ở trên. Mỗi vị trí mới cần spec được duyệt và ticket riêng.
 - Combo native sau interstitial dùng thay quảng cáo mở app hay quảng cáo khi quay lại app (`open_app_inter`, `resume_inter`; câu 18).
-- Lớp native thu gọn nổi trên thanh đáy (kích thước theo khung, `docs/ops/ads-business-rules.md`, D-02): có trong khung nhưng tắt lúc phát hành (câu 10). Từ yêu cầu 2026-10-31, lớp có mã ở production và bật được từ xa (câu 13 tới 15).
+- Lớp native thu gọn nổi trên thanh đáy (vùng ảnh cộng khe đáy D-02, kích thước theo khung, `docs/ops/ads-business-rules.md`): có trong khung nhưng tắt lúc phát hành (câu 10). Từ yêu cầu 2026-10-31, lớp có mã ở production và bật được từ xa (câu 13 tới 15).
 - AppsFlyer (câu 3), màn xem thử quảng cáo `AdGalleryActivity` và `SAMPLE_BOTTOM_BANNER` (câu 4).
 
 ## 3. Kịch bản sử dụng
@@ -293,5 +293,6 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-13 | Nhật | Theo rà soát độc lập PR #323: sửa tiêu chí trái mục 5 mới (KB-1 của spec settings; KB-9, KB-11 của spec camera), thêm khóa ở mục 8, trạng thái `ad` ở mục 4; câu 19 ý e: không cho lớp native thu gọn ở `review_bottom` (AI ghi). Lời xác nhận lại của Nhật: chọn "Xác nhận, chuyển confirmed" khi được hỏi. Giữ `confirmed` |
 | 2026-11-13 | Nhật | Sửa vòng 2 theo rà soát PR #323 (AI ghi): `is_show_native_bottom` tắt thì khe đáy là banner (câu 13), thêm tiêu chí banner; spec settings thêm tiêu chí lớp nổi thu gọn; ghi thanh 80 dp theo khung hiện tại; spec camera đổi tên KB-9 thành "Quảng cáo ở màn xem lại". Chuyển `changed` rồi lại `confirmed`; lời xác nhận của Nhật: chọn "Xác nhận" khi được hỏi |
 | 2026-11-16 | AI | Đồng bộ dự án mẫu PR #351 giữ `core/ads` ở mốc cũ; thêm câu 20 (kích thước native mới, lớp thu gọn ở màn ngang, thử lại giãn dần, MAX toàn màn hình chưa bật, `ad_platform`) cho ticket T-098. Chuyển `changed`, chờ Nhật trả lời và xác nhận |
-| 2026-11-16 | Nhật | Trả lời câu 20, ý a tới e, theo đề xuất của AI (AI ghi): nhận kích thước native và lớp thu gọn của khung, thử lại giãn dần, MAX toàn màn hình có sẵn nhưng chưa bật, giữ `ad_platform` và báo UA. Sửa mục 2, mục 6; tiêu chí thanh đáy của spec poses, camera, settings bỏ con số 80 dp. Chờ Nhật xác nhận |
+| 2026-11-16 | Nhật | Trả lời câu 20, ý a tới e, theo đề xuất của AI (AI ghi): nhận kích thước native và lớp thu gọn của khung, thử lại giãn dần, MAX toàn màn hình có sẵn nhưng chưa bật, giữ `ad_platform` và báo UA. Sửa mục 2, mục 6; tiêu chí thanh đáy của spec poses, camera, settings bỏ con số 80 dp; mục 6 của spec poses, camera ghi `ad_platform`. Chờ Nhật xác nhận |
 | 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |
+| 2026-11-16 | Nhật | Xác nhận lại sau sửa theo rà soát độc lập PR #353 (AI ghi): `ad_platform` ở mục 6 của spec poses, camera; mục 2 của spec ads ghi thẻ bước và thẻ trong lưới giữ kích thước, lớp thu gọn là vùng ảnh cộng khe đáy D-02. Lời xác nhận của Nhật: chọn "Xác nhận lại" khi được hỏi. Giữ `confirmed` |

@@ -1,7 +1,7 @@
 ---
 ticket: T-098
 title: Lấy core/ads và hai tài liệu ads của dự án mẫu lên mốc bc3e80e (kích thước native mới, MAX toàn màn hình chưa bật)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn: để trống
 risk_level: high             # low | medium | high
@@ -254,3 +254,15 @@ So với thiết kế: frame thiết kế vẽ thanh trạng thái 24 dp, screen
 - **Ghi chú:** AI ghi theo lời Nhật (2026-11-16): "Cả toi va Tuấn đều đa duyệt. Triển khai theo đề xuất của AI." AI ghi theo lời Tuấn (2026-11-16): "Tôi là Tuấn, duyệt chéo plan T-098 theo đề xuất của AI". Câu hỏi mục 8: (1) nhận hàng nút phụ nằm ngang ở màn 960 x 520 dp, không đổi code của màn; (2) nhận ảnh xem lại khoảng 373 x 497 dp như thiết kế đã duyệt; (3) không dán diff vào mục 3.1, phiên đọc phần gộp trên nhánh `template-sync/take-ads-bc3e80e`, dừng khi nhánh mất commit `4917154b`; (4) Nhật duyệt, Tuấn duyệt chéo.
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261116-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #357, commit `4d29aaa`, 2026-11-16 16:03 UTC).
+- **Nhánh, PR:** `claude/T-098-lay-core-ads` (tạo từ `origin/template-sync/take-ads-bc3e80e` `4917154b`, gộp `origin/main` không xung đột), https://github.com/VGL-Studio/camera-pose/pull/357.
+- **Đã làm:** việc 1 tới 7 của mục 3.1: `nativeReservation()` ở 10 chỗ trong 8 file test của feature; `POSES_BOTTOM` / `poses_bottom` ở ba test `core/ads`; khe giả `nativeSlotHeight()`, `SLOT_HEIGHT = 126f`, câu khẳng định mục 3.5, đổi tên hai test `..._photoShrinks_...`; ghi lại đúng 12 ảnh `_ad`; `design-compare.sh` cho poses, camera, settings; `manual-test.md` mục 11.1 (dòng log MAX ở bước 3 theo lời dặn của danh sách chạy); `template-sync.txt`. Commit: `62808eb` (test), `b254fd3` (tài liệu), `27d52bb` (ảnh chuẩn), `4e5da3f` (`design/review/`), `69a8e8e` (sửa theo rà soát).
+- **Test viết trước:** 12 file test (commit `62808eb`). Theo ngoại lệ mục 4 (code mới đã có trên nhánh take), đối chứng: khe giả của `PoseDetailScreenTest.bottomBar_slotBelowButtonBar_buttonNotCovered` về `80.dp` thì đỏ ở "slot height" 126, trả lại thì xanh. Số đo thật của mọi câu mục 3.5 trong sai số (ví dụ ảnh xem lại 372.67 x 497, plan 372.75 x 497; thiếu quyền 309.67 x 413.0, plan 309.67 x 412.9). Test JVM mọi module 3532 test, 0 lỗi; `scripts/check.sh` qua (178 ảnh). Không có thay đổi file test nào sau commit test; `ktlintFormat` không đổi gì.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa, 8 ghi chú. Nên sửa: dòng lớp nổi ở Cài đặt (bước 9 của `manual-test.md` 11.1) dựa vào thứ tự dòng của bước 10 nên không rõ; điểm chỉ là tài liệu, không có test, không phải L12, nên theo bước 6 không sửa, nhưng Nhật yêu cầu sửa trong phiên: dòng mới tự bật khóa, đóng mở app, vào Cài đặt, trả khóa (`69a8e8e`); rà soát lại vòng 1: 0 chặn, 0 nên sửa, 7 ghi chú. Ghi chú chính: 21 `@Test` cũ của `core/ads` vắng sẵn trên nhánh take (bản mẫu thay hành vi cũ), không thuộc phần riêng của app; lệch thiết kế có từ trước (nút "Lưu ảnh" co theo chữ ở `ReviewScreen_ad_dark_unfolded` và `_default_dark_unfolded`, lưới trong lề dưới khe ở `PosesScreen_ad_*`, dữ liệu mẫu "Nhóm", ô xem lại không có biểu tượng người, núm công tắc ở `SettingsScreen_ad_dark`); chú thích bản mẫu nhắc `SampleScreen_*`; gợi ý thêm "cuộn hết trong vòng 10 giây" và log `Bottom bar settings_bottom: slot=NATIVE collapsible=true` vào dòng bước 9.
+- **Kết quả CI:** `pr-check` xanh trên `69a8e8e` (lần chạy 43900432059), một vòng CI sau lần sửa tài liệu.
+- **Lệch so với plan:** `adBar_slotAtBottom_photoShrinks_saveMovesUp` bỏ "photo height kept" và "actions top kept", giữ "photo top kept" (đo 64 trước và sau, đúng câu "photo top 64"), bỏ biến `actionsBefore` không dùng; rà soát xác nhận đúng ý plan. Dòng bước 9 của `manual-test.md` tự bật khóa thay vì "dòng của bước 10" như việc 6 (sửa theo rà soát, Nhật yêu cầu). Ngoài mục 3.2: không có.
+- **Việc còn lại:** kiểm thủ công `manual-test.md` mục 11.1 trên máy thật (khe khoảng 126 dp, lớp nổi ở Cài đặt, máy gập, thử lại giãn dần, log MAX).
+- **Cần người xem:** 12 ảnh chuẩn `_ad` mới và `design/review/` của poses, camera, settings; lệch nút "Lưu ảnh" ở màn xem lại máy gập (có từ trước, đề xuất phản hồi cho camera KB-11).

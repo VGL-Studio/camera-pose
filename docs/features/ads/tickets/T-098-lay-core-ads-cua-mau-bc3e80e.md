@@ -5,12 +5,12 @@ feature: ads
 spec: features/ads/spec.md   # câu 20 (Nhật trả lời và xác nhận 2026-11-16); MAX theo câu 16; giao diện quảng cáo theo khung (mục 4)
 scenarios: []                # spec ads không có kịch bản riêng (mục 3); ticket đổi tiêu chí thanh đáy ở KB-6 của spec poses, KB-1 của spec settings, KB-9 và KB-11 của spec camera
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: L
 depends_on: []
 sprint:
-plan:
+plan: features/ads/plans/T-098-lay-core-ads-cua-mau-bc3e80e.md
 auto_run:
 created: 2026-11-16
 ---

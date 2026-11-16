@@ -46,8 +46,8 @@ Sau khi xong:
     - khe đáy 90 tới 200 dp, 126 dp ở 411 x 891 dp, 200 dp ở khung mở gập;
     - `BottomAdBarDefaults.nativeReservation` thành hàm `nativeReservation()`, thêm `nativeSlotHeight()`;
     - `NativeAdDimens.heightOf` nhận thêm `nativeScreenSize()`;
-    - lớp thu gọn là vùng ảnh cộng khe: 299 dp ở khung chuẩn, thay cho 250 dp.
-  - Lớp thu gọn co vùng ảnh khi cửa sổ thấp, không mở khi vẫn không đủ chỗ: chia đôi màn hình, máy gập hay máy tính bảng nằm ngang (T-107 của mẫu, CL-05).
+    - lớp thu gọn là vùng ảnh cộng khe: 299 dp ở khung chuẩn, thay cho 250 dp; 400 dp ở khung mở gập đứng dọc.
+  - Lớp thu gọn co vùng ảnh khi cửa sổ thấp, không mở khi vẫn không đủ chỗ: chia đôi màn hình, máy gập hay máy tính bảng nằm ngang; máy gập đứng dọc thì lớp vẫn mở (T-107 của mẫu, CL-05).
   - Thử lại native giãn dần 5, 10, 20, 40, 60 giây cho khe, ô trong lưới, pool và native toàn màn hình; đặt lại khi quay lại foreground hay khi mạng về (T-103 của mẫu, O-05, S-24).
   - Interstitial, rewarded, app open của MAX và doanh thu MAX (T-069, T-106, T-070, T-072 của mẫu). Không có khóa MAX thì MAX không khởi động, mọi vị trí tải từ AdMob như hôm nay.
 - **Giữ phần riêng của app trong `core/ads`** (`docs/template-sync.txt`):
@@ -83,7 +83,7 @@ Sau khi xong:
   - Đo ở khung thấp `w360dp-h640dp` để nút chính không bị che.
 - **`docs/template-sync.txt`:** script tự xóa ba dòng `hold=` khi `--take`. Cập nhật ghi chú phần app giữ, bỏ ghi chú về độ lệch của `ads-guide.md`.
 - **`docs/ops/ads-guide.md`:** đặt lại tên của app như đợt trước: `PosesScreenScreenshotTest`, `poses_bottom`, `native_onboarding`.
-- **`docs/ops/manual-test.md`, mục 11.1:** sửa các bước "khoảng 80 dp" và "lớp nổi lớn (250 dp)" theo kích thước mới. Thêm bước cho chia đôi màn hình hay máy gập: bật `is_show_native_collap` trên Firebase staging (bản staging để tắt); khi cửa sổ thấp, lớp thu gọn co vùng ảnh hay không mở. App khóa dọc trên điện thoại, nên không có bước xoay điện thoại.
+- **`docs/ops/manual-test.md`, mục 11.1:** sửa các bước "khoảng 80 dp" và "lớp nổi lớn (250 dp)" theo kích thước mới. Thêm bước, sau khi bật `is_show_native_collap` trên Firebase staging (bản staging để tắt): máy gập mở ra đứng dọc thì lớp mở, cao khoảng 400 dp; máy gập nằm ngang hay chia đôi màn hình thì lớp co vùng ảnh hay không mở. App khóa dọc trên điện thoại, nên không có bước xoay điện thoại.
 
 **Không bao gồm:**
 

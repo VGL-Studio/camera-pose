@@ -37,7 +37,9 @@ Hộp thoại mất mạng thuộc gói `network`.
 
 **Frame hộp thoại mở khóa.** Khung 411 x 891 (để `scripts/figma-export.py` xuất được), nền `background` trơn, chỉ có thẻ hộp thoại ở giữa: không vẽ màn phía sau, không lớp mờ, giống ảnh chuẩn `RewardedAdDialog_default_*` của `:core:ads`. Thẻ thật rộng 312, cao 288, ở (50, 302). Tên frame có `Screen` (`PoseUnlockDialogScreen_*`, như `NetworkDialogScreen_*`) vì script chỉ nhận tên dạng `<Ten>Screen_<trạng thái>_<light|dark>`; plan T-086 đề xuất `PoseUnlockDialog_default_*`, nên plan đổi tên ảnh chuẩn theo.
 
-Thiết kế trạng thái `ad` vẽ lại ngày 2026-11-16 theo thẻ native nhỏ mới của khung (component `Native/Small` của dự án mẫu): khe 126 ở khung chuẩn thay khe 80; Nhật duyệt trong phiên ("Duyệt"). Từ T-079 (câu hỏi 5 của spec, 2026-10-30), trạng thái `ad` vẽ thanh đáy native nhỏ của khung thay banner 320 x 50. `PosesScreen_ad-collection_light` là lưới cuộn tới tư thế thứ 7: hàng thứ năm có ô quảng cáo (sau 8 tư thế) và tư thế thứ 9; frame này không vẽ thanh đáy, để thấy riêng thẻ quảng cáo cạnh thẻ tư thế. Tên tư thế trên frame này chỉ để minh họa.
+Từ T-079 (câu hỏi 5 của spec, 2026-10-30), trạng thái `ad` vẽ thanh đáy native nhỏ của khung thay banner 320 x 50. `PosesScreen_ad-collection_light` là lưới cuộn tới tư thế thứ 7: hàng thứ năm có ô quảng cáo (sau 8 tư thế) và tư thế thứ 9; frame này không vẽ thanh đáy, để thấy riêng thẻ quảng cáo cạnh thẻ tư thế. Tên tư thế trên frame này chỉ để minh họa.
+
+Thiết kế trạng thái `ad` vẽ lại ngày 2026-11-16 theo thẻ native nhỏ mới của khung (component `Native/Small` của dự án mẫu): khe 126 ở khung chuẩn thay khe 80; Nhật duyệt trong phiên ("Duyệt").
 
 ## 2. Bảng chữ
 

@@ -6,7 +6,7 @@ tool: figma
 link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=20-23
 designer: AI (Claude), Nhật
 approved_by: Nhật
-approved_at: 2026-10-31
+approved_at: 2026-11-16
 ---
 
 # THIẾT KẾ: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -38,6 +38,8 @@ Hộp thoại mất mạng thuộc gói `network`.
 **Frame hộp thoại mở khóa.** Khung 411 x 891 (để `scripts/figma-export.py` xuất được), nền `background` trơn, chỉ có thẻ hộp thoại ở giữa: không vẽ màn phía sau, không lớp mờ, giống ảnh chuẩn `RewardedAdDialog_default_*` của `:core:ads`. Thẻ thật rộng 312, cao 288, ở (50, 302). Tên frame có `Screen` (`PoseUnlockDialogScreen_*`, như `NetworkDialogScreen_*`) vì script chỉ nhận tên dạng `<Ten>Screen_<trạng thái>_<light|dark>`; plan T-086 đề xuất `PoseUnlockDialog_default_*`, nên plan đổi tên ảnh chuẩn theo.
 
 Từ T-079 (câu hỏi 5 của spec, 2026-10-30), trạng thái `ad` vẽ thanh đáy native nhỏ của khung thay banner 320 x 50. `PosesScreen_ad-collection_light` là lưới cuộn tới tư thế thứ 7: hàng thứ năm có ô quảng cáo (sau 8 tư thế) và tư thế thứ 9; frame này không vẽ thanh đáy, để thấy riêng thẻ quảng cáo cạnh thẻ tư thế. Tên tư thế trên frame này chỉ để minh họa.
+
+Thiết kế trạng thái `ad` vẽ lại ngày 2026-11-16 theo thẻ native nhỏ mới của khung (component `Native/Small` của dự án mẫu): khe 126 ở khung chuẩn thay khe 80; Nhật duyệt trong phiên ("Duyệt").
 
 ## 2. Bảng chữ
 
@@ -84,7 +86,7 @@ Loại tư thế: Một người, Cặp đôi, Nhóm. Khung hình: Toàn thân, 
 | Các bước | `Row`: số trong vòng 28 và chữ | Vòng `secondaryContainer`, viền `outline` | `labelLarge`, `bodyMedium` | Cách nhau `Spacing.sm` |
 | Lỗi hay gặp | `Row`: icon `warning` và chữ | `tertiaryContainer`, `onTertiaryContainer`, viền `outline` | `titleSmall`, `bodyMedium` | Lề trong `Spacing.md`, bo `card` |
 | Thanh nút đáy ở chi tiết | Đường kẻ 2 và `PrimaryButton` `photo_camera` | Đường kẻ `outlineVariant`; nền `background` | | Cao 96; nút rộng hết trừ lề `Spacing.md` |
-| Thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`) | Theo khung: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe 80, cách mép trái, phải, đáy `Spacing.md`; nội dung chừa 96 ở đáy |
+| Thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`) | Theo khung: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe cao theo cạnh ngắn của cửa sổ (theo khung, `docs/ops/ads-business-rules.md`, D-02): 126 ở khung chuẩn, 200 ở khung mở gập; thẻ: icon 44, nhãn "Ad" 13 sp trước tiêu đề 16 sp một dòng, dòng dưới 13 sp tối đa 2 dòng, CTA cao 44 chữ 18 sp rộng theo chữ; cách mép trái, phải, đáy `Spacing.md`; nội dung chừa 142 ở đáy; thanh nút đáy ở chi tiết nằm ngay trên khe |
 | Ô quảng cáo trong lưới | `itemsWithInListAds` của `:core:ads` (component Figma `NativeAdCard`, theo `NativeAdCard` cỡ `CARD`) | Như thanh đáy; ảnh `surfaceContainer` | Theo khung | Chiếm một ô, cùng cỡ thẻ tư thế; lề trong `Spacing.sm` |
 | Dấu premium | `PremiumBadge` (mới, `:core:designsystem`; component Figma `PremiumBadge`, ba cỡ) | Nền `tertiaryContainer`, viền `outline` `Stroke.sticker`, icon `workspace_premium` màu `onTertiaryContainer` | | `Size=Card` 32, icon 20: góc trên trái ảnh của thẻ, ở (6, 10) trong ảnh, tâm đối xứng nút lưu 36 qua trục giữa; `Size=Inline` 20, icon 14: đầu dòng phụ của chi tiết, cách chữ `Spacing.sm`; `Size=Thumb` 22, icon 14: ô 64 của camera (gói `camera`). Không làm mờ hay che ảnh |
 | Thẻ tư thế premium | `PoseCard(premium = true)` (Figma `PoseCard`, `Premium=Yes`) | Như thẻ thường | | Dấu và nút lưu cùng lúc được |
@@ -92,7 +94,7 @@ Loại tư thế: Một người, Cặp đôi, Nhóm. Khung hình: Toàn thân, 
 | Hộp thoại mở khóa | `RewardedAdDialog` của `:core:ads` (thẻ `RewardedAdDialogCard`), tiêu đề của app, nội dung `PremiumUnlockContent` (mới, `:core:designsystem`); component Figma `PremiumUnlockDialog` vẽ lại thẻ của khung | Thẻ `surfaceContainerHigh`; tiêu đề, tên `onSurface`; lời `onSurfaceVariant`; nút "Xem quảng cáo" `primary`, `onPrimary`; "Để sau" `onSurfaceVariant` | `headlineSmall`; tên `titleMedium`; lời `bodyMedium`; nút `labelLarge` | Theo khung: rộng tối đa 312, bo 28 (`shapes.extraLarge`), lề `Spacing.lg`, các phần cách `Spacing.md`; nút 56 bo 28; nút chữ 40; hai nút cách `Spacing.sm`. Nội dung của app: tên và lời cách `Spacing.sm` |
 
 - **Thành phần mới cần thêm vào hệ thống thiết kế:** `PoseCard`, `PoseCardSkeleton`, `StickerChip`, `SelectedBadge`, `StateMessage` (xem `sticker.md`, mục 4). Tư thế premium (T-086): `PremiumBadge` (mới), `PremiumUnlockContent` (mới), tham số `premium` của `PoseCard` và `PoseThumb`; thay đổi module core, rủi ro cao. Giá trị icon 20, 14 và cỡ vòng 32, 22, 20 là số của dấu, `context/` ghi kiểu chữ icon "ngoài hệ thống" như các icon khác.
-- **Component quảng cáo trên Figma:** `NativeAdSmall`, `NativeAdCard` (trang Design system, cạnh `AdSlot`) chỉ vẽ lại giao diện của khung `:core:ads` để đặt vào màn hình; không phải thành phần mới của app. Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 là số của khung (`NativeAdDimens`), `context/` ghi "ngoài hệ thống".
+- **Component quảng cáo trên Figma:** `NativeAdSmall`, `NativeAdCard` (trang Design system, cạnh `AdSlot`) chỉ vẽ lại giao diện của khung `:core:ads` để đặt vào màn hình; không phải thành phần mới của app. Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13, 16 và 18 của thẻ native nhỏ là số của khung (`NativeAdDimens`), `context/` ghi "ngoài hệ thống".
 
 **Máy gập mở ra (673 x 841).** Thư viện: 3 cột. Chi tiết: ảnh 315 x 440 bên trái; cột phải rộng 310 có dòng phụ, các bước, lỗi hay gặp; thanh nút đáy chỉ ở cột phải.
 

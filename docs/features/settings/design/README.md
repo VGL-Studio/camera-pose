@@ -6,7 +6,7 @@ tool: figma
 link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=20-670
 designer: AI (Claude), Nhật
 approved_by: Nhật
-approved_at: 2026-10-21
+approved_at: 2026-11-16
 ---
 
 # THIẾT KẾ: CÀI ĐẶT
@@ -57,7 +57,7 @@ Hộp chọn ngôn ngữ (máy dưới Android 13, KB-4) dùng cùng thành ph�
 | Icon đầu dòng | `palette`, `volume_up`, `language`, `shield_person`, `policy`, `info` | `onSurfaceVariant` | | 24 |
 | Hộp chọn | `ChoiceDialog` với `RadioRow` | `surface`, viền `outline` 2; nút chọn đang chọn `secondaryContainer` | `titleLarge`, `bodyLarge` | Rộng 331, bo `sheet`, lề `Spacing.lg`; mỗi lựa chọn cao 48 |
 | Lớp mờ dưới hộp chọn | | `camera/scrim`, độ mờ 50% | | Phủ cả màn hình |
-| Thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`) | Theo khung: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe 80, cách mép trái, phải, đáy `Spacing.md`; danh sách chừa 96 ở đáy |
+| Thanh đáy native | `BottomAdBarScaffold` của `:core:ads` (component Figma `NativeAdSmall`, theo `NativeAdCard` cỡ `SMALL`) | Theo khung: nền `surfaceContainerLow`, viền `outlineVariant` 1, icon `secondaryContainer`, nhãn "Ad" `tertiary`, nút `tertiaryContainer` | Theo khung | Khe cao theo cạnh ngắn của cửa sổ (theo khung, `docs/ops/ads-business-rules.md`, D-02): 126 ở khung chuẩn, 200 ở khung mở gập; thẻ: icon 44, nhãn "Ad" 13 sp trước tiêu đề 16 sp một dòng, dòng dưới 13 sp tối đa 2 dòng, CTA cao 44 chữ 18 sp rộng theo chữ; cách mép trái, phải, đáy `Spacing.md`; danh sách chừa 142 ở đáy |
 
 - **Thành phần mới cần thêm vào hệ thống thiết kế:** `SettingsRow` (bốn kiểu), `SectionHeader`.
 
@@ -67,7 +67,9 @@ Hộp chọn ngôn ngữ (máy dưới Android 13, KB-4) dùng cùng thành ph�
 
 ## 5. Vị trí quảng cáo
 
-`settings_bottom` (`features/ads/spec.md`, câu 19): thanh đáy native nhỏ ở đáy `SettingsScreen`, như `poses_bottom`; danh sách cài đặt cuộn phía trên, dòng cuối không bị che (ảnh `SettingsScreen_ad_*`). Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp chọn giao diện và ngôn ngữ phủ lên thanh như phủ lên danh sách. `is_show_native_bottom` tắt thì khe là banner ở cùng chỗ; `is_show_native_collap` bật thì lớp quảng cáo nổi có thể phủ lên đáy danh sách và thu gọn được (spec settings, KB-1). Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13 và 10 của thẻ là số của khung (`NativeAdDimens`); `context/` ghi "ngoài hệ thống", không làm tròn hay thêm token. Nhãn "Ad" và chữ của thẻ (Headline of the ad, Advertiser or short body, Install) thuộc `:core:ads` và nhà quảng cáo, là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ.
+Thiết kế trạng thái `ad` vẽ lại ngày 2026-11-16 theo thẻ native nhỏ mới của khung (component `Native/Small` của dự án mẫu): khe 126 ở khung chuẩn thay khe 80; Nhật duyệt trong phiên ("Duyệt").
+
+`settings_bottom` (`features/ads/spec.md`, câu 19): thanh đáy native nhỏ ở đáy `SettingsScreen`, như `poses_bottom`; danh sách cài đặt cuộn phía trên, dòng cuối không bị che (ảnh `SettingsScreen_ad_*`). Khóa tắt, quảng cáo đang tải hay không có thì không chừa khoảng trống (ảnh `default`). Hộp chọn giao diện và ngôn ngữ phủ lên thanh như phủ lên danh sách. `is_show_native_bottom` tắt thì khe là banner ở cùng chỗ; `is_show_native_collap` bật thì lớp quảng cáo nổi có thể phủ lên đáy danh sách và thu gọn được (spec settings, KB-1). Bo góc 12, bo ảnh và nút 8, khoảng cách 12, cỡ chữ 13, 16 và 18 của thẻ là số của khung (`NativeAdDimens`); `context/` ghi "ngoài hệ thống", không làm tròn hay thêm token. Nhãn "Ad" và chữ của thẻ (Headline of the ad, Advertiser or short body, Install) thuộc `:core:ads` và nhà quảng cáo, là chữ giả của ảnh chuẩn `NativeAdCard`, không vào bảng chữ.
 
 ## 6. Chuyển sang Compose
 

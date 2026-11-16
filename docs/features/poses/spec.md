@@ -8,7 +8,7 @@ requests:
   - requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-10
+confirmed: 2026-11-16
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -115,7 +115,7 @@ Theo `features/ads/spec.md` câu 8, 9, 10: thanh đáy native thay banner từ T
 
 Tiêu chí chấp nhận:
 
-- [ ] Khi khóa `is_show_poses_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (80 dp) hiện ở đáy thư viện; lưới cuộn phía trên thanh, thẻ cuối không bị che (câu hỏi 1).
+- [ ] Khi khóa `is_show_poses_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (cao theo khung, `docs/ops/ads-business-rules.md`, D-02) hiện ở đáy thư viện; lưới cuộn phía trên thanh, thẻ cuối không bị che (câu hỏi 1).
 - [ ] Khi khóa `is_show_pose_detail_bottom` bật thì thanh đáy native hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình.
 - [ ] Khi khóa tắt, quảng cáo đang tải hay không tải được thì không chừa khoảng trống; nội dung chỉ được chừa chỗ khi khe đã có quảng cáo.
 - [ ] Khi `is_show_native_collap` tắt (giá trị lúc phát hành) thì không có lớp quảng cáo nổi trên lưới hay trên nút chính.
@@ -302,3 +302,5 @@ Tư thế premium (yêu cầu 2026-10-31, câu 6): catalog có thêm trường `
 | 2026-10-31 | Nhật | Trả lời câu 6 tới 12 (AI ghi, cùng phiên). Xác nhận spec: chọn "Ghi và chuyển confirmed" khi được hỏi. Chuyển lại `confirmed` |
 | 2026-11-10 | AI | Chép câu 18 của spec ads (T-090): combo native toàn màn hình sau `inter_pose_detail` (mục 5, KB-4 tiêu chí 4). Chuyển `changed`, chờ Nhật xác nhận lại (plan T-090, mục 8, câu 3) |
 | 2026-11-10 | Nhật | Xác nhận lại spec sau T-090 (AI ghi theo lời Nhật trong phiên). Chuyển lại `confirmed` |
+| 2026-11-16 | AI | Câu 20 của spec ads, ý a (Nhật trả lời trong phiên, T-098): tiêu chí thanh đáy native nhỏ bỏ con số 80 dp, ghi chiều cao theo khung. Chuyển `changed`, chờ Nhật xác nhận |
+| 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |

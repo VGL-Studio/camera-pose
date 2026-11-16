@@ -7,7 +7,7 @@ requests:
   - requests/2026-10-21-camera-theo-tu-the.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-13
+confirmed: 2026-11-16
 ---
 
 # SPEC: CAMERA CHỤP THEO TƯ THẾ VÀ MÀN XEM LẠI
@@ -177,7 +177,7 @@ Tiêu chí chấp nhận:
 - [ ] Khi chưa lưu ảnh nào trong lần xem lại đó thì không hiện quảng cáo.
 - [ ] Khi khóa `is_show_review_interstitial` tắt hoặc người dùng chưa đồng ý quảng cáo theo hộp thoại đồng ý thì không hiện quảng cáo (ADR-0013, ADR-0014).
 - [ ] Khi ở camera thì không có vị trí quảng cáo nào của màn camera. Màn xem lại chỉ có thanh đáy `review_bottom` (tiêu chí dưới). Quảng cáo toàn app khi quay lại app có thể phủ lên hai màn này (mục 5; `features/ads/spec.md` câu 6).
-- [ ] Khi khóa `is_show_review_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (80 dp) hiện ở đáy màn xem lại, dưới hàng nút; ảnh co lại cho vừa phần còn lại, giữ tỷ lệ, không bị cắt hay che; bốn nút không bị che (`features/ads/spec.md`, câu 19).
+- [ ] Khi khóa `is_show_review_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (cao theo khung, `docs/ops/ads-business-rules.md`, D-02) hiện ở đáy màn xem lại, dưới hàng nút; ảnh co lại cho vừa phần còn lại, giữ tỷ lệ, không bị cắt hay che; bốn nút không bị che (`features/ads/spec.md`, câu 19).
 - [ ] Khi khóa `is_show_native_collap` bật thì màn xem lại vẫn chỉ có thanh nhỏ dưới hàng nút, không có lớp quảng cáo nổi phủ lên ảnh hay nút (`features/ads/spec.md`, câu 19, ý e).
 - [ ] Khi màn xem lại đang lưu, báo lỗi lưu, hay mở từ ô ảnh vừa chụp thì thanh vẫn ở đáy; hộp thoại "Bỏ ảnh này?" và thông báo lỗi lưu phủ lên trên thanh.
 - [ ] Khi `is_show_native_bottom` tắt thì khe đáy là banner ở cùng chỗ (`features/ads/spec.md`, câu 13); ảnh và bốn nút vẫn không bị che.
@@ -369,3 +369,5 @@ Quảng cáo toàn app khi quay lại app (`resume`, `features/ads/spec.md` câu
 | 2026-11-13 | Nhật | Sửa vòng 2 theo rà soát PR #323 (AI ghi): `is_show_native_bottom` tắt thì khe đáy là banner (câu 13), thêm tiêu chí banner; spec settings thêm tiêu chí lớp nổi thu gọn; ghi thanh 80 dp theo khung hiện tại; spec camera đổi tên KB-9 thành "Quảng cáo ở màn xem lại". Chuyển `changed` rồi lại `confirmed`; lời xác nhận của Nhật: chọn "Xác nhận" khi được hỏi |
 | 2026-11-13 | AI | Ghi quyết định của Nhật ngày 2026-11-13 trong phiên (T-097, phản hồi FB-20261113-02): camera không chạy trong lúc bất kỳ quảng cáo toàn màn hình nào phủ lên, kể cả quảng cáo có thưởng mở khóa tư thế; mở lại khi quảng cáo đóng (mục 5, KB-8 tiêu chí 4 mới). Chuyển `changed`, chờ xác nhận |
 | 2026-11-13 | Nhật | Xác nhận phần đổi của mục 5 và KB-8 (camera đóng khi có quảng cáo toàn màn hình phủ lên, mở lại khi đóng). Lời xác nhận của Nhật: "duyệt", sau khi AI nêu cần xác nhận spec (AI ghi). Chuyển `confirmed` |
+| 2026-11-16 | AI | Câu 20 của spec ads, ý a (Nhật trả lời trong phiên, T-098): tiêu chí thanh đáy native nhỏ bỏ con số 80 dp, ghi chiều cao theo khung. Chuyển `changed`, chờ Nhật xác nhận |
+| 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |

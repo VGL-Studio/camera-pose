@@ -1,7 +1,7 @@
 ---
 id: ADR-1010
 title: Dùng Tenjin trong :core:analytics để đo nguồn cài, doanh thu quảng cáo và phễu quảng cáo; khóa đưa vào lúc build, không khóa thì không gửi
-status: proposed             # proposed | accepted | superseded
+status: accepted             # proposed | accepted | superseded
 origin: app                  # template: ADR của dự án mẫu (mã dưới 1000) | app: ADR riêng của app (mã từ 1001)
 date: 2026-11-17
 deciders: [Nhật]

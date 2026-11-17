@@ -1,6 +1,6 @@
 ---
 feature: ads
-status: changed              # draft | confirmed | changed
+status: confirmed            # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
@@ -10,7 +10,7 @@ requests:
   - requests/2026-11-17-do-nguon-cai-tenjin.md
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed: 2026-11-16
+confirmed: 2026-11-17
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
@@ -350,3 +350,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-17 | AI | Theo rà soát độc lập PR #360: mục 6 ghi đủ dữ liệu SDK Tenjin gửi (đọc mã SDK 2.0.2) và việc không kết nối khi không đồng ý (chế độ opt out của SDK vẫn gửi); câu 21 sửa câu về ADR-1010, ý h thêm mã cài đặt, thêm ý i (lần mở đầu chưa có đồng ý) còn mở. Chờ Nhật trả lời ý i và xác nhận |
 | 2026-11-17 | Nhật | Trả lời câu 21 ý i (AI ghi): hoãn kết nối Tenjin tới khi đồng ý đã rõ; thêm tiêu chí của KB-T1. Lời của Nhật: chọn "Hoãn tới khi có trả lời" khi được hỏi. Chờ Nhật xác nhận spec |
 | 2026-11-17 | AI | Theo rà soát lại vòng 2 PR #360: câu trả lời ý i ghi đúng cách khung hỏi lại (lỗi mạng hay bị ngắt mà không có đồng ý cũ thì chờ lần mở sau). Không đổi lựa chọn của Nhật. Chờ Nhật xác nhận |
+| 2026-11-17 | Nhật | Xác nhận phần đổi theo câu 21 (Tenjin, ý a tới i), mục 2, 3 (KB-T1), 6, 8 của spec ads, theo PR #360 ở commit 5759b65 (AI ghi). Lời xác nhận của Nhật: chọn "Xác nhận spec, nhận ADR" khi được hỏi xác nhận nội dung PR #360 bản mới nhất. Chuyển lại `confirmed` |

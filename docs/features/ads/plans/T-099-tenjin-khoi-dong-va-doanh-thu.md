@@ -214,7 +214,7 @@ Nơi đọc các file dùng chung bị đổi (L-020; đã `grep -rn` tên từn
 | Tiêu chí | Điểm (0 đến 3) | Lý do |
 | --- | --- | --- |
 | A. Phạm vi thay đổi | 3 | `:core:analytics` (lớp mới, đổi binding Hilt), `:core:ads` (tín hiệu đồng ý đã rõ trong `AdsController`, `AttributionStart.kt`) và `:app` (build, DI, khóa Remote Config) |
-| B. Độ rõ của yêu cầu | 1 | Câu 21 (ý a tới i) đã trả lời; spec và ADR-1010 chờ xác nhận; vài chi tiết AI tự quyết (trường payload, kết nối khi quay lại foreground) đã hỏi ở mục 8 |
+| B. Độ rõ của yêu cầu | 1 | Câu 21 (ý a tới i) đã trả lời, spec đã xác nhận, ADR-1010 đã nhận; vài chi tiết AI tự quyết (trường payload, kết nối khi quay lại foreground) đã hỏi ở mục 8 |
 | C. Khả năng kiểm chứng tự động | 2 | Mọi quyết định có unit test; lượt cài và doanh thu thật trên Tenjin chỉ kiểm được trên máy thật với khóa (T-101) |
 | D. Ảnh hưởng chéo | 2 | Đổi binding `AppsFlyerStartup` và `AdMetrics` mà `:core:ads` dùng; T-100 sửa cùng file |
 | E. Độ mới của kỹ thuật | 2 | SDK chưa có trong dự án; cách nối lặp lại mẫu AppsFlyer |
@@ -238,8 +238,8 @@ Nơi đọc các file dùng chung bị đổi (L-020; đã `grep -rn` tên từn
 1. **Trường của payload doanh thu.** Sự kiện của khung không giữ `response_id` và `precision_type` của AdMob; Tenjin chỉ bắt buộc `value_micros`. Đề xuất: gửi bốn trường có sẵn (mục 3.1, bước 3), không sửa `:core:ads`. Muốn đủ sáu trường thì cần một ticket sửa `AdTelemetry` của `:core:ads` (lệch thêm khỏi mẫu). Trả lời (Nhật, 2026-11-17): bốn trường có sẵn.
 2. **Doanh thu của MAX.** MAX chưa bật nên lượt MAX không gửi sang Tenjin. Đề xuất: khi bật MAX (ticket riêng), thêm hàm `eventAdImpressionAppLovin` vào cùng ticket đó.
 3. **Kết nối lại khi quay lại foreground.** Tài liệu Tenjin bảo gọi `connect()` ở mỗi `onResume` của activity chính để đếm phiên. Đề xuất: kết nối mỗi lần cả app quay lại foreground (không phải mỗi `onResume`, để xoay màn hình hay hộp thoại quyền không đếm thêm phiên). Đồng ý cả phương án dự phòng ở mục 3.4 (chỉ kết nối lúc `start()`) nếu phần này lỗi? Trả lời (Nhật, 2026-11-17): mỗi lần cả app quay lại foreground; dùng dự phòng nếu lỗi.
-4. **Spec và ADR chờ xác nhận.** Plan dựa vào câu 21 của spec ads (`changed`) và ADR-1010 (`proposed`); duyệt plan cùng lúc Nhật xác nhận spec và nhận ADR.
-5. **Lần mở đầu chưa có đồng ý (spec ads câu 21 ý i).** Nhật chọn hoãn (2026-11-17); plan làm theo bước 7a. Hệ quả cần Nhật biết (đọc code của khung): bản production tắt lối tắt đồng ý (`ConsentShortcutConfig.OFF`), nên lần cập nhật đồng ý lỗi mạng mà không có đồng ý cũ cho ra `DENIED_OR_REQUIRED` chưa chốt và khung không hỏi lại trong process đó; lần hỏi kế tiếp là lần mở app sau. Người dùng đó không có số liệu Tenjin suốt phiên đầu, lượt cài gửi ở lần mở sau (muộn chứ không mất). `INTERRUPTED_REGATHER` (hộp thoại bị ngắt) cũng vậy. Còn khi UMP lỗi cấu hình mãi thì người dùng không bao giờ có tín hiệu nên không gửi gì. Đồng ý cách tính này?
+4. **Spec và ADR.** Nhật xác nhận spec ads (câu 21) và nhận ADR-1010 ngày 2026-11-17 (PR #360).
+5. **Lần mở đầu chưa có đồng ý (spec ads câu 21 ý i).** Nhật chọn hoãn (2026-11-17); plan làm theo bước 7a. Hệ quả cần Nhật biết (đọc code của khung): bản production tắt lối tắt đồng ý (`ConsentShortcutConfig.OFF`), nên lần cập nhật đồng ý lỗi mạng mà không có đồng ý cũ cho ra `DENIED_OR_REQUIRED` chưa chốt và khung không hỏi lại trong process đó; lần hỏi kế tiếp là lần mở app sau. Người dùng đó không có số liệu Tenjin suốt phiên đầu, lượt cài gửi ở lần mở sau (muộn chứ không mất). `INTERRUPTED_REGATHER` (hộp thoại bị ngắt) cũng vậy. Còn khi UMP lỗi cấu hình mãi thì người dùng không bao giờ có tín hiệu nên không gửi gì. Đồng ý cách tính này? Trả lời (Nhật, 2026-11-17): chấp nhận.
 6. **Duyệt chéo.** Rủi ro Cao: cần người duyệt chéo khác Nhật (đề xuất Tuấn, như T-098). Trả lời (Nhật, 2026-11-17): Tuấn duyệt chéo.
 
 ## 9. Quyết định duyệt

@@ -364,8 +364,6 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - kịch bản emulator đi qua interstitial của màn thêm bước `wait str=ads_close_full_screen | <màn đích>` rồi `tap_if str=ads_close_full_screen` sau bước đóng interstitial
 - không đổi luật K-01 tới K-08 của khung ở app
 
-## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
-
 ### [ADR-1010](adr/1010-tenjin-do-nguon-cai.md): Dùng Tenjin trong :core:analytics để đo nguồn cài, doanh thu quảng cáo và phễu quảng cáo; khóa đưa vào lúc build, không khóa thì không gửi
 
 - chỉ gọi SDK Tenjin trong `:core:analytics`, sau interface nội bộ của module

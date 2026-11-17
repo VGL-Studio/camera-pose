@@ -1,16 +1,16 @@
 ---
 ticket: T-099
 title: Thêm SDK Tenjin vào :core:analytics, khởi động sau đồng ý khi build có khóa, gửi doanh thu từng lượt quảng cáo
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn: để trống
 risk_level: high             # low | medium | high
 token_estimate: 15.4M        # cỡ M theo scripts/token-usage.py estimate (2026-11-17), không nâng tay
 blocking_points: [sdk, data, consent, core]
 run_order:                   # AI điền khi lập danh sách chạy
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-11-17
 lane:                        # để trống: phiên tự chạy
 ---
 
@@ -244,8 +244,13 @@ Nơi đọc các file dùng chung bị đổi (L-020; đã `grep -rn` tên từn
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (2026-11-17, cùng một phiên có người theo dõi, AI ghi theo ADR-0048 phần C)
+- **Ghi chú:**
+  - Bản được duyệt: plan trên PR #360 ở commit `a614fc7`.
+  - Lời của Tuấn: "Tôi là tuấn, tôi duyệt T-099.", rồi chọn "Đúng, tôi duyệt chéo bản này" khi được hỏi có duyệt chéo đúng bản này, kể cả ngoại lệ viết test trước và phương án dự phòng ở mục 3.4.
+  - Lời của Nhật: chọn "Tôi là Nhật, tôi duyệt" khi được hỏi.
+  - Trả lời mục 8 (Nhật, 2026-11-17): câu 1 bốn trường; câu 2 doanh thu MAX ở ticket bật MAX; câu 3 kết nối mỗi lần cả app quay lại foreground, dùng dự phòng nếu lỗi; câu 4 spec đã xác nhận, ADR-1010 đã nhận; câu 5 hoãn tới khi đồng ý rõ, chấp nhận việc chờ tới lần mở sau khi vòng hỏi lỗi; câu 6 Tuấn duyệt chéo.
+  - Người phụ trách sản phẩm (Nhật) đã biết trước khi duyệt, vì plan chạm dữ liệu và đồng ý (`risk-scoring.md`, mục 3).
 
 ## 10. Nhật ký thực hiện

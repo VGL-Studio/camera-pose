@@ -131,6 +131,8 @@ import kotlinx.coroutines.withContext
  * [AdTelemetry] to [AdFunnel]: eligible when an interstitial or native full-screen turn opens and at each tap on
  * "Watch ad" of a rewarded ad, `api_called` at each load, `displayed` when the ad shows ([NativeFunnel] for native
  * ads), and the display count of interstitials (N-05). Native slots report eligible with [ReportNativeEligible].
+ * Tenjin (plan T-099, ADR-1010) is told through [AttributionConsent] once the consent is known: the round finished and
+ * settled, or the consent of an earlier session kept ([notifyAttributionConsentKnown]); never by the 10 s path.
  */
 @Singleton
 class AdsController @Inject internal constructor(
@@ -725,6 +727,10 @@ class AdsController @Inject internal constructor(
             awaitAttributionStart(sdkStarted, consentAnswered, coordinator.consentFormOpen, ATTRIBUTION_WAIT_MILLIS)
             logger.info(TAG, "AppsFlyer may start")
             attribution.start()
+        }
+        // Tenjin sends nothing until the consent is known (plan T-099, step 7a; spec ads, question 21 i).
+        scope.launch {
+            notifyAttributionConsentKnown(coordinator.finished, gate.state, attributionConsent, logger, TAG)
         }
         val activityTracker = AdsActivityTracker(
             appActivities,

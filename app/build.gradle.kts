@@ -57,6 +57,7 @@ android {
     //   -PassetsBaseUrl=<https address of the production files on R2>
     //   -PmaxSdkKey=<AppLovin MAX SDK key> (optional until T-073 of the template)
     //   -PmaxAdUnits="banner=<MAX ad unit>;banner_mrec=<MAX ad unit>" (optional until T-073 of the template)
+    //   -PtenjinSdkKey=<Tenjin SDK key> (optional, ADR-1010)
     productFlavors {
         named("staging") {
             manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
@@ -86,6 +87,14 @@ android {
                 .takeIf { it.matches(Regex("[A-Za-z0-9_=;-]*")) }
                 .orEmpty()
             buildConfigField("String", "MAX_AD_UNITS", "\"$maxAdUnits\"")
+            // The Tenjin SDK key of a test app on Tenjin (T-099, ADR-1010): the key tenjin.sdkKey of local.properties,
+            // never a parameter, so CI builds staging without Tenjin. Filtered like ads.maxSdkKey; never printed.
+            val tenjinSdkKeyRead = localProperties.getProperty("tenjin.sdkKey").orEmpty().trim()
+            val tenjinSdkKey = tenjinSdkKeyRead.takeIf { it.matches(Regex("[A-Za-z0-9_-]+")) }.orEmpty()
+            if (tenjinSdkKeyRead.isNotEmpty() && tenjinSdkKey.isEmpty()) {
+                logger.warn("tenjin.sdkKey in local.properties ignored: only letters, digits, _ and - are allowed")
+            }
+            buildConfigField("String", "TENJIN_SDK_KEY", "\"$tenjinSdkKey\"")
             // Builds sent to the team by staging.yml carry the run number, so testers can tell them apart.
             providers.gradleProperty("stagingBuildNumber").orNull?.toInt()?.let { buildNumber ->
                 versionCode = buildNumber
@@ -113,6 +122,12 @@ android {
                 "MAX_AD_UNITS",
                 "\"${providers.gradleProperty("maxAdUnits").getOrElse("")}\"",
             )
+            // Optional (ADR-1010): without it Tenjin never starts. Checked by preProduction*Build below.
+            buildConfigField(
+                "String",
+                "TENJIN_SDK_KEY",
+                "\"${providers.gradleProperty("tenjinSdkKey").getOrElse("").trim()}\"",
+            )
             signingConfigs.findByName("upload")?.let { signingConfig = it }
         }
     }
@@ -126,12 +141,20 @@ val missingProductionProperties = mapOf(
     "adUnits" to "ADR-0013",
     "assetsBaseUrl" to "ADR-0015",
 ).filterKeys { !providers.gradleProperty(it).isPresent }
+// The Tenjin SDK key is optional, but a quote or a backslash would break the Java string of BuildConfig.
+val productionTenjinSdkKeyValid = providers.gradleProperty("tenjinSdkKey").getOrElse("").trim()
+    .let { it.isEmpty() || it.matches(Regex("[A-Za-z0-9_-]+")) }
 tasks.matching { it.name.startsWith("preProduction") && it.name.endsWith("Build") }.configureEach {
     doFirst {
         if (missingProductionProperties.isNotEmpty()) {
             throw GradleException(
                 "Build production cần tham số thật: " +
                     missingProductionProperties.entries.joinToString { "-P${it.key} (${it.value})" } + ".",
+            )
+        }
+        if (!productionTenjinSdkKeyValid) {
+            throw GradleException(
+                "-PtenjinSdkKey sai: chỉ được có chữ cái, chữ số, _ và - (ADR-1010). Giá trị không được in ra.",
             )
         }
     }

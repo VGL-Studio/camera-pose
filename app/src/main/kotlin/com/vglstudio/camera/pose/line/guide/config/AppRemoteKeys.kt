@@ -3,6 +3,7 @@ package com.vglstudio.camera.pose.line.guide.config
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsSettings
 import com.vglstudio.camera.pose.line.guide.core.ads.InterstitialBreakSettings
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerSettings
+import com.vglstudio.camera.pose.line.guide.core.analytics.TenjinSettings
 import com.vglstudio.camera.pose.line.guide.core.config.AppLinks
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
 import com.vglstudio.camera.pose.line.guide.core.config.PoseMatchingSettings
@@ -20,7 +21,7 @@ object AppRemoteKeys {
     val byModule: Map<String, List<RemoteKey<*>>> = linkedMapOf(
         ":core:config" to FeatureFlag.entries.map { it.remoteKey } + AppLinks.KEYS + PoseMatchingSettings.KEYS,
         ":core:ads" to AdsSettings.all() + InterstitialBreakSettings.all(),
-        ":core:analytics" to AppsFlyerSettings.all(),
+        ":core:analytics" to AppsFlyerSettings.all() + TenjinSettings.all(),
         ":core:network" to NetworkSettings.all(),
         ":core:poses" to PosesRemoteKeys.all(),
         ":core:review" to ReviewSettings.all(),

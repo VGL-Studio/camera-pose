@@ -4,6 +4,7 @@ import com.vglstudio.camera.pose.line.guide.core.analytics.AttributionConsent
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -36,17 +37,30 @@ internal suspend fun awaitAttributionStart(
     ).first()
 }
 
-/** The consent is known for the attribution SDKs (spec ads, question 21 i). */
-internal fun attributionConsentKnown(finished: Boolean, state: ConsentGateState): Boolean = false
+/**
+ * The consent of the user is known for the attribution SDKs (plan T-099, step 7a; spec ads, question 21 i): the
+ * round [finished] and either settled (a refusal and "no need to ask" too) or ended with the consent of an earlier
+ * session kept ([ConsentPath.CACHED_EARLY] after a failed update). CACHED_EARLY while the round runs is not known: the
+ * gate sets it when the request is sent, before UMP answers, and it turns to DENIED_OR_REQUIRED when that consent
+ * expired. The 10 s path, ERROR_ALLOWED and INTERRUPTED_REGATHER are no consent known.
+ */
+internal fun attributionConsentKnown(finished: Boolean, state: ConsentGateState): Boolean =
+    finished && (state.settled || state.path == ConsentPath.CACHED_EARLY)
 
-/** Waits until [attributionConsentKnown]. */
-internal suspend fun awaitAttributionConsentKnown(finished: Flow<Boolean>, state: Flow<ConsentGateState>) = Unit
+/** Waits until [attributionConsentKnown] holds for the latest values of [finished] and [state]. */
+internal suspend fun awaitAttributionConsentKnown(finished: Flow<Boolean>, state: Flow<ConsentGateState>) {
+    combine(finished, state, ::attributionConsentKnown).first { it }
+}
 
-/** Waits until the consent is known, then tells [consent] once. */
+/** Waits until the consent is known ([awaitAttributionConsentKnown]), then tells [consent], once. */
 internal suspend fun notifyAttributionConsentKnown(
     finished: Flow<Boolean>,
     state: Flow<ConsentGateState>,
     consent: AttributionConsent,
     logger: AppLogger,
     tag: String,
-) = Unit
+) {
+    awaitAttributionConsentKnown(finished, state)
+    logger.info(tag, "Attribution consent known")
+    consent.onConsentKnown()
+}

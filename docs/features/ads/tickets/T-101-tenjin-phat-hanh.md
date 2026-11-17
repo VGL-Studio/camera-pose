@@ -25,7 +25,7 @@ Việc của người trước bản production đầu tiên có khóa Tenjin. S
 
 - Tạo app trên Tenjin (production và một app thử nghiệm riêng), giữ khóa trong trình quản lý mật khẩu.
 - Thêm bước nhận `-PtenjinSdkKey` vào `scripts/release.sh` (tùy chọn, như khóa MAX), đọc khóa `tenjinSdkKey` của `release.properties` trong thư mục phát hành; cùng lúc cập nhật khối hợp đồng `release.sh` và build của `scripts/tests/run.sh` (đang khẳng định `release.sh` xuất đúng 10 tham số Gradle).
-- Khai Tenjin trong An toàn dữ liệu của Play Console (mã quảng cáo, tương tác với app và quảng cáo, chẩn đoán) và cập nhật chính sách quyền riêng tư.
+- Khai Tenjin trong An toàn dữ liệu của Play Console (mã quảng cáo, mã thiết bị hay mã cài đặt, tương tác với app và quảng cáo, chẩn đoán; đủ danh sách ở spec ads mục 6) và cập nhật chính sách quyền riêng tư.
 - Báo nhóm UA ngày bật Tenjin.
 - Thử trên máy thật bản có khóa thử nghiệm: Tenjin ghi lượt cài và doanh thu.
 

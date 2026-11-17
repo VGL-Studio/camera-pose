@@ -1,16 +1,16 @@
 ---
 ticket: T-099
 title: Thêm SDK Tenjin vào :core:analytics, khởi động sau đồng ý khi build có khóa, gửi doanh thu từng lượt quảng cáo
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn: để trống
 risk_level: high             # low | medium | high
 token_estimate: 15.4M        # cỡ M theo scripts/token-usage.py estimate (2026-11-17), không nâng tay
 blocking_points: [sdk, data, consent, core]
 run_order:                   # AI điền khi lập danh sách chạy
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-11-17
 lane:                        # để trống: phiên tự chạy
 ---
 
@@ -256,9 +256,12 @@ Nơi đọc các file dùng chung bị đổi (L-020; đã `grep -rn` tên từn
 
 ### Phiên bản 2
 
-- **Quyết định:** (chờ duyệt)
-- **Người duyệt:**, **duyệt chéo:**
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (2026-11-17, cùng một phiên có người theo dõi, AI ghi theo ADR-0048 phần C)
 - **Ghi chú:**
+  - Bản được duyệt: plan trên PR #361 ở commit `e4f0344`, duyệt cả đợt cùng danh sách chạy RUN-20261117-01.
+  - Lời trong phiên: "Tôi là Nhật, tôi duyệt plan T-099 phiên bản 2 và danh sách chạy RUN-20261117-01." và "Tôi là Tuấn, tôi duyệt chéo plan T-099 phiên bản 2."; khi được hỏi lời duyệt chéo có đúng do Tuấn đã đọc bản này và tự nói không, chọn "Đúng, Tuấn duyệt chéo".
+  - Câu trả lời mục 8 của phiên bản 1 giữ nguyên.
 
 ### Phiên bản 1
 

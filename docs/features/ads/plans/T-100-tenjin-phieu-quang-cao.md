@@ -163,6 +163,12 @@ Thứ tự commit (bước 3 và 4 của `auto-run.md`): commit test gồm mọi
 
 Không cần (E dưới 2). Không thêm thư viện hay module; hàm `eventWithName(String)` đã thấy trong `classes.jar` của AAR `com.tenjin:android-sdk:2.0.2` (bộ đệm Gradle trên máy dev, `javap`, 2026-11-17).
 
+Thử thêm, không bắt buộc, cho phần dựng của `AdMetricsModuleTest` (mục 4):
+
+- **Đã chạy thử:** test tạm `core/analytics/src/test/.../analytics/di/TryAdMetricsModuleTest.kt`, không commit, trong worktree tạm từ `b885060`, 2026-11-17: dựng `AppsFlyerTracker` (`FakeAppsFlyerSink`, `AppsFlyerSwitches(settings, backgroundScope)`, `FixedCountry`) và `TenjinTracker` (`FakeTenjinSink`, `FakeAppForeground`) từ gói `di`, gọi `AdMetricsModule.attributionStartup(...)`, gửi `Displayed(NATIVE)` cho `AppsFlyerTracker`, kiểm `toAfEvent()?.name?.removePrefix("af_") == "native_ad_displayed"`.
+- **Lệnh:** `./gradlew -q :core:analytics:testDebugUnitTest --tests '*TryAdMetricsModuleTest' --offline` (không phải `scripts/check.sh`: không cần theo quy tắc vì E dưới 2).
+- **Kết quả:** qua, 1 test, 0 lỗi: test ở gói `di` dùng được các bản giả `internal` của gói cha và gọi thẳng hàm của `AdMetricsModule`; `FakeAppsFlyerSink.events` có `af_native_ad_displayed`; `FakeTenjinSink.calls` là `[init, applyConsent, connect]`. Worktree tạm đã xóa.
+
 ## 5. Chấm rủi ro
 
 **Điểm chặn bị chạm:** 4 (thu thập dữ liệu: sự kiện mới gửi sang Tenjin), 7 (module core dùng chung `:core:analytics`). Không chạm 5: không đổi hộp thoại đồng ý hay thứ tự khởi tạo SDK, chỉ dùng lại cổng đồng ý của T-099.

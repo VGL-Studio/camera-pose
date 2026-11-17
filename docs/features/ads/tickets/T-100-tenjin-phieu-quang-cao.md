@@ -5,12 +5,12 @@ feature: ads
 spec: features/ads/spec.md   # câu 21, ý b, c
 scenarios: [KB-T1]           # tiêu chí sự kiện phễu và công tắc từ xa
 owner: Nhật
-status: backlog
+status: approved
 risk: high
 size: S
 depends_on: [T-099]
 sprint:
-plan:
+plan: features/ads/plans/T-100-tenjin-phieu-quang-cao.md
 auto_run:
 created: 2026-11-17
 ---

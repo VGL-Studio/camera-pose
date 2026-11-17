@@ -17,7 +17,8 @@ class TemplateApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // AppsFlyer is not in this app (spec ads, question 3): with no key it never starts and sends nothing.
+        // Prepares the attribution SDKs: AppsFlyer (off, spec ads question 3) and Tenjin (ADR-1010); with no key neither
+        // starts.
         appsFlyer.prepare()
         // :core:ads starts once, before any screen (HD-01). Only activities in the package of MainActivity count as the
         // app's; the SDK's own activities are ignored.

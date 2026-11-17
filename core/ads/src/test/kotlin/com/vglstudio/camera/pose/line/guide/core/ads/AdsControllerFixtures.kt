@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnel
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerStartup
+import com.vglstudio.camera.pose.line.guide.core.analytics.AttributionConsent
 import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdFunnel
 import com.vglstudio.camera.pose.line.guide.core.analytics.RecordingAdMetrics
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
@@ -29,6 +30,7 @@ internal fun testAdsController(
     metrics: AdMetrics = RecordingAdMetrics(),
     funnel: AdFunnel = RecordingAdFunnel(),
     attribution: AppsFlyerStartup = FakeAppsFlyerStartup(),
+    attributionConsent: AttributionConsent = FakeAttributionConsent(),
     logger: AppLogger = RecordingAppLogger(),
     connectivity: InternetConnectivity = AlwaysConnected,
     consentDebug: ConsentDebugOptions = ConsentDebugOptions.NONE,
@@ -51,6 +53,7 @@ internal fun testAdsController(
     firstOpenMark = firstOpenMark,
     interDisplayCounter = interDisplayCounter,
     attribution = attribution,
+    attributionConsent = attributionConsent,
     funnel = funnel,
     maxConfig = maxConfig,
     maxPlatform = maxPlatform,
@@ -69,6 +72,16 @@ internal class FakeAppsFlyerStartup : AppsFlyerStartup {
 
     override fun start() {
         starts++
+    }
+}
+
+/** Counts the calls of :core:ads to the attribution consent signal (plan T-099, step 7a). */
+internal class FakeAttributionConsent : AttributionConsent {
+    var known = 0
+        private set
+
+    override fun onConsentKnown() {
+        known++
     }
 }
 

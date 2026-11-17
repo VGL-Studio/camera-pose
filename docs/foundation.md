@@ -372,6 +372,7 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - không viết khóa SDK Tenjin vào code, tài liệu, lệnh build ghi sẵn hay file trong repo
 - build không có khóa Tenjin thì không khởi động Tenjin và không gửi gì
 - chỉ khởi động Tenjin cùng lúc khung khởi động SDK số liệu sau đồng ý, đọc đồng ý của UMP qua Tenjin ngay trước mỗi lần kết nối và mỗi lượt gửi, không đồng ý thì không gọi kết nối hay gửi, không dựa vào chế độ opt out của SDK
+- chỉ kết nối và gửi sang Tenjin khi `:core:ads` đã báo đồng ý đã rõ, không kết nối theo đường hết thời gian chờ
 - doanh thu quảng cáo sang Tenjin chỉ qua hàm doanh thu quảng cáo của Tenjin, một lần mỗi lượt hiện có doanh thu, không gửi lượt giá trị 0
 - sự kiện phễu sang Tenjin đúng danh sách của ADR này, không tham số
 - mỗi sự kiện Tenjin đi qua khóa `is_log_tenjin_*` của nó

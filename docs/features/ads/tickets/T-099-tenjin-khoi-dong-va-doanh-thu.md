@@ -10,7 +10,7 @@ risk: high
 size: M
 depends_on: []
 sprint:
-plan:
+plan: features/ads/plans/T-099-tenjin-khoi-dong-va-doanh-thu.md
 auto_run:
 created: 2026-11-17
 ---

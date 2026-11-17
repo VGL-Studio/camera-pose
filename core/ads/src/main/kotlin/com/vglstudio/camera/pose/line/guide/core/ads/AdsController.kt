@@ -23,6 +23,7 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnel
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerStartup
+import com.vglstudio.camera.pose.line.guide.core.analytics.AttributionConsent
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import com.vglstudio.camera.pose.line.guide.core.network.InternetConnectivity
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -145,6 +146,7 @@ class AdsController @Inject internal constructor(
     private val firstOpenMark: FirstOpenMark,
     private val interDisplayCounter: InterDisplayCounter,
     private val attribution: AppsFlyerStartup,
+    private val attributionConsent: AttributionConsent,
     funnel: AdFunnel,
     private val maxConfig: MaxConfig,
     maxPlatform: MaxPlatform,

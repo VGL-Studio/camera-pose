@@ -1,5 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
+import com.vglstudio.camera.pose.line.guide.core.analytics.AttributionConsent
+import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
@@ -33,3 +35,18 @@ internal suspend fun awaitAttributionStart(
         },
     ).first()
 }
+
+/** The consent is known for the attribution SDKs (spec ads, question 21 i). */
+internal fun attributionConsentKnown(finished: Boolean, state: ConsentGateState): Boolean = false
+
+/** Waits until [attributionConsentKnown]. */
+internal suspend fun awaitAttributionConsentKnown(finished: Flow<Boolean>, state: Flow<ConsentGateState>) = Unit
+
+/** Waits until the consent is known, then tells [consent] once. */
+internal suspend fun notifyAttributionConsentKnown(
+    finished: Flow<Boolean>,
+    state: Flow<ConsentGateState>,
+    consent: AttributionConsent,
+    logger: AppLogger,
+    tag: String,
+) = Unit

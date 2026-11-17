@@ -68,3 +68,57 @@ internal class FakeRemoteSettings : RemoteSettings {
 internal class FixedCountry(private val code: String) : CountrySource {
     override fun current(): String = code
 }
+
+/**
+ * The Tenjin SDK in memory (plan T-099): records every call by name, in order, and every payload sent. [consent] is
+ * what [applyConsent] returns; [failOn] names the call that throws an [IllegalStateException].
+ */
+internal class FakeTenjinSink : TenjinSink {
+    /** `init`, `applyConsent`, `connect`, `adMobImpression`, in order. */
+    val calls = mutableListOf<String>()
+
+    /** The payloads given to [adMobImpression], in order. */
+    val payloads = mutableListOf<Map<String, Any>>()
+
+    /** The SDK keys given to [init]. */
+    val keys = mutableListOf<String>()
+
+    var consent = true
+
+    var failOn: String? = null
+
+    override fun init(sdkKey: String) {
+        record("init")
+        keys += sdkKey
+    }
+
+    override fun applyConsent(): Boolean {
+        record("applyConsent")
+        return consent
+    }
+
+    override fun connect() {
+        record("connect")
+    }
+
+    override fun adMobImpression(payload: Map<String, Any>) {
+        record("adMobImpression")
+        payloads += payload
+    }
+
+    private fun record(call: String) {
+        calls += call
+        if (failOn == call) throw IllegalStateException("$call failed")
+    }
+}
+
+/** A return to foreground made by hand: [fire] calls every listener. */
+internal class FakeAppForeground : AppForeground {
+    private val listeners = mutableListOf<() -> Unit>()
+
+    override fun onEachReturn(listener: () -> Unit) {
+        listeners += listener
+    }
+
+    fun fire() = listeners.forEach { it() }
+}

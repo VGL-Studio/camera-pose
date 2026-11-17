@@ -7,6 +7,7 @@ import com.vglstudio.camera.pose.line.guide.core.analytics.AndroidCountrySource
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerSink
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerStartup
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerTracker
+import com.vglstudio.camera.pose.line.guide.core.analytics.AttributionConsent
 import com.vglstudio.camera.pose.line.guide.core.analytics.CountrySource
 import com.vglstudio.camera.pose.line.guide.core.analytics.FanOutAdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.FirebaseAdMetrics
@@ -46,4 +47,10 @@ internal object AdMetricsModule {
     @Provides
     fun adMetrics(firebase: FirebaseAdMetrics, appsFlyer: AppsFlyerTracker, logger: AppLogger): AdMetrics =
         FanOutAdMetrics(listOf(firebase, appsFlyer), logger)
+
+    // Skeleton of plan T-099: TenjinTracker is bound in the code commit.
+    @Provides
+    fun attributionConsent(): AttributionConsent = object : AttributionConsent {
+        override fun onConsentKnown() = Unit
+    }
 }

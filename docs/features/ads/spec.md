@@ -1,12 +1,13 @@
 ---
 feature: ads
-status: confirmed            # draft | confirmed | changed
+status: changed              # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
   - requests/2026-10-31-thanh-day-native-thu-gon.md
   - requests/2026-11-02-bat-combo-native-toan-man-hinh.md
   - requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md
+  - requests/2026-11-17-do-nguon-cai-tenjin.md
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
 confirmed: 2026-11-16
@@ -45,17 +46,27 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
   - `settings_bottom`: đáy màn Cài đặt (spec settings, mục 5);
   - `review_bottom`: đáy màn xem lại ảnh, dưới hàng nút (spec camera, mục 5).
 - Phần mới của khung từ đợt đồng bộ dự án mẫu `698c5b3..bc3e80e` (câu 20, ticket T-098): khe đáy native và lớp thu gọn cao theo khung, bên trong thẻ theo thiết kế mới của khung (thẻ bước của luồng giới thiệu và thẻ trong lưới giữ kích thước); lớp thu gọn co lại hay không mở khi cửa sổ thấp; native chưa có quảng cáo thì thử lại giãn dần; interstitial, rewarded, app open của MAX có sẵn nhưng chưa bật.
+- Theo yêu cầu 2026-11-17 (câu 21): đo nguồn cài đặt của chiến dịch thu hút người dùng bằng Tenjin, gửi sang Tenjin doanh thu từng lượt quảng cáo hiện và các sự kiện phễu quảng cáo. Tenjin thay chỗ của AppsFlyer; AppsFlyer vẫn tắt. Không đổi gì trên màn hình.
 
 **Ngoài phạm vi:**
 
 - Vị trí quảng cáo khác các vị trí ở trên. Mỗi vị trí mới cần spec được duyệt và ticket riêng.
 - Combo native sau interstitial dùng thay quảng cáo mở app hay quảng cáo khi quay lại app (`open_app_inter`, `resume_inter`; câu 18).
 - Lớp native thu gọn nổi trên thanh đáy (vùng ảnh cộng khe đáy D-02, kích thước theo khung, `docs/ops/ads-business-rules.md`): có trong khung nhưng tắt lúc phát hành (câu 10). Từ yêu cầu 2026-10-31, lớp có mã ở production và bật được từ xa (câu 13 tới 15).
-- AppsFlyer (câu 3), màn xem thử quảng cáo `AdGalleryActivity` và `SAMPLE_BOTTOM_BANNER` (câu 4).
+- AppsFlyer (câu 3; Tenjin thay chỗ của nó theo câu 21), màn xem thử quảng cáo `AdGalleryActivity` và `SAMPLE_BOTTOM_BANNER` (câu 4).
 
 ## 3. Kịch bản sử dụng
 
 Không có kịch bản mới ở spec này. `review_interstitial` giữ kịch bản của spec camera; bốn vị trí của thư viện và chi tiết theo KB-4, KB-6 của spec poses (câu 8, 9); `settings_bottom` theo KB-1 của spec settings, `review_bottom` theo KB-9 của spec camera (câu 19). Tiêu chí kiểm ở mục 9, ở Định nghĩa hoàn thành của T-074 và T-079.
+
+**KB-T1. Nhóm UA đo nguồn cài và doanh thu quảng cáo (câu 21).** Người dùng không thấy gì mới; người hưởng là nhóm thu hút người dùng xem báo cáo trên Tenjin.
+
+- Khi người dùng cài app từ một chiến dịch và mở app lần đầu, với bản phát hành có khóa Tenjin, thì Tenjin ghi một lượt cài gắn với chiến dịch đó.
+- Khi một quảng cáo hiện và mạng quảng cáo báo doanh thu của lượt hiện, thì Tenjin nhận doanh thu của đúng lượt đó, một lần, không nhân đôi.
+- Khi một sự kiện phễu quảng cáo xảy ra (đủ điều kiện hiện, nạp xong, đã hiện, theo danh sách ở câu 21 ý b), thì Tenjin nhận sự kiện đó, trừ khi công tắc từ xa của sự kiện đang tắt (câu 21 ý c).
+- Khi người dùng ở vùng cần hỏi đồng ý từ chối cho phép theo dõi, thì app không gửi gì sang Tenjin (câu 21 ý d).
+- Khi bản build không có khóa Tenjin (bản staging của CI, máy dev), thì app không gửi gì sang Tenjin và vẫn chạy như hôm nay.
+- Khi Tenjin lỗi hay không trả lời, thì quảng cáo, số liệu Firebase và mọi màn của app vẫn chạy như hôm nay.
 
 ## 4. Giao diện
 
@@ -84,6 +95,13 @@ AppLovin MAX (câu 16): đợt đồng bộ dự án mẫu 47782ec..151b4c2 (PR 
 
 Sự kiện quảng cáo `ad_load_success`, `ad_load_fail`, `ad_clicked` có thêm tham số `ad_platform` (hôm nay luôn là `admob`, vì MAX chưa bật). Đây là tham số mới của sự kiện có sẵn, không phải sự kiện mới. Báo nhóm thu hút người dùng (UA) trước khi phát hành bản production đầu tiên có tham số này (`docs/ops/ads-business-rules.md`, HD-07; câu 20, ý e).
 
+Tenjin (câu 21):
+
+- Dịch vụ bên ngoài mới: Tenjin, nhận lượt cài và phiên mở app, doanh thu từng lượt quảng cáo hiện, các sự kiện phễu quảng cáo ở câu 21 ý b. Chỉ bản build có khóa Tenjin mới gửi (câu 21 ý e).
+- Dữ liệu SDK Tenjin tự gửi kèm mỗi lượt, theo tài liệu của Tenjin: mã quảng cáo của máy, địa chỉ IP, nguồn cài đặt (Play Install Referrer), hãng, đời máy, phiên bản Android, nhà mạng, kiểu kết nối, ngôn ngữ, quốc gia, múi giờ, số phiên và thời lượng phiên. Không gửi chữ người dùng nhập, ảnh hay mã người dùng (app không có tài khoản).
+- Quyền: manifest gộp hôm nay đã có `com.google.android.gms.permission.AD_ID`, `com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE`, `INTERNET`, `ACCESS_NETWORK_STATE` (do SDK quảng cáo kéo vào), là các quyền Tenjin cần. Dự kiến không có quyền mới; plan kiểm manifest gộp trước và sau khi thêm SDK, có quyền hay khai báo `queries` mới thì quay lại spec này trước khi duyệt. Không bật phần đo nguồn cài của Meta (cần khai báo `queries` cho Facebook và Instagram, câu 21 ý g).
+- An toàn dữ liệu trên Play Console và chính sách quyền riêng tư phải khai thêm Tenjin trước bản production đầu tiên có khóa Tenjin (câu 21 ý h).
+
 Sự kiện phân tích mà khung ghi qua Firebase Analytics (nếu có) được plan liệt kê và chép vào mục 6 của spec màn có vị trí trong PR của T-074.
 
 ## 7. File tĩnh trên R2
@@ -92,7 +110,7 @@ Không có.
 
 ## 8. Cờ tính năng
 
-Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu 2): `is_show_review_interstitial`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_inter_pose_detail`, `is_show_poses_in_collection`; thêm `native_every_poses_in_collection` (mặc định 8). Câu 19 thêm `is_show_settings_bottom`, `is_show_review_bottom`, mặc định tắt. Khóa chung của thanh đáy theo câu 8, 10.
+Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu 2): `is_show_review_interstitial`, `is_show_poses_bottom`, `is_show_pose_detail_bottom`, `is_show_inter_pose_detail`, `is_show_poses_in_collection`; thêm `native_every_poses_in_collection` (mặc định 8). Câu 19 thêm `is_show_settings_bottom`, `is_show_review_bottom`, mặc định tắt. Câu 21 ý c: mỗi sự kiện gửi sang Tenjin có một khóa `is_log_tenjin_<tên sự kiện>`, boolean, mặc định bật. Khóa chung của thanh đáy theo câu 8, 10.
 
 ## 9. Câu hỏi còn mở
 
@@ -262,6 +280,32 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
       - Đề xuất của AI: giữ. Báo nhóm thu hút người dùng (UA) trước khi phát hành bản production đầu tiên có tham số này (`ads-business-rules.md`, HD-07). Mục 6 ghi tham số khi spec được xác nhận.
       - Trả lời: (Nhật, 2026-11-16) Giữ. Báo nhóm UA trước bản production đầu tiên có tham số này; mục 6 đã ghi.
 
+21. **Đo nguồn cài và doanh thu quảng cáo bằng Tenjin** (yêu cầu `requests/2026-11-17-do-nguon-cai-tenjin.md`). Nhật chọn trong phiên 2026-11-17: Tenjin làm ba việc (nguồn cài, doanh thu từng lượt quảng cáo, phễu quảng cáo); Tenjin thay AppsFlyer, AppsFlyer vẫn tắt (câu 3); quyết định riêng của app, không đề xuất về dự án mẫu. Quy tắc kỹ thuật (SDK chỉ trong `:core:analytics`, khóa không vào repo) ghi ở một ADR mới của app, thay vế AppsFlyer của ADR-1007. Nhật trả lời tám ý ngày 2026-11-17, theo đề xuất của AI.
+    - **a. Doanh thu quảng cáo.** Tenjin chỉ tính doanh thu quảng cáo (ROAS) từ hàm doanh thu quảng cáo riêng của nó (với AdMob: hàm nhận giá trị lượt hiện mà AdMob báo; với AppLovin MAX: hàm riêng cho MAX), không từ sự kiện thường. Luật của AppsFlyer ở `ads-business-rules.md` mục 8.3 thì ngược lại (gửi bằng sự kiện thường vì công cụ kiểm của đối tác). Khung còn gửi lượt dự phòng giá trị 0 khi mạng không báo doanh thu.
+      - Đề xuất của AI: dùng hàm doanh thu quảng cáo của Tenjin, một lần cho mỗi lượt hiện có doanh thu mạng báo; lượt AdMob qua hàm của AdMob, lượt MAX (khi MAX bật sau này) qua hàm của MAX. Không gửi lượt dự phòng giá trị 0, vì không phải doanh thu thật. Không gửi thêm doanh thu dưới dạng sự kiện thường, để Tenjin không cộng hai lần.
+      - Trả lời: (Nhật, 2026-11-17) Theo đề xuất của AI.
+    - **b. Sự kiện phễu quảng cáo.** Sự kiện thường của Tenjin chỉ có tên, kèm tùy chọn một số nguyên; không có tham số. Danh sách của AppsFlyer có tham số `ad_format`, `ad_unit_id`, `ad_source` sẽ mất khi sang Tenjin.
+      - Đề xuất của AI: gửi cùng bộ sự kiện như mục 8.3, bỏ tiền tố `af_` vì đây không phải AppsFlyer: `inters_ad_eligible`, `inters_api_called`, `inters_displayed`, `rewarded_ad_eligible`, `rewarded_api_called`, `rewarded_ad_displayed`, `native_ad_eligible`, `native_api_called`, `native_ad_displayed`, `inters_displayed_{N}_times` (N từ 1 tới 20). Không có tham số. Điều kiện gửi giữ như mục 8.3. Nhóm UA cần tên khác (ví dụ giữ `af_` để so với app khác) thì ghi ở đây.
+      - Trả lời: (Nhật, 2026-11-17) Theo đề xuất của AI.
+    - **c. Công tắc từ xa cho từng sự kiện.** Khung có khóa `is_log_af_*` cho từng sự kiện AppsFlyer, mặc định bật, để tắt khẩn một sự kiện làm hỏng số liệu.
+      - Đề xuất của AI: mỗi sự kiện Tenjin một khóa mới `is_log_tenjin_<tên sự kiện>` (ví dụ `is_log_tenjin_ad_revenue`, `is_log_tenjin_inters_displayed`, `is_log_tenjin_inters_displayed_n_times`), kiểu boolean, mặc định bật, đổi giữa phiên có hiệu lực từ sự kiện kế tiếp. Không dùng lại khóa `is_log_af_*`: một khóa mang tên AppsFlyer mà điều khiển Tenjin dễ gây nhầm. Khóa `is_log_af_*` vẫn giữ vì khung đọc chúng (ADR-1007).
+      - Trả lời: (Nhật, 2026-11-17) Theo đề xuất của AI.
+    - **d. Đồng ý của người dùng.** App hỏi đồng ý quảng cáo qua hộp thoại của Google (UMP) và ghi chuỗi đồng ý chuẩn (TCF). Tenjin có hàm tự đọc chuỗi này để bật hay tắt việc gửi.
+      - Đề xuất của AI: như AppsFlyer ở ADR-0027: chỉ khởi động Tenjin sau khi có kết quả hỏi đồng ý của lượt mở app, hoặc ngay khi đồng ý của phiên trước còn giữ, cùng lúc với SDK quảng cáo; hết 10 giây chờ của màn loading thì khởi động với đồng ý đang có. Gọi hàm đọc chuỗi đồng ý của Tenjin trước khi kết nối; người dùng không đồng ý thì Tenjin không gửi gì. Người dùng ngoài vùng cần hỏi đồng ý thì gửi bình thường.
+      - Trả lời: (Nhật, 2026-11-17) Theo đề xuất của AI.
+    - **e. Khóa SDK Tenjin của bản phát hành và của staging.** Khóa là cấu hình riêng của app, không vào repo.
+      - Đề xuất của AI: production nhận khóa lúc build bằng tham số `-PtenjinSdkKey`, như khóa MAX (M-09): tùy chọn, không có khóa thì bản phát hành không gửi gì sang Tenjin. Staging của CI không có khóa nên không gửi gì; dev muốn thử trên máy thì đặt `tenjin.sdkKey` trong `local.properties` (không vào git), dùng một app Tenjin riêng cho thử nghiệm để không lẫn số liệu thật. Thêm bước đưa khóa vào `scripts/release.sh` là việc của người (AI không chạm script phát hành), ticket riêng `auto_run: false`.
+      - Trả lời: (Nhật, 2026-11-17) Theo đề xuất của AI.
+    - **f. Quảng cáo có thưởng và mua hàng.** App có `rw_premium_pose` (rewarded) nhưng không bán gì trong app.
+      - Đề xuất của AI: không gửi sự kiện mua hàng hay đăng ký sang Tenjin (app không có). Rewarded đi theo ý a và ý b như mọi định dạng khác.
+      - Trả lời: (Nhật, 2026-11-17) Theo đề xuất của AI.
+    - **g. Đo nguồn cài của Meta.** Tenjin đọc được nguồn cài từ quảng cáo Facebook, Instagram nếu app khai báo thấy hai app đó và mã app Facebook.
+      - Đề xuất của AI: không bật lần này (thêm khai báo `queries` và mã app Facebook là dữ liệu chưa có trong yêu cầu). Nhóm UA chạy chiến dịch Meta thì làm ticket riêng.
+      - Trả lời: (Nhật, 2026-11-17) Theo đề xuất của AI.
+    - **h. Phát hành.** Nhóm UA cần biết từ bản nào có số liệu Tenjin; Data safety và chính sách quyền riêng tư phải có Tenjin trước khi bản đó lên Play.
+      - Đề xuất của AI: người phát hành khai Data safety (mã quảng cáo, tương tác với app và quảng cáo, chẩn đoán, như mục 6) và cập nhật chính sách quyền riêng tư trước bản production đầu tiên có khóa Tenjin; báo nhóm UA ngày bật, như HD-07. Hai việc này vào mục "Cần người kiểm tra" của ticket.
+      - Trả lời: (Nhật, 2026-11-17) Theo đề xuất của AI.
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -296,3 +340,5 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-16 | Nhật | Trả lời câu 20, ý a tới e, theo đề xuất của AI (AI ghi): nhận kích thước native và lớp thu gọn của khung, thử lại giãn dần, MAX toàn màn hình có sẵn nhưng chưa bật, giữ `ad_platform` và báo UA. Sửa mục 2, mục 6; tiêu chí thanh đáy của spec poses, camera, settings bỏ con số 80 dp. Chờ Nhật xác nhận |
 | 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |
 | 2026-11-16 | Nhật | Xác nhận lại sau sửa theo rà soát độc lập PR #353 (AI ghi): `ad_platform` ở mục 6 của spec poses, camera; mục 2 của spec ads ghi thẻ bước và thẻ trong lưới giữ kích thước, lớp thu gọn là vùng ảnh cộng khe đáy D-02. Lời xác nhận của Nhật: chọn "Xác nhận lại" khi được hỏi. Giữ `confirmed` |
+| 2026-11-17 | AI | Yêu cầu đo nguồn cài và doanh thu quảng cáo bằng Tenjin (`requests/2026-11-17-do-nguon-cai-tenjin.md`); Nhật chọn trong phiên (AI ghi): Tenjin làm ba việc, thay AppsFlyer, riêng của app. Sửa mục 2, 3 (KB-T1), 6, 8; câu 21 có tám ý mở (a tới h). Chuyển `changed`, chờ Nhật trả lời và xác nhận |
+| 2026-11-17 | Nhật | Trả lời câu 21, ý a tới h, theo đề xuất của AI (AI ghi): hàm doanh thu riêng của Tenjin, bỏ lượt 0; phễu bỏ tiền tố `af_`, không tham số; khóa `is_log_tenjin_*` mặc định bật; khởi động sau đồng ý; `-PtenjinSdkKey` tùy chọn; không mua hàng, không Meta; Data safety và báo UA trước production. Lời của Nhật: chọn "Bỏ tiền tố af_", "Hàm riêng, bỏ lượt 0", "-PtenjinSdkKey tùy chọn", "Nhận cả năm đề xuất" khi được hỏi. Chờ Nhật xác nhận |

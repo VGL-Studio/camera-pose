@@ -363,3 +363,18 @@ ADR có `origin: template` đến từ dự án mẫu: trong app, không sửa; 
 - interstitial của màn (vị trí không toàn app) luôn đi qua `showInterstitial` của `:core:ads` để combo nối theo khóa `is_show_native_after_inter`
 - kịch bản emulator đi qua interstitial của màn thêm bước `wait str=ads_close_full_screen | <màn đích>` rồi `tap_if str=ads_close_full_screen` sau bước đóng interstitial
 - không đổi luật K-01 tới K-08 của khung ở app
+
+## Đang đề xuất, chưa duyệt chính thức (vẫn làm theo khi tài liệu quy trình dẫn tới)
+
+### [ADR-1010](adr/1010-tenjin-do-nguon-cai.md): Dùng Tenjin trong :core:analytics để đo nguồn cài, doanh thu quảng cáo và phễu quảng cáo; khóa đưa vào lúc build, không khóa thì không gửi
+
+- chỉ gọi SDK Tenjin trong `:core:analytics`, sau interface nội bộ của module
+- không viết khóa SDK Tenjin vào code, tài liệu, lệnh build ghi sẵn hay file trong repo
+- build không có khóa Tenjin thì không khởi động Tenjin và không gửi gì
+- chỉ khởi động Tenjin cùng lúc khung khởi động SDK số liệu sau đồng ý, và để Tenjin đọc đồng ý từ chuỗi của UMP trước khi kết nối
+- doanh thu quảng cáo sang Tenjin chỉ qua hàm doanh thu quảng cáo của Tenjin, một lần mỗi lượt hiện có doanh thu, không gửi lượt giá trị 0
+- sự kiện phễu sang Tenjin đúng danh sách của ADR này, không tham số
+- mỗi sự kiện Tenjin đi qua khóa `is_log_tenjin_*` của nó
+- không gửi sự kiện Tenjin ngoài ADR này và spec đã duyệt
+- không gửi dữ liệu cá nhân hay chữ người dùng nhập sang Tenjin
+- không chạm `scripts/release.sh` để thêm khóa Tenjin

@@ -1,7 +1,7 @@
 ---
 ticket: T-099
 title: Thêm SDK Tenjin vào :core:analytics, khởi động sau đồng ý khi build có khóa, gửi doanh thu từng lượt quảng cáo
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 2                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn: để trống
 risk_level: high             # low | medium | high
@@ -275,3 +275,15 @@ Nơi đọc các file dùng chung bị đổi (L-020; đã `grep -rn` tên từn
   - Người phụ trách sản phẩm (Nhật) đã biết trước khi duyệt, vì plan chạm dữ liệu và đồng ý (`risk-scoring.md`, mục 3).
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261117-01, phiên bản plan 2
+
+- **Kết quả:** đã merge (PR #362, commit `e6e87bd`, 2026-11-17 12:07 UTC).
+- **Nhánh, PR:** `claude/T-099-tenjin` (từ `origin/main` `603a67f`), https://github.com/VGL-Studio/camera-pose/pull/362.
+- **Đã làm:** bước 1 tới 10 và 7a của mục 3.1, đúng 35 file của mục 3.2 (kể cả `gradle/libs.versions.toml`); sinh lại `docs/remote-config-keys.md`, `docs/remote-config-template.json`. Commit: `16da570` (test viết trước, kèm khung rỗng của code chính và một binding `AttributionConsent` rỗng tạm để Hilt của `:app` biên dịch), `0b18997` (code), `ea7924e` (test thêm theo rà soát). Phương án dự phòng mục 3.4 không dùng: Hilt dựng được `ActivityCountForeground`.
+- **Test viết trước:** 41 test mới và câu mới của `RemoteConfigKeysTest.analyticsKeys_areListed` theo mục 3.5. Trên khung rỗng 40 test đỏ đúng lý do (không gọi sink, payload `null`, danh sách khóa rỗng, hàm chờ trả về ngay, chưa có lời gọi trong `start()`, `toString` in khóa); lần đầu `TenjinSettingsTest` đỏ sai lý do (khung để `description` rỗng nên `RemoteKey` ném lỗi), sửa khung rồi đỏ đúng lý do. Qua ngay: `NoMetaReferrerResourceTest` (test chặn, đối chứng `app_name != 0`) và `FullScreenAdsTest.start_10sPath_startsAppsFlyer_butConsentNotKnown` (test chiều âm, ADR-0032/L4(b), đột biến thêm code sai: nối Tenjin vào đường chờ 10 giây thì đỏ `expected:<0> but was:<1>`). 8 test viết chặt bằng đối chứng (`startBeforePrepare_doesNothing`, `nonRevenueMetrics_ignored`, `revenueBeforeStart_dropped`, `zeroValue_isNull`, `blankCurrency_isNull`, `maxPlatform_isNull`, hai test `TenjinSettingsTest`). Test JVM mọi module trên khung rỗng: chỉ 40 test mới đỏ. Không có thay đổi file test sau commit test ngoài test thêm theo rà soát.
+- **Rà soát độc lập:** 0 chặn, 1 nên sửa, 6 ghi chú. Nên sửa: không test nào kiểm đường `applyConsent()` ném lỗi; đã thêm `TenjinTrackerTest.consentCheckThrows_neitherConnectsNorSends` (`ea7924e`, chỉ test). Đột biến `!= true` thành `== false` ở cổng của `log()`: đỏ (`but was:<[init, applyConsent, applyConsent, adMobImpression, applyConsent]>`); ở cổng của `connectNow()`: đỏ (`but was:<[init, applyConsent, connect, applyConsent, applyConsent, connect]>`). Rà soát lại vòng 1: 0 chặn, 0 nên sửa, 5 ghi chú. Ghi chú còn để người xem: `TenjinLibSink` không mang `@Singleton` mà giữ trạng thái `sdk` (thêm khi T-100 tiêm `TenjinSink` chỗ khác); `TenjinSdkUseTest` không bỏ qua `.claude/worktrees/` nên có thể đỏ trên máy dev có worktree lồng; `scripts/release.sh` không truyền `-PtenjinSdkKey` nên bản production làm bằng script không có Tenjin (ADR-1010, T-101); `ActivityCountForeground` vẫn đăng ký callback khi không khóa (không chạm SDK); kết nối thừa lý thuyết khi foreground chen giữa hai tín hiệu (không xảy ra, cùng luồng chính).
+- **Kết quả CI:** `scripts/check.sh` trên máy qua (3574 test JVM, 0 lỗi, 178 ảnh); `./gradlew :app:assembleStagingRelease` qua, không cảnh báo R8 của `com.tenjin`; manifest gộp `stagingDebug` (`uses-permission`, `queries`, thành phần) trùng khi không có Tenjin. `pr-check` xanh trên `ea7924e` (lần chạy 44076536317), một vòng CI.
+- **Lệch so với plan:** ADR-0032/L4(b) như trên. Test chặt hơn plan, không đổi điều kiểm: `start_appliesConsentThenConnects_once` kiểm thêm log `Tenjin connected`; `configToString_hidesKey` so đúng `TenjinConfig(sdkKey=set|none)`; `sdkThrows_isSwallowedAndLogged` so đúng danh sách dòng WARN. Chi tiết plan không nêu: log của `FanOutAppsFlyerStartup` là `Attribution <prepare|start> failed in <Lớp>: <LớpLỗi>`; `Tenjin ad revenue opted out` ở mức debug; `-PtenjinSdkKey` được `trim()` trước khi kiểm ký tự. Test thêm `consentCheckThrows_neitherConnectsNorSends` theo rà soát (ADR-0032/L9). Ngoài mục 3.2: không có.
+- **Việc còn lại:** T-101 (khóa thử, máy thật: lượt cài và doanh thu trên bảng Tenjin; thông báo lỗi production khi khóa sai ký tự); T-100 (phễu, thêm `@Singleton` cho `TenjinLibSink` nếu cần).
+- **Cần người xem:** `app-log.txt` của `device-session` cuối phiên: dòng `Tenjin off: no SDK key in this build` và `Attribution consent known` (mục 4, hai dòng kiểm tay "người"); chạy tay `:app:preProductionReleaseBuild -PtenjinSdkKey='a"b' ...` (T-101).

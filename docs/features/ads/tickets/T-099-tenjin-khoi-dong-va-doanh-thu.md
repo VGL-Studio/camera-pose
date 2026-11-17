@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # câu 21, ý a, c (khóa doanh thu), d, e, f, g; mục 6
 scenarios: [KB-T1]           # tiêu chí cài từ chiến dịch, doanh thu một lần, từ chối đồng ý, không khóa, Tenjin lỗi
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: M
 depends_on: []

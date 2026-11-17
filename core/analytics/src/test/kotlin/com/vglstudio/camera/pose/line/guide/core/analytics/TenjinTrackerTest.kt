@@ -297,6 +297,21 @@ class TenjinTrackerTest {
     }
 
     @Test
+    fun consentCheckThrows_neitherConnectsNorSends() = runUnconfined {
+        // A consent check that throws closes the gate: no connection at start or on return, no revenue.
+        val consentFails = FakeTenjinSink().apply { failOn = "applyConsent" }
+        val tracker = started(sink = consentFails)
+        tracker.log(revenue())
+        foreground.fire()
+
+        assertEquals(listOf("init", "applyConsent", "applyConsent", "applyConsent"), consentFails.calls)
+        assertFalse("connect" in consentFails.calls)
+        assertFalse("adMobImpression" in consentFails.calls)
+        val failures = logger.entries.filter { it.level == LogLevel.WARN }.map { it.message }
+        assertEquals(List(3) { "Tenjin consent failed: IllegalStateException" }, failures)
+    }
+
+    @Test
     fun configToString_hidesKey() {
         val text = TenjinConfig("SECRETKEY").toString()
         assertFalse(text, "SECRETKEY" in text)

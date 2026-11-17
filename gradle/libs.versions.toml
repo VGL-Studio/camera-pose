@@ -55,6 +55,9 @@ unityAds = "4.21.0"
 applovinSdk = "13.6.4"
 maxMediationGoogle = "25.5.0.0"
 
+# Attribution (ADR-1010)
+tenjin = "2.0.2"
+
 # Testing
 junit4 = "4.13.2"
 mockk = "1.14.5"
@@ -94,6 +97,7 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-config = { group = "com.google.firebase", name = "firebase-config" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
+tenjin-android-sdk = { group = "com.tenjin", name = "android-sdk", version.ref = "tenjin" }
 
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }

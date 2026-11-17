@@ -4,6 +4,7 @@ import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.AdsSettings
 import com.vglstudio.camera.pose.line.guide.core.ads.InterstitialBreakSettings
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerSettings
+import com.vglstudio.camera.pose.line.guide.core.analytics.TenjinSettings
 import com.vglstudio.camera.pose.line.guide.core.config.AppLinks
 import com.vglstudio.camera.pose.line.guide.core.config.FeatureFlag
 import com.vglstudio.camera.pose.line.guide.core.config.PoseMatchingSettings
@@ -174,8 +175,9 @@ class RemoteConfigKeysTest {
 
     @Test
     fun analyticsKeys_areListed() {
-        assertEquals(AppsFlyerSettings.all(), AppRemoteKeys.byModule[":core:analytics"])
+        assertEquals(AppsFlyerSettings.all() + TenjinSettings.all(), AppRemoteKeys.byModule[":core:analytics"])
         assertEquals(11, AppsFlyerSettings.all().size)
+        assertEquals(1, TenjinSettings.all().size)
     }
 
     @Test

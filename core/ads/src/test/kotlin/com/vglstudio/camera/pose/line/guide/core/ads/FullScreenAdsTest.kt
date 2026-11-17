@@ -154,6 +154,22 @@ class FullScreenAdsTest {
     }
 
     @Test
+    fun start_10sPath_startsAppsFlyer_butConsentNotKnown() {
+        val attribution = FakeAppsFlyerStartup()
+        val attributionConsent = FakeAttributionConsent()
+        val controller = testAdsController(attribution = attribution, attributionConsent = attributionConsent)
+        val application = ApplicationProvider.getApplicationContext<Application>()
+
+        // No activity, no form: the 10 s path starts AppsFlyer, but no consent is known (plan T-099, step 7a).
+        controller.start(application, AppActivityFilter.inPackageOf(ComponentActivity::class.java))
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(10_000))
+        assertEquals(1, attribution.starts)
+        assertEquals(0, attributionConsent.known)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(60))
+        assertEquals(0, attributionConsent.known)
+    }
+
+    @Test
     fun showAppOpenAd_rejectsNonStagingPlacement() {
         var placement by mutableStateOf(AdPlacement.GALLERY_APP_OPEN)
         composeRule.setContent { rememberShowAppOpenAd(placement) }

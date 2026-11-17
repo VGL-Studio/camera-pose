@@ -361,6 +361,11 @@
       "description": "Sends af_rewarded_api_called. AppsFlyer event switch. Name set by the template, not an AdsKit key.",
       "valueType": "BOOLEAN"
     },
+    "is_log_tenjin_ad_revenue": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends the revenue of every paid AdMob impression to Tenjin. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
     "network_lost_delay_seconds": {
       "defaultValue": { "value": "3" },
       "description": "Seconds the device must report no network before the dialog that blocks the app shows.",

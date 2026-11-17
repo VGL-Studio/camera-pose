@@ -1,16 +1,16 @@
 ---
 ticket: T-100
 title: Gửi sự kiện phễu quảng cáo sang Tenjin, mỗi sự kiện một công tắc từ xa
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn: để trống
 risk_level: high             # low | medium | high
 token_estimate: 7.4M         # cỡ S theo scripts/token-usage.py estimate (2026-11-17), không nâng tay
 blocking_points: [data, core]
 run_order:                   # AI điền khi lập danh sách chạy
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high; để trống, mục 8 đề nghị người duyệt chéo
-approved_at:
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
+approved_at: 2026-11-17
 lane:                        # để trống: phiên tự chạy
 ---
 
@@ -197,18 +197,25 @@ Thử thêm, không bắt buộc, cho phần dựng của `AdMetricsModuleTest` 
 
 ## 8. Câu hỏi cho người duyệt
 
-1. **Một khóa chung cho `inters_displayed_{N}_times`.** Ticket nói "mười khóa còn lại", ADR-1010 mục 6 nói "mỗi sự kiện Tenjin có khóa riêng". AI hiểu hai mươi sự kiện `inters_displayed_{N}_times` là một sự kiện có tham số N trong tên và dùng chung `is_log_tenjin_inters_displayed_n_times`, như khung dùng `is_log_af_inters_displayed_n_times`; tổng mười khóa phễu, khớp ticket. Đề xuất: giữ. Nếu muốn khóa riêng từng N thì thêm 19 khóa và sửa ticket.
-2. **Sự kiện phễu trước đồng ý đã rõ bị bỏ, không gửi bù.** Lần mở đầu ở vùng cần hỏi đồng ý, các sự kiện `*_ad_eligible`, `*_api_called` trước khi người dùng trả lời hộp thoại sẽ không có trên Tenjin (như doanh thu của T-099 và như AppsFlyer trước `start()`). Đề xuất: giữ (đơn giản, đúng câu 21 ý i "chưa gửi gì"). Phương án khác: giữ hàng đợi trong bộ nhớ rồi gửi khi đồng ý, phức tạp hơn và cần spec nói rõ.
-3. **AppsFlyer vẫn nhận phễu qua lớp chia.** AppsFlyer tắt (sink rỗng, ADR-1007), nên giữ nó trong `FanOutAdFunnel` không gửi gì, chỉ để đợt đồng bộ mẫu dễ gộp. Đề xuất: giữ.
-4. **`TenjinSdkUseTest` không bỏ qua `.claude/`** (ghi chú rà soát T-099): trên máy dev có worktree lồng trong `.claude/worktrees/`, test quét cả bản chép và đỏ. Plan này không đưa vào phạm vi (không phải điều ticket yêu cầu, và là sửa phần dựng của test có sẵn). Đề xuất: sửa ở một ticket nhỏ riêng, thêm `.claude` vào `SKIPPED_DIRS` của cả `TenjinSdkUseTest` và `NoAppsFlyerSdkTest`; hoặc người duyệt cho phép thêm `TenjinSdkUseTest.kt` vào mục 3.2 của plan này với đúng một thay đổi đó. Phiên `local` dùng worktree ngang hàng (`../task-T-NNN`), nên `.claude/worktrees` rỗng không ảnh hưởng tới phiên, miễn phiên không dùng `isolation: worktree`.
-5. **`@Singleton` của `TenjinLibSink`** đưa vào plan dù T-100 không tiêm `TenjinSink` chỗ khác (phòng lỗi về sau, ngoại lệ viết test trước ở mục 4). Đề xuất: giữ; nếu người duyệt muốn plan chỉ gồm phần ticket nêu thì bỏ dòng đó.
-6. **Đồng ý cấp giữa phiên sau lần kết nối bị từ chối** (kế thừa T-099): lần kết nối đầu bị từ chối đồng ý (`connectNow` không gọi `connect`), rồi người dùng đồng ý giữa phiên qua form quyền riêng tư; từ đó sự kiện phễu và doanh thu qua cổng (`applyConsent` trả `true`) và được gửi dù SDK chưa `connect` tới lần app quay lại từ nền. Plan này làm số lượt gửi như vậy nhiều hơn. Đề xuất: chấp nhận, T-101 kiểm trên máy thật SDK xử lý sự kiện trước `connect` ra sao.
-7. **Duyệt chéo:** plan rủi ro Cao (điểm chặn 4 và 7), `cross_reviewer` để trống; đề nghị Tuấn duyệt chéo như T-099.
+1. **Một khóa chung cho `inters_displayed_{N}_times`.** Ticket nói "mười khóa còn lại", ADR-1010 mục 6 nói "mỗi sự kiện Tenjin có khóa riêng". AI hiểu hai mươi sự kiện `inters_displayed_{N}_times` là một sự kiện có tham số N trong tên và dùng chung `is_log_tenjin_inters_displayed_n_times`, như khung dùng `is_log_af_inters_displayed_n_times`; tổng mười khóa phễu, khớp ticket. Đề xuất: giữ. Nếu muốn khóa riêng từng N thì thêm 19 khóa và sửa ticket. Trả lời (Nhật, 2026-11-17): giữ khóa chung.
+2. **Sự kiện phễu trước đồng ý đã rõ bị bỏ, không gửi bù.** Lần mở đầu ở vùng cần hỏi đồng ý, các sự kiện `*_ad_eligible`, `*_api_called` trước khi người dùng trả lời hộp thoại sẽ không có trên Tenjin (như doanh thu của T-099 và như AppsFlyer trước `start()`). Đề xuất: giữ (đơn giản, đúng câu 21 ý i "chưa gửi gì"). Phương án khác: giữ hàng đợi trong bộ nhớ rồi gửi khi đồng ý, phức tạp hơn và cần spec nói rõ. Trả lời (Nhật, 2026-11-17): giữ, không gửi bù.
+3. **AppsFlyer vẫn nhận phễu qua lớp chia.** AppsFlyer tắt (sink rỗng, ADR-1007), nên giữ nó trong `FanOutAdFunnel` không gửi gì, chỉ để đợt đồng bộ mẫu dễ gộp. Đề xuất: giữ. Trả lời (Nhật, 2026-11-17): giữ AppsFlyer trong lớp chia.
+4. **`TenjinSdkUseTest` không bỏ qua `.claude/`** (ghi chú rà soát T-099): trên máy dev có worktree lồng trong `.claude/worktrees/`, test quét cả bản chép và đỏ. Plan này không đưa vào phạm vi (không phải điều ticket yêu cầu, và là sửa phần dựng của test có sẵn). Đề xuất: sửa ở một ticket nhỏ riêng, thêm `.claude` vào `SKIPPED_DIRS` của cả `TenjinSdkUseTest` và `NoAppsFlyerSdkTest`; hoặc người duyệt cho phép thêm `TenjinSdkUseTest.kt` vào mục 3.2 của plan này với đúng một thay đổi đó. Phiên `local` dùng worktree ngang hàng (`../task-T-NNN`), nên `.claude/worktrees` rỗng không ảnh hưởng tới phiên, miễn phiên không dùng `isolation: worktree`. Trả lời (Nhật, 2026-11-17): sửa ở ticket nhỏ riêng, không đưa vào plan này.
+5. **`@Singleton` của `TenjinLibSink`** đưa vào plan dù T-100 không tiêm `TenjinSink` chỗ khác (phòng lỗi về sau, ngoại lệ viết test trước ở mục 4). Đề xuất: giữ; nếu người duyệt muốn plan chỉ gồm phần ticket nêu thì bỏ dòng đó. Trả lời (Nhật, 2026-11-17): giữ `@Singleton`.
+6. **Đồng ý cấp giữa phiên sau lần kết nối bị từ chối** (kế thừa T-099): lần kết nối đầu bị từ chối đồng ý (`connectNow` không gọi `connect`), rồi người dùng đồng ý giữa phiên qua form quyền riêng tư; từ đó sự kiện phễu và doanh thu qua cổng (`applyConsent` trả `true`) và được gửi dù SDK chưa `connect` tới lần app quay lại từ nền. Plan này làm số lượt gửi như vậy nhiều hơn. Đề xuất: chấp nhận, T-101 kiểm trên máy thật SDK xử lý sự kiện trước `connect` ra sao. Trả lời (Nhật, 2026-11-17): chấp nhận, T-101 kiểm trên máy thật.
+7. **Duyệt chéo:** plan rủi ro Cao (điểm chặn 4 và 7), `cross_reviewer` để trống; đề nghị Tuấn duyệt chéo như T-099. Trả lời (Nhật, 2026-11-17): Tuấn duyệt chéo.
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Duyệt / Dừng / Duyệt có điều kiện
-- **Người duyệt:** <tên>, **duyệt chéo:** <tên, nếu rủi ro cao>
-- **Ghi chú:** <điều kiện, yêu cầu sửa, trả lời câu hỏi ở mục 8>
+### Phiên bản 1
+
+- **Quyết định:** Duyệt
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (2026-11-17, cùng một phiên có người theo dõi, AI ghi theo ADR-0048 phần C)
+- **Ghi chú:**
+  - Bản được duyệt: plan trên PR #364 ở commit `901351f`, sau hai vòng rà soát độc lập (lần 1: 0 chặn, 4 nên sửa, đã sửa; lần 2: 0 chặn, 1 nên sửa, đã sửa cùng hai ghi chú về câu chữ test).
+  - Lời của Nhật: "Tôi là Nhật, tôi duyệt plan T-100 phiên bản 1 (PR #364, commit 901351f), đồng ý mọi đề xuất ở mục 8."
+  - Lời của Tuấn: "Tôi là Tuấn, tôi duyệt chéo plan T-100 phiên bản 1."; khi được hỏi lời duyệt chéo có đúng do Tuấn tự nói sau khi đã đọc bản này, kể cả mục 8 và ngoại lệ viết test trước, chọn "Đúng, Tuấn duyệt chéo".
+  - Trả lời mục 8 (Nhật, 2026-11-17): đồng ý mọi đề xuất; câu 1 khóa chung, câu 2 không gửi bù, câu 3 giữ AppsFlyer trong lớp chia, câu 4 ticket nhỏ riêng, câu 5 giữ `@Singleton`, câu 6 chấp nhận và T-101 kiểm trên máy thật, câu 7 Tuấn duyệt chéo.
+  - Người phụ trách sản phẩm (Nhật) đã biết trước khi duyệt, vì plan chạm dữ liệu gửi ra ngoài (`risk-scoring.md`, mục 3).
 
 ## 10. Nhật ký thực hiện

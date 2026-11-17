@@ -25,7 +25,7 @@ Lớp theo dõi Tenjin của T-099 nhận thêm `AdFunnel` và gửi các sự k
 
 - Ánh xạ sự kiện phễu của khung sang tên Tenjin (bỏ `af_`), kể cả `inters_displayed_{N}_times` với N từ 1 tới 20.
 - Mười khóa công tắc còn lại `is_log_tenjin_*` trong `:core:analytics`, sinh lại `docs/remote-config-keys.md`.
-- Unit test: tên đúng, không tham số, công tắc tắt thì không gửi, đổi giữa phiên có hiệu lực từ sự kiện kế tiếp, không khóa hay chưa khởi động thì không gửi.
+- Unit test: tên đúng, không tham số, công tắc tắt thì không gửi, đổi giữa phiên có hiệu lực từ sự kiện kế tiếp, không khóa, chưa khởi động hay chưa có tín hiệu đồng ý đã rõ của T-099 thì không gửi; đọc đồng ý TCF ngay trước mỗi sự kiện, không đồng ý thì không gửi.
 
 **Không bao gồm:**
 

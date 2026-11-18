@@ -4,6 +4,7 @@ import android.content.Context
 import com.tenjin.android.TenjinSDK
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import javax.inject.Singleton
 import org.json.JSONObject
 
 /**
@@ -27,7 +28,8 @@ internal interface TenjinSink {
     fun event(name: String)
 }
 
-/** The Tenjin SDK 2.0.2. Called only by [TenjinTracker], after [init]. */
+/** The Tenjin SDK 2.0.2. Called only by [TenjinTracker], after [init]. One per app: it holds the SDK. */
+@Singleton
 internal class TenjinLibSink @Inject constructor(@param:ApplicationContext private val context: Context) : TenjinSink {
     private var sdk: TenjinSDK? = null
 
@@ -48,5 +50,6 @@ internal class TenjinLibSink @Inject constructor(@param:ApplicationContext priva
     }
 
     override fun event(name: String) {
+        requireNotNull(sdk).eventWithName(name)
     }
 }

@@ -11,6 +11,7 @@ import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerStartup
 import com.vglstudio.camera.pose.line.guide.core.analytics.AppsFlyerTracker
 import com.vglstudio.camera.pose.line.guide.core.analytics.AttributionConsent
 import com.vglstudio.camera.pose.line.guide.core.analytics.CountrySource
+import com.vglstudio.camera.pose.line.guide.core.analytics.FanOutAdFunnel
 import com.vglstudio.camera.pose.line.guide.core.analytics.FanOutAdMetrics
 import com.vglstudio.camera.pose.line.guide.core.analytics.FanOutAppsFlyerStartup
 import com.vglstudio.camera.pose.line.guide.core.analytics.FirebaseAdMetrics
@@ -54,7 +55,8 @@ internal abstract class AnalyticsModule {
 
 /**
  * Every ad metric goes to Firebase, then to AppsFlyer (section 8.3), then to Tenjin (ADR-1010); a failing one never
- * stops the others. The start-up of the attribution SDKs reaches AppsFlyer, then Tenjin, in the same way.
+ * stops the others. The start-up of the attribution SDKs reaches AppsFlyer, then Tenjin, in the same way; the ad
+ * funnel reaches AppsFlyer, then Tenjin, in the same way.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -68,7 +70,8 @@ internal object AdMetricsModule {
     ): AdMetrics = FanOutAdMetrics(listOf(firebase, appsFlyer, tenjin), logger)
 
     @Provides
-    fun adFunnel(appsFlyer: AppsFlyerTracker, tenjin: TenjinTracker, logger: AppLogger): AdFunnel = appsFlyer
+    fun adFunnel(appsFlyer: AppsFlyerTracker, tenjin: TenjinTracker, logger: AppLogger): AdFunnel =
+        FanOutAdFunnel(listOf(appsFlyer, tenjin), logger)
 
     @Provides
     fun attributionStartup(appsFlyer: AppsFlyerTracker, tenjin: TenjinTracker, logger: AppLogger): AppsFlyerStartup =

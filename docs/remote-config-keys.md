@@ -79,6 +79,16 @@ Mọi khóa Remote Config của bản app hiện tại (ADR-0023). File mẫu đ
 | `is_log_af_rewarded_ad_eligible` | boolean | `true` | `:core:analytics` | Sends af_rewarded_ad_eligible. AppsFlyer event switch. Name set by the template, not an AdsKit key. |
 | `is_log_af_rewarded_api_called` | boolean | `true` | `:core:analytics` | Sends af_rewarded_api_called. AppsFlyer event switch. Name set by the template, not an AdsKit key. |
 | `is_log_tenjin_ad_revenue` | boolean | `true` | `:core:analytics` | Sends the revenue of every paid AdMob impression to Tenjin. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_inters_ad_eligible` | boolean | `true` | `:core:analytics` | Sends inters_ad_eligible to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_inters_api_called` | boolean | `true` | `:core:analytics` | Sends inters_api_called to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_inters_displayed` | boolean | `true` | `:core:analytics` | Sends inters_displayed to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_inters_displayed_n_times` | boolean | `true` | `:core:analytics` | Sends inters_displayed_{N}_times to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_native_ad_displayed` | boolean | `true` | `:core:analytics` | Sends native_ad_displayed to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_native_ad_eligible` | boolean | `true` | `:core:analytics` | Sends native_ad_eligible to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_native_api_called` | boolean | `true` | `:core:analytics` | Sends native_api_called to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_rewarded_ad_displayed` | boolean | `true` | `:core:analytics` | Sends rewarded_ad_displayed to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_rewarded_ad_eligible` | boolean | `true` | `:core:analytics` | Sends rewarded_ad_eligible to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
+| `is_log_tenjin_rewarded_api_called` | boolean | `true` | `:core:analytics` | Sends rewarded_api_called to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key. |
 | `network_lost_delay_seconds` | long | `3` | `:core:network` | Seconds the device must report no network before the dialog that blocks the app shows. |
 | `poses_catalog_path` | string | `"poses/catalog/v3/catalog-512aa695.json"` | `:core:poses` | Path on R2 of the pose catalog; an invalid path falls back to the default. |
 | `in_app_review_min_days_between` | long | `30` | `:core:review` | Days between two requests of the Play review dialog. |

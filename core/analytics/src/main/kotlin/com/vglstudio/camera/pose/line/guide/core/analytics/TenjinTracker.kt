@@ -1,5 +1,6 @@
 package com.vglstudio.camera.pose.line.guide.core.analytics
 
+import com.vglstudio.camera.pose.line.guide.core.config.RemoteKey
 import com.vglstudio.camera.pose.line.guide.core.logging.AppLogger
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -15,6 +16,8 @@ import javax.inject.Singleton
  *   neither connects nor sends (opting out in the SDK would still send the connection).
  * - The revenue of every paid AdMob impression goes to Tenjin ([tenjinAdMobPayload]) through its switch, read at every
  *   event ([TenjinSwitches]). Nothing else of the ad metrics does.
+ * - Every ad funnel event goes to Tenjin by name, with no param ([toTenjinEvent]), through the same gate and its own
+ *   switch ([tenjinSwitch]); one before start or before the consent signal is dropped, not sent later.
  * - An error of the SDK is swallowed and logged by class name only, so the ads, AppsFlyer and Firebase keep working.
  *
  * Logs under the tag `Analytics` (ADR-0019): never the key, an ad unit or a value.
@@ -28,6 +31,7 @@ internal class TenjinTracker @Inject constructor(
     private val logger: AppLogger,
 ) : AppsFlyerStartup,
     AdMetrics,
+    AdFunnel,
     AttributionConsent {
     private val prepareCalled = AtomicBoolean(false)
     private val ready = AtomicBoolean(false)
@@ -63,18 +67,32 @@ internal class TenjinTracker @Inject constructor(
     /** Only the impression revenue goes to Tenjin; load, opportunity, show failure and click do not. */
     override fun log(event: AdMetricEvent) {
         if (event !is AdMetricEvent.ImpressionRevenue) return
+        send("ad revenue", REVENUE_SWITCH, prepare = { tenjinAdMobPayload(event) }) { sink.adMobImpression(it) }
+    }
+
+    /** Every ad funnel event by name only ([toTenjinEvent]); a display count outside 1 to 20 is not sent. */
+    override fun log(event: AdFunnelEvent) {
+        val name = event.toTenjinEvent() ?: return
+        send(name, event.tenjinSwitch(), prepare = { name }) { sink.event(it) }
+    }
+
+    /**
+     * The one gate of every event: key, [switch], started, consent known; then [prepare] (null sends nothing), the
+     * consent of UMP applied right before the call, and the call itself. [label] is all the log lines hold.
+     */
+    private fun <T : Any> send(label: String, switch: RemoteKey<Boolean>, prepare: () -> T?, block: (T) -> Unit) {
         when {
             !config.enabled -> return
-            !switches.isOn(REVENUE_SWITCH) -> logger.debug(TAG, "Tenjin ad revenue switched off")
-            !started.get() -> logger.debug(TAG, "Tenjin ad revenue before start")
-            !consentKnown.get() -> logger.debug(TAG, "Tenjin ad revenue before consent known")
+            !switches.isOn(switch) -> logger.debug(TAG, "Tenjin $label switched off")
+            !started.get() -> logger.debug(TAG, "Tenjin $label before start")
+            !consentKnown.get() -> logger.debug(TAG, "Tenjin $label before consent known")
             else -> {
-                val payload = tenjinAdMobPayload(event) ?: return
+                val value = prepare() ?: return
                 if (call("consent") { sink.applyConsent() } != true) {
-                    logger.debug(TAG, "Tenjin ad revenue opted out")
+                    logger.debug(TAG, "Tenjin $label opted out")
                     return
                 }
-                call("ad revenue") { sink.adMobImpression(payload) }
+                call(label) { block(value) }
             }
         }
     }

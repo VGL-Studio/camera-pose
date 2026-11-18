@@ -366,6 +366,56 @@
       "description": "Sends the revenue of every paid AdMob impression to Tenjin. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
       "valueType": "BOOLEAN"
     },
+    "is_log_tenjin_inters_ad_eligible": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends inters_ad_eligible to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_inters_api_called": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends inters_api_called to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_inters_displayed": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends inters_displayed to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_inters_displayed_n_times": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends inters_displayed_{N}_times to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_native_ad_displayed": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends native_ad_displayed to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_native_ad_eligible": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends native_ad_eligible to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_native_api_called": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends native_api_called to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_rewarded_ad_displayed": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends rewarded_ad_displayed to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_rewarded_ad_eligible": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends rewarded_ad_eligible to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
+    "is_log_tenjin_rewarded_api_called": {
+      "defaultValue": { "value": "true" },
+      "description": "Sends rewarded_api_called to Tenjin, with no param. Tenjin event switch (ADR-1010). Name set by the app, not an AdsKit key.",
+      "valueType": "BOOLEAN"
+    },
     "network_lost_delay_seconds": {
       "defaultValue": { "value": "3" },
       "description": "Seconds the device must report no network before the dialog that blocks the app shows.",

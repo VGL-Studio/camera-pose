@@ -15,8 +15,8 @@ import org.junit.Test
 /**
  * Tenjin behind the interfaces of :core:analytics (plan T-099, ADR-1010; spec ads, question 21): no key touches
  * nothing, a connection only once both start and the consent signal came, the consent of UMP applied right before
- * every connection and every revenue, the revenue of paid AdMob impressions only, one switch, errors swallowed. The
- * SDK is a fake.
+ * every connection and every revenue, the revenue of paid AdMob impressions only, one switch, errors swallowed. The ad
+ * funnel events by name (plan T-100), through the same gate, one switch each. The SDK is a fake.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TenjinTrackerTest {
@@ -312,6 +312,201 @@ class TenjinTrackerTest {
     }
 
     @Test
+    fun funnelEvent_sentByNameOnly_afterConsentCheck() = runUnconfined {
+        val tracker = started()
+        val before = sink.calls.size
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.INTERS))
+
+        assertEquals(listOf("applyConsent", "event"), sink.calls.drop(before))
+        assertEquals(listOf("inters_ad_eligible"), sink.events)
+        assertTrue(sink.payloads.toString(), sink.payloads.isEmpty())
+    }
+
+    @Test
+    fun everyFunnelEvent_sentWithItsName() = runUnconfined {
+        val tracker = started()
+        (funnelSteps() + AdFunnelEvent.InterDisplayedTimes(1) + AdFunnelEvent.InterDisplayedTimes(20))
+            .forEach { tracker.log(it) }
+
+        assertEquals(
+            listOf(
+                "inters_ad_eligible",
+                "inters_api_called",
+                "inters_displayed",
+                "rewarded_ad_eligible",
+                "rewarded_api_called",
+                "rewarded_ad_displayed",
+                "native_ad_eligible",
+                "native_api_called",
+                "native_ad_displayed",
+                "inters_displayed_1_times",
+                "inters_displayed_20_times",
+            ),
+            sink.events,
+        )
+        assertEquals(11, sink.calls.count { it == "event" })
+        sink.calls.forEachIndexed { index, call ->
+            if (call == "event") assertEquals(sink.calls.toString(), "applyConsent", sink.calls[index - 1])
+        }
+    }
+
+    @Test
+    fun interDisplayedTimesOutOfRange_notSent() = runUnconfined {
+        val tracker = started()
+        val before = sink.calls.toList()
+        tracker.log(AdFunnelEvent.InterDisplayedTimes(0))
+        tracker.log(AdFunnelEvent.InterDisplayedTimes(21))
+        assertEquals(before, sink.calls)
+
+        // Control: 20 is sent by the same tracker.
+        tracker.log(AdFunnelEvent.InterDisplayedTimes(20))
+        assertEquals(before + listOf("applyConsent", "event"), sink.calls)
+        assertEquals(listOf("inters_displayed_20_times"), sink.events)
+    }
+
+    @Test
+    fun funnelSwitchOff_notSent_thenOnAgain() = runUnconfined {
+        val tracker = started()
+        settings.set(TenjinSettings.IS_LOG_TENJIN_INTERS_AD_ELIGIBLE, false)
+        val before = sink.calls.toList()
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.INTERS))
+        assertEquals("switched off: no consent read, no event", before, sink.calls)
+
+        // Control: one switch per event, so another event is still sent.
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.NATIVE))
+        assertEquals(listOf("native_ad_eligible"), sink.events)
+
+        settings.set(TenjinSettings.IS_LOG_TENJIN_INTERS_AD_ELIGIBLE, true)
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.INTERS))
+        assertEquals(listOf("native_ad_eligible", "inters_ad_eligible"), sink.events)
+
+        settings.set(TenjinSettings.IS_LOG_TENJIN_INTERS_DISPLAYED_N_TIMES, false)
+        tracker.log(AdFunnelEvent.InterDisplayedTimes(3))
+        assertEquals(listOf("native_ad_eligible", "inters_ad_eligible"), sink.events)
+
+        settings.set(TenjinSettings.IS_LOG_TENJIN_INTERS_DISPLAYED_N_TIMES, true)
+        tracker.log(AdFunnelEvent.InterDisplayedTimes(3))
+        assertEquals(listOf("native_ad_eligible", "inters_ad_eligible", "inters_displayed_3_times"), sink.events)
+    }
+
+    @Test
+    fun revenueSwitchOff_funnelStillSent() = runUnconfined {
+        val tracker = started()
+        settings.set(TenjinSettings.IS_LOG_TENJIN_AD_REVENUE, false)
+        tracker.log(revenue())
+        tracker.log(AdFunnelEvent.Displayed(AdFunnelKind.INTERS, "INTER", UNIT, SOURCE))
+
+        assertTrue(sink.payloads.toString(), sink.payloads.isEmpty())
+        assertEquals(listOf("inters_displayed"), sink.events)
+    }
+
+    @Test
+    fun noKey_funnelNeverTouchesSdk() = runUnconfined {
+        val tracker = tracker(backgroundScope, sdkKey = "")
+        tracker.prepare()
+        tracker.start()
+        tracker.onConsentKnown()
+        allFunnelEvents().forEach { tracker.log(it) }
+        assertTrue(sink.calls.toString(), sink.calls.isEmpty())
+
+        // Control: the same calls with a key reach the SDK.
+        val withKey = FakeTenjinSink()
+        val other = tracker(backgroundScope, sink = withKey)
+        other.prepare()
+        other.start()
+        other.onConsentKnown()
+        allFunnelEvents().forEach { other.log(it) }
+        assertTrue(withKey.events.toString(), "inters_ad_eligible" in withKey.events)
+    }
+
+    @Test
+    fun funnelBeforeStart_dropped() = runUnconfined {
+        val tracker = tracker(backgroundScope)
+        tracker.prepare()
+        tracker.onConsentKnown()
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.INTERS))
+        assertEquals(listOf("init"), sink.calls)
+        assertTrue(logger.entries.any { it.message == "Tenjin inters_ad_eligible before start" })
+
+        // Control: started, the next event is sent, the dropped one is not sent later.
+        tracker.start()
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.NATIVE))
+        assertEquals(listOf("native_ad_eligible"), sink.events)
+    }
+
+    @Test
+    fun funnelBeforeConsentKnown_dropped() = runUnconfined {
+        val tracker = tracker(backgroundScope)
+        tracker.prepare()
+        tracker.start()
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.INTERS))
+        assertEquals(listOf("init"), sink.calls)
+        assertTrue(logger.entries.any { it.message == "Tenjin inters_ad_eligible before consent known" })
+
+        // Control: the consent known, the next event is sent, the dropped one is not sent later.
+        tracker.onConsentKnown()
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.NATIVE))
+        assertEquals(listOf("native_ad_eligible"), sink.events)
+    }
+
+    @Test
+    fun funnelConsentRefused_notSent() = runUnconfined {
+        sink.consent = false
+        val tracker = started()
+        val before = sink.calls.size
+        val events = allFunnelEvents()
+        events.forEach { tracker.log(it) }
+
+        assertEquals(List(events.size) { "applyConsent" }, sink.calls.drop(before))
+        assertTrue(sink.events.toString(), sink.events.isEmpty())
+        assertTrue(logger.entries.any { it.message == "Tenjin inters_ad_eligible opted out" })
+    }
+
+    @Test
+    fun funnelConsentWithdrawnThenGranted_followsEachEvent() = runUnconfined {
+        val tracker = started()
+        val consentChecks = { sink.calls.count { it == "applyConsent" } }
+        val start = consentChecks()
+
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.INTERS))
+        assertEquals(listOf("inters_ad_eligible"), sink.events)
+        assertEquals(start + 1, consentChecks())
+
+        sink.consent = false
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.NATIVE))
+        assertEquals(listOf("inters_ad_eligible"), sink.events)
+        assertEquals(start + 2, consentChecks())
+
+        sink.consent = true
+        tracker.log(AdFunnelEvent.Eligible(AdFunnelKind.REWARDED))
+        assertEquals(listOf("inters_ad_eligible", "rewarded_ad_eligible"), sink.events)
+        assertEquals(start + 3, consentChecks())
+    }
+
+    @Test
+    fun funnelSdkThrows_isSwallowedAndLogged() = runUnconfined {
+        val eventFails = FakeTenjinSink().apply { failOn = "event" }
+        started(sink = eventFails).log(AdFunnelEvent.Eligible(AdFunnelKind.INTERS))
+        val consentFails = FakeTenjinSink()
+        val connected = started(sink = consentFails)
+        consentFails.failOn = "applyConsent"
+        connected.log(AdFunnelEvent.ApiCalled(AdFunnelKind.INTERS, "INTER", UNIT, SOURCE))
+
+        assertEquals("event", eventFails.calls.last())
+        assertEquals(listOf("init", "applyConsent", "connect", "applyConsent"), consentFails.calls)
+        val failures = logger.entries.filter { it.level == LogLevel.WARN }.map { it.message }
+        assertEquals(
+            listOf(
+                "Tenjin inters_ad_eligible failed: IllegalStateException",
+                "Tenjin consent failed: IllegalStateException",
+            ),
+            failures,
+        )
+        // Never an ad unit, a format or a source in a log line.
+        assertTrue(logger.entries.none { UNIT in it.message || "INTER" in it.message || SOURCE in it.message })
+    }
+
+    @Test
     fun configToString_hidesKey() {
         val text = TenjinConfig("SECRETKEY").toString()
         assertFalse(text, "SECRETKEY" in text)
@@ -330,7 +525,20 @@ class TenjinTrackerTest {
         adapterClassName = "x.Adapter",
     )
 
+    /** Eligible, loaded, displayed, for each of interstitial, rewarded, native, in that order. */
+    private fun funnelSteps(): List<AdFunnelEvent> = AdFunnelKind.entries.flatMap { kind ->
+        listOf(
+            AdFunnelEvent.Eligible(kind),
+            AdFunnelEvent.ApiCalled(kind, "INTER", UNIT, SOURCE),
+            AdFunnelEvent.Displayed(kind, "INTER", UNIT, SOURCE),
+        )
+    }
+
+    private fun allFunnelEvents(): List<AdFunnelEvent> = funnelSteps() + AdFunnelEvent.InterDisplayedTimes(1)
+
     private companion object {
         const val SDK_KEY = "KEY"
+        const val UNIT = "ca-app-pub-test/1"
+        const val SOURCE = "com.google.ads.mediation.Adapter"
     }
 }

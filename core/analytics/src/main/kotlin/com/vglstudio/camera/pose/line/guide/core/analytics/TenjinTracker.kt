@@ -28,6 +28,7 @@ internal class TenjinTracker @Inject constructor(
     private val logger: AppLogger,
 ) : AppsFlyerStartup,
     AdMetrics,
+    AdFunnel,
     AttributionConsent {
     private val prepareCalled = AtomicBoolean(false)
     private val ready = AtomicBoolean(false)
@@ -77,6 +78,9 @@ internal class TenjinTracker @Inject constructor(
                 call("ad revenue") { sink.adMobImpression(payload) }
             }
         }
+    }
+
+    override fun log(event: AdFunnelEvent) {
     }
 
     private fun connectIfReady() {

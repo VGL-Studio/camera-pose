@@ -177,7 +177,7 @@ class RemoteConfigKeysTest {
     fun analyticsKeys_areListed() {
         assertEquals(AppsFlyerSettings.all() + TenjinSettings.all(), AppRemoteKeys.byModule[":core:analytics"])
         assertEquals(11, AppsFlyerSettings.all().size)
-        assertEquals(1, TenjinSettings.all().size)
+        assertEquals(11, TenjinSettings.all().size)
     }
 
     @Test

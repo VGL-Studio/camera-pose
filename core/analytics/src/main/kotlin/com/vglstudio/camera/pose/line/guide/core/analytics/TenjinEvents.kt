@@ -1,5 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.core.analytics
 
+import com.vglstudio.camera.pose.line.guide.core.config.RemoteKey
+
 /**
  * The AdMob impression Tenjin gets for [event] (ADR-1010; spec ads, question 21 a), or null when it is not sent: an
  * impression of another platform (MAX is not on, spec ads question 16), the zero-value fallback, or no currency. The
@@ -17,3 +19,7 @@ internal fun tenjinAdMobPayload(event: AdMetricEvent.ImpressionRevenue): Map<Str
 }
 
 private const val MICROS = 1_000_000
+
+internal fun AdFunnelEvent.toTenjinEvent(): String? = null
+
+internal fun AdFunnelEvent.tenjinSwitch(): RemoteKey<Boolean> = TenjinSettings.IS_LOG_TENJIN_AD_REVENUE

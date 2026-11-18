@@ -14,6 +14,66 @@ object TenjinSettings {
             "Name set by the app, not an AdsKit key.",
     )
 
+    val IS_LOG_TENJIN_INTERS_AD_ELIGIBLE: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_inters_ad_eligible",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_INTERS_API_CALLED: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_inters_api_called",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_INTERS_DISPLAYED: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_inters_displayed",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_REWARDED_AD_ELIGIBLE: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_rewarded_ad_eligible",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_REWARDED_API_CALLED: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_rewarded_api_called",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_REWARDED_AD_DISPLAYED: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_rewarded_ad_displayed",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_NATIVE_AD_ELIGIBLE: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_native_ad_eligible",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_NATIVE_API_CALLED: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_native_api_called",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_NATIVE_AD_DISPLAYED: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_native_ad_displayed",
+        default = true,
+        description = "Skeleton.",
+    )
+
+    val IS_LOG_TENJIN_INTERS_DISPLAYED_N_TIMES: RemoteKey<Boolean> = RemoteKey.boolean(
+        name = "is_log_tenjin_inters_displayed_n_times",
+        default = true,
+        description = "Skeleton.",
+    )
+
     /** Every key of the module. */
     fun all(): List<RemoteKey<*>> = switches()
 

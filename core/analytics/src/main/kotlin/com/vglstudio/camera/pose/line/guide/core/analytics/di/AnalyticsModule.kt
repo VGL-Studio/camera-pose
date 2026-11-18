@@ -37,9 +37,6 @@ internal abstract class AnalyticsModule {
     abstract fun bindAnalytics(impl: FirebaseAnalyticsLogger): Analytics
 
     @Binds
-    abstract fun bindAdFunnel(impl: AppsFlyerTracker): AdFunnel
-
-    @Binds
     abstract fun bindAppsFlyerSink(impl: NoOpAppsFlyerSink): AppsFlyerSink
 
     @Binds
@@ -69,6 +66,9 @@ internal object AdMetricsModule {
         tenjin: TenjinTracker,
         logger: AppLogger,
     ): AdMetrics = FanOutAdMetrics(listOf(firebase, appsFlyer, tenjin), logger)
+
+    @Provides
+    fun adFunnel(appsFlyer: AppsFlyerTracker, tenjin: TenjinTracker, logger: AppLogger): AdFunnel = appsFlyer
 
     @Provides
     fun attributionStartup(appsFlyer: AppsFlyerTracker, tenjin: TenjinTracker, logger: AppLogger): AppsFlyerStartup =

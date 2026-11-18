@@ -22,6 +22,9 @@ internal interface TenjinSink {
 
     /** Sends one paid AdMob impression ([tenjinAdMobPayload]). */
     fun adMobImpression(payload: Map<String, Any>)
+
+    /** Sends one event by name, with no value or param (ADR-1010, section 5). */
+    fun event(name: String)
 }
 
 /** The Tenjin SDK 2.0.2. Called only by [TenjinTracker], after [init]. */
@@ -42,5 +45,8 @@ internal class TenjinLibSink @Inject constructor(@param:ApplicationContext priva
 
     override fun adMobImpression(payload: Map<String, Any>) {
         requireNotNull(sdk).eventAdImpressionAdMob(JSONObject(payload))
+    }
+
+    override fun event(name: String) {
     }
 }

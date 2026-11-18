@@ -70,15 +70,18 @@ internal class FixedCountry(private val code: String) : CountrySource {
 }
 
 /**
- * The Tenjin SDK in memory (plan T-099): records every call by name, in order, and every payload sent. [consent] is
- * what [applyConsent] returns; [failOn] names the call that throws an [IllegalStateException].
+ * The Tenjin SDK in memory (plans T-099, T-100): records every call by name, in order, every payload and every event
+ * name sent. [consent] is what [applyConsent] returns; [failOn] names the call that throws an [IllegalStateException].
  */
 internal class FakeTenjinSink : TenjinSink {
-    /** `init`, `applyConsent`, `connect`, `adMobImpression`, in order. */
+    /** `init`, `applyConsent`, `connect`, `adMobImpression`, `event`, in order. */
     val calls = mutableListOf<String>()
 
     /** The payloads given to [adMobImpression], in order. */
     val payloads = mutableListOf<Map<String, Any>>()
+
+    /** The names given to [event], in order. */
+    val events = mutableListOf<String>()
 
     /** The SDK keys given to [init]. */
     val keys = mutableListOf<String>()
@@ -104,6 +107,11 @@ internal class FakeTenjinSink : TenjinSink {
     override fun adMobImpression(payload: Map<String, Any>) {
         record("adMobImpression")
         payloads += payload
+    }
+
+    override fun event(name: String) {
+        record("event")
+        events += name
     }
 
     private fun record(call: String) {

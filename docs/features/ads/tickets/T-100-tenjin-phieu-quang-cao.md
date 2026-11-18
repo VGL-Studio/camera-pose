@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # câu 21, ý b, c
 scenarios: [KB-T1]           # tiêu chí sự kiện phễu và công tắc từ xa
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: S
 depends_on: [T-099]

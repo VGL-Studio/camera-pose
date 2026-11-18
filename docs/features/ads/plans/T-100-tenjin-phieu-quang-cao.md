@@ -1,7 +1,7 @@
 ---
 ticket: T-100
 title: Gửi sự kiện phễu quảng cáo sang Tenjin, mỗi sự kiện một công tắc từ xa
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn: để trống
 risk_level: high             # low | medium | high
@@ -219,3 +219,15 @@ Thử thêm, không bắt buộc, cho phần dựng của `AdMetricsModuleTest` 
   - Người phụ trách sản phẩm (Nhật) đã biết trước khi duyệt, vì plan chạm dữ liệu gửi ra ngoài (`risk-scoring.md`, mục 3).
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261117-02, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #367, commit `53130c5`, 2026-11-18 07:15 UTC).
+- **Nhánh, PR:** `claude/T-100-tenjin-phieu-quang-cao` (từ `origin/main` `6dd929e`), https://github.com/VGL-Studio/camera-pose/pull/367.
+- **Đã làm:** bước 1 tới 8 của mục 3.1, đúng 15 file của mục 3.2; sinh lại `docs/remote-config-keys.md`, `docs/remote-config-template.json` (chỉ thêm mười khóa `is_log_tenjin_*`, không dòng nào khác đổi). Commit: `e8cd320` (test viết trước, kèm khung rỗng; bỏ `AnalyticsModule.bindAdFunnel` cùng lúc thêm `AdMetricsModule.adFunnel` trả `AppsFlyerTracker`), `7d8978e` (code). Dòng `bindAppsFlyerSink(impl: NoOpAppsFlyerSink)` giữ nguyên. Phiên chính tự làm bước 3 tới 5 trong worktree ngang hàng `../task-T-100` (cỡ S, không giao phiên con).
+- **Test viết trước:** 20 test mới (`TenjinEventsTest` 3, `TenjinTrackerTest` 11, `FanOutAdFunnelTest` 2, `AdMetricsModuleTest` 1, `TenjinSettingsTest.revenueKey_descriptionUnchanged`) cùng ba câu dữ liệu theo mục 3.5 (`RemoteConfigKeysTest` 1 thành 11, hai câu đối chứng của `TenjinSettingsTest`). Trên khung rỗng 20 test đỏ đúng lý do (tên `null`, sink không được gọi, danh sách khóa một tên, lớp chia không gửi); `revenueKey_descriptionUnchanged` là test chặn, qua ngay như plan nói. Test viết chặt bằng đối chứng: `noKey_funnelNeverTouchesSdk`, `interDisplayedTimesOutOfRange_notSent`, `funnelSwitchOff_notSent_thenOnAgain`, `funnelBeforeStart_dropped`, `funnelBeforeConsentKnown_dropped` (5). Test JVM mọi module trên khung rỗng: chỉ các test trên đỏ. Không file test nào đổi sau commit test.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 3 ghi chú: (1) mỗi sự kiện phễu bị chặn ở cổng ghi một dòng debug, logcat có thể dày hơn khi một khóa bị tắt từ xa (đúng mẫu `AppsFlyerTracker`, giữ); (2) `@Singleton` và `TenjinLibSink.event` không có test JVM (ngoại lệ đã duyệt, phần gửi thật kiểm ở T-101); (3) nhật ký đi qua PR báo cáo.
+- **Kết quả CI:** `scripts/check.sh` trên máy qua (3592 test JVM, 0 lỗi, 178 ảnh). Lần chạy đầu dừng ở 2 test script `device-scenario` (`a hanging am start counts as no process and is retried`, `the file deadline also leaves room for the evidence`), test đo thời gian không liên quan task; `scripts/tests/run.sh` chạy lại qua, `check.sh` lần hai qua. `pr-check` xanh trên `7d8978e` (lần chạy 44255503564), một vòng CI.
+- **Lệch so với plan:** Không có. Chi tiết plan không nêu: hàm dựng sự kiện trong test tên `funnelSteps()`/`allFunnelEvents()` thay vì `funnel(...)`, cùng mã giả của mục 4; test kiểm thêm các dòng debug `Tenjin <tên> before start`, `... before consent known`. Ngoài mục 3.2: không có.
+- **Việc còn lại:** T-101 (máy thật, bản có khóa Tenjin thử: bảng sự kiện Tenjin có `inters_ad_eligible`, `inters_api_called`, `inters_displayed`, `inters_displayed_1_times`; câu 6 của mục 8, sự kiện trước `connect` khi đồng ý cấp giữa phiên). Ticket nhỏ riêng cho `.claude` trong `SKIPPED_DIRS` của `TenjinSdkUseTest`, `NoAppsFlyerSdkTest` (câu 4 của mục 8).
+- **Cần người xem:** kiểm tay ở T-101 như trên.

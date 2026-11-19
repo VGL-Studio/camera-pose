@@ -3769,7 +3769,8 @@ release_fails_with() {
 }
 write_release_properties() {
   printf '%s\n' "admobAppId=$1" "adUnits=$2" "assetsBaseUrl=$3" "uploadKeyAlias=upload" "appsFlyerDevKey=${4-AbCdEf0123456789XyZ}" \
-    "maxSdkKey=${5-FAKE_MAX_KEY_0123456789}" "maxAdUnits=${6-}" > "$release_dir/release.properties"
+    "maxSdkKey=${5-FAKE_MAX_KEY_0123456789}" "maxAdUnits=${6-}" "tenjinSdkKey=${7-FAKE_TENJIN_KEY_0123456789}" \
+    > "$release_dir/release.properties"
 }
 mkdir -p "$release_dir"
 release_fails_with "missing files" "/release/google-services.json"
@@ -3946,8 +3947,8 @@ for prop in $exported_props; do
   [[ "$prop" == appsFlyerDevKey && "$repo_has_appsflyer" == no ]] && continue
   grep -q "gradleProperty(\"$prop\")" app/build.gradle.kts || unread_props="$unread_props $prop"
 done
-# The count guards against a grep that finds nothing and so passes: release.sh exports 10 properties today.
-expect "contract: app/build.gradle.kts reads every Gradle property that release.sh exports" "10 none" \
+# The count guards against a grep that finds nothing and so passes: release.sh exports 11 properties today.
+expect "contract: app/build.gradle.kts reads every Gradle property that release.sh exports" "11 none" \
   "$(wc -w <<< "$exported_props" | tr -d ' ') ${unread_props:-none}"
 # The other way: every property the production build requires is one that release.sh exports, so renaming one
 # in the build file fails here instead of on release night.
@@ -4033,6 +4034,24 @@ write_release_properties "ca-app-pub-1234567890123456~1111111111" \
   "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/" "AbCdEf0123456789XyZ" ""
 expect "release.sh --check-only: without a MAX key the MAX line says MAX is not used" 1 \
   "$(release_check_only | grep -c '^   MAX: không dùng (không có maxSdkKey)$' || true)"
+# Tenjin (ADR-1010): the copy has the Tenjin SDK of :core:analytics, so the key is used when given, never printed.
+expect "release.sh --check-only: prints the Tenjin line without the key" "1 0" \
+  "$(grep -c '^   Tenjin: có khóa$' <<< "$rl_out" || true) $(grep -c 'FAKE_TENJIN_KEY_0123456789' <<< "$rl_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" \
+  "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/" "AbCdEf0123456789XyZ" \
+  "FAKE_MAX_KEY_0123456789" "" ""
+rl_tenjin_out="$(release_check_only)"
+expect "release.sh --check-only: without a Tenjin key it warns, says Tenjin is not used and goes on" "1 1 1" \
+  "$(grep -c '^CHÚ Ý: không có tenjinSdkKey' <<< "$rl_tenjin_out" || true) \
+$(grep -c '^   Tenjin: không dùng (không có tenjinSdkKey)$' <<< "$rl_tenjin_out" || true) \
+$(grep -c '^== Đã kiểm xong, chưa build (--check-only)' <<< "$rl_tenjin_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" \
+  "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/" "AbCdEf0123456789XyZ" \
+  "FAKE_MAX_KEY_0123456789" "" 'FAKE_TENJIN_SECRET"X'
+rl_tenjin_out="$(release_check_only)"
+expect "release.sh --check-only refuses a Tenjin key with odd characters, without printing it" "1 0 0" \
+  "$(grep -c 'tenjinSdkKey sai dạng' <<< "$rl_tenjin_out" || true) \
+$(grep -c '^== Đã kiểm xong' <<< "$rl_tenjin_out" || true) $(grep -c 'FAKE_TENJIN_SECRET' <<< "$rl_tenjin_out" || true)"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" \
   "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/"
 rl_test_units="$(grep 'Mã quảng cáo thử (không có doanh thu):' <<< "$rl_out" | sed 's/.*doanh thu)://')"

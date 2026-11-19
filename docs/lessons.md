@@ -997,3 +997,15 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:** `docs/auto-run.md` bước 6, dòng Nên sửa (và ADR-0033): điểm chỉ về nội dung tài liệu (`docs/`, không phải code hay test) trong file của mục 3.2 hay phần ngoài mục 3.2 được phép thì sửa không cần test viết trước, giống L12, khi phần sửa không đổi điều plan đã duyệt nói (hay đúng hơn ý của plan); vòng rà soát lại nhận `git diff` của phần sửa và câu của plan; ghi vào mục Quyết định AI đã tự làm.
 - **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#530 (2026-11-16).
 - **Kiểm chứng:**
+
+### L-108: phiên local trên máy Mac đứng yên hàng giờ và test đo thời gian của script đỏ, có vẻ vì máy ngủ
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261117-02, task T-100, bước 5.
+- **Chuyện gì:** phiên `local` chạy `scripts/check.sh` của nhánh task ở chế độ nền. Lần chạy kéo dài khoảng 2 giờ 40, trong khi lần chạy đầu phiên mất 8 phút và lần chạy lại mất khoảng 12 phút. Nó dừng ở phần test của script với 2 test `device-scenario` đo thời gian; hai test này đã qua trên nhánh chính cùng buổi, và task không chạm `scripts/`. Phiên đứng yên tới khi dev nhắn "tiếp tục". Có vẻ máy ngủ khi màn hình tắt: không lệnh nào của phiên giữ máy thức, và quy trình không nhắc việc này cho phiên `local`.
+- **Bằng chứng:** log `check.sh` bắt đầu khoảng 01:31 UTC, tệp sửa lần cuối lúc 04:11 UTC. Lỗi: `FAIL - device-scenario: a hanging am start counts as no process and is retried: expected '0 1 2 1 yes', got '0 1 2 1 no'`, `FAIL - device-scenario: the file deadline also leaves room for the evidence: expected '1', got '0'`, `2 script test(s) failed`. Chạy lại: `scripts/tests/run.sh` qua; `check.sh` lần hai `== Cổng chất lượng: QUA` lúc 06:57 UTC.
+- **Thêm:** cuối phiên, `wait-run.sh --workflow device-session.yml --since 2026-11-18T07:23:03Z` chờ 40 phút rồi báo "chưa thấy lần chạy nào", dù lần chạy 44258447594 được tạo lúc 07:23:04Z và xanh lúc 07:55. Một lệnh `gh api` ngay sau đó cũng hết giờ chờ 120 giây. Phiên lại đứng yên qua đêm tới khi dev nhắn "tiếp tục" (2026-11-19 01:2x UTC), nên `staging` phát sau giới hạn 24 giờ.
+- **Đề xuất sửa:**
+  - `docs/ops/session-capabilities.md`, hay dòng phiên `local` ở `auto-run.md` mục 2: phiên `local` chạy dưới `caffeinate -i` (hoặc dev đặt máy không ngủ) và ghi điều đó vào mục Kiểm tra đầu phiên. `scripts/local-setup.sh --check` có thể nhắc việc này.
+  - Bảng tra lỗi: thêm một dòng `chay-lai` cho test `device-scenario` đo thời gian bị đỏ trên máy dev.
+- **Áp dụng:**
+- **Kiểm chứng:**

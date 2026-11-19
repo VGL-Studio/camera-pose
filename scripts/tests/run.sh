@@ -3848,6 +3848,18 @@ no_af_out="$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/nul
 expect "release.sh: an app without the MAX adapter warns that its MAX key is not used, never prints it" "1 1 0" \
   "$(grep -c '^== Kiểm tra commit phát hành' <<< "$no_af_out" || true) \
 $(grep -c '^CHÚ Ý: .*maxSdkKey không được dùng' <<< "$no_af_out" || true) $(grep -c 'FAKE_MAX_SECRET_0123456789' <<< "$no_af_out" || true)"
+# The same copy has no Tenjin SDK either (ADR-1010): a Tenjin key given is not used and never printed.
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "" "" "" "FAKE_TENJIN_SECRET_X"
+no_af_out="$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
+expect "release.sh: an app without the Tenjin SDK warns that its Tenjin key is not used, never prints it" "1 1 0" \
+  "$(grep -c '^== Kiểm tra commit phát hành' <<< "$no_af_out" || true) \
+$(grep -c '^CHÚ Ý: .*tenjinSdkKey không được dùng' <<< "$no_af_out" || true) $(grep -c 'FAKE_TENJIN_SECRET_X' <<< "$no_af_out" || true)"
+# The Tenjin SDK declared directly by its Maven coordinates counts: without a key the release warns it sends nothing.
+printf '%s\n' 'dependencies {' '    implementation("com.tenjin:android-sdk:2.0.2")' '}' > "$no_af/core/analytics/build.gradle.kts"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" "" "" "" ""
+no_af_out="$("$no_af/scripts/release.sh" --config "$release_dir" 2>&1 < /dev/null || true)"
+expect "release.sh: the Tenjin SDK given by its Maven coordinates is found, so a missing key is reported" "1 1" \
+  "$(grep -c '^CHÚ Ý: không có tenjinSdkKey' <<< "$no_af_out" || true) $(grep -c '^== Kiểm tra commit phát hành' <<< "$no_af_out" || true)"
 # The SDK declared directly by its Maven coordinates counts too.
 printf '%s\n' 'dependencies {' '    implementation("com.appsflyer:af-android-sdk:6.18.1")' '}' > "$no_af/core/analytics/build.gradle.kts"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "https://cdn.example.vn/" ""
@@ -4049,8 +4061,10 @@ write_release_properties "ca-app-pub-1234567890123456~1111111111" \
   "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/" "AbCdEf0123456789XyZ" \
   "FAKE_MAX_KEY_0123456789" "" 'FAKE_TENJIN_SECRET"X'
 rl_tenjin_out="$(release_check_only)"
-expect "release.sh --check-only refuses a Tenjin key with odd characters, without printing it" "1 0 0" \
+expect "release.sh --check-only refuses a Tenjin key with odd characters, before the commit step, without printing it" \
+  "1 0 0 0" \
   "$(grep -c 'tenjinSdkKey sai dạng' <<< "$rl_tenjin_out" || true) \
+$(grep -c '^== Kiểm tra commit phát hành' <<< "$rl_tenjin_out" || true) \
 $(grep -c '^== Đã kiểm xong' <<< "$rl_tenjin_out" || true) $(grep -c 'FAKE_TENJIN_SECRET' <<< "$rl_tenjin_out" || true)"
 write_release_properties "ca-app-pub-1234567890123456~1111111111" \
   "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/"

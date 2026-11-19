@@ -21,6 +21,7 @@
 #                          appsFlyerDevKey=<AppsFlyer dev key> (ADR-0027), only when the app has the AppsFlyer SDK
 #                          maxSdkKey=<AppLovin MAX SDK key>, optional: without it the release runs AdMob only
 #                          maxAdUnits=<slot>=<MAX ad unit>;<slot>=..., optional: a slot without a unit uses AdMob only
+#                          tenjinSdkKey=<Tenjin SDK key> (ADR-1010), optional: without it the release sends nothing to Tenjin
 # Passwords of the upload key are asked for when the script runs; they are never stored in the folder.
 #
 # Only commits of main that passed main-guard.yml are built (commits touching docs only reuse the run of
@@ -30,7 +31,7 @@
 # release owner allows it for one session (2026-10-23: native formats and staging-only placements; 2026-10-24:
 # placements with attributes; 2026-10-26: AppsFlyer dev key, Google test units for placements without a real unit;
 # 2026-10-29: the AppsFlyer dev key only for an app with the AppsFlyer SDK; --check-only;
-# 2026-11-15: AppLovin MAX key and ad units).
+# 2026-11-15: AppLovin MAX key and ad units; 2026-11-19: Tenjin SDK key).
 # Messages are in Vietnamese for the team; comments are in English.
 
 set -euo pipefail
@@ -147,6 +148,7 @@ upload_key_alias="$(property uploadKeyAlias)"
 appsflyer_dev_key="$(property appsFlyerDevKey)"
 max_sdk_key="$(property maxSdkKey)"
 max_ad_units="$(property maxAdUnits)"
+tenjin_sdk_key="$(property tenjinSdkKey)"
 
 [[ "$admob_app_id" =~ ^ca-app-pub-[0-9]+~[0-9]+$ ]] ||
   die "admobAppId phải có dạng ca-app-pub-<số>~<số> (mã ứng dụng AdMob, không phải mã quảng cáo)."
@@ -200,6 +202,25 @@ fi
 if [ -n "$max_sdk_key" ]; then
   max_unit_count="$(tr ';' '\n' <<< "$max_ad_units" | grep -c . || true)"
   max_summary="có khóa, $max_unit_count khe có mã đơn vị"
+fi
+# Tenjin is optional (ADR-1010): without the key the release never starts Tenjin and sends nothing to it. The key
+# goes into a Java string of BuildConfig, so odd characters stop here; it is never printed.
+[ -z "$tenjin_sdk_key" ] || [[ "$tenjin_sdk_key" =~ ^[A-Za-z0-9_-]+$ ]] ||
+  die "tenjinSdkKey sai dạng trong release.properties: chỉ chữ, số, _ và -."
+if grep -rqsE --include='*.gradle.kts' --exclude-dir=build --exclude-dir=.gradle \
+  'libs\.tenjin\.|"com\.tenjin:' .; then
+  if [ -n "$tenjin_sdk_key" ]; then
+    tenjin_summary="có khóa"
+  else
+    echo "CHÚ Ý: không có tenjinSdkKey trong release.properties: bản này không gửi gì sang Tenjin."
+    tenjin_summary="không dùng (không có tenjinSdkKey)"
+  fi
+else
+  if [ -n "$tenjin_sdk_key" ]; then
+    echo "CHÚ Ý: app không có SDK Tenjin, tenjinSdkKey không được dùng (release.properties)."
+    tenjin_sdk_key=""
+  fi
+  tenjin_summary="không có trong app"
 fi
 
 # 2. The commit: on main, and checked green by main-guard.yml.
@@ -256,6 +277,7 @@ cat << EOF
    Vị trí quảng cáo: $(tr '\n' ' ' <<< "${placements:-không có}")
    Mã quảng cáo thử (không có doanh thu): ${test_unit_keys:-không có}
    MAX: $max_summary
+   Tenjin: $tenjin_summary
 EOF
 
 if [ "$check_only" = "yes" ]; then
@@ -304,9 +326,10 @@ cp "$config_dir/google-services.json" "$work/src/app/src/production/google-servi
   export ORG_GRADLE_PROJECT_appsFlyerDevKey="$appsflyer_dev_key"
   export ORG_GRADLE_PROJECT_maxSdkKey="$max_sdk_key"
   export ORG_GRADLE_PROJECT_maxAdUnits="$max_ad_units"
+  export ORG_GRADLE_PROJECT_tenjinSdkKey="$tenjin_sdk_key"
   ./gradlew --no-daemon --console=plain :app:bundleProductionRelease
 )
-unset keystore_password key_password appsflyer_dev_key max_sdk_key max_ad_units
+unset keystore_password key_password appsflyer_dev_key max_sdk_key max_ad_units tenjin_sdk_key
 
 # 6. Check the bundle is signed, keep it with its mapping file, and mark the version as released.
 [ -f "$work/src/$BUNDLE" ] || die "không tìm thấy $BUNDLE sau khi build."

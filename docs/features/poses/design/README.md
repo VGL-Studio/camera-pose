@@ -41,7 +41,7 @@ Từ T-079 (câu hỏi 5 của spec, 2026-10-30), trạng thái `ad` vẽ thanh 
 
 Thiết kế trạng thái `ad` vẽ lại ngày 2026-11-16 theo thẻ native nhỏ mới của khung (component `Native/Small` của dự án mẫu): khe 126 ở khung chuẩn thay khe 80; Nhật duyệt trong phiên ("Duyệt").
 
-Vẽ lại ngày 2026-11-21 theo thẻ native nhỏ hai tầng của khung (component `Native/Small` của dự án mẫu, đợt T-108 của mẫu; spec ads, câu 22, ý a): component `NativeAdSmall` sửa tại chỗ, cao 106 ở cỡ chữ mặc định ở mọi khung (lề trái phải 12, trên dưới 6; hàng trên 44 gồm icon 44, cách 12, cột chữ: nhãn "Ad" 13 sp trước tiêu đề 16/22 sp một dòng, cách 4, nhà quảng cáo hay mô tả 13/18 sp một dòng, chừa 16 bên phải cho AdChoices; cách 6; nút ngang hết thẻ cao 44, chữ 18 sp; viền 1 vẽ phía trong). Khe ở y 769 tới 875 ở khung 411 x 891, y 719 tới 825 ở khung mở gập; nội dung chừa 122 ở đáy. Chờ Nhật duyệt.
+Vẽ lại ngày 2026-11-21 theo thẻ native nhỏ hai tầng của khung (component `Native/Small` của dự án mẫu, đợt T-108 của mẫu; spec ads, câu 22, ý a): component `NativeAdSmall` sửa tại chỗ, cao 106 ở cỡ chữ mặc định ở mọi khung (lề trái phải 12, trên dưới 6; hàng trên 44 gồm icon 44, cách 12, cột chữ: nhãn "Ad" 13 sp trước tiêu đề 16/22 sp một dòng, cách 4, nhà quảng cáo hay mô tả 13/18 sp một dòng, chừa 16 bên phải cho AdChoices; cách 6; nút ngang hết thẻ cao 44, chữ 18 sp; viền 1 vẽ phía trong). Khe ở y 769 tới 875 ở khung 411 x 891, y 719 tới 825 ở khung mở gập; nội dung chừa 122 ở đáy. Nhật duyệt ngày 2026-11-21 trong phiên (chọn "Duyệt thiết kế" khi được hỏi duyệt thiết kế theo PR #374, commit 7bdb191).
 
 ## 2. Bảng chữ
 

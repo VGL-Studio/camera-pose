@@ -1,6 +1,6 @@
 ---
 feature: poses
-status: changed
+status: confirmed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -8,7 +8,7 @@ requests:
   - requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-16
+confirmed: 2026-11-21
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -309,3 +309,4 @@ Tư thế premium (yêu cầu 2026-10-31, câu 6): catalog có thêm trường `
 | 2026-11-21 | AI | Câu 22 của spec ads, ý b và ý e (Nhật trả lời trong phiên): tiêu chí 3 của KB-6 chừa chỗ khung chờ khi khe đang tải lượt đầu; thêm tiêu chí thư viện không có lớp nổi khi `is_show_native_collap` bật. Chuyển `changed`, chờ Nhật xác nhận |
 | 2026-11-21 | AI | Theo rà soát độc lập PR #374 và lần hỏi lại Nhật (câu 22, ý e, g của spec ads): tiêu chí lớp nổi của thư viện theo MC-13 (chỉ khi ô lưới bật); tiêu chí 2 thêm chi tiết không có lớp nổi; tiêu chí 3 gồm cả khung banner. Chờ Nhật xác nhận |
 | 2026-11-21 | AI | Theo rà soát lại PR #374: bảng vị trí ghi `pose_detail_bottom` không có lớp nổi (câu 22, ý g của spec ads); tiêu chí 3 của KB-6 nói rõ "lỗi trước quảng cáo đầu". Không đổi câu trả lời nào. Chờ Nhật xác nhận |
+| 2026-11-21 | Nhật | Xác nhận phần đổi theo câu 22 của spec ads: KB-6 (tiêu chí 2, 3, lớp nổi) và bảng vị trí của spec poses, theo PR #374 ở commit 7bdb191 (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận spec ads và spec poses theo nội dung PR #374 ở commit 7bdb191. Chuyển lại `confirmed` |

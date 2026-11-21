@@ -1,6 +1,6 @@
 ---
 feature: ads
-status: changed              # draft | confirmed | changed
+status: confirmed            # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
@@ -11,7 +11,7 @@ requests:
   - requests/2026-11-21-dong-bo-quang-cao-mau-7bf8c3b.md
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
-confirmed: 2026-11-17
+confirmed: 2026-11-21
 ---
 
 # SPEC: CHUYỂN QUẢNG CÁO CỦA APP SANG KHUNG ADSKIT CỦA DỰ ÁN MẪU
@@ -382,3 +382,4 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-21 | Nhật | Trả lời câu 22 ý b, c, d, f theo đề xuất của AI (AI ghi): nhận khoảng chừa khi đang tải, khe nhường chỗ lớp thu gọn, một quảng cáo neo đáy mỗi màn; hàm biết trước hành động có thưởng có trong khung, app không dùng. Lời của Nhật: chọn "Nhận như mẫu" (ý b) và "Nhận cả ba" (ý c, d, f) khi được hỏi. Sửa tiêu chí 3 và thêm tiêu chí lớp nổi ở KB-6 của spec poses. Chờ Nhật xác nhận |
 | 2026-11-21 | Nhật | Theo rà soát độc lập PR #374 (AI ghi): câu 22 ý e ghi sai luật MC-13 (thư viện chỉ mất lớp nổi khi ô lưới bật); hỏi lại, Nhật chọn "Theo MC-13". Thêm ý g: chi tiết tư thế không có lớp nổi, Nhật chọn "Không có lớp nổi". Sửa ý a (app không dùng medium; nhãn "Ad", CL-05 theo cỡ chữ), ý b (khe banner cũng chừa khi đang tải), ý c (khi nào lớp tính là mở), dòng ở mục 2. Chờ Nhật xác nhận |
 | 2026-11-21 | AI | Theo rà soát lại PR #374 vòng 1, 2: câu 22 ý g đặt sau ý f, nêu các bước lớp nổi của `manual-test.md` phải sửa; ý a ghi 8 ảnh thiết kế. Thiết kế trạng thái `ad` đã vẽ lại trên Figma, chờ Nhật duyệt. Không đổi câu trả lời nào. Chờ Nhật xác nhận |
+| 2026-11-21 | Nhật | Xác nhận phần đổi theo câu 22 của spec ads: câu 22 (ý a tới g) và mục 2 của spec ads, theo PR #374 ở commit 7bdb191 (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận spec ads và spec poses theo nội dung PR #374 ở commit 7bdb191. Chuyển lại `confirmed` |

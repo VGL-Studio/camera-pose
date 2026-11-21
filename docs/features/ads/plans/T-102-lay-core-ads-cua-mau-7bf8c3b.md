@@ -63,9 +63,9 @@ ADR liên quan: ADR-0045 (khung quảng cáo), ADR-0030 (đồng bộ dự án m
 - `d679393d` `docs/template-sync.txt`: bỏ `hold=` của ba đường dẫn, ghi hai phần riêng của app trong `core/ads`.
 - `46e13a14`: 10 test mới của mẫu đổi `SAMPLE_NATIVE_SMALL` thành `POSES_BOTTOM`, kể cả mã trong câu so dòng log (`BottomAdBarTest`, `AdsControllerNativeStockTest`), theo quy ước ở `docs/template-sync.txt`. Bảng khóa Remote Config sinh lại: chỉ đổi mã ADR trong mô tả `is_enable_consent_shortcut`, không có khóa mới.
 
-Code của mẫu nằm trên nhánh của app nên phiên đọc được. Plan không dán diff khoảng 5 nghìn dòng (câu hỏi 3).
+Code của mẫu nằm trên nhánh của app nên phiên đọc được. Plan không dán diff khoảng 5 nghìn dòng (câu hỏi 2).
 
-Nhánh task: `claude/T-102-lay-core-ads` tạo từ `origin/template-sync/take-ads-7bf8c3b`, rồi `git merge origin/main`. Có xung đột ngoài `docs/template-sync.txt`, `docs/foundation.md` và hai bảng khóa Remote Config thì dừng (mục 7).
+Nhánh task: `claude/T-102-lay-core-ads` tạo từ commit `46e13a14` (`git switch -c claude/T-102-lay-core-ads 46e13a14`, không từ tên nhánh, để commit đẩy thêm lên nhánh take sau khi duyệt không vào task), rồi `git merge origin/main`. Có xung đột ngoài `docs/template-sync.txt`, `docs/foundation.md` và hai bảng khóa Remote Config thì dừng (mục 7).
 
 Các việc của phiên trên nhánh đó:
 
@@ -74,15 +74,23 @@ Các việc của phiên trên nhánh đó:
      - `ReviewScreenTest.adBar_slotAtBottom_photoShrinks_saveMovesUp` thành `adBar_slotAtBottom_photoKept_saveMovesUp`;
      - `ReviewScreenUnfoldedTest.adBar_slotFullWidth_photoShrinks_saveAbove` thành `adBar_slotFullWidth_photoKept_saveAbove`.
    - Hằng `SLOT_HEIGHT = 126f` của `PosesScreenTest` thành `106f`.
-   - Chú thích ghi số cũ (126, 142, 158, 169, 200, 216) trong các file test ở mục 3.2 đổi theo số mới.
+   - Chú thích ghi số cũ trong các file test ở mục 3.2 đổi theo số mới, để chú thích không trái câu khẳng định:
+     - mọi chú thích ghi 126, 142, 158, 169, 200, 216 của khe hay khoảng chừa;
+     - `PoseDetailScreenTest.kt`, chú thích trước "slot starts where the bar ends": thanh nút kết thúc ở y 769 (673 + 96), thay 749 (653 + 96);
+     - `ReviewScreenUnfoldedTest.kt`, chú thích của `landscape_adBar_saveInsideWindow`: cột phải cao 314 (khe ở y 398), từ ngưỡng 264 trở lên nên hàng nút phụ xếp dọc, thay "251 high … side by side";
+     - `ReviewScreenUnfoldedTest.kt`, KDoc của `assertCompactColumn`: thông báo lỗi từ `errorTop` tới 306, thay 243;
+     - `ReviewScreenUnfoldedTest.kt`, chú thích của `landscape_adBar_thresholdBoundary`: cột cao 387 khi có khe (từ 64 tới đáy nút Lưu 451), thay 296;
+     - "Numbers from section 3.5 of plan T-098" ở `ReviewScreenTest.kt` và `ReviewScreenUnfoldedTest.kt` thành "plan T-102".
 2. **Ý g:** `AdPlacement.POSE_DETAIL_BOTTOM` khai báo `collapsibleLayer = false`, như `REVIEW_BOTTOM`. KDoc của dòng dẫn spec ads, câu 22, ý g. Test `AdPlacementAppTest` viết lại (mục 3.5).
-3. **Ý e:** `PosesRoute` bọc phần thân bằng `InContentAds(listOf(AdPlacement.POSES_IN_COLLECTION)) { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) { ... } }`. `InContentAds` đặt ở gốc của đích, bên ngoài thanh đáy, theo KDoc của nó. `rememberInListAds` giữ nguyên chỗ cũ. Test quét mã mới `PosesInContentAdsTest` (mục 4, câu hỏi 1).
+3. **Ý e:** `PosesRoute` bọc phần thân bằng `InContentAds(listOf(AdPlacement.POSES_IN_COLLECTION)) { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) { ... } }`. `InContentAds` đặt ở gốc của đích, bên ngoài thanh đáy, theo KDoc của nó. `rememberInListAds` giữ nguyên chỗ cũ. Test quét mã mới `PosesInContentAdsTest` (mục 4, câu hỏi 1). Danh sách của `InContentAds` không có `POSES_BOTTOM` (KDoc của nó cấm liệt kê native nhỏ của chính thanh đáy).
 4. **Ảnh chuẩn:** ghi lại đúng 12 ảnh ở mục 3.2 (lệnh ở mục 4). Ảnh khác không đổi: lần chạy `check.sh` trên nhánh gộp thấy chỉ 12 ảnh này đỏ (mục 4.1).
 5. **`design-compare.sh`** cho poses, settings, camera; commit `design/review/` của ba feature.
 6. **`docs/ops/manual-test.md`, mục 11.1:**
    - Bước 1, 9, 10: "khoảng 126 dp (khoảng 106 dp trên máy rộng 360 dp)" thành "khoảng 106 dp (cao hơn khi đặt chữ lớn)".
    - Bước 10, dòng "thư viện có lớp nổi, màn xem lại không có": đổi thành "Cài đặt có lớp nổi; thư viện không có (ô quảng cáo trong lưới đang bật, log `Floating ads off on this screen: in-content ad on (poses_in_collection)`); chi tiết và màn xem lại không có (log `Bottom bar pose_detail_bottom: slot=NATIVE collapsible=false`, `Bottom bar review_bottom: slot=NATIVE collapsible=false`)".
-   - Hai dòng máy gập (bước 10) làm ở màn Cài đặt thay thư viện. Chuỗi log `Collapsible poses_bottom not shown` thành `Collapsible settings_bottom not shown`.
+   - Hai dòng máy gập (bước 10) làm ở màn Cài đặt thay thư viện. Chuỗi log `Collapsible poses_bottom not shown` thành `Collapsible settings_bottom not shown`. Lớp vẫn cao khoảng 400 dp ở khung gập đứng dọc (tổng hai phần 400 dp từ cạnh ngắn 600 dp trở lên, `ads-business-rules.md` mục 5.7).
+   - Thêm một dòng mới cuối bước 10: "Đặt `is_show_poses_in_collection = false` cùng `is_show_native_collap = true` trên Firebase staging, đóng hẳn app rồi mở lại, vào thư viện: không có ô quảng cáo trong lưới, có lớp nổi; log không có dòng `Floating ads off on this screen`. Trả hai khóa về như cũ."
+   - Nguồn của các dòng log mà bước tay chờ (đối chiếu khi viết bước): `Floating ads off on this screen: in-content ad on (poses_in_collection)` do `inContentBlockLog` của `InContentAds.kt` ghi, một lần mỗi lần vào màn, khi `is_show_poses_in_collection` bật (không cần có quảng cáo hay đồng ý); `Bottom bar <mã>: slot=NATIVE collapsible=false` do `BottomAdBar.kt` ghi khi thanh đáy dựng lớp, với vị trí khai báo `collapsibleLayer = false`; `Collapsible settings_bottom not shown: window ... dp has no room` do `CollapsibleNativeAd.kt` ghi khi cửa sổ không đủ chỗ (CL-05). Vì khóa lấy lúc mở app, mỗi bước đổi khóa có "đóng hẳn app rồi mở lại".
 7. **`docs/template-sync.txt`:** nhánh đã sửa; phiên chỉ kiểm lại sau khi gộp `origin/main`.
 8. `docs/ops/ads-guide.md`, `docs/ops/ads-business-rules.md`: không sửa thêm (đã gộp trên nhánh).
 
@@ -96,7 +104,7 @@ Dòng thư mục (kết thúc bằng `/`) là phần lấy nguyên từ nhánh t
 | --- | --- | --- |
 | Sửa | `core/ads/` | Lấy nguyên từ nhánh take (74 file đổi từ `bc3e80e`, gồm ảnh chuẩn của `core/ads`, 10 test đổi tên vị trí) |
 | Sửa | `core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt` | `POSE_DETAIL_BOTTOM(..., collapsibleLayer = false)`, KDoc dẫn câu 22, ý g |
-| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacementAppTest.kt` | Câu khẳng định của `reviewBottom_hasNoCollapsibleLayer` viết lại, đổi tên (mục 3.5) |
+| Sửa | `core/ads/src/test/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacementAppTest.kt` | Câu khẳng định của `reviewBottom_hasNoCollapsibleLayer` viết lại, đổi tên (mục 3.5); `reviewBottom_usesNoCollapsibleStock` thêm `assertFalse(AdPlacement.POSE_DETAIL_BOTTOM.usesStock(AdFormat.NATIVE_COLLAPSIBLE))` |
 | Sửa | `docs/ops/ads-guide.md` | Lấy nguyên từ nhánh take |
 | Sửa | `docs/ops/ads-business-rules.md` | Lấy nguyên từ nhánh take |
 | Sửa | `docs/template-sync.txt` | Nhánh take đã sửa; phiên kiểm lại sau khi gộp |
@@ -132,8 +140,8 @@ Nơi đọc các file mà plan sửa (`grep -rn` trong `scripts/`, `.github/`, `
 
 - `AdPlacement.kt`:
   - `scripts/release.sh` đọc khóa vị trí theo luật một dòng (khóa `adUnits` của production); `collapsibleLayer` không đổi khóa.
-  - `scripts/status.py` (mục 6 của trang) đọc tên khóa, không đọc thuộc tính.
-  - `scripts/ads-plan.py` đọc khai báo vị trí để sinh Excel: dòng `pose_detail_bottom` mất cột lớp thu gọn. Đó là đúng hành vi mới, file Excel không ở trong repo.
+  - `scripts/status.py` và `scripts/release.sh` đọc khai báo theo luật một dòng (gồm `collapsibleLayer = false`): khai báo của `POSE_DETAIL_BOTTOM` giữ trên một dòng, không có chú thích cuối dòng (như KDoc của `AdPlacement.kt` dặn).
+  - `scripts/ads-plan.py` đọc khai báo vị trí để sinh Excel: dòng `pose_detail_bottom` có thêm ghi chú `collapsibleLayer = false`. Đó là đúng hành vi mới, file Excel không ở trong repo.
   - Test của `core/ads` đọc `collapsibleLayer`: `AdPlacementTest` (luật chung), `AdUnitIdsTest`, `BottomAdBarTest` (dùng `REVIEW_BOTTOM` hay vị trí riêng của test). Chỉ `AdPlacementAppTest` khẳng định giá trị của `POSE_DETAIL_BOTTOM` (mục 3.5).
   - `RemoteConfigKeysTest` của `:app`: khóa `is_show_native_collap` vẫn được đọc vì ba thanh đáy khác còn lớp.
 - `PosesScreen.kt`: chỉ các test của `feature/poses` đọc; `PosesScreen` (composable không trạng thái) không đổi chữ ký, `InContentAds` chỉ ở `PosesRoute`.
@@ -177,18 +185,20 @@ Nơi đọc ảnh chuẩn đổi: `scripts/design-compare.sh` (đọc `src/test/
 
 - **Điểm chưa chắc:** test quét mã `PosesInContentAdsTest` phải tìm được lời gọi theo ký hiệu (import của `InContentAds` và `AdPlacement.POSES_IN_COLLECTION` trong đối số), mà không khớp nhầm chú thích hay KDoc.
 - **Điều kiện chuyển:** test vẫn qua khi tạm bỏ lời gọi `InContentAds` (bước đối chứng của mục 4), sau 2 lần sửa.
-- **Cách làm thay:** tách phần bọc thành một composable `internal` trong `feature/poses`, ví dụ `PosesAdsFrame(content)` gọi `InContentAds(listOf(AdPlacement.POSES_IN_COLLECTION)) { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM, content) }`. Test quét mã chỉ kiểm thân hàm đó, và `PosesRoute` gọi nó. Tiêu chí và bước đối chứng giữ nguyên.
+- **Cách làm thay:** tách phần bọc thành một composable `internal` trong chính `PosesScreen.kt` (không thêm file), ví dụ `PosesAdsFrame(content)` gọi `InContentAds(listOf(AdPlacement.POSES_IN_COLLECTION)) { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM, content) }`. Test quét mã chỉ kiểm thân hàm đó, và `PosesRoute` gọi nó. Tiêu chí và bước đối chứng giữ nguyên.
 
 ### 3.5. Hành vi đã có bị đổi
 
-Số mới là số đo thật trên nhánh take (mục 4.1). Câu khẳng định nào không có trong bảng thì giữ nguyên: lần đo thấy giá trị không đổi.
+Số mới là số đo thật trên nhánh take (mục 4.1). Câu khẳng định nào không có trong bảng thì giữ nguyên: lần đo (gồm lượt 3b, chạy hết mọi câu của hai test bị dừng giữa chừng) thấy giá trị không đổi.
+
+Ý định của hai test đổi tên: có thanh đáy thì nút Lưu dời lên đúng bằng chỗ khe chiếm, ảnh không bị cắt hay đè, và với khe 106 dp ảnh không phải co (đã bị giới hạn theo bề rộng). Đường "ảnh co lại cho vừa" của KB-9 vẫn có test: `ReviewScreenTest.small_adBar_photoShrinks_allVisible` (khung 360 x 640, khe ở đó vốn đã 106 dp, test không đổi) và `adBar_permissionBlocked_photoShrinks_allAbove`. Khung gập đứng dọc không còn test "ảnh co": ở đó ảnh luôn giữ cỡ khi có thanh.
 
 | Hành vi cũ | Hành vi mới (câu của mục 3.1) | Test có sẵn khẳng định hành vi cũ | Giữ, hay câu khẳng định mới |
 | --- | --- | --- | --- |
 | Khe đáy 126 dp ở khung chuẩn | 106 dp ở cỡ chữ mặc định ở mọi khung (D-02) | `PosesScreenTest.bottomBar_lastCardScrollsAboveSlot` (qua `SLOT_HEIGHT`), `PoseDetailScreenTest.bottomBar_slotBelowButtonBar_buttonNotCovered` ("slot height" 126) | `SLOT_HEIGHT = 106f`; "slot height" 106, sai số 0.5; các câu "slot 16 above the bottom", "last card above slot", "slot starts where the bar ends" giữ |
 | Có khe thì thẻ cuối của thư viện cách đáy 158 dp | 138 dp (khe 106 + lề 16 + lề lưới 16) | `PosesScreenTest.realBottomBar_withoutAds_takesNoSpace` ("control: with a slot" 158) | "control: with a slot" 138, sai số 0.5; phần không có quảng cáo (16) giữ |
 | Có khe thì thanh nút của chi tiết cách đáy 142 dp | 122 dp | `PoseDetailScreenTest.realBottomBar_withoutAds_takesNoSpace` ("control: with a slot" 142) | "control: with a slot" 122, sai số 0.5 |
-| Màn xem lại 411 x 891: khe ở y 749, nút Lưu 673 tới 729, ảnh co về 372.75 x 497, nút dời lên 142 | Khe ở y 769, nút Lưu 693 tới 749, ảnh giữ cỡ khi không có thanh (379 x 505.33, giới hạn theo bề rộng), nút dời lên 122 | `ReviewScreenTest.adBar_slotAtBottom_photoShrinks_saveMovesUp` | Đổi tên `adBar_slotAtBottom_photoKept_saveMovesUp`. "slot height" 106; "slot top" 769; "save top" 693; "save bottom" 749; "save moved up" 122; "photo width" 379; "photo height" 505.33 (sai số 1). Câu `assertTrue` "photo height < before" thành "photo height giữ như trước": `assertEquals(photoBefore.height.value, photo.height.value, 0.5f)`. "photo top" 64, "photo top kept", "slot to the bottom" 16, "save to the slot" 20 giữ |
+| Màn xem lại 411 x 891: khe ở y 749, nút Lưu 673 tới 729, ảnh co về 372.75 x 497, nút dời lên 142 | Khe ở y 769, nút Lưu 693 tới 749, ảnh giữ cỡ khi không có thanh (379 x 505.33, giới hạn theo bề rộng), nút dời lên 122 | `ReviewScreenTest.adBar_slotAtBottom_photoShrinks_saveMovesUp` | Đổi tên `adBar_slotAtBottom_photoKept_saveMovesUp`. "slot height" 106; "slot top" 769; "save top" 693; "save bottom" 749; "save moved up" 122; "photo width" 379; "photo height" 505.33 (sai số 1); "actions top" 593.33 (sai số 1; ảnh cao hơn nên hàng nút phụ ở 64 + 505.33 + 24). Câu `assertTrue` "photo height < before" thành "photo height giữ như trước": `assertEquals(photoBefore.height.value, photo.height.value, 0.5f)`. "photo top" 64, "photo top kept", "slot to the bottom" 16, "save to the slot" 20 giữ |
 | Trạng thái lưu, lỗi: khe ở y 749, ảnh 497 / 324.75 x 433 | Khe ở y 769; SAVED: nút Lưu 693, ảnh cao 505.33; FAILED_STORAGE_FULL: ảnh 339.67 x 453 | `ReviewScreenTest.adBar_savingAndSaveError_slotStays` (và `assertSlotStays`) | "slot top" của mọi trạng thái 769; "SAVED save top" 693; "SAVED photo height" 505.33; "FAILED_STORAGE_FULL photo width" 339.67, "photo height" 453 (sai số 1); "error height" 48 giữ |
 | PERMISSION_BLOCKED: ảnh co về 309.67 x 412.9 | Ảnh 324.67 x 433 | `ReviewScreenTest.adBar_permissionBlocked_photoShrinks_allAbove` | "photo width" 324.67, "photo height" 433 (sai số 1); tên giữ (ảnh vẫn co so với khi không lỗi); "error height" 68 giữ |
 | Không có thanh: nút Lưu cách đáy 20; có thanh: 162 | Có thanh: 142 | `ReviewScreenTest.realAdBar_withoutAds_takesNoSpace` ("control: save to the bottom" 162) | "control: save to the bottom" 142, sai số 0.5; phần không có thanh (20) giữ |
@@ -211,7 +221,9 @@ Số mới là số đo thật trên nhánh take (mục 4.1). Câu khẳng đị
 | poses KB-6 tiêu chí 1 | Compose UI test | `PosesScreenTest.bottomBar_lastCardScrollsAboveSlot`, `realBottomBar_withoutAds_takesNoSpace` (câu mới ở mục 3.5) |
 | poses KB-6 tiêu chí 2, chi tiết không có lớp nổi | Compose UI test, unit test | `PoseDetailScreenTest.bottomBar_slotBelowButtonBar_buttonNotCovered`, `realBottomBar_withoutAds_takesNoSpace`; `AdPlacementAppTest.bottomBarsWithoutLayer_reviewAndPoseDetail` (thất bại trước code: câu `assertFalse` cho `POSE_DETAIL_BOTTOM`) |
 | poses KB-6 tiêu chí 3: chừa chỗ khi đang tải, chừa 0 khi tắt hay lỗi trước quảng cáo đầu | Unit test của khung, Compose UI test | `BottomAdBarTest`, `BannerFrameTest`, `BottomBarSlotWiringTest` của `core/ads`; `PosesScreenTest.realBottomBar_withoutAds_takesNoSpace` (khóa tắt) |
-| poses KB-6, thư viện không có lớp nổi khi ô lưới bật | Unit test quét mã, unit test của khung | `PosesInContentAdsTest.posesRoute_wrapsBottomBarInInContentAds`: đọc `PosesScreen.kt`, tìm lời gọi `InContentAds(` có `AdPlacement.POSES_IN_COLLECTION` trong đối số và `BottomAdBarScaffold(AdPlacement.POSES_BOTTOM` nằm trong khối lambda của nó; bỏ chú thích và KDoc trước khi tìm. Đối chứng: tạm bỏ lời gọi thì test thất bại. Hành vi: `InContentAdsTest`, `InContentAdsWiringTest` |
+| poses KB-6, thư viện không có lớp nổi khi ô lưới bật | Unit test quét mã, unit test của khung | `PosesInContentAdsTest` đọc `PosesScreen.kt`, bỏ chú thích, KDoc và chuỗi ký tự trước khi tìm (như `LeaveAppCallSitesTest` của `:app`). (1) `posesRoute_wrapsBottomBarInInContentAds`: file import `com.vglstudio.camera.pose.line.guide.core.ads.InContentAds`; trong thân `fun PosesRoute` có lời gọi `InContentAds(` mà đối số chứa `AdPlacement.POSES_IN_COLLECTION` và không chứa `POSES_BOTTOM`; `BottomAdBarScaffold(AdPlacement.POSES_BOTTOM` nằm trong khối lambda của lời gọi đó. (2) `scanner_findsTheRealCall_butNotInCommentsOrStrings`: văn bản mẫu có lời gọi trong chú thích dòng, KDoc và chuỗi ký tự thì không khớp, lời gọi thật trong thân hàm thì khớp, lời gọi trong một hàm khác `PosesRoute` thì không khớp. Đối chứng: tạm bỏ lời gọi thì (1) thất bại. Hành vi: `InContentAdsTest`, `InContentAdsWiringTest` |
+| poses KB-6 tiêu chí 4: `is_show_native_collap` tắt thì không có lớp nổi | Unit test của khung (giữ) | `BottomAdBarTest.layers_collapOff_keepsNativeSlot_noLayer` |
+| poses KB-6 tiêu chí 6, 7: ô quảng cáo trong lưới, khóa tắt thì không có ô | Compose UI test, unit test (giữ, test có sẵn, qua trên nhánh take) | `PosesScreenTest.fixedGridAds_adCellAfterEighthPose`, `fixedGridAds_savedAndGroupFilters_haveCell`, `fixedGridAds_unfolded_threeColumns`, `noGridAds_noAdCell`, `posesScreen_liveGridAdsWithoutController_noAdCell`; `InListAdsTest` của `core/ads` |
 | settings KB-1 | Compose UI test | `SettingsScreenTest` (qua trên nhánh take, giữ) |
 | camera KB-9 | Compose UI test | `ReviewScreenTest.adBar_slotAtBottom_photoKept_saveMovesUp`, `adBar_savingAndSaveError_slotStays`, `realAdBar_withoutAds_takesNoSpace`, `adBar_permissionBlocked_photoShrinks_allAbove`; `small_adBar_photoShrinks_allVisible`, `smallPortuguese_adBar_permissionBlocked_allVisible` (qua, giữ) |
 | camera KB-11 (máy gập, màn ngang) | Compose UI test | `ReviewScreenUnfoldedTest.adBar_slotFullWidth_photoKept_saveAbove`, `landscape_adBar_saveInsideWindow`, `landscape_adBar_saveError_compactColumn`, `landscape_adBar_saveError_compactColumn_portuguese`, `landscape_adBar_thresholdBoundary` |
@@ -245,7 +257,7 @@ So với thiết kế: frame thiết kế vẽ thanh trạng thái 24 dp (8 dp �
 - **Đã chạy thử:** 2026-11-21 tới 2026-11-22, trên nhánh `template-sync/take-ads-7bf8c3b`, không commit phần đo.
   - Lượt 1, `scripts/check.sh` trên nhánh (trước commit `46e13a14`): `:core:ads` không biên dịch được test vì `SAMPLE_NATIVE_SMALL` (đã sửa ở `46e13a14`). `:app` đỏ hai test bảng khóa (đã sinh lại). `feature/camera` 12 đỏ, `feature/poses` 10 đỏ, `feature/settings` 3 đỏ (chỉ ảnh `_ad`).
   - Lượt 2, sau `46e13a14`: `./gradlew :core:ads:testDebugUnitTest` qua 2084 test.
-  - Lượt 3, đo số mới: trong worktree tạm của nhánh, đổi tạm `assertNear` của `ReviewScreenTest`, `ReviewScreenUnfoldedTest` và thêm một `assertEquals` thành viên ở `PosesScreenTest`, `PoseDetailScreenTest` để in giá trị thay vì thất bại; lượt 3b tạm bỏ câu `assertTrue` "photo height < before" của test khung gập để đo các câu sau nó. Chạy `./gradlew :feature:camera:testDebugUnitTest --tests '*ReviewScreenTest' --tests '*ReviewScreenUnfoldedTest' :feature:poses:testDebugUnitTest --tests '*PosesScreenTest' --tests '*PoseDetailScreenTest'`.
+  - Lượt 3, đo số mới: trong worktree tạm của nhánh, đổi tạm `assertNear` của `ReviewScreenTest`, `ReviewScreenUnfoldedTest` và thêm một `assertEquals` thành viên ở `PosesScreenTest`, `PoseDetailScreenTest` để in giá trị thay vì thất bại; lượt 3b tạm bỏ câu `assertTrue` "photo height < before" của test khung gập, lượt 3c (2026-11-22, trên commit `46e13a14`) của test điện thoại, để đo mọi câu sau nó (lượt 3c cho "actions top" 593.33). Chạy `./gradlew :feature:camera:testDebugUnitTest --tests '*ReviewScreenTest' --tests '*ReviewScreenUnfoldedTest' :feature:poses:testDebugUnitTest --tests '*PosesScreenTest' --tests '*PoseDetailScreenTest'`.
 - **Lệnh:** `scripts/check.sh`; `./gradlew :core:ads:testDebugUnitTest`; lệnh đo ở trên.
 - **Kết quả:**
   - Số mới của mục 3.5 lấy từ lượt 3. Hai câu `assertTrue` "photo height < before" của `adBar_slotAtBottom_photoShrinks_saveMovesUp` và `adBar_slotFullWidth_photoShrinks_saveAbove` thất bại: ảnh bằng đúng cỡ khi không có thanh (505.33 và 600). Hai test này đổi tên và câu theo mục 3.5.
@@ -282,7 +294,7 @@ So với thiết kế: frame thiết kế vẽ thanh trạng thái 24 dp (8 dp �
 - Ảnh chuẩn ngoài 12 ảnh của mục 3.2 lệch mà không phải nhiễu vẽ (dừng như quy tắc chung).
 - `RemoteConfigKeysTest` hay bảng khóa đổi thêm, ngoài dòng mã ADR (khung thêm khóa mà spec chưa duyệt).
 - Manifest gộp có quyền mới (`MergedManifestTest` đỏ).
-- Nhánh `origin/template-sync/take-ads-7bf8c3b` không còn chứa commit `46e13a14` (bị đẩy đè hay bị xóa).
+- Đầu nhánh `origin/template-sync/take-ads-7bf8c3b` không phải commit `46e13a14` (có commit mới, bị đẩy đè hay bị xóa): phần mới chưa được duyệt.
 - Số đo của một câu khẳng định mới ở mục 3.5 lệch quá sai số của dòng đó (điều kiện dừng 8 của `docs/risk-scoring.md`).
 
 ## 8. Câu hỏi cho người duyệt

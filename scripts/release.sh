@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Builds the signed production release (Android App Bundle) on the release owner's machine (ADR-0009, ADR-0017).
+# Builds the signed production release (Android App Bundle) on the release owner's machine (ADR-0049).
 # The person then uploads the bundle in Play Console. Nothing here runs on GitHub.
 #
 # Usage:  scripts/release.sh [--commit <sha>] [--config <folder>] [--check-only]
-#         scripts/release.sh --list-placements <AdPlacement.kt>   (tests: print the keys that need a production ad unit)
+#         scripts/release.sh --list-placements <AdPlacement.kt>   (tests: print the keys that need a production ad unit,
+#                                                                  placement keys then slot keys of the bottom bar)
 #         scripts/release.sh --fill-test-units <AdPlacement.kt> <adUnits>   (tests: print adUnits with test units added)
 #   --commit  commit of main to release; default: the latest commit of origin/main.
 #   --config  release folder copied from the team's password manager;
@@ -16,6 +17,7 @@
 #   upload.jks             upload key of the app on Google Play
 #   release.properties     admobAppId=ca-app-pub-<publisher>~<app>
 #                          adUnits=<placement key>=ca-app-pub-<publisher>/<unit>;<placement key>=...
+#                                  plus the slot keys banner=..., native_collap=... of the bottom bar layers (M-05)
 #                          assetsBaseUrl=https://<production address on R2>/
 #                          uploadKeyAlias=<alias of the upload key>
 #                          appsFlyerDevKey=<AppsFlyer dev key> (ADR-0027), only when the app has the AppsFlyer SDK
@@ -27,11 +29,12 @@
 # Only commits of main that passed main-guard.yml are built (commits touching docs only reuse the run of
 # the code below them). The build runs in a temporary worktree, so local changes never reach a release.
 #
-# Written during the template phase only. AI never changes this file afterwards (ADR-0009), except when the
+# Written during the template phase only. AI never changes this file afterwards (ADR-0049), except when the
 # release owner allows it for one session (2026-10-23: native formats and staging-only placements; 2026-10-24:
 # placements with attributes; 2026-10-26: AppsFlyer dev key, Google test units for placements without a real unit;
 # 2026-10-29: the AppsFlyer dev key only for an app with the AppsFlyer SDK; --check-only;
-# 2026-11-15: AppLovin MAX key and ad units; 2026-11-19: Tenjin SDK key).
+# 2026-11-15: AppLovin MAX key and ad units; 2026-11-19: Tenjin SDK key, slot keys of the bottom bar, banner_mrec
+# test unit).
 # Messages are in Vietnamese for the team; comments are in English.
 
 set -euo pipefail
@@ -49,6 +52,7 @@ MAPPING="app/build/outputs/mapping/productionRelease/mapping.txt"
 test_unit_for() {
   case "$1" in
     BANNER|BANNER_COLLAPSIBLE) echo "ca-app-pub-$TEST_PUBLISHER/9214589741" ;;
+    BANNER_MREC) echo "ca-app-pub-$TEST_PUBLISHER/6300978111" ;;
     INTERSTITIAL) echo "ca-app-pub-$TEST_PUBLISHER/1033173712" ;;
     NATIVE_SMALL) echo "ca-app-pub-$TEST_PUBLISHER/2247696110" ;;
     APP_OPEN) echo "ca-app-pub-$TEST_PUBLISHER/9257395921" ;;
@@ -73,6 +77,19 @@ placement_formats() {
 }
 placement_keys() { placement_formats | cut -d' ' -f1; }
 
+# Slot keys of the bottom bar layers that need a production ad unit (M-05), from AdPlacement.kt on stdin, as lines
+# "<slot key> <FORMAT>" like placement_formats. The same rule as missingUnitKeys in :core:ads (AdUnitIds.kt): a
+# native small placement that ships is a bottom bar with a banner layer, and a collapsible layer unless it declares
+# `collapsibleLayer = false`; each slot key once, banner first.
+placement_slot_keys() {
+  local bars
+  bars="$(sed -nE 's/^[[:space:]]*[A-Z0-9_]+\("([a-z0-9_]+)", AdFormat\.NATIVE_SMALL(, .*)?\),?$/\1 \2/p' \
+    | { grep -v '^gallery_' || true; })"
+  [ -n "$bars" ] || return 0
+  echo "banner BANNER"
+  if grep -qv 'collapsibleLayer = false' <<< "$bars"; then echo "native_collap NATIVE_COLLAPSIBLE"; fi
+}
+
 # adUnits with Google's test unit added for every placement that has no unit of its own (decision of the release
 # owner, 2026-10-26: release before every real unit exists). Those placements show test ads and earn nothing, so
 # each one is listed on stderr. Arguments: placement lines "<key> <FORMAT>" on stdin, the configured adUnits.
@@ -84,17 +101,18 @@ fill_test_units() {
     units="${units:+$units;}$key=$(test_unit_for "$format")"
     added="$added $key"
   done
-  [ -z "$added" ] || echo "CHÚ Ý: dùng mã quảng cáo thử của Google (không có doanh thu) cho vị trí:$added." >&2
+  [ -z "$added" ] || echo "CHÚ Ý: dùng mã quảng cáo thử của Google (không có doanh thu) cho vị trí và khe:$added." >&2
   printf '%s' "$units"
 }
 if [ "${1:-}" = "--list-placements" ]; then
   [ "$#" -eq 2 ] || die "cách dùng: scripts/release.sh --list-placements <AdPlacement.kt>"
   placement_keys < "$2"
+  placement_slot_keys < "$2" | cut -d' ' -f1
   exit 0
 fi
 if [ "${1:-}" = "--fill-test-units" ]; then
   [ "$#" -eq 3 ] || die "cách dùng: scripts/release.sh --fill-test-units <AdPlacement.kt> <adUnits>"
-  placement_formats < "$2" | fill_test_units "$3"
+  { placement_formats < "$2"; placement_slot_keys < "$2"; } | fill_test_units "$3"
   echo
   exit 0
 fi
@@ -263,11 +281,19 @@ jq -e --arg pkg "$app_id" 'any(.client[]; .client_info.android_client_info.packa
   die "google-services.json là file cấu hình giả của staging."
 placement_file="$(git ls-tree -r --name-only "$target" core/ads/src/main | grep '/AdPlacement\.kt$' | head -n 1)"
 [ -n "$placement_file" ] || die "không tìm thấy AdPlacement.kt trong :core:ads."
-placement_lines="$(git show "$target:$placement_file" | placement_formats)"
+placement_source="$(git show "$target:$placement_file")"
+placement_lines="$(placement_formats <<< "$placement_source")"
 placements="$(cut -d' ' -f1 <<< "$placement_lines")"
-# A placement without an ad unit would silently show no ad (ConfiguredAdUnitIds.missing, ADR-0013), so it gets
+slot_lines="$(placement_slot_keys <<< "$placement_source")"
+slots="$(cut -d' ' -f1 <<< "$slot_lines")"
+# A key of adUnits that is no placement or slot key of this commit (a placement removed since) is only warned about:
+# it does not break the build. The unit itself is never printed.
+for entry in $(tr ';' '\n' <<< "$ad_units" | sed 's/[[:space:]]//g' | cut -d= -f1); do
+  grep -qxF "$entry" <<< "$placements"$'\n'"$slots" || echo "CHÚ Ý: adUnits có khóa không dùng: $entry"
+done
+# A placement without an ad unit would silently show no ad (ConfiguredAdUnitIds.missing, ADR-0045), so it gets
 # Google's test unit of its format instead, with a warning.
-ad_units="$(fill_test_units "$ad_units" <<< "$placement_lines")"
+ad_units="$(fill_test_units "$ad_units" <<< "$placement_lines"$'\n'"$slot_lines")"
 test_unit_keys="$(tr ';' '\n' <<< "$ad_units" | grep "=ca-app-pub-$TEST_PUBLISHER/" | cut -d= -f1 | tr '\n' ' ' || true)"
 
 cat << EOF
@@ -275,6 +301,7 @@ cat << EOF
    Phiên bản:  $version_name (versionCode $version_code)
    Commit:     ${target::7} $(git log -1 --format=%s "$target")
    Vị trí quảng cáo: $(tr '\n' ' ' <<< "${placements:-không có}")
+   Khe của thanh đáy: $(tr '\n' ' ' <<< "${slots:-không có}" | sed 's/ $//')
    Mã quảng cáo thử (không có doanh thu): ${test_unit_keys:-không có}
    MAX: $max_summary
    Tenjin: $tenjin_summary

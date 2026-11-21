@@ -10,7 +10,7 @@ local.properties
 captures/
 .kotlin/
 
-# Secrets and production configuration: never commit (ADR-0007, ADR-0009)
+# Secrets and production configuration: never commit (ADR-0007, ADR-0049)
 *.jks
 *.keystore
 # Base64 copies made to paste keystores into GitHub secrets
@@ -32,7 +32,7 @@ __pycache__/
 # CI artifacts
 build.log
 
-# Bundles built by scripts/release.sh (ADR-0017)
+# Bundles built by scripts/release.sh (ADR-0049)
 release-output/
 
 # Local folders of a developer's IDE setup (L-017)

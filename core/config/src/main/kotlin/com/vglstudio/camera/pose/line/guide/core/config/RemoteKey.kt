@@ -2,7 +2,7 @@ package com.vglstudio.camera.pose.line.guide.core.config
 
 /**
  * A Remote Config key with its type, its value before any remote value arrives, and a description for the
- * team that sets it on Firebase (ADR-0023). Every key of the app is declared once as a [RemoteKey] by the
+ * team that sets it on Firebase (ADR-0046). Every key of the app is declared once as a [RemoteKey] by the
  * module that owns it; docs/remote-config-keys.md is generated from these declarations.
  *
  * Not a data class: its `copy` would bypass the checks of the factories.
@@ -16,7 +16,7 @@ class RemoteKey<T : Any> private constructor(
     enum class Type { BOOLEAN, LONG, DOUBLE, STRING }
 
     init {
-        require(NAME_PATTERN.matches(name)) { "Remote Config key '$name' must be lower snake case (ADR-0023)" }
+        require(NAME_PATTERN.matches(name)) { "Remote Config key '$name' must be lower snake case (ADR-0046)" }
         require(description.isNotBlank()) { "Remote Config key '$name' needs a description" }
         require(description.length <= MAX_DESCRIPTION_LENGTH) {
             "Description of '$name' is longer than $MAX_DESCRIPTION_LENGTH characters, the Firebase limit"

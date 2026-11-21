@@ -3,7 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.config
 import javax.inject.Qualifier
 
 /**
- * Qualifier for the set of values one build gives remote keys when Firebase has none (ADR-0023).
+ * Qualifier for the set of values one build gives remote keys when Firebase has none (ADR-0046).
  * The app's `staging` source set contributes to this set; production contributes nothing and gets the empty set
  * declared in the config module. Order of precedence in [RemoteSettings]: the Firebase value, then the local value,
  * then [RemoteKey.default].
@@ -13,7 +13,7 @@ import javax.inject.Qualifier
 annotation class LocalRemoteValues
 
 /**
- * A value one build gives a remote key when Firebase has none (ADR-0023).
+ * A value one build gives a remote key when Firebase has none (ADR-0046).
  * Not generic, so Dagger sees one `Set<LocalRemoteValue>` key where the set is declared and where builds
  * contribute to it; [of] keeps the value of the key's type.
  */

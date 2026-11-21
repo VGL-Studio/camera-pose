@@ -64,7 +64,7 @@ docs/
    - **Duyệt plan lẻ rồi lập danh sách:** mỗi plan một PR được duyệt và merge, sau đó AI lập danh sách từ các plan đã duyệt.
 
    Nhóm có thể họp khi muốn bàn ảnh hưởng chéo; họp không phải điều kiện để duyệt.
-8. **Phiên AI tự chạy.** Khi dev đã duyệt xong và kích hoạt, AI thực hiện lần lượt từng plan theo [quy trình phiên tự chạy](auto-run.md): viết test trước, viết code, rà soát độc lập, qua cổng chất lượng thì merge vào nhánh chính. Gặp lệch nhỏ thuộc danh sách của các ADR (ví dụ sửa thêm file ngoài plan mà task cần, test cũ mâu thuẫn với điều plan đã duyệt, test đỏ vì máy chạy thiếu cấu hình chung, điểm chặn của rà soát mà test chạy thật không tái hiện) hay task mà môi trường của phiên không làm được, phiên tự xử lý hoặc bỏ qua theo luật rồi ghi vào báo cáo cho người kiểm sau, không dừng chờ người (ADR-0029, ADR-0031 đến ADR-0033, ADR-0035). Cuối phiên, AI build bản staging và viết báo cáo phiên.
+8. **Phiên AI tự chạy.** Khi dev đã duyệt xong và kích hoạt, AI thực hiện lần lượt từng plan theo [quy trình phiên tự chạy](auto-run.md): viết test trước, viết code, rà soát độc lập, qua cổng chất lượng thì merge vào nhánh chính. Gặp lệch nhỏ thuộc danh sách của các ADR (ví dụ sửa thêm file ngoài plan mà task cần, test cũ mâu thuẫn với điều plan đã duyệt, test đỏ vì máy chạy thiếu cấu hình chung, câu chữ chưa rõ của tài liệu riêng của task, điểm chặn của rà soát mà test chạy thật không tái hiện) hay task mà môi trường của phiên không làm được, phiên tự xử lý hoặc bỏ qua theo luật rồi ghi vào báo cáo cho người kiểm sau, không dừng chờ người (ADR-0029, ADR-0031, ADR-0032, ADR-0035, ADR-0050). Cuối phiên, AI build bản staging và viết báo cáo phiên.
 
    **Đường làm nhanh.** Việc nhỏ, rủi ro thấp, không chạm điểm chặn, mà dev muốn có ngay trong ngày thì làm cùng AI trên máy dev (ADR-0048). Vẫn có yêu cầu, ticket, plan đủ mục, test viết trước, rà soát độc lập, CI, `merge-if-green.sh` và nhật ký; bỏ các PR duyệt riêng, danh sách chạy và báo cáo phiên. Dev đồng ý plan ngay trong phiên, cả task nằm trong một PR. Trước khi merge, AI gộp nhánh chính vào nhánh làm nhanh trên máy (không đẩy) rồi kiểm các danh sách chạy chưa chạy. Hướng dẫn cho dev ở [ops/quick-lane.md](ops/quick-lane.md); phần AI phải làm ở [CLAUDE.md](CLAUDE.md), mục Khi làm nhanh có người theo dõi.
 9. **Kiểm tra và phản hồi (ngày 2).** Dev đọc báo cáo phiên, kiểm tra bản staging, ghi phản hồi theo [mẫu phản hồi](templates/feedback.md). AI cập nhật plan theo phản hồi, plan sửa lại được duyệt lại như plan mới trước phiên tự chạy tiếp theo.
@@ -112,7 +112,7 @@ Trạng thái được ghi ở trường `status` trong phần đầu (frontmatt
 | ADR | `proposed` → `accepted`, sau này có thể `superseded` |
 | Khảo sát app mẫu | `draft` → `reviewed` |
 | Đề xuất app | `draft` → `approved` |
-| Phiên tự chạy | `draft` → `approved` → `running` → `finished` |
+| Phiên tự chạy | `draft` → `approved` → `running` → `finished`, hoặc `cancelled` khi chưa chạy mà không dùng nữa |
 
 ## Nguyên tắc chung
 

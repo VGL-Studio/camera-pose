@@ -68,8 +68,8 @@ Ghi lệnh, mã lần chạy và kết quả của từng bước vào nhật k�
 
 - Dọn image cũ (`docker image prune`), cập nhật image khi runner hay SDK đổi, xem đĩa trống.
 - Token xin cấu hình có hạn (tối đa 90 ngày với runner cấp repo): đặt lịch thay token trước ngày hết hạn. Gặp mã 7 hay runner không nhận job thì xem token còn hạn trước, rồi mới xem máy.
-- Job chờ máy: `scripts/wait-run.sh` trả mã 7 (`CHỜ RUNNER`) khi một job chờ runner tự host quá `WAIT_RUN_RUNNER_QUEUE_MINUTES` phút (mặc định 75) mà không còn job nào của lần chạy đang chạy. `scripts/resume-check.py` không tiếp tục phiên tự chạy khi repo còn job chờ runner tự host. Bước kiểm runner của `pr-check` đỏ thì bình luận lỗi trên PR có các dòng `RUNNER KHÔNG DÙNG ĐƯỢC:` (`scripts/runner-check.sh` ghi chúng vào `build.log`); bước đó của `main-guard` đỏ thì xem log của bước trên tab Actions.
-- Issue `session-stalled` có sẵn lệnh tiếp tục phiên, và ghi sẵn job chờ runner tự host quá 75 phút, nếu có (`scripts/run-watchdog.py`). Job chờ dưới ngưỡng đó thì issue không ghi: trước khi dán lệnh, xem hàng chờ: `gh api "repos/<tổ chức>/<repo>/actions/runs?status=queued"`, rồi `jobs` của từng lần chạy. Có job mang nhãn tự host thì phiên cũ có thể vẫn đang chờ máy: sửa máy hay xóa biến trước, nếu không sẽ có hai phiên chồng nhau.
+- Job chờ máy: `scripts/wait-run.sh` trả mã 7 (`CHỜ RUNNER`) khi một job chờ runner tự host quá `WAIT_RUN_RUNNER_QUEUE_MINUTES` phút (mặc định 75) mà không còn job nào của lần chạy đang chạy. `scripts/resume-check.py` không tiếp tục phiên tự chạy khi repo còn job chờ runner tự host, bất kể đã chờ bao lâu, vì phiên cũ có thể vẫn đang chờ chính job đó. Bước kiểm runner của `pr-check` đỏ thì bình luận lỗi trên PR có các dòng `RUNNER KHÔNG DÙNG ĐƯỢC:` (`scripts/runner-check.sh` ghi chúng vào `build.log`); bước đó của `main-guard` đỏ thì xem log của bước trên tab Actions.
+- Issue `session-stalled` có sẵn lệnh tiếp tục phiên, và ghi sẵn job chờ runner tự host quá ngưỡng của mã 7 (mặc định 75 phút, app đặt được ở mục 10), nếu có (`scripts/run-watchdog.py`). Job chờ dưới ngưỡng đó thì issue không ghi: trước khi dán lệnh, xem hàng chờ: `gh api "repos/<tổ chức>/<repo>/actions/runs?status=queued"`, rồi `jobs` của từng lần chạy. Có job mang nhãn tự host thì phiên cũ có thể vẫn đang chờ máy: sửa máy hay xóa biến trước, nếu không sẽ có hai phiên chồng nhau.
 
 ## 8. Máy hỏng
 
@@ -81,3 +81,29 @@ Ghi lệnh, mã lần chạy và kết quả của từng bước vào nhật k�
 
 - Runner cho bản production và `scripts/release.sh` (ADR-0049).
 - `staging`, `device-session`: đọc bí mật, giữ runner của GitHub.
+
+## 10. App chọn mô hình runner khác
+
+App chọn mô hình runner khác tài liệu này bằng một ADR của app (ví dụ runner tự host chạy lâu dài cho mọi job) thì đặt tệp `scripts/runners-app.conf`, để không phải sửa script hay test của dự án mẫu. Dự án mẫu không có tệp này; không có tệp thì mọi thứ như các mục trên.
+
+- Mỗi dòng một `KHÓA=giá trị`, không có dấu cách quanh `=`; dòng bắt đầu bằng `#` là chú thích, dòng trống được bỏ qua. Script chỉ đọc tệp, không chạy nó như shell: khóa lạ, khóa ghi hai lần, giá trị sai dạng hay tệp không đọc được thì script dừng và báo lỗi (`wait-run.sh` mã 3, hai script kia mã 1).
+- `scripts/wait-run.sh`, `scripts/resume-check.py` và `scripts/run-watchdog.py` cùng đọc và kiểm tệp. Ngưỡng và bộ nhãn chỉ dùng ở `wait-run.sh` và `run-watchdog.py`; `resume-check.py` chỉ dùng `RUNNER_DOC`. `resume-check.py` và `run-watchdog.py` chạy trong workflow trên nhánh chính, nên tệp có hiệu lực với hai script này khi đã merge.
+
+| Khóa | Giá trị | Tác dụng |
+| --- | --- | --- |
+| `RUNNER_QUEUE_MINUTES` | số phút, từ 1 | Ngưỡng chờ runner tự host của `wait-run.sh` mã 7 và của job mà `run-watchdog.py` ghi vào issue (mặc định 75). Biến môi trường của lần gọi vẫn thắng tệp: `WAIT_RUN_RUNNER_QUEUE_MINUTES`, `WATCHDOG_RUNNER_QUEUE_MINUTES`. `resume-check.py` không dùng ngưỡng: nó chặn khi có bất kỳ job nào đang chờ, vì phiên cũ có thể vẫn đang chờ job đó |
+| `RUNNER_LABELS` | các nhãn, cách nhau bằng dấu phẩy, ví dụ `app-runner,gpu` | `wait-run.sh` và `run-watchdog.py` chỉ theo dõi job mang một trong các nhãn này. Không có khóa: mọi job mang nhãn không phải runner của GitHub. `resume-check.py` không lọc theo nhãn: mọi job tự host đang chờ đều chặn, để job mang nhãn quên ghi vào tệp không mở phiên thứ hai chồng lên |
+| `RUNNER_DOC` | đường dẫn tài liệu runner của app, ví dụ `docs/ops/runner-app.md` | Thông báo của ba script dẫn tài liệu này, không nhắc biến `HEAVY_RUNNER` và mục 8. Việc của phiên vẫn như cũ (`docs/auto-run.md`, mục 4) |
+| `RUNNER_TESTS` | `skip` | `scripts/tests/run.sh` không chạy các test kiểm workflow thật theo ADR-0042 (phần `runners:` và bước kiểm runner của `pr-check`), in dòng `skip - runners: app theo <ADR>`. App tự kiểm workflow của mình trong `scripts/tests/app.sh` |
+| `RUNNER_ADR` | `ADR-NNNN` | ADR runner của app. Bắt buộc khi có `RUNNER_TESTS=skip`; thiếu thì `run.sh` báo lỗi |
+
+Ví dụ:
+
+```
+# Runner tự host chạy lâu dài cho mọi job (ADR-1001)
+RUNNER_QUEUE_MINUTES=120
+RUNNER_LABELS=app-runner
+RUNNER_DOC=docs/ops/runner-app.md
+RUNNER_TESTS=skip
+RUNNER_ADR=ADR-1001
+```

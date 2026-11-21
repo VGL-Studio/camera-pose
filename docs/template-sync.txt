@@ -1,4 +1,4 @@
-base=bc3e80ebd6afea8300619d1308fbbcfa7351a986
+base=7bf8c3b51ee9fc094c69a8de3855f9914e18d044
 package=com.vglstudio.camera.pose.line.guide
 # app/ and feature/loading took parts of template T-007, T-008, T-024 by hand (plan T-074): MainActivity.kt,
 # TemplateApplication.kt, di/AnalyticsConfigModule.kt, config/AppRemoteKeys.kt, the remoteConfigKeys block of

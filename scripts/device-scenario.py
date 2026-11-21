@@ -37,7 +37,7 @@ Commands:
                                 DEVICE_SCENARIO_STOP_SETTLE seconds (default 3) after stopping the app; before
                                 opening the app it closes the system shade (cmd statusbar collapse), which monkey
                                 may leave open
-  consent decline [seconds]     tap "Do not consent" when the ad consent form shows (ADR-0013) and wait until it
+  consent decline [seconds]     tap "Do not consent" when the ad consent form shows (ADR-0045) and wait until it
                                 closes, or see the app root (DEVICE_SCENARIO_FIRST_SCREENS) without a form; consent
                                 is gathered asynchronously, so after the root it keeps looking for a late form for
                                 DEVICE_SCENARIO_CONSENT_GRACE seconds (default 8). When the form shows even later, a
@@ -159,7 +159,7 @@ class Skip(Exception):
 
 
 class ConsentFail(Exception):
-    """The consent form came back or did not close: a failure that need does not turn into a skip (ADR-0013)."""
+    """The consent form came back or did not close: a failure that need does not turn into a skip (ADR-0045)."""
 
 
 class Terminated(BaseException):

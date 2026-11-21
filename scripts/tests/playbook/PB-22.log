@@ -1,0 +1,4 @@
+AdsControllerMaxInterstitialTest > maxHidden_recordsIntervalMarkFirst_thenFinishes FAILED
+    java.lang.NullPointerException at ShadowPausedLooper.java
+java.lang.NullPointerException: Cannot invoke a method because "this.looperControlService" is null
+	at org.robolectric.shadows.ShadowPausedLooper.resetLooperToInitialState(ShadowPausedLooper.java)

@@ -21,10 +21,14 @@ AD_ACTIVITY = re.compile(r"AdActivity|applovin|mbridge|bytedance|pangle|unity3d\
                          r"vungle|inmobi|chartboost|Interstitial|FullScreenAd|AppOpen", re.I)
 AD_ID = re.compile(r"(^|[_.])(ad|ads|adview|ad_view|native_ad|nativead|banner_ad|ad_container|ad_frame|"
                    r"admob|adchoices|ad_choices|ad_media|ad_headline|ad_call_to_action|ad_body|ad_icon|ad_badge)"
-                   r"([_.]|$)|nativeAd|adView|AdView|adContainer|bannerAd", re.I)
+                   r"([_.]|$)|nativeAd|adView|AdView|adContainer|bannerAd|appinstall|call_to_action", re.I)
+# Containers named in camel case with a short layout prefix, e.g. lnAds, rlAds, flAd, llAdsView: case-sensitive and
+# anchored, so "loads", "uploadAds" or the app's own "watchRewardedAdButton" (it chooses a rewarded ad) do not match.
+AD_ID_CAMEL = re.compile(r"^[a-z]{1,4}Ads?([A-Z_]|$)")
 AD_TEXT = {"ad", "ads", "quảng cáo", "sponsored", "adchoices", "được tài trợ"}
 # Purchase: Play billing screens, and buttons that start a purchase or a trial.
 BILLING_ACTIVITY = re.compile(r"com\.android\.vending|ProxyBillingActivity|billing", re.I)
+PLAY_BILLING_ACTIVITY = re.compile(r"com\.android\.vending|ProxyBillingActivity", re.I)
 BUY_ID = re.compile(r"purchase|buy|subscri|pay_|_pay|trial|checkout", re.I)
 BUY_TEXT = re.compile(r"buy|purchase|subscribe|start (free )?trial|free trial|dùng thử|mua|đăng ký|"
                       r"\d[\d.,]*\s*(₫|đ|\$|€|usd|vnd)|(₫|\$|€)\s*\d", re.I)
@@ -35,7 +39,9 @@ SOFT_TEXT = re.compile(r"^(continue|tiếp tục|next|tiếp)$|unlock|upgrade|n�
 CLOSE_ID = re.compile(r"close|dismiss|skip|collap", re.I)
 # Ad containers: tapping their empty area does not open the ad; only the asset views inside do.
 CONTAINER_ID = re.compile(r"^(native_ad_view|fl_?native|ad_container|ad_frame|fr_?ads?|layout_ads?|ads?_layout|flNative)$", re.I)
-CLOSE_TEXT = re.compile(r"^(x|×|✕|close|close ad|đóng|skip|skip ad|bỏ qua|interstitial close button)$", re.I)
+# "Quảng cáo đã đóng" is the label of Pangle's close button (no resource id) on a Vietnamese device.
+CLOSE_TEXT = re.compile(r"^(x|×|✕|close|close ad|đóng|skip|skip ad|bỏ qua|interstitial close button|"
+                        r"quảng cáo đã đóng|ad closed)$", re.I)
 
 
 def nodes(path):
@@ -46,9 +52,13 @@ def nodes(path):
 
 def is_ad(n):
     rid = n.get("resource-id", "").split("/")[-1]
+    if rid.startswith("exo_") and len(n) == 0:
+        # An empty ExoPlayer view is not an ad: every player has exo_ad_overlay, even with no ad. With children it is
+        # the ad UI of IMA (a WebView, Learn more, Skip), so it falls through to the id rules below.
+        return False
     cls = n.get("class", "")
     label = (n.get("text", "") or n.get("content-desc", "")).strip().lower()
-    return bool(AD_ID.search(rid)) or "gms.ads" in cls or label in AD_TEXT
+    return bool(AD_ID.search(rid) or AD_ID_CAMEL.search(rid)) or "gms.ads" in cls or label in AD_TEXT
 
 
 def ad_regions(path):
@@ -143,6 +153,67 @@ def find(path, needle):
     return None
 
 
+def ad_close(path, point=None):
+    """The first small close button (by id or label) inside an ad's tree, under the point when one is given, as
+    (x, y, name). The app's own Skip or Close under a full-screen ad does not count: the ad may be drawn on top of it."""
+    found = None
+
+    def walk(n, in_ad):
+        nonlocal found
+        if found:
+            return
+        here = in_ad or is_ad(n)
+        b = [int(v) for v in re.findall(r"\d+", n.get("bounds", "[0,0][0,0]"))]
+        if (
+            here
+            and len(b) == 4
+            and b[2] > b[0]
+            and b[3] > b[1]
+            and (point is None or (b[0] <= point[0] < b[2] and b[1] <= point[1] < b[3]))
+            and (b[2] - b[0]) * (b[3] - b[1]) < 400 * 400
+        ):
+            rid = n.get("resource-id", "").split("/")[-1]
+            label = (n.get("text", "") or n.get("content-desc", "")).strip()
+            if CLOSE_ID.search(rid) or CLOSE_TEXT.match(label):
+                found = ((b[0] + b[2]) // 2, (b[1] + b[3]) // 2, rid or label)
+                return
+        for c in n.findall("node"):
+            walk(c, here)
+
+    for top in ET.parse(path).getroot().findall("node"):
+        walk(top, False)
+    return found
+
+
+def ad_tree_nodes(path):
+    """Every node inside an ad's tree, the ad view included, with its bounds."""
+    def walk(n, in_ad):
+        here = in_ad or is_ad(n)
+        if here:
+            yield n, [int(v) for v in re.findall(r"\d+", n.get("bounds", "[0,0][0,0]"))]
+        for c in n.findall("node"):
+            yield from walk(c, here)
+
+    for top in ET.parse(path).getroot().findall("node"):
+        yield from walk(top, False)
+
+
+def close_at(path, x, y):
+    """A small close button of an ad under the point, if any (see ad_close)."""
+    found = ad_close(path, (x, y))
+    return found[2] if found else None
+
+
+def covering_ad(path, top):
+    """An ad that covers (almost) the whole screen, its container included: an ad activity, a full-screen native."""
+    if AD_ACTIVITY.search(top):
+        return "activity " + top.strip()
+    for n, b in nodes(path):
+        if len(b) == 4 and is_ad(n) and (b[2] - b[0]) * (b[3] - b[1]) >= SCREEN_AREA * 0.85:
+            return f"ad view covering [{b[0]},{b[1]}][{b[2]},{b[3]}]"
+    return None
+
+
 def fullscreen_ad(path, top):
     if AD_ACTIVITY.search(top):
         return "activity " + top.strip()
@@ -160,11 +231,27 @@ def main():
             print(f"TỪ CHỐI: đang ở màn hình quảng cáo ({top.strip()}). Dùng 'ax.sh adclose' hoặc 'adcorner'.", file=sys.stderr)
             sys.exit(4)
         if BILLING_ACTIVITY.search(top):
-            print(f"TỪ CHỐI: đang ở màn hình thanh toán ({top.strip()}). Chỉ được back.", file=sys.stderr)
-            sys.exit(4)
+            # An app's own paywall activity (e.g. ...billing_subscription.PaywallActivity) may block back;
+            # its close button is allowed. Play's own billing screens still only allow back.
+            target = target_at(path, x, y)
+            on_play = PLAY_BILLING_ACTIVITY.search(top)
+            if on_play or not target or not CLOSE_ID.search(target[0]) or target[1] or buy_at(path, x, y):
+                print(f"TỪ CHỐI: đang ở màn hình thanh toán ({top.strip()}). Chỉ được back"
+                      f"{'' if on_play else ' hoặc chạm nút đóng (id có close, dismiss, skip)'}.", file=sys.stderr)
+                sys.exit(4)
+            return
         buy = buy_at(path, x, y)
         if buy:
             print(f"TỪ CHỐI: điểm ({x},{y}) là nút mua hay dùng thử ({buy}). Chỉ chụp và đóng màn hình trả phí.", file=sys.stderr)
+            sys.exit(4)
+        # A full-screen ad may be drawn over the app (another window, or the app's own button moved under the ad's
+        # call to action), and the dump order does not tell which one is on top: only a close button may be tapped.
+        cover = covering_ad(path, top)
+        if cover:
+            if close_at(path, x, y):
+                return
+            print(f"TỪ CHỐI: quảng cáo phủ màn hình ({cover}); chỉ được chạm nút đóng. Dùng 'ax.sh adclose' hoặc 'adwait'.",
+                  file=sys.stderr)
             sys.exit(4)
         target = target_at(path, x, y)
         if target and target[1] and not CLOSE_ID.search(target[0]):
@@ -180,17 +267,26 @@ def main():
         return
     if cmd == "close":
         best = None
-        for n, (x1, y1, x2, y2) in nodes(sys.argv[2]):
-            rid = n.get("resource-id", "").split("/")[-1]
-            label = (n.get("text", "") or n.get("content-desc", "")).strip()
-            if (CLOSE_ID.search(rid) or CLOSE_TEXT.match(label)) and x2 > x1 and y2 > y1:
-                # Close buttons are small; skip big containers named like "close_layout".
-                if (x2 - x1) * (y2 - y1) < 400 * 400:
-                    best = ((x1 + x2) // 2, (y1 + y2) // 2, rid or label)
-                    break
+        covered = covering_ad(sys.argv[2], "")
+        if covered:
+            # Under a full-screen ad only its own close button: an app button that looks like one may lie under it.
+            best = ad_close(sys.argv[2])
+        else:
+            for n, (x1, y1, x2, y2) in nodes(sys.argv[2]):
+                rid = n.get("resource-id", "").split("/")[-1]
+                label = (n.get("text", "") or n.get("content-desc", "")).strip()
+                if (CLOSE_ID.search(rid) or CLOSE_TEXT.match(label)) and x2 > x1 and y2 > y1:
+                    # Close buttons are small; skip big containers named like "close_layout".
+                    if (x2 - x1) * (y2 - y1) < 400 * 400:
+                        best = ((x1 + x2) // 2, (y1 + y2) // 2, rid or label)
+                        break
         if not best and fullscreen_ad(sys.argv[2], ""):
             width = int(os.environ.get("AX_WIDTH", "1080")); height = int(os.environ.get("AX_HEIGHT", "2400"))
-            for n, (x1, y1, x2, y2) in nodes(sys.argv[2]):
+            # Under a full-screen ad the corner X must be the ad's own: the app's Back or Close icon may lie under it.
+            for n, b in ad_tree_nodes(sys.argv[2]) if covered else nodes(sys.argv[2]):
+                if len(b) != 4:
+                    continue
+                x1, y1, x2, y2 = b
                 label = (n.get("text", "") or n.get("content-desc", "")).strip()
                 corner = y2 < height * 0.15 and (x2 < width * 0.2 or x1 > width * 0.8)
                 if n.get("clickable") == "true" and not label and corner and 0 < x2 - x1 < width * 0.12:

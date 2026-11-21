@@ -32,8 +32,18 @@ if [ "${1:-}" = "--playbook" ]; then
   fi
   # Markdown cells are split at every "|" not preceded by a backslash; "\|" inside a pattern becomes "|".
   python3 -I - "${table}" "${playbook_log}" << 'PY'
-import re, subprocess, sys
+import atexit, os, re, subprocess, sys, tempfile
 table, log = sys.argv[1], sys.argv[2]
+# Result lines of scripts/tests/run.sh ("ok   - <name>", "FAIL - <name>: ...") are dropped before matching: a test
+# name may quote a pattern of the table, and a CI log of a failed job holds every passed script test too. A line may
+# start with the job and step of "gh run view --log-failed" (tab-separated) and the timestamp of the runner.
+result_line = re.compile(r"^([^\t]*\t[^\t]*\t)?(\S+Z )?(ok +|FAIL) - ")
+with open(log, encoding="utf-8", errors="replace") as source, tempfile.NamedTemporaryFile(
+    "w", encoding="utf-8", suffix=".log", delete=False
+) as kept:
+    kept.writelines(line for line in source if not result_line.match(line))
+searched = kept.name
+atexit.register(os.unlink, searched)
 inside = False
 for line in open(table, encoding="utf-8"):
     if "<!-- playbook:start -->" in line:
@@ -50,7 +60,7 @@ for line in open(table, encoding="utf-8"):
     # A cell may hold several patterns in backticks joined by "và": the row matches only when the log has every one.
     patterns = [p.replace("\\|", "|") for p in re.findall(r"`([^`]+)`", pattern)] or [pattern.replace("\\|", "|")]
     kind = kind.strip("`")
-    codes = [subprocess.run(["grep", "-Eq", "--", p, log], capture_output=True).returncode for p in patterns]
+    codes = [subprocess.run(["grep", "-Eq", "--", p, searched], capture_output=True).returncode for p in patterns]
     for p, rc in zip(patterns, codes):
         if rc == 2:
             print(f"LỖI BẢNG: {code}: mẫu không hợp lệ với grep -E: {p}", file=sys.stderr)

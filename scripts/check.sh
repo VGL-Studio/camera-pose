@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# JVM quality gate (ADR-0010, ADR-0011). Shared by:
+# JVM quality gate (ADR-0010, ADR-0047). Shared by:
 #   - the AI at step 5 of an auto-run session (local check),
 #   - the build-and-test job of .github/workflows/pr-check.yml,
 #   - .github/workflows/main-guard.yml.
@@ -59,7 +59,7 @@ for dir in app/ core/*/ feature/*/; do
     | sed -E 's/^captureRoboImage\("//; s/"$//' | sort -u)"
   named="$({ grep -rhoE 'captureRoboImage\("src/test/screenshots/[^"]+\.png"' "${test_dirs[@]}" || true; } | wc -l | tr -d ' ')"
   if [ "${named}" -ne "${calls}" ]; then
-    echo "::error::${module}: mọi captureRoboImage phải ghi rõ đường dẫn \"src/test/screenshots/<Tên>.png\" (ADR-0011)."
+    echo "::error::${module}: mọi captureRoboImage phải ghi rõ đường dẫn \"src/test/screenshots/<Tên>.png\" (ADR-0047)."
     exit 1
   fi
 

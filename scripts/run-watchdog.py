@@ -21,8 +21,13 @@ issue is about to be opened or updated. The issue is closed when the run has a n
 "running". A run file left "running" on an old report branch keeps its issue open until a person sets it to
 "finished".
 
+scripts/runners-app.conf, only in an app whose runner model is not ADR-0042 (an ADR of the app), may set that wait
+(RUNNER_QUEUE_MINUTES; WATCHDOG_RUNNER_QUEUE_MINUTES still wins), the labels of the jobs watched (RUNNER_LABELS) and
+the runner page the issue names (RUNNER_DOC), read as scripts/wait-run.sh reads it. RUNNERS_APP_CONF (tests) names
+another file.
+
 Exit 0 when the check ran, 1 when GitHub could not be read (any error but a 404 on a file, a branch or the
-label): then no issue is changed. Prints what it did, and the issue body, on stdout.
+label) or scripts/runners-app.conf is wrong: then no issue is changed. Prints what it did, and the issue body, on stdout.
 Uses only `gh api` (REST); GITHUB_REPOSITORY or the origin remote gives the repository.
 WATCHDOG_STALL_MINUTES, WATCHDOG_HARD_MINUTES, WATCHDOG_RUNNER_QUEUE_MINUTES and WATCHDOG_NOW (ISO time, tests)
 override the defaults.
@@ -39,8 +44,14 @@ from datetime import datetime, timedelta, timezone
 
 STALL_MINUTES = int(os.environ.get("WATCHDOG_STALL_MINUTES", "60"))
 HARD_MINUTES = int(os.environ.get("WATCHDOG_HARD_MINUTES", "90"))
-RUNNER_QUEUE_MINUTES = int(os.environ.get("WATCHDOG_RUNNER_QUEUE_MINUTES", "75"))
 GITHUB_LABEL = re.compile(r"^(ubuntu|windows|macos)-")
+RUNNERS_CONF_KEYS = {
+    "RUNNER_QUEUE_MINUTES": r"[1-9][0-9]*",
+    "RUNNER_LABELS": r"[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*",
+    "RUNNER_DOC": r"[A-Za-z0-9_][A-Za-z0-9._/-]*",
+    "RUNNER_TESTS": r"skip",
+    "RUNNER_ADR": r"ADR-[0-9]{4}",
+}
 LABEL = "session-stalled"
 REPORT_BRANCH = re.compile(r"^claude/(RUN-\d{8}-\d{2})-report$")
 TITLE = re.compile(r"^session-stalled: (RUN-\d{8}-\d{2})\b")
@@ -120,6 +131,44 @@ def last_commit(branch):
         return None
 
 
+def runners_conf():
+    """The values of scripts/runners-app.conf, {} when there is no file: lines KEY=value, '#' comments and blank
+    lines, only the keys of RUNNERS_CONF_KEYS, each once, with plain values. Read, never run. ValueError says what is
+    wrong."""
+    path = os.environ.get("RUNNERS_APP_CONF") or os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                              "runners-app.conf")
+    values = {}
+    if not os.path.isfile(path):
+        return values
+    with open(path, encoding="utf-8") as handle:
+        lines = handle.read().split("\n")
+    for number, line in enumerate(lines, 1):
+        line = line.removesuffix("\r")
+        if re.fullmatch(r"[ \t]*(#.*)?", line):
+            continue
+        match = re.fullmatch(r"([A-Z_]+)=(.*)", line)
+        if not match:
+            raise ValueError(f"{path}: dòng {number} không có dạng KHÓA=giá trị")
+        key, value = match.groups()
+        if key not in RUNNERS_CONF_KEYS:
+            raise ValueError(f"{path}: dòng {number}: khóa lạ {key} (chỉ nhận {', '.join(RUNNERS_CONF_KEYS)})")
+        if not re.fullmatch(RUNNERS_CONF_KEYS[key], value, re.ASCII):
+            raise ValueError(f"{path}: dòng {number}: giá trị của {key} sai dạng "
+                             "(xem docs/ops/self-hosted-runner.md, mục 10)")
+        if key in values:
+            raise ValueError(f"{path}: dòng {number}: {key} ghi hai lần")
+        values[key] = value
+    return values
+
+
+def watched(labels):
+    """Whether a job with these labels waits for a runner this script watches: one of RUNNER_LABELS when the app
+    sets them, else any label of no GitHub runner."""
+    if RUNNER_LABELS:
+        return any(str(label) in RUNNER_LABELS for label in labels)
+    return any(not GITHUB_LABEL.match(str(label)) for label in labels)
+
+
 def busy_workflows(since, own):
     """Names of workflow runs queued or in progress that the session may be waiting for: created after `since`
     (5 minutes of slack), on one of its branches `own` or on main by push or by hand; never this watchdog."""
@@ -137,7 +186,7 @@ def busy_workflows(since, own):
 
 def runner_waits(now):
     """(job name, Actions run id, since) of every job that waits for a self-hosted runner as scripts/wait-run.sh
-    code 7 sees it: queued, no runner, a label of no GitHub runner, no job of its run in progress, and waiting since
+    code 7 sees it: queued, no runner, a label watched (watched()), no job of its run in progress, and waiting since
     the latest finished job of the run (else since it was created) for RUNNER_QUEUE_MINUTES or more. Every run of the
     repository counts, not only the session's: the runner machine is shared. An answer of another shape is a failed
     read."""
@@ -158,10 +207,9 @@ def runner_waits(now):
             done = [moment(job.get("completed_at")) for job in jobs if job.get("status") == "completed"]
             done = [d for d in done if d]
             for job in jobs:
-                labels = job.get("labels") or []
                 if job.get("status") != "queued" or job.get("runner_name"):
                     continue
-                if not any(not GITHUB_LABEL.match(str(label)) for label in labels):
+                if not watched(job.get("labels") or []):
                     continue
                 since = max(done) if done else moment(job.get("created_at"))
                 if since and now - since >= timedelta(minutes=RUNNER_QUEUE_MINUTES):
@@ -194,12 +242,13 @@ def body_for(run_id, run_file, latest, quiet, note, waits=()):
             lines.append(f"**Job chờ runner tự host:** job `{name}` (lần chạy {number}) chờ runner tự host từ "
                          f"{since.strftime('%Y-%m-%d %H:%M UTC')}, quá {RUNNER_QUEUE_MINUTES} phút, "
                          "không còn job nào của lần chạy đó đang chạy.")
+        check = (f"máy runner tự host của repo trước ({RUNNER_DOC})" if RUNNER_DOC else
+                 "máy runner hay biến `HEAVY_RUNNER` trước (docs/ops/self-hosted-runner.md, mục 8)")
         lines += [
             "",
-            "Phiên dừng vì máy runner, không vì code (`scripts/wait-run.sh` mã 7): người phụ trách hạ tầng xem máy "
-            "runner hay biến `HEAVY_RUNNER` trước (docs/ops/self-hosted-runner.md, mục 8). Job còn chờ thì chưa dán "
-            "đoạn dưới: phiên mới cũng dừng ở đó. Job đã chạy thì phiên routine được `resume-run.yml` tự tiếp tục; "
-            "phiên `claude --cloud` thì dán đoạn dưới.",
+            f"Phiên dừng vì máy runner, không vì code (`scripts/wait-run.sh` mã 7): người phụ trách hạ tầng xem {check}. "
+            "Job còn chờ thì chưa dán đoạn dưới: phiên mới cũng dừng ở đó. Job đã chạy thì phiên routine được "
+            "`resume-run.yml` tự tiếp tục; phiên `claude --cloud` thì dán đoạn dưới.",
             "",
         ]
     lines += [
@@ -318,6 +367,15 @@ def close(number, message):
 
 if __name__ == "__main__":
     REPO = repository()
+    try:
+        RUNNERS = runners_conf()
+    except (OSError, UnicodeDecodeError, ValueError) as error:
+        print(f"LỖI: {error}. Không đổi issue nào.", file=sys.stderr)
+        sys.exit(1)
+    RUNNER_QUEUE_MINUTES = int(os.environ.get("WATCHDOG_RUNNER_QUEUE_MINUTES")
+                               or RUNNERS.get("RUNNER_QUEUE_MINUTES", "75"))
+    RUNNER_LABELS = set(RUNNERS["RUNNER_LABELS"].split(",")) if "RUNNER_LABELS" in RUNNERS else set()
+    RUNNER_DOC = RUNNERS.get("RUNNER_DOC", "")
     try:
         sys.exit(main())
     except (LookupError, json.JSONDecodeError) as error:

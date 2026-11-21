@@ -169,9 +169,16 @@ def ad_placements():
         return [], "Không đọc được `AdPlacement.kt`."
     # Same one-line rule as scripts/release.sh (which this script never opens): NAME("key", AdFormat.X[, attributes]),
     # formats with underscores; gallery_ keys belong to the staging-only ad gallery and need no production ad unit.
-    found = [{"key": m.group(1), "format": m.group(2).lower()} for m in
-             re.finditer(r'^\s*[A-Z0-9_]+\("([a-z0-9_]+)", AdFormat\.([A-Z_]+)(?:, .*)?\),?$', text, re.M)
-             if not m.group(1).startswith("gallery_")]
+    matches = [m for m in re.finditer(r'^\s*[A-Z0-9_]+\("([a-z0-9_]+)", AdFormat\.([A-Z_]+)(, .*)?\),?$', text, re.M)
+               if not m.group(1).startswith("gallery_")]
+    found = [{"key": m.group(1), "format": m.group(2).lower()} for m in matches]
+    # Slot keys of the bottom bar layers (M-05), the same rule as missingUnitKeys in :core:ads and scripts/release.sh:
+    # a native small placement is a bottom bar with a banner layer, and a collapsible layer unless it declares none.
+    bars = [m for m in matches if m.group(2) == "NATIVE_SMALL"]
+    if bars:
+        found.append({"key": "banner", "format": "khe thanh đáy"})
+    if any("collapsibleLayer = false" not in (m.group(3) or "") for m in bars):
+        found.append({"key": "native_collap", "format": "khe thanh đáy"})
     if re.search(r"^\s*[A-Z][A-Z0-9_]*\($", text, re.M):
         return found, "`AdPlacement.kt` khai báo vị trí trên nhiều dòng; `scripts/release.sh` sẽ từ chối, viết mỗi vị trí trên một dòng."
     return found, "" if found else "Không đọc được khóa nào trong `AdPlacement.kt`."

@@ -1,0 +1,23 @@
+2026-11-15T19:08:09.3576271Z ok   - find-breaking-commit --check ui-test: without --check the guard states decide
+2026-11-15T19:08:09.4997431Z ok   - find-breaking-commit --check ui-test: an infrastructure failure is not blamed
+2026-11-15T19:08:09.6269129Z ok   - find-breaking-commit --check ui-test: a red ui-test without annotation is blamed
+2026-11-15T19:08:09.7629209Z ok   - find-breaking-commit --check ui-test: the PB-02 prefix HẠ TẦNG: is not infrastructure of the emulator
+2026-11-15T19:08:09.8882674Z ok   - find-breaking-commit --check ui-test: annotations that cannot be read make the red commit a suspect
+2026-11-15T19:08:10.1309412Z ok   - find-breaking-commit --check ui-test: a cancelled or timed-out ui-test is walked over without waiting
+2026-11-15T19:14:45.0347950Z 
+2026-11-15T19:14:45.0359336Z 1: Task failed with an exception.
+2026-11-15T19:14:45.0360244Z -----------
+2026-11-15T19:14:45.0360822Z * What went wrong:
+2026-11-15T19:14:45.0361432Z Execution failed for task ':core:assets:loadKtlintReporters'.
+2026-11-15T19:14:45.0362273Z > Could not resolve all files for configuration ':core:assets:ktlint'.
+2026-11-15T19:14:45.0363157Z    > Could not download ktlint-cli-1.5.0.jar (com.pinterest.ktlint:ktlint-cli:1.5.0)
+2026-11-15T19:14:45.0364326Z       > Could not get resource 'https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-cli/1.5.0/ktlint-cli-1.5.0.jar'.
+2026-11-15T19:14:45.0365724Z          > Could not GET 'https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-cli/1.5.0/ktlint-cli-1.5.0.jar'. Received status code 429 from server: Too Many Requests
+2026-11-15T19:14:45.0367647Z    > Could not download ktlint-cli-reporter-sarif-1.5.0.jar (com.pinterest.ktlint:ktlint-cli-reporter-sarif:1.5.0)
+2026-11-15T19:14:45.0368994Z       > Could not get resource 'https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-cli-reporter-sarif/1.5.0/ktlint-cli-reporter-sarif-1.5.0.jar'.
+2026-11-15T19:14:45.0370652Z          > Could not GET 'https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-cli-reporter-sarif/1.5.0/ktlint-cli-reporter-sarif-1.5.0.jar'. Received status code 429 from server: Too Many Requests
+2026-11-15T19:14:45.0372236Z    > Could not download ktlint-cli-reporter-baseline-1.5.0.jar (com.pinterest.ktlint:ktlint-cli-reporter-baseline:1.5.0)
+2026-11-15T19:14:45.0373598Z       > Could not get resource 'https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-cli-reporter-baseline/1.5.0/ktlint-cli-reporter-baseline-1.5.0.jar'.
+2026-11-15T19:14:45.0375357Z          > Could not GET 'https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-cli-reporter-baseline/1.5.0/ktlint-cli-reporter-baseline-1.5.0.jar'. Received status code 429 from server: Too Many Requests
+2026-11-15T19:14:45.0377043Z    > Could not download ktlint-rule-engine-1.5.0.jar (com.pinterest.ktlint:ktlint-rule-engine:1.5.0)
+2026-11-15T19:14:45.0378221Z       > Could not get resource 'https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-rule-engine/1.5.0/ktlint-rule-engine-1.5.0.jar'.

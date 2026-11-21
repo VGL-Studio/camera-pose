@@ -17,7 +17,8 @@
 #             1 the run of the PR's current head finished red, or was cancelled while that commit stayed the head
 #               (the failed jobs are named)
 #             2 still not finished when the time ran out: call again
-#             3 wrong arguments, the PR cannot be read, or --sha is not a commit GitHub knows
+#             3 wrong arguments, the PR cannot be read, --sha is not a commit GitHub knows, or
+#               scripts/runners-app.conf is wrong (fix the file; calling again gives the same answer)
 #             4 GitHub never started the failed jobs (no runner: spending limit, billing): not a code failure (L-064)
 #             5 (--pr) no run, and the PR conflicts with main: GitHub runs no pull_request workflow for it (L-064)
 #             6 (--pr) the PR is a draft: pr-check does not run for drafts (ADR-0041)
@@ -29,11 +30,45 @@
 # WAIT_RUN_CANCEL_RECHECKS (default 3), how many rounds the head is read again after its run shows "cancelled".
 # WAIT_RUN_UNKNOWN_SHA_SECONDS sets how long an unknown --sha is waited for before code 3.
 # WAIT_RUN_RUNNER_QUEUE_MINUTES sets the wait of code 7; WAIT_RUN_NOW (Unix seconds) fixes the clock for the tests.
+# scripts/runners-app.conf, only in an app whose runner model is not ADR-0042 (an ADR of the app), may set the wait
+# (RUNNER_QUEUE_MINUTES; WAIT_RUN_RUNNER_QUEUE_MINUTES still wins), the labels of the jobs watched (RUNNER_LABELS,
+# comma-separated; default: every label of no GitHub runner) and the runner page the message names (RUNNER_DOC).
+# scripts/resume-check.py and scripts/run-watchdog.py read the same file the same way. RUNNERS_APP_CONF (tests) names
+# another file.
 # Messages are in Vietnamese for the team; comments are in English.
 
 set -euo pipefail
 
 die() { echo "LỖI: $*" >&2; exit 3; }
+
+# Lines KEY=value, '#' comments and blank lines; only these keys, each once, with plain values. Read, never sourced.
+read_runners_conf() { # <file>; prints its "KEY=value" lines (nothing when there is no file), or "ERROR <why>", exit 1
+  local LC_ALL=C file="$1" n=0 line key value pattern seen=" " out=""
+  [ -f "$file" ] || return 0
+  if [ ! -r "$file" ]; then echo "ERROR không đọc được tệp"; return 1; fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    n=$((n + 1))
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^[[:space:]]*(#.*)?$ ]] && continue
+    if [[ ! "$line" =~ ^([A-Z_]+)=(.*)$ ]]; then echo "ERROR dòng $n không có dạng KHÓA=giá trị"; return 1; fi
+    key="${BASH_REMATCH[1]}" value="${BASH_REMATCH[2]}"
+    case "$key" in
+      RUNNER_QUEUE_MINUTES) pattern='^[1-9][0-9]*$' ;;
+      RUNNER_LABELS) pattern='^[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*$' ;;
+      RUNNER_DOC) pattern='^[A-Za-z0-9_][A-Za-z0-9._/-]*$' ;;
+      RUNNER_TESTS) pattern='^skip$' ;;
+      RUNNER_ADR) pattern='^ADR-[0-9]{4}$' ;;
+      *) echo "ERROR dòng $n: khóa lạ $key (chỉ nhận RUNNER_QUEUE_MINUTES, RUNNER_LABELS, RUNNER_DOC, RUNNER_TESTS, RUNNER_ADR)"; return 1 ;;
+    esac
+    if [[ ! "$value" =~ $pattern ]]; then echo "ERROR dòng $n: giá trị của $key sai dạng (xem docs/ops/self-hosted-runner.md, mục 10)"; return 1; fi
+    if [[ "$seen" == *" $key "* ]]; then echo "ERROR dòng $n: $key ghi hai lần"; return 1; fi
+    seen="$seen$key " out="$out$key=$value"$'\n'
+  done < "$file"
+  printf '%s' "$out"
+}
+runners_file="${RUNNERS_APP_CONF:-$(dirname "$0")/runners-app.conf}"
+runners_conf="$(read_runners_conf "$runners_file")" || die "$runners_file: ${runners_conf#ERROR }."
+runners_value() { sed -n "s/^$1=//p" <<< "$runners_conf"; }
 
 pr="" workflow="" since="" want="" timeout_minutes=40
 while [ "$#" -gt 0 ]; do
@@ -49,8 +84,11 @@ while [ "$#" -gt 0 ]; do
   shift 2
 done
 [[ "$timeout_minutes" =~ ^[0-9]+$ ]] || die "--timeout phải là số phút."
-queue_minutes="${WAIT_RUN_RUNNER_QUEUE_MINUTES:-75}"
+queue_minutes="${WAIT_RUN_RUNNER_QUEUE_MINUTES:-$(runners_value RUNNER_QUEUE_MINUTES)}"
+queue_minutes="${queue_minutes:-75}"
 [[ "$queue_minutes" =~ ^[0-9]+$ ]] || die "WAIT_RUN_RUNNER_QUEUE_MINUTES phải là số phút."
+runner_labels="$(jq -nc --arg l "$(runners_value RUNNER_LABELS)" 'if $l == "" then [] else $l | split(",") end')"
+runner_doc="$(runners_value RUNNER_DOC)"
 unknown_sha_seconds="${WAIT_RUN_UNKNOWN_SHA_SECONDS:-90}"
 [[ "$unknown_sha_seconds" =~ ^[0-9]+$ ]] || die "WAIT_RUN_UNKNOWN_SHA_SECONDS phải là số giây."
 if [ -n "$want" ]; then
@@ -168,22 +206,26 @@ while :; do
   fi
   # A job queued for a self-hosted runner, while no job of the run is going, for queue_minutes since it could start:
   # the latest end of a finished job of the run, else the job's creation (ADR-0042, section 5). A failed read or an
-  # odd answer skips this round.
+  # odd answer skips this round. With RUNNER_LABELS only a job with one of those labels counts.
   if [ -n "$run" ] && [ "$(jq -r .status <<< "$run")" != "completed" ]; then
     waiting="$(gh api "repos/$repo/actions/runs/$(jq -r .id <<< "$run")/jobs?per_page=50" 2> /dev/null |
-      jq -r --argjson now "${WAIT_RUN_NOW:-$(date -u +%s)}" --argjson min "$queue_minutes" '
+      jq -r --argjson now "${WAIT_RUN_NOW:-$(date -u +%s)}" --argjson min "$queue_minutes" \
+        --argjson watched "$runner_labels" '
         (.jobs // []) as $j
         | if any($j[]; .status == "in_progress") then empty else
           ([$j[] | select(.status == "completed") | .completed_at // empty] | max) as $done
           | [$j[] | select(.status == "queued" and ((.runner_name // "") == "")
-              and any(.labels[]?; test("^(ubuntu|windows|macos)-") | not))
+              and (if ($watched | length) > 0 then any(.labels[]?; . as $l | $watched | index([$l]) != null)
+                   else any(.labels[]?; test("^(ubuntu|windows|macos)-") | not) end))
             | . + {since: ($done // .created_at)}
             | select((.since | fromdateiso8601) <= ($now - $min * 60))]
           | first // empty | "\(.name)\t\(.labels | join(","))\t\(.since)"
           end' 2> /dev/null || true)"
     if [ -n "$waiting" ]; then
       IFS=$'\t' read -r job_name job_labels job_since <<< "$waiting"
-      echo "CHỜ RUNNER: job $job_name của $what, lần chạy $(jq -r .id <<< "$run"), chờ runner tự host (nhãn $job_labels) từ $job_since, không còn job nào của lần chạy đang chạy. Không phải lỗi của code: không sửa code, không chạy lại, không revert; ghi vào \"Cần người kiểm tra\": máy runner hay biến HEAVY_RUNNER của repo (docs/ops/self-hosted-runner.md, mục 8); phiên làm theo docs/auto-run.md, mục 4 (ADR-0042). $(jq -r .html_url <<< "$run")"
+      check="máy runner hay biến HEAVY_RUNNER của repo (docs/ops/self-hosted-runner.md, mục 8)"
+      [ -z "$runner_doc" ] || check="máy runner tự host của repo ($runner_doc)"
+      echo "CHỜ RUNNER: job $job_name của $what, lần chạy $(jq -r .id <<< "$run"), chờ runner tự host (nhãn $job_labels) từ $job_since, không còn job nào của lần chạy đang chạy. Không phải lỗi của code: không sửa code, không chạy lại, không revert; ghi vào \"Cần người kiểm tra\": $check; phiên làm theo docs/auto-run.md, mục 4 (ADR-0042). $(jq -r .html_url <<< "$run")"
       exit 7
     fi
   fi

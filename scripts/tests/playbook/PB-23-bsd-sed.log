@@ -1,0 +1,9 @@
+sed: 1: "f.txt
+": invalid command code f
+sed: 2: "b b
+": undefined label 'b'
+sed: 1: "s/a/b/ junk
+": bad flag in substitute command: 'j'
+sed: 1: k.sed: invalid command code k
+./scripts/x.sh: line 9: local: -A: invalid option
+local: usage: local name[=value] ...

@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<!-- A tutorial page that moves the app's Next button up and puts a native ad's install button where Next was.
+     The ad uses ids the generic patterns miss: lnAds, appinstall_*, an unnamed frame. -->
+<hierarchy rotation="0">
+  <node index="0" text="" resource-id="com.example:id/rlRoot" class="android.widget.RelativeLayout" package="com.example" content-desc="" clickable="false" bounds="[0,0][1080,2400]">
+    <node index="0" text="Tiếp theo" resource-id="com.example:id/tvGetStart" class="android.widget.TextView" package="com.example" content-desc="" clickable="true" bounds="[138,1043][942,1181]" />
+    <node index="1" text="" resource-id="com.example:id/lnAds" class="android.widget.LinearLayout" package="com.example" content-desc="" clickable="false" bounds="[44,1624][1036,2312]">
+      <node index="0" text="" resource-id="" class="android.widget.FrameLayout" package="com.example" content-desc="" clickable="true" bounds="[44,1624][1036,2312]">
+        <node index="0" text="" resource-id="com.example:id/appinstall_media" class="android.widget.FrameLayout" package="com.example" content-desc="" clickable="true" bounds="[44,1673][1036,1976]" />
+        <node index="1" text="Cài đặt ngay" resource-id="com.example:id/appinstall_call_to_action_300dp" class="android.widget.TextView" package="com.example" content-desc="" clickable="true" bounds="[66,2152][1014,2290]" />
+      </node>
+    </node>
+  </node>
+</hierarchy>

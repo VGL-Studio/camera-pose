@@ -31,6 +31,95 @@ expect() {
   fi
 }
 
+# scripts/runners-app.conf: only in an app whose runner model is not ADR-0042, chosen by an ADR of the app
+# (docs/ops/self-hosted-runner.md, section 10). wait-run.sh, resume-check.py and run-watchdog.py read it; their tests
+# below read another file through RUNNERS_APP_CONF, none by default, so they behave as in the template in every app.
+# RUNNER_TESTS=skip with RUNNER_ADR=ADR-NNNN skips the tests of this file that check the real workflows against
+# ADR-0042: the app checks its own workflows in scripts/tests/app.sh.
+export RUNNERS_APP_CONF="$work/no-runners-app.conf"
+# The same reading as read_runners_conf of scripts/wait-run.sh: change both together.
+read_runners_conf() { # <file>; prints its "KEY=value" lines (nothing when there is no file), or "ERROR <why>", exit 1
+  local LC_ALL=C file="$1" n=0 line key value pattern seen=" " out=""
+  [ -f "$file" ] || return 0
+  if [ ! -r "$file" ]; then echo "ERROR không đọc được tệp"; return 1; fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    n=$((n + 1))
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^[[:space:]]*(#.*)?$ ]] && continue
+    if [[ ! "$line" =~ ^([A-Z_]+)=(.*)$ ]]; then echo "ERROR dòng $n không có dạng KHÓA=giá trị"; return 1; fi
+    key="${BASH_REMATCH[1]}" value="${BASH_REMATCH[2]}"
+    case "$key" in
+      RUNNER_QUEUE_MINUTES) pattern='^[1-9][0-9]*$' ;;
+      RUNNER_LABELS) pattern='^[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*$' ;;
+      RUNNER_DOC) pattern='^[A-Za-z0-9_][A-Za-z0-9._/-]*$' ;;
+      RUNNER_TESTS) pattern='^skip$' ;;
+      RUNNER_ADR) pattern='^ADR-[0-9]{4}$' ;;
+      *) echo "ERROR dòng $n: khóa lạ $key (chỉ nhận RUNNER_QUEUE_MINUTES, RUNNER_LABELS, RUNNER_DOC, RUNNER_TESTS, RUNNER_ADR)"; return 1 ;;
+    esac
+    if [[ ! "$value" =~ $pattern ]]; then echo "ERROR dòng $n: giá trị của $key sai dạng (xem docs/ops/self-hosted-runner.md, mục 10)"; return 1; fi
+    if [[ "$seen" == *" $key "* ]]; then echo "ERROR dòng $n: $key ghi hai lần"; return 1; fi
+    seen="$seen$key " out="$out$key=$value"$'\n'
+  done < "$file"
+  printf '%s' "$out"
+}
+runner_tests_mode() { # <file>; "run", "skip ADR-NNNN", or "ERROR <why>"
+  local conf adr
+  if ! conf="$(read_runners_conf "$1")"; then echo "$conf"; return; fi
+  if ! grep -qx 'RUNNER_TESTS=skip' <<<"$conf"; then echo run; return; fi
+  adr="$(sed -n 's/^RUNNER_ADR=//p' <<<"$conf")"
+  if [[ -z "$adr" ]]; then echo "ERROR RUNNER_TESTS=skip cần RUNNER_ADR=ADR-NNNN (ADR runner của app)"; return; fi
+  echo "skip $adr"
+}
+mkdir -p "$work/rconf"
+printf '%s\n' '# runners of the app' '' 'RUNNER_TESTS=skip' 'RUNNER_ADR=ADR-1034' > "$work/rconf/skip.conf"
+printf '%s\n' 'RUNNER_TESTS=skip' > "$work/rconf/skip-no-adr.conf"
+printf '%s\n' 'RUNNER_QUEUE_MINUTES=120' 'RUNNER_LABELS=photune' > "$work/rconf/no-skip.conf"
+printf '%s\n' 'RUNNER_QUEUE_MINUTES=120' 'HEAVY_RUNNER=x' > "$work/rconf/unknown.conf"
+printf '%s\n' 'RUNNER_QUEUE_MINUTES=2h' > "$work/rconf/bad-minutes.conf"
+printf '%s\n' 'RUNNER_DOC=docs/a.md; rm -rf x' > "$work/rconf/bad-doc.conf"
+printf '%s\n' 'RUNNER_ADR=ADR-1034' 'RUNNER_ADR=ADR-1035' > "$work/rconf/twice.conf"
+printf '%s\n' 'RUNNER_QUEUE_MINUTES = 120' > "$work/rconf/spaces.conf"
+printf 'RUNNER_TESTS=skip\r\nRUNNER_ADR=ADR-1034' > "$work/rconf/crlf.conf"
+expect "runners-app.conf: no file runs the runner tests, skip with RUNNER_ADR skips them" "run|skip ADR-1034|run" \
+  "$(runner_tests_mode "$work/rconf/none.conf")|$(runner_tests_mode "$work/rconf/skip.conf")|$(runner_tests_mode "$work/rconf/no-skip.conf")"
+expect "runners-app.conf: RUNNER_TESTS=skip without RUNNER_ADR is an error" \
+  "ERROR RUNNER_TESTS=skip cần RUNNER_ADR=ADR-NNNN (ADR runner của app)" "$(runner_tests_mode "$work/rconf/skip-no-adr.conf")"
+expect "runners-app.conf: an unknown key, a wrong value, a key twice and spaces around = are errors" \
+  "ERROR dòng 2: khóa lạ HEAVY_RUNNER|ERROR dòng 1: giá trị của RUNNER_QUEUE_MINUTES|ERROR dòng 1: giá trị của RUNNER_DOC|ERROR dòng 2: RUNNER_ADR ghi hai lần|ERROR dòng 1 không có dạng KHÓA=giá trị" \
+  "$(runner_tests_mode "$work/rconf/unknown.conf" | cut -d' ' -f1-6)|$(runner_tests_mode "$work/rconf/bad-minutes.conf" | cut -d' ' -f1-7)|$(runner_tests_mode "$work/rconf/bad-doc.conf" | cut -d' ' -f1-7)|$(runner_tests_mode "$work/rconf/twice.conf")|$(runner_tests_mode "$work/rconf/spaces.conf")"
+expect "runners-app.conf: CRLF line ends and a last line without a newline are read" "skip ADR-1034" \
+  "$(runner_tests_mode "$work/rconf/crlf.conf")"
+printf '%s\n' 'RUNNER_QUEUE_MINUTES=0' > "$work/rconf/zero.conf"
+printf '%s\n' 'RUNNER_QUEUE_MINUTES=1' > "$work/rconf/one.conf"
+expect "runners-app.conf: RUNNER_QUEUE_MINUTES must be at least 1" "ERROR dòng 1: giá trị của RUNNER_QUEUE_MINUTES|run" \
+  "$(runner_tests_mode "$work/rconf/zero.conf" | cut -d' ' -f1-7)|$(runner_tests_mode "$work/rconf/one.conf")"
+# A file that is there but cannot be read is an error, not a missing file. Root reads every file: skipped then.
+cp "$work/rconf/skip.conf" "$work/rconf/unreadable.conf"
+chmod 000 "$work/rconf/unreadable.conf"
+if [[ -r "$work/rconf/unreadable.conf" ]]; then
+  echo "skip - runners-app.conf: a file that cannot be read (root reads everything)"
+  rconf_unreadable=""
+else
+  rconf_unreadable=yes
+  expect "runners-app.conf: a file that cannot be read is an error" "ERROR không đọc được tệp|skip ADR-1034" \
+    "$(runner_tests_mode "$work/rconf/unreadable.conf")|$(runner_tests_mode "$work/rconf/skip.conf")"
+fi
+expect "runners-app.conf: run.sh reads the file as wait-run.sh does" \
+  "$(sed -n '/^read_runners_conf() {/,/^}/p' scripts/wait-run.sh)" "$(sed -n '/^read_runners_conf() {/,/^}/p' scripts/tests/run.sh)"
+rconf_py() { sed -n '/^RUNNERS_CONF_KEYS = {/,/^}/p; /^def runners_conf():/,/^    return values/p' "$1"; }
+expect "runners-app.conf: resume-check.py and run-watchdog.py read the file the same way" "$(rconf_py scripts/resume-check.py)" \
+  "$(rconf_py scripts/run-watchdog.py)"
+# The mode of this repository: a wrong file is a failure, and the runner tests then run.
+runner_tests="$(runner_tests_mode scripts/runners-app.conf)"
+if [[ "$runner_tests" == ERROR* ]]; then
+  expect "runners-app.conf: scripts/runners-app.conf is valid" "" "${runner_tests#ERROR }"
+  runner_tests=run
+fi
+runner_tests_skip() { # [what]; prints the skip line and succeeds when the app skips the runner tests
+  [[ "$runner_tests" == skip* ]] || return 1
+  echo "skip - runners: app theo ${runner_tests#skip }${1:+ ($1)}"
+}
+
 # Commits: A=aaaaaa1, B=bbbbbb2, C=ccccc03, D=ddddd04 (D is the red head).
 find_breaking() {
   rm -f "$work/fx.json.calls"
@@ -370,8 +459,8 @@ pr_step_has() { # <step line> <key: value regex>; true when a key line of the st
   grep -qE "(^      - |$tab        )$2($tab|$)" <<<"$1"
 }
 pr_filter_order() { # <workflow>; "(a) (b) (c) (d) <steps reading the filter>", or "missing" without a filter step
-  local steps=() i fi=-1 a=no b=no c=yes d=yes n=0
-  mapfile -t steps < <(pr_steps "$1")
+  local steps=() step i fi=-1 a=no b=no c=yes d=yes n=0
+  while IFS= read -r step; do steps+=("$step"); done < <(pr_steps "$1")
   for i in "${!steps[@]}"; do
     if pr_step_has "${steps[$i]}" 'id: filter'; then fi=$i; break; fi
   done
@@ -408,7 +497,7 @@ pr_filter_check() { # <workflow> <code> <release>; runs the filter check step li
     s && /^        run: \|$/ { r = 1; next } r && s && /^ *$/ { print ""; next }
     r && s && /^          / { sub(/^          /, ""); print; next } r { r = 0 }' "$1")"
   (cd "$dir" && CODE="$2" RELEASE="$3" bash -eo pipefail -c "$script") > /dev/null 2>&1 || code=$?
-  if [[ "$code" == 0 ]]; then echo 0; else echo "$code $(wc -l < "$dir/build.log" 2>/dev/null | tr -d ' ' || echo 0)"; fi
+  if [[ "$code" == 0 ]]; then echo 0; else echo "$code $(wc -l 2> /dev/null < "$dir/build.log" | tr -d ' ' || echo 0)"; fi
 }
 pr_sim() { # <workflow> <path>...; the filter outputs for a sample PR and the steps of build-and-test that run
   # PR_SIM_RUNNER (github-hosted by default, or self-hosted) stands for runner.environment (ADR-0042).
@@ -540,7 +629,7 @@ expect "pr-check: the order check fails on a copy whose filter check has an if" 
 # P4
 expect "pr-check: every filter output read is defined, and every filter is read" \
   "reads=code release defined=code release other=0" "$(pr_filter_outputs "$pr_wf")"
-sed '0,/steps\.filter\.outputs\.code/s//steps.filter.outputs.cod/' "$pr_wf" > "$work/prwf/cod.yml"
+awk '!d && sub(/steps\.filter\.outputs\.code/, "steps.filter.outputs.cod") { d = 1 } { print }' "$pr_wf" > "$work/prwf/cod.yml"
 expect "pr-check: the filter output check fails on a copy reading an undefined output" no \
   "$([[ "$(pr_filter_outputs "$work/prwf/cod.yml")" == "reads=code release defined=code release other=0" ]] && echo yes || echo no)"
 sed 's/^        id: filter$/        id: paths/' "$pr_wf" > "$work/prwf/paths-id.yml"
@@ -631,10 +720,12 @@ pr_sim_has() { # <workflow> <step name> <path>...; how many lines of the pr_sim 
   grep -cxF "$name" <<<"$out" || true
 }
 pr_runner_step='Kiểm runner tự host (scripts/runner-check.sh)'
+if ! runner_tests_skip "pr-check: bước kiểm runner"; then
 expect "pr-check: the sample PR runs the runner check only on a self-hosted runner" "0 1 1" \
   "$(pr_sim_has "$pr_wf" "$pr_runner_step" app/src/main/java/A.kt) $(PR_SIM_RUNNER=self-hosted pr_sim_has "$pr_wf" "$pr_runner_step" app/src/main/java/A.kt) $(PR_SIM_RUNNER=self-hosted pr_sim_has "$pr_wf" "$pr_runner_step" docs/a.md)"
 expect "pr-check: on a self-hosted runner the runner check is the step right after checkout" "$pr_runner_step" \
   "$(PR_SIM_RUNNER=self-hosted pr_sim "$pr_wf" app/src/main/java/A.kt | awk 'p { print; exit } $0 == "actions/checkout@v5" { p = 1 }')"
+fi
 expect "pr-check: a self-hosted runner does not change what a PR with code runs" \
   "code=true release=false gate=yes gradle=yes docs=no r8=no" \
   "$(PR_SIM_RUNNER=self-hosted pr_sim_summary "$pr_wf" app/src/main/java/A.kt)"
@@ -1583,6 +1674,48 @@ printf '%s\n' "Chờ: chưa thấy kiểm tra 'build-and-test' trên commit abc1
   > "$work/pb20-other-check.log"
 expect "playbook: waiting for the build-and-test check is not PB-20" "" "$(pb_head "$work/pb20-other-check.log" | grep PB-20)"
 expect "playbook: PB-21 a Gradle daemon disappeared -> chay-lai" "PB-21 chay-lai" "$(pb_head $pb_dir/PB-21.log)"
+expect "playbook: PB-22 Robolectric looperControlService NPE while resetting the sandbox -> chay-lai" "PB-22 chay-lai" \
+  "$(pb_head $pb_dir/PB-22.log)"
+printf '%s\n' 'FooTest > bar FAILED' '    java.lang.NullPointerException at ShadowPausedLooper.java:312' > "$work/pb22-short.log"
+expect "playbook: PB-22 also matches the short Gradle line of the NPE" "PB-22 chay-lai" "$(pb_head "$work/pb22-short.log")"
+printf '%s\n' 'FooTest > bar FAILED' '    java.lang.NullPointerException at FooTest.kt:12' > "$work/pb22-other-npe.log"
+expect "playbook: an NPE in the test itself is not PB-22" khong-co "$(pb_head "$work/pb22-other-npe.log")"
+expect "playbook: PB-23 script tests on a Mac with bash 3.2 -> moi-truong, not PB-02" "PB-23 moi-truong" \
+  "$(pb_head $pb_dir/PB-23.log)"
+# The other messages of bash 3.2 and BSD sed, each alone in a log (the commands are built so this file stays clean
+# for the bash 4 guard). GNU sed words its errors otherwise, so a Linux log never matches. BSD sed quotes a script
+# given on the command line with its newline, so its message ends on the next line ('": invalid command code f');
+# a script read from a file stays on one line. PB-23-bsd-sed.log holds real output of /usr/bin/sed on macOS. The 0,/
+# address of GNU sed prints nothing on BSD sed: only the lines around it can match.
+expect "playbook: PB-23 matches real two-line BSD sed messages and the local option error of bash 3.2" "PB-23 moi-truong" \
+  "$(pb_head $pb_dir/PB-23-bsd-sed.log)"
+pb23_ra="$(printf '%s' 'read')array"
+printf '%s\n' "./scripts/x.sh: line 9: $pb23_ra: command not found" > "$work/pb23-1.log"
+printf '%s\n' './scripts/x.sh: line 9: declare: -A: invalid option' > "$work/pb23-2.log"
+printf '%s\n' './scripts/x.sh: line 9: $''{name,,}: bad substitution' > "$work/pb23-3.log"
+printf '%s\n' 'sed: 1: "f.txt' '": invalid command code f' > "$work/pb23-4.log"
+printf '%s\n' 'sed: -I or -i may not be used with stdin' > "$work/pb23-5.log"
+printf '%s\n' 'sed: 2: "b b' "\": undefined label 'b'" > "$work/pb23-6.log"
+printf '%s\n' 'sed: 1: k.sed: invalid command code k' > "$work/pb23-7.log"
+printf '%s\n' './scripts/x.sh: line 9: local: -A: invalid option' > "$work/pb23-8.log"
+printf '%s\n' './scripts/x.sh: line 9: typeset: -A: invalid option' > "$work/pb23-9.log"
+printf '%s\n' 'sed: 1: "1a foo' '": command a expects \ followed by text' > "$work/pb23-10.log"
+printf '%s\n' 'sed: -e expression #1, char 3: unknown command: `f'"'" > "$work/pb23-gnu.log"
+printf '%s\n' './scripts/x.sh: line 9: $''{name/: bad substitution' > "$work/pb23-other.log"
+expect "playbook: PB-23 matches every bash 3.2 and BSD sed message, not GNU sed nor another bad substitution" \
+  "PB-23 PB-23 PB-23 PB-23 PB-23 PB-23 PB-23 PB-23 PB-23 PB-23 khong-co khong-co" \
+  "$(for n in 1 2 3 4 5 6 7 8 9 10 gnu other; do pb_head "$work/pb23-$n.log" | cut -d' ' -f1; done | tr '\n' ' ' | sed 's/ $//')"
+# Result lines of scripts/tests/run.sh are dropped before matching: a passed script test whose name quotes the PB-02
+# prefix does not hide the real 429 of the library download.
+expect "playbook: a passed script test quoting HẠ TẦNG: does not make a 429 download PB-02" "PB-09 lich-thu-lai" \
+  "$(pb_head $pb_dir/PB-09-script-tests.log)"
+awk 'BEGIN { OFS = "\t" } { print "build-and-test", "Cổng chất lượng", $0 }' $pb_dir/PB-09-script-tests.log > "$work/pb09-log-failed.log"
+expect "playbook: the job and step columns of gh run view --log-failed do not keep a script test line" "PB-09 lich-thu-lai" \
+  "$(pb_head "$work/pb09-log-failed.log")"
+printf '%s\n' '2026-11-15T19:08:09.0000000Z FAIL - x: expected HẠ TẦNG: got y' > "$work/pb-fail-line.log"
+expect "playbook: a failed script test line is not matched either" khong-co "$(pb_head "$work/pb-fail-line.log")"
+printf '%s\n' '2026-11-15T19:08:09.0000000Z HẠ TẦNG: GitHub không cấp máy' > "$work/pb02-timestamp.log"
+expect "playbook: a real HẠ TẦNG: line with a timestamp is still PB-02" "PB-02 cho" "$(pb_head "$work/pb02-timestamp.log")"
 printf '%s\n' 'The hosted runner: GitHub Actions 2 lost communication with the server.' > "$work/pb-hosted-lost.log"
 printf '%s\n' 'The runner has received a shutdown signal. This can happen when the runner service is stopped, or a manually started runner is canceled.' > "$work/pb-shutdown.log"
 printf '%s\n' 'No space left on device' > "$work/pb-no-space.log"
@@ -2766,8 +2899,11 @@ draft_pr() { printf '{"head": {"sha": "abc1234"}, "draft": %s}' "$1"; } # <true 
 draft_routes() { # <pulls/7 answer> <runs answer>
   printf '{"routes": {"pulls/7": %s, "actions/workflows/pr-check.yml/runs?head_sha=abc1234&per_page=10": %s, "actions/runs/91/jobs?per_page=50": {"jobs": []}}}' "$1" "$2"
 }
+# The sequence is built first: in an argument "{\"...\": [$(...), $(...)]}" nested in another $(...), bash 3.2 applies
+# brace expansion and splits it at the commas.
+draft_later='{"__sequence__": ['"$(draft_pr false), $(draft_pr false), $(draft_pr true)"']}'
 expect "wait-run: a draft PR stops at once with code 6" "6 NHÁP 6 NHÁP 2 CHƯA" \
-  "$(wait_code "$(draft_routes "$(draft_pr true)" "$no_runs")" 0 --pr 7) $(wait_code "$(draft_routes "{\"__sequence__\": [$(draft_pr false), $(draft_pr false), $(draft_pr true)]}" "$pending")" 5 --pr 7) $(wait_code "$(draft_routes "$(draft_pr false)" "$no_runs")" 0 --pr 7)"
+  "$(wait_code "$(draft_routes "$(draft_pr true)" "$no_runs")" 0 --pr 7) $(wait_code "$(draft_routes "$draft_later" "$pending")" 5 --pr 7) $(wait_code "$(draft_routes "$(draft_pr false)" "$no_runs")" 0 --pr 7)"
 skipped_run='{"id": 90, "status": "completed", "conclusion": "skipped", "html_url": "u"}'
 ready_runs='{"__sequence__": [{"workflow_runs": ['"$skipped_run"']}, {"workflow_runs": [{"id": 91, "status": "completed", "conclusion": "success", "html_url": "u"}, '"$skipped_run"']}]}'
 line="$(wait_line "$(draft_routes "$(draft_pr false)" "$ready_runs")" 10 --pr 7)"
@@ -2826,6 +2962,29 @@ expect "wait-run: WAIT_RUN_RUNNER_QUEUE_MINUTES must be a number" "3 LỖI" \
 rw_workflow="{\"routes\": {\"actions/workflows/main-guard.yml/runs?branch=main&per_page=20\": {\"workflow_runs\": [{\"id\": 91, \"created_at\": \"$(rw_at 95)\", \"status\": \"in_progress\", \"conclusion\": null, \"html_url\": \"u\"}]}, \"actions/runs/91/jobs?per_page=50\": $(rw_jobs "$(rw_job ui-test queued '["vgl-android"]' 90)")}}"
 expect "wait-run: --workflow also says CHỜ RUNNER" "7 CHỜ" \
   "$(rw_code "$rw_workflow" 2 --workflow main-guard.yml --since "$(rw_at 100)")"
+# scripts/runners-app.conf of an app (docs/ops/self-hosted-runner.md, section 10): the wait, the labels watched and
+# the runner page of the message. Each case pairs with the same fixture without the file.
+printf '%s\n' '# runners of the app' 'RUNNER_QUEUE_MINUTES=120' > "$work/rconf/wait-120.conf"
+printf '%s\n' 'RUNNER_LABELS=gpu,photune' > "$work/rconf/labels.conf"
+printf '%s\n' 'RUNNER_DOC=docs/ops/self-hosted-runner-app.md' > "$work/rconf/doc.conf"
+rw_fx="$(pr_routes "$pending" "$(rw_jobs "$rw_queued")")"
+expect "wait-run: RUNNER_QUEUE_MINUTES of runners-app.conf sets the wait of CHỜ RUNNER" "7 CHỜ|2 CHƯA" \
+  "$(rw_code "$rw_fx" 2 --pr 7)|$(RUNNERS_APP_CONF="$work/rconf/wait-120.conf" rw_code "$rw_fx" 2 --pr 7)"
+expect "wait-run: WAIT_RUN_RUNNER_QUEUE_MINUTES wins over runners-app.conf" "7 CHỜ|2 CHƯA" \
+  "$(WAIT_RUN_RUNNER_QUEUE_MINUTES=60 RUNNERS_APP_CONF="$work/rconf/wait-120.conf" rw_code "$rw_fx" 2 --pr 7)|$(WAIT_RUN_RUNNER_QUEUE_MINUTES=100 rw_code "$rw_fx" 2 --pr 7)"
+rw_fx_app="$(pr_routes "$pending" "$(rw_jobs "$(rw_job build-and-test queued '["self-hosted","photune"]' 90)")")"
+expect "wait-run: RUNNER_LABELS watches only jobs with one of its labels" "7 CHỜ|2 CHƯA|7 CHỜ" \
+  "$(rw_code "$rw_fx" 2 --pr 7)|$(RUNNERS_APP_CONF="$work/rconf/labels.conf" rw_code "$rw_fx" 2 --pr 7)|$(RUNNERS_APP_CONF="$work/rconf/labels.conf" rw_code "$rw_fx_app" 2 --pr 7)"
+rw_doc_line="$(RUNNERS_APP_CONF="$work/rconf/doc.conf" WAIT_RUN_NOW="$rw_now" wait_line "$rw_fx" 2 --pr 7)"
+expect "wait-run: with RUNNER_DOC the CHỜ RUNNER line names the app's runner page, not HEAVY_RUNNER" "1 0|0 1|1 1" \
+  "$(grep -c 'máy runner tự host của repo (docs/ops/self-hosted-runner-app.md)' <<<"$rw_doc_line" || true) $(grep -c 'HEAVY_RUNNER' <<<"$rw_doc_line" || true)|$(grep -c 'self-hosted-runner-app' <<<"$rw_main_line" || true) $(grep -c 'HEAVY_RUNNER' <<<"$rw_main_line" || true)|$(grep -c 'docs/auto-run.md, mục 4' <<<"$rw_doc_line" || true) $(grep -c '^7 CHỜ RUNNER' <<<"$rw_doc_line" || true)"
+rw_bad_line="$(RUNNERS_APP_CONF="$work/rconf/unknown.conf" WAIT_RUN_NOW="$rw_now" wait_line "$rw_fx" 2 --pr 7)"
+expect "wait-run: an unknown key or a wrong value in runners-app.conf stops with code 3" "3 LỖI|1|3 LỖI|3 LỖI" \
+  "$(RUNNERS_APP_CONF="$work/rconf/unknown.conf" rw_code "$rw_fx" 2 --pr 7)|$(grep -c 'dòng 2: khóa lạ HEAVY_RUNNER' <<<"$rw_bad_line" || true)|$(RUNNERS_APP_CONF="$work/rconf/bad-minutes.conf" rw_code "$rw_fx" 2 --pr 7)|$(RUNNERS_APP_CONF="$work/rconf/zero.conf" rw_code "$rw_fx" 2 --pr 7)"
+if [[ -n "$rconf_unreadable" ]]; then
+  expect "wait-run: a runners-app.conf that cannot be read stops with code 3" "3 LỖI|1" \
+    "$(RUNNERS_APP_CONF="$work/rconf/unreadable.conf" rw_code "$rw_fx" 2 --pr 7)|$(RUNNERS_APP_CONF="$work/rconf/unreadable.conf" WAIT_RUN_NOW="$rw_now" wait_line "$rw_fx" 2 --pr 7 | grep -c 'không đọc được tệp' || true)"
+fi
 # The draft and conflict checks come first (ADR-0041, L-064).
 rw_draft="$(draft_routes "$(draft_pr true)" "$pending" | jq -c --argjson j "$(rw_jobs "$rw_queued")" '.routes["actions/runs/91/jobs?per_page=50"] = $j')"
 rw_conflict="$(conflict_routes dirty "$no_runs" | jq -c --argjson j "$(rw_jobs "$rw_queued")" '.routes["actions/runs/91/jobs?per_page=50"] = $j')"
@@ -2892,6 +3051,27 @@ expect "resume-check: no resume while a job waits for a self-hosted runner" "0||
   "$(rs_resume queued "$(rs_job queued '["vgl-android"]' 2026-10-18T01:30:00Z)")"
 expect "resume-check: a job queued a minute ago on a self-hosted runner also stops the resume" "0||1" \
   "$(rs_resume queued "$(rs_job queued '["vgl-android"]' 2026-10-18T02:59:00Z)")"
+rs_waiting="$(rs_job queued '["vgl-android"]' 2026-10-18T01:30:00Z)"
+# RUNNER_LABELS narrows wait-run.sh and run-watchdog.py only: a self-hosted job with a label left out of the file
+# still stops the resume, else a second session could start while the first waits for it.
+expect "resume-check: a self-hosted job with a label outside RUNNER_LABELS still stops the resume" \
+  "0||1 0||1 0|docs/runs/RUN-20261018-01.md|0" \
+  "$(rs_resume queued "$rs_waiting") $(RUNNERS_APP_CONF="$work/rconf/labels.conf" rs_resume queued "$rs_waiting") $(RUNNERS_APP_CONF="$work/rconf/labels.conf" rs_resume queued "$(rs_job queued '["ubuntu-latest"]' 2026-10-18T01:30:00Z)")"
+rs_resume queued "$rs_waiting" > /dev/null
+rs_msg="$(grep 'đang chờ runner tự host' "$work/resume.err" || true)"
+RUNNERS_APP_CONF="$work/rconf/doc.conf" rs_resume queued "$rs_waiting" > /dev/null
+expect "resume-check: with RUNNER_DOC the message names the app's runner page" "1 0|1 1" \
+  "$(grep -c '(ADR-0042)' <<<"$rs_msg" || true) $(grep -c 'self-hosted-runner-app' <<<"$rs_msg" || true)|$(grep -c 'đang chờ runner tự host' "$work/resume.err" || true) $(grep -c 'xem docs/ops/self-hosted-runner-app.md' "$work/resume.err" || true)"
+rs_code=0
+rs_out="$(RUNNERS_APP_CONF="$work/rconf/unknown.conf" RESUME_ERR="$work/resume.err" resume_check running 120)" || rs_code=$?
+expect "resume-check: an unknown key in runners-app.conf continues nothing, exit 1" "1||1" \
+  "$rs_code|$rs_out|$(grep -c 'dòng 2: khóa lạ HEAVY_RUNNER' "$work/resume.err" || true)"
+if [[ -n "$rconf_unreadable" ]]; then
+  rs_code=0
+  rs_out="$(RUNNERS_APP_CONF="$work/rconf/unreadable.conf" RESUME_ERR="$work/resume.err" resume_check running 120)" || rs_code=$?
+  expect "resume-check: a runners-app.conf that cannot be read continues nothing, exit 1" "1||1" \
+    "$rs_code|$rs_out|$(grep -c 'LỖI:' "$work/resume.err" || true)"
+fi
 expect "resume-check: a waiting job of a run in progress also stops the resume" "0||1" \
   "$(rs_resume in_progress "$(rs_job queued '["vgl-android"]' 2026-10-18T01:30:00Z)")"
 rs_file="0|docs/runs/RUN-20261018-01.md|0"
@@ -3085,6 +3265,28 @@ WD_IN_PROGRESS="$(wd_run120)" WD_ROUTES="$({ wd_job build-and-test queued '["vgl
 expect "run-watchdog: the wait counts from the latest finished job of the run" "0 1" "$wd_w5 $(wd_waits)"
 WATCHDOG_RUNNER_QUEUE_MINUTES=20 WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r2" watchdog running 70 > /dev/null
 expect "run-watchdog: WATCHDOG_RUNNER_QUEUE_MINUTES sets the wait" 1 "$(wd_waits)"
+# scripts/runners-app.conf of an app: the wait, the labels watched and the runner page of the issue body. wd_r1 is a
+# job queued 100 minutes ago, named without the file.
+WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" watchdog running 70 > /dev/null
+wd_c1="$(wd_waits) $(grep -c 'quá 75 phút' "$work/wd.out" || true)"
+RUNNERS_APP_CONF="$work/rconf/wait-120.conf" WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" watchdog running 70 > /dev/null
+expect "run-watchdog: RUNNER_QUEUE_MINUTES of runners-app.conf sets the wait" "1 1|POST issues 0" "$wd_c1|$(wd_writes) $(wd_waits)"
+WATCHDOG_RUNNER_QUEUE_MINUTES=60 RUNNERS_APP_CONF="$work/rconf/wait-120.conf" WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" \
+  watchdog running 70 > /dev/null
+expect "run-watchdog: WATCHDOG_RUNNER_QUEUE_MINUTES wins over runners-app.conf" "1 1" \
+  "$(wd_waits) $(grep -c 'quá 60 phút' "$work/wd.out" || true)"
+RUNNERS_APP_CONF="$work/rconf/labels.conf" WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" watchdog running 70 > /dev/null
+wd_c2="$(wd_waits)"
+RUNNERS_APP_CONF="$work/rconf/labels.conf" WD_QUEUED="$(wd_run120)" \
+  WD_ROUTES="$(wd_job build-and-test queued '["self-hosted","photune"]' 100 | wd_jobs120)" watchdog running 70 > /dev/null
+expect "run-watchdog: RUNNER_LABELS watches only jobs with one of its labels" "0 1" "$wd_c2 $(wd_waits)"
+WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" watchdog running 70 > /dev/null
+wd_c3="$(grep -c 'HEAVY_RUNNER' "$work/wd.out" || true) $(grep -c 'self-hosted-runner-app' "$work/wd.out" || true)"
+RUNNERS_APP_CONF="$work/rconf/doc.conf" WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" watchdog running 70 > /dev/null
+expect "run-watchdog: with RUNNER_DOC the issue names the app's runner page, not HEAVY_RUNNER" "1 0|0 1 1" \
+  "$wd_c3|$(grep -c 'HEAVY_RUNNER' "$work/wd.out" || true) $(grep -c 'máy runner tự host của repo trước (docs/ops/self-hosted-runner-app.md)' "$work/wd.out") $(wd_waits)"
+expect "run-watchdog: an unknown key in runners-app.conf exits 1 and changes no issue" "1 none 1" \
+  "$(RUNNERS_APP_CONF="$work/rconf/unknown.conf" WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" watchdog running 70) $(wd_writes) $(grep -c 'dòng 2: khóa lạ HEAVY_RUNNER' "$work/wd.out" || true)"
 expect "run-watchdog: a server error on the jobs of a run exits 1 and opens no issue" "1 none" \
   "$(WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" watchdog running 70 - "[]" "" "$wd_e120") $(wd_writes)"
 WD_QUEUED="$(wd_run120)" WD_ROUTES="$wd_r1" watchdog running 70 - "$wd_open" > /dev/null
@@ -3264,6 +3466,9 @@ expect "status-page: a separate job enables the schedules for a pending run list
 # Self-hosted runner for the heavy jobs (ADR-0042). A heavy job runs scripts/check.sh, ./gradlew or the emulator and
 # reads no secret: it runs on the runner the repository variable HEAVY_RUNNER names, else on ubuntu-latest. Every
 # other job stays on ubuntu-latest. Each check takes a directory or a workflow, so it also runs on broken copies.
+# An app with RUNNER_TESTS=skip in scripts/runners-app.conf skips this whole part, down to the clean checkout check
+# (the block is not indented).
+if ! runner_tests_skip; then
 heavy_runs_on="    runs-on: \${{ vars.HEAVY_RUNNER || 'ubuntu-latest' }}"
 job_kind() { # <workflow> <job>; secret, heavy or light (comment lines do not count)
   local body
@@ -3523,10 +3728,12 @@ awk '{ print } /^  guard:$/ { g = 1 } g && $0 == "          fetch-depth: 50" { p
   "$guard_wf" > "$rwd/main-guard.yml"
 expect "runners: the clean check fails on a copy whose guard checkout keeps old files" "no main-guard.yml:guard" \
   "$(heavy_clean "$rwd")"
+fi # runner_tests_skip
 
 # resume-check.py reads the Actions runs that wait (ADR-0042).
 expect "resume-run: the workflow may read Actions runs" "1 0" \
   "$(wf_level .github/workflows/resume-run.yml | grep -cx '  actions: read' || true) $(wf_level .github/workflows/resume-run.yml | grep -c 'actions: write' || true)"
+mkdir -p "$work/rwf"
 grep -vx '  actions: read' .github/workflows/resume-run.yml > "$work/rwf/resume-run.yml" || true
 expect "resume-run: the Actions read check fails on a copy without it" "0 0" \
   "$(wf_level "$work/rwf/resume-run.yml" | grep -cx '  actions: read' || true) $(wf_level "$work/rwf/resume-run.yml" | grep -c 'actions: write' || true)"
@@ -3656,9 +3863,11 @@ rcl_lines() { # <workflow> <job>; lines "RUNNER_CHECK_LOG: build.log" in the env
     j && s && $0 == "        env:" { e = 1; next } j && s && e && !/^          / { e = 0 }
     j && s && e && $0 == "          RUNNER_CHECK_LOG: build.log" { n++ } END { print n + 0 }' "$1"
 }
+if ! runner_tests_skip "pr-check: RUNNER_CHECK_LOG"; then
 grep -vxF '          RUNNER_CHECK_LOG: build.log' "$pr_wf" > "$work/pr-no-log.yml" || true
 expect "pr-check: the runner check writes its result lines to build.log" "1 0|0" \
   "$(rcl_lines "$pr_wf" build-and-test) $(grep -c 'RUNNER_CHECK_LOG' "$guard_wf" || true)|$(rcl_lines "$work/pr-no-log.yml" build-and-test)"
+fi
 
 # The failure comment step of pr-check.yml, run like GitHub in the work directory after a refused runner, shows the
 # lines of runner-check.sh instead of "Không có log." (T-095). A gh of its own: fake-gh only answers `gh api`.
@@ -3934,14 +4143,14 @@ write_release_properties "ca-app-pub-1234567890123456~1111111111" "" "http://cdn
 release_fails_with "assets address without https" "assetsBaseUrl phải"
 release_fails_with "unknown argument" "tham số không hợp lệ" --upload
 expect "release.sh: native placements and placements with attributes need a production ad unit, gallery ones do not" \
-  "sample_bottom_banner sample_native_small home_full_screen inter_sounds list_native" \
+  "sample_bottom_banner sample_native_small home_full_screen inter_sounds list_native banner native_collap" \
   "$(scripts/release.sh --list-placements scripts/tests/fixtures/release/AdPlacement.kt | tr '\n' ' ' | sed 's/ $//')"
 # Placements without a real unit get Google's test unit of their format, and are listed (decision 2026-10-26).
 expect "release.sh: placements without a real unit get the test unit of their format" \
-  "sample_bottom_banner=ca-app-pub-1/2;sample_native_small=ca-app-pub-3940256099942544/2247696110;home_full_screen=ca-app-pub-3940256099942544/1044960115;inter_sounds=ca-app-pub-3940256099942544/1033173712;list_native=ca-app-pub-3940256099942544/2247696110" \
+  "sample_bottom_banner=ca-app-pub-1/2;sample_native_small=ca-app-pub-3940256099942544/2247696110;home_full_screen=ca-app-pub-3940256099942544/1044960115;inter_sounds=ca-app-pub-3940256099942544/1033173712;list_native=ca-app-pub-3940256099942544/2247696110;banner=ca-app-pub-3940256099942544/9214589741;native_collap=ca-app-pub-3940256099942544/1044960115" \
   "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2> /dev/null)"
 expect "release.sh: lists the placements that got a test unit" 1 \
-  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2>&1 > /dev/null | grep -c 'không có doanh thu) cho vị trí: sample_native_small home_full_screen inter_sounds list_native.$')"
+  "$(scripts/release.sh --fill-test-units scripts/tests/fixtures/release/AdPlacement.kt 'sample_bottom_banner=ca-app-pub-1/2' 2>&1 > /dev/null | grep -c 'không có doanh thu) cho vị trí và khe: sample_native_small home_full_screen inter_sounds list_native banner native_collap.$')"
 expect "release.sh: every real placement has a test unit for its format" 0 \
   "$(code=0; scripts/release.sh --fill-test-units core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdPlacement.kt '' > /dev/null 2>&1 || code=$?; echo $code)"
 printf '%s\n' 'enum class AdPlacement(val key: String) {' '    WRAPPED(' '        "wrapped",' '        AdFormat.BANNER,' '    ),' '}' \
@@ -3949,6 +4158,36 @@ printf '%s\n' 'enum class AdPlacement(val key: String) {' '    WRAPPED(' '      
 expect "release.sh refuses a placement wrapped over several lines" "1 1" \
   "$(code=0; out="$(scripts/release.sh --list-placements "$work/WrappedAdPlacement.kt" 2>&1)" || code=$?
      echo "$code $(grep -c 'nhiều dòng (dòng 2)' <<< "$out")")"
+
+# Slot keys of the bottom bar (M-05, T-057): the same rule as missingUnitKeys in AdUnitIds.kt. A native small
+# placement that ships is a bottom bar with a banner layer, and a collapsible layer unless it declares none.
+slot_keys_of() { # <placement lines...>: the slot keys --list-placements prints for them
+  { echo 'enum class AdPlacement(val key: String) {'; printf '%s\n' "$@"; echo '}'; } > "$work/SlotAdPlacement.kt"
+  scripts/release.sh --list-placements "$work/SlotAdPlacement.kt" | { grep -xE 'banner|native_collap' || true; } | tr '\n' ' ' | sed 's/ $//'
+}
+expect "release.sh: slot keys follow missingUnitKeys" "|banner|banner native_collap||banner native_collap" \
+  "$(slot_keys_of '    HOME_BANNER("home_banner", AdFormat.BANNER),' '    INTER("inter", AdFormat.INTERSTITIAL),')|$(
+     slot_keys_of '    BAR("bar", AdFormat.NATIVE_SMALL, collapsibleLayer = false),')|$(
+     slot_keys_of '    BAR("bar", AdFormat.NATIVE_SMALL, collapsibleLayer = false),' '    BAR2("bar2", AdFormat.NATIVE_SMALL),')|$(
+     slot_keys_of '    GALLERY_NATIVE_SMALL("gallery_native_small", AdFormat.NATIVE_SMALL),')|$(
+     slot_keys_of '    LIST("list", AdFormat.NATIVE_SMALL, nativeEvery = 8),')"
+expect "release.sh: a configured slot key keeps its unit, a missing one gets a test unit" \
+  "banner=ca-app-pub-1/3;bar=ca-app-pub-3940256099942544/2247696110;native_collap=ca-app-pub-3940256099942544/1044960115" \
+  "$(printf '%s\n' 'enum class AdPlacement(val key: String) {' '    BAR("bar", AdFormat.NATIVE_SMALL),' '}' > "$work/SlotAdPlacement.kt"
+     scripts/release.sh --fill-test-units "$work/SlotAdPlacement.kt" 'banner=ca-app-pub-1/3' 2> /dev/null | tr -d '\n')"
+expect "release.sh: a banner_mrec placement gets the 300 x 250 test unit" "0 home_mrec=ca-app-pub-3940256099942544/6300978111" \
+  "$(printf '%s\n' 'enum class AdPlacement(val key: String) {' '    HOME_MREC("home_mrec", AdFormat.BANNER_MREC),' '}' > "$work/MrecAdPlacement.kt"
+     code=0; out="$(scripts/release.sh --fill-test-units "$work/MrecAdPlacement.kt" '' 2> /dev/null)" || code=$?; echo "$code $out")"
+# The test unit of every format matches GoogleTestAdUnitIds of :core:ads (the comment of test_unit_for says so).
+unit_mismatch=""
+while read -r unit_format unit_id; do
+  printf '%s\n' 'enum class AdPlacement(val key: String) {' "    P(\"p\", AdFormat.$unit_format)," '}' > "$work/UnitAdPlacement.kt"
+  got="$(scripts/release.sh --fill-test-units "$work/UnitAdPlacement.kt" '' 2> /dev/null | cut -d';' -f1 || true)"
+  [[ "$got" == "p=$unit_id" ]] || unit_mismatch="$unit_mismatch $unit_format=$got"
+done < <(sed -nE 's/^[[:space:]]*AdFormat\.([A-Z_]+) -> "(ca-app-pub-[0-9]+\/[0-9]+)"$/\1 \2/p' \
+  core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIds.kt)
+unit_formats="$(grep -cE '^[[:space:]]*AdFormat\.[A-Z_]+ -> "ca-app-pub-' core/ads/src/main/kotlin/com/vglstudio/camera/pose/line/guide/core/ads/AdUnitIds.kt || true)"
+expect "release.sh: the test unit of every format matches GoogleTestAdUnitIds" "read" "$([ "${unit_formats:-0}" -gt 0 ] && echo read)$unit_mismatch"
 
 # Contract between release.sh and the build (L-125): every Gradle property that release.sh passes is read by
 # app/build.gradle.kts, or the bundle would be built without it.
@@ -4021,7 +4260,9 @@ rl_version="$(sed -nE 's/^[[:space:]]*versionCode = ([0-9]+)$/\1/p' app/build.gr
 # Read from the real AdPlacement.kt, so an app with other placements runs the same test: the first placement gets
 # a configured unit, the last one (when it is another) must get a test unit.
 rl_keys="$(scripts/release.sh --list-placements "$rl_placement")"
-rl_first="$(head -n 1 <<< "$rl_keys")" rl_last="$(tail -n 1 <<< "$rl_keys")"
+rl_first="$(head -n 1 <<< "$rl_keys")"
+# The last placement key, not a slot key of the bottom bar: the release path must give placements a test unit too.
+rl_last="$({ grep -vxE 'banner|native_collap' <<< "$rl_keys" || true; } | tail -n 1)"
 rl_google_services() { # <package name>
   printf '{"project_info":{"project_id":"prod-project"},"client":[{"client_info":{"android_client_info":{"package_name":"%s"}}}]}' \
     "$1" > "$rl/cfg/google-services.json"
@@ -4077,6 +4318,18 @@ if [[ -n "$rl_last" && "$rl_last" != "$rl_first" ]]; then
   expect "release.sh --check-only: a placement without a unit gets a test unit" 1 \
     "$(grep -cE "(^| )$rl_last( |$)" <<< "$rl_test_units" || true)"
 fi
+rl_slots="$({ grep -xE 'banner|native_collap' <<< "$rl_keys" || true; } | tr '\n' ' ' | sed 's/ $//')"
+expect "release.sh --check-only: the summary names the slot keys of the bottom bar" 1 \
+  "$(grep -cx "   Khe của thanh đáy: ${rl_slots:-không có}" <<< "$rl_out" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" \
+  "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001;}old_banner=ca-app-pub-1234567890123456/1000000009" \
+  "https://cdn.example.vn/"
+rl_unknown="$(release_check_only)"
+expect "release.sh --check-only: an unknown adUnits key is warned, not refused, and its unit is not printed" "1 1 0" \
+  "$(grep -cx 'CHÚ Ý: adUnits có khóa không dùng: old_banner' <<< "$rl_unknown" || true) \
+$(grep -c '^== Đã kiểm xong' <<< "$rl_unknown" || true) $(grep -c '1000000009' <<< "$rl_unknown" || true)"
+write_release_properties "ca-app-pub-1234567890123456~1111111111" \
+  "${rl_first:+$rl_first=ca-app-pub-1234567890123456/1000000001}" "https://cdn.example.vn/"
 expect "release.sh --check-only: makes no tag, no worktree and no build" "0 1 0" \
   "$(git -C "$rl/src" tag | wc -l | tr -d ' ') $(git -C "$rl/src" worktree list | wc -l | tr -d ' ') \
 $(find "$rl/src" -name '*.aab' | wc -l | tr -d ' ')"
@@ -4486,12 +4739,38 @@ ls_repo() { # <sha1 for the mac zip> <sha1 for the linux zip>
 ls_calls() { if [ -f "$ls_dir/curl.log" ]; then wc -l < "$ls_dir/curl.log" | tr -d ' '; else echo 0; fi; }
 ls_mac_sha1="$(shasum -a 1 "$ls_dir/tools-mac.zip" | cut -d' ' -f1)"
 ls_linux_sha1="$(shasum -a 1 "$ls_dir/tools-linux.zip" | cut -d' ' -f1)"
-# ls_run <home> [args...]: runs local-setup.sh with the fakes as a Mac on arm64 unless LS_OS, LS_ARCH say otherwise;
-# prints the exit code; output in $ls_dir/out.
+# ls_shell_bin <dir> <bash major.minor, or "none"> <gnu|bsd>: a fake bash and a fake sed. The bash answers a -c
+# command that reads BASH_VERSINFO with that version ("none": fails), and --version with a translated banner, as with
+# LANG=vi_VN; the sed answers --version like GNU or BSD sed. Anything else runs the real tool (local-setup.sh itself
+# runs with the first bash on PATH).
+ls_real_bash="$BASH"
+ls_real_sed="$(command -v sed)"
+ls_shell_bin() {
+  mkdir -p "$1"
+  local answer="echo $2"
+  [ "$2" = none ] && answer="exit 1"
+  printf '#!/bin/sh\nif [ "$1" = --version ]; then echo "GNU bash, phiên bản 9.9.9(1)-release (fake)"; exit 0; fi\nif [ "$1" = -c ]; then case "$2" in *BASH_VERSINFO*) %s; exit 0 ;; esac; fi\nexec "%s" "$@"\n' \
+    "$answer" "$ls_real_bash" > "$1/bash"
+  if [ "$3" = gnu ]; then
+    printf '#!/bin/sh\nif [ "$1" = --version ]; then echo "sed (GNU sed) 4.9"; exit 0; fi\nexec "%s" "$@"\n' "$ls_real_sed" > "$1/sed"
+  else
+    printf '#!/bin/sh\nif [ "$1" = --version ]; then echo "sed: illegal option -- -" >&2; exit 1; fi\nexec "%s" "$@"\n' \
+      "$ls_real_sed" > "$1/sed"
+  fi
+  chmod +x "$1/bash" "$1/sed"
+}
+ls_shell_bin "$ls_dir/shell-ok" 5.2 gnu
+ls_shell_bin "$ls_dir/shell-bash3" 3.2 gnu
+ls_shell_bin "$ls_dir/shell-bsdsed" 5.2 bsd
+ls_shell_bin "$ls_dir/shell-noversion" none gnu
+# ls_run <home> [args...]: runs local-setup.sh with the fakes as a Mac on arm64 unless LS_OS, LS_ARCH say otherwise,
+# with bash 5 and GNU sed first on PATH unless LS_SHELL_BIN names another ls_shell_bin dir; prints the exit code;
+# output in $ls_dir/out.
 ls_run() {
   local home="$1"; shift
   set +e
-  HOME="$home" XDG_DATA_HOME="" LS_DIR="$ls_dir" CURL="$ls_dir/bin/curl" \
+  PATH="${LS_SHELL_BIN:-$ls_dir/shell-ok}:$PATH" \
+    HOME="$home" XDG_DATA_HOME="" LS_DIR="$ls_dir" CURL="$ls_dir/bin/curl" \
     LOCAL_SETUP_OS="${LS_OS:-Darwin}" LOCAL_SETUP_ARCH="${LS_ARCH:-arm64}" \
     LOCAL_SETUP_ADOPTIUM_API=https://api.example.test/v3 LOCAL_SETUP_GOOGLE_REPO=https://dl.example.test/repository \
     scripts/local-setup.sh "$@" > "$ls_dir/out" 2>&1
@@ -4576,8 +4855,28 @@ expect "local-setup.sh downloads nothing the second time" 0 "$(ls_calls)"
 expect "local-setup.sh says both steps were skipped" 2 "$(grep -c '^Bỏ qua:' "$ls_dir/out" || true)"
 expect "local-setup.sh leaves env.sh as it was" same "$(cmp -s "$ls_dir/env-first.sh" "$ls_env" && echo same || echo changed)"
 expect "local-setup.sh --check after the install passes" 0 "$(ls_run "$ls_dir/home-mac" --check)"
+expect "local-setup.sh --check passes bash 5 and GNU sed first on PATH" "1 1" \
+  "$(grep -c "^QUA: bash 5.2 đầu PATH ($ls_dir/shell-ok/bash)$" "$ls_dir/out" || true) $(grep -c "^QUA: GNU sed đầu PATH ($ls_dir/shell-ok/sed)$" "$ls_dir/out" || true)"
 expect "local-setup.sh --check lists every package" 4 "$(grep -c '^QUA: \(platform-tools\|platforms;\|build-tools;\)' "$ls_dir/out" || true)"
 expect "local-setup.sh --check finds platforms;android-37.0" 1 "$(grep -cxF 'QUA: platforms;android-37.0' "$ls_dir/out" || true)"
+# macOS ships bash 3.2 and BSD sed: --check says so even when the JDK and the SDK are in place.
+expect "local-setup.sh --check fails with bash 3.2 first on PATH" 1 \
+  "$(LS_SHELL_BIN="$ls_dir/shell-bash3" ls_run "$ls_dir/home-mac" --check)"
+expect "local-setup.sh --check names bash 3.2, says how to install bash, and passes GNU sed" "1 1 1" \
+  "$(grep -c "^THIẾU: bash từ 4 trở lên đầu PATH.*$ls_dir/shell-bash3/bash, bash 3.2)" "$ls_dir/out" || true) $(grep -c 'brew install bash' "$ls_dir/out" || true) $(grep -c '^QUA: GNU sed' "$ls_dir/out" || true)"
+expect "local-setup.sh --check fails with BSD sed first on PATH" 1 \
+  "$(LS_SHELL_BIN="$ls_dir/shell-bsdsed" ls_run "$ls_dir/home-mac" --check)"
+expect "local-setup.sh --check names BSD sed and gives the install and PATH lines" "1 1 1 1" \
+  "$(grep -c "^THIẾU: GNU sed đầu PATH (đang là: $ls_dir/shell-bsdsed/sed" "$ls_dir/out" || true) $(grep -c 'brew install gnu-sed' "$ls_dir/out" || true) $(grep -cF 'export PATH="$(brew --prefix)/opt/gnu-sed/libexec/gnubin:$PATH"' "$ls_dir/out" || true) $(grep -c '^QUA: bash 5.2 ' "$ls_dir/out" || true)"
+expect "local-setup.sh --check does not send a missing bash or sed to the installer" "0 1" \
+  "$(grep -c 'để cài JDK' "$ls_dir/out" || true) $(grep -c 'không do script này cài' "$ls_dir/out" || true)"
+# The version comes from BASH_VERSINFO, not from the --version banner, which is translated (the fakes print
+# "phiên bản 9.9.9"): bash 5.2 above passed with that banner. A bash whose version cannot be read is missing.
+expect "local-setup.sh --check fails when the version of bash cannot be read" "1 1" \
+  "$(LS_SHELL_BIN="$ls_dir/shell-noversion" ls_run "$ls_dir/home-mac" --check) $(grep -c "^THIẾU: bash từ 4 trở lên đầu PATH.*(đang là: $ls_dir/shell-noversion/bash, không đọc được phiên bản)" "$ls_dir/out" || true)"
+expect "local-setup.sh install ends with exit 1 and no 'Sẵn sàng' under bash 3.2" "1 0 1" \
+  "$(LS_SHELL_BIN="$ls_dir/shell-bash3" ls_run "$ls_dir/home-mac") $(grep -c '^Sẵn sàng' "$ls_dir/out" || true) $(grep -c '^THIẾU: bash từ 4' "$ls_dir/out" || true)"
+expect "local-setup.sh install under bash 3.2 downloads nothing more" 0 "$(ls_calls)"
 
 ls_pkg="$(scripts/local-setup.sh --print-versions | sed -n 's/^gói SDK: //p' | awk '{print $NF}' || true)"
 mv "$ls_dir/home-mac/android-sdk/${ls_pkg//;//}" "$ls_dir/pkg-aside" 2> /dev/null || true
@@ -5089,6 +5388,13 @@ write_run_plan T-002 feature/demo/B.kt '| KB-1 | Unit | `bTest` |'
 write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 expect "run-check: a ready list passes" pass "$(run_check)"
 expect "run-check: a ready list has no warning" 0 "$(grep -c 'CHÚ Ý' "$work/run-check.out")"
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)" cancelled
+expect "run-check: a cancelled list is refused, so nobody approves it again" "stop 1" \
+  "$(run_check) $(grep -c 'cancelled' "$work/run-check.out")"
+expect "run-check --batch: a cancelled list is refused too, without the hint to run again without --batch" "1 1 0" \
+  "$(RUN_CHECK_ROOT="$rr" PLAN_CHECK_ROOT="$rr" RUN_CHECK_BASE=HEAD python3 -I scripts/run-check.py --batch "$rr/docs/runs/RUN-1.md" > "$work/run-check-batch.out" 2>&1; echo $?) $(
+    grep -c 'danh sách đã cancelled' "$work/run-check-batch.out") $(grep -c 'chỉ dùng cho danh sách draft' "$work/run-check-batch.out" || true)"
+write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
 # The start field: auto or manual, and auto only with open_with routine in the file (T-104).
 rc_start() { # <start line> <open_with line>; the list with these front matter lines
   write_run "$(run_row 1 T-001)$(run_row 2 T-002)"
@@ -5973,8 +6279,13 @@ status_page > /dev/null
 expect "status: page ends with the release readiness section" "1 5" \
   "$(grep -c '^## 6. Sẵn sàng phát hành$' "$page" || true) $(grep -c '^## [1-5]\. ' "$page" || true)"
 expect "status: release readiness lists every ad placement key that ships, with attributes and NATIVE_SMALL" "1 1 0" \
-  "$(grep -c '^- .*release.md.*.home_banner. (banner), .list_native. (native_small), .done_interstitial. (interstitial)\.$' "$page" || true) $(grep -c '^- Bản production cần một mã quảng cáo thật' "$page" || true) $(grep -c 'gallery_interstitial' "$page" || true)"
+  "$(grep -c '^- .*release.md.*.home_banner. (banner), .list_native. (native_small), .done_interstitial. (interstitial), .banner. (khe thanh đáy), .native_collap. (khe thanh đáy)\.$' "$page" || true) $(grep -c '^- Bản production cần một mã quảng cáo thật' "$page" || true) $(grep -c 'gallery_interstitial' "$page" || true)"
 cp "$ad_dir/AdPlacement.kt" "$work/AdPlacement.kt.bak"
+sed -i.tmp '/LIST_NATIVE/d' "$ad_dir/AdPlacement.kt" && rm -f "$ad_dir/AdPlacement.kt.tmp"
+status_page > /dev/null
+expect "status: release readiness has no slot key without a native small placement" "1 0" \
+  "$(grep -c '^- Bản production cần một mã quảng cáo thật' "$page" || true) $(grep -c 'khe thanh đáy' "$page" || true)"
+cp "$work/AdPlacement.kt.bak" "$ad_dir/AdPlacement.kt"
 printf -- '    LATE_BANNER(\n        "late_banner",\n        AdFormat.BANNER,\n    ),\n' >> "$ad_dir/AdPlacement.kt"
 status_page > /dev/null
 expect "status: a placement wrapped over several lines is named, as release.sh refuses it" 1 \
@@ -6007,6 +6318,26 @@ expect "status: only the text after the first colon decides \"không có\"" 1 \
   "$(grep -c 'T-040: ghi chú, không có test cho trường hợp revert$' "$page" || true)"
 expect "status: items after the next heading and the done items are not listed" "0 0 0 6" \
   "$(grep -c 'Không phải việc' "$page" || true) $(grep -c 'Đã xem ảnh' "$page" || true) $(grep -c 'issue flaky' "$page" || true) $(grep -c '^- \[RUN-20261004-01\]' "$page" || true)"
+# A cancelled run list (never run) waits for nobody and holds no ticket; the session table still lists it.
+sc="$work/status-cancel/docs"
+mkdir -p "$sc/features/demo/tickets" "$sc/features/demo/plans" "$sc/runs"
+printf -- '---\nfeature: demo\nstatus: confirmed\n---\n' > "$sc/features/demo/spec.md"
+printf -- '---\ntitle: Ba\nstatus: approved\n---\n' > "$sc/features/demo/tickets/T-003-ba.md"
+printf -- '---\nstatus: approved\nversion: 1\n---\n' > "$sc/features/demo/plans/T-003-ba.md"
+write_status_run() { # <id> <status>
+  printf -- '---\nid: %s\nstatus: %s\n---\n\n## 1. Danh sách chạy\n\n| 1 | T-003 | demo |\n\n## 2. Khác\n' "$1" "$2" > "$sc/runs/$1.md"
+}
+write_status_run RUN-20261007-01 cancelled
+STATUS_ROOT="$work/status-cancel" python3 -I scripts/status.py > /dev/null
+cpage="$sc/STATUS.md"
+expect "status: a cancelled run list does not wait for approval, and its ticket is in no list again" "0 1 1" \
+  "$(grep -c 'RUN-20261007-01.md' <<< "$(awk '/^## 1\./ { s = 1; next } /^## / { s = 0 } s' "$cpage")" || true) $(
+    grep -c 'Ticket đã duyệt, chưa vào danh sách chạy nào: .*T-003' "$cpage" || true) $(grep -c 'cancelled' "$cpage" || true)"
+write_status_run RUN-20261007-01 draft
+STATUS_ROOT="$work/status-cancel" python3 -I scripts/status.py > /dev/null
+expect "status: control: the same list as draft waits for approval and holds its ticket" "1 0" \
+  "$(grep -c 'Danh sách chạy .draft. chờ duyệt: .*RUN-20261007-01' "$cpage" || true) $(
+    grep -c 'Ticket đã duyệt, chưa vào danh sách chạy nào: .*T-003' "$cpage" || true)"
 expect "status: the run template still has the manual check section" yes \
   "$(awk '/^### Cần người kiểm tra$/ { s = 1; next } s && /^- \[ \] / { found = 1 } END { print (found ? "yes" : "no") }' docs/templates/run.md)"
 expect "status: manual checks skip runs not finished" "0 1" \
@@ -6184,6 +6515,34 @@ else
   code=0; out="$(history_refs)" || code=$?
   expect "history-refs: a guide in docs/features that is not a spec, design or ticket is a rule document" "1 1" \
     "$code $(grep -cx '   docs/features/README.md: L-124' <<< "$out")"
+  # Code, scripts, workflows and the generated key page of a git work tree name no superseded ADR: template-sync.sh
+  # deletes those ADRs from the apps. Lesson and ticket codes in code pass, and scripts/tests/ holds test data.
+  hc="$work/history-code"
+  mkdir -p "$hc/docs/adr" "$hc/app/src" "$hc/scripts/tests" "$hc/.github/workflows"
+  printf -- '---\nid: ADR-0001\nstatus: accepted\n---\n\n- **Việc AI phải tuân thủ:** làm A.\n' > "$hc/docs/adr/0001-a.md"
+  printf -- '---\nid: ADR-0002\nstatus: superseded\n---\n\n- **Việc AI phải tuân thủ:** làm B.\n' > "$hc/docs/adr/0002-b.md"
+  printf '// Keys of the app (ADR-0002).\n' > "$hc/app/src/Keys.kt"
+  printf '// Plan T-080, lesson L-123, ADR-0001.\n' > "$hc/app/src/Clean.kt"
+  printf '# old ADR as data: ADR-0002\n' > "$hc/scripts/tests/data.sh"
+  printf '# docs/adr/0002-b.md\n' > "$hc/.github/workflows/build.yml"
+  printf 'Mọi khóa (ADR-0002).\n' > "$hc/docs/remote-config-keys.md"
+  printf 'ADR-0002\0binary' > "$hc/app/src/image.bin"
+  git -C "$hc" init -q && git -C "$hc" add -A
+  code=0; out="$(HISTORY_REFS_ROOT="$hc" python3 -I scripts/history-refs.py)" || code=$?
+  expect "history-refs: code, a workflow path and the generated key page naming a superseded ADR fail" "1 1 1 1" \
+    "$code $(grep -cx '   app/src/Keys.kt: ADR-0002' <<< "$out") $(grep -cx '   .github/workflows/build.yml: ADR-0002' <<< "$out") $(
+      grep -cx '   docs/remote-config-keys.md: ADR-0002' <<< "$out")"
+  expect "history-refs: lesson and ticket codes in code, test data and binary files pass" 0 \
+    "$(grep -cE 'Clean\.kt|scripts/tests/data\.sh|image\.bin' <<< "$out" || true)"
+  mkdir -p "$hc/scripts/tests"
+  printf 'app/src/Keys.kt\n.github/workflows/build.yml\ndocs/remote-config-keys.md\n' > "$hc/scripts/tests/history-refs-allow.txt"
+  git -C "$hc" add -A
+  expect "history-refs: a code file in the allow list passes" 0 \
+    "$(HISTORY_REFS_ROOT="$hc" python3 -I scripts/history-refs.py > /dev/null; echo $?)"
+  # template-sync.sh lists what an app still names of an ADR it just deleted with --mentions: code included.
+  expect "history-refs --mentions: lists code and the generated key page that name a removed ADR, not test data" \
+    "   .github/workflows/build.yml: ADR-0002|   app/src/Keys.kt: ADR-0002|   docs/remote-config-keys.md: ADR-0002" \
+    "$(python3 -I scripts/history-refs.py --mentions "$hc" ADR-0002 | paste -sd '|' -)"
   rm "$hr/docs/features/README.md"
   # A file that is not UTF-8 and a file in a merge conflict (one index entry per stage) are each listed once.
   cr="$work/history-conflict"
@@ -7202,6 +7561,32 @@ expect "app-explore: the buy button of a paywall is refused" 4 "$(guard paywall.
 expect "app-explore: Continue on a paywall is refused" 4 "$(guard paywall.xml app 540 1950)"
 expect "app-explore: the close button of a paywall is tappable" 0 "$(guard paywall.xml app 95 155)"
 expect "app-explore: Continue on an onboarding page is tappable" 0 "$(guard onboarding.xml app 540 2290)"
+expect "app-explore: a slider over an ExoPlayer video (exo_ad_overlay) is tappable" 0 "$(guard exoplayer.xml app 500 1250)"
+expect "app-explore: an IMA ad inside exo_ad_overlay is refused (Learn more)" 4 "$(guard exoplayer-ima.xml app 930 660)"
+expect "app-explore: an IMA ad inside exo_ad_overlay is refused (ad WebView)" 4 "$(guard exoplayer-ima.xml app 300 900)"
+expect "app-explore: an app's Skip button under a full-screen ad is refused (only the ad's close button)" 4 \
+  "$(guard skip-under-ad.xml app 970 450)"
+expect "app-explore: the app's own WATCH AD button (chooses a rewarded ad) is tappable" 0 "$(guard watch-ad.xml app 540 1875)"
+expect "app-explore: an app button listed after a full-screen ad is refused (the ad may be on top)" 4 \
+  "$(guard ad-over-button.xml app 540 2220)"
+expect "app-explore: the labelled close button of a full-screen ad is tappable" 0 "$(guard ad-over-button.xml app 1005 110)"
+expect "app-explore: the close button labelled like Pangle's is found" "1005 110 Quảng cáo đã đóng" \
+  "$(python3 -I scripts/app-explore/guard.py close "$ax_fixtures/ad-over-button.xml")"
+expect "app-explore: the install button of a native ad in an lnAds container is refused" 4 \
+  "$(guard native-trap.xml app 540 2221)"
+expect "app-explore: the app's moved Next button above that ad is tappable" 0 "$(guard native-trap.xml app 540 1112)"
+app_paywall='topResumedActivity=com.example/com.example.billing_subscription.PaywallActivity'
+expect "app-explore: the close button of an app's own paywall activity is tappable" 0 \
+  "$(guard app-paywall.xml "$app_paywall" 95 175)"
+expect "app-explore: the trial button of an app's own paywall activity is refused" 4 \
+  "$(guard app-paywall.xml "$app_paywall" 540 2175)"
+expect "app-explore: a plan of an app's own paywall activity is refused" 4 "$(guard app-paywall.xml "$app_paywall" 540 1500)"
+expect "app-explore: a close button on the Play billing screen is still refused" 4 \
+  "$(guard app-paywall.xml 'topResumedActivity=com.android.vending/.billing.Acquire' 95 175)"
+expect "app-explore: close skips an app's Skip button listed before a full-screen ad, finds the ad's own" \
+  "1005 110 Quảng cáo đã đóng" "$(python3 -I scripts/app-explore/guard.py close "$ax_fixtures/skip-before-ad.xml")"
+expect "app-explore: the unlabeled-corner fallback under a full-screen ad keeps to the ad, not the app's Back icon" \
+  "1000 120 unlabeled-corner" "$(python3 -I scripts/app-explore/guard.py close "$ax_fixtures/corner-under-ad.xml")"
 expect "app-explore: the close button of an ad is found" "944 136 ad_close" \
   "$(python3 -I scripts/app-explore/guard.py close "$ax_fixtures/ads.xml")"
 expect "app-explore: taptext prefers the exact label (Agree, not Disagree)" "788 2066" \
@@ -7226,6 +7611,18 @@ expect "app-explore: seq sends the tap and the back key" 2 \
 expect "app-explore: seq stops at a refused step" 4 "$(ax paywall.xml seq "tapid pay_purchase_btn; back")"
 expect "app-explore: seq names the step it stopped at" 1 "$(grep -c 'DỪNG ở bước 1' "$work/ax.out")"
 expect "app-explore: a drag from the screen edge is refused" 4 "$(ax settings.xml drag 20 1200 600 1200)"
+# A screen that never rests (a video ad) makes uiautomator fail; the old dump must not be used to judge the tap.
+rm -f "$work/ax-calls.txt"; mkdir -p "$work/ax-idle"
+expect "app-explore: a failed UI dump refuses the tap instead of judging an old dump" "4 0 1" \
+  "$(FAKE_ADB_UI_SEQ="$work/screen.idle-error" FAKE_ADB_STATE_DIR="$work/ax-idle" ax settings.xml tap 540 1810) \
+$(grep -c '^shell input tap' "$work/ax-calls.txt") $(grep -c 'không lấy được cây giao diện' "$work/ax.out")"
+# The device keeps the last good dump file when a later dump fails: a tap the old screen allowed must still be refused.
+rm -rf "$work/ax-keep" "$work/ax-calls.txt"; mkdir -p "$work/ax-keep"
+keep_seq="$ax_fixtures/settings.xml $work/screen.idle-error"
+FAKE_ADB_UI_SEQ="$keep_seq" FAKE_ADB_STATE_DIR="$work/ax-keep" FAKE_ADB_KEEP_DUMP=1 ax settings.xml tree > /dev/null
+expect "app-explore: a tap after a failed dump is refused although the old dump file is still on the device" "4 0" \
+  "$(FAKE_ADB_UI_SEQ="$keep_seq" FAKE_ADB_STATE_DIR="$work/ax-keep" FAKE_ADB_KEEP_DUMP=1 ax settings.xml tap 540 1810) \
+$(grep -c '^shell input tap' "$work/ax-calls.txt")"
 printf '/sdcard/DCIM/Camera/a.jpg\n' > "$work/files.txt"
 FAKE_ADB_NETWORK=100 FAKE_ADB_FILES="$work/files.txt" AX_FILES="$work/before.txt" ax settings.xml check > /dev/null
 printf '/sdcard/DCIM/Camera/a.jpg\n/sdcard/Pictures/App/new.jpg\n' > "$work/files.txt"
@@ -7691,6 +8088,45 @@ printf '#!/bin/bash\n%s -i "s/a/b/" f\nsed -i.bak "s/a/b/" f && rm -f f.bak\nsed
 expect "sed guard: finds in-place sed without a suffix in a sample" 1 "$(gnu_sed_in_place "$work/sed-guard" | grep -c .)"
 expect "sed guard: no script edits in place with sed and no suffix" "" "$(gnu_sed_in_place scripts)"
 
+# Scripts run with the first bash and sed on PATH: bash 3.2 and BSD sed on a Mac, bash 5 and GNU sed on Linux and in
+# CI. A construct that needs bash 4 or GNU sed passes CI and fails only later on a developer's Mac, so none is
+# allowed in a shell script under scripts/: mapfile and readarray (use a while-read loop), associative arrays
+# (declare -A, local -A), case conversion (${v,,}, ${v^^}: use tr), and the 0,/re/ address of sed (use awk). In-place
+# sed has its own guard above. Comment lines are skipped. The patterns are built from parts so this file does not
+# match itself.
+bash4_gnu_only() { # <file...>: prints file:line:text for each line with one of the constructs
+  local re
+  re="(^|[^A-Za-z0-9_-])($(printf '%s' 'map')file|$(printf '%s' 'read')array)([^A-Za-z0-9_-]|$)"
+  re="$re|(declare|local|typeset)( +-[A-Za-z]+)* +-[A-Za-z]*A"
+  re="$re|[$][{][A-Za-z_][A-Za-z0-9_]*(\[[^]]*\])?(,|\^)"
+  re="$re|$(printf '%s' 'se')d[^|;]*[[:space:]'\"]0,/"
+  grep -nHE -- "$re" "$@" 2> /dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' || true
+}
+shell_scripts() { # tracked files under scripts/ that are shell scripts: *.sh, or a sh or bash shebang
+  local f
+  git ls-files -- scripts | while IFS= read -r f; do
+    case "$f" in
+      *.sh) echo "$f" ;;
+      *) if [ -f "$f" ] && head -n 1 "$f" | grep -qE '^#!.*[/ ](ba)?sh( |$)'; then echo "$f"; fi ;;
+    esac
+  done
+}
+mkdir -p "$work/bash4-guard"
+b4_mf="$(printf '%s' 'map')file" b4_ra="$(printf '%s' 'read')array" b4_d="$(printf '%s' 'decl')are" b4_l="$(printf '%s' 'lo')cal"
+printf '%s\n' "$b4_mf -t a < f" "$b4_ra a < f" "$b4_d -A m" "$b4_l -rA m" 'echo "$''{v,,}"' 'echo "$''{a[0]^^}"' \
+  "se""d '0,/x/s//y/' f" > "$work/bash4-guard/bad.sh"
+printf '%s\n' "# $b4_mf in a comment" "  # $b4_d -A in a comment" "$b4_d -a list" "my_$b4_mf=1" \
+  'echo "$''{#v} $''{v:-a,b} $''{!v} $''{v//,/ }"' "se""d -n '1,/x/p' f" > "$work/bash4-guard/good.sh"
+expect "bash 4 guard: finds every construct in a sample" 7 "$(bash4_gnu_only "$work/bash4-guard/bad.sh" | grep -c .)"
+expect "bash 4 guard: skips comments and the bash 3 forms next to them" "" "$(bash4_gnu_only "$work/bash4-guard/good.sh")"
+b4_files=()
+while IFS= read -r b4_file; do b4_files+=("$b4_file"); done < <(shell_scripts)
+expect "bash 4 guard: lists the shell scripts, this file and the extensionless ones included" "yes yes yes no" \
+  "$(for f in scripts/tests/run.sh scripts/local-setup.sh scripts/tests/fake-adb scripts/tests/fake-gh; do
+    if printf '%s\n' "${b4_files[@]}" | grep -qxF "$f"; then printf 'yes '; else printf 'no '; fi
+  done | sed 's/ $//')"
+expect "bash 4 guard: no shell script under scripts/ needs bash 4 or GNU sed" "" "$(bash4_gnu_only "${b4_files[@]}")"
+
 # ads-plan.py writes the ads, Remote Config and events workbook of an app from its code (docs/ops/ads-plan.md).
 # --dump needs no openpyxl, so these run everywhere; the workbook block runs only where openpyxl is installed.
 ap="$work/ads-plan-repo"
@@ -7720,7 +8156,7 @@ enum class AdPlacement(
     INTER_SAVE("inter_save", AdFormat.INTERSTITIAL, intervalGroup = AdIntervalGroup.named("save", 60)),
     RW_EXPORT("rw_export", AdFormat.REWARDED, noAdPolicy = RewardedNoAdPolicy.AllowAfter(3)),
     HOME_GRID("home_grid", AdFormat.NATIVE_IN_COLLECTION, nativeEvery = 6, firstOpenOnly = true),
-    GALLERY_BANNER("gallery_banner", AdFormat.NATIVE_SMALL),
+    GALLERY_BANNER("gallery_banner", AdFormat.NATIVE_SMALL, collapsibleLayer = false),
     ;
 }
 KT
@@ -7764,6 +8200,8 @@ expect "ads-plan: a placement of the code is off at launch until the team says s
   "$(ap_get 'P["home_bottom"]["launch"] + " " + P["home_bottom"]["status"]')"
 expect "ads-plan: the KDoc of a placement becomes its note" "Bottom bar of Home." "$(ap_get 'P["home_bottom"]["note"]')"
 expect "ads-plan: a first-open-only placement says so in its note" firstOpenOnly "$(ap_get 'P["home_grid"]["note"]')"
+expect "ads-plan: a bottom bar without the collapsible layer says so in its note" "collapsibleLayer = false" \
+  "$(ap_get 'P["gallery_banner"]["note"]' --with-staging)"
 expect "ads-plan: derived keys are not listed twice (they come from the placements sheet)" "False False" \
   "$(ap_get 'str("is_show_home_bottom" in K) + " " + str("native_every_home_grid" in K)')"
 expect "ads-plan: a shared key goes in its group" "Mở app" "$(ap_get 'K["show_open_ads"][0]')"

@@ -19,11 +19,14 @@
 #                              <repo> being the name of the origin remote, else of the repo directory)
 #            --sdk             absolute Android SDK dir (default ~/android-sdk, like scripts/cloud-setup.sh)
 #            --check           only report what is installed, no network; exit 1 when something is missing
+#                              (also checks that the first bash on PATH is bash 4 or later and the first sed is GNU sed)
 #            --print-versions  print the versions this script installs and the install dirs, then exit
 # Then:    source <prefix>/env.sh && scripts/check.sh
-# Exit:    0 ready, 1 failed or (with --check) something missing, 2 wrong arguments.
+# Exit:    0 ready, 1 failed, bash 4 or GNU sed missing from PATH, or (with --check) something missing,
+#          2 wrong arguments.
 # Test seams (scripts/tests/run.sh): CURL, LOCAL_SETUP_CLOUD_SETUP, LOCAL_SETUP_OS, LOCAL_SETUP_ARCH,
-#          LOCAL_SETUP_ADOPTIUM_API, LOCAL_SETUP_GOOGLE_REPO, LOCAL_SETUP_TOOLS (tools that must be on PATH).
+#          LOCAL_SETUP_ADOPTIUM_API, LOCAL_SETUP_GOOGLE_REPO, LOCAL_SETUP_TOOLS (tools that must be on PATH);
+#          the bash and sed checks read PATH, so the tests put fake ones first.
 # Messages are in Vietnamese for the team; comments are in English.
 set -euo pipefail
 
@@ -133,16 +136,54 @@ sha_of() { # <algorithm 1|256> <file>
 }
 jdk_runs() { [ -x "${java_home}/bin/java" ] && "${java_home}/bin/java" -version > /dev/null 2>&1; }
 
+# The scripts and their tests run with the first bash on PATH (#!/usr/bin/env bash) and the first sed on PATH. macOS
+# ships bash 3.2 in /bin and BSD sed in /usr/bin; Linux machines and CI have bash 5 and GNU sed. A test of
+# scripts/tests/run.sh forbids the constructs that need bash 4 or GNU sed, but it cannot catch every difference
+# between them, so a developer machine runs the same bash and sed as CI. This script installs neither (Homebrew
+# does): it only reports. The version comes from BASH_VERSINFO: the --version banner is translated (LANG=vi_VN).
+# Prints one QUA or THIẾU line per tool; returns 1 when one is missing.
+shell_tools_check() {
+  local bash_path bash_found sed_path bash_version status=0
+  bash_path="$(command -v bash || true)"
+  # shellcheck disable=SC2016 # expanded by the bash under test
+  bash_version="$([ -n "$bash_path" ] && "$bash_path" -c 'echo "${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}"' 2> /dev/null || true)"
+  [[ "$bash_version" =~ ^[0-9]+\.[0-9]+$ ]] || bash_version=""
+  if [ -z "$bash_path" ]; then bash_found="không có bash"
+  elif [ -z "$bash_version" ]; then bash_found="${bash_path}, không đọc được phiên bản"
+  else bash_found="${bash_path}, bash ${bash_version}"; fi
+  if [ -n "$bash_version" ] && [ "${bash_version%%.*}" -ge 4 ]; then
+    echo "QUA: bash ${bash_version} đầu PATH (${bash_path})"
+  else
+    echo "THIẾU: bash từ 4 trở lên đầu PATH, bản #!/usr/bin/env bash dùng (đang là: ${bash_found})." \
+      "Cài: brew install bash, rồi mở terminal mới để bash của Homebrew đứng trước /bin/bash trong PATH."
+    status=1
+  fi
+  sed_path="$(command -v sed || true)"
+  if [ -n "$sed_path" ] && LC_ALL=C "$sed_path" --version 2> /dev/null | head -n 1 | grep -q 'GNU sed'; then
+    echo "QUA: GNU sed đầu PATH (${sed_path})"
+  else
+    echo "THIẾU: GNU sed đầu PATH (đang là: ${sed_path:-không có sed}, không phải GNU sed)." \
+      "Cài: brew install gnu-sed, rồi thêm vào ~/.zshrc dòng" \
+      "export PATH=\"\$(brew --prefix)/opt/gnu-sed/libexec/gnubin:\$PATH\" và mở terminal mới."
+    status=1
+  fi
+  return "$status"
+}
+
 if [ "$mode" = "check" ]; then
   missing=0
+  shell_missing=0
+  shell_tools_check || shell_missing=1
   if jdk_runs; then echo "QUA: JDK ${JDK_RELEASE} ở ${java_home}"; else echo "THIẾU: JDK ${JDK_RELEASE} (${java_home})"; missing=1; fi
   if [ -x "$sdkmanager" ]; then echo "QUA: command-line tools ở ${sdk_root}"; else echo "THIẾU: command-line tools (${sdkmanager})"; missing=1; fi
   for package in $packages; do
     if [ -d "${sdk_root}/${package//;//}" ]; then echo "QUA: ${package}"; else echo "THIẾU: ${package}"; missing=1; fi
   done
   if [ -f "$env_file" ]; then echo "QUA: ${env_file}"; else echo "THIẾU: ${env_file}"; missing=1; fi
-  [ "$missing" -eq 0 ] || echo "Chạy scripts/local-setup.sh (không có --check) để cài phần còn thiếu."
-  exit "$missing"
+  [ "$missing" -eq 0 ] || echo "Chạy scripts/local-setup.sh (không có --check) để cài JDK, SDK và env.sh còn thiếu."
+  [ "$shell_missing" -eq 0 ] || echo "bash và GNU sed không do script này cài: cài theo dòng THIẾU ở trên."
+  if [ "$missing" -eq 0 ] && [ "$shell_missing" -eq 0 ]; then exit 0; fi
+  exit 1
 fi
 
 # Temp dirs live inside the target directories, so the final mv is a rename on the same file system.
@@ -243,4 +284,10 @@ if ! cmp -s "${jdk_tmp}/env.sh" "$env_file" 2> /dev/null; then cp "${jdk_tmp}/en
 
 scripts/java-check.sh > /dev/null \
   || { echo "LỖI: scripts/java-check.sh không nhận JDK vừa cài. Xem lại JDK_RELEASE, xóa ${jdk_dir} rồi chạy lại." >&2; exit 1; }
+# JDK and SDK are in place; the machine must also run the bash and sed of CI, which only the developer can install.
+if ! shell_tools_check > "${jdk_tmp}/shell-tools.txt"; then
+  grep '^THIẾU' "${jdk_tmp}/shell-tools.txt"
+  echo "Đã cài JDK và SDK, nhưng máy chưa có bash và sed như CI (bash từ 4, GNU sed): test của script không dò được mọi chỗ khác nhau giữa hai bản, nên một script có thể qua CI mà hỏng trên máy này, hay ngược lại. Cài theo dòng THIẾU ở trên, rồi chạy scripts/local-setup.sh --check."
+  exit 1
+fi
 echo "Sẵn sàng. Chạy: source $(printf '%q' "$env_file") && scripts/check.sh"

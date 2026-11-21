@@ -1,0 +1,17 @@
+ok   - find-breaking-commit --check ui-test: the PB-02 prefix HẠ TẦNG: is not infrastructure of the emulator
+ok   - pr-check: no job needs another and no step reads needs outputs
+ok   - pr-check: the needs check fails on a copy whose build-and-test needs a job
+./scripts/tests/run.sh: line 463: mapfile: command not found
+FAIL - pr-check: the path filter and its check come before every step that reads them: expected 'yes yes yes yes 6', got 'missing'
+./scripts/tests/run.sh: line 463: mapfile: command not found
+FAIL - pr-check: the order check fails on a copy with the filter at the end of the job: expected 'no', got 'missing'
+./scripts/tests/run.sh: line 463: mapfile: command not found
+FAIL - pr-check: the order check fails on a copy with setup-java before the filter: expected 'no', got 'missing'
+./scripts/tests/run.sh: line 463: mapfile: command not found
+FAIL - pr-check: the order check fails on a copy whose filter check has an if: expected 'no', got 'missing'
+ok   - pr-check: every filter output read is defined, and every filter is read
+FAIL - pr-check: the filter output check fails on a copy reading an undefined output: expected 'no', got 'yes'
+ok   - pr-check: the filter output check fails on a copy whose filter step has another id
+ok   - pr-check: the filter check stops the job unless both outputs are true or false
+ok   - pr-check: the filter check reads both filter outputs
+5 script test(s) failed

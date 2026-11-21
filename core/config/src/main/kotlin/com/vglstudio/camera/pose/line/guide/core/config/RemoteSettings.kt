@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.map
 
 /**
  * Business settings tuned remotely without a new release (ADR-0003), such as ad frequency.
- * Not feature flags: keys are declared as [RemoteKey] by the core module that uses them (ADR-0023).
+ * Not feature flags: keys are declared as [RemoteKey] by the core module that uses them (ADR-0046).
  * Feature modules do not use this.
  * The flow emits the current value at once, then every change. The value is the remote value of the key's type
  * once activated, else the value this build declares under [LocalRemoteValues] (staging only), else

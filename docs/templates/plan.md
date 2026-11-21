@@ -82,7 +82,8 @@ Ghi "Không có" nếu không có.
 Bắt buộc khi plan sửa hay xóa code Kotlin ngoài thư mục test (scripts/plan-check.py, quy tắc 13; ADR-0031).
 Bắt đầu từ `scripts/existing-tests.py <plan>`: đọc từng test của nhóm "Cần xem trước" và "Nên xem".
 Mỗi dòng một hành vi plan đổi (vị trí, kích thước, thứ tự, giá trị, luồng). Câu khẳng định phải đổi thì viết sẵn câu mới,
-để phiên dùng như test viết trước; chưa quyết được thì đặt câu hỏi ở mục 8. Không cần chạy test.
+để phiên dùng như test viết trước; test mà hàm hay hành vi nó kiểm không còn thì ưu tiên viết lại tại chỗ thành test của phần thay thế,
+chỉ ghi "bỏ" khi không có gì thay; chưa quyết được thì đặt câu hỏi ở mục 8. Không cần chạy test.
 Ghi "Không có" kèm một câu lý do nếu plan không đổi hành vi nào mà test có sẵn kiểm.
 -->
 

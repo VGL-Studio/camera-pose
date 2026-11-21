@@ -1,5 +1,5 @@
 # Builds the staging variant from main and sends it to the team through Firebase App Distribution
-# (ADR-0007, ADR-0009, ADR-0016). Started by hand, or by the auto-run session when at least one task was merged.
+# (ADR-0007, ADR-0049). Started by hand, or by the auto-run session when at least one task was merged.
 # Secrets (staging only, added by people, never read or printed by AI):
 #   STAGING_GOOGLE_SERVICES_JSON          google-services.json of the staging Firebase project
 #   STAGING_APP_DISTRIBUTION_CREDENTIALS  service account JSON allowed to upload to App Distribution

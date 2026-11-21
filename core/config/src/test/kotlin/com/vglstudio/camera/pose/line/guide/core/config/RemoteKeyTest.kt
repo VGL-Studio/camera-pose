@@ -40,7 +40,7 @@ class RemoteKeyTest {
                 RemoteKey.boolean(name, false, "x")
             }
         }
-        // Control: a name that follows ADR-0023 is accepted.
+        // Control: a name that follows ADR-0046 is accepted.
         assertEquals("ads_enabled", RemoteKey.boolean("ads_enabled", false, "x").name)
     }
 

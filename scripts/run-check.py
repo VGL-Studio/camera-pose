@@ -41,6 +41,8 @@ documents behind it, the mistakes that stopped or slowed earlier sessions:
      other status, and every other check, is unchanged. A list that is not draft is an error with --batch, since an
      approved list must pass without it. A diff git cannot read is an error and nothing is waived. The base is
      RUN_CHECK_BASE (tests) or origin/main; the caller runs `git fetch origin` first.
+  12. A list whose status is cancelled (never run, not used any more) is refused before any other check, with or
+     without --batch, so nobody approves it again.
 RUN_CHECK_ROOT overrides the repository root (tests). RUN_CHECK_OPEN_WITH overrides `open_with` (a session opened
 another way than the list says). Messages are in Vietnamese for the team.
 """
@@ -325,6 +327,9 @@ def check(run_path, batch_files=None):
             warnings.append(f"(--batch) bỏ qua trạng thái: {name} đang '{status}', đổi trong nhánh này.")
         return True
 
+    if front_matter(run_path.read_text()).get("status") == "cancelled":
+        # A cancelled list is never run; checking it again invites approving it by mistake.
+        return ["danh sách đã cancelled (không chạy): không kiểm, không duyệt lại; cần chạy thì lập danh sách mới."], []
     rows = run_rows(run_path.read_text())
     if not rows:
         return ["mục 1 không có dòng nào đúng mẫu (Thứ tự | Ticket | Feature | Plan | ...)."], []
@@ -508,7 +513,9 @@ def main(argv):
     if batch:
         status = front_matter(run.read_text()).get("status", "")
         base = os.environ.get("RUN_CHECK_BASE") or "origin/main"
-        if status != "draft":
+        if status == "cancelled":
+            pass  # check() refuses a cancelled list with its own message; no hint to run again without --batch.
+        elif status != "draft":
             batch_errors.append(f"--batch chỉ dùng cho danh sách draft (đang '{status}'); danh sách approved phải qua "
                                 "run-check.py không có --batch.")
         else:

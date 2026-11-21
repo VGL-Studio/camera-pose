@@ -9,7 +9,9 @@
 # (space-separated; default: one MainActivity).
 # UI dumps for scripts/device-scenario.py: `uiautomator dump` takes the next file of $FAKE_ADB_UI_SEQ (space-separated
 # paths; the count is kept in $FAKE_ADB_STATE_DIR/ui-seq.n, default $TMPDIR; the last file repeats) and `exec-out cat`
-# prints it. A file named *.idle-error makes the dump print "ERROR: could not get idle state." and print nothing.
+# prints it. A file named *.idle-error makes the dump print "ERROR: could not get idle state." and print nothing;
+# with FAKE_ADB_KEEP_DUMP set it prints the last good dump instead, as the device keeps the old file, until
+# `shell rm -f /sdcard/...` deletes it (state in ui-last).
 # $FAKE_ADB_HANG names a shell subcommand (for example uiautomator) that never returns. `wm size` and `wm density`
 # report a $FAKE_ADB_PHYSICAL_SIZE (default 1080x2400) screen at 420 dpi. `settings get system
 # accelerometer_rotation|user_rotation` print $FAKE_ADB_ACCELEROMETER_ROTATION (default 1) and $FAKE_ADB_USER_ROTATION (default 0); `cmd uimode night` prints
@@ -69,8 +71,10 @@ case "$1" in
           echo "${files[$n]}" > "$state/ui-seq.cur"
           echo $(( n + 1 )) > "$state/ui-seq.n"
           if [[ "${files[$n]}" == *.idle-error ]]; then echo "ERROR: could not get idle state."; exit 0; fi
+          [[ -n "${FAKE_ADB_KEEP_DUMP:-}" ]] && echo "${files[$n]}" > "$state/ui-last"
           echo "UI hierarchy dumped to: /sdcard/ds.xml"
         fi ;;
+      "rm -f /sdcard/"*) rm -f "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/ui-last" ;;
       "wm size") echo "Physical size: ${FAKE_ADB_PHYSICAL_SIZE:-1080x2400}" ;;
       "wm density") echo "Physical density: 420" ;;
       "pm path"*) [[ -n "${FAKE_ADB_NO_APP:-}" ]] && exit 1; echo "package:/data/app/base.apk" ;;
@@ -155,7 +159,11 @@ case "$1" in
     if [[ "$*" == "exec-out cat"* ]]; then
       if [[ -n "${FAKE_ADB_UI_SEQ:-}" ]]; then
         current="$(cat "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/ui-seq.cur" 2>/dev/null || true)"
-        [[ -n "$current" && "$current" != *.idle-error ]] && cat "$current"
+        if [[ -n "$current" && "$current" != *.idle-error ]]; then cat "$current"
+        elif [[ -n "${FAKE_ADB_KEEP_DUMP:-}" ]]; then
+          last="$(cat "${FAKE_ADB_STATE_DIR:-${TMPDIR:-/tmp}}/ui-last" 2>/dev/null || true)"
+          [[ -n "$last" ]] && cat "$last"
+        fi
       else
         cat "${FAKE_ADB_UI:-/dev/null}"
       fi

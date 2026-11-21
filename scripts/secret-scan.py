@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fails when a tracked file holds something that looks like a real secret or a real ad ID (ADR-0013, ADR-0021).
+"""Fails when a tracked file holds something that looks like a real secret or a real ad ID (ADR-0045, ADR-0021).
 
 Usage: scripts/secret-scan.py
   Scans the files tracked by git (SECRET_SCAN_ROOT: scan every file under that folder instead; tests).

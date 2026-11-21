@@ -25,7 +25,7 @@ AI không làm các bước trong tài liệu này. Mọi bước có bí mật 
    - macOS: `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`, ghi vào `~/.zshrc` để mọi terminal dùng.
    - Không cài Android Studio: `scripts/local-setup.sh` cài JDK và Android SDK vào thư mục người dùng. Gói SDK giống môi trường cloud, có kiểm mã băm. Sau đó `source` tệp `env.sh` mà script in ra. `scripts/local-setup.sh --check` xem còn thiếu gì. `scripts/java-check.sh` kiểm JDK này như mọi JDK khác.
    - Mở Android Studio một lần để cài Android SDK. Đặt `export ANDROID_HOME=$HOME/Library/Android/sdk` (macOS) hoặc `$HOME/Android/Sdk` (Linux).
-2. Cài `git`, `gh` (GitHub CLI), `jq`, `python3`. Trên macOS: `brew install gh jq`.
+2. Cài `git`, `gh` (GitHub CLI), `jq`, `python3`, bash từ 4 và GNU sed, như máy CI. Trên macOS (có sẵn bash 3.2 và sed BSD): `brew install gh jq bash gnu-sed`, rồi thêm vào `~/.zshrc` dòng `export PATH="$(brew --prefix)/opt/gnu-sed/libexec/gnubin:$PATH"` và mở terminal mới. `scripts/local-setup.sh` (cả `--check`) báo `THIẾU` và trả mã 1 khi bash hay sed đầu `PATH` chưa đúng.
 3. Đăng nhập GitHub CLI: `gh auth login`, chọn GitHub.com, HTTPS, đăng nhập bằng trình duyệt. `scripts/merge-if-green.sh` dùng phiên đăng nhập này.
 
 Kiểm tra: trong thư mục repo, `scripts/check.sh` in `== Cổng chất lượng: QUA`.

@@ -330,12 +330,13 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
     - **e. Quảng cáo trong nội dung thắng lớp nổi** (MC-13, T-092 của mẫu). Màn có vị trí quảng cáo trong nội dung (native trong lưới hay danh sách, thẻ bước của luồng, native nhỏ hay medium đứng riêng) không có lớp thu gọn nổi, dù `is_show_native_collap` bật, khi ít nhất một vị trí trong nội dung đó đang bật (`is_show_<mã vị trí>`); mọi vị trí đó tắt thì lớp nổi hiện như thường. Trên app: thư viện có `poses_in_collection` (tắt lúc phát hành, bật ở staging, câu 9, 11), nên `poses_bottom` không có lớp nổi khi `is_show_poses_in_collection` bật, và có lớp nổi như thường khi khóa đó tắt; cài đặt giữ lớp nổi khi bật; màn xem lại vốn không có (câu 19, ý e); luồng giới thiệu không có thanh đáy.
       - Đề xuất của AI: nhận theo luật. Thêm tiêu chí vào KB-6 của spec poses: "Khi `is_show_native_collap` và `is_show_poses_in_collection` cùng bật thì thư viện không có lớp quảng cáo nổi; khi `is_show_poses_in_collection` tắt thì lớp nổi hiện như thường."
       - Trả lời: (Nhật, 2026-11-21) Lần hỏi đầu ghi sai luật ("thư viện không bao giờ có lớp nổi"), Nhật chọn "Nhận". Hỏi lại với luật đúng, Nhật chọn "Theo MC-13": không có lớp nổi khi ô lưới bật, ô lưới tắt thì lớp nổi như thường.
-    - **g. Chi tiết tư thế khi bật lớp nổi.** Lớp thu gọn nổi cao khoảng 299 dp ở khung chuẩn phủ lên nút chính "Chụp với tư thế này" (người dùng thu gọn lớp thì nút hiện lại), trái tiêu chí 2 của KB-6 ở spec poses ("nút không bị che"). Chưa từng bàn; lớp nổi hôm nay tắt lúc phát hành.
-      - Đề xuất của AI: khai báo `pose_detail_bottom` không có lớp nổi (`collapsibleLayer = false`, D-01), như `review_bottom` (câu 19, ý e). Không thêm vị trí hay khóa; đổi khai báo của vị trí có sẵn.
-      - Trả lời: (Nhật, 2026-11-21) Không có lớp nổi.
     - **f. Biết trước hành động có thưởng có hiện quảng cáo không** (R-08, PR #526 của mẫu). Khung có thêm hàm cho app biết lần bấm vào hành động có thưởng lúc này sẽ mở hộp thoại hay làm thẳng, để gắn dấu "xem quảng cáo". App không dùng hàm này: tư thế premium luôn có dấu khóa (spec poses, KB-8).
       - Đề xuất của AI: nhận vào khung, app không dùng. Muốn đổi dấu khóa theo hàm này thì làm ticket riêng.
       - Trả lời: (Nhật, 2026-11-21) Nhận vào khung, app không dùng.
+    - **g. Chi tiết tư thế khi bật lớp nổi.** Lớp thu gọn nổi cao khoảng 299 dp ở khung chuẩn phủ lên nút chính "Chụp với tư thế này" (người dùng thu gọn lớp thì nút hiện lại), trái tiêu chí 2 của KB-6 ở spec poses ("nút không bị che"). Chưa từng bàn; lớp nổi hôm nay tắt lúc phát hành.
+      - Đề xuất của AI: khai báo `pose_detail_bottom` không có lớp nổi (`collapsibleLayer = false`, D-01), như `review_bottom` (câu 19, ý e). Không thêm vị trí hay khóa; đổi khai báo của vị trí có sẵn.
+      - Trả lời: (Nhật, 2026-11-21) Không có lớp nổi.
+      - Chỗ phải sửa theo ý e và g: các bước lớp nổi của `docs/ops/manual-test.md`, mục 11.1 ("thư viện có lớp nổi", hai bước máy gập dùng `poses_bottom`), vì staging bật `is_show_poses_in_collection` nên thư viện không có lớp nổi, và chi tiết không còn lớp nổi: kiểm lớp nổi ở màn Cài đặt, hay tắt `is_show_poses_in_collection` khi kiểm ở thư viện. Plan của câu này sửa các bước đó.
 
 ## 10. Lịch sử
 

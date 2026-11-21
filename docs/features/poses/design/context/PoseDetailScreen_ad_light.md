@@ -6,7 +6,7 @@ Sinh bởi `scripts/figma-export.py`. Không sửa tay; thiết kế đổi thì
 
 - Link: https://www.figma.com/design/ZTXse6375eT3KXDUJPBTpe/?node-id=28-2171
 - Frame: `28:2171`, giao diện sáng
-- Ngày lấy: 2026-11-16
+- Ngày lấy: 2026-11-21
 
 ## 2. Giá trị dùng
 
@@ -56,7 +56,7 @@ Toạ độ và cỡ tính theo dp, gốc là góc trên trái của khung. Th�
     - Text "title", vị trí 56,42, cỡ 299 x 28, chữ "Tựa lan can", kiểu titleLarge (22/28, đậm 800), màu #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl)
     - Instance "trailing", vị trí 359,32, cỡ 48 x 48, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
       - Text "icon", vị trí 371,44, cỡ 24 x 24, chữ "bookmark", kiểu ngoài hệ thống (24/24, đậm 400), màu #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl)
-  - Frame "content", vị trí 0,88, cỡ 411 x 661, xếp dọc, cách nhau 16 (md), lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/MIN
+  - Frame "content", vị trí 0,88, cỡ 411 x 681, xếp dọc, cách nhau 16 (md), lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn MIN/MIN
     - Frame "image", vị trí 16,88, cỡ 379 x 380, nền #FF5C8A (tertiary, category/women), viền #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 16
       - Frame "pose-outline", vị trí 130,128, cỡ 150 x 300
         - Vector "Vector", vị trí 186,138, cỡ 40 x 40, viền #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl), dày 3.0
@@ -85,22 +85,23 @@ Toạ độ và cỡ tính theo dp, gốc là góc trên trái của khung. Th�
       - Frame "text", vị trí 66,730, cỡ 311 x 62, xếp dọc, cách nhau 2 (ngoài hệ thống), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
         - Text "Lỗi hay gặp", vị trí 66,730, cỡ 311 x 20, chữ "Lỗi hay gặp", kiểu titleSmall, labelLarge (14/20, đậm 500), màu #4A0F22 (onTertiaryContainer)
         - Text "Rút vai lên sát tai làm cổ ngắ", vị trí 66,752, cỡ 311 x 40, chữ "Rút vai lên sát tai làm cổ ngắn lại. Thả vai xuống trước khi chụp.", kiểu bodyMedium (14/20, đậm 400), màu #4A0F22 (onTertiaryContainer)
-  - Frame "Bottom bar", vị trí 0,653, cỡ 411 x 96, nền #FFFDF8 (background)
-    - Rectangle "divider", vị trí 0,653, cỡ 411 x 2, nền #D9D4C8 (outlineVariant)
-    - Instance "Button", vị trí 16,669, cỡ 379 x 60, nền #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl), viền #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 14, xếp ngang, cách nhau 8 (sm), lề trên/phải/dưới/trái 16 (md)/24 (lg)/16 (md)/24 (lg), căn CENTER/CENTER
-      - Text "icon", vị trí 117,689, cỡ 20 x 20, chữ "photo_camera", kiểu ngoài hệ thống (20/20, đậm 400), màu #FFFFFF (onPrimary, onSecondary, onError, surface, inverseOnSurface, surfaceBright, surfaceContainerLowest, onSuccess, camera/onCamera, camera/control, camera/overlayStroke)
-      - Text "label", vị trí 145,687, cỡ 149 x 24, chữ "Chụp với tư thế này", kiểu titleMedium (16/24, đậm 600), màu #FFFFFF (onPrimary, onSecondary, onError, surface, inverseOnSurface, surfaceBright, surfaceContainerLowest, onSuccess, camera/onCamera, camera/control, camera/overlayStroke)
-  - Instance "NativeAdSmall", vị trí 16,749, cỡ 379 x 126, nền #FBF8F1 (surfaceContainerLow), viền #D9D4C8 (outlineVariant), dày 1.0, bo góc 12, xếp ngang, cách nhau 12 (ngoài hệ thống), lề trên/phải/dưới/trái 0/24 (lg)/0/12 (ngoài hệ thống), căn MIN/CENTER
-    - Frame "icon", vị trí 29,790, cỡ 44 x 44, nền #FFC83D (secondaryContainer, shadowSticker, category/men), bo góc 8
-    - Frame "text", vị trí 85,790, cỡ 189 x 44, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
-      - Frame "title row", vị trí 85,790, cỡ 189 x 22, xếp ngang, cách nhau 6 (ngoài hệ thống), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/CENTER
-        - Frame "badge", vị trí 85,792, cỡ 25 x 18, nền #FF5C8A (tertiary, category/women), bo góc 4, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/4 (xs)/0/4 (xs), căn MIN/CENTER
-          - Text "Ad", vị trí 89,792, cỡ 17 x 18, chữ "Ad", kiểu ngoài hệ thống (13/18, đậm 500), màu #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl)
-        - Text "headline", vị trí 116,790, cỡ 158 x 22, chữ "Headline of the ad", kiểu ngoài hệ thống (16/22, đậm 500), màu #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl)
-      - Text "advertiser or body", vị trí 85,816, cỡ 189 x 18, chữ "Advertiser or short body", kiểu ngoài hệ thống (13/18, đậm 400), màu #5A5650 (onSurfaceVariant)
-    - Frame "cta", vị trí 286,790, cỡ 84 x 44, nền #FFD6E2 (tertiaryContainer), bo góc 8, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn CENTER/CENTER
-      - Text "Install", vị trí 302,800, cỡ 52 x 24, chữ "Install", kiểu ngoài hệ thống (18/24, đậm 500), màu #4A0F22 (onTertiaryContainer)
-    - Frame "AdChoices", vị trí 375,753, cỡ 16 x 16, nền #EAE6DC (surfaceContainerHighest), bo góc 4
+  - Frame "Bottom bar", vị trí 0,673, cỡ 411 x 96, nền #FFFDF8 (background)
+    - Rectangle "divider", vị trí 0,673, cỡ 411 x 2, nền #D9D4C8 (outlineVariant)
+    - Instance "Button", vị trí 16,689, cỡ 379 x 60, nền #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl), viền #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 14, xếp ngang, cách nhau 8 (sm), lề trên/phải/dưới/trái 16 (md)/24 (lg)/16 (md)/24 (lg), căn CENTER/CENTER
+      - Text "icon", vị trí 117,709, cỡ 20 x 20, chữ "photo_camera", kiểu ngoài hệ thống (20/20, đậm 400), màu #FFFFFF (onPrimary, onSecondary, onError, surface, inverseOnSurface, surfaceBright, surfaceContainerLowest, onSuccess, camera/onCamera, camera/control, camera/overlayStroke)
+      - Text "label", vị trí 145,707, cỡ 149 x 24, chữ "Chụp với tư thế này", kiểu titleMedium (16/24, đậm 600), màu #FFFFFF (onPrimary, onSecondary, onError, surface, inverseOnSurface, surfaceBright, surfaceContainerLowest, onSuccess, camera/onCamera, camera/control, camera/overlayStroke)
+  - Instance "NativeAdSmall", vị trí 16,769, cỡ 379 x 106, nền #FBF8F1 (surfaceContainerLow), viền #D9D4C8 (outlineVariant), dày 1.0, bo góc 12, xếp dọc, cách nhau 6 (ngoài hệ thống), lề trên/phải/dưới/trái 6 (ngoài hệ thống)/12 (ngoài hệ thống)/6 (ngoài hệ thống)/12 (ngoài hệ thống), căn MIN/MIN
+    - Frame "top row", vị trí 28,775, cỡ 355 x 44, xếp ngang, cách nhau 12 (ngoài hệ thống), lề trên/phải/dưới/trái 0/16 (md)/0/0, căn MIN/CENTER
+      - Frame "icon", vị trí 28,775, cỡ 44 x 44, nền #FFC83D (secondaryContainer, shadowSticker, category/men), bo góc 8
+      - Frame "text", vị trí 84,775, cỡ 283 x 44, xếp dọc, cách nhau 4 (xs), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
+        - Frame "title row", vị trí 84,775, cỡ 283 x 22, xếp ngang, cách nhau 6 (ngoài hệ thống), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/CENTER
+          - Frame "badge", vị trí 84,777, cỡ 25 x 18, nền #FF5C8A (tertiary, category/women), bo góc 4, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/4 (xs)/0/4 (xs), căn MIN/CENTER
+            - Text "Ad", vị trí 88,777, cỡ 17 x 18, chữ "Ad", kiểu ngoài hệ thống (13/18, đậm 500), màu #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl)
+          - Text "headline", vị trí 115,775, cỡ 252 x 22, chữ "Headline of the ad", kiểu ngoài hệ thống (16/22, đậm 500), màu #111111 (secondary, onSecondaryContainer, onTertiary, onBackground, onSurface, outline, onSuccessContainer, category/onCategory, camera/onControl)
+        - Text "advertiser or body", vị trí 84,801, cỡ 283 x 18, chữ "Advertiser or short body", kiểu ngoài hệ thống (13/18, đậm 400), màu #5A5650 (onSurfaceVariant)
+    - Frame "cta", vị trí 28,825, cỡ 355 x 44, nền #FFD6E2 (tertiaryContainer), bo góc 8, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/16 (md)/0/16 (md), căn CENTER/CENTER
+      - Text "Install", vị trí 180,835, cỡ 52 x 24, chữ "Install", kiểu ngoài hệ thống (18/24, đậm 500), màu #4A0F22 (onTertiaryContainer)
+    - Frame "AdChoices", vị trí 375,773, cỡ 16 x 16, nền #EAE6DC (surfaceContainerHighest), bo góc 4
 
 ## 4. Code tham khảo
 

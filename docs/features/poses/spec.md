@@ -117,7 +117,7 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi khóa `is_show_poses_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (cao theo khung, `docs/ops/ads-business-rules.md`, D-02) hiện ở đáy thư viện; lưới cuộn phía trên thanh, thẻ cuối không bị che (câu hỏi 1).
 - [ ] Khi khóa `is_show_pose_detail_bottom` bật thì thanh đáy native hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình, kể cả khi `is_show_native_collap` bật: chi tiết không có lớp quảng cáo nổi (`features/ads/spec.md`, câu 22, ý g).
-- [ ] Khi khóa tắt hay quảng cáo không tải được thì không chừa khoảng trống. Khi khe đang tải lượt đầu thì nội dung chừa đúng chỗ khe chiếm (khung chờ của native, khung của banner); thẻ cuối không bị che (`features/ads/spec.md`, câu 22, ý b).
+- [ ] Khi khóa tắt hay chưa tải được quảng cáo nào (lỗi trước quảng cáo đầu) thì không chừa khoảng trống. Khi khe đang tải lượt đầu thì nội dung chừa đúng chỗ khe chiếm (khung chờ của native, khung của banner); thẻ cuối không bị che (`features/ads/spec.md`, câu 22, ý b).
 - [ ] Khi `is_show_native_collap` tắt (giá trị lúc phát hành) thì không có lớp quảng cáo nổi trên lưới hay trên nút chính.
 - [ ] Khi `is_show_native_collap` và `is_show_poses_in_collection` cùng bật thì thư viện không có lớp quảng cáo nổi, vì lưới có quảng cáo trong nội dung; khi `is_show_poses_in_collection` tắt thì lớp nổi hiện như thường (`features/ads/spec.md`, câu 22, ý e).
 - [ ] Khi khóa `is_show_poses_in_collection` bật thì lưới có một ô quảng cáo sau mỗi `native_every_poses_in_collection` tư thế (mặc định 8), không ở đầu, không ở cuối lưới; thẻ quảng cáo có nhãn quảng cáo và khác rõ thẻ tư thế; hết quảng cáo thì ô ẩn, lưới không có ô trống. Áp dụng cho "Tất cả" và từng nhóm, cả khi mở gập (3 cột).
@@ -171,7 +171,7 @@ Tư thế premium (KB-8) cần thiết kế mới trên Figma:
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
 | `poses_bottom` | native_small (thanh đáy) | Đáy màn thư viện, khi màn hình đang mở | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground; lớp thu gọn tắt lúc phát hành | `is_show_poses_bottom`, cùng `is_show_native_bottom` |
-| `pose_detail_bottom` | native_small (thanh đáy) | Đáy màn chi tiết tư thế, dưới nút chính | Như trên | `is_show_pose_detail_bottom`, cùng `is_show_native_bottom` |
+| `pose_detail_bottom` | native_small (thanh đáy) | Đáy màn chi tiết tư thế, dưới nút chính | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground; không bao giờ có lớp native thu gọn nổi, dù `is_show_native_collap` bật (`features/ads/spec.md`, câu 22, ý g) | `is_show_pose_detail_bottom`, cùng `is_show_native_bottom` |
 | `poses_in_collection` | native_in_collection | Ô xen trong lưới thư viện, sau mỗi 8 tư thế; không ở đầu, không ở cuối | Pool 5 quảng cáo, hết hạn 55 phút; tắt lúc phát hành | `is_show_poses_in_collection`, `native_every_poses_in_collection` |
 | `inter_pose_detail` | interstitial | Sau khi bấm "Chụp với tư thế này", trước khi camera mở | Nhịp chung `ads_interval` (mặc định 45 giây), cùng nhóm với `review_interstitial`; tắt lúc phát hành | `is_show_inter_pose_detail` |
 | `rw_premium_pose` (yêu cầu 2026-10-31) | rewarded | Khi người dùng bấm "Xem quảng cáo" ở hộp thoại mở khóa tư thế premium (KB-8) | Không qua `ads_interval`, không đẩy mốc (khung); chỉ khi người dùng chọn. Không có quảng cáo thì chặn, tư thế vẫn khóa (câu 8). Bật lúc phát hành khi catalog có tư thế premium (câu 10) | `is_show_rw_premium_pose` |

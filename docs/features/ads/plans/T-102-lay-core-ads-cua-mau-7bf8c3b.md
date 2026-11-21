@@ -189,7 +189,7 @@ Nơi đọc ảnh chuẩn đổi: `scripts/design-compare.sh` (đọc `src/test/
 
 ### 3.5. Hành vi đã có bị đổi
 
-Số mới là số đo thật trên nhánh take (mục 4.1). Câu khẳng định nào không có trong bảng thì giữ nguyên: lần đo (gồm lượt 3b, chạy hết mọi câu của hai test bị dừng giữa chừng) thấy giá trị không đổi.
+Số mới là số đo thật trên nhánh take (mục 4.1). Câu khẳng định nào không có trong bảng thì giữ nguyên: lần đo (gồm lượt 3b cho test khung gập và lượt 3c cho test điện thoại, chạy hết mọi câu của hai test bị dừng giữa chừng) thấy giá trị không đổi.
 
 Ý định của hai test đổi tên: có thanh đáy thì nút Lưu dời lên đúng bằng chỗ khe chiếm, ảnh không bị cắt hay đè, và với khe 106 dp ảnh không phải co (đã bị giới hạn theo bề rộng). Đường "ảnh co lại cho vừa" của KB-9 vẫn có test: `ReviewScreenTest.small_adBar_photoShrinks_allVisible` (khung 360 x 640, khe ở đó vốn đã 106 dp, test không đổi) và `adBar_permissionBlocked_photoShrinks_allAbove`. Khung gập đứng dọc không còn test "ảnh co": ở đó ảnh luôn giữ cỡ khi có thanh.
 

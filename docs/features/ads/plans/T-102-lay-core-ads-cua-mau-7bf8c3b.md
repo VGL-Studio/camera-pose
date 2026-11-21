@@ -8,8 +8,8 @@ risk_level: high             # low | medium | high
 token_estimate: 34.0M        # cỡ L theo scripts/token-usage.py estimate (2026-11-22), không nâng tay
 blocking_points: [ads, core]
 run_order:                   # AI điền khi lập danh sách chạy
-reviewer:                    # người duyệt
-cross_reviewer:              # bắt buộc khi risk_level là high
+reviewer: Nhật               # người duyệt
+cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
 approved_at:
 lane:                        # để trống: phiên tự chạy
 ---
@@ -305,8 +305,10 @@ So với thiết kế: frame thiết kế vẽ thanh trạng thái 24 dp (8 dp �
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:**
-- **Người duyệt:** , **duyệt chéo:**
+- **Quyết định:** Nhật duyệt ngày 2026-11-22; chờ duyệt chéo của Tuấn. Plan giữ `draft` tới khi có lời duyệt chéo.
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (chưa duyệt)
 - **Ghi chú:**
+  - AI ghi theo lời Nhật (2026-11-22): chọn "Tôi là Nhật, duyệt" khi được hỏi duyệt plan T-102 theo nội dung PR #375 ở commit 050395e.
+  - Câu hỏi mục 8, Nhật trả lời: (1) chọn "Test quét mã + thử tay": ý e kiểm bằng `PosesInContentAdsTest`, test của khung và thử tay trên staging, không sửa `build-logic`; (2) chọn "Không dán diff": phiên đọc phần gộp trên nhánh take, dừng khi đầu nhánh không phải `46e13a14`; (3) chọn "Nhật duyệt, Tuấn duyệt chéo".
 
 ## 10. Nhật ký thực hiện

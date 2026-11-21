@@ -16,7 +16,7 @@ import org.junit.Test
 class AnchoredAdTurnTest {
     private val banner = AdPlacement.GALLERY_BANNER
     private val collapsible = AdPlacement.GALLERY_BANNER_COLLAPSIBLE
-    private val bar = AdPlacement.SAMPLE_NATIVE_SMALL
+    private val bar = AdPlacement.POSES_BOTTOM
 
     @Test
     fun holder_firstAllowedInOrder() {

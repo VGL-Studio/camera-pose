@@ -199,7 +199,7 @@ class BannerAdSizeTest {
      * (D-04), so its frame must be drawn (placement on, consent gate open) for the height to be the frame's.
      */
     private fun barSettings(): FakeRemoteSettings =
-        FakeRemoteSettings().apply { set(AdsSettings.placementEnabled(AdPlacement.SAMPLE_NATIVE_SMALL), true) }
+        FakeRemoteSettings().apply { set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true) }
 
     /** A controller whose bar banner draws its frame: placement on ([barSettings]), consent gate open. */
     private fun barController(maxConfig: MaxConfig = MaxConfig.NONE): AdsController =

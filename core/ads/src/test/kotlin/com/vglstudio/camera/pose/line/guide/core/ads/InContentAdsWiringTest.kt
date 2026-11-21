@@ -56,7 +56,7 @@ class InContentAdsWiringTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val application = ApplicationProvider.getApplicationContext<Application>()
-    private val bar = AdPlacement.SAMPLE_NATIVE_SMALL
+    private val bar = AdPlacement.POSES_BOTTOM
     private val medium = AdPlacement.GALLERY_NATIVE_MEDIUM
     private val mrec = AdPlacement.GALLERY_BANNER_MREC
     private val fixed = AdPlacement.GALLERY_BANNER

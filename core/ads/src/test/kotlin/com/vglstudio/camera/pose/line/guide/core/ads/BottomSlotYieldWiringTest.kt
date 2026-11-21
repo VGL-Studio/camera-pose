@@ -44,7 +44,7 @@ class BottomSlotYieldWiringTest {
     val composeRule = createComposeRule()
 
     private val application = ApplicationProvider.getApplicationContext<Application>()
-    private val placement = AdPlacement.SAMPLE_NATIVE_SMALL
+    private val placement = AdPlacement.POSES_BOTTOM
     private val logger = RecordingAppLogger()
     private val funnel = RecordingAdFunnel()
     private val loader = FakeNativeAdLoader()
@@ -54,7 +54,7 @@ class BottomSlotYieldWiringTest {
     }
     private val settings = FakeRemoteSettings().apply {
         set(AdsSettings.IS_SHOW_NATIVE_BOTTOM, true)
-        set(AdsSettings.placementEnabled(AdPlacement.SAMPLE_NATIVE_SMALL), true)
+        set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true)
         // The layer never opens again by itself unless a test says so.
         set(AdsSettings.TIME_EXPAND_COLLAP_AD, 0L)
         set(AdsSettings.TIME_RELOAD_NATIVE_SMALL, 60L)

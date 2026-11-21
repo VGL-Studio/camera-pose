@@ -69,7 +69,7 @@ class AnchoredAdWiringTest {
     private val loader = FakeNativeAdLoader()
     private val banner = AdPlacement.GALLERY_BANNER
     private val collapsible = AdPlacement.GALLERY_BANNER_COLLAPSIBLE
-    private val bar = AdPlacement.SAMPLE_NATIVE_SMALL
+    private val bar = AdPlacement.POSES_BOTTOM
     private val settings = FakeRemoteSettings().apply {
         set(AdsSettings.placementEnabled(banner), true)
         set(AdsSettings.placementEnabled(collapsible), true)

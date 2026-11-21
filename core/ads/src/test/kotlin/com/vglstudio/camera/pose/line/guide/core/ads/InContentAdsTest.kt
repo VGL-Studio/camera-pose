@@ -39,7 +39,7 @@ class InContentAdsTest {
             AdPlacement.GALLERY_NATIVE_STEP,
             AdPlacement.GALLERY_NATIVE_STEP_FULL,
             // By format only (question 6 of the plan): the native small of a bar and a full-screen native too.
-            AdPlacement.SAMPLE_NATIVE_SMALL,
+            AdPlacement.POSES_BOTTOM,
             AdPlacement.GALLERY_NATIVE_FULL_SCREEN,
         )
         val notInContent = listOf(

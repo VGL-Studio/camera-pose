@@ -38,7 +38,7 @@ class BottomBarSlotWiringTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val application = ApplicationProvider.getApplicationContext<Application>()
-    private val placement = AdPlacement.SAMPLE_NATIVE_SMALL
+    private val placement = AdPlacement.POSES_BOTTOM
     private val settings = FakeRemoteSettings().apply { set(AdsSettings.placementEnabled(placement), true) }
 
     private fun idle() = shadowOf(Looper.getMainLooper()).idle()

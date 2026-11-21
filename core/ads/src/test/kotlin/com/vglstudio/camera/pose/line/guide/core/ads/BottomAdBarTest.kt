@@ -1350,11 +1350,11 @@ class BottomAdBarTest {
     @Test
     fun yieldLog_lines() {
         assertEquals(
-            "Bottom bar sample_native_small: slot yields to the collapsible layer",
+            "Bottom bar poses_bottom: slot yields to the collapsible layer",
             bottomSlotYieldLog(placement, yielded = true),
         )
         assertEquals(
-            "Bottom bar sample_native_small: slot back after the collapsible layer",
+            "Bottom bar poses_bottom: slot back after the collapsible layer",
             bottomSlotYieldLog(placement, yielded = false),
         )
     }

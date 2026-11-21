@@ -273,7 +273,7 @@ class AdsControllerNativeStockTest {
         startAndPreload()
         deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
         deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
-        show { BottomAdBarScaffold(AdPlacement.SAMPLE_NATIVE_SMALL) {} }
+        show { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} }
         assertTrue(shownIn(CollapsibleNativeAdTestTags.AD, LAYER_AD))
         val kept = deliver(AdFormat.NATIVE_SMALL, NEXT_AD)
         val smallBefore = requestsOf(AdFormat.NATIVE_SMALL)
@@ -292,7 +292,7 @@ class AdsControllerNativeStockTest {
     }
 
     private fun noRoomLines(window: String): Int = logger.entries.count {
-        it.message == "Collapsible sample_native_small not shown: window $window dp has no room"
+        it.message == "Collapsible poses_bottom not shown: window $window dp has no room"
     }
 
     /**
@@ -311,7 +311,7 @@ class AdsControllerNativeStockTest {
         show {
             // Control: the same window has room at font scale 1.0, so the missing layer is the text's doing.
             WithFontScale(1f) { roomAtDefault = BottomAdBarDefaults.collapsibleLayerHeight() }
-            WithFontScale(2f) { BottomAdBarScaffold(AdPlacement.SAMPLE_NATIVE_SMALL) {} }
+            WithFontScale(2f) { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} }
         }
 
         assertNotNull("room at font scale 1.0", roomAtDefault)
@@ -331,7 +331,7 @@ class AdsControllerNativeStockTest {
         deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
         deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
 
-        show { WithFontScale(1f) { BottomAdBarScaffold(AdPlacement.SAMPLE_NATIVE_SMALL) {} } }
+        show { WithFontScale(1f) { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} } }
 
         assertTrue("the layer shows", layerDrawn())
         assertTrue(shownIn(CollapsibleNativeAdTestTags.AD, LAYER_AD))

@@ -257,7 +257,7 @@ class RewardedAdRequiredTest {
     @Test
     fun nonRewardedPlacement_isRejected() {
         val error = runCatching {
-            composeRule.setContent { rememberRewardedAdRequired(AdPlacement.SAMPLE_NATIVE_SMALL) }
+            composeRule.setContent { rememberRewardedAdRequired(AdPlacement.POSES_BOTTOM) }
             composeRule.waitForIdle()
         }.exceptionOrNull()
 

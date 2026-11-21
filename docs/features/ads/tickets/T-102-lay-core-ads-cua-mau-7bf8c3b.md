@@ -10,7 +10,8 @@ risk: high
 size: L
 depends_on: []
 sprint:
-plan: features/ads/plans/T-102-lay-core-ads-cua-mau-7bf8c3b.mdauto_run:
+plan: features/ads/plans/T-102-lay-core-ads-cua-mau-7bf8c3b.md
+auto_run:
 created: 2026-11-21
 ---
 

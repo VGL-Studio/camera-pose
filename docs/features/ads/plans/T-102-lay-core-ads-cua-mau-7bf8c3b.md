@@ -1,7 +1,7 @@
 ---
 ticket: T-102
 title: Lấy core/ads và hai tài liệu ads của dự án mẫu lên mốc 7bf8c3b (thẻ native hai tầng, luật thanh đáy mới)
-status: draft                # draft | approved | stopped | done
+status: approved             # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn: để trống
 risk_level: high             # low | medium | high
@@ -10,7 +10,7 @@ blocking_points: [ads, core]
 run_order:                   # AI điền khi lập danh sách chạy
 reviewer: Nhật               # người duyệt
 cross_reviewer: Tuấn         # bắt buộc khi risk_level là high
-approved_at:
+approved_at: 2026-11-22
 lane:                        # để trống: phiên tự chạy
 ---
 
@@ -305,10 +305,11 @@ So với thiết kế: frame thiết kế vẽ thanh trạng thái 24 dp (8 dp �
 
 ## 9. Quyết định duyệt
 
-- **Quyết định:** Nhật duyệt ngày 2026-11-22; chờ duyệt chéo của Tuấn. Plan giữ `draft` tới khi có lời duyệt chéo.
-- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn (chưa duyệt)
+- **Quyết định:** duyệt ngày 2026-11-22 (Nhật duyệt, Tuấn duyệt chéo), các câu hỏi mục 8 theo đề xuất của AI.
+- **Người duyệt:** Nhật, **duyệt chéo:** Tuấn
 - **Ghi chú:**
   - AI ghi theo lời Nhật (2026-11-22): chọn "Tôi là Nhật, duyệt" khi được hỏi duyệt plan T-102 theo nội dung PR #375 ở commit 050395e.
   - Câu hỏi mục 8, Nhật trả lời: (1) chọn "Test quét mã + thử tay": ý e kiểm bằng `PosesInContentAdsTest`, test của khung và thử tay trên staging, không sửa `build-logic`; (2) chọn "Không dán diff": phiên đọc phần gộp trên nhánh take, dừng khi đầu nhánh không phải `46e13a14`; (3) chọn "Nhật duyệt, Tuấn duyệt chéo".
+  - AI ghi theo lời Tuấn (2026-11-22), trong cùng phiên, ngay sau lời duyệt của Nhật và khi plan ở commit 320160c: "Tôi là Tuấn, tôi duyệt."
 
 ## 10. Nhật ký thực hiện

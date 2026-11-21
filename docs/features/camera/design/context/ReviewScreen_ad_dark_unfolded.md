@@ -54,8 +54,8 @@ Toạ độ và cỡ tính theo dp, gốc là góc trên trái của khung. Th�
     - Instance "leading", vị trí 4,16, cỡ 48 x 48, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER
       - Text "icon", vị trí 16,28, cỡ 24 x 24, chữ "close", kiểu ngoài hệ thống (24/24, đậm 400), màu #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
     - Text "title", vị trí 56,26, cỡ 613 x 28, chữ "Xem lại", kiểu titleLarge (22/28, đậm 800), màu #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke)
-  - Frame "Ảnh vừa chụp (ảnh tạm)", vị trí 16,72, cỡ 448 x 597, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 16
-    - Text "icon", vị trí 120,429, cỡ 240 x 240, chữ "person", kiểu ngoài hệ thống (240/240, đậm 400), màu #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant)
+  - Frame "Ảnh vừa chụp (ảnh tạm)", vị trí 16,72, cỡ 450 x 600, nền #1E1E1E (surface, surfaceContainer, camera/surface), viền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), dày 2.0, bo góc 16
+    - Text "icon", vị trí 121,432, cỡ 240 x 240, chữ "person", kiểu ngoài hệ thống (240/240, đậm 400), màu #B5B0A8 (onSurfaceVariant, camera/onSurfaceVariant)
   - Frame "actions", vị trí 482,72, cỡ 127 x 192, xếp dọc, cách nhau 24 (lg), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/MIN
     - Frame "action Chụp lại", vị trí 482,72, cỡ 110 x 48, xếp ngang, cách nhau 8 (sm), lề trên/phải/dưới/trái 0/0/0/0, căn MIN/CENTER
       - Frame "button", vị trí 482,72, cỡ 48 x 48, nền #FFFFFF (secondary, onBackground, onSurface, outline, camera/onCamera, camera/control, camera/overlayStroke), viền #111111 (onSecondary, onSecondaryContainer, inverseOnSurface, onSuccessContainer, category/onCategory, camera/onControl), dày 2.0, bo góc 999, xếp ngang, cách nhau 0, lề trên/phải/dưới/trái 0/0/0/0, căn CENTER/CENTER

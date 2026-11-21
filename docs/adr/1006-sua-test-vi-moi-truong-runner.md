@@ -6,7 +6,7 @@ origin: app                  # template: ADR của dự án mẫu (mã dưới 1
 date: 2026-10-28
 deciders: [Nhật]
 supersedes:                  # bổ sung ADR-0032 (thêm mục L11), không thay quy tắc nào của nó
-superseded_by: ADR-0033      # dự án mẫu nhận quyết định này thành mục L11 (issue VGL-Studio/app-project-template#243, PR VGL-Studio/app-project-template#247; múi giờ, ngôn ngữ thêm ở ghi chú 2026-10-28, PR VGL-Studio/app-project-template#252), thêm L12
+superseded_by: ADR-0050      # dự án mẫu nhận quyết định này thành mục L11 của ADR-0033, nay chép nguyên vào ADR-0050 (issue VGL-Studio/app-project-template#243, PR VGL-Studio/app-project-template#247; múi giờ, ngôn ngữ thêm ở ghi chú 2026-10-28, PR VGL-Studio/app-project-template#252), thêm L12
 ---
 
 # ADR-1006: PHIÊN TỰ SỬA CHI TIẾT DỰNG MÔI TRƯỜNG CỦA TEST KHI TEST CHỈ ĐỎ TRÊN RUNNER VÌ MÁY KHÔNG CÓ CẤU HÌNH CHUNG, RỒI BÁO NGƯỜI SAU

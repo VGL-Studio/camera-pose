@@ -1,6 +1,6 @@
 ---
 feature: ads
-status: confirmed            # draft | confirmed | changed
+status: changed              # draft | confirmed | changed
 owner: Tuấn
 product_owner: Nhật
 requests:
@@ -8,6 +8,7 @@ requests:
   - requests/2026-11-02-bat-combo-native-toan-man-hinh.md
   - requests/2026-11-13-quang-cao-cai-dat-va-xem-lai.md
   - requests/2026-11-17-do-nguon-cai-tenjin.md
+  - requests/2026-11-21-dong-bo-quang-cao-mau-7bf8c3b.md
 design:                  # không có thiết kế riêng; giao diện quảng cáo theo khung của dự án mẫu
 created: 2026-10-28
 confirmed: 2026-11-17
@@ -47,6 +48,7 @@ Mục 9 đã có đủ câu trả lời; Nhật xác nhận spec ngày 2026-10-2
   - `review_bottom`: đáy màn xem lại ảnh, dưới hàng nút (spec camera, mục 5).
 - Phần mới của khung từ đợt đồng bộ dự án mẫu `698c5b3..bc3e80e` (câu 20, ticket T-098): khe đáy native và lớp thu gọn cao theo khung, bên trong thẻ theo thiết kế mới của khung (thẻ bước của luồng giới thiệu và thẻ trong lưới giữ kích thước); lớp thu gọn co lại hay không mở khi cửa sổ thấp; native chưa có quảng cáo thì thử lại giãn dần; interstitial, rewarded, app open của MAX có sẵn nhưng chưa bật.
 - Theo yêu cầu 2026-11-17 (câu 21): đo nguồn cài đặt của chiến dịch thu hút người dùng bằng Tenjin, gửi sang Tenjin doanh thu từng lượt quảng cáo hiện và các sự kiện phễu quảng cáo. Tenjin thay chỗ của AppsFlyer; AppsFlyer vẫn tắt. Không đổi gì trên màn hình.
+- Theo yêu cầu 2026-11-21 (câu 22): phần mới của khung từ đợt đồng bộ dự án mẫu `bc3e80e..7bf8c3b`. Native nhỏ (khe đáy, nội dung của lớp thu gọn) và native medium vẽ theo thẻ mới của khung, cao theo cỡ chữ thay vì theo cửa sổ; khe đáy chừa đúng chỗ đang chiếm, nhường chỗ khi lớp thu gọn mở; mỗi màn tối đa một quảng cáo neo đáy; màn có quảng cáo trong nội dung (thư viện) không có lớp thu gọn. Không thêm vị trí, khóa hay sự kiện.
 
 **Ngoài phạm vi:**
 
@@ -311,6 +313,27 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
       - Đề xuất của AI: hoãn kết nối Tenjin khi chưa có kết quả hỏi đồng ý mà vùng cần hỏi (khung quảng cáo biết điều này qua UMP); kết nối ở lần app quay lại foreground hay lần mở sau, khi đã có câu trả lời. Ngoài vùng cần hỏi thì kết nối ngay như ý d. Cách này cần `:core:ads` báo cho `:core:analytics` "chưa có câu trả lời ở vùng cần hỏi", nên plan T-099 phải sửa thêm `:core:ads`. Phương án khác: nhận như ý d (giống AppsFlyer ở ADR-0027), chấp nhận lượt cài đầu của nhóm người dùng này.
       - Trả lời: (Nhật, 2026-11-17) Hoãn tới khi có câu trả lời. Cách làm: app chỉ kết nối và gửi sang Tenjin khi đồng ý đã rõ, tức vòng hỏi đồng ý của lượt mở này đã có câu trả lời (kể cả từ chối, kể cả "không cần hỏi" ở ngoài vùng), hoặc vòng hỏi lỗi mạng mà máy vẫn giữ đồng ý của phiên trước. Hết 10 giây chờ mà chưa có câu trả lời thì chưa kết nối; khi có câu trả lời thì kết nối nếu được đồng ý. Vòng hỏi lỗi mạng hay bị ngắt mà không có đồng ý cũ (ở bất kỳ vùng nào) chưa tính là rõ: bản phát hành không hỏi lại trong lượt mở đó, nên Tenjin chờ tới lần mở app sau (lượt cài gửi muộn chứ không mất).
 
+22. **Lấy phần mới của khung quảng cáo trong đợt đồng bộ dự án mẫu `bc3e80e..7bf8c3b`** (PR #372, yêu cầu `requests/2026-11-21-dong-bo-quang-cao-mau-7bf8c3b.md`). PR #372 giữ `core/ads` và hai tài liệu ads ở mốc cũ; nhánh `template-sync/take-ads-7bf8c3b` đưa chúng lên (dựng ngày 2026-11-21). Phần mới đổi các điều sau ở cả staging và production (`docs/ops/ads-business-rules.md` của mốc mới):
+    - **a. Kích thước native theo thẻ mới của khung** (D-02, mục 5.7). Native nhỏ hai tầng (hàng trên icon và chữ, tầng dưới nút ngang hết thẻ), cao 106 dp ở cỡ chữ mặc định ở mọi bề rộng và mọi hướng, cao thêm khi người dùng đặt chữ lớn; hôm nay khe đáy cao theo cạnh ngắn của cửa sổ (126 dp ở khung chuẩn 411 x 891 dp, 106 dp ở 360 dp, 200 dp ở khung mở gập 673 x 841 dp). Khoảng chừa dưới nội dung: 122 dp ở cỡ chữ mặc định. Lớp thu gọn giữ tổng chiều cao theo cửa sổ (299 dp ở khung chuẩn), phần nội dung giống native nhỏ, vùng ảnh lấy phần còn lại. Native medium cao 250 dp ở mọi khung (hôm nay 320 tới 400 dp theo chiều cao màn hình); app chỉ dùng medium ở màn xem thử của staging. Thẻ bước của luồng giới thiệu (250 dp) và thẻ trong lưới thư viện giữ kích thước.
+      - Chỗ đang ghi số cũ: ảnh thiết kế trạng thái `ad` của thư viện, chi tiết, cài đặt, màn xem lại (9 ảnh, kể cả `ReviewScreen_ad_dark_unfolded`) vẽ khe 126 dp; các bước 126 dp của `docs/ops/manual-test.md`, mục 11.1; số đo ghim trong test của plan T-098. Spec màn đã ghi "cao theo khung (D-02)", không có con số.
+      - Đề xuất của AI: nhận như dự án mẫu (ADR-0045 của mẫu là chuẩn nghiệp vụ chung). Thiết kế trạng thái `ad` vẽ lại theo component thẻ native mới trên Figma rồi lập lại gói bàn giao, trước khi duyệt plan. Screenshot test cùng tên theo thiết kế mới.
+      - Trả lời: (Nhật, 2026-11-21) Nhận như mẫu. Vẽ lại thiết kế trạng thái `ad` trên Figma trước khi duyệt plan.
+    - **b. Khoảng chừa khi khe đáy đang tải** (D-04, PR #531 của mẫu). Khe native hiện khung chờ ở lượt nạp đầu, và nội dung chừa đúng chỗ khung chờ chiếm, để khung chờ không đè lên thẻ hay dòng cuối. Nạp lỗi thì khe không vẽ gì, chừa 0; các lượt thử lại sau đó không hiện khung chờ, có quảng cáo mới chừa lại. Khóa tắt thì không có thanh, chừa 0. Tiêu chí 3 của KB-6 ở spec poses đang ghi "quảng cáo đang tải thì không chừa khoảng trống; nội dung chỉ được chừa chỗ khi khe đã có quảng cáo", trái luật mới.
+      - Đề xuất của AI: nhận như dự án mẫu. Tiêu chí 3 của poses KB-6 viết lại: "Khi khóa tắt hay quảng cáo không tải được thì không chừa khoảng trống. Khi khe đang tải lượt đầu thì khe hiện khung chờ và nội dung chừa đúng chỗ khung chờ chiếm; thẻ cuối không bị che."
+      - Trả lời: (Nhật, 2026-11-21) Nhận như mẫu. Tiêu chí 3 của poses KB-6 viết lại theo đề xuất.
+    - **c. Khe đáy nhường chỗ cho lớp thu gọn** (D-07, MC-14, T-090 của mẫu). Khi lớp thu gọn đang mở, khe đáy bên dưới không giữ quảng cáo, không vẽ khung chờ, không nạp, không làm mới, không ghi số liệu; người dùng thu gọn lớp thì khe hiện lại như một lượt hiện mới. Khoảng chừa giữ như lúc lớp mở. Trên app này lớp thu gọn tắt lúc phát hành (câu 10), nên chỉ có hiệu lực khi bật `is_show_native_collap` từ xa.
+      - Đề xuất của AI: nhận như dự án mẫu.
+      - Trả lời: (Nhật, 2026-11-21) Nhận như mẫu.
+    - **d. Mỗi màn tối đa một quảng cáo neo đáy** (MC-12, T-091 của mẫu). Thanh đáy, banner cố định và banner thu gọn là quảng cáo neo đáy; màn đặt hai cái thì cái sau không nạp, không chiếm chỗ. Mỗi màn của app chỉ có một thanh đáy, nên không đổi gì trên màn hình.
+      - Đề xuất của AI: nhận như dự án mẫu.
+      - Trả lời: (Nhật, 2026-11-21) Nhận như mẫu.
+    - **e. Quảng cáo trong nội dung thắng lớp nổi** (MC-13, T-092 của mẫu). Màn có vị trí quảng cáo trong nội dung (native trong lưới hay danh sách, thẻ bước của luồng, native nhỏ hay medium đứng riêng) không có lớp thu gọn nổi, dù `is_show_native_collap` bật. Trên app: thư viện có `poses_in_collection` nên `poses_bottom` không bao giờ có lớp nổi; chi tiết, cài đặt giữ lớp nổi khi bật; màn xem lại vốn không có (câu 19, ý e); luồng giới thiệu không có thanh đáy.
+      - Đề xuất của AI: nhận. Thêm tiêu chí vào KB-6 của spec poses: "Khi `is_show_native_collap` bật thì thư viện vẫn không có lớp quảng cáo nổi, vì lưới có quảng cáo trong nội dung; chi tiết có lớp nổi như cài đặt."
+      - Trả lời: (Nhật, 2026-11-21) Nhận.
+    - **f. Biết trước hành động có thưởng có hiện quảng cáo không** (R-08, PR #526 của mẫu). Khung có thêm hàm cho app biết lần bấm vào hành động có thưởng lúc này sẽ mở hộp thoại hay làm thẳng, để gắn dấu "xem quảng cáo". App không dùng hàm này: tư thế premium luôn có dấu khóa (spec poses, KB-8).
+      - Đề xuất của AI: nhận vào khung, app không dùng. Muốn đổi dấu khóa theo hàm này thì làm ticket riêng.
+      - Trả lời: (Nhật, 2026-11-21) Nhận vào khung, app không dùng.
+
 ## 10. Lịch sử
 
 | Ngày | Người | Nội dung |
@@ -351,3 +374,5 @@ Không có cờ mới. Mỗi vị trí có khóa bật tắt Remote Config (câu
 | 2026-11-17 | Nhật | Trả lời câu 21 ý i (AI ghi): hoãn kết nối Tenjin tới khi đồng ý đã rõ; thêm tiêu chí của KB-T1. Lời của Nhật: chọn "Hoãn tới khi có trả lời" khi được hỏi. Chờ Nhật xác nhận spec |
 | 2026-11-17 | AI | Theo rà soát lại vòng 2 PR #360: câu trả lời ý i ghi đúng cách khung hỏi lại (lỗi mạng hay bị ngắt mà không có đồng ý cũ thì chờ lần mở sau). Không đổi lựa chọn của Nhật. Chờ Nhật xác nhận |
 | 2026-11-17 | Nhật | Xác nhận phần đổi theo câu 21 (Tenjin, ý a tới i), mục 2, 3 (KB-T1), 6, 8 của spec ads, theo PR #360 ở commit 5759b65 (AI ghi). Lời xác nhận của Nhật: chọn "Xác nhận spec, nhận ADR" khi được hỏi xác nhận nội dung PR #360 bản mới nhất. Chuyển lại `confirmed` |
+| 2026-11-21 | AI | Yêu cầu đồng bộ khung quảng cáo của dự án mẫu lên `7bf8c3b` (`requests/2026-11-21-dong-bo-quang-cao-mau-7bf8c3b.md`); thêm câu 22 và một dòng ở mục 2. Nhật chọn trong phiên (AI ghi): nhận kích thước native mới, nhận thư viện không có lớp nổi, vẽ lại thiết kế trạng thái `ad` trước khi duyệt plan. Chuyển `changed`, chờ Nhật trả lời ý b, c, d, f |
+| 2026-11-21 | Nhật | Trả lời câu 22 ý b, c, d, f theo đề xuất của AI (AI ghi): nhận khoảng chừa khi đang tải, khe nhường chỗ lớp thu gọn, một quảng cáo neo đáy mỗi màn; hàm biết trước hành động có thưởng có trong khung, app không dùng. Lời của Nhật: chọn "Nhận như mẫu" (ý b) và "Nhận cả ba" (ý c, d, f) khi được hỏi. Sửa tiêu chí 3 và thêm tiêu chí lớp nổi ở KB-6 của spec poses. Chờ Nhật xác nhận |

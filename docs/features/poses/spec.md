@@ -1,6 +1,6 @@
 ---
 feature: poses
-status: confirmed
+status: changed
 owner: Nhật
 product_owner: Nhật
 requests:
@@ -117,8 +117,9 @@ Tiêu chí chấp nhận:
 
 - [ ] Khi khóa `is_show_poses_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (cao theo khung, `docs/ops/ads-business-rules.md`, D-02) hiện ở đáy thư viện; lưới cuộn phía trên thanh, thẻ cuối không bị che (câu hỏi 1).
 - [ ] Khi khóa `is_show_pose_detail_bottom` bật thì thanh đáy native hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình.
-- [ ] Khi khóa tắt, quảng cáo đang tải hay không tải được thì không chừa khoảng trống; nội dung chỉ được chừa chỗ khi khe đã có quảng cáo.
+- [ ] Khi khóa tắt hay quảng cáo không tải được thì không chừa khoảng trống. Khi khe đang tải lượt đầu thì khe hiện khung chờ và nội dung chừa đúng chỗ khung chờ chiếm; thẻ cuối không bị che (`features/ads/spec.md`, câu 22, ý b).
 - [ ] Khi `is_show_native_collap` tắt (giá trị lúc phát hành) thì không có lớp quảng cáo nổi trên lưới hay trên nút chính.
+- [ ] Khi `is_show_native_collap` bật thì thư viện vẫn không có lớp quảng cáo nổi, vì lưới có quảng cáo trong nội dung; chi tiết có lớp nổi như cài đặt (`features/ads/spec.md`, câu 22, ý e).
 - [ ] Khi khóa `is_show_poses_in_collection` bật thì lưới có một ô quảng cáo sau mỗi `native_every_poses_in_collection` tư thế (mặc định 8), không ở đầu, không ở cuối lưới; thẻ quảng cáo có nhãn quảng cáo và khác rõ thẻ tư thế; hết quảng cáo thì ô ẩn, lưới không có ô trống. Áp dụng cho "Tất cả" và từng nhóm, cả khi mở gập (3 cột).
 - [ ] Khi khóa tắt thì lưới không có ô quảng cáo, thứ tự tư thế giữ như KB-1.
 
@@ -305,3 +306,4 @@ Tư thế premium (yêu cầu 2026-10-31, câu 6): catalog có thêm trường `
 | 2026-11-16 | AI | Câu 20 của spec ads, ý a (Nhật trả lời trong phiên, T-098): tiêu chí thanh đáy native nhỏ bỏ con số 80 dp, ghi chiều cao theo khung. Giữ `confirmed`; Nhật xác nhận ở dòng sau |
 | 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |
 | 2026-11-16 | Nhật | Xác nhận lại sau sửa theo rà soát độc lập PR #353 (AI ghi): `ad_platform` ở mục 6 của spec poses, camera; mục 2 của spec ads ghi thẻ bước và thẻ trong lưới giữ kích thước, lớp thu gọn là vùng ảnh cộng khe đáy D-02. Lời xác nhận của Nhật: chọn "Xác nhận lại" khi được hỏi. Giữ `confirmed` |
+| 2026-11-21 | AI | Câu 22 của spec ads, ý b và ý e (Nhật trả lời trong phiên): tiêu chí 3 của KB-6 chừa chỗ khung chờ khi khe đang tải lượt đầu; thêm tiêu chí thư viện không có lớp nổi khi `is_show_native_collap` bật. Chuyển `changed`, chờ Nhật xác nhận |

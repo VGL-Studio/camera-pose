@@ -9,7 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 
-/** The AppLovin MAX SDK behind [MaxPlatform] (plan T-068, ADR-0037). */
+/** The AppLovin MAX SDK behind [MaxPlatform] (plan T-068, ADR-0045). */
 @Module
 @InstallIn(SingletonComponent::class)
 internal object MaxPlatformModule {

@@ -26,7 +26,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The banner frame of two platforms (plan T-071, KB-31, ADR-0037): which platforms a slot asks, in which order, its
+ * The banner frame of two platforms (plan T-071, KB-31, ADR-0045): which platforms a slot asks, in which order, its
  * height and key, and [OrderedBannerAdView], which asks the first platform, then the second one in the same frame,
  * pauses the platforms not shown and goes through one send path (L-072).
  */

@@ -28,7 +28,7 @@ internal interface ConsentPlatform {
 }
 
 /**
- * [ConsentPlatform] over the User Messaging Platform, the only place :core:ads calls UMP (ADR-0013). The request
+ * [ConsentPlatform] over the User Messaging Platform, the only place :core:ads calls UMP (ADR-0045). The request
  * parameters are built once, from [debug], and reused by every regather (S-17). No unit test: it calls UMP directly,
  * like [SdkNativeAdLoader]; checked by hand on staging (plan T-020, section 4).
  */

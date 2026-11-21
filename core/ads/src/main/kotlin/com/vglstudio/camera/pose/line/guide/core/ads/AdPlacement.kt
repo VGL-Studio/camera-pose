@@ -129,7 +129,7 @@ class AdIntervalGroup private constructor(
 }
 
 /**
- * Every ad placement of the app, declared in one place (ADR-0004, MC-01).
+ * Every ad placement of the app, declared in one place (ADR-0045, MC-01).
  * A placement is a business decision: it must come from an approved spec.
  * Adding, removing or moving a placement is a high-risk change (risk-scoring.md, blocking point 1).
  * [key] is the placement code: it names the Remote Config keys of the placement and is the value of `ad_placement`.

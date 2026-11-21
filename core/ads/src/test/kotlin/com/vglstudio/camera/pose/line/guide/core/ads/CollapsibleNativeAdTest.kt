@@ -91,6 +91,9 @@ class CollapsibleNativeAdTest {
     private val feed = FakeNativeFeed()
     private var collapsedReports = 0
     private var reexpandReports = 0
+
+    /** Each value the host reports through `onShowingChange` (plan T-090). */
+    private val showingReports = mutableListOf<Boolean>()
     private var attempt by mutableIntStateOf(0)
 
     /** Whether the window has room for the layer (KB-4 added 2026-11-16), passed to the host. */
@@ -123,6 +126,7 @@ class CollapsibleNativeAdTest {
                             onReexpanded = { reexpandReports++ },
                             modifier = modifier,
                             hasRoom = hasRoom,
+                            onShowingChange = { showingReports += it },
                         )
                     } else {
                         CollapsibleNativeAdLayerHost(
@@ -134,6 +138,7 @@ class CollapsibleNativeAdTest {
                             onReexpanded = { reexpandReports++ },
                             modifier = modifier,
                             hasRoom = hasRoom,
+                            onShowingChange = { showingReports += it },
                             renderAd = renderAd,
                         )
                     }
@@ -273,8 +278,10 @@ class CollapsibleNativeAdTest {
         val cta = bounds(NativeAdTestTags.CTA)
         val ad = bounds(AD)
         val ctaWidth = (cta.right - cta.left).value
-        assertTrue("CTA $ctaWidth dp wide, from 80 to 120 dp", ctaWidth >= 80f - 0.5f && ctaWidth <= 120f + 0.5f)
-        assertEquals("CTA end to the layer end", 24f, (ad.right - cta.right).value, 0.5f)
+        // Plan T-109: the call to action spans the layer less its two 12 dp margins (two tiers, design T-108).
+        assertEquals("CTA width", (ad.right - ad.left).value - 24f, ctaWidth, 0.5f)
+        assertEquals("CTA start to the layer start", 12f, (cta.left - ad.left).value, 0.5f)
+        assertEquals("CTA end to the layer end", 12f, (ad.right - cta.right).value, 0.5f)
 
         val results = mutableListOf<TextLayoutResult>()
         composeRule.onNodeWithText("Headline of the ad", useUnmergedTree = true)
@@ -287,26 +294,29 @@ class CollapsibleNativeAdTest {
         setHost()
         val media = bounds(MEDIA)
         assertTrue("media is ${media.right - media.left} wide", (media.right - media.left).value >= 120f)
-        // The media area of 173 dp at 411 dp (collapsibleMediaAreaHeight) less its 12 dp top margin = 161 dp, as in
-        // the design.
-        assertHeight(MEDIA, 161f)
+        // The total of 299 dp at 411 dp (collapsibleTotalHeight) less the 106 dp content and the 12 dp top margin of
+        // the media = 181 dp (plan T-109).
+        assertHeight(MEDIA, 181f)
     }
 
-    /** KB-4, KB-32: the layer is the interpolated media area plus the bottom slot: 173 + 126 = 299 dp at 411 dp. */
+    /**
+     * KB-4, KB-32 (question 66, plan T-109): the layer is the interpolated total, its media area what the 106 dp
+     * content leaves: 193 + 106 = 299 dp at 411 dp, MediaView 181 dp.
+     */
     @Test
     fun expanded_heightIsMediaAreaPlusSlot() {
         setHost()
         assertEquals(299f, bounds(AD).let { (it.bottom - it.top).value }, 0.5f)
-        assertEquals(161f, bounds(MEDIA).let { (it.bottom - it.top).value }, 0.5f)
-        assertEquals(126f, bounds(CONTENT).let { (it.bottom - it.top).value }, 0.5f)
+        assertEquals(181f, bounds(MEDIA).let { (it.bottom - it.top).value }, 0.5f)
+        assertEquals(106f, bounds(CONTENT).let { (it.bottom - it.top).value }, 0.5f)
     }
 
-    /** The same on a 360 dp screen: 166 + 106 = 272 dp. */
+    /** The same on a 360 dp screen: 165 + 106 = 271 dp. */
     @Test
     @Config(qualifiers = "w360dp-h640dp-xxhdpi")
     fun expanded_heightIsMediaAreaPlusSlot_360() {
         setHost()
-        assertEquals(272f, bounds(AD).let { (it.bottom - it.top).value }, 0.5f)
+        assertEquals(271f, bounds(AD).let { (it.bottom - it.top).value }, 0.5f)
         assertEquals(106f, bounds(CONTENT).let { (it.bottom - it.top).value }, 0.5f)
     }
 
@@ -433,10 +443,10 @@ class CollapsibleNativeAdTest {
         node(SLOT).assertExists()
 
         // KB-4 criterion 2, KB-17: a tap on the collapse button hides the layer and shows the slot below, as high
-        // as the bottom slot of this screen (126 dp at 411 dp).
+        // as the bottom slot (106 dp on every width at font scale 1.0, plan T-109).
         collapse()
         assertAbsent(AD)
-        assertEquals(126f, bounds(SLOT).let { (it.bottom - it.top).value }, 0.5f)
+        assertEquals(106f, bounds(SLOT).let { (it.bottom - it.top).value }, 0.5f)
     }
 
     @Test
@@ -521,7 +531,7 @@ class CollapsibleNativeAdTest {
 
     @Test
     fun collapsed_reexpandsAfterDefaultSeconds() {
-        // CL-03, KB-32: 10 s when the team did not set time_expand_collap_ad (ADR-0038).
+        // CL-03, KB-32: 10 s when the team did not set time_expand_collap_ad (ADR-0045).
         setTimedHost(expandAfterSeconds = AdsSettings.TIME_EXPAND_COLLAP_AD.default)
         val mark = collapseTimed()
         assertAbsent(AD)
@@ -631,6 +641,42 @@ class CollapsibleNativeAdTest {
     }
 
     /**
+     * KB-4 criterion 4, CL-05 (plan T-109): on a 411 x 520 dp window the layer has room at font scale 1.0 but not at
+     * 2.0, where the small native leaves less than 132 dp of media area in half the window. With the default `hasRoom`
+     * at 2.0 nothing is collected and nothing drawn; control at 1.0 in the same test: one collection, the layer drawn
+     * at its ad.
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h520dp-xxhdpi")
+    fun largeText_noRoom_collectsNothing() {
+        var fontScale by mutableStateOf(2f)
+        composeRule.setContent {
+            WithFontScale(fontScale) {
+                AdsTestTheme(darkTheme = false) {
+                    CollapsibleNativeAdLayerHost(
+                        states = remember { feed.states() },
+                        expandAfterSeconds = 0,
+                        clock = clock,
+                        state = rememberCollapsibleAdState(),
+                        onCollapsed = {},
+                        onReexpanded = {},
+                        modifier = Modifier.fillMaxWidth().testTag(HOST),
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        update { feed.load(collapsibleTestAd()) }
+        assertAbsent(AD)
+        assertEquals("collections at font scale 2.0", 0, feed.collections)
+
+        update { fontScale = 1f }
+        update { feed.load(collapsibleTestAd()) }
+        assertEquals("collections at font scale 1.0", 1, feed.collections)
+        assertShown()
+    }
+
+    /**
      * The window loses its room while the layer is open (no rebuilt activity): the layer goes and its ad is destroyed,
      * the state stays open (not collapsed, no mark, no report); with room again it opens at a new ad.
      */
@@ -728,6 +774,66 @@ class CollapsibleNativeAdTest {
         assertShown()
     }
 
+    // Whether the layer shows its ad, for the bottom slot that gives way to it (D-07, plan T-090).
+
+    @Test
+    fun collapsibleShowing_table() {
+        val loaded = NativeAdState.Loaded(collapsibleTestAd())
+        assertTrue(collapsibleShowing(allowed = true, hasRoom = true, state = loaded, collapsed = false))
+        assertFalse("collapsed", collapsibleShowing(allowed = true, hasRoom = true, state = loaded, collapsed = true))
+        assertFalse(
+            "no ad unit",
+            collapsibleShowing(allowed = false, hasRoom = true, state = loaded, collapsed = false),
+        )
+        assertFalse("no room", collapsibleShowing(allowed = true, hasRoom = false, state = loaded, collapsed = false))
+        listOf(NativeAdState.Loading, NativeAdState.Unavailable).forEach { state ->
+            assertFalse("$state", collapsibleShowing(allowed = true, hasRoom = true, state = state, collapsed = false))
+        }
+    }
+
+    /**
+     * The host reports each change of whether it shows its ad: open at its ad, collapsed, open again (CL-03), room
+     * lost while open, room back with an ad, and gone from the composition; nothing while it first loads.
+     */
+    @Test
+    fun host_reportsShowing_openCollapseReexpandDispose() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent { Host(expandAfterSeconds = 30) }
+        frame()
+        assertEquals("nothing while loading", emptyList<Boolean>(), showingReports)
+        feed.load(collapsibleTestAd())
+        frame()
+        frame()
+        assertEquals(listOf(true), showingReports)
+
+        val mark = collapseTimed()
+        assertEquals(listOf(true, false), showingReports)
+
+        advanceTo(mark + 30_000)
+        frame()
+        assertEquals(listOf(true, false, true), showingReports)
+
+        hasRoom = false
+        frame()
+        frame()
+        assertEquals(listOf(true, false, true, false), showingReports)
+
+        hasRoom = true
+        // One frame composes the layer again, the next one starts its collection (which starts at Loading).
+        frame()
+        frame()
+        feed.load(collapsibleTestAd("Second ad"))
+        frame()
+        frame()
+        assertEquals(listOf(true, false, true, false, true), showingReports)
+
+        // A new host takes its place: the old one leaves the composition, the new one loads and reports nothing.
+        attempt++
+        frame()
+        frame()
+        assertEquals(listOf(true, false, true, false, true, false), showingReports)
+    }
+
     /** The log line of a layer with no room (ADR-0019). */
     @Test
     fun noRoomLog_text() {
@@ -773,7 +879,8 @@ class CollapsibleNativeAdTest {
     @Config(qualifiers = "w360dp-h640dp-xxhdpi")
     fun layer_smallScreen_fitsOnScreen() {
         setHost()
-        assertHeight(AD, 272f)
+        // 0.5 dp, not the 1 dp of the class: the former layer was 272 dp.
+        assertEquals(271f, bounds(AD).let { (it.bottom - it.top).value }, 0.5f)
         val screen = Rect(0f, 0f, 360f, 640f)
         listOf(COLLAPSE, NativeAdTestTags.CTA).forEach { tag ->
             val b = bounds(tag)

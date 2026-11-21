@@ -3,14 +3,14 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import com.vglstudio.camera.pose.line.guide.core.config.RemoteKey
 
 /**
- * Remote Config keys of the ads module, named as in AdsKit (docs/ops/ads-business-rules.md, section 10; ADR-0026),
- * with their values before any remote value arrives. The defaults are business decisions (ADR-0014). Public so
+ * Remote Config keys of the ads module, named as in AdsKit (docs/ops/ads-business-rules.md, section 10; ADR-0045),
+ * with their values before any remote value arrives. The defaults are business decisions (ADR-0045). Public so
  * :app can list every key of the app; a key declared here must also be returned by [all] (checked by a unit test).
  * The module reads them only through [AdsFlags].
  *
  * Keys of a placement are derived from its declaration in [AdPlacement] (MC-03, MC-04): `is_show_<code>`,
  * `ads_interval_<group>`, `<parameter>_<code>`. Number keys keep the AdsKit names and state their unit in the
- * description, not at the end of the name (ADR-0026, decision 9).
+ * description, not at the end of the name (ADR-0045, section 6).
  */
 object AdsSettings {
     /**
@@ -40,7 +40,7 @@ object AdsSettings {
     private fun stringKey(name: String, default: String, description: String) =
         RemoteKey.string(name, default, nameNote(name, description))
 
-    /** Names taken from JBase, not from AdsKit (ADR-0038): their description says so instead of [TEMPLATE_NAME]. */
+    /** Names taken from JBase, not from AdsKit (ADR-0045): their description says so instead of [TEMPLATE_NAME]. */
     internal val JBASE_KEY_NAMES: Set<String> = setOf("time_close_native")
 
     private fun nameNote(name: String, description: String) = when (name) {
@@ -166,7 +166,7 @@ object AdsSettings {
         name = "is_enable_consent_shortcut",
         default = false,
         description = "Remote switch of ERROR_ALLOWED, the temporary right when UMP fails on the network (S-12); " +
-            "also needs the build setting of the app. CACHED_EARLY is always on (ADR-0038). False takes " +
+            "also needs the build setting of the app. CACHED_EARLY is always on (ADR-0045). False takes " +
             "ERROR_ALLOWED back at once.",
     )
 
@@ -182,7 +182,7 @@ object AdsSettings {
         description = "Logs the Firebase lifecycle events of ad slots (banner, native).",
     )
 
-    /** The order of AdMob and AppLovin MAX (ADR-0037, plan T-068); read by [MediationOrder.of]. */
+    /** The order of AdMob and AppLovin MAX (ADR-0045, plan T-068); read by [MediationOrder.of]. */
     val ADS_MEDIATION_ORDER = stringKey(
         name = "ads_mediation_order",
         default = MediationOrder.DEFAULT.code,
@@ -191,7 +191,7 @@ object AdsSettings {
             "the build, admob.",
     )
 
-    /** The switch `is_show_<code>` of [placement], off by default (ADR-0014, MC-03). */
+    /** The switch `is_show_<code>` of [placement], off by default (ADR-0045, MC-03). */
     fun placementEnabled(placement: AdPlacement): RemoteKey<Boolean> = placementEnabled(placement.declaration)
 
     internal fun placementEnabled(declaration: AdPlacementDeclaration): RemoteKey<Boolean> = RemoteKey.boolean(
@@ -289,5 +289,5 @@ object AdsSettings {
 /** End of the description of a key whose name is not in the official AdsKit key table. */
 private const val TEMPLATE_NAME = "Name set by the template, not an AdsKit key."
 
-/** End of the description of a key whose name comes from JBase (ADR-0038). */
+/** End of the description of a key whose name comes from JBase (ADR-0045). */
 private const val JBASE_NAME = "Name from JBase, not an AdsKit key."

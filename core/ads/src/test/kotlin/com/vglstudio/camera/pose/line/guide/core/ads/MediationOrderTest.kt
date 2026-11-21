@@ -3,7 +3,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** `ads_mediation_order` read as one of four orders (plan T-068, KB-31, ADR-0037). */
+/** `ads_mediation_order` read as one of four orders (plan T-068, KB-31, ADR-0045). */
 class MediationOrderTest {
     @Test
     fun of_readsEachValue() {

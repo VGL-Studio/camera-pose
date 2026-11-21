@@ -4,7 +4,7 @@ package com.vglstudio.camera.pose.line.guide.core.ads
  * KB-26, criterion 3 (F-08, plan T-055): the activity a full-screen ad of the SDK is about to be shown on is usable
  * only when it is not finishing, not destroyed and is the resumed activity of the app. "Resumed", not "started": an
  * activity still visible under a permission dialog or a share sheet does not take input. JBase checks the first two
- * only (`AdmobHelper.getSafeCurrentActivity`, ADR-0038); the third is the spec's.
+ * only (`AdmobHelper.getSafeCurrentActivity`, ADR-0045); the third is the spec's.
  */
 internal fun fullScreenHostUsable(finishing: Boolean, destroyed: Boolean, resumed: Boolean): Boolean =
     !finishing && !destroyed && resumed

@@ -165,8 +165,8 @@ class NativeAdCardScreenshotTest {
     }
 
     /**
-     * Small and the card at font scale 2.0 on the low screen (L-028, plan T-060): short and long texts; the long call
-     * to action of small stops at 120 dp, so the headline and the "Ad" label stay.
+     * Small and the card at font scale 2.0 on the low screen (L-028, plan T-060): short and long texts; small grows
+     * with its text (plan T-109), its call to action below the top row, so the headline and the "Ad" label stay.
      */
     @Test
     @Config(qualifiers = "w360dp-h640dp-xxhdpi")

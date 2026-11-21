@@ -176,6 +176,7 @@ class AdsControllerReloadIntervalTest {
 
         advanceBy(10_000)
         composeRule.onNodeWithTag(CollapsibleNativeAdTestTags.COLLAPSE, useUnmergedTree = true).performClick()
+        val collapsedAt = composeRule.mainClock.currentTime
         advanceBy(1_000)
         assertTrue("the layer did not collapse", !hasNode(CollapsibleNativeAdTestTags.AD))
 
@@ -185,11 +186,12 @@ class AdsControllerReloadIntervalTest {
         assertEquals(1, refreshes(layerKey))
         assertTrue("the refresh expanded the layer", !hasNode(CollapsibleNativeAdTestTags.AD))
 
-        // The bottom slot reads its own key: no refresh before 120 s (and 500 ms after the layer's count).
-        advanceBy(73_000)
+        // The bottom slot reads its own key: no refresh before 120 s (and 500 ms after the layer's count). It gave way
+        // to the layer open since the entry (D-07, plan T-090) and came back at the collapse: its count starts then.
+        advanceBy(collapsedAt + 120_000 - composeRule.mainClock.currentTime)
         assertEquals(0, refreshes(slotKey))
         // Control (L-055): the bottom slot does refresh once its own count is over.
-        advanceBy(2_000)
+        advanceBy(1_000)
         assertEquals(1, refreshes(slotKey))
     }
 

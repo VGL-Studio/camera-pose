@@ -227,7 +227,7 @@ class AdUnitIdsTest {
 
     @Test
     fun noCollapsibleLayer_layerFormatsBannerOnly() {
-        // A bottom bar declared without the floating layer (plan T-094, spec ads question 19 point e).
+        // A bottom bar declared without the floating layer (D-01) needs no collapsible slot key.
         val bar = AdPlacementDeclaration("bar_r", AdFormat.NATIVE_SMALL, collapsibleLayer = false)
         assertEquals(listOf(AdFormat.BANNER), bar.layerFormats)
         assertEquals(listOf("banner"), missingUnitKeys(listOf(bar), setOf("bar_r")))

@@ -55,7 +55,7 @@ internal object PreviewNativeAdBinder : NativeAdBinder {
 
 /**
  * Draws a loaded ad with a layout of any shape. A real SDK ad is wrapped in a NativeAdView; a fake ad (tests) is drawn
- * with [PreviewNativeAdBinder]. Features never see NativeAdView (ADR-0022, decision 5).
+ * with [PreviewNativeAdBinder]. Features never see NativeAdView (ADR-0045, section 4.1).
  */
 @Composable
 internal fun BoundNativeAd(

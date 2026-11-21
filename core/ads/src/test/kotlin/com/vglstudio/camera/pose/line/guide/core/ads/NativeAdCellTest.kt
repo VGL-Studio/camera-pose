@@ -125,7 +125,7 @@ class NativeAdCellTest {
             }
         }
         // Control: while loading the cell has the height of the card.
-        composeRule.onNodeWithTag(CELL).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(CELL).assertHeightIsEqualTo(250.dp)
 
         states.value = NativeAdState.Unavailable
         composeRule.waitForIdle()
@@ -152,7 +152,7 @@ class NativeAdCellTest {
         composeRule.waitForIdle()
 
         assertEquals(NativeAdState.Unavailable, seen.last())
-        composeRule.onNodeWithTag(CELL).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(CELL).assertHeightIsEqualTo(250.dp)
         composeRule.onAllNodes(
             hasTestTag(NativeAdTestTags.PLACEHOLDER) and hasAnyAncestor(hasTestTag(CELL)),
             useUnmergedTree = true,
@@ -228,7 +228,7 @@ class NativeAdCellTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("card").assertHeightIsEqualTo(300.dp)
-        composeRule.onNodeWithTag("medium").assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag("medium").assertHeightIsEqualTo(250.dp)
     }
 
     @Test

@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * The AppLovin MAX SDK key of the build (ADR-0037), given by :app: `-PmaxSdkKey` in production, `ads.maxSdkKey` of
+ * The AppLovin MAX SDK key of the build (ADR-0045), given by :app: `-PmaxSdkKey` in production, `ads.maxSdkKey` of
  * local.properties in staging. Without a key MAX never starts. [toString] hides the key, so it reaches no log.
  *
  * [adUnits] holds the MAX ad unit of each slot of the app, `<slot>=<unit>;...` with the slot named by [AdFormat.code]
@@ -102,7 +102,7 @@ internal class AppLovinMaxPlatform(private val context: Context) : MaxPlatform {
 }
 
 /**
- * Starts AppLovin MAX once (plan T-068, KB-31, ADR-0037): after the consent gate opened and AdMob is ready
+ * Starts AppLovin MAX once (plan T-068, KB-31, ADR-0045): after the consent gate opened and AdMob is ready
  * ([onAdmobReady], called once by `startSdk`), with an SDK key, while `ads_mediation_order` has MAX, and only while the
  * consent gate is open at that moment ([gateAllowed], question 9 of the plan): a gate closed while `startSdk` waited
  * for AdMob, or when the order changed, starts nothing; the gate open again asks once more ([onOrderChanged]). There
@@ -140,7 +140,7 @@ internal class MaxSdkStarter(
             logger.warn(
                 TAG,
                 "MAX: AppLovin SDK already started by AdMob mediation; " +
-                    "remove AppLovin from the AdMob mediation groups (ADR-0037)",
+                    "remove AppLovin from the AdMob mediation groups (ADR-0045)",
             )
         }
         logger.info(TAG, "MAX started")

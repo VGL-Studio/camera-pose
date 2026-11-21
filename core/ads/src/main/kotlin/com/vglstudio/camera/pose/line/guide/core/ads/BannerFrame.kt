@@ -31,18 +31,21 @@ internal fun bannerFrame(gateOpen: Boolean, enabled: Boolean, unitId: String?, h
 
 /**
  * The height of a banner slot: none without a frame; [frameHeightDp] while the frame is kept (B-06) or active, before
- * the first ad too, so the screen does not jump. One exception (B-08, KB-29): an MREC whose frame failed to load
- * before it had any ad ([failedBeforeAd]) takes no space until an ad loads; fixed and collapsible banners keep theirs.
+ * the first ad too, so the screen does not jump. A frame whose loads failed before it had any ad ([failedBeforeAd])
+ * takes no space until an ad loads when it is an MREC (B-08, KB-29) or the banner of a bottom bar ([inBottomBar], D-04:
+ * an empty frame would cover the end of the content); other fixed and collapsible banners keep theirs.
  */
 internal fun bannerSlotHeightDp(
     frame: BannerFrame,
     kind: BannerSizeKind,
     frameHeightDp: Int,
     failedBeforeAd: Boolean,
+    inBottomBar: Boolean = false,
 ): Int = when (frame) {
     BannerFrame.NONE -> 0
     BannerFrame.KEPT_EMPTY -> frameHeightDp
-    BannerFrame.ACTIVE -> if (kind == BannerSizeKind.MEDIUM_RECTANGLE && failedBeforeAd) 0 else frameHeightDp
+    BannerFrame.ACTIVE ->
+        if (failedBeforeAd && (kind == BannerSizeKind.MEDIUM_RECTANGLE || inBottomBar)) 0 else frameHeightDp
 }
 
 /** The ad view runs (resumed) only on a visible screen with an active frame; it is paused otherwise. */

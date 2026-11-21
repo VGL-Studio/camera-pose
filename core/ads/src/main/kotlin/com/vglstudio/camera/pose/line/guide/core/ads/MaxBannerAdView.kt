@@ -41,7 +41,7 @@ internal interface MaxBannerSdkView {
 }
 
 /**
- * A real `MaxAdView` of [unitId] (plan T-071, ADR-0037): the adaptive banner of MAX as wide as the slot
+ * A real `MaxAdView` of [unitId] (plan T-071, ADR-0045): the adaptive banner of MAX as wide as the slot
  * ([BannerSizeKind.ANCHORED]) or the 300 x 250 MREC ([BannerSizeKind.MEDIUM_RECTANGLE]); a collapsible banner never
  * loads from MAX, so [BannerSizeKind.LARGE_ANCHORED] throws [IllegalArgumentException]. Built with the constructor
  * that takes a [Context]: the one with `MaxAdViewConfiguration` throws while the MAX SDK has not started (plan T-071,

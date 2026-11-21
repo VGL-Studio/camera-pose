@@ -19,12 +19,13 @@ Giữ app theo khung quảng cáo chung của dự án mẫu (ADR-0045), để c
 
 ## Người dùng sẽ trải nghiệm thế nào
 
-Thanh quảng cáo native ở đáy thư viện, chi tiết tư thế, cài đặt và màn xem lại thấp hơn (106 dp thay 126 dp ở cỡ chữ mặc định), bên trong vẽ theo thẻ mới của khung. Thư viện không có lớp quảng cáo nổi thu gọn vì đã có quảng cáo trong lưới.
+Thanh quảng cáo native ở đáy thư viện, chi tiết tư thế, cài đặt và màn xem lại cao 106 dp ở cỡ chữ mặc định ở mọi khung (hôm nay 126 dp ở khung chuẩn, 106 dp ở khung 360 dp, 200 dp ở khung mở gập), bên trong vẽ theo thẻ mới của khung. Thư viện không có lớp quảng cáo nổi thu gọn khi ô quảng cáo trong lưới đang bật; chi tiết tư thế không bao giờ có lớp nổi.
 
 Các lựa chọn của Nhật khi được hỏi:
 
 - Kích thước native mới: chọn "Nhận như mẫu".
-- Thư viện không có lớp nổi vì có quảng cáo trong lưới: chọn "Nhận".
+- Thư viện không có lớp nổi vì có quảng cáo trong lưới: chọn "Nhận". Câu hỏi này ghi sai luật (thư viện chỉ mất lớp nổi khi ô lưới đang bật); hỏi lại, Nhật chọn "Theo MC-13".
+- Chi tiết tư thế khi bật lớp nổi (lớp phủ lên nút chính): chọn "Không có lớp nổi".
 - Thiết kế trạng thái quảng cáo: chọn "Vẽ lại trên Figma trước" (trước khi duyệt plan).
 
 ## Những gì chưa cần làm lần này

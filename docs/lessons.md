@@ -901,29 +901,29 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-097: lệnh kiểm ảnh chuẩn `git status --short -- '*/src/test/screenshots/'` không khớp file nào
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
 - **Chuyện gì:** `CLAUDE.md` mục Lệnh và mục 3.1 của plan T-079 dùng `git status --short -- '*/src/test/screenshots/'` để thấy ảnh chuẩn nào đã đổi sau khi ghi lại. Pathspec này không khớp file nào trong thư mục ảnh, nên lệnh luôn in trống, kể cả khi có ảnh đổi. Phép kiểm "chỉ ảnh của mục 3.2 đổi" vì thế qua cả khi ảnh khác đổi.
 - **Bằng chứng:** RUN-20261031-01: phiên con lượt 1 báo lệnh không in gì, phải dùng đường dẫn thư mục. Phiên chính thử lại: thêm một byte vào `feature/poses/src/test/screenshots/PosesScreen_ad_light.png` thì lệnh trên không in gì, còn `git status --short -- ':(glob)**/src/test/screenshots/**'` in ` M feature/poses/src/test/screenshots/PosesScreen_ad_light.png`.
 - **Đề xuất sửa:** `CLAUDE.md` mục Lệnh, mẫu plan và mọi chỗ dẫn lệnh này: đổi thành `git status --short -- ':(glob)**/src/test/screenshots/**'`. Thêm một test của script kiểm lệnh in đúng file ảnh đổi.
-- **Áp dụng:**
+- **Áp dụng:** qua đồng bộ dự án mẫu PR #279 (`CLAUDE.md` mục Lệnh: mẫu `'*/src/test/screenshots/*'`, kèm câu vì sao mẫu kết thúc bằng `/` không khớp).
 - **Kiểm chứng:**
 
 ### L-098: ghi lại ảnh chuẩn đổi cả ảnh ngoài plan vì nhiễu vẽ
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
 - **Chuyện gì:** `./gradlew :feature:poses:recordRoborazziDebug :feature:poses:testDebugUnitTest --rerun` ghi lại mọi ảnh của module. Ngoài 6 ảnh `ad` mà plan cho phép, 11 ảnh không có quảng cáo đổi vì nhiễu vẽ (tối đa 1 mỗi kênh màu, vài chục tới khoảng 110 điểm ảnh), dù `verifyRoborazziDebug` vẫn qua với ảnh cũ. Không quy tắc nào nói phải làm gì; phiên con tự khôi phục 11 ảnh và không coi là điều kiện dừng.
 - **Bằng chứng:** RUN-20261031-01, báo cáo phiên con T-079 lượt 1; PR #256 chỉ có 6 ảnh `ad`; `scripts/check.sh` và CI xanh.
 - **Đề xuất sửa:** `CLAUDE.md` mục Lệnh, dòng ghi lại ảnh chuẩn: sau khi ghi, khôi phục mọi ảnh ngoài mục 3.2 (`git checkout -- <ảnh>`) khi `verifyRoborazziDebug` qua với ảnh cũ; ảnh ngoài mục 3.2 mà `verify` đỏ với ảnh cũ thì vẫn là điều kiện dừng.
-- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
+- **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#382; về app qua đồng bộ PR #316 (`CLAUDE.md` mục Lệnh: chỉ giữ ảnh plan cho ghi lại, trả ảnh khác bằng `git checkout -- <ảnh>`).
 - **Kiểm chứng:**
 
 ### L-099: phiên `local` và một phiên Claude Code khác dùng chung thư mục chính
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261031-01 (T-079).
 - **Chuyện gì:** phiên `local` làm việc của nhánh báo cáo trong thư mục chính của repo. Trong lúc phiên chờ `device-session`, một phiên Claude Code khác cũng làm việc trong thư mục đó: chuyển sang `main`, `pull`, tạo nhánh `claude/docs-T-081-ticket` và commit, rồi về `main`. Lần sửa báo cáo tiếp theo của phiên chạy trên tệp của `main` (thất bại vì không thấy đoạn cần thay), và commit kèm theo rơi vào `main` cục bộ thay vì nhánh báo cáo.
 - **Bằng chứng:** RUN-20261031-01, `git reflog` lúc khoảng 14:58 UTC: `checkout: moving from claude/RUN-20261031-01-report to main`, `pull -q --ff-only`, commit `78bdb32` (T-081, không phải của phiên), rồi commit `d8ac7b4` của phiên trên `main`. Không có gì bị đẩy lên `main`. Phiên chuyển commit sang nhánh báo cáo trong worktree `../run-report` (`46cdde8`) và trả `main` cục bộ về `origin/main` bằng `git reset --keep`.
 - **Đề xuất sửa:** `docs/auto-run.md` mục 2, phiên `local`: làm mọi việc của nhánh báo cáo trong một worktree riêng (`git worktree add ../run-report claude/RUN-YYYYMMDD-NN-report`), để thư mục chính không mang trạng thái của phiên. `docs/ops/session-capabilities.md`, dòng `local`: người không mở phiên khác trong thư mục repo khi danh sách chạy đang `running`, hay mở phiên đó trong worktree riêng.
-- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
+- **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#382; về app qua đồng bộ PR #316 (`docs/ops/session-capabilities.md` dòng `local`: khi danh sách `running` không mở phiên khác hay đổi nhánh trong thư mục repo, việc khác làm ở bản clone riêng). Dự án mẫu chọn cách này thay cho worktree riêng của nhánh báo cáo trong `docs/auto-run.md` mục 2 mà bài đề xuất.
 - **Kiểm chứng:**
 
 ### L-100: bảng thiết lập môi trường cloud thiếu tên miền kho Maven của mediation, env-canary đỏ hai ngày
@@ -941,25 +941,25 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Chuyện gì:** T-082 xóa đúng theo plan hai ảnh thiết kế `OnboardingScreen_default_light`, `OnboardingScreen_default_dark` (frame của T-012). Mục 4 của plan T-083 (chạy ngay sau trong cùng danh sách) vẫn liệt kê hai ảnh này trong "ảnh thiết kế của ticket khác", ghi "T-012 (bỏ ở T-082)". `plan-check.py` chạy ngay trước T-083 báo lỗi ảnh không có trong `design/screens/`, nên phiên bỏ qua T-083 theo quy tắc. `run-check.py` và lần rà soát danh sách trước khi duyệt không thấy, vì chúng kiểm từng plan trên trạng thái repo lúc duyệt, khi hai ảnh còn đó.
 - **Bằng chứng:** danh sách chạy RUN-20261031-02, mục 2 (13:46 UTC): `LỖI: ảnh thiết kế của ticket khác OnboardingScreen_default_dark không có trong docs/features/onboarding/design/screens/.` (và `_light`).
 - **Đề xuất sửa:** `scripts/run-check.py` thêm quy tắc: plan nào trong danh sách Xóa một file ở mục 3.2 mà plan chạy sau dẫn tên file đó (nhất là ảnh thiết kế ở mục 4) thì báo lỗi, để sửa plan trước khi duyệt. Hoặc quy tắc ảnh thiết kế của `plan-check.py` bỏ qua tên mà plan tự ghi là bỏ ở ticket khác. `docs/CLAUDE.md`, mục Khi viết plan: không liệt kê ảnh mà plan khác trong cùng danh sách sẽ xóa.
-- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
+- **Áp dụng:** một phần, chưa đủ để đóng. Dự án mẫu VGL-Studio/app-project-template#382; đồng bộ PR #316 thêm `scripts/run-check.py` quy tắc 9, nhưng quy tắc chỉ so đường dẫn đầy đủ ở mục 3.2 (và cảnh báo khi mục 3, 4 nhắc đúng đường dẫn đó), nên tên ảnh trơn trên dòng "Ảnh thiết kế của ticket khác" ở mục 4 vẫn lọt, đúng trường hợp của T-083 và T-092. Phần bỏ qua ảnh khai của ticket khác trong `scripts/plan-check.py` có từ PR #16, trước bài học, và vẫn báo lỗi khi ảnh đã bị xóa. Quy tắc của `docs/CLAUDE.md` cho ảnh liệt kê ở mục 4 chưa có (quy tắc hiện có chỉ nói file ở mục 3.2). Còn cần gửi phần thiếu về dự án mẫu.
 - **Kiểm chứng:** lặp lại ở RUN-20261109-01 (2026-11-09): plan T-092 liệt kê bốn ảnh `OnboardingScreen_premium*` trong "ảnh thiết kế của ticket khác" (để qua `plan-check.py` lúc viết plan, khi ảnh còn đó), T-091 chạy trước xóa chúng theo plan, phiên bỏ qua T-092. Cả `run-check.py` lẫn ba vòng rà soát plan và một vòng rà soát danh sách không bắt được. Nên ưu tiên áp dụng đề xuất sửa.
 
 ### L-102: save-branch.sh của phiên chính báo "CHƯA ĐẨY" khi push-on-commit.sh vừa đẩy cùng commit
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261101-01, T-083.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261101-01, T-083.
 - **Chuyện gì:** phiên con T-083 báo xong; phiên chính gọi `scripts/save-branch.sh claude/T-083-the-native-gioi-thieu` đúng lúc `scripts/push-on-commit.sh` (chạy nền cho cùng nhánh) đẩy commit cuối. Lệnh của phiên chính bị từ chối và in "CHƯA ĐẨY", giữ bundle, dù GitHub đã có đúng commit đó. Phiên phải kiểm lại bằng `git ls-remote` rồi xóa bundle thừa.
 - **Bằng chứng:** RUN-20261101-01, 17:15 UTC: `push-on-commit.sh` in `ĐÃ ĐẨY: claude/T-083-the-native-gioi-thieu tại 2333720 (17:15Z)`; `git ls-remote` trả `2333720` cho nhánh.
 - **Đề xuất sửa:** `scripts/save-branch.sh`: trước khi báo lỗi, đọc lại `git ls-remote`; nhánh trên origin đã là đúng commit đầu nhánh thì in "ĐÃ ĐẨY". Hoặc `docs/auto-run.md` mục Giao bước 3 đến 5: khi `push-on-commit.sh` còn chạy, phiên chính dừng nó (công cụ dừng tác vụ nền) trước khi tự đẩy.
-- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#382 (2026-11-02).
+- **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#382; về app qua đồng bộ PR #316 (`scripts/save-branch.sh` đọc lại `git ls-remote` trước khi báo chưa đẩy).
 - **Kiểm chứng:**
 
 ### L-103: scripts/check.sh đỏ trên máy macOS vì test của script dùng sed của GNU
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261113-01, kiểm tra đầu phiên `local`.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261113-01, kiểm tra đầu phiên `local`.
 - **Chuyện gì:** `scripts/check.sh` trên nhánh chính (máy dev macOS) dừng ở phần test của script, trước phần Gradle: test "pr-check: the filter output check fails on a copy reading an undefined output" dùng `sed '0,/.../s//.../'`, cú pháp chỉ GNU sed hiểu; `sed` của macOS (BSD) không hiểu nên bản chép không đổi và test thấy `yes`. CI (Linux) qua. `scripts/local-setup.sh --check` vẫn qua vì không kiểm `sed`. Phiên `local` theo chữ của `auto-run.md` mục 2 phải kết thúc phiên; Nhật chọn cài `gnu-sed` (`brew install gnu-sed`) và đặt `/opt/homebrew/opt/gnu-sed/libexec/gnubin` trước `PATH` cho cả phiên.
 - **Bằng chứng:** RUN-20261113-01, 04:20 UTC: `FAIL - pr-check: the filter output check fails on a copy reading an undefined output: expected 'no', got 'yes'`, `1 script test(s) failed`; `sed --version` trả `illegal option`. Chạy lại với GNU sed: `== Cổng chất lượng: QUA` (3121 test JVM).
 - **Đề xuất sửa:** `scripts/tests/run.sh`: viết lại lệnh đó bằng `awk` hay `perl` cho chạy được cả GNU lẫn BSD (như quy tắc `perl -pi -e` của `docs/CLAUDE.md`, mục Khi viết plan); hoặc `scripts/local-setup.sh --check` kiểm GNU sed và in lệnh cài. `scripts/failure-kind.sh --playbook` xếp log này thành PB-02 (GitHub không cấp máy), sai: thêm dòng tra cho `FAIL - ` của test script trên máy dev.
-- **Áp dụng:** chưa làm.
+- **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#529; về app qua đồng bộ PR #372 (`scripts/local-setup.sh --check` kiểm GNU sed; test của `scripts/tests/run.sh` cấm địa chỉ `0,/.../`; bảng tra lỗi PB-23).
 - **Kiểm chứng:**
 
 ### L-104: số đo bố cục ở mục 4.1 của plan lấy trên một bố cục có phần tử đè lên nhau
@@ -982,25 +982,25 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-106: scripts/check.sh đỏ trên máy macOS vì test của script dùng mapfile của bash 4
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261116-01, kiểm tra đầu phiên `local`.
+- **Trạng thái:** applied. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261116-01, kiểm tra đầu phiên `local`.
 - **Chuyện gì:** `scripts/check.sh` trên nhánh chính (máy dev macOS, chỉ có bash 3.2 ở `/bin/bash`) dừng ở phần test của script, trước phần Gradle: 4 test `pr-check: ... path filter ...` gọi `pr_filter_order` dùng `mapfile` (có từ bash 4), và test `wait-run: a draft PR stops at once with code 6` cũng đỏ. `mapfile` vào `scripts/tests/run.sh` qua đồng bộ mẫu #351, merge cùng ngày, sau phiên `local` trước. CI và cloud (Linux, bash 5) qua. `scripts/local-setup.sh --check` vẫn qua vì không kiểm phiên bản bash. Theo chữ của `auto-run.md` mục 2 phiên phải kết thúc; Nhật chọn cài bash 5 (`brew install bash`, `/opt/homebrew/bin` đứng trước `/bin`). Cùng loại với L-069 (bash 3.2) và L-103 (GNU sed): lỗi chỉ lộ ra trên máy dev sau khi đã merge.
 - **Bằng chứng:** RUN-20261116-01, 14:26 UTC: `scripts/tests/run.sh: line 374: mapfile: command not found`, `FAIL - pr-check: the path filter and its check come before every step that reads them: expected 'yes yes yes yes 6', got 'missing'`, `FAIL - wait-run: a draft PR stops at once with code 6: expected '6 NHÁP 6 NHÁP 2 CHƯA', got '6 NHÁP 3 LỖI 2 CHƯA'`, `5 script test(s) failed`. Chạy lại với bash 5.3.20 (14:38 tới 14:59): `== Cổng chất lượng: QUA`, 3190 test JVM. `scripts/failure-kind.sh --playbook` lại xếp log này thành PB-02 (như L-103).
 - **Đề xuất sửa:** `scripts/local-setup.sh --check` kiểm bash ≥ 4 (bash đầu `PATH` mà `#!/usr/bin/env bash` sẽ dùng) và GNU sed, in lệnh cài; hoặc chạy `scripts/tests/run.sh` bằng bash 3.2 trong CI (đề xuất của L-069) để lỗi lộ ra ở PR của dự án mẫu. Thêm dòng bảng tra lỗi cho `FAIL - ` của test script trên máy dev, để `failure-kind.sh` không khớp nhầm PB-02.
-- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#529 (2026-11-16).
+- **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#529; về app qua đồng bộ PR #372 (`scripts/local-setup.sh --check` kiểm bash ≥ 4; bảng tra lỗi PB-23 đặt trước PB-02).
 - **Kiểm chứng:**
 
 ### L-107: điểm nên sửa chỉ về tài liệu trong file của mục 3.2 không có đường sửa trong phiên
 
-- **Trạng thái:** proposed. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261116-01, task T-098.
+- **Trạng thái:** applied. **Loại:** quy trình. **Phạm vi:** chung. **Nguồn:** RUN-20261116-01, task T-098.
 - **Chuyện gì:** rà soát độc lập của T-098 nêu một điểm nên sửa ở `docs/ops/manual-test.md` (file của mục 3.2): dòng kiểm tay mới dựa vào thứ tự dòng của bước khác nên người thử có thể làm khi khóa Remote Config đã tắt. Bảng mức của `auto-run.md` bước 6 chỉ cho sửa điểm nên sửa khi có test viết trước thất bại đúng lý do, hoặc khi phần sửa chỉ là chú thích hay định dạng (L12). Sửa câu chữ của tài liệu kiểm tay không thuộc cả hai, nên phiên phải để lại điểm này cho người dù cách sửa nhỏ, rõ và nằm trong file được phép. Phiên có người theo dõi nên Nhật yêu cầu sửa; phiên không người theo dõi sẽ merge tài liệu biết là chưa rõ.
 - **Bằng chứng:** PR #357, rà soát độc lập 15:31 UTC (0 chặn, 1 nên sửa, 8 ghi chú); sửa ở `69a8e8e` theo lời Nhật, rà soát lại vòng 1: 0 chặn, 0 nên sửa.
 - **Đề xuất sửa:** `docs/auto-run.md` bước 6, dòng Nên sửa (và ADR-0033): điểm chỉ về nội dung tài liệu (`docs/`, không phải code hay test) trong file của mục 3.2 hay phần ngoài mục 3.2 được phép thì sửa không cần test viết trước, giống L12, khi phần sửa không đổi điều plan đã duyệt nói (hay đúng hơn ý của plan); vòng rà soát lại nhận `git diff` của phần sửa và câu của plan; ghi vào mục Quyết định AI đã tự làm.
-- **Áp dụng:** chưa làm ở app; đã mở issue về dự án mẫu VGL-Studio/app-project-template#530 (2026-11-16).
+- **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#530; về app qua đồng bộ PR #372 (`docs/auto-run.md` bước 6, dòng Nên sửa: quy tắc L13).
 - **Kiểm chứng:**
 
 ### L-108: phiên local trên máy Mac đứng yên hàng giờ và test đo thời gian của script đỏ, có vẻ vì máy ngủ
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261117-02, task T-100, bước 5.
+- **Trạng thái:** rejected (2026-11-21, dev quyết: dev tự đặt máy không ngủ khi chạy phiên `local`, không thêm quy tắc hay dòng tra lỗi). **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261117-02, task T-100, bước 5.
 - **Chuyện gì:** phiên `local` chạy `scripts/check.sh` của nhánh task ở chế độ nền. Lần chạy kéo dài khoảng 2 giờ 40, trong khi lần chạy đầu phiên mất 8 phút và lần chạy lại mất khoảng 12 phút. Nó dừng ở phần test của script với 2 test `device-scenario` đo thời gian; hai test này đã qua trên nhánh chính cùng buổi, và task không chạm `scripts/`. Phiên đứng yên tới khi dev nhắn "tiếp tục". Có vẻ máy ngủ khi màn hình tắt: không lệnh nào của phiên giữ máy thức, và quy trình không nhắc việc này cho phiên `local`.
 - **Bằng chứng:** log `check.sh` bắt đầu khoảng 01:31 UTC, tệp sửa lần cuối lúc 04:11 UTC. Lỗi: `FAIL - device-scenario: a hanging am start counts as no process and is retried: expected '0 1 2 1 yes', got '0 1 2 1 no'`, `FAIL - device-scenario: the file deadline also leaves room for the evidence: expected '1', got '0'`, `2 script test(s) failed`. Chạy lại: `scripts/tests/run.sh` qua; `check.sh` lần hai `== Cổng chất lượng: QUA` lúc 06:57 UTC.
 - **Thêm:** cuối phiên, `wait-run.sh --workflow device-session.yml --since 2026-11-18T07:23:03Z` chờ 40 phút rồi báo "chưa thấy lần chạy nào", dù lần chạy 44258447594 được tạo lúc 07:23:04Z và xanh lúc 07:55. Một lệnh `gh api` ngay sau đó cũng hết giờ chờ 120 giây. Phiên lại đứng yên qua đêm tới khi dev nhắn "tiếp tục" (2026-11-19 01:2x UTC), nên `staging` phát sau giới hạn 24 giờ.

@@ -8,7 +8,7 @@ requests:
   - requests/2026-10-31-tu-the-premium-mo-bang-rewarded.md
 design: design/README.md
 created: 2026-10-21
-confirmed: 2026-11-16
+confirmed: 2026-11-21
 ---
 
 # SPEC: THƯ VIỆN TƯ THẾ VÀ CHI TIẾT TƯ THẾ
@@ -116,9 +116,10 @@ Theo `features/ads/spec.md` câu 8, 9, 10: thanh đáy native thay banner từ T
 Tiêu chí chấp nhận:
 
 - [ ] Khi khóa `is_show_poses_bottom` bật, `is_show_native_bottom` bật và người dùng đã đồng ý theo hộp thoại đồng ý thì thanh đáy native nhỏ (cao theo khung, `docs/ops/ads-business-rules.md`, D-02) hiện ở đáy thư viện; lưới cuộn phía trên thanh, thẻ cuối không bị che (câu hỏi 1).
-- [ ] Khi khóa `is_show_pose_detail_bottom` bật thì thanh đáy native hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình.
-- [ ] Khi khóa tắt, quảng cáo đang tải hay không tải được thì không chừa khoảng trống; nội dung chỉ được chừa chỗ khi khe đã có quảng cáo.
+- [ ] Khi khóa `is_show_pose_detail_bottom` bật thì thanh đáy native hiện ở đáy chi tiết, dưới nút "Chụp với tư thế này"; nút không bị che hay đẩy ra ngoài màn hình, kể cả khi `is_show_native_collap` bật: chi tiết không có lớp quảng cáo nổi (`features/ads/spec.md`, câu 22, ý g).
+- [ ] Khi khóa tắt hay chưa tải được quảng cáo nào (lỗi trước quảng cáo đầu) thì không chừa khoảng trống. Khi khe đang tải lượt đầu thì nội dung chừa đúng chỗ khe chiếm (khung chờ của native, khung của banner); thẻ cuối không bị che (`features/ads/spec.md`, câu 22, ý b).
 - [ ] Khi `is_show_native_collap` tắt (giá trị lúc phát hành) thì không có lớp quảng cáo nổi trên lưới hay trên nút chính.
+- [ ] Khi `is_show_native_collap` và `is_show_poses_in_collection` cùng bật thì thư viện không có lớp quảng cáo nổi, vì lưới có quảng cáo trong nội dung; khi `is_show_poses_in_collection` tắt thì lớp nổi hiện như thường (`features/ads/spec.md`, câu 22, ý e).
 - [ ] Khi khóa `is_show_poses_in_collection` bật thì lưới có một ô quảng cáo sau mỗi `native_every_poses_in_collection` tư thế (mặc định 8), không ở đầu, không ở cuối lưới; thẻ quảng cáo có nhãn quảng cáo và khác rõ thẻ tư thế; hết quảng cáo thì ô ẩn, lưới không có ô trống. Áp dụng cho "Tất cả" và từng nhóm, cả khi mở gập (3 cột).
 - [ ] Khi khóa tắt thì lưới không có ô quảng cáo, thứ tự tư thế giữ như KB-1.
 
@@ -170,7 +171,7 @@ Tư thế premium (KB-8) cần thiết kế mới trên Figma:
 | Vị trí | Định dạng | Khi nào hiển thị | Giới hạn tần suất | Cờ bật tắt |
 | --- | --- | --- | --- | --- |
 | `poses_bottom` | native_small (thanh đáy) | Đáy màn thư viện, khi màn hình đang mở | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground; lớp thu gọn tắt lúc phát hành | `is_show_poses_bottom`, cùng `is_show_native_bottom` |
-| `pose_detail_bottom` | native_small (thanh đáy) | Đáy màn chi tiết tư thế, dưới nút chính | Như trên | `is_show_pose_detail_bottom`, cùng `is_show_native_bottom` |
+| `pose_detail_bottom` | native_small (thanh đáy) | Đáy màn chi tiết tư thế, dưới nút chính | Thay nội dung tại chỗ mỗi 60 giây khi app ở foreground; không bao giờ có lớp native thu gọn nổi, dù `is_show_native_collap` bật (`features/ads/spec.md`, câu 22, ý g) | `is_show_pose_detail_bottom`, cùng `is_show_native_bottom` |
 | `poses_in_collection` | native_in_collection | Ô xen trong lưới thư viện, sau mỗi 8 tư thế; không ở đầu, không ở cuối | Pool 5 quảng cáo, hết hạn 55 phút; tắt lúc phát hành | `is_show_poses_in_collection`, `native_every_poses_in_collection` |
 | `inter_pose_detail` | interstitial | Sau khi bấm "Chụp với tư thế này", trước khi camera mở | Nhịp chung `ads_interval` (mặc định 45 giây), cùng nhóm với `review_interstitial`; tắt lúc phát hành | `is_show_inter_pose_detail` |
 | `rw_premium_pose` (yêu cầu 2026-10-31) | rewarded | Khi người dùng bấm "Xem quảng cáo" ở hộp thoại mở khóa tư thế premium (KB-8) | Không qua `ads_interval`, không đẩy mốc (khung); chỉ khi người dùng chọn. Không có quảng cáo thì chặn, tư thế vẫn khóa (câu 8). Bật lúc phát hành khi catalog có tư thế premium (câu 10) | `is_show_rw_premium_pose` |
@@ -305,3 +306,7 @@ Tư thế premium (yêu cầu 2026-10-31, câu 6): catalog có thêm trường `
 | 2026-11-16 | AI | Câu 20 của spec ads, ý a (Nhật trả lời trong phiên, T-098): tiêu chí thanh đáy native nhỏ bỏ con số 80 dp, ghi chiều cao theo khung. Giữ `confirmed`; Nhật xác nhận ở dòng sau |
 | 2026-11-16 | Nhật | Xác nhận phần đổi theo câu 20 của spec ads (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận cả bốn spec theo nội dung vừa sửa. Chuyển lại `confirmed` |
 | 2026-11-16 | Nhật | Xác nhận lại sau sửa theo rà soát độc lập PR #353 (AI ghi): `ad_platform` ở mục 6 của spec poses, camera; mục 2 của spec ads ghi thẻ bước và thẻ trong lưới giữ kích thước, lớp thu gọn là vùng ảnh cộng khe đáy D-02. Lời xác nhận của Nhật: chọn "Xác nhận lại" khi được hỏi. Giữ `confirmed` |
+| 2026-11-21 | AI | Câu 22 của spec ads, ý b và ý e (Nhật trả lời trong phiên): tiêu chí 3 của KB-6 chừa chỗ khung chờ khi khe đang tải lượt đầu; thêm tiêu chí thư viện không có lớp nổi khi `is_show_native_collap` bật. Chuyển `changed`, chờ Nhật xác nhận |
+| 2026-11-21 | AI | Theo rà soát độc lập PR #374 và lần hỏi lại Nhật (câu 22, ý e, g của spec ads): tiêu chí lớp nổi của thư viện theo MC-13 (chỉ khi ô lưới bật); tiêu chí 2 thêm chi tiết không có lớp nổi; tiêu chí 3 gồm cả khung banner. Chờ Nhật xác nhận |
+| 2026-11-21 | AI | Theo rà soát lại PR #374: bảng vị trí ghi `pose_detail_bottom` không có lớp nổi (câu 22, ý g của spec ads); tiêu chí 3 của KB-6 nói rõ "lỗi trước quảng cáo đầu". Không đổi câu trả lời nào. Chờ Nhật xác nhận |
+| 2026-11-21 | Nhật | Xác nhận phần đổi theo câu 22 của spec ads: KB-6 (tiêu chí 2, 3, lớp nổi) và bảng vị trí của spec poses, theo PR #374 ở commit 7bdb191 (AI ghi). Lời xác nhận của Nhật: chọn "Tôi là Nhật, xác nhận" khi được hỏi xác nhận spec ads và spec poses theo nội dung PR #374 ở commit 7bdb191. Chuyển lại `confirmed` |

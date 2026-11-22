@@ -149,11 +149,12 @@ class NativeAdViewBindingTest {
     }
 
     /**
-     * KB-1 (plan T-060), drawn the way a real ad is (each part a nested view of the SDK binding): a long call to
-     * action of small stops at 120 dp, so the headline and the "Ad" label keep room; a short one ("Install", 18 sp) is as wide as its text, 83.33 dp.
+     * KB-1 (plans T-060, T-109), drawn the way a real ad is (each part a nested view of the SDK binding): the call to
+     * action of small spans the card less 24 dp (355 dp) below the top row, with a long and a short text, and the
+     * headline and the "Ad" label keep room; the card stays 106 dp.
      */
     @Test
-    fun sdkLayout_small_longCta_ctaAtMost120dp_headlineVisible() {
+    fun sdkLayout_small_longCta_ctaFullWidth_headlineVisible() {
         var assets by mutableStateOf(longFullNativeAdAssets)
         composeRule.setContent {
             AdsTestTheme {
@@ -167,27 +168,46 @@ class NativeAdViewBindingTest {
         val headline = bounds(NativeAdTestTags.HEADLINE)
         val badge = bounds(NativeAdTestTags.BADGE)
         val measured = "CTA ${cta.w()} dp, headline ${headline.w()} dp, Ad label ${badge.w()} dp"
-        assertEquals("long call to action width; $measured", 120f, cta.w(), 0.5f)
+        assertEquals("long call to action width; $measured", 355f, cta.w(), 0.5f)
         assertTrue("headline has no width; $measured", headline.w() > 0f)
         assertTrue("Ad label has no width; $measured", badge.w() > 0f)
-        assertEquals("card height; $measured", 126f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
+        assertEquals("card height; $measured", 106f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
 
         assets = sampleNativeAdAssets
         composeRule.waitForIdle()
-        assertEquals("short call to action width", 83.33f, bounds(NativeAdTestTags.CTA).w(), 0.5f)
+        assertEquals("short call to action width", 355f, bounds(NativeAdTestTags.CTA).w(), 0.5f)
     }
 
+    /**
+     * Every asset medium shows is registered with the SDK (plan T-110, section 3.5): the line below the headline is
+     * the advertiser, the body only without one, so the body is registered only then.
+     */
     @Test
     fun registersEveryAssetView_medium() {
-        setHostedLayout(NativeAdSize.MEDIUM)
+        var assets by mutableStateOf(sampleNativeAdAssets)
+        composeRule.setContent {
+            AdsTestTheme {
+                NativeAdViewHost(bind = ::countingBind, modifier = Modifier.width(CARD_WIDTH)) { binder ->
+                    NativeAdLayout(assets, NativeAdSize.MEDIUM, binder, showAdChoicesMarker = false)
+                }
+            }
+        }
+        composeRule.waitForIdle()
         val view = checkNotNull(adView)
         assertNotNull(view.headlineView)
         assertNotNull(view.advertiserView)
-        assertNotNull(view.bodyView)
+        assertNull("body not shown, not registered", view.bodyView)
         assertNotNull(view.callToActionView)
         assertNotNull(view.iconView)
         assertTrue(view.mediaView is MediaView)
+        assertNotNull("star row registered with a rating", view.starRatingView)
         assertTrue(binds >= 1)
+
+        // Control: without an advertiser the body is the line below, and it is registered.
+        assets = sampleNativeAdAssets.copy(advertiser = null)
+        composeRule.waitForIdle()
+        assertNotNull("body registered without an advertiser", view.bodyView)
+        assertNull("no advertiser registered", view.advertiserView)
     }
 
     @Test
@@ -200,14 +220,14 @@ class NativeAdViewBindingTest {
                 }
             }
         }
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD, useUnmergedTree = true).assertHeightIsEqualTo(126.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD, useUnmergedTree = true).assertHeightIsEqualTo(106.dp)
         composeRule.onNodeWithTag(NativeAdTestTags.CTA, useUnmergedTree = true).assertHeightIsEqualTo(44.dp)
 
         size = NativeAdSize.MEDIUM
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD, useUnmergedTree = true).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD, useUnmergedTree = true).assertHeightIsEqualTo(250.dp)
         composeRule.onNodeWithTag(NativeAdTestTags.CTA, useUnmergedTree = true).assertHeightIsEqualTo(44.dp)
-        composeRule.onNodeWithTag(NativeAdTestTags.MEDIA, useUnmergedTree = true).assertHeightIsEqualTo(182.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.MEDIA, useUnmergedTree = true).assertHeightIsEqualTo(144.dp)
         // The star row registered with the SDK keeps its 16 dp (plan T-060).
         composeRule.onNodeWithTag(NativeAdTestTags.STAR_ROW, useUnmergedTree = true).assertHeightIsEqualTo(16.dp)
     }

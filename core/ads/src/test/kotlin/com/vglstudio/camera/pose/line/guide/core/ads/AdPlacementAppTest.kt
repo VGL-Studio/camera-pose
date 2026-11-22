@@ -47,12 +47,13 @@ class AdPlacementAppTest {
     }
 
     @Test
-    fun reviewBottom_hasNoCollapsibleLayer() {
+    fun bottomBarsWithoutLayer_reviewAndPoseDetail() {
         // Spec ads, question 19, point e; spec camera, KB-9 criterion 6 (plan T-094): never the floating layer.
         assertFalse(AdPlacement.REVIEW_BOTTOM.declaration.collapsibleLayer)
+        // Spec ads, question 22, point g; spec poses, KB-6 criterion 2 (plan T-102): the pose detail has no layer.
+        assertFalse(AdPlacement.POSE_DETAIL_BOTTOM.declaration.collapsibleLayer)
         // Control: the other bottom bars of the app keep the layer of D-01.
         assertTrue(AdPlacement.POSES_BOTTOM.declaration.collapsibleLayer)
-        assertTrue(AdPlacement.POSE_DETAIL_BOTTOM.declaration.collapsibleLayer)
         assertTrue(AdPlacement.SETTINGS_BOTTOM.declaration.collapsibleLayer)
     }
 
@@ -61,6 +62,8 @@ class AdPlacementAppTest {
         // The review bar never opens nor fills the collapsible stock (plan T-094, KB-9 criterion 6).
         assertFalse(AdPlacement.REVIEW_BOTTOM.usesStock(AdFormat.NATIVE_COLLAPSIBLE))
         assertTrue(AdPlacement.REVIEW_BOTTOM.usesStock(AdFormat.NATIVE_SMALL))
+        // Nor does the pose detail bar (plan T-102, spec ads question 22, point g).
+        assertFalse(AdPlacement.POSE_DETAIL_BOTTOM.usesStock(AdFormat.NATIVE_COLLAPSIBLE))
         // Control: the library bar uses the collapsible stock.
         assertTrue(AdPlacement.POSES_BOTTOM.usesStock(AdFormat.NATIVE_COLLAPSIBLE))
         val reviewOnly = AdPreloadPlan.fromPlacements(listOf(AdPlacement.REVIEW_BOTTOM)).groups.flatten()

@@ -13,7 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The window of the in-screen ads (KB-27, ADR-0036 decision 1, plan T-054): the one condition, the window of the
+ * The window of the in-screen ads (KB-27, ADR-0045 section 7.1, plan T-054): the one condition, the window of the
  * process set on the calling stack, and the window of one banner.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

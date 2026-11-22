@@ -78,7 +78,7 @@ class ConsentCoordinatorTest {
         val env = Env().started(shortcut = false)
         env.platform.canRequest = true
         env.coordinator.gather(activityA)
-        // CACHED_EARLY is always on (ADR-0038, plan T-066).
+        // CACHED_EARLY is always on (ADR-0045, plan T-066).
         assertEquals(ConsentPath.CACHED_EARLY, env.state.path)
         assertTrue(env.state.allowed)
         assertEquals(listOf(true), env.opened)

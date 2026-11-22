@@ -42,7 +42,7 @@ import com.vglstudio.camera.pose.line.guide.core.designsystem.theme.Spacing
 
 /**
  * A native ad that covers the whole screen (KB-5), as in design/screens/NativeFullScreenAdScreen_default_*.png: a
- * 48 dp close button in the top left corner (KB-32, ADR-0038; the design images still draw 36 dp), AdChoices in the top right corner
+ * 48 dp close button in the top left corner (KB-32, ADR-0045; the design images still draw 36 dp), AdChoices in the top right corner
  * ([adChoices]; the SDK draws it on real ads), a large [media] area, then the head of the ad, the body and a wide call
  * to action. The head is 48 dp at font scale 1.0 and grows with larger text, the media giving way (O-08, plan T-045).
  * While [secondsLeft] is above 0, a countdown of the same size takes the place of the close button and
@@ -66,7 +66,7 @@ internal object NativeFullScreenAdDimens {
     val CloseButtonSize = 48.dp
     val CloseIconSize = 24.dp
 
-    /** The top bar of the page after an interstitial and of its placeholder: the 48 dp close button (ADR-0038). */
+    /** The top bar of the page after an interstitial and of its placeholder: the 48 dp close button (ADR-0045). */
     val CloseBarHeight = 48.dp
 
     /** The top bar of the page of a flow step, which has no close button (question 2 of plan T-053). */
@@ -189,7 +189,7 @@ private fun CountdownBadge(secondsLeft: Int) {
 
 /**
  * A 48 dp round button, drawn, laid out and touched at 48 dp, so the touch area is the drawn frame (KB-32,
- * ADR-0038). A plain round Box, like the countdown it replaces, in the same frame.
+ * ADR-0045). A plain round Box, like the countdown it replaces, in the same frame.
  */
 @Composable
 private fun CloseButton(onClose: () -> Unit) {

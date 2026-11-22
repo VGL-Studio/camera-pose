@@ -221,7 +221,7 @@ class ReviewScreenUnfoldedTest {
     fun landscape_saveInsideWindow_w960h520() = assertSaveInsideWindow()
 
     // The bottom ad bar (plan T-094; spec camera, KB-11 criterion 3, KB-9 criterion 5): a fake slot as high as the
-    // framework's in the bar of the framework (fakeAdBar). Numbers from section 3.5 of plan T-098, measured from the
+    // framework's in the bar of the framework (fakeAdBar). Numbers from section 3.5 of plan T-102, measured from the
     // top of the test frame.
 
     private val actionTags = listOf(ReviewTestTags.RETAKE, ReviewTestTags.SHARE, ReviewTestTags.NEXT_POSE)
@@ -235,7 +235,7 @@ class ReviewScreenUnfoldedTest {
     }
 
     @Test
-    fun adBar_slotFullWidth_photoShrinks_saveAbove() {
+    fun adBar_slotFullWidth_photoKept_saveAbove() {
         var withSlot by mutableStateOf(false)
         setScreen(Ready(PATH, SaveStatus.NOT_SAVED), adBar = fakeAdBar(withSlot = { withSlot }))
         val photoBefore = bounds(ReviewTestTags.PHOTO)
@@ -246,16 +246,16 @@ class ReviewScreenUnfoldedTest {
         val slot = bounds(FAKE_AD_SLOT)
         assertNear("slot width", 641f, slot.width, 0.5f)
         assertNear("slot left", 16f, slot.left, 0.5f)
-        assertNear("slot top", 625f, slot.top, 0.5f)
+        assertNear("slot top", 719f, slot.top, 0.5f)
         val photo = bounds(ReviewTestTags.PHOTO)
-        assertNear("photo width", 405.75f, photo.width, 1f)
-        assertNear("photo height", 541f, photo.height, 1f)
+        assertNear("photo width", 450f, photo.width, 1f)
+        assertNear("photo height", 600f, photo.height, 1f)
         assertEquals("photo width / height", 0.75f, photo.width.value / photo.height.value, 0.01f)
-        assertTrue("photo height ${photo.height} < before ${photoBefore.height}", photo.height < photoBefore.height)
+        assertEquals(photoBefore.height.value, photo.height.value, 0.5f)
         assertActionsAndSaveAbove(slot)
         val save = bounds(ReviewTestTags.SAVE)
-        assertNear("save bottom", 605f, save.bottom, 0.5f)
-        assertNear("save moved up", 216f, saveBefore.bottom - save.bottom, 0.5f)
+        assertNear("save bottom", 699f, save.bottom, 0.5f)
+        assertNear("save moved up", 122f, saveBefore.bottom - save.bottom, 0.5f)
         assertTrue("save ${save.left} right of the photo ${photo.right}", save.left >= photo.right)
     }
 
@@ -264,19 +264,20 @@ class ReviewScreenUnfoldedTest {
     fun landscape_adBar_saveInsideWindow() {
         setScreen(Ready(PATH, SaveStatus.NOT_SAVED), adBar = fakeAdBar())
         val slot = bounds(FAKE_AD_SLOT)
-        assertNear("slot top", 335f, slot.top, 0.5f)
+        assertNear("slot top", 398f, slot.top, 0.5f)
         val save = bounds(ReviewTestTags.SAVE)
-        assertNear("save top", 259f, save.top, 0.5f)
-        assertNear("save bottom", 315f, save.bottom, 0.5f)
+        assertNear("save top", 322f, save.top, 0.5f)
+        assertNear("save bottom", 378f, save.bottom, 0.5f)
         val photo = bounds(ReviewTestTags.PHOTO)
-        assertNear("photo width", 188.25f, photo.width, 1f)
-        assertNear("photo height", 251f, photo.height, 1f)
+        assertNear("photo width", 235.67f, photo.width, 1f)
+        assertNear("photo height", 314f, photo.height, 1f)
         assertEquals("photo width / height", 0.75f, photo.width.value / photo.height.value, 0.01f)
         assertActionsAndSaveAbove(slot)
-        // The right column (251 high) is under the threshold of the stacked actions (264): side by side.
+        // The right column (314 high, the slot at y 398) is at or over the threshold of the stacked actions (264):
+        // stacked.
         val actions = bounds(ReviewTestTags.ACTIONS)
         assertNear("actions top", 64f, actions.top, 0.5f)
-        assertNear("actions bottom", 136f, actions.bottom, 0.5f)
+        assertNear("actions bottom", 256f, actions.bottom, 0.5f)
     }
 
     @Test
@@ -289,7 +290,7 @@ class ReviewScreenUnfoldedTest {
             "Mở cài đặt",
             "Lưu ảnh",
             137f,
-            errorTop = 195f,
+            errorTop = 258f,
             messageLines = 1,
         )
         assertEquals(listOf("save"), calls)
@@ -302,7 +303,7 @@ class ReviewScreenUnfoldedTest {
             "Thử lại",
             "Lưu ảnh",
             137f,
-            errorTop = 195f,
+            errorTop = 258f,
             messageLines = 1,
         )
         assertEquals(listOf("save"), calls)
@@ -319,7 +320,7 @@ class ReviewScreenUnfoldedTest {
             "Salvar foto",
             160.7f,
             // The snackbar is at most 600 dp wide: the longer message takes two lines, the main button stays whole.
-            errorTop = 175f,
+            errorTop = 238f,
             messageLines = 2,
         )
         assertEquals(listOf("save"), calls)
@@ -327,7 +328,7 @@ class ReviewScreenUnfoldedTest {
 
     /**
      * Too little room in the right column for the stacked actions, the error and the main button: the actions side by
-     * side (72 high), the error from [errorTop] to 243 with its message on [messageLines] lines and its action
+     * side (72 high), the error from [errorTop] to 306 with its message on [messageLines] lines and its action
      * ([actionText]) beside the message, not over it, the main button whole (56) and above the slot. Taps the main
      * button once.
      */
@@ -341,11 +342,11 @@ class ReviewScreenUnfoldedTest {
         messageLines: Int,
     ) {
         val slot = bounds(FAKE_AD_SLOT)
-        assertNear("$state slot top", 335f, slot.top, 0.5f)
+        assertNear("$state slot top", 398f, slot.top, 0.5f)
         val save = bounds(ReviewTestTags.SAVE)
         val error = bounds(ReviewTestTags.SAVE_ERROR)
-        assertNear("$state save top", 259f, save.top, 0.5f)
-        assertNear("$state save bottom", 315f, save.bottom, 0.5f)
+        assertNear("$state save top", 322f, save.top, 0.5f)
+        assertNear("$state save bottom", 378f, save.bottom, 0.5f)
         assertNear("$state save width", saveWidth, save.width, 1f)
         assertTrue(
             "$state save ${save.top} 16 under the error ${error.bottom}",
@@ -370,7 +371,7 @@ class ReviewScreenUnfoldedTest {
         actionTags.forEach { assertNear("$state $it top", 64f, bounds(it).top, 0.5f) }
         // The error, its action beside the message.
         assertNear("$state error top", errorTop, error.top, 1f)
-        assertNear("$state error bottom", 243f, error.bottom, 1f)
+        assertNear("$state error bottom", 306f, error.bottom, 1f)
         val messageLayouts = mutableListOf<TextLayoutResult>()
         composeRule.onNode(inSaveError(message), useUnmergedTree = true)
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(messageLayouts) }
@@ -385,13 +386,13 @@ class ReviewScreenUnfoldedTest {
     @Test
     @Config(qualifiers = "vi-w841dp-h593dp-land-xxhdpi")
     fun landscape_adBar_thresholdBoundary() {
-        // Column 296 high with the slot: under the threshold with an error (420), over it without (264).
+        // Column 387 high with the slot (from 64 to the bottom of the main button at 451): under the threshold with an error (420), over it without (264).
         setScreen(Ready(PATH, SaveStatus.PERMISSION_BLOCKED), adBar = fakeAdBar())
         val actions = bounds(ReviewTestTags.ACTIONS)
         assertNear("PERMISSION_BLOCKED actions top", 64f, actions.top, 0.5f)
         assertNear("PERMISSION_BLOCKED actions height", 72f, actions.height, 0.5f)
         actionTags.forEach { assertNear("PERMISSION_BLOCKED $it top", 64f, bounds(it).top, 0.5f) }
-        assertSaveAt("PERMISSION_BLOCKED", 304f, 360f)
+        assertSaveAt("PERMISSION_BLOCKED", 395f, 451f)
         // The action of the error beside its message, not drawn over it (no line count asserted in this window).
         val text = composeRule.onNode(
             inSaveError("Cho phép lưu ảnh trong Cài đặt máy để lưu vào thư viện."),
@@ -410,7 +411,7 @@ class ReviewScreenUnfoldedTest {
         assertNear("NOT_SAVED actions bottom", 256f, stacked.bottom, 0.5f)
         val tops = actionTags.map { bounds(it).top.value }
         assertEquals("NOT_SAVED actions stacked: $tops", 3, tops.toSet().size)
-        assertSaveAt("NOT_SAVED", 304f, 360f)
+        assertSaveAt("NOT_SAVED", 395f, 451f)
     }
 
     private fun assertSaveAt(state: String, top: Float, bottom: Float) {

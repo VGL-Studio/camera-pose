@@ -22,7 +22,7 @@ internal fun umpFailureOf(errorCode: Int, activityGone: Boolean): UmpFailure = w
     else -> UmpFailure.CONFIGURATION
 }
 
-/** S-12: ERROR_ALLOWED needs both the build switch of :app and is_enable_consent_shortcut; CACHED_EARLY needs neither (ADR-0038). */
+/** S-12: ERROR_ALLOWED needs both the build switch of :app and is_enable_consent_shortcut; CACHED_EARLY needs neither (ADR-0045). */
 internal fun shortcutActive(enabledInBuild: Boolean, remoteEnabled: Boolean): Boolean = enabledInBuild && remoteEnabled
 
 internal data class ConsentGateState(
@@ -62,7 +62,7 @@ internal class ConsentGate {
         }
     }
 
-    /** S-03: consent of an earlier session opens the gate before UMP answers, in every build (ADR-0038). */
+    /** S-03: consent of an earlier session opens the gate before UMP answers, in every build (ADR-0045). */
     fun onRequestSent(umpCanRequestAds: Boolean) {
         if (umpCanRequestAds && current.path == null && !current.settled) {
             cachedKeptAfterFailure = false

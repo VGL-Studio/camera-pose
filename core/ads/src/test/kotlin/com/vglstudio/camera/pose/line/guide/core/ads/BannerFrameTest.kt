@@ -43,17 +43,37 @@ class BannerFrameTest {
             HeightRow(BannerFrame.ACTIVE, BannerSizeKind.MEDIUM_RECTANGLE, failedBeforeAd = true) to 0,
             // B-06: a kept frame keeps its height.
             HeightRow(BannerFrame.KEPT_EMPTY, BannerSizeKind.MEDIUM_RECTANGLE, failedBeforeAd = true) to 250,
-            // Control (L-055): fixed and collapsible banners never shrink on a failure.
+            // Control (L-055): fixed and collapsible banners outside a bottom bar never shrink on a failure.
             HeightRow(BannerFrame.ACTIVE, BannerSizeKind.ANCHORED, failedBeforeAd = true) to 250,
             HeightRow(BannerFrame.ACTIVE, BannerSizeKind.LARGE_ANCHORED, failedBeforeAd = true) to 250,
+            // D-04: the banner of a bottom bar takes no space after a failure before its first ad, until an ad loads.
+            HeightRow(BannerFrame.ACTIVE, BannerSizeKind.ANCHORED, failedBeforeAd = true, inBottomBar = true) to 0,
+            // Control: it keeps the frame height while it loads, and when consent is withdrawn after an ad (B-06).
+            HeightRow(BannerFrame.ACTIVE, BannerSizeKind.ANCHORED, failedBeforeAd = false, inBottomBar = true) to 250,
+            HeightRow(
+                BannerFrame.KEPT_EMPTY,
+                BannerSizeKind.ANCHORED,
+                failedBeforeAd = true,
+                inBottomBar = true,
+            ) to 250,
+            HeightRow(BannerFrame.NONE, BannerSizeKind.ANCHORED, failedBeforeAd = false, inBottomBar = true) to 0,
         )
 
         rows.forEach { (row, expected) ->
-            assertEquals("$row", expected, bannerSlotHeightDp(row.frame, row.kind, 250, row.failedBeforeAd))
+            assertEquals(
+                "$row",
+                expected,
+                bannerSlotHeightDp(row.frame, row.kind, 250, row.failedBeforeAd, row.inBottomBar),
+            )
         }
     }
 
-    private data class HeightRow(val frame: BannerFrame, val kind: BannerSizeKind, val failedBeforeAd: Boolean)
+    private data class HeightRow(
+        val frame: BannerFrame,
+        val kind: BannerSizeKind,
+        val failedBeforeAd: Boolean,
+        val inBottomBar: Boolean = false,
+    )
 
     private data class Row(val gateOpen: Boolean, val enabled: Boolean, val unitId: String?, val hadAd: Boolean)
 }

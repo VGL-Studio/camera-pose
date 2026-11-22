@@ -19,9 +19,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -220,6 +222,39 @@ internal fun rememberRewardedActionOf(
         onGranted = onGranted,
         notify = { showRewardedNotice(context, it) },
     )
+}
+
+/**
+ * Whether a tap on the action of the rewarded [placement] would open its dialog now, rather than run the action at once
+ * (R-08): the very gate [RewardedAction.start] reads (`is_show_ads` with ad removal, `is_show_<code>`, the consent
+ * gate). A screen reads it to mark an option "watch an ad", or to pick the free option by default, so the mark never
+ * shows when a tap would not open the dialog. null until the first value of the gate is known (never guessed, as
+ * [RewardedAction.start] waits for it), also right after the placement changes; false with no ads controller (tests,
+ * previews) or no activity, where `start()` runs the action at once. Follows the gate: read it on every composition.
+ * The tap still decides through `start()`. Loads nothing and records nothing. A placement of another format is an
+ * [IllegalArgumentException].
+ */
+@Composable
+fun rememberRewardedAdRequired(placement: AdPlacement): Boolean? {
+    require(placement.format == AdFormat.REWARDED) { "${placement.key} is not a rewarded placement" }
+    val ads = LocalAdsController.current
+    // The same cases as rememberRewardedActionOf: without a controller or an activity, start() runs at once.
+    if (ads == null || LocalActivity.current == null) return false
+    val switch = remember(ads, placement) { ads.rewardedSwitch(placement) }
+    return rememberRewardedAdRequiredOf(switch)
+}
+
+/**
+ * [rememberRewardedAdRequired] on a given [gate]: null until its first value, then its value. A new gate (another
+ * placement, another controller) starts from null again, so the answer of the old one is never shown for it.
+ */
+@Composable
+internal fun rememberRewardedAdRequiredOf(gate: Flow<Boolean>): Boolean? {
+    // A state per gate, not one state reset by an effect: the effect runs after the first composition with the new
+    // gate, which would still read the old answer.
+    val value = remember(gate) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(gate) { gate.collect { value.value = it } }
+    return value.value
 }
 
 /**

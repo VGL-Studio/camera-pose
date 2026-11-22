@@ -41,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vglstudio.camera.pose.line.guide.core.ads.AdFormat
 import com.vglstudio.camera.pose.line.guide.core.ads.AdPlacement
 import com.vglstudio.camera.pose.line.guide.core.ads.BottomAdBarScaffold
+import com.vglstudio.camera.pose.line.guide.core.ads.InContentAds
 import com.vglstudio.camera.pose.line.guide.core.ads.InListAds
 import com.vglstudio.camera.pose.line.guide.core.ads.itemsWithFixedAds
 import com.vglstudio.camera.pose.line.guide.core.ads.itemsWithInListAds
@@ -94,25 +95,29 @@ fun PosesRoute(
     val gridState = rememberLazyGridState()
     // The ad cards of the grid (KB-6, criterion 5; spec ads, question 9), made outside the grid (plan T-080).
     val gridAds = rememberInListAds(AdPlacement.POSES_IN_COLLECTION)
-    // The native bottom bar over the whole screen (KB-6; spec ads, question 8): the screen keeps room at the bottom.
-    BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) { padding ->
-        PosesScreen(
-            uiState = uiState,
-            gridState = gridState,
-            onBack = onBack,
-            onOpenSettings = onOpenSettings,
-            onOpenPose = onOpenPose,
-            onSelectFilter = viewModel::onSelectFilter,
-            onShowAll = viewModel::onShowAll,
-            onToggleSave = viewModel::onToggleSave,
-            onRetry = viewModel::onRetry,
-            onThumbnailNeeded = viewModel::onThumbnailNeeded,
-            onThumbnailReleased = viewModel::onThumbnailReleased,
-            onRetryThumbnail = viewModel::onRetryThumbnail,
-            onSaveFailedShown = viewModel::onSaveFailedShown,
-            contentPadding = padding,
-            gridAds = PosesGridAds.Live(gridAds),
-        )
+    // The ad cells of the grid are in-content ads (MC-13; spec ads, question 22, point e): while
+    // is_show_poses_in_collection is on, the bottom bar has no floating layer. At the root, around the bar.
+    InContentAds(listOf(AdPlacement.POSES_IN_COLLECTION)) {
+        // The native bottom bar over the whole screen (KB-6; spec ads, question 8): the screen keeps room at the bottom.
+        BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) { padding ->
+            PosesScreen(
+                uiState = uiState,
+                gridState = gridState,
+                onBack = onBack,
+                onOpenSettings = onOpenSettings,
+                onOpenPose = onOpenPose,
+                onSelectFilter = viewModel::onSelectFilter,
+                onShowAll = viewModel::onShowAll,
+                onToggleSave = viewModel::onToggleSave,
+                onRetry = viewModel::onRetry,
+                onThumbnailNeeded = viewModel::onThumbnailNeeded,
+                onThumbnailReleased = viewModel::onThumbnailReleased,
+                onRetryThumbnail = viewModel::onRetryThumbnail,
+                onSaveFailedShown = viewModel::onSaveFailedShown,
+                contentPadding = padding,
+                gridAds = PosesGridAds.Live(gridAds),
+            )
+        }
     }
 }
 

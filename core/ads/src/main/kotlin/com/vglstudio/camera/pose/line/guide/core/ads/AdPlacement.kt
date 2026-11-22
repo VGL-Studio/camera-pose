@@ -193,8 +193,11 @@ enum class AdPlacement(
     /** Bottom bar of the pose library (spec poses, section 5; spec ads, question 8). */
     POSES_BOTTOM("poses_bottom", AdFormat.NATIVE_SMALL),
 
-    /** Bottom bar of the pose detail, below the main button (spec poses, section 5; spec ads, question 8). */
-    POSE_DETAIL_BOTTOM("pose_detail_bottom", AdFormat.NATIVE_SMALL),
+    /**
+     * Bottom bar of the pose detail, below the main button (spec poses, section 5; spec ads, question 8); never the
+     * floating layer (spec ads, question 22, point g).
+     */
+    POSE_DETAIL_BOTTOM("pose_detail_bottom", AdFormat.NATIVE_SMALL, collapsibleLayer = false),
 
     /** Bottom bar of the settings screen (spec settings, section 5; spec ads, question 19). */
     SETTINGS_BOTTOM("settings_bottom", AdFormat.NATIVE_SMALL),

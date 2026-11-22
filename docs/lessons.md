@@ -951,7 +951,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** RUN-20261101-01, 17:15 UTC: `push-on-commit.sh` in `ĐÃ ĐẨY: claude/T-083-the-native-gioi-thieu tại 2333720 (17:15Z)`; `git ls-remote` trả `2333720` cho nhánh.
 - **Đề xuất sửa:** `scripts/save-branch.sh`: trước khi báo lỗi, đọc lại `git ls-remote`; nhánh trên origin đã là đúng commit đầu nhánh thì in "ĐÃ ĐẨY". Hoặc `docs/auto-run.md` mục Giao bước 3 đến 5: khi `push-on-commit.sh` còn chạy, phiên chính dừng nó (công cụ dừng tác vụ nền) trước khi tự đẩy.
 - **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#382; về app qua đồng bộ PR #316 (`scripts/save-branch.sh` đọc lại `git ls-remote` trước khi báo chưa đẩy).
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261122-01 (T-102): hiệu quả. `push-on-commit.sh` chạy nền trong lúc phiên con làm; sau khi phiên con báo xong, `scripts/save-branch.sh claude/T-102-lay-core-ads` của phiên chính in `ĐÃ ĐẨY: claude/T-102-lay-core-ads (d954cd0)`, không báo "CHƯA ĐẨY".
 
 ### L-103: scripts/check.sh đỏ trên máy macOS vì test của script dùng sed của GNU
 
@@ -960,7 +960,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** RUN-20261113-01, 04:20 UTC: `FAIL - pr-check: the filter output check fails on a copy reading an undefined output: expected 'no', got 'yes'`, `1 script test(s) failed`; `sed --version` trả `illegal option`. Chạy lại với GNU sed: `== Cổng chất lượng: QUA` (3121 test JVM).
 - **Đề xuất sửa:** `scripts/tests/run.sh`: viết lại lệnh đó bằng `awk` hay `perl` cho chạy được cả GNU lẫn BSD (như quy tắc `perl -pi -e` của `docs/CLAUDE.md`, mục Khi viết plan); hoặc `scripts/local-setup.sh --check` kiểm GNU sed và in lệnh cài. `scripts/failure-kind.sh --playbook` xếp log này thành PB-02 (GitHub không cấp máy), sai: thêm dòng tra cho `FAIL - ` của test script trên máy dev.
 - **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#529; về app qua đồng bộ PR #372 (`scripts/local-setup.sh --check` kiểm GNU sed; test của `scripts/tests/run.sh` cấm địa chỉ `0,/.../`; bảng tra lỗi PB-23).
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261122-01: hiệu quả. `scripts/local-setup.sh --check` ở đầu phiên `local` in `QUA: GNU sed đầu PATH`; `check.sh` đầu phiên và `check.sh` của task đều qua, phần test của script không đỏ vì `sed`.
 
 ### L-104: số đo bố cục ở mục 4.1 của plan lấy trên một bố cục có phần tử đè lên nhau
 
@@ -969,7 +969,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** nhật ký plan T-094, RUN-20261113-02: `pt-BR PERMISSION_BLOCKED error top: expected 284.0 dp, got 264.0 dp`; nút "Mở cài đặt", "Thử lại" đè chữ ở x khoảng 298 dp, test bắt bằng `action.left >= text.right`.
 - **Đề xuất sửa:** `docs/CLAUDE.md`, mục Khi viết plan: lần đo tạm của bố cục ghi cả vị trí tương đối của các phần tử cạnh nhau (không chồng nhau, nút không đè chữ), và mở ảnh của lần đo để xem, không chỉ ghi chiều cao.
 - **Áp dụng:** PR #349: `docs/CLAUDE.md`, mục Khi viết plan, gạch sửa lỗi giao diện hay lỗi đo được. Nhật nhận ngày 2026-11-14. Dự án mẫu: VGL-Studio/app-project-template#497.
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261122-01 (T-102): hiệu quả. Mọi số đo mới ở mục 3.5 của plan T-102 (đo thật trên nhánh take, mục 4.1) khớp trong sai số khi phiên chạy test; không có lệch nào phải dừng.
 
 ### L-105: didOverflowWidth của GetTextLayoutResult không phát hiện được chữ bị cắt
 
@@ -987,7 +987,7 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Bằng chứng:** RUN-20261116-01, 14:26 UTC: `scripts/tests/run.sh: line 374: mapfile: command not found`, `FAIL - pr-check: the path filter and its check come before every step that reads them: expected 'yes yes yes yes 6', got 'missing'`, `FAIL - wait-run: a draft PR stops at once with code 6: expected '6 NHÁP 6 NHÁP 2 CHƯA', got '6 NHÁP 3 LỖI 2 CHƯA'`, `5 script test(s) failed`. Chạy lại với bash 5.3.20 (14:38 tới 14:59): `== Cổng chất lượng: QUA`, 3190 test JVM. `scripts/failure-kind.sh --playbook` lại xếp log này thành PB-02 (như L-103).
 - **Đề xuất sửa:** `scripts/local-setup.sh --check` kiểm bash ≥ 4 (bash đầu `PATH` mà `#!/usr/bin/env bash` sẽ dùng) và GNU sed, in lệnh cài; hoặc chạy `scripts/tests/run.sh` bằng bash 3.2 trong CI (đề xuất của L-069) để lỗi lộ ra ở PR của dự án mẫu. Thêm dòng bảng tra lỗi cho `FAIL - ` của test script trên máy dev, để `failure-kind.sh` không khớp nhầm PB-02.
 - **Áp dụng:** dự án mẫu VGL-Studio/app-project-template#529; về app qua đồng bộ PR #372 (`scripts/local-setup.sh --check` kiểm bash ≥ 4; bảng tra lỗi PB-23 đặt trước PB-02).
-- **Kiểm chứng:**
+- **Kiểm chứng:** RUN-20261122-01: hiệu quả. `scripts/local-setup.sh --check` in `QUA: bash 5.3 đầu PATH`; phần test của script trong `check.sh` không đỏ vì `mapfile`.
 
 ### L-107: điểm nên sửa chỉ về tài liệu trong file của mục 3.2 không có đường sửa trong phiên
 
@@ -1007,5 +1007,14 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 - **Đề xuất sửa:**
   - `docs/ops/session-capabilities.md`, hay dòng phiên `local` ở `auto-run.md` mục 2: phiên `local` chạy dưới `caffeinate -i` (hoặc dev đặt máy không ngủ) và ghi điều đó vào mục Kiểm tra đầu phiên. `scripts/local-setup.sh --check` có thể nhắc việc này.
   - Bảng tra lỗi: thêm một dòng `chay-lai` cho test `device-scenario` đo thời gian bị đỏ trên máy dev.
+- **Áp dụng:**
+- **Kiểm chứng:**
+
+### L-109: pr-check đỏ vì Robolectric không tải được android-all, bảng tra lỗi không nhận ra
+
+- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261122-01, task T-102, bước 8.
+- **Chuyện gì:** lần chạy đầu của `pr-check` cho PR #377 đỏ ở job `build-and-test`: mọi lớp test dùng Robolectric của nhiều module (`core:designsystem`, `core:network`, `core:review`, `feature:loading`, `feature:onboarding`, `feature:settings`, ...) thất bại ở `classMethod` vì Robolectric không tải được jar `android-all` từ Maven. `scripts/failure-kind.sh --playbook` trả `khong-co`, nên theo bước 8 phiên phải đọc log để thấy đây là lỗi tải chứ không phải lỗi code. Chạy lại job đỏ thì xanh. PB-09 (lỗi tải thư viện) không khớp vì Robolectric tải jar lúc chạy test, thông báo khác thông báo của Gradle.
+- **Bằng chứng:** lần chạy 44987774009 (2026-11-22 05:11 UTC), log: `AdjustPanelTest > classMethod FAILED` / `java.lang.AssertionError at MavenArtifactFetcher.java:130` / `Caused by: java.util.concurrent.ExecutionException at AbstractFuture.java:168` / `Caused by: java.io.IOException at HttpURLConnection.java:2059`; lần chạy lại cùng mã lần chạy: xanh (05:34). `check.sh` trên máy dev của cùng commit: qua.
+- **Đề xuất sửa:** `docs/ops/failure-playbook.md`: thêm một dòng `lich-thu-lai` (hay `chay-lai`) với mẫu `MavenArtifactFetcher\.java`, nơi gặp là job `build-and-test` của `pr-check` và `check.sh`; cách làm: chạy lại job đỏ theo lịch 1, 2, 4, 8, 15 phút, không tính vào 3 lần sửa; kèm tệp log thật trong `scripts/tests/playbook/` (đoạn log trên).
 - **Áp dụng:**
 - **Kiểm chứng:**

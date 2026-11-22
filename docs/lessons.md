@@ -1012,9 +1012,9 @@ Bài học trước ngày 2026-10-21 nằm trong sổ bài học của repo dự
 
 ### L-109: pr-check đỏ vì Robolectric không tải được android-all, bảng tra lỗi không nhận ra
 
-- **Trạng thái:** proposed. **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261122-01, task T-102, bước 8.
+- **Trạng thái:** accepted (2026-11-22, Nhật nhận trong phiên: chọn "Nhận, mở issue from-app"). **Loại:** môi trường. **Phạm vi:** chung. **Nguồn:** RUN-20261122-01, task T-102, bước 8.
 - **Chuyện gì:** lần chạy đầu của `pr-check` cho PR #377 đỏ ở job `build-and-test`: mọi lớp test dùng Robolectric của nhiều module (`core:designsystem`, `core:network`, `core:review`, `feature:loading`, `feature:onboarding`, `feature:settings`, ...) thất bại ở `classMethod` vì Robolectric không tải được jar `android-all` từ Maven. `scripts/failure-kind.sh --playbook` trả `khong-co`, nên theo bước 8 phiên phải đọc log để thấy đây là lỗi tải chứ không phải lỗi code. Chạy lại job đỏ thì xanh. PB-09 (lỗi tải thư viện) không khớp vì Robolectric tải jar lúc chạy test, thông báo khác thông báo của Gradle.
 - **Bằng chứng:** lần chạy 44987774009 (2026-11-22 05:11 UTC), log: `AdjustPanelTest > classMethod FAILED` / `java.lang.AssertionError at MavenArtifactFetcher.java:130` / `Caused by: java.util.concurrent.ExecutionException at AbstractFuture.java:168` / `Caused by: java.io.IOException at HttpURLConnection.java:2059`; lần chạy lại cùng mã lần chạy: xanh (05:34). `check.sh` trên máy dev của cùng commit: qua.
 - **Đề xuất sửa:** `docs/ops/failure-playbook.md`: thêm một dòng `lich-thu-lai` (hay `chay-lai`) với mẫu `MavenArtifactFetcher\.java`, nơi gặp là job `build-and-test` của `pr-check` và `check.sh`; cách làm: chạy lại job đỏ theo lịch 1, 2, 4, 8, 15 phút, không tính vào 3 lần sửa; kèm tệp log thật trong `scripts/tests/playbook/` (đoạn log trên).
-- **Áp dụng:**
+- **Áp dụng:** phần sửa nằm ở file của dự án mẫu (`docs/ops/failure-playbook.md`, `scripts/tests/playbook/`): đã gửi về dự án mẫu qua issue VGL-Studio/app-project-template#570; ghi `applied` khi bản sửa về app qua đồng bộ.
 - **Kiểm chứng:**

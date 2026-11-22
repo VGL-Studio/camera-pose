@@ -93,7 +93,7 @@ class NativeFullScreenAdScreenTest {
         val centerX = (close.left + close.right) / 2
         val centerY = (close.top + close.bottom) / 2
 
-        // The button is drawn at 48 dp, so its touch area is the drawn frame (ADR-0038, KB-32).
+        // The button is drawn at 48 dp, so its touch area is the drawn frame (ADR-0045, KB-32).
         tapAt(close.right - 2.dp, centerY)
         assertEquals("tap 2 dp inside the right edge", 1, closes)
         tapAt(centerX, close.bottom - 2.dp)
@@ -113,7 +113,7 @@ class NativeFullScreenAdScreenTest {
     @Test
     fun media_startsAt88dp() {
         setScreen()
-        // Top margin 24, close button bar 48, gap 16 (ADR-0038).
+        // Top margin 24, close button bar 48, gap 16 (ADR-0045).
         val media = composeRule.onNodeWithTag(MEDIA).getUnclippedBoundsInRoot()
         assertEquals(88f, media.top.value, TOLERANCE)
     }

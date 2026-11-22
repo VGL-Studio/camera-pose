@@ -48,7 +48,7 @@ object GoogleTestAdUnitIds : AdUnitIds {
 }
 
 /**
- * Real ad units, given when the release is built and never stored in the repo (ADR-0009).
+ * Real ad units, given when the release is built and never stored in the repo (ADR-0049).
  * [config] has the form `<key>=<ad unit>;<key>=<ad unit>`, with two kinds of key in one table (plan T-056):
  * - a placement key (`poses_bottom=...`): the unit of the placement's own format;
  * - a slot key, the code of a layer format of a bottom bar ([BOTTOM_BAR_LAYER_FORMATS]: `banner=...`,
@@ -92,8 +92,8 @@ internal val BOTTOM_BAR_LAYER_FORMATS = listOf(AdFormat.BANNER, AdFormat.NATIVE_
 
 /**
  * The layers of this placement: a native small placement is a bottom bar (MC-08, [BottomAdBarScaffold]), so it has
- * the [BOTTOM_BAR_LAYER_FORMATS], without the collapsible layer when it declares none ([collapsibleLayer] false,
- * plan T-094); any other has none.
+ * the [BOTTOM_BAR_LAYER_FORMATS], without the collapsible layer when it declares none ([collapsibleLayer] false);
+ * any other has none.
  */
 internal val AdPlacementDeclaration.layerFormats: List<AdFormat>
     get() = when {

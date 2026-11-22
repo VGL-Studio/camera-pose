@@ -5,7 +5,7 @@ import com.google.android.gms.ads.AdSize
 
 /** The size a banner format is drawn at; the one place that picks a banner's size (plan T-067). */
 internal enum class BannerSizeKind {
-    /** The anchored adaptive size of the current orientation, as JBase (B-01, ADR-0038). */
+    /** The anchored adaptive size of the current orientation, as JBase (B-01, ADR-0045). */
     ANCHORED,
 
     /** The large anchored adaptive size (B-03). */
@@ -37,7 +37,7 @@ internal fun bannerFrameWidthDp(kind: BannerSizeKind): Int? = when (kind) {
 }
 
 /**
- * [AdFormat.BANNER] is drawn at the anchored adaptive size (B-01, ADR-0038), [AdFormat.BANNER_COLLAPSIBLE] at the
+ * [AdFormat.BANNER] is drawn at the anchored adaptive size (B-01, ADR-0045), [AdFormat.BANNER_COLLAPSIBLE] at the
  * large one (B-03), [AdFormat.BANNER_MREC] at the fixed 300 x 250 dp (B-08); other formats throw.
  */
 internal fun bannerSizeKind(format: AdFormat): BannerSizeKind = when (format) {

@@ -104,21 +104,62 @@ class NativeAdCardTest {
         composeRule.onNodeWithText(badge, useUnmergedTree = true).assertExists()
     }
 
+    /**
+     * Plan T-109, section 3.5: the top row (the headline) ends at least 28 dp from the card's end edge (12 dp margin
+     * and the 16 dp of AdChoices), and the call to action starts below the AdChoices corner (16 + 4 dp).
+     */
     @Test
     fun small_leavesAdChoicesCornerFree() {
         setCard(NativeAdSize.SMALL)
         val card = bounds(NativeAdTestTags.CARD)
         val cta = bounds(NativeAdTestTags.CTA)
+        val headline = bounds(NativeAdTestTags.HEADLINE)
         assertEquals(CARD_WIDTH.value, (card.right - card.left).value, 0.5f)
-        assertTrue("CTA ends ${card.right - cta.right} from the card edge", card.right - cta.right >= 24.dp)
+        assertTrue(
+            "headline ends ${card.right - headline.right} from the card edge",
+            card.right - headline.right >= 28.dp,
+        )
+        assertTrue("CTA starts ${cta.top - card.top} below the card top", cta.top - card.top >= 20.dp)
+        // Control: the headline reaches that margin, so the free corner is not only a narrow headline.
+        assertEquals("headline end margin", 28f, (card.right - headline.right).value, 0.5f)
     }
 
+    /**
+     * Plan T-110, section 3.5 (design T-108, `Native/Medium`): the AdChoices corner (16 x 16 dp, 4 dp from the top and
+     * the end of the card) lies on the media, over no text, star or call to action.
+     */
     @Test
     fun medium_leavesAdChoicesCornerFree() {
         setCard(NativeAdSize.MEDIUM)
         val card = bounds(NativeAdTestTags.CARD)
-        val icon = bounds(NativeAdTestTags.ICON)
-        assertTrue("Icon starts ${icon.top - card.top} below the card top", icon.top - card.top >= 24.dp)
+        val media = bounds(NativeAdTestTags.MEDIA)
+        val corner = DpRect(card.right - 20.dp, card.top + 4.dp, card.right - 4.dp, card.top + 20.dp)
+        // Control: the marker of the fake ad is drawn in that corner, so the corner checked is where AdChoices is.
+        val marker = bounds(NativeAdTestTags.AD_CHOICES_AREA)
+        assertEquals("marker left", corner.left.value, marker.left.value, 0.5f)
+        assertEquals("marker top", corner.top.value, marker.top.value, 0.5f)
+        assertTrue(
+            "AdChoices corner $corner on the media $media",
+            corner.left.value >= media.left.value - 0.5f &&
+                corner.right.value <= media.right.value + 0.5f &&
+                corner.top.value >= media.top.value - 0.5f &&
+                corner.bottom.value <= media.bottom.value + 0.5f,
+        )
+        listOf(
+            NativeAdTestTags.ICON,
+            NativeAdTestTags.HEADLINE,
+            NativeAdTestTags.BADGE,
+            NativeAdTestTags.SECOND_LINE,
+            NativeAdTestTags.STAR_ROW,
+            NativeAdTestTags.CTA,
+        ).forEach { tag ->
+            val part = bounds(tag)
+            val overlaps = part.left < corner.right &&
+                part.right > corner.left &&
+                part.top < corner.bottom &&
+                part.bottom > corner.top
+            assertFalse("$tag $part overlaps the AdChoices corner $corner", overlaps)
+        }
     }
 
     @Test
@@ -156,15 +197,15 @@ class NativeAdCardTest {
     }
 
     @Test
-    fun small_is126dpHigh() {
+    fun small_is106dpHigh() {
         setCard(NativeAdSize.SMALL)
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(126.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(106.dp)
     }
 
     @Test
-    fun medium_is400dpHigh() {
+    fun medium_is250dpHigh() {
         setCard(NativeAdSize.MEDIUM)
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(250.dp)
     }
 
     @Test
@@ -182,28 +223,39 @@ class NativeAdCardTest {
         assertEquals(labelLarge!!.fontWeight, style.fontWeight)
     }
 
+    /**
+     * Plan T-110, section 3.5 (design T-108): the four stars end the line below the headline, 16 dp high on that
+     * line, 6 dp after its text, 12 dp from the card's end. A rating of 0 draws no star and nothing moves (L-055).
+     */
     @Test
-    fun medium_starRow16dp_belowBadgeLine_hiddenStarsKeepHeight() {
+    fun medium_starsEndOfSecondLine_noRatingKeepsPlace() {
         var assets by mutableStateOf(sampleNativeAdAssets.copy(starRating = 4.0))
         composeRule.setContent {
             AdsTestTheme { NativeAdCard(assets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH)) }
         }
         composeRule.onAllNodesWithTag(NativeAdTestTags.STAR, useUnmergedTree = true).assertCountEquals(4)
+        val card = bounds(NativeAdTestTags.CARD)
         val row = bounds(NativeAdTestTags.STAR_ROW)
+        val second = bounds(NativeAdTestTags.SECOND_LINE)
         assertEquals(16f, (row.bottom - row.top).value, 0.5f)
-        assertTrue("star row below the badge line", row.top >= bounds(NativeAdTestTags.BADGE).bottom)
+        assertTrue("stars on the line below the headline", abs(row.centerY() - second.centerY()) < 1f)
+        assertTrue("stars after the text: ${row.left}, ${second.right}", row.left >= second.right)
+        assertEquals("text to stars", 6f, (row.left - second.right).value, 0.5f)
+        assertEquals("stars to the card end", 12f, (card.right - row.right).value, 0.5f)
         val mediaTop = bounds(NativeAdTestTags.MEDIA).top
+        val ctaTop = bounds(NativeAdTestTags.CTA).top
 
         // L-055: a rating of 0 draws no star, yet the card and its parts keep their place.
         assets = sampleNativeAdAssets.copy(starRating = 0.0)
         composeRule.waitForIdle()
         composeRule.onAllNodesWithTag(NativeAdTestTags.STAR, useUnmergedTree = true).assertCountEquals(0)
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(250.dp)
         assertEquals(mediaTop.value, bounds(NativeAdTestTags.MEDIA).top.value, 0.5f)
+        assertEquals(ctaTop.value, bounds(NativeAdTestTags.CTA).top.value, 0.5f)
     }
 
     @Test
-    fun medium_ctaLarge_56dp_17sp_cardIs400dp() {
+    fun medium_ctaLarge_56dp_17sp_cardIs250dp() {
         var large by mutableStateOf(true)
         composeRule.setContent {
             AdsTestTheme {
@@ -212,7 +264,8 @@ class NativeAdCardTest {
         }
         composeRule.onNodeWithTag(NativeAdTestTags.CTA, useUnmergedTree = true).assertHeightIsEqualTo(56.dp)
         assertEquals(17.sp, textStyle("Install").fontSize)
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(250.dp)
+        assertEquals("media cta_large", 132f, bounds(NativeAdTestTags.MEDIA).h(), 0.5f)
         // The text of the SDK is kept as it is, never upper-cased.
         composeRule.onNodeWithText("Install", useUnmergedTree = true).assertExists()
 
@@ -220,7 +273,8 @@ class NativeAdCardTest {
         large = false
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(NativeAdTestTags.CTA, useUnmergedTree = true).assertHeightIsEqualTo(44.dp)
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(250.dp)
+        assertEquals("media", 144f, bounds(NativeAdTestTags.MEDIA).h(), 0.5f)
     }
 
     @Test
@@ -302,8 +356,8 @@ class NativeAdCardTest {
         // Control: another size keeps its own height, whatever cardHeight says.
         size = NativeAdSize.MEDIUM
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(400.dp)
-        composeRule.onNodeWithTag(NativeAdTestTags.PLACEHOLDER).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(250.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.PLACEHOLDER).assertHeightIsEqualTo(250.dp)
     }
 
     @Test
@@ -323,8 +377,8 @@ class NativeAdCardTest {
             val card = bounds(NativeAdTestTags.CARD)
             val placeholder = bounds(NativeAdTestTags.PLACEHOLDER)
             val expected = when (current) {
-                NativeAdSize.SMALL -> 126.dp
-                NativeAdSize.MEDIUM -> 400.dp
+                NativeAdSize.SMALL -> 106.dp
+                NativeAdSize.MEDIUM -> 250.dp
                 NativeAdSize.FULL -> FULL_HEIGHT
                 NativeAdSize.CARD -> 300.dp
                 NativeAdSize.STEP -> 250.dp
@@ -408,36 +462,41 @@ class NativeAdCardTest {
         composeRule.setContent {
             AdsTestTheme { NativeAdCard(long.copy(advertiser = null), size, Modifier.width(CARD_WIDTH)) }
         }
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(126.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(106.dp)
         composeRule.onNodeWithTag(NativeAdTestTags.HEADLINE, useUnmergedTree = true).assertHeightIsEqualTo(22.dp)
 
         size = NativeAdSize.MEDIUM
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(400.dp)
+        composeRule.onNodeWithTag(NativeAdTestTags.CARD).assertHeightIsEqualTo(250.dp)
         composeRule.onNodeWithTag(NativeAdTestTags.HEADLINE, useUnmergedTree = true).assertHeightIsEqualTo(22.dp)
     }
 
     /**
-     * KB-1 (plan T-060): a long call to action of small stops at 120 dp, so the headline keeps room; a short one
-     * ("Install", 18 sp) is as wide as its text, 83.33 dp, between the 80 dp least width and the 120 dp ceiling, and
-     * shows whole (plan T-065, question 4).
+     * KB-1, O-08 (plan T-109, section 3.5): the call to action of small is as wide as the card less its two 12 dp
+     * margins, 355 dp in a 379 dp card, with a short and a long text; "Install" shows whole, a long text is cut with
+     * "…" and shows at least one character; the headline keeps room.
      */
     @Test
-    fun small_ctaAtMost120dpWide_shortCtaKeepsWidth() {
-        var assets by mutableStateOf(longFullNativeAdAssets)
+    fun small_ctaFullWidth_longCtaEllipsized() {
+        // Longer than the 331 dp a 355 dp call to action holds at 18 sp (the long fixture's text fits it whole).
+        val longCta = "Install now and get the full version of the app with every feature for free"
+        var assets by mutableStateOf(longFullNativeAdAssets.copy(callToAction = longCta))
         composeRule.setContent {
             AdsTestTheme { NativeAdCard(assets, NativeAdSize.SMALL, Modifier.width(CARD_WIDTH)) }
         }
         val cta = bounds(NativeAdTestTags.CTA)
         val headline = bounds(NativeAdTestTags.HEADLINE)
         val measured = "CTA ${(cta.right - cta.left).value} dp, headline ${(headline.right - headline.left).value} dp"
-        assertEquals("long call to action width; $measured", 120f, (cta.right - cta.left).value, 0.5f)
+        assertEquals("long call to action width; $measured", 355f, (cta.right - cta.left).value, 0.5f)
         assertTrue("headline has no width; $measured", (headline.right - headline.left).value > 0f)
+        val long = textLayout(longCta)
+        assertTrue("long call to action not cut with an ellipsis", long.isLineEllipsized(0))
+        assertTrue("long call to action shows no character", long.getLineEnd(0, visibleEnd = true) >= 1)
 
         assets = sampleNativeAdAssets
         composeRule.waitForIdle()
         val shortCta = bounds(NativeAdTestTags.CTA)
-        assertEquals("short call to action width", 83.33f, (shortCta.right - shortCta.left).value, 0.5f)
+        assertEquals("short call to action width", 355f, (shortCta.right - shortCta.left).value, 0.5f)
         val install = textLayout("Install")
         assertEquals("Install shown whole", "Install".length, install.getLineEnd(0, visibleEnd = true))
         assertFalse("Install cut with an ellipsis", install.isLineEllipsized(0))
@@ -450,11 +509,12 @@ class NativeAdCardTest {
         val media = bounds(NativeAdTestTags.MEDIA)
         assertEquals(CARD_WIDTH.value, (card.right - card.left).value, 0.5f)
         assertTrue("Media is ${media.right - media.left} wide", media.right - media.left >= 355.dp - 0.5.dp)
-        assertEquals(182f, (media.bottom - media.top).value, 0.5f)
+        assertEquals(144f, (media.bottom - media.top).value, 0.5f)
         assertTrue(media.right - media.left >= 120.dp && media.bottom - media.top >= 120.dp)
-        // Below the 60 dp head with its star row: 1 + 24 + 60 + 12 dp from the top of the card (the card at y 286,
-        // the media at y 383 in design/context/AdGalleryScreen_default_light.md).
-        assertEquals(97f, (media.top - card.top).value, 0.5f)
+        // Design T-108 ("Media" 379 x 144 dp at the top of "Native/Medium" in
+        // design/context/AdGalleryScreen_default_light.md): the media starts at the card's top, as wide as the card.
+        assertEquals(0f, (media.top - card.top).value, 0.5f)
+        assertEquals("media width", CARD_WIDTH.value, media.w(), 0.5f)
     }
 
     @Test
@@ -684,6 +744,68 @@ class NativeAdCardTest {
     }
 
     /**
+     * KB-2 criterion 2 (plan T-110, section 4): the medium placeholder has the shape of the card, a media block of
+     * 144 dp (132 dp with `cta_large`) from its top, then the two tiers of small (a 44 dp icon block, a call-to-action
+     * block 355 dp wide, 44 dp or 56 dp high); at font scale 2.0 it is as high as the card.
+     */
+    @Test
+    fun mediumPlaceholder_twoTier_matchesCard() {
+        var large by mutableStateOf(false)
+        var fontScale by mutableStateOf(1f)
+        composeRule.setContent {
+            WithFontScale(fontScale) {
+                AdsTestTheme {
+                    Column {
+                        NativeAdCard(
+                            sampleNativeAdAssets,
+                            NativeAdSize.MEDIUM,
+                            Modifier.width(CARD_WIDTH),
+                            ctaLarge = large,
+                        )
+                        NativeAdPlaceholder(
+                            NativeAdSize.MEDIUM,
+                            Modifier.width(CARD_WIDTH),
+                            animated = false,
+                            ctaLarge = large,
+                        )
+                    }
+                }
+            }
+        }
+        listOf(false, true).forEach { current ->
+            large = current
+            fontScale = 1f
+            composeRule.waitForIdle()
+            val case = if (current) "cta_large" else "medium"
+            val placeholder = bounds(NativeAdTestTags.PLACEHOLDER)
+            val media = bounds(NativeAdTestTags.PLACEHOLDER_MEDIA)
+            val icon = bounds(NativeAdTestTags.PLACEHOLDER_ICON)
+            val cta = bounds(NativeAdTestTags.PLACEHOLDER_CTA)
+            assertEquals("placeholder, $case", 250f, placeholder.h(), 0.5f)
+            assertEquals("media block top, $case", 0f, (media.top - placeholder.top).value, 0.5f)
+            assertEquals("media block width, $case", CARD_WIDTH.value, media.w(), 0.5f)
+            assertEquals("media block, $case", if (current) 132f else 144f, media.h(), 0.5f)
+            assertEquals("icon block width, $case", 44f, icon.w(), 0.5f)
+            assertEquals("icon block height, $case", 44f, icon.h(), 0.5f)
+            assertEquals("icon block below the media, $case", 6f, (icon.top - media.bottom).value, 0.5f)
+            assertEquals("CTA block width, $case", 355f, cta.w(), 0.5f)
+            assertEquals("CTA block height, $case", if (current) 56f else 44f, cta.h(), 0.5f)
+            assertEquals("CTA block to the bottom, $case", 6f, (placeholder.bottom - cta.bottom).value, 0.5f)
+
+            fontScale = 2f
+            composeRule.waitForIdle()
+            val card = bounds(NativeAdTestTags.CARD)
+            assertTrue("card grows at font scale 2.0, $case: ${card.h()}", card.h() > 250f + 0.5f)
+            assertEquals(
+                "placeholder at font scale 2.0, $case",
+                card.h(),
+                bounds(NativeAdTestTags.PLACEHOLDER).h(),
+                0.5f,
+            )
+        }
+    }
+
+    /**
      * In each mode, reads pixels of the drawn window: card and call-to-action backgrounds, then the text pixel
      * farthest from each background, against the tokens of that mode; text contrast at least 4.5:1 (KB-1).
      */
@@ -704,7 +826,14 @@ class NativeAdCardTest {
             val card = windowBounds(NativeAdTestTags.CARD)
             val cta = windowBounds(NativeAdTestTags.CTA)
             val headline = windowBounds(NativeAdTestTags.HEADLINE)
-            val cardBackground = bitmap.getPixel((card.left + px(6.dp)).toInt(), card.center.y.toInt())
+            // Medium (plan T-110, section 3.5): the middle of the card is on the media, so the background is read on
+            // the content block, at the headline's height; the control checks that point is below the media.
+            val backgroundY = if (size == NativeAdSize.MEDIUM) headline.center.y else card.center.y
+            if (size == NativeAdSize.MEDIUM) {
+                val mediaBottom = windowBounds(NativeAdTestTags.MEDIA).bottom
+                assertTrue("background point $backgroundY below the media $mediaBottom", backgroundY > mediaBottom)
+            }
+            val cardBackground = bitmap.getPixel((card.left + px(6.dp)).toInt(), backgroundY.toInt())
             val ctaBackground = bitmap.getPixel((cta.left + px(6.dp)).toInt(), cta.center.y.toInt())
             assertColor("$size dark=$mode card", colors.surfaceContainerLow, cardBackground)
             assertColor("$size dark=$mode CTA", colors.tertiaryContainer, ctaBackground)
@@ -778,36 +907,32 @@ class NativeAdCardTest {
     // Sizes that follow the screen (KB-32, design T-064; plan T-065).
 
     /**
-     * KB-1 criterion 2, KB-32: the small native and its placeholder are as high as the bottom slot of the screen
-     * width, whatever the card's own width: 126 dp at 411 dp, also for a 379 dp card.
+     * KB-1 criterion 2, KB-32 criterion 3 (question 66, plan T-109): the small native and its placeholder are 106 dp
+     * high at font scale 1.0 on every window, whatever its width: 411, 360 and 673 dp wide, and turned landscape.
      */
     @Test
-    fun small_heightFollowsScreenWidth() = assertSmallHeight(126f)
+    fun small_heightIs106dp_everyWindow() = assertSmallHeight(106f)
 
     @Test
     @Config(qualifiers = "w360dp-h640dp-xxhdpi")
-    fun small_heightFollowsScreenWidth_360() = assertSmallHeight(106f)
+    fun small_heightIs106dp_everyWindow_360() = assertSmallHeight(106f)
 
     @Test
     @Config(qualifiers = "w673dp-h841dp-xxhdpi")
-    fun small_heightFollowsScreenWidth_673() = assertSmallHeight(200f)
+    fun small_heightIs106dp_everyWindow_673() = assertSmallHeight(106f)
 
-    /**
-     * KB-1 criterion 2, KB-32 criterion 3 (changed 2026-11-16): a phone turned landscape keeps the portrait slot, the
-     * height following the short edge of the window: 126 dp at 891 x 411 dp (200 dp by the width), the card 859 dp
-     * wide.
-     */
+    /** As above at 891 x 411 dp: 106 dp, the card 859 dp wide. */
     @Test
     @Config(qualifiers = "w891dp-h411dp-xxhdpi")
-    fun small_landscape_followsShortEdge() {
-        assertSmallHeight(126f)
+    fun small_heightIs106dp_everyWindow_landscape() {
+        assertSmallHeight(106f)
         assertEquals("card width", 859f, bounds(NativeAdTestTags.CARD).w(), 0.5f)
     }
 
-    /** As above on a 640 x 360 dp window: 106 dp (200 dp by the width). */
+    /** As above on a 640 x 360 dp window. */
     @Test
     @Config(qualifiers = "w640dp-h360dp-xxhdpi")
-    fun small_landscape360_followsShortEdge() = assertSmallHeight(106f)
+    fun small_heightIs106dp_everyWindow_landscape360() = assertSmallHeight(106f)
 
     private fun assertSmallHeight(expected: Float) {
         composeRule.setContent {
@@ -824,9 +949,15 @@ class NativeAdCardTest {
         assertEquals("placeholder height", expected, bounds(NativeAdTestTags.PLACEHOLDER).h(), 0.5f)
     }
 
-    /** Design T-064 (design/context/AdGalleryScreen_default_light.md, "Native/Small"), KB-1 criterion 1. */
+    /**
+     * Design T-108 (design/context/SampleScreen_ready_light.md, "Native small"), KB-1 criterion 1, KB-32 criterion 3:
+     * two tiers in a 106 dp card. The top row: the 44 dp icon 12 dp from the start and 6 dp from the top, the text
+     * column 12 dp after it ("Ad" before a one-line 16/22 sp headline, 4 dp, one 13/18 sp line below), ending 28 dp or
+     * more from the end. Below it, 6 dp lower, the call to action as wide as the card less 12 dp on each side, 44 dp
+     * high with 18 sp text, 6 dp above the card bottom. No part overlaps another.
+     */
     @Test
-    fun small_jbaseLayout() {
+    fun small_twoTierLayout() {
         var assets by mutableStateOf(sampleNativeAdAssets)
         composeRule.setContent {
             AdsTestTheme { NativeAdCard(assets, NativeAdSize.SMALL, Modifier.width(CARD_WIDTH)) }
@@ -837,67 +968,131 @@ class NativeAdCardTest {
         val label = bounds(NativeAdTestTags.BADGE)
         val headline = bounds(NativeAdTestTags.HEADLINE)
         val second = bounds(NativeAdTestTags.SECOND_LINE)
+        assertEquals("card height", 106f, card.h(), 0.5f)
         assertEquals("icon width", 44f, icon.w(), 0.5f)
         assertEquals("icon height", 44f, icon.h(), 0.5f)
         assertEquals("icon start margin", 12f, (icon.left - card.left).value, 0.5f)
-        assertEquals("CTA height", 44f, cta.h(), 0.5f)
-        assertEquals("CTA text size", 18.sp, textStyle("Install").fontSize)
-        assertEquals("CTA end margin", 24f, (card.right - cta.right).value, 0.5f)
+        assertEquals("icon top margin", 6f, (icon.top - card.top).value, 0.5f)
+        val columnLeft = min(label.left.value, headline.left.value)
+        assertEquals("text column after the icon", 12f, columnLeft - icon.right.value, 0.5f)
+        val titleRow = DpRect(
+            columnLeft.dp,
+            min(label.top.value, headline.top.value).dp,
+            headline.right,
+            max(label.bottom.value, headline.bottom.value).dp,
+        )
+        assertEquals("headline row height", 22f, titleRow.h(), 0.5f)
         assertTrue("label right ${label.right}, headline left ${headline.left}", label.right <= headline.left)
         assertTrue("label and headline centers", abs(label.centerY() - headline.centerY()) < 2f)
         assertEquals("headline text size", 16.sp, textStyle(sampleNativeAdAssets.headline).fontSize)
         assertEquals("headline lines", 1, textLayout(sampleNativeAdAssets.headline).lineCount)
         assertEquals("headline height", 22f, headline.h(), 0.5f)
-        // Question 9: the line below shows the advertiser, the body without one.
+        // Question 9 of plan T-065: the line below shows the advertiser, the body without one.
         val advertiserStyle = textStyle(sampleNativeAdAssets.advertiser!!)
         assertEquals("second line text size", 13.sp, advertiserStyle.fontSize)
         assertEquals("second line height of a line", 18.sp, advertiserStyle.lineHeight)
         assertEquals("one advertiser line", 18f, second.h(), 0.5f)
-        // Icon, text column and call to action centered in the card's height.
-        val column = DpRect(headline.left, min(label.top.value, headline.top.value).dp, second.right, second.bottom)
-        listOf("icon" to icon, "text column" to column, "CTA" to cta).forEach { (part, rect) ->
-            assertEquals("$part centered", card.centerY(), rect.centerY(), 1f)
+        assertEquals("second line below the headline row", 4f, (second.top - titleRow.bottom).value, 0.5f)
+        assertTrue(
+            "headline ends ${card.right - headline.right} from the card end",
+            card.right - headline.right >= 28.dp,
+        )
+        assertEquals("CTA start margin", 12f, (cta.left - card.left).value, 0.5f)
+        assertEquals("CTA end margin", 12f, (card.right - cta.right).value, 0.5f)
+        assertEquals("CTA width", 355f, cta.w(), 0.5f)
+        assertEquals("CTA height", 44f, cta.h(), 0.5f)
+        assertEquals("CTA text size", 18.sp, textStyle("Install").fontSize)
+        assertEquals("CTA below the top row (icon bottom)", 6f, (cta.top - icon.bottom).value, 0.5f)
+        assertEquals("CTA to card bottom", 6f, (card.bottom - cta.bottom).value, 0.5f)
+        val column =
+            DpRect(columnLeft.dp, titleRow.top, max(headline.right.value, second.right.value).dp, second.bottom)
+        listOf(
+            Triple("icon", icon, "text column" to column),
+            Triple("icon", icon, "CTA" to cta),
+            Triple("text column", column, "CTA" to cta),
+        ).forEach { (part, rect, other) ->
+            val (otherName, otherRect) = other
+            val overlaps = rect.left.value < otherRect.right.value - 0.5f &&
+                rect.right.value > otherRect.left.value + 0.5f &&
+                rect.top.value < otherRect.bottom.value - 0.5f &&
+                rect.bottom.value > otherRect.top.value + 0.5f
+            assertFalse("$part $rect overlaps $otherName $otherRect", overlaps)
         }
 
         assets = sampleNativeAdAssets.copy(advertiser = null, body = longFullNativeAdAssets.body)
         composeRule.waitForIdle()
         val body = textLayout(longFullNativeAdAssets.body!!)
-        assertEquals("body at most two lines", 2, body.lineCount)
-        assertEquals("two body lines", 36f, bounds(NativeAdTestTags.SECOND_LINE).h(), 0.5f)
+        assertEquals("body one line", 1, body.lineCount)
+        assertTrue("long body cut with an ellipsis", body.isLineEllipsized(0))
+        assertEquals("one body line", 18f, bounds(NativeAdTestTags.SECOND_LINE).h(), 0.5f)
+        assertEquals("card height with a long body", 106f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
     }
 
+    /**
+     * Plan T-109, section 3.5 (design/context/SampleScreen_ad-loading_light.md, two tiers): the 44 x 44 dp icon
+     * block 12 dp from the start and 6 dp from the top; the call-to-action block as wide as the card less 24 dp, 44 dp
+     * high, 6 dp above the bottom; the two bars (14 dp, and 12 x 120 dp) between the icon block and the end less 28 dp.
+     */
     @Test
-    fun smallPlaceholder_jbaseBlocks() {
+    fun smallPlaceholder_twoTierBlocks() {
         composeRule.setContent {
             AdsTestTheme { NativeAdPlaceholder(NativeAdSize.SMALL, Modifier.width(CARD_WIDTH), animated = false) }
         }
+        val card = bounds(NativeAdTestTags.PLACEHOLDER)
         val icon = bounds(NativeAdTestTags.PLACEHOLDER_ICON)
         val cta = bounds(NativeAdTestTags.PLACEHOLDER_CTA)
+        assertEquals("placeholder height", 106f, card.h(), 0.5f)
         assertEquals("icon block width", 44f, icon.w(), 0.5f)
         assertEquals("icon block height", 44f, icon.h(), 0.5f)
-        assertEquals("CTA block width", 96f, cta.w(), 0.5f)
+        assertEquals("icon block start", 12f, (icon.left - card.left).value, 0.5f)
+        assertEquals("icon block top", 6f, (icon.top - card.top).value, 0.5f)
+        assertEquals("CTA block width", 355f, cta.w(), 0.5f)
         assertEquals("CTA block height", 44f, cta.h(), 0.5f)
+        assertEquals("CTA block to the bottom", 6f, (card.bottom - cta.bottom).value, 0.5f)
+        val bars = composeRule.onAllNodesWithTag(NativeAdTestTags.PLACEHOLDER_LINE, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .map { node ->
+                val rect = node.boundsInRoot
+                with(composeRule.density) {
+                    DpRect(rect.left.toDp(), rect.top.toDp(), rect.right.toDp(), rect.bottom.toDp())
+                }
+            }
+        assertEquals("two bars", 2, bars.size)
+        val (top, bottom) = bars.sortedBy { it.top.value }
+        assertEquals("top bar height", 14f, top.h(), 0.5f)
+        assertEquals("bottom bar height", 12f, bottom.h(), 0.5f)
+        assertEquals("bottom bar width", 120f, bottom.w(), 0.5f)
+        assertEquals("bars 8 dp apart", 8f, (bottom.top - top.bottom).value, 0.5f)
+        bars.forEach { bar ->
+            assertTrue("bar $bar starts after the icon block $icon", bar.left >= icon.right)
+            assertTrue("bar $bar ends within the end less 28 dp", bar.right <= card.right - 28.dp + 0.5.dp)
+            assertTrue("bar $bar above the CTA block $cta", bar.bottom <= cta.top)
+        }
+        assertEquals("top bar to the end less 28 dp", (card.right - 28.dp).value, top.right.value, 0.5f)
     }
 
-    /** KB-2, KB-32: medium is as high as the screen height says: 400 dp at 891 dp, also with `cta_large`. */
+    /**
+     * KB-2, KB-32 criterion 3 (question 66, plan T-110): medium is 250 dp at font scale 1.0 whatever the window, also
+     * with `cta_large`; here at 891 dp, the other windows below.
+     */
     @Test
-    fun medium_heightFollowsScreenHeight() {
+    fun medium_is250dp_everyWindow() {
         var large by mutableStateOf(false)
         composeRule.setContent {
             AdsTestTheme {
                 NativeAdCard(sampleNativeAdAssets, NativeAdSize.MEDIUM, Modifier.width(CARD_WIDTH), ctaLarge = large)
             }
         }
-        assertEquals("medium", 400f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
+        assertEquals("medium", 250f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
         large = true
         composeRule.waitForIdle()
-        assertEquals("medium cta_large", 400f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
+        assertEquals("medium cta_large", 250f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
     }
 
-    /** The unfolded frame, 841 dp high: 384 dp, the layout of the design (body of two lines). */
+    /** The unfolded frame, 841 dp high: 250 dp, the layout of the design (one line below the headline). */
     @Test
     @Config(qualifiers = "w673dp-h841dp-xxhdpi")
-    fun medium_heightFollowsScreenHeight_841() {
+    fun medium_is250dp_841() {
         composeRule.setContent {
             AdsTestTheme {
                 Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -905,18 +1100,20 @@ class NativeAdCardTest {
                 }
             }
         }
-        assertEquals("medium", 384f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
-        assertEquals("body lines", 2, textLayout(longFullNativeAdAssets.body!!).lineCount)
+        assertEquals("medium", 250f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
+        assertEquals("line below the headline", 18f, bounds(NativeAdTestTags.SECOND_LINE).h(), 0.5f)
+        assertEquals("advertiser lines", 1, textLayout(longFullNativeAdAssets.advertiser!!).lineCount)
+        composeRule.onNodeWithTag(NativeAdTestTags.BODY, useUnmergedTree = true).assertDoesNotExist()
     }
 
     /**
-     * KB-2 criterion 1, KB-32, question 7 (b) of the plan: on a 640 dp screen medium keeps 320 dp by a one-line body
-     * and 8 dp gaps, so its media keeps more than 120 dp (134 dp, 122 dp with `cta_large`). Numbers from the design:
-     * 25 + 60 + 20 + 44 (56) + 3 x 8 + 13 dp of fixed parts.
+     * KB-2 criterion 1, KB-32 criterion 3 (question 66, plan T-110): on a 640 dp screen medium is 250 dp as on every
+     * window, its media 144 dp (132 dp with `cta_large`) over the two-tier content block (6 + 44 + 6 + 44 (56) + 6 dp),
+     * its placeholder as high. Without an advertiser and a body the line below keeps its 18 dp, so nothing moves.
      */
     @Test
     @Config(qualifiers = "w360dp-h640dp-xxhdpi")
-    fun medium_compact_lowScreen() {
+    fun medium_is250dp_lowScreen() {
         var large by mutableStateOf(false)
         var assets by mutableStateOf(longFullNativeAdAssets)
         composeRule.setContent {
@@ -934,32 +1131,56 @@ class NativeAdCardTest {
             val case = if (current) "cta_large" else "medium"
             val card = bounds(NativeAdTestTags.CARD)
             val media = bounds(NativeAdTestTags.MEDIA)
-            val body = bounds(NativeAdTestTags.BODY)
+            val second = bounds(NativeAdTestTags.SECOND_LINE)
             val cta = bounds(NativeAdTestTags.CTA)
             val stars = bounds(NativeAdTestTags.STAR_ROW)
             val headline = bounds(NativeAdTestTags.HEADLINE)
-            assertEquals("card, $case", 320f, card.h(), 0.5f)
-            assertEquals("media, $case", if (current) 122f else 134f, media.h(), 0.5f)
-            assertEquals("body lines, $case", 1, textLayout(longFullNativeAdAssets.body!!).lineCount)
-            assertEquals("body frame, $case", 20f, body.h(), 0.5f)
-            assertEquals("star row to media, $case", 8f, (media.top - stars.bottom).value, 0.5f)
-            assertEquals("media to body, $case", 8f, (body.top - media.bottom).value, 0.5f)
-            assertEquals("body to CTA, $case", 8f, (cta.top - body.bottom).value, 0.5f)
+            val icon = bounds(NativeAdTestTags.ICON)
+            assertEquals("card, $case", 250f, card.h(), 0.5f)
+            assertEquals("media, $case", if (current) 132f else 144f, media.h(), 0.5f)
+            composeRule.onNodeWithTag(NativeAdTestTags.BODY, useUnmergedTree = true).assertDoesNotExist()
+            assertEquals("line below lines, $case", 1, textLayout(longFullNativeAdAssets.advertiser!!).lineCount)
+            assertEquals("line below, $case", 18f, second.h(), 0.5f)
+            assertEquals("star row below the media, $case", 33f, (stars.top - media.bottom).value, 0.5f)
+            assertEquals("line below the media, $case", 32f, (second.top - media.bottom).value, 0.5f)
+            assertEquals("line below to CTA, $case", 6f, (cta.top - second.bottom).value, 0.5f)
             assertEquals("star row, $case", 16f, stars.h(), 0.5f)
-            assertEquals("head, $case", 60f, (stars.bottom - headline.top).value, 0.5f)
-            assertEquals("CTA to card bottom, $case", 13f, (card.bottom - cta.bottom).value, 0.5f)
-            assertEquals("placeholder, $case", 320f, bounds(NativeAdTestTags.PLACEHOLDER).h(), 0.5f)
+            assertEquals("head, $case", 43f, (stars.bottom - headline.top).value, 0.5f)
+            assertEquals("icon below the media, $case", 6f, (icon.top - media.bottom).value, 0.5f)
+            assertEquals("CTA below the icon, $case", 6f, (cta.top - icon.bottom).value, 0.5f)
+            assertEquals("CTA to card bottom, $case", 6f, (card.bottom - cta.bottom).value, 0.5f)
+            assertEquals("placeholder, $case", 250f, bounds(NativeAdTestTags.PLACEHOLDER).h(), 0.5f)
 
-            assets = longFullNativeAdAssets.copy(body = null)
+            // L-055: no body and no advertiser (still 4 stars): the line below keeps its place, nothing moves.
+            assets = longFullNativeAdAssets.copy(body = null, advertiser = null)
             composeRule.waitForIdle()
-            assertEquals("kept body space, $case", 20f, bounds(NativeAdTestTags.BODY).h(), 0.5f)
-            assertEquals("card without body, $case", 320f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
+            assertEquals("card without texts below, $case", 250f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
+            assertEquals("kept line below, $case", 18f, bounds(NativeAdTestTags.SECOND_LINE).h(), 0.5f)
+            val keptMedia = bounds(NativeAdTestTags.MEDIA)
+            assertEquals(
+                "media bottom without texts below, $case",
+                if (current) 132f else 144f,
+                (keptMedia.bottom - bounds(NativeAdTestTags.CARD).top).value,
+                0.5f,
+            )
+            assertEquals(
+                "CTA top without texts below, $case",
+                cta.top.value,
+                bounds(NativeAdTestTags.CTA).top.value,
+                0.5f,
+            )
         }
     }
 
-    /** Design T-064 (design/context/AdGalleryScreen_default_light.md, "Native/Medium"), KB-2. */
+    /**
+     * Design T-108 (design/context/AdGalleryScreen_default_light.md, "Native/Medium"), KB-2, KB-32 criterion 3 (plan
+     * T-110, section 4): a 250 dp card, the 144 dp media at its top as wide as it, then the two tiers of small: the 44
+     * dp icon 12 dp from the start and 6 dp below the media, the text column 12 dp after it ("Ad" before a one-line
+     * 16/22 sp headline, 4 dp, one 13/18 sp line below) ending 12 dp from the card's end; the call to action 6 dp below
+     * the top row, 355 x 44 dp with 18 sp text, 6 dp above the card bottom. No body paragraph.
+     */
     @Test
-    fun medium_jbaseLayout() {
+    fun medium_twoTierLayout() {
         var large by mutableStateOf(false)
         var assets by mutableStateOf(sampleNativeAdAssets)
         composeRule.setContent {
@@ -969,31 +1190,57 @@ class NativeAdCardTest {
         val icon = bounds(NativeAdTestTags.ICON)
         val label = bounds(NativeAdTestTags.BADGE)
         val headline = bounds(NativeAdTestTags.HEADLINE)
+        val second = bounds(NativeAdTestTags.SECOND_LINE)
+        val cta = bounds(NativeAdTestTags.CTA)
+        val media = bounds(NativeAdTestTags.MEDIA)
+        assertEquals("card height", 250f, card.h(), 0.5f)
+        assertEquals("media top", 0f, (media.top - card.top).value, 0.5f)
+        assertEquals("media width", CARD_WIDTH.value, media.w(), 0.5f)
+        assertEquals("media", 144f, media.h(), 0.5f)
         assertEquals("icon width", 44f, icon.w(), 0.5f)
         assertEquals("icon height", 44f, icon.h(), 0.5f)
+        assertEquals("icon start margin", 12f, (icon.left - card.left).value, 0.5f)
+        assertEquals("icon below the media", 6f, (icon.top - media.bottom).value, 0.5f)
+        val titleRow = DpRect(
+            min(label.left.value, headline.left.value).dp,
+            min(label.top.value, headline.top.value).dp,
+            headline.right,
+            max(label.bottom.value, headline.bottom.value).dp,
+        )
+        assertEquals("headline row height", 22f, titleRow.h(), 0.5f)
         assertTrue("label right ${label.right}, headline left ${headline.left}", label.right <= headline.left)
         assertTrue("label and headline centers", abs(label.centerY() - headline.centerY()) < 2f)
         assertEquals("headline height", 22f, headline.h(), 0.5f)
-        assertEquals("advertiser line", 18f, bounds(NativeAdTestTags.SECOND_LINE).h(), 0.5f)
-        assertEquals("CTA height", 44f, bounds(NativeAdTestTags.CTA).h(), 0.5f)
+        assertEquals("advertiser line", 18f, second.h(), 0.5f)
+        assertEquals("advertiser line below the headline row", 4f, (second.top - titleRow.bottom).value, 0.5f)
+        assertEquals("advertiser text size", 13.sp, textStyle(sampleNativeAdAssets.advertiser!!).fontSize)
+        assertEquals("advertiser lines", 1, textLayout(sampleNativeAdAssets.advertiser!!).lineCount)
+        assertEquals("text column to the card end", 12f, (card.right - headline.right).value, 0.5f)
+        assertEquals("CTA below the top row", 6f, (cta.top - icon.bottom).value, 0.5f)
+        assertEquals("CTA start margin", 12f, (cta.left - card.left).value, 0.5f)
+        assertEquals("CTA width", 355f, cta.w(), 0.5f)
+        assertEquals("CTA height", 44f, cta.h(), 0.5f)
         assertEquals("CTA text size", 18.sp, textStyle("Install").fontSize)
-        val media = bounds(NativeAdTestTags.MEDIA)
-        assertEquals("media", 182f, media.h(), 0.5f)
-        assertEquals("media top", 97f, (media.top - card.top).value, 0.5f)
+        assertEquals("CTA to card bottom", 6f, (card.bottom - cta.bottom).value, 0.5f)
+        composeRule.onNodeWithTag(NativeAdTestTags.BODY, useUnmergedTree = true).assertDoesNotExist()
         composeRule.onAllNodesWithTag(NativeAdTestTags.STAR, useUnmergedTree = true).assertCountEquals(4)
 
         large = true
         composeRule.waitForIdle()
-        assertEquals("media cta_large", 170f, bounds(NativeAdTestTags.MEDIA).h(), 0.5f)
+        assertEquals("media cta_large", 132f, bounds(NativeAdTestTags.MEDIA).h(), 0.5f)
+        assertEquals("CTA cta_large", 56f, bounds(NativeAdTestTags.CTA).h(), 0.5f)
+        assertEquals("CTA text size cta_large", 17.sp, textStyle("Install").fontSize)
+        assertEquals("card cta_large", 250f, bounds(NativeAdTestTags.CARD).h(), 0.5f)
 
+        // Without an advertiser, the line below is the body, one line cut with "…".
         large = false
-        assets = sampleNativeAdAssets.copy(advertiser = null)
+        assets = sampleNativeAdAssets.copy(advertiser = null, body = longFullNativeAdAssets.body)
         composeRule.waitForIdle()
-        val cardTop = bounds(NativeAdTestTags.CARD).top
-        val kept = bounds(NativeAdTestTags.MEDIA)
-        assertEquals("advertiser space kept", 18f, bounds(NativeAdTestTags.SECOND_LINE).h(), 0.5f)
-        assertEquals("media top without advertiser", 97f, (kept.top - cardTop).value, 0.5f)
-        assertEquals("media without advertiser", 182f, kept.h(), 0.5f)
+        val body = textLayout(longFullNativeAdAssets.body!!)
+        assertEquals("body one line", 1, body.lineCount)
+        assertTrue("long body cut with an ellipsis", body.isLineEllipsized(0))
+        assertEquals("body line", 18f, bounds(NativeAdTestTags.SECOND_LINE).h(), 0.5f)
+        assertEquals("media without advertiser", 144f, bounds(NativeAdTestTags.MEDIA).h(), 0.5f)
     }
 
     private companion object {

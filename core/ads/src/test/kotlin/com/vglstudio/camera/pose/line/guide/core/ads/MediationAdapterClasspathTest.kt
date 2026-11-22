@@ -47,7 +47,7 @@ class MediationAdapterClasspathTest {
 
     @Test
     fun maxSdkAndGoogleAdapter_areOnClasspath() {
-        // AppLovin MAX and its Google adapter, declared by core/ads on their own lines (plan T-068, ADR-0037).
+        // AppLovin MAX and its Google adapter, declared by core/ads on their own lines (plan T-068, ADR-0045).
         Class.forName("com.applovin.sdk.AppLovinSdk", false, javaClass.classLoader)
         val adapter = Class.forName(
             "com.applovin.mediation.adapters.GoogleMediationAdapter",

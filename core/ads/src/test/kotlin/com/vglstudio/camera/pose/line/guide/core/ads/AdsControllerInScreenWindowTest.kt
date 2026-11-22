@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
 
 /**
- * The window of the in-screen ads in the real [AdsController] (KB-27, ADR-0036 decision 1, plan T-054): it follows
+ * The window of the in-screen ads in the real [AdsController] (KB-27, ADR-0045 section 7.1, plan T-054): it follows
  * foreground and the showing flag of the full-screen gate, the send gate given to sources and pools waits for it, and
  * each line that wires it into a slot (native small with its refresh, the slot with no source, the pool) is checked
  * with a fake native loader ([AdsController.nativeLoaderForTest]). No SDK ad: the turns are opened with

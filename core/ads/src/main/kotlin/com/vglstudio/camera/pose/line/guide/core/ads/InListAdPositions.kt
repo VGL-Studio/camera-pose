@@ -1,7 +1,7 @@
 package com.vglstudio.camera.pose.line.guide.core.ads
 
 /**
- * Positions, in the combined list of items and ads, where an in-list ad goes (ADR-0022, ads-guide.md section 4).
+ * Positions, in the combined list of items and ads, where an in-list ad goes (ADR-0045, ads-guide.md section 4).
  * The k-th ad follows the (k * every)-th item. An ad always sits between two items: never first, never last,
  * so a list of `every` items or fewer has none. A non-positive `every` means no ads.
  */

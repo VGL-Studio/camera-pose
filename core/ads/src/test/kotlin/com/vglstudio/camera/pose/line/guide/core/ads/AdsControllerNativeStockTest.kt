@@ -15,6 +15,8 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vglstudio.camera.pose.line.guide.core.analytics.AdFunnelEvent
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -171,7 +174,7 @@ class AdsControllerNativeStockTest {
     @Config(qualifiers = "w411dp-h891dp-xxhdpi")
     fun layer_entersAfterPreload_showsStockAd() {
         startAndPreload()
-        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+        val stockAd = deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
         deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
         assertEquals(1, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
 
@@ -182,6 +185,10 @@ class AdsControllerNativeStockTest {
         assertEquals(2, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
         // One display opportunity for the slot and one for the layer (control of the landscape test below).
         assertEquals(List(2) { AdFunnelEvent.Eligible(AdFunnelKind.NATIVE) }, eligibleEvents())
+        // D-07 (plan T-090, question 1: option A): the slot took its stock ad on entry, then gave way to the open
+        // layer, which destroyed that ad.
+        assertEquals("the slot's stock ad is destroyed", 1, stockAd.destroyCount)
+        assertFalse(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
     }
 
     /**
@@ -208,8 +215,9 @@ class AdsControllerNativeStockTest {
 
     /**
      * KB-4 added 2026-11-16: the window changes without the activity being rebuilt (from 411 x 891 to 891 x 411 dp):
-     * the open layer goes and its ad is destroyed (L-061), the slot stays at 126 dp, the line is logged, and no new
-     * display opportunity is reported.
+     * the open layer goes and its ad is destroyed (L-061), the line is logged; the slot, which gave way to the open
+     * layer (D-07, plan T-090), comes back at 106 dp with the ad its stock kept meanwhile, and reports one new display
+     * opportunity (question 2 of plan T-090); the layer reports none.
      */
     @Test
     @Config(qualifiers = "w411dp-h891dp-xxhdpi")
@@ -221,7 +229,7 @@ class AdsControllerNativeStockTest {
         }
         var config by mutableStateOf(window(411, 891))
         startAndPreload()
-        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+        val stockAd = deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
         val layerAd = deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
         composeRule.setContent {
             CompositionLocalProvider(LocalAdsController provides controller, LocalConfiguration provides config) {
@@ -231,6 +239,10 @@ class AdsControllerNativeStockTest {
         composeRule.waitForIdle()
         // Control: with room the layer shows the ad of the stock.
         assertTrue(shownIn(CollapsibleNativeAdTestTags.AD, LAYER_AD))
+        // D-07: the slot gave way to the open layer, its stock ad destroyed.
+        assertEquals("the slot's stock ad is destroyed", 1, stockAd.destroyCount)
+        // The next load of the small stock answers while the slot gives way: the stock keeps it.
+        deliver(AdFormat.NATIVE_SMALL, NEXT_AD)
         val eligibleBefore = eligibleEvents().size
 
         config = window(891, 411)
@@ -238,12 +250,97 @@ class AdsControllerNativeStockTest {
 
         assertFalse("the layer goes", layerDrawn())
         assertEquals("the held ad is destroyed", 1, layerAd.destroyCount)
-        assertTrue(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
+        assertTrue(shownIn(BottomAdBarTestTags.SLOT, NEXT_AD))
         val slot = composeRule.onNodeWithTag(BottomAdBarTestTags.SLOT, useUnmergedTree = true)
             .getUnclippedBoundsInRoot()
-        assertEquals("slot height", 126f, (slot.bottom - slot.top).value, 1f)
+        assertEquals("slot height", 106f, (slot.bottom - slot.top).value, 1f)
         assertTrue(loggedNoRoom("891x411"))
-        assertEquals("no new display opportunity", eligibleBefore, eligibleEvents().size)
+        assertEquals(
+            "one new display opportunity, the slot's; none for the layer",
+            eligibleBefore + 1,
+            eligibleEvents().size,
+        )
+    }
+
+    /**
+     * KB-35 criterion 3, KB-33, O-01 (plan T-090): both stocks hold an ad at entry; the slot gives way to the open
+     * layer while its stock loads the next ad and keeps it; collapsed, the slot shows that ad at once, sends no request
+     * of its own (only the next load of the stock), and reports one new display opportunity.
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h891dp-xxhdpi")
+    fun collapse_slotTakesStock_eligibleOnce() {
+        startAndPreload()
+        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+        deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
+        show { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} }
+        assertTrue(shownIn(CollapsibleNativeAdTestTags.AD, LAYER_AD))
+        val kept = deliver(AdFormat.NATIVE_SMALL, NEXT_AD)
+        val smallBefore = requestsOf(AdFormat.NATIVE_SMALL)
+        val eligibleBefore = eligibleEvents().size
+
+        composeRule.onNodeWithTag(CollapsibleNativeAdTestTags.COLLAPSE, useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+        idle()
+        composeRule.waitForIdle()
+
+        assertFalse("the layer is collapsed", layerDrawn())
+        assertTrue(shownIn(BottomAdBarTestTags.SLOT, NEXT_AD))
+        assertEquals(0, kept.destroyCount)
+        assertEquals("only the next load of the stock", smallBefore + 1, requestsOf(AdFormat.NATIVE_SMALL))
+        assertEquals("one new display opportunity", eligibleBefore + 1, eligibleEvents().size)
+    }
+
+    private fun noRoomLines(window: String): Int = logger.entries.count {
+        it.message == "Collapsible poses_bottom not shown: window $window dp has no room"
+    }
+
+    /**
+     * KB-4 criterion 4, CL-05, MC-14 (plan T-109): on a 411 x 520 dp window at font scale 2.0 the small native leaves
+     * the layer no room, so the layer never takes the ad of the `native_collap` stock, reports no display opportunity
+     * and logs one line; the slot shows its stock ad and reports its own opportunity.
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h520dp-xxhdpi")
+    fun largeText_layerNoRoom_stockKept_noEligible_logged() {
+        startAndPreload()
+        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+        val layerAd = deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
+
+        var roomAtDefault: Dp? = null
+        show {
+            // Control: the same window has room at font scale 1.0, so the missing layer is the text's doing.
+            WithFontScale(1f) { roomAtDefault = BottomAdBarDefaults.collapsibleLayerHeight() }
+            WithFontScale(2f) { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} }
+        }
+
+        assertNotNull("room at font scale 1.0", roomAtDefault)
+        assertTrue(shownIn(BottomAdBarTestTags.SLOT, STOCK_AD))
+        assertFalse("no layer without room", layerDrawn())
+        assertEquals("the stock was not claimed: no next load", 1, requestsOf(AdFormat.NATIVE_COLLAPSIBLE))
+        assertEquals("the stock keeps its ad", 0, layerAd.destroyCount)
+        assertEquals(listOf(AdFunnelEvent.Eligible(AdFunnelKind.NATIVE)), eligibleEvents())
+        assertEquals("one no-room line", 1, noRoomLines("411x520"))
+    }
+
+    /** Control of the test above: the same window at font scale 1.0 has room, the layer shows and reports. */
+    @Test
+    @Config(qualifiers = "w411dp-h520dp-xxhdpi")
+    fun largeText_layerNoRoom_fontScale1_layerShown() {
+        startAndPreload()
+        deliver(AdFormat.NATIVE_SMALL, STOCK_AD)
+        deliver(AdFormat.NATIVE_COLLAPSIBLE, LAYER_AD)
+
+        show { WithFontScale(1f) { BottomAdBarScaffold(AdPlacement.POSES_BOTTOM) {} } }
+
+        assertTrue("the layer shows", layerDrawn())
+        assertTrue(shownIn(CollapsibleNativeAdTestTags.AD, LAYER_AD))
+        assertEquals(
+            "one display opportunity for the slot and one for the layer",
+            List(2) { AdFunnelEvent.Eligible(AdFunnelKind.NATIVE) },
+            eligibleEvents(),
+        )
+        assertEquals("no no-room line", 0, noRoomLines("411x520"))
     }
 
     @Test

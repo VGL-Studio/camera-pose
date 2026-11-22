@@ -231,7 +231,7 @@ class InListAdsTest {
             },
         )
 
-        assertDpEquals("ad row height", 126.dp + 16.dp * 2, bounds("inlist_ad_0").height)
+        assertDpEquals("ad row height", 106.dp + 16.dp * 2, bounds("inlist_ad_0").height)
         composeRule
             .onNode(hasTestTag(NativeAdTestTags.PLACEHOLDER) and hasAnyAncestor(hasTestTag("inlist_ad_0")))
             .assertExists()
@@ -423,7 +423,7 @@ class InListAdsTest {
         secondAnswer.complete(Unit)
         composeRule.waitForIdle()
         composeRule.onNode(hasText(badge) and hasAnyAncestor(hasTestTag("inlist_ad_0"))).assertExists()
-        assertDpEquals("ad row height", 126.dp + 16.dp * 2, bounds("inlist_ad_0").height)
+        assertDpEquals("ad row height", 106.dp + 16.dp * 2, bounds("inlist_ad_0").height)
     }
 
     @Test

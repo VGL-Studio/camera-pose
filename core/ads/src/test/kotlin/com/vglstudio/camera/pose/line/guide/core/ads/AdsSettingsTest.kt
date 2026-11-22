@@ -9,7 +9,7 @@ import org.junit.Test
 
 /**
  * Keys of the ads module (plan T-019): names, types and defaults of docs/ops/ads-business-rules.md, section 10.
- * The defaults are business decisions of the product owner (ADR-0014): change them only with a new decision.
+ * The defaults are business decisions of the product owner (ADR-0045): change them only with a new decision.
  */
 class AdsSettingsTest {
     private val rw = AdPlacementDeclaration(code = "rw_get_item", format = AdFormat.REWARDED)
@@ -68,7 +68,7 @@ class AdsSettingsTest {
 
     @Test
     fun mediationOrder_isStringDefaultMaxAdmob() {
-        // Plan T-068, ADR-0037: the order of the two ad platforms, a name set by the template.
+        // Plan T-068, ADR-0045: the order of the two ad platforms, a name set by the template.
         assertKey(AdsSettings.ADS_MEDIATION_ORDER, "ads_mediation_order", RemoteKey.Type.STRING, "max_admob")
         assertEquals(MediationOrder.DEFAULT.code, AdsSettings.ADS_MEDIATION_ORDER.default)
         assertTrue(AdsSettings.ADS_MEDIATION_ORDER in AdsSettings.all())

@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 private const val TAG = "Ads"
 
 /**
- * The platforms a banner slot of [format] asks, in order (plan T-071, KB-31, ADR-0037): a fixed banner and an MREC
+ * The platforms a banner slot of [format] asks, in order (plan T-071, KB-31, ADR-0045): a fixed banner and an MREC
  * follow [order] with the platforms that have a unit ([admobUnit], [maxUnit]; blank is none); a collapsible banner
  * is AdMob only. Empty: the slot has no frame (B-04). [AdsController.maxReady] is not read here: a list that changed
  * when MAX became ready would rebuild the frame and drop the ad of AdMob it shows.

@@ -20,7 +20,7 @@
     <application>
         <!--
             AppLovinInitProvider runs at process start, before consent. Removed so that no AppLovin code runs before
-            MobileAds.initialize, which starts the adapter only after consent (ADR-0004, ADR-0013).
+            MobileAds.initialize, which starts the adapter only after consent (ADR-0045).
         -->
         <provider
             android:name="com.applovin.sdk.AppLovinInitProvider"
@@ -29,7 +29,7 @@
 
         <!--
             AudienceNetworkContentProvider starts the Meta SDK at process start, before consent. Removed so that Meta
-            starts only through MobileAds.initialize (ADR-0004, ADR-0026 section 3).
+            starts only through MobileAds.initialize (ADR-0045 section 3).
         -->
         <provider
             android:name="com.facebook.ads.AudienceNetworkContentProvider"

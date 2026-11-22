@@ -10,7 +10,7 @@ import org.junit.Test
 
 /**
  * AppLovin MAX starts once, after the consent gate and after AdMob is ready, only with an SDK key and an order that
- * has MAX (plan T-068, KB-31, ADR-0037, L-072). [MaxSdkStarter] is the only caller of [MaxPlatform.initialize].
+ * has MAX (plan T-068, KB-31, ADR-0045, L-072). [MaxSdkStarter] is the only caller of [MaxPlatform.initialize].
  */
 class MaxSdkStarterTest {
     private val logger = RecordingAppLogger()
@@ -115,7 +115,7 @@ class MaxSdkStarterTest {
         val warnings = logger.entries.filter { "already started by AdMob mediation" in it.message }
         assertEquals(logger.entries.toString(), 1, warnings.size)
         assertEquals(LogLevel.WARN, warnings.single().level)
-        assertTrue(warnings.single().message, "ADR-0037" in warnings.single().message)
+        assertTrue(warnings.single().message, "ADR-0045" in warnings.single().message)
         assertEquals(1, platform.calls)
 
         // Control: an SDK not yet started gives no warning.
@@ -140,7 +140,7 @@ class MaxSdkStarterTest {
         assertFalse(MaxConfig(FAKE_KEY).toString(), FAKE_KEY in MaxConfig(FAKE_KEY).toString())
     }
 
-    /** The consent gate is never assumed open: every caller passes it (ADR-0037, question 9 of the plan). */
+    /** The consent gate is never assumed open: every caller passes it (ADR-0045, question 9 of the plan). */
     @Test
     fun gateAllowed_hasNoDefault() {
         fun hasDefaultArguments(type: Class<*>) = type.declaredConstructors.any { constructor ->

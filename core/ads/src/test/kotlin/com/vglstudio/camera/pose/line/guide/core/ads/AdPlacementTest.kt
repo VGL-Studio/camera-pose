@@ -132,7 +132,7 @@ class AdPlacementTest {
 
     @Test
     fun collapsibleLayerOff_onlyForNativeSmallBottomBar() {
-        // Spec ads, question 19, point e (plan T-094): a bottom bar without the floating layer.
+        // A bottom bar without the floating layer (D-01): native small bottom bars only.
         val bar = AdPlacementDeclaration("x", AdFormat.NATIVE_SMALL, collapsibleLayer = false)
         assertFalse(bar.collapsibleLayer)
         // Control: the default keeps the layer, so the value above comes from the declaration.

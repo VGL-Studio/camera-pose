@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 private const val TAG = "Ads"
 
 /**
- * KB-27, ADR-0036 decision 1, question 36 of the ads spec: an ad inside a screen (banner, native small, collapsible
+ * KB-27, ADR-0045 section 7.1, question 36 of the ads spec: an ad inside a screen (banner, native small, collapsible
  * layer, pool cells) may send, refresh or retry only while its screen [shown] and no full-screen ad drawn over the app
  * [covered] it (the showing flag of the full-screen gate, F-01). The one condition every send path reads (L-072).
  */

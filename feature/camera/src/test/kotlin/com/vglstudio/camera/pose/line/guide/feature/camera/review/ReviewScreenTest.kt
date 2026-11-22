@@ -313,8 +313,8 @@ class ReviewScreenTest {
     }
 
     // The bottom ad bar of the review screen (plan T-094; spec camera, KB-9 criteria 5 to 9): a fake slot as high as
-    // the framework's (126 dp at the standard frame, plan T-098) in the bar of the framework (fakeAdBar). Numbers from
-    // section 3.5 of plan T-098, measured from the top of the test frame (no status bar, so 24 dp higher than
+    // the framework's (106 dp at the default font scale on every frame, plan T-102) in the bar of the framework
+    // (fakeAdBar). Numbers from section 3.5 of plan T-102, measured from the top of the test frame (no status bar, so 24 dp higher than
     // design/context/ReviewScreen_ad_dark.md; the button is 56 high, not 60).
 
     private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
@@ -338,7 +338,7 @@ class ReviewScreenTest {
     }
 
     @Test
-    fun adBar_slotAtBottom_photoShrinks_saveMovesUp() {
+    fun adBar_slotAtBottom_photoKept_saveMovesUp() {
         var withSlot by mutableStateOf(false)
         setScreen(Ready(PATH, SaveStatus.NOT_SAVED), adBar = fakeAdBar(withSlot = { withSlot }))
         val photoBefore = bounds(ReviewTestTags.PHOTO)
@@ -348,26 +348,26 @@ class ReviewScreenTest {
 
         val root = composeRule.onRoot().getUnclippedBoundsInRoot()
         val slot = bounds(FAKE_AD_SLOT)
-        assertNear("slot height", 126f, slot.height, 0.5f)
+        assertNear("slot height", 106f, slot.height, 0.5f)
         assertNear("slot to the bottom", 16f, root.bottom - slot.bottom, 0.5f)
-        assertNear("slot top", 749f, slot.top, 0.5f)
+        assertNear("slot top", 769f, slot.top, 0.5f)
         assertActionsAndSaveAbove(slot)
         val save = bounds(ReviewTestTags.SAVE)
-        assertNear("save top", 673f, save.top, 0.5f)
-        assertNear("save bottom", 729f, save.bottom, 0.5f)
+        assertNear("save top", 693f, save.top, 0.5f)
+        assertNear("save bottom", 749f, save.bottom, 0.5f)
         assertNear("save to the slot", 20f, slot.top - save.bottom, 0.5f)
-        assertNear("save moved up", 142f, saveBefore.top - save.top, 0.5f)
-        // The slot takes more than the room under the photo: the photo shrinks to fit, keeping 3:4, and the main button
-        // moves up 142.
+        assertNear("save moved up", 122f, saveBefore.top - save.top, 0.5f)
+        // The slot fits in the room under the photo: the photo keeps its size without the bar (bound by the width),
+        // keeping 3:4, and the main button moves up 122.
         val photo = bounds(ReviewTestTags.PHOTO)
-        assertNear("photo width", 372.75f, photo.width, 1f)
-        assertNear("photo height", 497f, photo.height, 1f)
+        assertNear("photo width", 379f, photo.width, 1f)
+        assertNear("photo height", 505.33f, photo.height, 1f)
         assertNear("photo top", 64f, photo.top, 1f)
         assertNear("photo top kept", photoBefore.top.value, photo.top, 0.5f)
         assertPhoto3to4(photo)
-        assertTrue("photo height ${photo.height} < before ${photoBefore.height}", photo.height < photoBefore.height)
+        assertEquals(photoBefore.height.value, photo.height.value, 0.5f)
         val actions = bounds(ReviewTestTags.ACTIONS)
-        assertNear("actions top", 585f, actions.top, 1f)
+        assertNear("actions top", 593.33f, actions.top, 1f)
     }
 
     @Test
@@ -386,14 +386,14 @@ class ReviewScreenTest {
         setScreen(Ready(PATH, SaveStatus.SAVED), adBar = fakeAdBar())
         // Opened from the thumbnail of the last photo: saved, the main button off; laid out like NOT_SAVED.
         assertSlotStays("SAVED")
-        assertNear("SAVED save top", 673f, bounds(ReviewTestTags.SAVE).top, 0.5f)
-        assertNear("SAVED photo height", 497f, bounds(ReviewTestTags.PHOTO).height, 1f)
+        assertNear("SAVED save top", 693f, bounds(ReviewTestTags.SAVE).top, 0.5f)
+        assertNear("SAVED photo height", 505.33f, bounds(ReviewTestTags.PHOTO).height, 1f)
 
         update { screenState = Ready(PATH, SaveStatus.FAILED_STORAGE_FULL) }
         assertSlotStays("FAILED_STORAGE_FULL")
         val photo = bounds(ReviewTestTags.PHOTO)
-        assertNear("FAILED_STORAGE_FULL photo width", 324.75f, photo.width, 1f)
-        assertNear("FAILED_STORAGE_FULL photo height", 433f, photo.height, 1f)
+        assertNear("FAILED_STORAGE_FULL photo width", 339.67f, photo.width, 1f)
+        assertNear("FAILED_STORAGE_FULL photo height", 453f, photo.height, 1f)
         assertNear("FAILED_STORAGE_FULL error height", 48f, bounds(ReviewTestTags.SAVE_ERROR).height, 1f)
 
         update { screenState = Ready(PATH, SaveStatus.PERMISSION_BLOCKED) }
@@ -414,7 +414,7 @@ class ReviewScreenTest {
 
     private fun assertSlotStays(state: String) {
         val slot = bounds(FAKE_AD_SLOT)
-        assertNear("$state slot top", 749f, slot.top, 0.5f)
+        assertNear("$state slot top", 769f, slot.top, 0.5f)
         if (composeRule.onAllNodesWithTag(ReviewTestTags.SAVE_ERROR).fetchSemanticsNodes().isNotEmpty()) {
             assertAbove("$state error", bounds(ReviewTestTags.SAVE_ERROR), slot)
         }
@@ -519,7 +519,7 @@ class ReviewScreenTest {
 
         // Control: the same screen in a bar with a slot keeps the slot and its margin under the content.
         update { real = false }
-        assertNear("control: save to the bottom", 162f, root.bottom - bounds(ReviewTestTags.SAVE).bottom, 0.5f)
+        assertNear("control: save to the bottom", 142f, root.bottom - bounds(ReviewTestTags.SAVE).bottom, 0.5f)
     }
 
     @Test
@@ -527,8 +527,8 @@ class ReviewScreenTest {
         setScreen(Ready(PATH, SaveStatus.PERMISSION_BLOCKED), adBar = fakeAdBar())
         val slot = bounds(FAKE_AD_SLOT)
         val photo = bounds(ReviewTestTags.PHOTO)
-        assertNear("photo width", 309.67f, photo.width, 1f)
-        assertNear("photo height", 412.9f, photo.height, 1f)
+        assertNear("photo width", 324.67f, photo.width, 1f)
+        assertNear("photo height", 433f, photo.height, 1f)
         assertPhoto3to4(photo)
         val error = bounds(ReviewTestTags.SAVE_ERROR)
         assertNear("error height", 68f, error.height, 1f)

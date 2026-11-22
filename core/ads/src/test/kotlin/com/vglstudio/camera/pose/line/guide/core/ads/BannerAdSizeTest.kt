@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * The size of each banner format (plan T-067, ADR-0038): a fixed banner at the anchored adaptive size of JBase
+ * The size of each banner format (plan T-067, ADR-0045): a fixed banner at the anchored adaptive size of JBase
  * (B-01, KB-18, KB-32), a collapsible banner at the large anchored size (B-03), and the height the banner slot of a
  * bottom bar reports for the space it keeps (KB-17).
  */
@@ -121,7 +121,7 @@ class BannerAdSizeTest {
     fun bottomBannerSlot_reportsAnchoredHeight() {
         val reported = mutableListOf<Dp>()
         composeRule.setContent {
-            CompositionLocalProvider(LocalAdsController provides testAdsController()) {
+            CompositionLocalProvider(LocalAdsController provides barController()) {
                 Box(Modifier.width(411.dp)) {
                     BottomBannerSlot(
                         AdPlacement.POSES_BOTTOM,
@@ -144,9 +144,9 @@ class BannerAdSizeTest {
         // Plan T-071: the bar keeps the height of the frame of two platforms, the taller one (here MAX, 90 dp).
         val withMax = mutableListOf<Dp>()
         val withoutMax = mutableListOf<Dp>()
-        val maxController = testAdsController(maxConfig = MaxConfig("key", "banner=u1"))
+        val maxController = barController(maxConfig = MaxConfig("key", "banner=u1"))
             .also { it.maxBannerHeightForTest = { _, _ -> 90 } }
-        val admobController = testAdsController(maxConfig = MaxConfig.NONE)
+        val admobController = barController(maxConfig = MaxConfig.NONE)
             .also { it.maxBannerHeightForTest = { _, _ -> 90 } }
         composeRule.setContent {
             Column {
@@ -165,8 +165,8 @@ class BannerAdSizeTest {
     @Test
     fun admobOrder_withMaxKey_noMaxPlatform_heightIsAdmob() {
         // KB-31: with a MAX key but ads_mediation_order admob, the frame has no MAX platform.
-        val admobOrder = FakeRemoteSettings().apply { set(AdsSettings.ADS_MEDIATION_ORDER, "admob") }
-        val maxAdmobOrder = FakeRemoteSettings().apply { set(AdsSettings.ADS_MEDIATION_ORDER, "max_admob") }
+        val admobOrder = barSettings().apply { set(AdsSettings.ADS_MEDIATION_ORDER, "admob") }
+        val maxAdmobOrder = barSettings().apply { set(AdsSettings.ADS_MEDIATION_ORDER, "max_admob") }
         val admobReported = mutableListOf<Dp>()
         val maxAdmobReported = mutableListOf<Dp>()
         fun controller(settings: FakeRemoteSettings) = testAdsController(
@@ -176,6 +176,7 @@ class BannerAdSizeTest {
             it.maxBannerHeightForTest = { _, _ -> 90 }
             // The remote keys reach the controller once it started (ads_mediation_order is max_admob before).
             it.start(ApplicationProvider.getApplicationContext(), AppActivityFilter { true })
+            it.openConsentGateForTest()
         }
         val admobController = controller(admobOrder)
         val maxAdmobController = controller(maxAdmobOrder)
@@ -192,6 +193,18 @@ class BannerAdSizeTest {
         assertEquals(56.dp, admobReported.last())
         assertEquals(90.dp, maxAdmobReported.last())
     }
+
+    /**
+     * Remote settings with the bar's placement switched on: the banner slot reports the height its frame takes
+     * (D-04), so its frame must be drawn (placement on, consent gate open) for the height to be the frame's.
+     */
+    private fun barSettings(): FakeRemoteSettings =
+        FakeRemoteSettings().apply { set(AdsSettings.placementEnabled(AdPlacement.POSES_BOTTOM), true) }
+
+    /** A controller whose bar banner draws its frame: placement on ([barSettings]), consent gate open. */
+    private fun barController(maxConfig: MaxConfig = MaxConfig.NONE): AdsController =
+        testAdsController(flags = DefaultAdsFlags(barSettings()), maxConfig = maxConfig)
+            .also { it.openConsentGateForTest() }
 
     /** The banner slot of a bottom bar 360 dp wide under [controller], its heights put in [reported]. */
     @Composable

@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
  * Returns an action that shows the full-screen ad of [placement] (interstitial or native full screen) if the
  * full-screen gate allows it: consent, placement switches, one ad at a time, a loaded ad, and the `ads_interval` mark
  * of the placement's group (docs/ops/ads-business-rules.md, sections 3 and 4). Call the action at a natural break
- * only (ADR-0013). [onFinished] runs exactly once per call: at once when nothing shows, else after the ad has
+ * only (ADR-0045). [onFinished] runs exactly once per call: at once when nothing shows, else after the ad has
  * closed (N-02); with no ads controller (tests, previews) it runs at once.
  */
 @Composable

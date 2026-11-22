@@ -5,7 +5,7 @@ feature: ads
 spec: features/ads/spec.md   # câu 22, ý a tới g (Nhật trả lời và xác nhận 2026-11-21)
 scenarios: []                # spec ads không có kịch bản riêng (mục 3); ticket đổi KB-6 của spec poses (tiêu chí 2, 3, lớp nổi) và thanh đáy của KB-1 spec settings, KB-9 và KB-11 spec camera
 owner: Nhật
-status: approved
+status: on-staging
 risk: high
 size: L
 depends_on: []

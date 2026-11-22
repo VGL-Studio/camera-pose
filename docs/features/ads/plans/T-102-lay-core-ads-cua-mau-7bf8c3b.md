@@ -1,7 +1,7 @@
 ---
 ticket: T-102
 title: Lấy core/ads và hai tài liệu ads của dự án mẫu lên mốc 7bf8c3b (thẻ native hai tầng, luật thanh đáy mới)
-status: approved             # draft | approved | stopped | done
+status: done                 # draft | approved | stopped | done
 version: 1                   # tăng khi plan được sửa lại sau phản hồi hoặc sau khi dừng
 risk_score:                  # chạm điểm chặn: để trống
 risk_level: high             # low | medium | high
@@ -313,3 +313,15 @@ So với thiết kế: frame thiết kế vẽ thanh trạng thái 24 dp (8 dp �
   - AI ghi theo lời Tuấn (2026-11-22), trong cùng phiên, ngay sau lời duyệt của Nhật và khi plan ở commit 320160c: "Tôi là Tuấn, tôi duyệt."
 
 ## 10. Nhật ký thực hiện
+
+### RUN-20261122-01, phiên bản plan 1
+
+- **Kết quả:** đã merge (PR #377, commit merge `ae98d02f`, 2026-11-22 05:34 UTC).
+- **Nhánh, PR:** `claude/T-102-lay-core-ads` (tạo từ `46e13a14`, đầu nhánh take đúng như mục 7; gộp `origin/main` không xung đột, `2231acd3`), PR #377.
+- **Đã làm:** commit `35f42d98` (test), `3cd21cbe` (code: `POSE_DETAIL_BOTTOM` `collapsibleLayer = false`; `PosesRoute` bọc `InContentAds(listOf(AdPlacement.POSES_IN_COLLECTION))` bên ngoài `BottomAdBarScaffold`; `docs/ops/manual-test.md` mục 11.1), `2c3ff2d6` (đúng 12 ảnh chuẩn của mục 3.2), `d954cd0f` (`design/review/` của poses, camera, settings). `docs/foundation.md` không đổi sau khi gộp. Bước 3 đến 5 do phiên con làm trong worktree `../task-T-102`.
+- **Test viết trước:** 3 test đỏ đúng lý do trước code: `AdPlacementAppTest.bottomBarsWithoutLayer_reviewAndPoseDetail` (dòng `assertFalse` của `POSE_DETAIL_BOTTOM`), `AdPlacementAppTest.reviewBottom_usesNoCollapsibleStock` (câu mới `assertFalse(POSE_DETAIL_BOTTOM.usesStock(NATIVE_COLLAPSIBLE))`), `PosesInContentAdsTest.posesRoute_wrapsBottomBarInInContentAds` ("PosesScreen.kt imports InContentAds"); `scanner_findsTheRealCall_butNotInCommentsOrStrings` qua (kiểm bộ quét). Test đo của feature qua ngay (ngoại lệ mục 4); đối chứng `SLOT_HEIGHT = 126f`: `bottomBar_lastCardScrollsAboveSlot` đỏ ("slot height expected:<126.0> but was:<106.0>"). Đột biến: thay `InContentAds(listOf(...)) {` bằng `run {` thì `posesRoute_wrapsBottomBarInInContentAds` đỏ ("PosesRoute does not call InContentAds { ... }"); không dùng phương án dự phòng mục 3.4. 1 test viết chặt bằng đối chứng. `testDebugUnitTest testStagingDebugUnitTest --continue` sau khi biên dịch được: chỉ 3 test trên đỏ. `PosesInContentAdsTest` chép nguyên `codeOnly` của `LeaveAppCallSitesTest`.
+- **Rà soát độc lập:** 0 chặn, 0 nên sửa, 5 ghi chú: (1) `ReviewScreen_ad_dark` lệch khoảng 24 dp phía trên vì frame có thanh trạng thái (mục 4), không sửa README; (2) ô ảnh của màn xem lại thiếu hình người giữ chỗ như thiết kế, có từ trước; (3) thư viện: hàng thẻ thứ ba lộ ở lề 16 dp quanh khe, có từ trước; (4) văn bản mẫu của `scanner_findsTheRealCall_butNotInCommentsOrStrings` chưa có mẫu âm cho "`BottomAdBarScaffold` ngoài khối" và "sai vị trí" (đủ so với mục 4); (5) MC-13: luồng giới thiệu không bọc `InContentAds`, không hại, ngoài mục 3.2. Rà soát so danh sách hàm của 6 file test `core/ads` với mẫu tại `7bf8c3b`: test không còn so với main là phần lấy nguyên từ mẫu.
+- **Kết quả CI:** `pr-check` lần chạy 44987774009: lần đầu đỏ ở `build-and-test` vì Robolectric không tải được `android-all` (`MavenArtifactFetcher.java:130`, `IOException`), mọi lớp test Robolectric thất bại ở `classMethod`; chạy lại job đỏ: xanh. `scripts/check.sh` trên máy: qua (3691 test JVM, 0 lỗi; 178 ảnh).
+- **Lệch so với plan:** Không có. Câu khẳng định cũ viết lại theo đúng bảng mục 3.5 (ADR-0031), ba test đổi tên theo mục 3.5. Ghi chú cách làm: phiên con sửa `AdPlacementAppTest.kt`, `ReviewScreenUnfoldedTest.kt` (và vài dòng số của `ReviewScreenTest.kt`) bằng thay chuỗi đúng một lần bằng script/`sed`, không ghi đè cả file; diff chỉ có các dòng của mục 3.5.
+- **Việc còn lại:** thử tay trên staging (`docs/ops/manual-test.md` mục 11.1, bước 1, 2, 9, 10, hai dòng máy gập, dòng tắt ô lưới).
+- **Cần người xem:** 12 ảnh chuẩn `_ad`; ảnh so sánh `design/review/` của poses, camera, settings; hai dòng thử tay của bước 10 (ô lưới bật: thư viện không có lớp nổi; ô lưới tắt: có lớp nổi).

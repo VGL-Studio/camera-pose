@@ -566,7 +566,7 @@ class PosesScreenTest {
     }
 
     // KB-6: native bottom bar (plan T-079, section 4). The bar of the framework with a fake slot as high as the
-    // framework's (126 dp at the standard frame, plan T-098).
+    // framework's (106 dp at the default font scale on every frame, plan T-102).
 
     @Test
     fun bottomBar_lastCardScrollsAboveSlot() {
@@ -645,7 +645,7 @@ class PosesScreenTest {
         real = false
         composeRule.waitForIdle()
         scrollToLastCard()
-        assertEquals("control: with a slot", 158f, root.bottom.value - lastRowBottom(), 0.5f)
+        assertEquals("control: with a slot", 138f, root.bottom.value - lastRowBottom(), 0.5f)
     }
 
     // Ad cells of the grid (spec poses KB-6, criteria 5 and 6; plan T-080, section 4)
@@ -810,7 +810,7 @@ class PosesScreenTest {
         /** The index of the ad cell after card 8 in the grid (cards 1 to 8, then the cell). */
         const val AD_INDEX = 8
         const val SLOT = "fake_ad_slot"
-        const val SLOT_HEIGHT = 126f
+        const val SLOT_HEIGHT = 106f
 
         // The tag of the real slot of the framework (BottomAdBarTestTags, internal to :core:ads).
         const val REAL_SLOT = "bottom_ad_bar_slot"
